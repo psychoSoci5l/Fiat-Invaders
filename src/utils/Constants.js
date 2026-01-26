@@ -5,8 +5,7 @@ window.Game.VERSION = "v2.1.0 Refactored (No-Server)";
 
 window.Game.TEXTS = {
     EN: {
-        SCORE: "SCORE", LEVEL: "LEVEL", NORMAL: "NORMAL",
-        INSERT_COIN: "INSERT COIN",
+        SCORE: "SCORE", LEVEL: "LEVEL", LIVES: "LIVES", NORMAL: "NORMAL",
         INSERT_COIN: "INSERT COIN",
         START_HINT: "📱 TAP TO START • TOUCH SIDES MOVES • ICON SHIELDS",
         MOBILE_HINT: "📱 TOUCH SIDES to Move • ICON for Shield",
@@ -17,11 +16,10 @@ window.Game.TEXTS = {
         COMBO_LOST: "COMBO LOST", COMBO_BREAK: "COMBO BREAK",
         UPGRADE: "UPGRADE LVL", MAX_POWER: "MAX POWER", HODL: "HODL!",
         SETTINGS: "SETTINGS", CLOSE: "CLOSE", LANG: "LANGUAGE",
-        PAUSED: "PAUSED", RESUME: "RESUME", ABORT: "ABORT MISSION"
+        PAUSED: "PAUSED", RESUME: "RESUME", EXIT_TITLE: "EXIT TO TITLE"
     },
     IT: {
-        SCORE: "PUNTI", LEVEL: "LIVELLO", NORMAL: "NORMALE",
-        INSERT_COIN: "INSERISCI GETTONE",
+        SCORE: "PUNTI", LEVEL: "LIVELLO", LIVES: "VITE", NORMAL: "NORMALE",
         INSERT_COIN: "INSERISCI GETTONE",
         START_HINT: "📱 TOCCA PER INIZIARE • LATI: MUOVI • ICONA: SCUDO",
         MOBILE_HINT: "📱 TOCCA LATI: Muovi • ICONA: Scudo",
@@ -32,7 +30,7 @@ window.Game.TEXTS = {
         COMBO_LOST: "COMBO PERSA", COMBO_BREAK: "COMBO ROTTA",
         UPGRADE: "POTENZIAMENTO LV", MAX_POWER: "MASSIMA POTENZA", HODL: "HODL!",
         SETTINGS: "IMPOSTAZIONI", CLOSE: "CHIUDI", LANG: "LINGUA",
-        PAUSED: "PAUSA", RESUME: "RIPRENDI", ABORT: "ABBANDONA"
+        PAUSED: "PAUSA", RESUME: "RIPRENDI", EXIT_TITLE: "ESCI AL TITOLO"
     }
 };
 
@@ -60,6 +58,34 @@ window.Game.SHIPS = {
     BTC: { speed: 400, hp: 3, fireRate: 0.18, color: '#F7931A', hitboxSize: 30 },
     ETH: { speed: 300, hp: 4, fireRate: 0.45, color: '#8c7ae6', hitboxSize: 40 }, // Nerfed FireRate (0.30 -> 0.45)
     SOL: { speed: 550, hp: 2, fireRate: 0.12, color: '#00d2d3', hitboxSize: 15 }  // Buffed Hitbox (Tiny)
+};
+
+window.Game.DROPS = {
+    CHANCE: 0.10, // Reduced from 0.15 (15% -> 10%)
+    TABLE: [
+        { type: 'RAPID', weight: 0.4 },
+        { type: 'SPREAD', weight: 0.7 },
+        { type: 'SHIELD', weight: 1.0 }
+    ]
+};
+
+window.Game.WAVES = {
+    SPACING: 60,
+    PATTERNS: {
+        1: 'RECT',
+        2: 'V_SHAPE',
+        3: 'SINE_WAVE',
+        4: 'COLUMNS',
+        PANIC: 'PANIC'
+    }
+};
+
+window.Game.DIFFICULTY = {
+    FIRE_RATE_BASE: 2.6, // Increased from 2.0 (Slower fire)
+    FIRE_RATE_VAR: 3.9,  // Increased from 3.0 (More variance)
+    PROJ_SPEED: 300,
+    BEAR_MULT: 1.5,
+    HIT_R_OFFSET: 10
 };
 
 window.Game.ASSETS = {

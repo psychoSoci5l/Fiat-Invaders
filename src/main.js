@@ -31,7 +31,9 @@ function loadAssets() {
     for (const [key, src] of Object.entries(assets)) {
         const img = new Image();
         img.src = src;
-        img.onload = () => { loaded++; console.log(`Loaded ${key}`); };
+        img.src = src;
+        img.onload = () => { loaded++; /* console.log(`Loaded ${key}`); */ };
+        images[key] = img;
         images[key] = img;
     }
     window.Game.images = images; // Expose globally
@@ -96,11 +98,10 @@ function init() {
     });
 
     // Mute Button Logic (Class-based for multiple instances)
-    // Mute Button Logic (Class-based for multiple instances)
     document.querySelectorAll('.mute-toggle').forEach(btn => {
         const handleMute = (e) => {
             e.stopPropagation();
-            if (e.type === 'touchstart') e.preventDefault(); // Prevent double firing
+            if (e.type === 'touchstart') e.preventDefault(); // Prevent double firing & phantom click
             const isMuted = audioSys.toggleMute();
             updateMuteUI(isMuted);
         };
@@ -113,17 +114,18 @@ function init() {
 
     // GLOBAL AUDIO UNLOCKER: Catch-all for any interaction
     const unlockAudio = () => {
+        if (!audioSys.ctx) audioSys.init(); // Force Create
         if (audioSys.ctx && audioSys.ctx.state === 'suspended') {
+            audioSys.unlockWebAudio(); // Apply iOS Hack
             audioSys.ctx.resume().then(() => {
-                console.log("Audio Unlocked Globally");
+                // Audio Unlocked Globally
                 updateMuteUI(false);
             });
         }
-        // Remove self after success? Or keep just in case? 
-        // Better to remove to avoid spam, but state check prevents spam.
     };
     document.addEventListener('click', unlockAudio);
     document.addEventListener('touchstart', unlockAudio);
+    document.addEventListener('touchend', unlockAudio);
 
     resize();
     window.addEventListener('resize', resize);
@@ -194,12 +196,39 @@ function resize() {
 function updateUIText() {
     if (document.getElementById('version-tag')) document.getElementById('version-tag').innerText = Constants.VERSION;
     if (ui.langBtn) ui.langBtn.innerText = currentLang;
+
+    // Intro
     const btnInsert = document.querySelector('#intro-screen .btn-coin');
     if (btnInsert) btnInsert.innerText = t('INSERT_COIN');
+    const startHint = document.querySelector('#intro-screen .subtitle');
+    // if (startHint) startHint.innerText = t('START_HINT'); // Or keep "PANIC SELLING UPDATE"? Let's keep specific title.
+
+    // HUD
+    if (document.querySelector('.hud-score .label')) document.querySelector('.hud-score .label').innerText = t('SCORE');
+    if (document.querySelector('.hud-stat.right .label')) document.querySelector('.hud-stat.right .label').innerText = t('LEVEL');
+    if (document.querySelector('.hud-stat.left .label')) document.querySelector('.hud-stat.left .label').innerText = t('LIVES');
+
+    // Pause
     const pauseTitle = document.querySelector('#pause-screen .neon-title');
     if (pauseTitle) pauseTitle.innerText = t('PAUSED');
-    if (document.querySelector('.left-module .label')) document.querySelector('.left-module .label').innerText = t('SCORE');
-    if (document.querySelector('.right-module .label')) document.querySelector('.right-module .label').innerText = t('LEVEL');
+    const resumeBtn = document.querySelector('#pause-screen .btn-coin:first-of-type');
+    if (resumeBtn) resumeBtn.innerText = t('RESUME');
+    const exitBtn = document.querySelector('#pause-screen .btn-coin:last-of-type');
+    if (exitBtn) exitBtn.innerText = t('EXIT_TITLE');
+
+    // Game Over
+    const goTitle = document.querySelector('#gameover-screen h1');
+    if (goTitle) goTitle.innerText = t('GAME_OVER');
+    const goBtn = document.querySelector('#gameover-screen .btn-coin');
+    if (goBtn) goBtn.innerText = t('RESTART');
+
+    // Settings
+    const setHeader = document.querySelector('#settings-modal h2');
+    if (setHeader) setHeader.innerText = t('SETTINGS');
+    const closeBtn = document.querySelector('#settings-modal .btn-coin.mini');
+    if (closeBtn) closeBtn.innerText = t('CLOSE');
+    const LangLabel = document.querySelector('.setting-row span');
+    if (LangLabel) LangLabel.innerText = t('LANG') + ":";
 }
 
 window.toggleLang = function () { currentLang = (currentLang === 'EN') ? 'IT' : 'EN'; updateUIText(); };
@@ -237,6 +266,21 @@ function selectShip(type) {
 }
 window.selectShip = selectShip;
 
+window.nextLevel = function () {
+    setStyle('level-complete-screen', 'display', 'none');
+    level++;
+    setUI('lvlVal', level);
+
+    // Difficulty Scaling
+    gridSpeed += 10;
+
+    waveMgr.reset();
+    gameState = 'PLAY'; // Or go via Intermission? Let's go straight to ACTION!
+    startIntermission("STARTING CYCLE " + level); // Actually Intermission is good for pacing
+
+    audioSys.startMusic();
+};
+
 window.toggleBearMode = function () {
     isBearMarket = !isBearMarket;
     const btn = document.querySelector('.btn-bear');
@@ -250,6 +294,11 @@ window.toggleBearMode = function () {
         if (btn) btn.innerHTML = "🐻 BEAR MARKET";
         if (btn) btn.style.color = "#fff";
     }
+};
+
+window.restartGame = function () {
+    togglePause(); // Unpause first to clear state
+    startGame(); // Reset and Run
 };
 
 function updateMuteUI(isMuted) {
@@ -285,6 +334,7 @@ function startGame() {
 
     score = 0; displayScore = 0; level = 1; lives = 3; setUI('scoreVal', '0'); setUI('lvlVal', '1'); setUI('livesText', lives);
     bullets = []; enemies = []; enemyBullets = []; powerUps = []; particles = []; floatingTexts = []; muzzleFlashes = []; boss = null;
+    G.enemies = enemies; // Expose for Boss Spawning logic
 
     waveMgr.reset();
     gridDir = 1;
@@ -326,13 +376,17 @@ function startIntermission(msgOverride) {
 function spawnBoss() {
     // hp is handled inside Boss class now (or pass level?)
     boss = new G.Boss(gameWidth, gameHeight);
+
     // boss.configure(level)? Currently Boss scales phases by HP pct, but maxHp is fixed 500 in class.
     // Let's allow scaling via a method or constructor if needed. 
     // For now, default Boss is fine.
-    boss.hp = 300 * level; // Scale HP by level
+    // Balanced HP: 100 on Lv1, 150 Lv2, 200 Lv3...
+    boss.hp = 50 + (level * 50);
     boss.maxHp = boss.hp;
 
     enemies = [];
+    if (window.Game) window.Game.enemies = enemies; // Ensure Global Sync
+
     addText(t('BOSS_ENTER'), gameWidth / 2, gameHeight / 2, '#FFD700', 40); shake = 20; audioSys.play('bossSpawn');
 }
 
@@ -398,7 +452,7 @@ function updateBullets(dt) {
             bullets.splice(i, 1);
         } else {
             if (boss && boss.active && b.x > boss.x && b.x < boss.x + boss.width && b.y > boss.y && b.y < boss.y + boss.height) {
-                boss.hp -= (b.isHodl ? 2 : 1);
+                boss.damage(b.isHodl ? 2 : 1);
                 if (!b.penetration) {
                     b.markedForDeletion = true;
                     G.Bullet.Pool.release(b);
@@ -407,9 +461,15 @@ function updateBullets(dt) {
                 if (boss.hp <= 0) {
                     score += 5000; boss.active = false; boss = null; shake = 50; audioSys.play('explosion');
                     addText("MARKET CONQUERED", gameWidth / 2, gameHeight / 2, '#FFD700', 50);
-                    level++; setUI('lvlVal', level); addText("LEVEL " + level + " REACHED!", gameWidth / 2, gameHeight / 2, '#00ff00', 40);
-                    waveMgr.reset(); gridSpeed += 15;
-                    startIntermission("MARKET CYCLE " + Math.ceil(level / 3));
+
+                    // Trigger Level Complete Screen
+                    setTimeout(() => {
+                        gameState = 'LEVEL_COMPLETE';
+                        setStyle('level-complete-screen', 'display', 'flex');
+                        audioSys.stopMusic(); // Quiet moment of victory
+                        if (audioSys.ctx && audioSys.ctx.resume) audioSys.ctx.resume(); // Ensure active
+                        audioSys.play('coin'); // Ching!
+                    }, 1500); // 1.5s delay to see explosion
                 }
             } else {
                 checkBulletCollisions(b, i);
@@ -458,10 +518,15 @@ function checkBulletCollisions(b, bIdx) {
                 createExplosion(e.x, e.y, e.color, 12);
                 createScoreParticles(e.x, e.y, e.color); // JUICE: Fly to score
 
-                // DROP LOGIC
-                if (Math.random() < 0.15) { // 15% Chance
+                // DROP LOGIC (Modular)
+                if (Math.random() < G.DROPS.CHANCE) {
                     const r = Math.random();
-                    const type = r < 0.4 ? 'RAPID' : (r < 0.7 ? 'SPREAD' : 'SHIELD');
+                    // Simple table lookup
+                    const table = G.DROPS.TABLE;
+                    let type = 'SHIELD'; // Default
+                    if (r < table[0].weight) type = table[0].type;
+                    else if (r < table[1].weight) type = table[1].type;
+
                     powerUps.push(new G.PowerUp(e.x, e.y, type));
                 }
             }
@@ -481,12 +546,18 @@ function updateEnemies(dt) {
     let hitEdge = false;
     const speedMult = isBearMarket ? 1.5 : 1.0;
 
+    // Dynamic Difficulty: Enemies speed up as they die (Classic Space Invaders)
+    // 0% dead -> 1.0x, 90% dead -> 2.5x
+    const totalEnemies = waveMgr.lastSpawnCount || 20; // Need to track this in WaveManager
+    const alivePct = enemies.length / Math.max(1, totalEnemies);
+    const frenzyMult = 1.0 + (1.0 - alivePct) * 1.5;
+
     enemies.forEach(e => {
-        e.update(dt, totalTime, lastWavePattern, gridSpeed * speedMult, gridDir);
+        e.update(dt, totalTime, lastWavePattern, gridSpeed * speedMult * frenzyMult, gridDir);
         if ((gridDir === 1 && e.x > gameWidth - 20) || (gridDir === -1 && e.x < 20)) hitEdge = true;
 
         // More aggressive fire in Bear Market
-        const bearAggro = isBearMarket ? 1.5 : 1.0;
+        const bearAggro = isBearMarket ? G.DIFFICULTY.BEAR_MULT : 1.0;
         const bulletData = e.attemptFire(dt * bearAggro, player); // Pass player for aiming
         if (bulletData) {
             audioSys.play('enemyShoot');

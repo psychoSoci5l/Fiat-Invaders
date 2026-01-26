@@ -9,92 +9,126 @@ class Boss extends window.Game.Entity {
         this.maxHp = 500;
         this.hp = 500;
         this.active = true;
-        this.phase = 1;
+        this.phaseState = 'NORMAL'; // 'NORMAL' | 'RAGE'
 
         this.targetY = 100; // Drop to this Y
         this.dir = 1;
         this.moveSpeed = 80;
 
         this.fireTimer = 0;
-        this.angle = 0; // For spiral attacks
+        this.printTimer = 0;
+        this.hitTimer = 0;
+        this.angle = 0;
+    }
+
+    damage(amount) {
+        this.hp -= amount;
+        this.hitTimer = 0.1; // Flash for 0.1s
     }
 
     update(dt, player) {
-        // Entrance Interp
+        // Visual Hit Timer logic
+        if (this.hitTimer > 0) this.hitTimer -= dt;
+
+        // 1. Entrance Animation (Drop down)
         if (this.y < this.targetY) {
             this.y += 100 * dt;
+            // If we haven't reached target yet, don't attack or move laterally
             return null;
         }
 
-        // Horizontal Movement
-        this.x += this.moveSpeed * this.dir * dt;
-        if (this.x < 20 || this.x + this.width > this.gameWidth - 20) {
-            this.dir *= -1;
+        // 2. Phase Transition Trigger ( < 50% HP )
+        const hpPct = this.hp / this.maxHp;
+        if (hpPct < 0.5 && this.phaseState !== 'RAGE') {
+            this.phaseState = 'RAGE';
+            this.moveSpeed = 0; // Stop linear movement
+            if (window.Game.Audio) window.Game.Audio.play('bossSpawn'); // Roar
         }
 
-        // Determine Phase
-        const hpPct = this.hp / this.maxHp;
-        if (hpPct > 0.6) this.phase = 1;      // Money Printer
-        else if (hpPct > 0.3) this.phase = 2; // Rate Hike
-        else this.phase = 3;                  // Hyperinflation
+        // 3. Movement Logic
+        if (this.phaseState === 'NORMAL') {
+            // Patrol Left/Right
+            this.x += this.moveSpeed * this.dir * dt;
+            if (this.x < 20 || this.x + this.width > this.gameWidth - 20) {
+                this.dir *= -1;
+            }
+        } else {
+            // RAGE: Center & Shake
+            const centerX = this.gameWidth / 2 - this.width / 2;
+            const dx = centerX - this.x;
+            this.x += dx * 2 * dt; // Lerp to center
 
+            // Shake Effect (Visual only, don't mutate active X/Y permanently to avoid drift)
+            // Actually, for simplicity, we just jitter draw position or accept tiny drift.
+            // Let's jitter in draw() to be safe? No, modifying x/y here is easier for collision.
+            // We'll just reset Y to targetY + offset each frame.
+            this.y = this.targetY + (Math.random() - 0.5) * 5;
+            this.x = this.x + (Math.random() - 0.5) * 5;
+
+            // Money Printer (Spawn Minions)
+            this.printTimer -= dt;
+            if (this.printTimer <= 0) {
+                this.printMoney();
+                this.printTimer = 2.5; // Every 2.5s
+            }
+        }
+
+        // 4. Attack Logic
         this.fireTimer -= dt;
         if (this.fireTimer <= 0) {
             return this.attack(player);
         }
-        return null; // No fire this frame
+        return null;
+    }
+
+    printMoney() {
+        const G = window.Game;
+        // Ensure enemies array exists
+        if (!G.enemies) return;
+
+        // Spawn 2 Minions (Dollars)
+        // Left
+        G.enemies.push(new G.Enemy(this.x - 30, this.y + 50, G.FIAT_TYPES[3]));
+        // Right
+        G.enemies.push(new G.Enemy(this.x + this.width + 30, this.y + 50, G.FIAT_TYPES[3]));
+
+        if (G.Audio) G.Audio.play('coin');
     }
 
     attack(player) {
         const bullets = [];
         const G = window.Game;
 
-        if (this.phase === 1) {
-            // PHASE 1: MONEY PRINTER (Spray)
-            this.fireTimer = 0.5;
-            for (let i = -1; i <= 1; i++) {
+        if (this.phaseState === 'NORMAL') {
+            // Standard Pattern: 2 Green Lasers
+            this.fireTimer = 0.8;
+            for (let i = -1; i <= 1; i += 2) {
                 bullets.push({
-                    x: this.x + this.width / 2,
+                    x: this.x + this.width / 2 + (i * 40),
                     y: this.y + this.height,
-                    vx: i * 150,
-                    vy: 300,
-                    color: '#00ff00', // Money Green
-                    w: 8, h: 20
+                    vx: 0, vy: 300,
+                    color: '#00ff00', w: 8, h: 20
                 });
             }
-        } else if (this.phase === 2) {
-            // PHASE 2: RATE HIKE (Fast Laser)
-            this.fireTimer = 1.0;
-            bullets.push({
-                x: this.x + this.width / 2,
-                y: this.y + this.height,
-                vx: 0,
-                vy: 600, // FAST
-                color: '#ff0000', // Red
-                w: 12, h: 40
-            });
-            // Flanking shots
-            bullets.push({ x: this.x, y: this.y + 40, vx: -50, vy: 400, color: '#ff0000', w: 6, h: 20 });
-            bullets.push({ x: this.x + this.width, y: this.y + 40, vx: 50, vy: 400, color: '#ff0000', w: 6, h: 20 });
         } else {
-            // PHASE 3: HYPERINFLATION (Spiral)
-            this.fireTimer = 0.1; // Rapid fire
-            this.angle += 0.3;
+            // RAGE: Spiral Red Fire
+            this.fireTimer = 0.15;
+            this.angle += 0.4;
             bullets.push({
                 x: this.x + this.width / 2,
                 y: this.y + this.height / 2,
-                vx: Math.cos(this.angle) * 300,
-                vy: Math.sin(this.angle) * 300,
-                color: '#FFD700', // Gold
-                w: 10, h: 10
+                vx: Math.cos(this.angle) * 400,
+                vy: Math.sin(this.angle) * 400,
+                color: '#ff0000',
+                w: 12, h: 12
             });
             bullets.push({
                 x: this.x + this.width / 2,
                 y: this.y + this.height / 2,
-                vx: Math.cos(this.angle + Math.PI) * 300,
-                vy: Math.sin(this.angle + Math.PI) * 300,
-                color: '#FFD700',
-                w: 10, h: 10
+                vx: Math.cos(this.angle + Math.PI) * 400,
+                vy: Math.sin(this.angle + Math.PI) * 400,
+                color: '#ff0000',
+                w: 12, h: 12
             });
         }
         return bullets;
@@ -104,53 +138,55 @@ class Boss extends window.Game.Entity {
         ctx.save();
         ctx.translate(this.x, this.y);
 
-        // Neon Glow depends on HP/Phase
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = (this.phase === 3) ? '#FFD700' : (this.phase === 2 ? '#ff0000' : '#00ff00');
-        ctx.strokeStyle = ctx.shadowColor;
-        ctx.lineWidth = 3;
+        // Shadows
+        // Optimize: Disable shadow if hit flashing
+        if (this.hitTimer <= 0) {
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = (this.phaseState === 'RAGE') ? '#ff0000' : '#00ff00';
+        }
 
-        // Render Sprite
+        // Render Asset
         const img = window.Game.images ? window.Game.images.BOSS_BANK : null;
 
         if (img && img.complete) {
-            // Draw Sprite (Scale up slightly for majesty)
             ctx.drawImage(img, -10, -10, this.width + 20, this.height + 20);
+
+            // Safe Hit Flash using Composite Operation (Crash proof)
+            if (this.hitTimer > 0) {
+                ctx.save();
+                ctx.globalCompositeOperation = 'source-atop';
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(-10, -10, this.width + 20, this.height + 20);
+                ctx.restore();
+            }
         } else {
-            // Fallback: THE CENTRAL BANK TEMPLE
-            ctx.fillStyle = 'rgba(0,0,0,0.8)';
+            // Fallback: Temple Graphics
+            ctx.fillStyle = (this.hitTimer > 0) ? '#fff' : 'rgba(20, 20, 20, 0.9)';
             ctx.beginPath();
-            // Roof (Pediment)
-            ctx.moveTo(0, 20);
-            ctx.lineTo(this.width / 2, 0);
-            ctx.lineTo(this.width, 20);
-            ctx.lineTo(0, 20);
-
-            // Pillars
-            ctx.rect(5, 20, 10, this.height - 25); // Left
-            ctx.rect(this.width - 15, 20, 10, this.height - 25); // Right
-            ctx.rect(this.width / 2 - 5, 20, 10, this.height - 25); // Center
-
-            // Base
-            ctx.rect(0, this.height - 5, this.width, 5);
-
+            ctx.moveTo(0, 20); ctx.lineTo(this.width / 2, 0); ctx.lineTo(this.width, 20); ctx.lineTo(0, 20); // Roof
+            ctx.rect(5, 20, 10, this.height - 25); // Pillar L
+            ctx.rect(this.width - 15, 20, 10, this.height - 25); // Pillar R
+            ctx.rect(this.width / 2 - 5, 20, 10, this.height - 25); // Pillar C
+            ctx.rect(0, this.height - 5, this.width, 5); // Base
             ctx.fill();
-            ctx.stroke();
 
-            // Label
+            // Text Label
             ctx.shadowBlur = 0;
-            ctx.fillStyle = '#fff';
+            ctx.fillStyle = (this.hitTimer > 0) ? '#000' : '#fff';
             ctx.font = 'bold 12px Courier New';
             ctx.textAlign = 'center';
-            ctx.fillText(this.phase === 1 ? "FED" : (this.phase === 2 ? "HIKE" : "PANIC"), this.width / 2, 40);
+            ctx.fillText(this.phaseState === 'NORMAL' ? "FED" : "PANIC", this.width / 2, 40);
         }
 
-        // HP Bar (Above)
-        const hpPct = this.hp / this.maxHp;
-        ctx.fillStyle = '#ff0000';
-        ctx.fillRect(0, -15, this.width, 5);
-        ctx.fillStyle = '#00ff00';
-        ctx.fillRect(0, -15, this.width * hpPct, 5);
+        // HP Bar
+        const hpPct = Math.max(0, this.hp / this.maxHp);
+        ctx.fillStyle = '#550000';
+        ctx.fillRect(0, -20, this.width, 8);
+        ctx.fillStyle = (hpPct > 0.5) ? '#00ff00' : '#ff0000';
+        ctx.fillRect(0, -20, this.width * hpPct, 8);
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(0, -20, this.width, 8);
 
         ctx.restore();
     }

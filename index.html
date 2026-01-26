@@ -15,6 +15,7 @@
 
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon-512.png">
+    <link rel="icon" type="image/x-icon" href="icon-512.png">
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -184,11 +185,18 @@
     </div>
 
     <!-- PAUSE SCREEN -->
+    <!-- PAUSE SCREEN UI UPGRADE -->
     <div id="pause-screen" style="display: none;">
-        <h1 class="neon-title">PAUSED</h1>
+        <h1 class="neon-title" style="color: #fff; text-shadow: 0 0 20px #fff;">PAUSED</h1>
+        <div class="subtitle" style="margin-bottom: 40px; color: #888;">SYSTEM HALTED</div>
+
         <button class="btn-coin" onclick="togglePause()">RESUME</button>
-        <button class="btn-coin" onclick="backToIntro()" style="background: #e74c3c;">EXIT TO TITLE</button>
-        <div class="menu-row">
+        <button class="btn-coin" onclick="restartGame()"
+            style="background: #F7931A; border-color: #F7931A; color: #000;">RESTART</button>
+        <button class="btn-coin" onclick="backToIntro()" style="background: #e74c3c; border-color: #e74c3c;">EXIT TO
+            TITLE</button>
+
+        <div class="menu-row" style="margin-top: 40px;">
             <button class="icon-btn mute-toggle">🔇</button>
         </div>
     </div>

@@ -177,19 +177,33 @@ class AudioSystem {
         osc.stop(t + 0.1);
     }
     toggleMute() {
-        if (!this.ctx) this.init(); // Auto-init if missing
-        if (!this.ctx) return true; // Still failed
+        if (!this.ctx) this.init();
+        if (!this.ctx) return true; // Failed to init
 
+        // Fix for iOS/Safari: If suspended (Autoplay policy), force resume immediately.
+        // This acts as "Unmute" via user interaction.
+        if (this.ctx.state === 'suspended') {
+            this.ctx.resume().catch(e => console.error(e));
+            return false; // Now Unmuted
+        }
+
+        // If running, we suspend (Mute)
         if (this.ctx.state === 'running') {
             this.ctx.suspend();
-            return true; // Muted
-        } else {
-            // Suspended or closed
-            this.ctx.resume().then(() => {
-                console.log("Audio Context Resumed");
-            }).catch(e => console.error(e));
-            return false; // Unmuted (optimistic)
+            return true; // Now Muted
         }
+
+        return false; // Default fallback
+    }
+
+    unlockWebAudio() {
+        if (!this.ctx) return;
+        // Create empty buffer
+        const buffer = this.ctx.createBuffer(1, 1, 22050);
+        const source = this.ctx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(this.ctx.destination);
+        source.start(0);
     }
 }
 

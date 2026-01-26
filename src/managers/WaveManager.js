@@ -78,6 +78,7 @@ window.Game.WaveManager = {
 
         this.wave++;
         this.waveInProgress = false;
+        this.lastSpawnCount = enemies.length; // Track for frenzy speed
         return { enemies: enemies, pattern: pattern };
     }
 };

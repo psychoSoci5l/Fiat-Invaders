@@ -200,28 +200,31 @@ canvas {
 /* --- SCREENS --- */
 /* --- INTRO SCREEN OVERHAUL --- */
 #intro-screen,
-#gameover-screen {
+#gameover-screen,
+#level-complete-screen,
+#pause-screen,
+#hangar-screen {
     position: absolute;
     top: 0;
-    left: 0;
+    left: 50%;
+    transform: translateX(-50%);
     width: 100%;
+    max-width: 600px;
+    /* Constrain to Game Width */
     height: 100%;
     background: transparent;
-    /* Show the Sky! */
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     z-index: 110;
     padding: 40px;
+    box-sizing: border-box;
 
-    /* Safe Area Padding applied here */
     padding-top: max(40px, env(safe-area-inset-top));
     padding-bottom: max(40px, env(safe-area-inset-bottom));
     padding-left: max(40px, env(safe-area-inset-left));
     padding-right: max(40px, env(safe-area-inset-right));
-
-    box-sizing: border-box;
 }
 
 .intro-header {
@@ -473,7 +476,7 @@ canvas {
     /* Flex centering */
     align-items: center;
 }
-}
+
 
 @keyframes floatHero {
 
@@ -487,11 +490,11 @@ canvas {
     }
 }
 
-/* --- SETTINGS BUTTON --- */
+/* --- SETTINGS BUTTON (Moved Down) --- */
 #btn-settings {
     position: absolute;
-    top: max(20px, env(safe-area-inset-top));
-    /* NOTCH SAFE */
+    top: max(90px, env(safe-area-inset-top));
+    /* Moved down below HUD */
     right: max(20px, env(safe-area-inset-right));
     background: rgba(0, 0, 0, 0.6);
     border: 1px solid #444;
@@ -509,33 +512,34 @@ canvas {
     z-index: 120;
 }
 
-#btn-settings:hover {
-    border-color: var(--neon-blue);
-    color: var(--neon-blue);
-    transform: rotate(90deg) scale(1.1);
-    box-shadow: 0 0 15px rgba(52, 152, 219, 0.3);
+#pause-screen {
+    /* Style inherited from grouped selector above, specific overrides here if needed */
+    background: rgba(0, 0, 0, 0.9);
+    /* Darker for focus */
+    backdrop-filter: blur(8px);
+    z-index: 120;
 }
 
-/* --- MOBILE LAYOUT TWEAK --- */
-@media (max-width: 600px) {
-    .intro-action {
-        margin-bottom: 60px;
-    }
+#pause-screen h1 {
+    margin-bottom: 50px;
+    text-shadow: 0 0 20px #fff;
+}
 
-    .btn-coin {
-        padding: 20px 40px;
-        font-size: 22px;
-        width: 100%;
-        max-width: 280px;
-    }
+#pause-screen button {
+    margin: 15px;
+    /* More spacing */
+    width: 280px;
+    /* Uniform width */
 }
 
 /* --- SETTINGS MODAL --- */
 #settings-modal {
     position: fixed;
     top: 0;
-    left: 0;
+    left: 50%;
+    transform: translateX(-50%);
     width: 100%;
+    max-width: 600px;
     height: 100%;
     background: rgba(0, 0, 0, 0.85);
     backdrop-filter: blur(8px);
@@ -603,108 +607,6 @@ canvas {
     font-size: 16px;
     margin: 0;
     clip-path: none;
-}
-
-/* --- HANGAR SCREEN --- */
-#hangar-screen {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(circle at center, #1a1a2e 0%, #000 100%);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    z-index: 100;
-}
-
-.ship-container {
-    display: flex;
-    gap: 20px;
-    margin: 40px 0;
-    flex-wrap: wrap;
-    justify-content: center;
-}
-
-.ship-card {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid #333;
-    padding: 20px;
-    width: 140px;
-    border-radius: 12px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.ship-card:hover {
-    transform: translateY(-10px);
-    background: rgba(255, 255, 255, 0.1);
-    border-color: #666;
-}
-
-.ship-card h3 {
-    font-size: 12px;
-    margin: 10px 0;
-    letter-spacing: 1px;
-    color: #fff;
-}
-
-.ship-icon {
-    font-size: 50px;
-    margin-bottom: 10px;
-    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.2));
-}
-
-.stats .stat {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 10px;
-    color: #888;
-    margin: 4px 0;
-}
-
-.stats .bar {
-    width: 60px;
-    height: 4px;
-    background: #333;
-    border-radius: 2px;
-    overflow: hidden;
-}
-
-.stats .bar div {
-    height: 100%;
-}
-
-/* --- PAUSE UI --- */
-/* #pause-btn replaced by harmonized rule above */
-
-#pause-screen {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.85);
-    backdrop-filter: blur(5px);
-    z-index: 120;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-}
-
-#pause-screen h1 {
-    margin-bottom: 40px;
-}
-
-#pause-screen button {
-    margin: 10px;
-    box-shadow: none;
-    animation: none;
 }
 
 /* --- BEAR MARKET MODE 🐻 --- */

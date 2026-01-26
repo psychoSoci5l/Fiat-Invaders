@@ -17,19 +17,21 @@ class Enemy extends window.Game.Entity {
     attemptFire(dt, target) {
         this.fireTimer -= dt;
         if (this.fireTimer <= 0) {
-            this.fireTimer = Math.random() * 3 + 2;
+            const D = window.Game.DIFFICULTY;
+            // Reset with Global Difficulty Var
+            this.fireTimer = Math.random() * D.FIRE_RATE_VAR + D.FIRE_RATE_BASE;
 
             // Aiming Logic
             let vx = 0;
-            let vy = 300;
+            let vy = D.PROJ_SPEED;
 
             if (target) {
                 const dx = target.x - this.x;
                 const dy = target.y - this.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
                 if (dist > 0) {
-                    vx = (dx / dist) * 300;
-                    vy = (dy / dist) * 300;
+                    vx = (dx / dist) * D.PROJ_SPEED;
+                    vy = (dy / dist) * D.PROJ_SPEED;
                 }
             }
 
