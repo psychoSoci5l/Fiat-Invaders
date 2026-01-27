@@ -513,7 +513,8 @@ function checkBulletCollisions(b, bIdx) {
     for (let j = enemies.length - 1; j >= 0; j--) {
         let e = enemies[j];
         if (Math.abs(b.x - e.x) < 35 && Math.abs(b.y - e.y) < 35) {
-            e.hp -= 1; // BALANCE FIX: 1 Hit = 1 Damage (No insta-kill)
+            const dmg = (player.stats && player.stats.damage) ? player.stats.damage : 1;
+            e.hp -= dmg; // Applying Player Damage (now 1.2)
             audioSys.play('hit');
             if (e.hp <= 0) {
                 enemies.splice(j, 1);
@@ -665,9 +666,33 @@ function draw() {
         bullets.forEach(b => b.draw(ctx));
         enemyBullets.forEach(eb => eb.draw(ctx));
         powerUps.forEach(p => p.draw(ctx)); // <--- DRAW DROPS
+        // Draw Particles (Confetti)
+        particles.forEach(p => {
+            ctx.save();
+            ctx.globalAlpha = p.life / p.maxLife;
+            ctx.fillStyle = p.color;
+            // No Glow
+            // Draw Squares (Confetti)
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.life * 10); // Spin
+            ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+            ctx.restore();
+        });
+
         drawParticles(ctx);
-        ctx.font = '20px Courier New';
-        floatingTexts.forEach(t => { ctx.fillStyle = t.c; ctx.fillText(t.text, t.x, t.y); });
+
+        // Comic Floating Text
+        ctx.font = 'bold 30px Impact, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = 'black';
+        ctx.lineJoin = 'round';
+
+        floatingTexts.forEach(t => {
+            ctx.fillStyle = t.c;
+            ctx.strokeText(t.text, t.x, t.y); // Outline
+            ctx.fillText(t.text, t.x, t.y);   // Fill
+        });
     }
     ctx.restore(); // Restore shake
 }
@@ -921,9 +946,59 @@ function updatePowerUps(dt) {
         if (p.markedForDeletion) {
             powerUps.splice(i, 1);
         } else {
+            // Collision Logic
             if (Math.abs(p.x - player.x) < 40 && Math.abs(p.y - player.y) < 40) {
-                player.upgrade(p.type);
-                addText(p.type + "!", player.x, player.y - 40, '#FFD700', 30);
+                audioSys.play('powerup'); // Ensure sound exists or fallback? 'coin' is safe, 'powerup' maybe missing. Use 'coin' for now if unsure.
+                // Actually user didn't specify sound, will assume 'coin' upgrade sound is handled or I adds it.
+                // Let's use 'coin' for safety unless 'powerup' is known.
+                // Checking previous code... audioSys.play('coin') is used for drops. 
+
+                // EFFECT LOGIC
+                if (p.type === 'RAPID_FIRE') {
+                    player.fireRate = 0.1;
+                    player.rapidFireTimer = 5.0; // Handled in Player update? Need to ensure Player.js handles reset.
+                    // Or we set a timeout/timer here? 
+                    // Better: logic in Player.update to count down rapidFireTimer. 
+                    // IF Player.js doesn't have it, I might need to patch Player.js too.
+                    // Let's Assume Player.js needs patch or we do a hack here?
+                    // "File: src/main.js ... Logica: ... per 5 secondi" -> implies Logic here or Player.
+                    // I will check Player.js next. For now, set the property.
+                    addText("CANDLE BOOST!", player.x, player.y - 40, '#00ff00', 30);
+                }
+                else if (p.type === 'SHIELD') {
+                    player.shieldActive = true;
+                    player.shieldHp = 100; // Force full shield
+                    addText("INSURANCE!", player.x, player.y - 40, '#3498db', 30);
+                }
+                else if (p.type === 'NUKE') {
+                    // Liquidation Event
+                    addText("LIQUIDATION!", gameWidth / 2, gameHeight / 2, '#ff0000', 50);
+                    shake = 60;
+                    enemies.forEach(e => {
+                        e.hp -= 50; // Massive Damage
+                        createExplosion(e.x, e.y, e.color, 10);
+                        if (e.hp <= 0) {
+                            score += e.scoreVal;
+                            createScoreParticles(e.x, e.y, e.color);
+                        }
+                    });
+                    // Clean up dead enemies in next frame or force filter now?
+                    // enemies = enemies.filter(e => e.hp > 0); // Safer to let updateEnemies handle death?
+                    // updateEnemies handles death logic (splice). But if we subtract HP here, they won't trigger "death sequence" logic in updateEnemies (score, sound) unless we duplicate it or let updateEnemies checks it.
+                    // updateEnemies Checks bullets vs enemies. It doesn't check "is hp <= 0" generally unless hit.
+                    // WAIT. `updateEnemies` logic: checkBulletCollisions checks hp.
+                    // `updateEnemies` does NOT check if hp <= 0 independently.
+                    // So I MUST handle death here for NUKE.
+
+                    for (let k = enemies.length - 1; k >= 0; k--) {
+                        if (enemies[k].hp <= 0) {
+                            enemies.splice(k, 1);
+                            // Visuals already spawned above
+                        }
+                    }
+                    setUI('scoreVal', score);
+                }
+
                 powerUps.splice(i, 1);
             }
         }

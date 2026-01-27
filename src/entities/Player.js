@@ -23,6 +23,7 @@ class Player extends window.Game.Entity {
         this.beastMode = 0;
         this.hp = 3;
         this.invulnTimer = 0;
+        this.rapidFireTimer = 0; // New Timer
     }
 
     configure(type) {
@@ -98,6 +99,7 @@ class Player extends window.Game.Entity {
             }
         }
         if (this.invulnTimer > 0) this.invulnTimer -= dt;
+        if (this.rapidFireTimer > 0) this.rapidFireTimer -= dt; // Countdown
         this.cooldown -= dt;
 
         // Action: Shield
@@ -131,8 +133,12 @@ class Player extends window.Game.Entity {
         window.Game.Input.vibrate(5); // Tiny haptic tick
 
         // Logic
+        // Logic
         const color = conf.color;
-        const rate = (this.weapon === 'RAPID' && this.weaponLevel > 1) ? conf.rate * 0.7 : ((this.weapon === 'NORMAL') ? this.stats.fireRate : conf.rate);
+        let rate = (this.weapon === 'RAPID' && this.weaponLevel > 1) ? conf.rate * 0.7 : ((this.weapon === 'NORMAL') ? this.stats.fireRate : conf.rate);
+
+        // DEFI POWERUP OVERRIDE
+        if (this.rapidFireTimer > 0) rate = 0.1;
 
         this.cooldown = rate;
 

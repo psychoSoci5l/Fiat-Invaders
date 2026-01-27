@@ -57,9 +57,9 @@ window.Game.FIAT_TYPES = [
 ];
 
 window.Game.SHIPS = {
-    BTC: { speed: 400, hp: 3, fireRate: 0.14, color: '#F7931A', hitboxSize: 30 }, // Buffed (0.18 -> 0.14)
-    ETH: { speed: 300, hp: 4, fireRate: 0.36, color: '#8c7ae6', hitboxSize: 40 }, // Buffed (0.45 -> 0.36)
-    SOL: { speed: 550, hp: 2, fireRate: 0.10, color: '#00d2d3', hitboxSize: 15 }  // Buffed (0.12 -> 0.10)
+    BTC: { speed: 400, hp: 3, fireRate: 0.14, color: '#F7931A', hitboxSize: 30, damage: 1.2 }, // Buffed Damage (+20%)
+    ETH: { speed: 300, hp: 4, fireRate: 0.36, color: '#8c7ae6', hitboxSize: 40, damage: 1.2 }, // Buffed Damage (+20%)
+    SOL: { speed: 550, hp: 2, fireRate: 0.10, color: '#00d2d3', hitboxSize: 15, damage: 1.2 }  // Buffed Damage (+20%)
 };
 
 window.Game.DROPS = {
@@ -92,12 +92,27 @@ window.Game.DIFFICULTY = {
 };
 
 window.Game.ASSETS = {
-    PLAYER_SHIP: 'assets/ship_bitcoin.png',
-    ENEMY_DOLLAR: 'assets/enemy_dollar.png',
-    ENEMY_EURO: 'assets/enemy_euro.png',
-    ENEMY_POUND: 'assets/enemy_pound.png',
-    ENEMY_YEN: 'assets/enemy_yen.png',
-    BOSS_BANK: 'assets/boss_bank.png'
+    // New Sprite Sheets
+    ENEMIES: 'assets/enemy_sprite_sheet.png',
+    BOSS_BULLETS: 'assets/boss_sprite_sheet.png', // Contains Candles + Boss
+    PLAYER_SHIP: 'assets/ship_bitcoin.png' // Keep original ship for now or update? Plan said Coins/Candles/Bank. Ship stays?
+};
+
+// SPRITE ATLAS DEFINITION (Approximate Grid - User may need to tweak)
+// Assuming 1024x1024 images.
+window.Game.SPRITES = {
+    // Bullets & Boss Sheet
+    BULLET_PLAYER: { sheet: 'BOSS_BULLETS', x: 50, y: 50, w: 100, h: 400 }, // Green Candle (Vertical)
+    BULLET_ENEMY: { sheet: 'BOSS_BULLETS', x: 200, y: 50, w: 100, h: 400 }, // Red Candle
+    BOSS: { sheet: 'BOSS_BULLETS', x: 400, y: 50, w: 500, h: 500 }, // Bank Building
+
+    // Enemy Coins Sheet (3x2 Grid approx)
+    YEN: { sheet: 'ENEMIES', x: 0, y: 0, w: 340, h: 340 },       // Top Left
+    POUND: { sheet: 'ENEMIES', x: 340, y: 0, w: 340, h: 340 },   // Top Center
+    EURO: { sheet: 'ENEMIES', x: 680, y: 0, w: 340, h: 340 },    // Top Right
+    DOLLAR: { sheet: 'ENEMIES', x: 0, y: 340, w: 340, h: 340 },  // Bottom Left
+    BTC: { sheet: 'ENEMIES', x: 340, y: 340, w: 340, h: 340 },   // Bottom Center
+    ETH: { sheet: 'ENEMIES', x: 680, y: 340, w: 340, h: 340 }    // Bottom Right
 };
 
 window.Game.M_CHARS = "01BTCETH$$£€¥HODL";

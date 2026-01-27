@@ -37,26 +37,41 @@ class Bullet extends window.Game.Entity {
         ctx.save();
         ctx.translate(this.x, this.y);
 
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = this.color;
-        ctx.fillStyle = this.color;
+        const G = window.Game;
+        const spriteDef = this.isHodl ? G.SPRITES.BULLET_PLAYER : G.SPRITES.BULLET_ENEMY;
 
-        if (this.height > 20) {
-            // Laser Beam Style
-            ctx.fillRect(-this.width / 2, 0, this.width, this.height);
+        let img = null;
+        if (G.images && spriteDef) {
+            // Determine which sheet to use
+            if (spriteDef.sheet === 'BOSS_BULLETS') img = G.images.BOSS_BULLETS;
+            else if (spriteDef.sheet === 'ENEMIES') img = G.images.ENEMIES;
+        }
+
+        if (img && img.complete) {
+            // Draw from Atlas
+            // We draw the candle centered
+            // The candle sprite is tall, we scale it to bullet dimensions
+            const w = this.width || 10;
+            const h = this.height || 20;
+
+            ctx.drawImage(
+                img,
+                spriteDef.x, spriteDef.y, spriteDef.w, spriteDef.h, // Source from Atlas
+                -w / 2, -h / 2, w, h // Dest
+            );
         } else {
-            // Capsule / Plasma Blob
-            ctx.beginPath();
-            ctx.arc(0, 0, this.width, 0, Math.PI * 2);
-            ctx.fill();
+            // Fallback (Logic from before)
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = this.color;
+            ctx.fillStyle = this.color;
 
-            // Trail
-            ctx.beginPath();
-            ctx.moveTo(-this.width / 2, 0);
-            ctx.lineTo(0, -this.height);
-            ctx.lineTo(this.width / 2, 0);
-            ctx.fillStyle = this.color; // simpler trail
-            ctx.fill();
+            if (this.height > 20) {
+                ctx.fillRect(-this.width / 2, 0, this.width, this.height);
+            } else {
+                ctx.beginPath();
+                ctx.arc(0, 0, this.width, 0, Math.PI * 2);
+                ctx.fill();
+            }
         }
 
         ctx.restore();

@@ -82,34 +82,42 @@ class Enemy extends window.Game.Entity {
         ctx.save();
         ctx.translate(this.x, this.y);
 
-        // Neon Glow
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = this.color;
+        // No Neon Glow (Flat Design)
+        // ctx.shadowBlur = 15; 
+        // ctx.shadowColor = this.color;
 
-        // Determine Asset
-        let img = null;
         const G = window.Game;
-        if (G.images) {
-            switch (this.symbol) {
-                case '$': img = G.images.ENEMY_DOLLAR; break;
-                case '€': img = G.images.ENEMY_EURO; break;
-                case '£': img = G.images.ENEMY_POUND; break;
-                case '¥': img = G.images.ENEMY_YEN; break;
-            }
+        let spriteDef = null;
+
+        // Map Symbol to Sprite Definition
+        switch (this.symbol) {
+            case '$': spriteDef = G.SPRITES.DOLLAR; break;
+            case '€': spriteDef = G.SPRITES.EURO; break;
+            case '£': spriteDef = G.SPRITES.POUND; break;
+            case '¥': spriteDef = G.SPRITES.YEN; break;
+            case '₿': spriteDef = G.SPRITES.BTC; break;
+            case 'Ξ': spriteDef = G.SPRITES.ETH; break;
         }
 
-        if (img && img.complete && !img.failed) {
-            // Draw Sprite with Glow
-            ctx.globalCompositeOperation = 'screen'; // Fixes black box artifacts
-            ctx.drawImage(img, -25, -25, 50, 50);
-            ctx.globalCompositeOperation = 'source-over';
+        let img = null;
+        if (G.images && spriteDef) {
+            if (spriteDef.sheet === 'ENEMIES') img = G.images.ENEMIES;
+        }
+
+        if (img && img.complete) {
+            // Draw Sprite
+            const size = 50; // Standard size
+            ctx.drawImage(
+                img,
+                spriteDef.x, spriteDef.y, spriteDef.w, spriteDef.h,
+                -size / 2, -size / 2, size, size
+            );
         } else {
             // Fallback Shape
             ctx.strokeStyle = this.color;
             ctx.lineWidth = 2;
             ctx.fillStyle = 'rgba(0,0,0,0.5)';
             ctx.beginPath();
-            // ... (Shape Drawing Logic preserved if needed, but simplified here)
             ctx.rect(-15, -15, 30, 30);
             ctx.fill();
             ctx.stroke();

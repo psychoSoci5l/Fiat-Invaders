@@ -161,11 +161,20 @@ class Boss extends window.Game.Entity {
             ctx.shadowColor = (this.phaseState === 'RAGE') ? '#ff0000' : '#00ff00';
         }
 
-        // Render Asset
-        const img = window.Game.images ? window.Game.images.BOSS_BANK : null;
+        // Render Asset using SPRITES
+        const G = window.Game;
+        const spriteDef = G.SPRITES ? G.SPRITES.BOSS : null;
+        let img = null;
+        if (spriteDef && G.images) {
+            if (spriteDef.sheet === 'BOSS_BULLETS') img = G.images.BOSS_BULLETS;
+        }
 
-        if (img && img.complete && !img.failed) {
-            ctx.drawImage(img, -10, -10, this.width + 20, this.height + 20);
+        if (img && img.complete) {
+            ctx.drawImage(
+                img,
+                spriteDef.x, spriteDef.y, spriteDef.w, spriteDef.h,
+                -10, -10, this.width + 20, this.height + 20
+            );
 
             // Safe Hit Flash using Composite Operation (Crash proof)
             if (this.hitTimer > 0) {
