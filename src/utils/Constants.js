@@ -49,9 +49,11 @@ window.Game.WEAPONS = {
 
 window.Game.FIAT_TYPES = [
     { s: '¥', c: '#bdc3c7', val: 30, hp: 1 },
-    { s: '€', c: '#3498db', val: 50, hp: 1 },
+    { s: '€', c: '#3498db', val: 50, hp: 2 }, // DIFFICULTY UP
     { s: '£', c: '#9b59b6', val: 50, hp: 1 },
-    { s: '$', c: '#2ecc71', val: 100, hp: 1 }
+    { s: '$', c: '#2ecc71', val: 100, hp: 3 }, // DIFFICULTY UP
+    { s: '₿', c: '#F7931A', val: 500, hp: 5 }, // DIFFICULTY UP (Tank)
+    { s: 'Ξ', c: '#8c7ae6', val: 500, hp: 5 }  // DIFFICULTY UP (Tank)
 ];
 
 window.Game.SHIPS = {
@@ -81,9 +83,10 @@ window.Game.WAVES = {
 };
 
 window.Game.DIFFICULTY = {
-    FIRE_RATE_BASE: 2.6, // Increased from 2.0 (Slower fire)
-    FIRE_RATE_VAR: 3.9,  // Increased from 3.0 (More variance)
-    PROJ_SPEED: 300,
+    FIRE_RATE_BASE: 2.0, // AI FIX: Relaxed
+    FIRE_RATE_VAR: 4.0,  // AI FIX: Wider window
+    PROJ_SPEED: 500,     // DIFFICULTY UP (Faster bullets)
+    GRID_SPEED_START: 40, // DIFFICULTY UP (Faster start)
     BEAR_MULT: 1.5,
     HIT_R_OFFSET: 10
 };

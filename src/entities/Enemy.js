@@ -11,25 +11,24 @@ class Enemy extends window.Game.Entity {
         this.scoreVal = typeConf.val;
 
         this.active = true;
-        this.fireTimer = Math.random() * 2 + 1; // Random start delay
+        this.fireTimer = Math.random() * 10 + 2; // AI FIX: Desynchronize start (2-12s)
     }
 
     attemptFire(dt, target) {
-        // SAFETY FIX: Guard Clause
-        if (!target || target.hp <= 0) return null;
-
         this.fireTimer -= dt;
         if (this.fireTimer <= 0) {
             const D = window.Game.DIFFICULTY;
-            // Reset with Global Difficulty Var
+            // 1. ALWAYS Reset Timer
             this.fireTimer = Math.random() * D.FIRE_RATE_VAR + D.FIRE_RATE_BASE;
 
-            // Aiming Logic
+            // 2. Guard: If target invalid, just exit (but timer IS reset)
+            if (!target || target.hp <= 0) return null;
+
+            // 3. Aiming Logic
             let vx = 0;
             let vy = D.PROJ_SPEED;
 
             if (target) {
-                // SAFETY FIX: Guard against missing target
                 const dx = target.x - this.x;
                 const dy = target.y - this.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
@@ -38,7 +37,6 @@ class Enemy extends window.Game.Entity {
                     vy = (dy / dist) * D.PROJ_SPEED;
                 }
             } else {
-                // SAFETY FIX: Default downward if target missing
                 vy = D.PROJ_SPEED;
             }
 

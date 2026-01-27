@@ -342,7 +342,8 @@ function startGame() {
 
     waveMgr.reset();
     gridDir = 1;
-    gridSpeed = 24;
+    // DIFFICULTY UP
+    gridSpeed = G.DIFFICULTY.GRID_SPEED_START || 40;
 
     gameState = 'PLAY';
     player.resetState();
@@ -350,7 +351,7 @@ function startGame() {
     if (isBearMarket) {
         player.hp = 1; // ONE HIT KILL
         player.maxHp = 1; // Full bar but Red (logic handled in updateLivesUI)
-        gridSpeed = 40; // Faster start
+        gridSpeed = 60; // Faster start for Bear
         addText("🩸 SURVIVE THE CRASH 🩸", gameWidth / 2, gameHeight / 2 - 100, '#ff0000', 30);
     }
 
@@ -554,7 +555,8 @@ function updateEnemies(dt) {
     // 0% dead -> 1.0x, 90% dead -> 2.5x
     const totalEnemies = waveMgr.lastSpawnCount || 20; // Need to track this in WaveManager
     const alivePct = enemies.length / Math.max(1, totalEnemies);
-    const frenzyMult = 1.0 + (1.0 - alivePct) * 1.5;
+    // DIFFICULTY UP: Late wave super speed
+    const frenzyMult = 1.0 + (1.0 - alivePct) * 4.0;
 
     enemies.forEach(e => {
         e.update(dt, totalTime, lastWavePattern, gridSpeed * speedMult * frenzyMult, gridDir);
