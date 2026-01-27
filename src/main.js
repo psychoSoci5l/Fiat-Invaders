@@ -98,58 +98,56 @@ window.onload = init;
 // -----------------------------------------------------------------------------
 async function init() {
     // -------------------------------------------------------------------------
-    // 1. PRELOAD ASSETS (Explicit)
+    // 1. ASSET LOADER (Prioritario)
     // -------------------------------------------------------------------------
     window.Game.images = {};
-    const assetList = ['ship_player', 'enemy_yen', 'enemy_euro', 'enemy_dollar', 'enemy_pound', 'enemy_btc', 'enemy_eth', 'boss_bank'];
+    const assets = ['ship_player', 'enemy_yen', 'enemy_euro', 'enemy_dollar', 'enemy_pound', 'enemy_btc', 'enemy_eth', 'boss_bank'];
 
-    assetList.forEach(name => {
+    // Caricamento Sincrono (o quasi, per semplicità come richiesto)
+    assets.forEach(name => {
         const img = new Image();
         img.src = `assets/${name}.png`;
-        // Normalize keys: 'ship_player' -> 'player', 'enemy_btc' -> 'btc' (if needed, or map in Entity)
-        // User requested mapping: Game.images.player
+        // Mappatura
         let key = name.replace('ship_', '').replace('enemy_', '');
-        // Special case: boss_bank -> boss (if Entity uses 'boss') or keep 'bank'?
-        // Enemy.js uses 'enemy_yen' directly? No, Enemy.js maps symbol to 'imgKey'.
-        // Let's keep original names in map AND simplified tokens if useful.
-        // User instruction: Game.images[name.replace...]
         window.Game.images[key] = img;
-        // Also keep full name for safety if legacy code uses it? 
-        window.Game.images[name] = img;
     });
-    // Manual Alias for Player
-    window.Game.images.player = window.Game.images.player; // ship_player -> player done above by replace
-    // Manual Alias for Boss
-    window.Game.images.boss = window.Game.images.boss_bank || window.Game.images.bank;
+    // Alias extra per sicurezza
+    window.Game.images.player = window.Game.images.player;
 
     // 2. Initialize Subsystems
     if (window.Game.WaveManager) window.Game.WaveManager.init();
 
-    // 3. FIX UI LISTENERS
-    document.querySelectorAll('.mute-toggle').forEach(btn => {
+    // 3. FIX PULSANTI (Re-attach listeners globali persi)
+
+    // Globals per HTML onclick (se usati)
+    window.toggleLang = window.toggleLang || function () { /* defined elsewhere */ };
+    window.toggleSettings = window.toggleSettings || function () { /* defined elsewhere */ };
+
+    // Listener Mute SPECIFICO
+    const muteBtns = document.querySelectorAll('.mute-toggle');
+    muteBtns.forEach(btn => {
         btn.onclick = (e) => {
             e.stopPropagation();
-            // Use global Audio if exposed or from Game
+            // Usa Audio System globale
             if (window.Game.Audio) window.Game.Audio.toggleMute();
-            else audioSys.toggleMute();
+            else if (typeof audioSys !== 'undefined') audioSys.toggleMute();
+
+            // Aggiorna icone
             updateMuteIcons();
         };
     });
 
-    // Language Toggle
-    const langBtn = document.getElementById('lang-btn');
-    if (langBtn) {
-        langBtn.onclick = (e) => { e.stopPropagation(); toggleLang(); };
-    }
-
-    // Settings Toggle
-    const settingsBtn = document.getElementById('btn-settings');
-    if (settingsBtn) {
-        settingsBtn.onclick = (e) => { e.stopPropagation(); toggleSettings(); };
+    // START BUTTON
+    const startBtn = document.querySelector('.btn-coin');
+    if (startBtn) {
+        startBtn.onclick = (e) => {
+            e.stopPropagation();
+            if (window.Game.Audio) window.Game.Audio.init();
+            inputSys.trigger('start');
+        };
     }
 
     // Start Loop (Only after setup)
-    // CALL SETUP LOGIC (Previously in oldInit)
     setupGame();
 }
 

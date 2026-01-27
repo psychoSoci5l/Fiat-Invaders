@@ -92,14 +92,17 @@ class Enemy extends window.Game.Entity {
     }
 
     draw(ctx) {
+        if (!this.image) return; // Se l'immagine non c'è, non disegnare nulla
+
         ctx.save();
         ctx.translate(this.x, this.y);
 
-        // STRICT SPRITE RENDER
-        if (this.image) {
-            ctx.drawImage(this.image, -25, -25, 50, 50);
-        }
+        // Pulisci stili residui
+        ctx.shadowBlur = 0;
+        ctx.lineWidth = 0;
 
+        // DISEGNA SOLO L'IMMAGINE
+        ctx.drawImage(this.image, -25, -25, 50, 50);
         ctx.restore();
     }
 }
