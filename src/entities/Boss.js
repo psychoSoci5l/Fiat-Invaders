@@ -109,108 +109,109 @@ class Boss extends window.Game.Entity {
 
             if (G.Audio) G.Audio.play('coin');
         }
-
-        attack(player) {
-            const bullets = [];
-            const G = window.Game;
-
-            if (this.phaseState === 'NORMAL') {
-                // Standard Pattern: 2 Green Lasers
-                this.fireTimer = 0.8;
-                for (let i = -1; i <= 1; i += 2) {
-                    bullets.push({
-                        x: this.x + this.width / 2 + (i * 40),
-                        y: this.y + this.height,
-                        vx: 0, vy: 300,
-                        color: '#00ff00', w: 8, h: 20
-                    });
-                }
-            } else {
-                // RAGE: Spiral Red Fire
-                this.fireTimer = 0.15;
-                this.angle += 0.4;
-                bullets.push({
-                    x: this.x + this.width / 2,
-                    y: this.y + this.height / 2,
-                    vx: Math.cos(this.angle) * 400,
-                    vy: Math.sin(this.angle) * 400,
-                    color: '#ff0000',
-                    w: 12, h: 12
-                });
-                bullets.push({
-                    x: this.x + this.width / 2,
-                    y: this.y + this.height / 2,
-                    vx: Math.cos(this.angle + Math.PI) * 400,
-                    vy: Math.sin(this.angle + Math.PI) * 400,
-                    color: '#ff0000',
-                    w: 12, h: 12
-                });
-            }
-            return bullets;
-        }
-
-        draw(ctx) {
-            ctx.save();
-            ctx.translate(this.x, this.y);
-
-            // Shadows
-            // Optimize: Disable shadow if hit flashing
-            if (this.hitTimer <= 0) {
-                ctx.shadowBlur = 20;
-                ctx.shadowColor = (this.phaseState === 'RAGE') ? '#ff0000' : '#00ff00';
-            }
-
-            // Render Asset
-            const img = window.Game.images ? window.Game.images.BOSS_BANK : null;
-
-            if (img && img.complete && !img.failed) {
-                ctx.drawImage(img, -10, -10, this.width + 20, this.height + 20);
-
-                // Safe Hit Flash using Composite Operation (Crash proof)
-                if (this.hitTimer > 0) {
-                    ctx.save();
-                    ctx.globalCompositeOperation = 'source-atop';
-                    ctx.fillStyle = '#ffffff';
-                    ctx.fillRect(-10, -10, this.width + 20, this.height + 20);
-                    ctx.restore();
-                }
-            } else {
-                // Fallback: Temple Graphics
-                ctx.fillStyle = (this.hitTimer > 0) ? '#fff' : 'rgba(20, 20, 20, 0.9)';
-
-                // Visual Filter for Rage Mode
-                if (this.phaseState === 'RAGE' && this.hitTimer <= 0) {
-                    ctx.fillStyle = '#4a0000'; // Dark Red base
-                }
-
-                ctx.beginPath();
-                ctx.moveTo(0, 20); ctx.lineTo(this.width / 2, 0); ctx.lineTo(this.width, 20); ctx.lineTo(0, 20); // Roof
-                ctx.rect(5, 20, 10, this.height - 25); // Pillar L
-                ctx.rect(this.width - 15, 20, 10, this.height - 25); // Pillar R
-                ctx.rect(this.width / 2 - 5, 20, 10, this.height - 25); // Pillar C
-                ctx.rect(0, this.height - 5, this.width, 5); // Base
-                ctx.fill();
-
-                // Text Label
-                ctx.shadowBlur = 0;
-                ctx.fillStyle = (this.hitTimer > 0) ? '#000' : '#fff';
-                ctx.font = 'bold 12px Courier New';
-                ctx.textAlign = 'center';
-                ctx.fillText(this.phaseState === 'NORMAL' ? "FED" : "PANIC", this.width / 2, 40);
-            }
-
-            // HP Bar
-            const hpPct = Math.max(0, this.hp / this.maxHp);
-            ctx.fillStyle = '#550000';
-            ctx.fillRect(0, -20, this.width, 8);
-            ctx.fillStyle = (hpPct > 0.5) ? '#00ff00' : '#ff0000';
-            ctx.fillRect(0, -20, this.width * hpPct, 8);
-            ctx.strokeStyle = '#fff';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(0, -20, this.width, 8);
-
-            ctx.restore();
-        }
     }
+
+    attack(player) {
+        const bullets = [];
+        const G = window.Game;
+
+        if (this.phaseState === 'NORMAL') {
+            // Standard Pattern: 2 Green Lasers
+            this.fireTimer = 0.8;
+            for (let i = -1; i <= 1; i += 2) {
+                bullets.push({
+                    x: this.x + this.width / 2 + (i * 40),
+                    y: this.y + this.height,
+                    vx: 0, vy: 300,
+                    color: '#00ff00', w: 8, h: 20
+                });
+            }
+        } else {
+            // RAGE: Spiral Red Fire
+            this.fireTimer = 0.15;
+            this.angle += 0.4;
+            bullets.push({
+                x: this.x + this.width / 2,
+                y: this.y + this.height / 2,
+                vx: Math.cos(this.angle) * 400,
+                vy: Math.sin(this.angle) * 400,
+                color: '#ff0000',
+                w: 12, h: 12
+            });
+            bullets.push({
+                x: this.x + this.width / 2,
+                y: this.y + this.height / 2,
+                vx: Math.cos(this.angle + Math.PI) * 400,
+                vy: Math.sin(this.angle + Math.PI) * 400,
+                color: '#ff0000',
+                w: 12, h: 12
+            });
+        }
+        return bullets;
+    }
+
+    draw(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+
+        // Shadows
+        // Optimize: Disable shadow if hit flashing
+        if (this.hitTimer <= 0) {
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = (this.phaseState === 'RAGE') ? '#ff0000' : '#00ff00';
+        }
+
+        // Render Asset
+        const img = window.Game.images ? window.Game.images.BOSS_BANK : null;
+
+        if (img && img.complete && !img.failed) {
+            ctx.drawImage(img, -10, -10, this.width + 20, this.height + 20);
+
+            // Safe Hit Flash using Composite Operation (Crash proof)
+            if (this.hitTimer > 0) {
+                ctx.save();
+                ctx.globalCompositeOperation = 'source-atop';
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(-10, -10, this.width + 20, this.height + 20);
+                ctx.restore();
+            }
+        } else {
+            // Fallback: Temple Graphics
+            ctx.fillStyle = (this.hitTimer > 0) ? '#fff' : 'rgba(20, 20, 20, 0.9)';
+
+            // Visual Filter for Rage Mode
+            if (this.phaseState === 'RAGE' && this.hitTimer <= 0) {
+                ctx.fillStyle = '#4a0000'; // Dark Red base
+            }
+
+            ctx.beginPath();
+            ctx.moveTo(0, 20); ctx.lineTo(this.width / 2, 0); ctx.lineTo(this.width, 20); ctx.lineTo(0, 20); // Roof
+            ctx.rect(5, 20, 10, this.height - 25); // Pillar L
+            ctx.rect(this.width - 15, 20, 10, this.height - 25); // Pillar R
+            ctx.rect(this.width / 2 - 5, 20, 10, this.height - 25); // Pillar C
+            ctx.rect(0, this.height - 5, this.width, 5); // Base
+            ctx.fill();
+
+            // Text Label
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = (this.hitTimer > 0) ? '#000' : '#fff';
+            ctx.font = 'bold 12px Courier New';
+            ctx.textAlign = 'center';
+            ctx.fillText(this.phaseState === 'NORMAL' ? "FED" : "PANIC", this.width / 2, 40);
+        }
+
+        // HP Bar
+        const hpPct = Math.max(0, this.hp / this.maxHp);
+        ctx.fillStyle = '#550000';
+        ctx.fillRect(0, -20, this.width, 8);
+        ctx.fillStyle = (hpPct > 0.5) ? '#00ff00' : '#ff0000';
+        ctx.fillRect(0, -20, this.width * hpPct, 8);
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(0, -20, this.width, 8);
+
+        ctx.restore();
+    }
+}
 
 window.Game.Boss = Boss;

@@ -57,9 +57,9 @@ window.Game.FIAT_TYPES = [
 ];
 
 window.Game.SHIPS = {
-    BTC: { speed: 400, hp: 3, fireRate: 0.18, color: '#F7931A', hitboxSize: 30 },
-    ETH: { speed: 300, hp: 4, fireRate: 0.45, color: '#8c7ae6', hitboxSize: 40 }, // Nerfed FireRate (0.30 -> 0.45)
-    SOL: { speed: 550, hp: 2, fireRate: 0.12, color: '#00d2d3', hitboxSize: 15 }  // Buffed Hitbox (Tiny)
+    BTC: { speed: 400, hp: 3, fireRate: 0.14, color: '#F7931A', hitboxSize: 30 }, // Buffed (0.18 -> 0.14)
+    ETH: { speed: 300, hp: 4, fireRate: 0.36, color: '#8c7ae6', hitboxSize: 40 }, // Buffed (0.45 -> 0.36)
+    SOL: { speed: 550, hp: 2, fireRate: 0.10, color: '#00d2d3', hitboxSize: 15 }  // Buffed (0.12 -> 0.10)
 };
 
 window.Game.DROPS = {
@@ -85,8 +85,8 @@ window.Game.WAVES = {
 window.Game.DIFFICULTY = {
     FIRE_RATE_BASE: 2.0, // AI FIX: Relaxed
     FIRE_RATE_VAR: 4.0,  // AI FIX: Wider window
-    PROJ_SPEED: 500,     // DIFFICULTY UP (Faster bullets)
-    GRID_SPEED_START: 40, // DIFFICULTY UP (Faster start)
+    PROJ_SPEED: 400,     // BALANCE FIX: -20% Speed (was 500)
+    GRID_SPEED_START: 32, // BALANCE FIX: -20% Speed (was 40)
     BEAR_MULT: 1.5,
     HIT_R_OFFSET: 10
 };

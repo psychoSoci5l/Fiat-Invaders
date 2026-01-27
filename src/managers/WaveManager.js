@@ -51,8 +51,8 @@ window.Game.WaveManager = {
         if (this.wave >= 4) pattern = 'PANIC'; // Earlier Panic normally
         if (window.isBearMarket && this.wave >= 2) pattern = 'PANIC'; // CONSTANT PANIC in Bear Market
 
-        const rows = pattern === 'COLUMNS' ? 7 : (pattern === 'V_SHAPE' ? 6 : 6); // UI FIX: 6 Rows (Clean density)
-        const spacing = 50; // UI FIX: 50px (Visual gap)
+        const rows = pattern === 'COLUMNS' ? 7 : (pattern === 'V_SHAPE' ? 6 : 4); // BALANCE FIX: 4 Rows initially
+        const spacing = 65; // BALANCE FIX: More space (65px)
         const cols = Math.floor((gameWidth - 20) / spacing);
         const startX = (gameWidth - (cols * spacing)) / 2 + (spacing / 2);
 
@@ -74,7 +74,8 @@ window.Game.WaveManager = {
                     if (typeIdx >= G.FIAT_TYPES.length) typeIdx = G.FIAT_TYPES.length - 1;
 
                     let p = G.FIAT_TYPES[typeIdx];
-                    enemies.push(new G.Enemy(startX + c * spacing, 180 + r * spacing, p));
+                    // BALANCE FIX: Spawn higher up (80 instead of 180)
+                    enemies.push(new G.Enemy(startX + c * spacing, 80 + r * spacing, p));
                 }
             }
         }

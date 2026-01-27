@@ -28,31 +28,40 @@
 
     <div id="ui-layer">
         <!-- In-Game Settings Button -->
-        <button id="btn-settings" onclick="toggleSettings()" style="pointer-events: auto;">⚙️</button>
+        <button id="btn-settings" onclick="toggleSettings()" ontouchstart="event.stopPropagation()"
+            style="pointer-events: auto;">☰</button>
 
         <!-- TOP BAR: Lives/Health | SCORE | Level/Shield -->
+        <!-- TOP BAR: Lives/Health | SCORE | Level/Shield -->
+        <!-- ROCK SOLID HUD REWRITE -->
         <div class="hud-top-bar">
-            <div class="hud-stat left">
-                <span class="label">LIVES</span>
+            <!-- LEFT MODULE: LIVES -->
+            <div class="hud-module left">
+                <span class="label">VITE</span>
                 <span id="livesText" class="value">3</span>
                 <div class="bar-container health-container">
                     <div id="healthBar"></div>
                 </div>
             </div>
 
-            <div class="hud-score">
-                <span class="label">SCORE</span>
+            <!-- CENTER MODULE: SCORE -->
+            <div class="hud-module center">
+                <span class="label">PUNTI</span>
                 <span id="scoreVal" class="value">0</span>
             </div>
 
-            <div class="hud-stat right">
-                <span class="label">LEVEL</span>
+            <!-- RIGHT MODULE: LEVEL & SHIELD -->
+            <div class="hud-module right">
+                <span class="label">LIVELLO</span>
                 <span id="lvlVal" class="value">1</span>
                 <div class="bar-container shield-container">
                     <div id="shieldBar"></div>
                 </div>
             </div>
         </div>
+
+        <!-- Global Shield Bar Removed -->
+    </div>
     </div>
 
     <div id="splash-layer">
@@ -190,11 +199,11 @@
         <h1 class="neon-title" style="color: #fff; text-shadow: 0 0 20px #fff;">PAUSED</h1>
         <div class="subtitle" style="margin-bottom: 40px; color: #888;">SYSTEM HALTED</div>
 
-        <button class="btn-coin" onclick="togglePause()">RESUME</button>
-        <button class="btn-coin" onclick="restartGame()"
-            style="background: #F7931A; border-color: #F7931A; color: #000;">RESTART</button>
-        <button class="btn-coin" onclick="backToIntro()" style="background: #e74c3c; border-color: #e74c3c;">EXIT TO
-            TITLE</button>
+        <button class="btn-coin" id="btn-resume" onclick="togglePause()">RESUME</button>
+        <button class="btn-coin" id="btn-restart" onclick="restartGame()"
+            style="background: #F7931A; border-color: #F7931A; color: #000;">RESTART MISSION</button>
+        <button class="btn-coin" id="btn-exit" onclick="backToIntro()"
+            style="background: #e74c3c; border-color: #e74c3c;">EXIT TO MENU</button>
 
         <div class="menu-row" style="margin-top: 40px;">
             <button class="icon-btn mute-toggle">🔇</button>
