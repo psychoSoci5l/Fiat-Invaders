@@ -100,10 +100,21 @@ window.Game.WaveManager = {
                     let typeIdx = Math.floor(r / 2); // 0,0, 1,1, 2,2
                     if (typeIdx >= G.FIAT_TYPES.length) typeIdx = G.FIAT_TYPES.length - 1;
 
-                    // Stronger enemies on Wave 5
-                    if (this.wave === 5) typeIdx = Math.min(typeIdx + 1, G.FIAT_TYPES.length - 1);
+                    let baseConfig = G.FIAT_TYPES[typeIdx];
 
-                    let p = G.FIAT_TYPES[typeIdx];
+                    // Create Instance Config (Clone)
+                    // HP SCALING FIX: Base + (Level * 2) instead of Base * Level
+                    // We treat 'wave' as level here.
+                    let scaledHp = baseConfig.hp + (this.wave * 2);
+
+                    // Clamp/Safety? Nah, let it grow linearly.
+
+                    // Create modified config object
+                    let p = {
+                        ...baseConfig,
+                        hp: scaledHp
+                    };
+
                     enemies.push(new G.Enemy(startX + c * spacing, startY + r * spacing, p));
                 }
             }

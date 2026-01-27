@@ -155,9 +155,9 @@ class Boss extends window.Game.Entity {
         ctx.translate(this.x, this.y);
 
         const G = window.Game;
-        const img = G.images ? G.images.boss : null;
+        const img = G.assets ? G.assets.boss : null;
 
-        if (img && img.complete && !img.failed) {
+        if (img && img.complete) {
             // Draw Boss Bank
             // Aspect ratio? Assume square-ish or fit to width/height
             ctx.drawImage(img, -10, -10, this.width + 20, this.height + 20);

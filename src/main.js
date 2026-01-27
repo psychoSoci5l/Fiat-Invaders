@@ -59,8 +59,85 @@ function t(key) { return Constants.TEXTS[currentLang][key] || key; }
 function setStyle(id, prop, val) { const el = document.getElementById(id) || ui[id]; if (el) el.style[prop] = val; }
 function setUI(id, val) { const el = document.getElementById(id) || ui[id]; if (el) el.innerText = val; }
 
-// --- INITIALIZATION ---
-function init() {
+// -----------------------------------------------------------------------------
+// ASSET LOADER (Requested Fix)
+// -----------------------------------------------------------------------------
+window.Game.assets = {}; // User requested 'G.assets' but usually we attach to window.Game for modules
+// Or if user wants 'const G' scope locally? "Crea un oggetto const G.assets = {}"
+// I will use window.Game.assets to be safe across files.
+
+async function newLoadAssets() { // Renamed to avoid conflict with existing loadAssets
+    const assetsData = window.Game.ASSETS;
+    const promises = [];
+
+    for (const [key, src] of Object.entries(assetsData)) {
+        promises.push(new Promise((resolve) => {
+            const img = new Image();
+            img.src = src;
+            img.onload = () => {
+                window.Game.assets[key] = img;
+                resolve();
+            };
+            img.onerror = () => {
+                console.error(`Failed to load: ${src}`);
+                // Fallback?
+                window.Game.assets[key] = null;
+                resolve(); // resolving anyway to not block game
+            };
+        }));
+    }
+    await Promise.all(promises);
+    console.log("Assets Loaded:", Object.keys(window.Game.assets));
+}
+
+// Boot
+window.onload = init;
+
+// -----------------------------------------------------------------------------
+// INITIALIZATION
+// -----------------------------------------------------------------------------
+async function init() {
+    // 1. Load Assets
+    await newLoadAssets(); // Using the new asset loader
+
+    // 2. Initialize Subsystems
+    if (window.Game.WaveManager) window.Game.WaveManager.init();
+
+    // 3. Setup Explicit Event Listeners for UI (Fixing Broken Buttons)
+    document.querySelectorAll('.mute-toggle').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            audioSys.toggleMute();
+            updateMuteIcons();
+        });
+        btn.addEventListener('touchstart', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            audioSys.toggleMute();
+            updateMuteIcons();
+        });
+    });
+
+    // Language Toggle
+    const langBtn = document.getElementById('lang-btn');
+    if (langBtn) {
+        langBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleLang(); });
+        langBtn.addEventListener('touchstart', (e) => { e.stopPropagation(); e.preventDefault(); toggleLang(); });
+    }
+
+    // Settings Toggle
+    const settingsBtn = document.getElementById('btn-settings');
+    if (settingsBtn) {
+        settingsBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleSettings(); });
+        settingsBtn.addEventListener('touchstart', (e) => { e.stopPropagation(); e.preventDefault(); toggleSettings(); });
+    }
+
+    // Start Loop (Only after setup)
+    // CALL SETUP LOGIC (Previously in oldInit)
+    setupGame();
+}
+
+function setupGame() {
     canvas = document.getElementById('gameCanvas');
     ctx = canvas.getContext('2d', { alpha: false });
 
@@ -184,7 +261,10 @@ function init() {
     }
 
     if (ui.highScore) ui.highScore.innerText = highScore;
-    requestAnimationFrame(loop);
+
+    // START LOOP
+    loop(0);
+
 }
 
 function resize() {
@@ -377,6 +457,11 @@ function startIntermission(msgOverride) {
     let msg = msgOverride || "PREPARING NEXT WAVE...";
     addText(msg, gameWidth / 2, gameHeight / 2 - 80, '#00ff00', 30);
 }
+
+// -----------------------------------------------------------------------------
+// SKY / BACKGROUND SYSTEM
+// -----------------------------------------------------------------------------
+
 
 function spawnBoss() {
     // hp is handled inside Boss class now (or pass level?)

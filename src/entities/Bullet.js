@@ -39,7 +39,7 @@ class Bullet extends window.Game.Entity {
 
         const G = window.Game;
         const imgKey = this.isHodl ? 'bullet_player' : 'bullet_enemy';
-        const img = (G.images && imgKey) ? G.images[imgKey] : null;
+        const img = (G.assets && imgKey) ? G.assets[imgKey] : null;
 
         if (img && img.complete) {
             // Draw Candle

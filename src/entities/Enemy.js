@@ -95,26 +95,9 @@ class Enemy extends window.Game.Entity {
             case 'Ξ': imgKey = 'enemy_eth'; break;
         }
 
-        const img = (G.images && imgKey) ? G.images[imgKey] : null;
-
-        if (img && img.complete && !img.failed) {
-            // Draw Sprite
-            const size = 50;
-            ctx.drawImage(img, -size / 2, -size / 2, size, size);
-        } else {
-            // Fallback: Just Text
-            ctx.fillStyle = this.color;
-            ctx.font = 'bold 24px Impact';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(this.symbol, 0, 0);
-
-            // Circle outline
-            ctx.strokeStyle = this.color;
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(0, 0, 20, 0, Math.PI * 2);
-            ctx.stroke();
+        // Render Sprite (No fallback allowed)
+        if (G.assets && G.assets[imgKey]) {
+            ctx.drawImage(G.assets[imgKey], -25, -25, 50, 50);
         }
 
         ctx.restore();
