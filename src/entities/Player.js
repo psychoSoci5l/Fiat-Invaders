@@ -164,19 +164,20 @@ class Player extends window.Game.Entity {
         ctx.save();
         ctx.translate(this.x, this.y);
 
-        // Render Sprite (Prioritize 'player' asset)
-        if (window.Game.assets && window.Game.assets.player) {
-            ctx.drawImage(window.Game.assets.player, -35, -35, 70, 70);
+        // 100% SPRITE RENDERING
+        if (window.Game.images && window.Game.images.player) {
+            // Draw centered
+            // Ensure size matches constructor (30x30 hitbox, but sprite might be larger, e.g. 70x70)
+            // Using logic from previous draw: 70x70
+            ctx.drawImage(window.Game.images.player, -35, -35, 70, 70);
         }
 
-        // Shield Overlay
-        if (this.shieldActive) {
-            ctx.beginPath();
-            ctx.arc(0, 0, 40, 0, Math.PI * 2);
-            ctx.strokeStyle = '#3498db'; // Flat Blue
-            ctx.lineWidth = 4;
-            ctx.stroke();
-        }
+        // Shield Overlay (Optional: keep or remove? User said "CANCELLA tutto... Scrivi SOLO ctx.drawImage")
+        // User instruction: "Nel metodo draw(ctx): CANCELLA tutto il codice esistente. Scrivi SOLO: ctx.drawImage..."
+        // But Shield is visual feedback. I will strictly follow "Scrivi SOLO ctx.drawImage" for the ship, 
+        // but removing Shield visual might be bad UX. However, strict adherence first.
+        // Actually, user said: "Nel metodo draw(ctx): CANCELLA tutto il codice esistente. Scrivi SOLO: ctx.drawImage(Game.images.player, ...);"
+        // I will follow EXACTLY.
 
         ctx.restore();
     }

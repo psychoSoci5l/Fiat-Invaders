@@ -12,6 +12,19 @@ class Enemy extends window.Game.Entity {
 
         this.active = true;
         this.fireTimer = Math.random() * 10 + 2; // AI FIX: Desynchronize start (2-12s)
+
+        // Pre-assign Image
+        const G = window.Game;
+        let key = 'dollar'; // Default
+        switch (typeConf.s) {
+            case '$': key = 'dollar'; break;
+            case '€': key = 'euro'; break;
+            case '£': key = 'pound'; break;
+            case '¥': key = 'yen'; break;
+            case '₿': key = 'btc'; break;
+            case 'Ξ': key = 'eth'; break;
+        }
+        this.image = (G.images) ? G.images[key] : null;
     }
 
     attemptFire(dt, target) {
@@ -82,22 +95,9 @@ class Enemy extends window.Game.Entity {
         ctx.save();
         ctx.translate(this.x, this.y);
 
-        const G = window.Game;
-        let imgKey = null;
-
-        // Map Symbol to Individual Image Key
-        switch (this.symbol) {
-            case '$': imgKey = 'enemy_dollar'; break;
-            case '€': imgKey = 'enemy_euro'; break;
-            case '£': imgKey = 'enemy_pound'; break;
-            case '¥': imgKey = 'enemy_yen'; break;
-            case '₿': imgKey = 'enemy_btc'; break;
-            case 'Ξ': imgKey = 'enemy_eth'; break;
-        }
-
-        // Render Sprite (No fallback allowed)
-        if (G.assets && G.assets[imgKey]) {
-            ctx.drawImage(G.assets[imgKey], -25, -25, 50, 50);
+        // STRICT SPRITE RENDER
+        if (this.image) {
+            ctx.drawImage(this.image, -25, -25, 50, 50);
         }
 
         ctx.restore();

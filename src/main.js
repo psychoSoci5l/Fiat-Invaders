@@ -97,39 +97,55 @@ window.onload = init;
 // INITIALIZATION
 // -----------------------------------------------------------------------------
 async function init() {
-    // 1. Load Assets
-    await newLoadAssets(); // Using the new asset loader
+    // -------------------------------------------------------------------------
+    // 1. PRELOAD ASSETS (Explicit)
+    // -------------------------------------------------------------------------
+    window.Game.images = {};
+    const assetList = ['ship_player', 'enemy_yen', 'enemy_euro', 'enemy_dollar', 'enemy_pound', 'enemy_btc', 'enemy_eth', 'boss_bank'];
+
+    assetList.forEach(name => {
+        const img = new Image();
+        img.src = `assets/${name}.png`;
+        // Normalize keys: 'ship_player' -> 'player', 'enemy_btc' -> 'btc' (if needed, or map in Entity)
+        // User requested mapping: Game.images.player
+        let key = name.replace('ship_', '').replace('enemy_', '');
+        // Special case: boss_bank -> boss (if Entity uses 'boss') or keep 'bank'?
+        // Enemy.js uses 'enemy_yen' directly? No, Enemy.js maps symbol to 'imgKey'.
+        // Let's keep original names in map AND simplified tokens if useful.
+        // User instruction: Game.images[name.replace...]
+        window.Game.images[key] = img;
+        // Also keep full name for safety if legacy code uses it? 
+        window.Game.images[name] = img;
+    });
+    // Manual Alias for Player
+    window.Game.images.player = window.Game.images.player; // ship_player -> player done above by replace
+    // Manual Alias for Boss
+    window.Game.images.boss = window.Game.images.boss_bank || window.Game.images.bank;
 
     // 2. Initialize Subsystems
     if (window.Game.WaveManager) window.Game.WaveManager.init();
 
-    // 3. Setup Explicit Event Listeners for UI (Fixing Broken Buttons)
+    // 3. FIX UI LISTENERS
     document.querySelectorAll('.mute-toggle').forEach(btn => {
-        btn.addEventListener('click', (e) => {
+        btn.onclick = (e) => {
             e.stopPropagation();
-            audioSys.toggleMute();
+            // Use global Audio if exposed or from Game
+            if (window.Game.Audio) window.Game.Audio.toggleMute();
+            else audioSys.toggleMute();
             updateMuteIcons();
-        });
-        btn.addEventListener('touchstart', (e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            audioSys.toggleMute();
-            updateMuteIcons();
-        });
+        };
     });
 
     // Language Toggle
     const langBtn = document.getElementById('lang-btn');
     if (langBtn) {
-        langBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleLang(); });
-        langBtn.addEventListener('touchstart', (e) => { e.stopPropagation(); e.preventDefault(); toggleLang(); });
+        langBtn.onclick = (e) => { e.stopPropagation(); toggleLang(); };
     }
 
     // Settings Toggle
     const settingsBtn = document.getElementById('btn-settings');
     if (settingsBtn) {
-        settingsBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleSettings(); });
-        settingsBtn.addEventListener('touchstart', (e) => { e.stopPropagation(); e.preventDefault(); toggleSettings(); });
+        settingsBtn.onclick = (e) => { e.stopPropagation(); toggleSettings(); };
     }
 
     // Start Loop (Only after setup)
