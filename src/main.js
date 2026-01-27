@@ -33,7 +33,11 @@ function loadAssets() {
         img.src = src;
         img.src = src;
         img.onload = () => { loaded++; /* console.log(`Loaded ${key}`); */ };
-        images[key] = img;
+        img.onerror = () => {
+            console.error(`Failed to load asset: ${key}`);
+            img.failed = true; // SAFETY FIX: Flag for safe drawing
+            loaded++;
+        };
         images[key] = img;
     }
     window.Game.images = images; // Expose globally
@@ -394,7 +398,7 @@ function update(dt) {
     if (gameState !== 'PLAY' && gameState !== 'INTERMISSION') return;
     totalTime += dt;
 
-    const waveAction = waveMgr.update(dt, gameState, enemies.length, !!boss);
+    const waveAction = waveMgr.update(dt, gameState, enemies, !!boss);
 
     if (waveAction) {
         if (waveAction.action === 'START_INTERMISSION') {
@@ -866,11 +870,32 @@ function loop(timestamp) {
     // Remove old "delayed game over" check since executeDeath handles it
     // if (player && player.hp <= 0 && hitStopTimer <= 0 && gameState === 'PLAY') { ... }
 
-    update(dt);
-    updatePowerUps(dt);
-    updateSky(dt); // ☁️ Always update sky
-    draw();
-    requestAnimationFrame(loop);
+    // SAFETY FIX: Protected Game Loop
+    try {
+        update(dt);
+        updatePowerUps(dt);
+        updateSky(dt); // ☁️ Always update sky
+        draw();
+    } catch (error) {
+        console.error("Game Loop Error:", error);
+        window.Game.errors = (window.Game.errors || 0) + 1;
+
+        // Reset error count every second
+        const now = Date.now();
+        if (!window.Game.lastErrorTime || now - window.Game.lastErrorTime > 1000) {
+            window.Game.errors = 1;
+            window.Game.lastErrorTime = now;
+        }
+
+        // Emergency Halt
+        if (window.Game.errors > 5) {
+            cancelAnimationFrame(window.animationId); // Stop Loop
+            alert("SYSTEM FAILURE - RELOAD");
+            return;
+        }
+    }
+
+    window.animationId = requestAnimationFrame(loop);
 }
 
 function triggerGameOver() {

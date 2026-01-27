@@ -17,7 +17,7 @@ window.Game.WaveManager = {
         this.intermissionTimer = 0;
     },
 
-    update(dt, gameState, enemiesCount, bossActive) {
+    update(dt, gameState, enemies, bossActive) {
         // Return new state requests (e.g., GAME_STATE change) or null
         const G = window.Game;
 
@@ -29,7 +29,10 @@ window.Game.WaveManager = {
             return null;
         }
 
-        if (!bossActive && enemiesCount === 0 && !this.waveInProgress && gameState === 'PLAY') {
+        // Count Real Enemies (Exclude Minions)
+        const realEnemyCount = enemies ? enemies.filter(e => !e.isMinion).length : 0;
+
+        if (!bossActive && realEnemyCount === 0 && !this.waveInProgress && gameState === 'PLAY') {
             this.waveInProgress = true;
             if (this.wave <= 3) return { action: 'START_INTERMISSION' };
             else return { action: 'SPAWN_BOSS' };

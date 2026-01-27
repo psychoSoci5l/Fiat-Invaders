@@ -15,6 +15,9 @@ class Enemy extends window.Game.Entity {
     }
 
     attemptFire(dt, target) {
+        // SAFETY FIX: Guard Clause
+        if (!target || target.hp <= 0) return null;
+
         this.fireTimer -= dt;
         if (this.fireTimer <= 0) {
             const D = window.Game.DIFFICULTY;
@@ -26,6 +29,7 @@ class Enemy extends window.Game.Entity {
             let vy = D.PROJ_SPEED;
 
             if (target) {
+                // SAFETY FIX: Guard against missing target
                 const dx = target.x - this.x;
                 const dy = target.y - this.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
@@ -33,6 +37,9 @@ class Enemy extends window.Game.Entity {
                     vx = (dx / dist) * D.PROJ_SPEED;
                     vy = (dy / dist) * D.PROJ_SPEED;
                 }
+            } else {
+                // SAFETY FIX: Default downward if target missing
+                vy = D.PROJ_SPEED;
             }
 
             return {
@@ -49,6 +56,9 @@ class Enemy extends window.Game.Entity {
     }
 
     update(dt, globalTime, wavePattern, gridSpeed, gridDir) {
+        // SAFETY FIX: Ensure Game Global exists
+        if (!window.Game) return;
+
         // Horizontal Grid Move
         this.x += gridSpeed * gridDir * dt;
 
@@ -90,7 +100,7 @@ class Enemy extends window.Game.Entity {
             }
         }
 
-        if (img && img.complete) {
+        if (img && img.complete && !img.failed) {
             // Draw Sprite with Glow
             ctx.globalCompositeOperation = 'screen'; // Fixes black box artifacts
             ctx.drawImage(img, -25, -25, 50, 50);
