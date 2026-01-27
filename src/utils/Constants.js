@@ -48,12 +48,12 @@ window.Game.WEAPONS = {
 };
 
 window.Game.FIAT_TYPES = [
-    { s: '¥', c: '#bdc3c7', val: 30, hp: 1 },
-    { s: '€', c: '#3498db', val: 50, hp: 2 }, // DIFFICULTY UP
-    { s: '£', c: '#9b59b6', val: 50, hp: 1 },
-    { s: '$', c: '#2ecc71', val: 100, hp: 3 }, // DIFFICULTY UP
-    { s: '₿', c: '#F7931A', val: 500, hp: 5 }, // DIFFICULTY UP (Tank)
-    { s: 'Ξ', c: '#8c7ae6', val: 500, hp: 5 }  // DIFFICULTY UP (Tank)
+    { s: '¥', c: '#bdc3c7', val: 30, hp: 2 }, // BALANCE FIX: 2 Hits
+    { s: '€', c: '#3498db', val: 50, hp: 4 }, // BALANCE FIX: 4 Hits
+    { s: '£', c: '#9b59b6', val: 50, hp: 2 }, // BALANCE FIX: 2 Hits
+    { s: '$', c: '#2ecc71', val: 100, hp: 4 }, // BALANCE FIX: 4 Hits
+    { s: '₿', c: '#F7931A', val: 500, hp: 12 }, // BALANCE FIX: Tank (12 Hits)
+    { s: 'Ξ', c: '#8c7ae6', val: 500, hp: 12 }  // BALANCE FIX: Tank (12 Hits)
 ];
 
 window.Game.SHIPS = {

@@ -513,7 +513,8 @@ function checkBulletCollisions(b, bIdx) {
     for (let j = enemies.length - 1; j >= 0; j--) {
         let e = enemies[j];
         if (Math.abs(b.x - e.x) < 35 && Math.abs(b.y - e.y) < 35) {
-            e.hp -= 10; audioSys.play('hit');
+            e.hp -= 1; // BALANCE FIX: 1 Hit = 1 Damage (No insta-kill)
+            audioSys.play('hit');
             if (e.hp <= 0) {
                 enemies.splice(j, 1);
                 audioSys.play('coin');

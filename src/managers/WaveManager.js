@@ -51,8 +51,8 @@ window.Game.WaveManager = {
         if (this.wave >= 4) pattern = 'PANIC'; // Earlier Panic normally
         if (window.isBearMarket && this.wave >= 2) pattern = 'PANIC'; // CONSTANT PANIC in Bear Market
 
-        const rows = pattern === 'COLUMNS' ? 7 : (pattern === 'V_SHAPE' ? 6 : 5);
-        const spacing = 60;
+        const rows = pattern === 'COLUMNS' ? 7 : (pattern === 'V_SHAPE' ? 6 : 6); // UI FIX: 6 Rows (Clean density)
+        const spacing = 50; // UI FIX: 50px (Visual gap)
         const cols = Math.floor((gameWidth - 20) / spacing);
         const startX = (gameWidth - (cols * spacing)) / 2 + (spacing / 2);
 
