@@ -82,52 +82,39 @@ class Enemy extends window.Game.Entity {
         ctx.save();
         ctx.translate(this.x, this.y);
 
-        // No Neon Glow (Flat Design)
-        // ctx.shadowBlur = 15; 
-        // ctx.shadowColor = this.color;
-
         const G = window.Game;
-        let spriteDef = null;
+        let imgKey = null;
 
-        // Map Symbol to Sprite Definition
+        // Map Symbol to Individual Image Key
         switch (this.symbol) {
-            case '$': spriteDef = G.SPRITES.DOLLAR; break;
-            case '€': spriteDef = G.SPRITES.EURO; break;
-            case '£': spriteDef = G.SPRITES.POUND; break;
-            case '¥': spriteDef = G.SPRITES.YEN; break;
-            case '₿': spriteDef = G.SPRITES.BTC; break;
-            case 'Ξ': spriteDef = G.SPRITES.ETH; break;
+            case '$': imgKey = 'enemy_dollar'; break;
+            case '€': imgKey = 'enemy_euro'; break;
+            case '£': imgKey = 'enemy_pound'; break;
+            case '¥': imgKey = 'enemy_yen'; break;
+            case '₿': imgKey = 'enemy_btc'; break;
+            case 'Ξ': imgKey = 'enemy_eth'; break;
         }
 
-        let img = null;
-        if (G.images && spriteDef) {
-            if (spriteDef.sheet === 'ENEMIES') img = G.images.ENEMIES;
-        }
+        const img = (G.images && imgKey) ? G.images[imgKey] : null;
 
-        if (img && img.complete) {
+        if (img && img.complete && !img.failed) {
             // Draw Sprite
-            const size = 50; // Standard size
-            ctx.drawImage(
-                img,
-                spriteDef.x, spriteDef.y, spriteDef.w, spriteDef.h,
-                -size / 2, -size / 2, size, size
-            );
+            const size = 50;
+            ctx.drawImage(img, -size / 2, -size / 2, size, size);
         } else {
-            // Fallback Shape
-            ctx.strokeStyle = this.color;
-            ctx.lineWidth = 2;
-            ctx.fillStyle = 'rgba(0,0,0,0.5)';
-            ctx.beginPath();
-            ctx.rect(-15, -15, 30, 30);
-            ctx.fill();
-            ctx.stroke();
-
-            // Text Fallback
-            ctx.fillStyle = '#fff';
-            ctx.font = 'bold 16px Courier New';
+            // Fallback: Just Text
+            ctx.fillStyle = this.color;
+            ctx.font = 'bold 24px Impact';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(this.symbol, 0, 0);
+
+            // Circle outline
+            ctx.strokeStyle = this.color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(0, 0, 20, 0, Math.PI * 2);
+            ctx.stroke();
         }
 
         ctx.restore();

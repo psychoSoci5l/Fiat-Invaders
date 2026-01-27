@@ -164,18 +164,16 @@ class Player extends window.Game.Entity {
         ctx.save();
         ctx.translate(this.x, this.y);
 
-        // Colors
-        ctx.fillStyle = this.stats.color;
-
-        // Render Sprite or Shape
-        const img = window.Game.images ? window.Game.images.PLAYER_SHIP : null;
-        if (img && img.complete) {
-            // Additive Blending for Neon Glow (Removes black BG artifacts)
-            ctx.globalCompositeOperation = 'screen';
-            ctx.drawImage(img, -35, -35, 70, 70); // Slightly larger
-            ctx.globalCompositeOperation = 'source-over'; // Reset
+        // Render Sprite
+        const img = window.Game.images ? window.Game.images.player : null;
+        if (img && img.complete && !img.failed) {
+            // No Additive Blending - Flat Style
+            // ctx.globalCompositeOperation = 'screen'; 
+            ctx.drawImage(img, -35, -35, 70, 70);
+            // ctx.globalCompositeOperation = 'source-over'; 
         } else {
             // Fallback Shape
+            ctx.fillStyle = this.stats.color;
             ctx.beginPath();
             ctx.moveTo(0, -20);
             ctx.lineTo(-15, 15);
@@ -183,12 +181,12 @@ class Player extends window.Game.Entity {
             ctx.fill();
         }
 
-        // Shield Overlay
+        // Shield Overlay (Keep simple circle but maybe thicker/blue?)
         if (this.shieldActive) {
             ctx.beginPath();
-            ctx.arc(0, 0, 35, 0, Math.PI * 2);
-            ctx.strokeStyle = '#00ffff';
-            ctx.lineWidth = 2;
+            ctx.arc(0, 0, 40, 0, Math.PI * 2);
+            ctx.strokeStyle = '#3498db'; // Flat Blue
+            ctx.lineWidth = 4;
             ctx.stroke();
         }
 
