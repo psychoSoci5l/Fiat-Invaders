@@ -48,74 +48,25 @@ window.Game.WEAPONS = {
 };
 
 window.Game.FIAT_TYPES = [
-    { s: '¥', c: '#bdc3c7', val: 30, hp: 2 }, // BALANCE FIX: 2 Hits
-    { s: '€', c: '#3498db', val: 50, hp: 4 }, // BALANCE FIX: 4 Hits
-    { s: '£', c: '#9b59b6', val: 50, hp: 2 }, // BALANCE FIX: 2 Hits
-    { s: '$', c: '#2ecc71', val: 100, hp: 4 }, // BALANCE FIX: 4 Hits
-    { s: '₿', c: '#F7931A', val: 500, hp: 12 }, // BALANCE FIX: Tank (12 Hits)
-    { s: 'Ξ', c: '#8c7ae6', val: 500, hp: 12 }  // BALANCE FIX: Tank (12 Hits)
+    { s: '¥', c: '#bdc3c7', val: 30, hp: 1 },
+    { s: '€', c: '#3498db', val: 50, hp: 1 },
+    { s: '£', c: '#9b59b6', val: 50, hp: 1 },
+    { s: '$', c: '#2ecc71', val: 100, hp: 1 }
 ];
 
 window.Game.SHIPS = {
-    BTC: { speed: 400, hp: 3, fireRate: 0.14, color: '#F7931A', hitboxSize: 30, damage: 1.2 }, // Buffed Damage (+20%)
-    ETH: { speed: 300, hp: 4, fireRate: 0.36, color: '#8c7ae6', hitboxSize: 40, damage: 1.2 }, // Buffed Damage (+20%)
-    SOL: { speed: 550, hp: 2, fireRate: 0.10, color: '#00d2d3', hitboxSize: 15, damage: 1.2 }  // Buffed Damage (+20%)
+    BTC: { speed: 400, hp: 3, fireRate: 0.18, color: '#F7931A', hitboxSize: 30 },
+    ETH: { speed: 300, hp: 4, fireRate: 0.45, color: '#8c7ae6', hitboxSize: 40 }, // Nerfed FireRate (0.30 -> 0.45)
+    SOL: { speed: 550, hp: 2, fireRate: 0.12, color: '#00d2d3', hitboxSize: 15 }  // Buffed Hitbox (Tiny)
 };
 
-window.Game.DROPS = {
-    CHANCE: 0.10, // Reduced from 0.15 (15% -> 10%)
-    TABLE: [
-        { type: 'RAPID', weight: 0.4 },
-        { type: 'SPREAD', weight: 0.7 },
-        { type: 'SHIELD', weight: 1.0 }
-    ]
-};
-
-window.Game.WAVES = {
-    SPACING: 60,
-    PATTERNS: {
-        1: 'RECT',
-        2: 'V_SHAPE',
-        3: 'SINE_WAVE',
-        4: 'COLUMNS',
-        PANIC: 'PANIC'
-    }
-};
-
-window.Game.DIFFICULTY = {
-    FIRE_RATE_BASE: 2.0, // AI FIX: Relaxed
-    FIRE_RATE_VAR: 4.0,  // AI FIX: Wider window
-    PROJ_SPEED: 400,     // BALANCE FIX: -20% Speed (was 500)
-    GRID_SPEED_START: 32, // BALANCE FIX: -20% Speed (was 40)
-    BEAR_MULT: 1.5,
-    HIT_R_OFFSET: 10
-};
-
-// ASSET MANIFEST (Individual Files)
 window.Game.ASSETS = {
-    player: 'assets/ship_bitcoin.png', // Mapping existing ship to 'player' or user provided 'ship_player.png'? User asked for 'ship_player.png' but I only have 'ship_bitcoin.png'. I will map 'player' to 'assets/ship_bitcoin.png' to be safe, or 'assets/ship_player.png' if I assume user renamed it. Let's use ship_bitcoin.png as it exists.
-    // Actually user said: player: 'assets/ship_player.png'. I will follow instruction but fallback if missing? 
-    // Wait, if I use a file that doesn't exist, it breaks. I check file list?
-    // I will use 'assets/ship_bitcoin.png' but Update the key to 'player'.
-    // User: "Elenco mapping: player: 'assets/ship_player.png'". 
-    // I'll try to stick to valid files. I'll map 'player' -> 'assets/ship_bitcoin.png'.
-    player: 'assets/ship_bitcoin.png',
-
-    // Enemies
-    enemy_yen: 'assets/enemy_yen.png',
-    enemy_pound: 'assets/enemy_pound.png',
-    enemy_euro: 'assets/enemy_euro.png',
-    enemy_dollar: 'assets/enemy_dollar.png',
-    enemy_btc: 'assets/enemy_btc.png',
-    enemy_eth: 'assets/enemy_eth.png',
-
-    // Boss
-    boss: 'assets/boss_bank.png',
-
-    // Bullets
-    bullet_player: 'assets/bullet_player.png',
-    bullet_enemy: 'assets/bullet_enemy.png'
+    PLAYER_SHIP: 'assets/ship_bitcoin.png',
+    ENEMY_DOLLAR: 'assets/enemy_dollar.png',
+    ENEMY_EURO: 'assets/enemy_euro.png',
+    ENEMY_POUND: 'assets/enemy_pound.png',
+    ENEMY_YEN: 'assets/enemy_yen.png',
+    BOSS_BANK: 'assets/boss_bank.png'
 };
 
-// Removing M_CHARS string as we don't strictly need it if visual is sprites
 window.Game.M_CHARS = "01BTCETH$$£€¥HODL";

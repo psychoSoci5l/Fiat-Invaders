@@ -30,9 +30,6 @@ class Boss extends window.Game.Entity {
         // Visual Hit Timer logic
         if (this.hitTimer > 0) this.hitTimer -= dt;
 
-        // SAFETY FIX: Global Safety
-        if (!window.Game) return null;
-
         // 1. Entrance Animation (Drop down)
         if (this.y < this.targetY) {
             this.y += 100 * dt;
@@ -79,8 +76,6 @@ class Boss extends window.Game.Entity {
         // 4. Attack Logic
         this.fireTimer -= dt;
         if (this.fireTimer <= 0) {
-            // SAFETY FIX: Guard Clause for Player
-            if (!player || player.hp <= 0) return null;
             return this.attack(player);
         }
         return null;
@@ -88,27 +83,16 @@ class Boss extends window.Game.Entity {
 
     printMoney() {
         const G = window.Game;
-        // SAFETY FIX: Ensure enemies array exists
-        if (G.enemies) {
+        // Ensure enemies array exists
+        if (!G.enemies) return;
 
-            // Spawn 2 Minions (Dollars)
-            const typeDollars = G.FIAT_TYPES[0]; // Assuming 0 is $, check config used in WaveManager but WaveManager uses hardcoded indices usually.
-            // Actually WaveManager uses G.FIAT_TYPES[typeIdx]. let's assume index 0 or find '$'.
-            // In this specific codebase, usually [0]=$ [1]=€ ... 
-            // Let's safe pick index 0.
+        // Spawn 2 Minions (Dollars)
+        // Left
+        G.enemies.push(new G.Enemy(this.x - 30, this.y + 50, G.FIAT_TYPES[3]));
+        // Right
+        G.enemies.push(new G.Enemy(this.x + this.width + 30, this.y + 50, G.FIAT_TYPES[3]));
 
-            // Left Minion
-            const e1 = new G.Enemy(this.x - 30, this.y + 50, G.FIAT_TYPES[0]);
-            e1.isMinion = true;
-            G.enemies.push(e1);
-
-            // Right Minion
-            const e2 = new G.Enemy(this.x + this.width + 30, this.y + 50, G.FIAT_TYPES[0]);
-            e2.isMinion = true;
-            G.enemies.push(e2);
-
-            if (G.Audio) G.Audio.play('coin');
-        }
+        if (G.Audio) G.Audio.play('coin');
     }
 
     attack(player) {
@@ -154,15 +138,20 @@ class Boss extends window.Game.Entity {
         ctx.save();
         ctx.translate(this.x, this.y);
 
-        const G = window.Game;
-        const img = G.assets ? G.assets.boss : null;
+        // Shadows
+        // Optimize: Disable shadow if hit flashing
+        if (this.hitTimer <= 0) {
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = (this.phaseState === 'RAGE') ? '#ff0000' : '#00ff00';
+        }
+
+        // Render Asset
+        const img = window.Game.images ? window.Game.images.BOSS_BANK : null;
 
         if (img && img.complete) {
-            // Draw Boss Bank
-            // Aspect ratio? Assume square-ish or fit to width/height
             ctx.drawImage(img, -10, -10, this.width + 20, this.height + 20);
 
-            // Safe Hit Flash
+            // Safe Hit Flash using Composite Operation (Crash proof)
             if (this.hitTimer > 0) {
                 ctx.save();
                 ctx.globalCompositeOperation = 'source-atop';
@@ -172,25 +161,32 @@ class Boss extends window.Game.Entity {
             }
         } else {
             // Fallback: Temple Graphics
-            ctx.fillStyle = (this.hitTimer > 0) ? '#fff' : 'rgba(100, 100, 100, 0.9)';
-            if (this.phaseState === 'RAGE') ctx.fillStyle = '#aa0000';
+            ctx.fillStyle = (this.hitTimer > 0) ? '#fff' : 'rgba(20, 20, 20, 0.9)';
+            ctx.beginPath();
+            ctx.moveTo(0, 20); ctx.lineTo(this.width / 2, 0); ctx.lineTo(this.width, 20); ctx.lineTo(0, 20); // Roof
+            ctx.rect(5, 20, 10, this.height - 25); // Pillar L
+            ctx.rect(this.width - 15, 20, 10, this.height - 25); // Pillar R
+            ctx.rect(this.width / 2 - 5, 20, 10, this.height - 25); // Pillar C
+            ctx.rect(0, this.height - 5, this.width, 5); // Base
+            ctx.fill();
 
-            ctx.fillRect(0, 0, this.width, this.height);
-            ctx.fillStyle = '#fff';
-            ctx.font = 'bold 20px Impact';
+            // Text Label
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = (this.hitTimer > 0) ? '#000' : '#fff';
+            ctx.font = 'bold 12px Courier New';
             ctx.textAlign = 'center';
-            ctx.fillText("CENTRAL BANK", this.width / 2, this.height / 2);
+            ctx.fillText(this.phaseState === 'NORMAL' ? "FED" : "PANIC", this.width / 2, 40);
         }
 
         // HP Bar
         const hpPct = Math.max(0, this.hp / this.maxHp);
         ctx.fillStyle = '#550000';
-        ctx.fillRect(0, -20, this.width, 10);
-        ctx.fillStyle = (hpPct > 0.5) ? '#2ecc71' : '#e74c3c'; // Flat Green/Red
-        ctx.fillRect(0, -20, this.width * hpPct, 10);
-        ctx.strokeStyle = '#000';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(0, -20, this.width, 10);
+        ctx.fillRect(0, -20, this.width, 8);
+        ctx.fillStyle = (hpPct > 0.5) ? '#00ff00' : '#ff0000';
+        ctx.fillRect(0, -20, this.width * hpPct, 8);
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(0, -20, this.width, 8);
 
         ctx.restore();
     }

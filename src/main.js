@@ -33,11 +33,7 @@ function loadAssets() {
         img.src = src;
         img.src = src;
         img.onload = () => { loaded++; /* console.log(`Loaded ${key}`); */ };
-        img.onerror = () => {
-            console.error(`Failed to load asset: ${key}`);
-            img.failed = true; // SAFETY FIX: Flag for safe drawing
-            loaded++;
-        };
+        images[key] = img;
         images[key] = img;
     }
     window.Game.images = images; // Expose globally
@@ -59,99 +55,8 @@ function t(key) { return Constants.TEXTS[currentLang][key] || key; }
 function setStyle(id, prop, val) { const el = document.getElementById(id) || ui[id]; if (el) el.style[prop] = val; }
 function setUI(id, val) { const el = document.getElementById(id) || ui[id]; if (el) el.innerText = val; }
 
-// -----------------------------------------------------------------------------
-// ASSET LOADER (Requested Fix)
-// -----------------------------------------------------------------------------
-window.Game.assets = {}; // User requested 'G.assets' but usually we attach to window.Game for modules
-// Or if user wants 'const G' scope locally? "Crea un oggetto const G.assets = {}"
-// I will use window.Game.assets to be safe across files.
-
-async function newLoadAssets() { // Renamed to avoid conflict with existing loadAssets
-    const assetsData = window.Game.ASSETS;
-    const promises = [];
-
-    for (const [key, src] of Object.entries(assetsData)) {
-        promises.push(new Promise((resolve) => {
-            const img = new Image();
-            img.src = src;
-            img.onload = () => {
-                window.Game.assets[key] = img;
-                resolve();
-            };
-            img.onerror = () => {
-                console.error(`Failed to load: ${src}`);
-                // Fallback?
-                window.Game.assets[key] = null;
-                resolve(); // resolving anyway to not block game
-            };
-        }));
-    }
-    await Promise.all(promises);
-    console.log("Assets Loaded:", Object.keys(window.Game.assets));
-}
-
-// Boot
-window.onload = init;
-
-// -----------------------------------------------------------------------------
-// INITIALIZATION
-// -----------------------------------------------------------------------------
-async function init() {
-    // -------------------------------------------------------------------------
-    // 1. ASSET LOADER (Prioritario)
-    // -------------------------------------------------------------------------
-    window.Game.images = {};
-    const assets = ['ship_player', 'enemy_yen', 'enemy_euro', 'enemy_dollar', 'enemy_pound', 'enemy_btc', 'enemy_eth', 'boss_bank'];
-
-    // Caricamento Sincrono (o quasi, per semplicità come richiesto)
-    assets.forEach(name => {
-        const img = new Image();
-        img.src = `assets/${name}.png`;
-        // Mappatura
-        let key = name.replace('ship_', '').replace('enemy_', '');
-        window.Game.images[key] = img;
-    });
-    // Alias extra per sicurezza
-    window.Game.images.player = window.Game.images.player;
-
-    // 2. Initialize Subsystems
-    if (window.Game.WaveManager) window.Game.WaveManager.init();
-
-    // 3. FIX PULSANTI (Re-attach listeners globali persi)
-
-    // Globals per HTML onclick (se usati)
-    window.toggleLang = window.toggleLang || function () { /* defined elsewhere */ };
-    window.toggleSettings = window.toggleSettings || function () { /* defined elsewhere */ };
-
-    // Listener Mute SPECIFICO
-    const muteBtns = document.querySelectorAll('.mute-toggle');
-    muteBtns.forEach(btn => {
-        btn.onclick = (e) => {
-            e.stopPropagation();
-            // Usa Audio System globale
-            if (window.Game.Audio) window.Game.Audio.toggleMute();
-            else if (typeof audioSys !== 'undefined') audioSys.toggleMute();
-
-            // Aggiorna icone
-            updateMuteIcons();
-        };
-    });
-
-    // START BUTTON
-    const startBtn = document.querySelector('.btn-coin');
-    if (startBtn) {
-        startBtn.onclick = (e) => {
-            e.stopPropagation();
-            if (window.Game.Audio) window.Game.Audio.init();
-            inputSys.trigger('start');
-        };
-    }
-
-    // Start Loop (Only after setup)
-    setupGame();
-}
-
-function setupGame() {
+// --- INITIALIZATION ---
+function init() {
     canvas = document.getElementById('gameCanvas');
     ctx = canvas.getContext('2d', { alpha: false });
 
@@ -275,10 +180,7 @@ function setupGame() {
     }
 
     if (ui.highScore) ui.highScore.innerText = highScore;
-
-    // START LOOP
-    loop(0);
-
+    requestAnimationFrame(loop);
 }
 
 function resize() {
@@ -364,21 +266,6 @@ function selectShip(type) {
 }
 window.selectShip = selectShip;
 
-window.nextLevel = function () {
-    setStyle('level-complete-screen', 'display', 'none');
-    level++;
-    setUI('lvlVal', level);
-
-    // Difficulty Scaling
-    gridSpeed += 10;
-
-    waveMgr.reset();
-    gameState = 'PLAY'; // Or go via Intermission? Let's go straight to ACTION!
-    startIntermission("STARTING CYCLE " + level); // Actually Intermission is good for pacing
-
-    audioSys.startMusic();
-};
-
 window.toggleBearMode = function () {
     isBearMarket = !isBearMarket;
     const btn = document.querySelector('.btn-bear');
@@ -392,11 +279,6 @@ window.toggleBearMode = function () {
         if (btn) btn.innerHTML = "🐻 BEAR MARKET";
         if (btn) btn.style.color = "#fff";
     }
-};
-
-window.restartGame = function () {
-    togglePause(); // Unpause first to clear state
-    startGame(); // Reset and Run
 };
 
 function updateMuteUI(isMuted) {
@@ -436,8 +318,7 @@ function startGame() {
 
     waveMgr.reset();
     gridDir = 1;
-    // DIFFICULTY UP
-    gridSpeed = G.DIFFICULTY.GRID_SPEED_START || 40;
+    gridSpeed = 24;
 
     gameState = 'PLAY';
     player.resetState();
@@ -445,7 +326,7 @@ function startGame() {
     if (isBearMarket) {
         player.hp = 1; // ONE HIT KILL
         player.maxHp = 1; // Full bar but Red (logic handled in updateLivesUI)
-        gridSpeed = 60; // Faster start for Bear
+        gridSpeed = 40; // Faster start
         addText("🩸 SURVIVE THE CRASH 🩸", gameWidth / 2, gameHeight / 2 - 100, '#ff0000', 30);
     }
 
@@ -472,11 +353,6 @@ function startIntermission(msgOverride) {
     addText(msg, gameWidth / 2, gameHeight / 2 - 80, '#00ff00', 30);
 }
 
-// -----------------------------------------------------------------------------
-// SKY / BACKGROUND SYSTEM
-// -----------------------------------------------------------------------------
-
-
 function spawnBoss() {
     // hp is handled inside Boss class now (or pass level?)
     boss = new G.Boss(gameWidth, gameHeight);
@@ -484,8 +360,7 @@ function spawnBoss() {
     // boss.configure(level)? Currently Boss scales phases by HP pct, but maxHp is fixed 500 in class.
     // Let's allow scaling via a method or constructor if needed. 
     // For now, default Boss is fine.
-    // Balanced HP: 100 on Lv1, 150 Lv2, 200 Lv3...
-    boss.hp = 50 + (level * 50);
+    boss.hp = 300 * level; // Scale HP by level
     boss.maxHp = boss.hp;
 
     enemies = [];
@@ -498,7 +373,7 @@ function update(dt) {
     if (gameState !== 'PLAY' && gameState !== 'INTERMISSION') return;
     totalTime += dt;
 
-    const waveAction = waveMgr.update(dt, gameState, enemies, !!boss);
+    const waveAction = waveMgr.update(dt, gameState, enemies.length, !!boss);
 
     if (waveAction) {
         if (waveAction.action === 'START_INTERMISSION') {
@@ -565,15 +440,9 @@ function updateBullets(dt) {
                 if (boss.hp <= 0) {
                     score += 5000; boss.active = false; boss = null; shake = 50; audioSys.play('explosion');
                     addText("MARKET CONQUERED", gameWidth / 2, gameHeight / 2, '#FFD700', 50);
-
-                    // Trigger Level Complete Screen
-                    setTimeout(() => {
-                        gameState = 'LEVEL_COMPLETE';
-                        setStyle('level-complete-screen', 'display', 'flex');
-                        audioSys.stopMusic(); // Quiet moment of victory
-                        if (audioSys.ctx && audioSys.ctx.resume) audioSys.ctx.resume(); // Ensure active
-                        audioSys.play('coin'); // Ching!
-                    }, 1500); // 1.5s delay to see explosion
+                    level++; setUI('lvlVal', level); addText("LEVEL " + level + " REACHED!", gameWidth / 2, gameHeight / 2, '#00ff00', 40);
+                    waveMgr.reset(); gridSpeed += 15;
+                    startIntermission("MARKET CYCLE " + Math.ceil(level / 3));
                 }
             } else {
                 checkBulletCollisions(b, i);
@@ -612,9 +481,7 @@ function checkBulletCollisions(b, bIdx) {
     for (let j = enemies.length - 1; j >= 0; j--) {
         let e = enemies[j];
         if (Math.abs(b.x - e.x) < 35 && Math.abs(b.y - e.y) < 35) {
-            const dmg = (player.stats && player.stats.damage) ? player.stats.damage : 1;
-            e.hp -= dmg; // Applying Player Damage (now 1.2)
-            audioSys.play('hit');
+            e.hp -= 10; audioSys.play('hit');
             if (e.hp <= 0) {
                 enemies.splice(j, 1);
                 audioSys.play('coin');
@@ -624,15 +491,10 @@ function checkBulletCollisions(b, bIdx) {
                 createExplosion(e.x, e.y, e.color, 12);
                 createScoreParticles(e.x, e.y, e.color); // JUICE: Fly to score
 
-                // DROP LOGIC (Modular)
-                if (Math.random() < G.DROPS.CHANCE) {
+                // DROP LOGIC
+                if (Math.random() < 0.15) { // 15% Chance
                     const r = Math.random();
-                    // Simple table lookup
-                    const table = G.DROPS.TABLE;
-                    let type = 'SHIELD'; // Default
-                    if (r < table[0].weight) type = table[0].type;
-                    else if (r < table[1].weight) type = table[1].type;
-
+                    const type = r < 0.4 ? 'RAPID' : (r < 0.7 ? 'SPREAD' : 'SHIELD');
                     powerUps.push(new G.PowerUp(e.x, e.y, type));
                 }
             }
@@ -652,19 +514,12 @@ function updateEnemies(dt) {
     let hitEdge = false;
     const speedMult = isBearMarket ? 1.5 : 1.0;
 
-    // Dynamic Difficulty: Enemies speed up as they die (Classic Space Invaders)
-    // 0% dead -> 1.0x, 90% dead -> 2.5x
-    const totalEnemies = waveMgr.lastSpawnCount || 20; // Need to track this in WaveManager
-    const alivePct = enemies.length / Math.max(1, totalEnemies);
-    // DIFFICULTY UP: Late wave super speed
-    const frenzyMult = 1.0 + (1.0 - alivePct) * 4.0;
-
     enemies.forEach(e => {
-        e.update(dt, totalTime, lastWavePattern, gridSpeed * speedMult * frenzyMult, gridDir);
+        e.update(dt, totalTime, lastWavePattern, gridSpeed * speedMult, gridDir);
         if ((gridDir === 1 && e.x > gameWidth - 20) || (gridDir === -1 && e.x < 20)) hitEdge = true;
 
         // More aggressive fire in Bear Market
-        const bearAggro = isBearMarket ? G.DIFFICULTY.BEAR_MULT : 1.0;
+        const bearAggro = isBearMarket ? 1.5 : 1.0;
         const bulletData = e.attemptFire(dt * bearAggro, player); // Pass player for aiming
         if (bulletData) {
             audioSys.play('enemyShoot');
@@ -765,33 +620,9 @@ function draw() {
         bullets.forEach(b => b.draw(ctx));
         enemyBullets.forEach(eb => eb.draw(ctx));
         powerUps.forEach(p => p.draw(ctx)); // <--- DRAW DROPS
-        // Draw Particles (Confetti)
-        particles.forEach(p => {
-            ctx.save();
-            ctx.globalAlpha = p.life / p.maxLife;
-            ctx.fillStyle = p.color;
-            // No Glow
-            // Draw Squares (Confetti)
-            ctx.translate(p.x, p.y);
-            ctx.rotate(p.life * 10); // Spin
-            ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
-            ctx.restore();
-        });
-
         drawParticles(ctx);
-
-        // Comic Floating Text
-        ctx.font = 'bold 30px Impact, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = 'black';
-        ctx.lineJoin = 'round';
-
-        floatingTexts.forEach(t => {
-            ctx.fillStyle = t.c;
-            ctx.strokeText(t.text, t.x, t.y); // Outline
-            ctx.fillText(t.text, t.x, t.y);   // Fill
-        });
+        ctx.font = '20px Courier New';
+        floatingTexts.forEach(t => { ctx.fillStyle = t.c; ctx.fillText(t.text, t.x, t.y); });
     }
     ctx.restore(); // Restore shake
 }
@@ -997,32 +828,11 @@ function loop(timestamp) {
     // Remove old "delayed game over" check since executeDeath handles it
     // if (player && player.hp <= 0 && hitStopTimer <= 0 && gameState === 'PLAY') { ... }
 
-    // SAFETY FIX: Protected Game Loop
-    try {
-        update(dt);
-        updatePowerUps(dt);
-        updateSky(dt); // ☁️ Always update sky
-        draw();
-    } catch (error) {
-        console.error("Game Loop Error:", error);
-        window.Game.errors = (window.Game.errors || 0) + 1;
-
-        // Reset error count every second
-        const now = Date.now();
-        if (!window.Game.lastErrorTime || now - window.Game.lastErrorTime > 1000) {
-            window.Game.errors = 1;
-            window.Game.lastErrorTime = now;
-        }
-
-        // Emergency Halt
-        if (window.Game.errors > 5) {
-            cancelAnimationFrame(window.animationId); // Stop Loop
-            alert("SYSTEM FAILURE - RELOAD");
-            return;
-        }
-    }
-
-    window.animationId = requestAnimationFrame(loop);
+    update(dt);
+    updatePowerUps(dt);
+    updateSky(dt); // ☁️ Always update sky
+    draw();
+    requestAnimationFrame(loop);
 }
 
 function triggerGameOver() {
@@ -1045,59 +855,9 @@ function updatePowerUps(dt) {
         if (p.markedForDeletion) {
             powerUps.splice(i, 1);
         } else {
-            // Collision Logic
             if (Math.abs(p.x - player.x) < 40 && Math.abs(p.y - player.y) < 40) {
-                audioSys.play('powerup'); // Ensure sound exists or fallback? 'coin' is safe, 'powerup' maybe missing. Use 'coin' for now if unsure.
-                // Actually user didn't specify sound, will assume 'coin' upgrade sound is handled or I adds it.
-                // Let's use 'coin' for safety unless 'powerup' is known.
-                // Checking previous code... audioSys.play('coin') is used for drops. 
-
-                // EFFECT LOGIC
-                if (p.type === 'RAPID_FIRE') {
-                    player.fireRate = 0.1;
-                    player.rapidFireTimer = 5.0; // Handled in Player update? Need to ensure Player.js handles reset.
-                    // Or we set a timeout/timer here? 
-                    // Better: logic in Player.update to count down rapidFireTimer. 
-                    // IF Player.js doesn't have it, I might need to patch Player.js too.
-                    // Let's Assume Player.js needs patch or we do a hack here?
-                    // "File: src/main.js ... Logica: ... per 5 secondi" -> implies Logic here or Player.
-                    // I will check Player.js next. For now, set the property.
-                    addText("CANDLE BOOST!", player.x, player.y - 40, '#00ff00', 30);
-                }
-                else if (p.type === 'SHIELD') {
-                    player.shieldActive = true;
-                    player.shieldHp = 100; // Force full shield
-                    addText("INSURANCE!", player.x, player.y - 40, '#3498db', 30);
-                }
-                else if (p.type === 'NUKE') {
-                    // Liquidation Event
-                    addText("LIQUIDATION!", gameWidth / 2, gameHeight / 2, '#ff0000', 50);
-                    shake = 60;
-                    enemies.forEach(e => {
-                        e.hp -= 50; // Massive Damage
-                        createExplosion(e.x, e.y, e.color, 10);
-                        if (e.hp <= 0) {
-                            score += e.scoreVal;
-                            createScoreParticles(e.x, e.y, e.color);
-                        }
-                    });
-                    // Clean up dead enemies in next frame or force filter now?
-                    // enemies = enemies.filter(e => e.hp > 0); // Safer to let updateEnemies handle death?
-                    // updateEnemies handles death logic (splice). But if we subtract HP here, they won't trigger "death sequence" logic in updateEnemies (score, sound) unless we duplicate it or let updateEnemies checks it.
-                    // updateEnemies Checks bullets vs enemies. It doesn't check "is hp <= 0" generally unless hit.
-                    // WAIT. `updateEnemies` logic: checkBulletCollisions checks hp.
-                    // `updateEnemies` does NOT check if hp <= 0 independently.
-                    // So I MUST handle death here for NUKE.
-
-                    for (let k = enemies.length - 1; k >= 0; k--) {
-                        if (enemies[k].hp <= 0) {
-                            enemies.splice(k, 1);
-                            // Visuals already spawned above
-                        }
-                    }
-                    setUI('scoreVal', score);
-                }
-
+                player.upgrade(p.type);
+                addText(p.type + "!", player.x, player.y - 40, '#FFD700', 30);
                 powerUps.splice(i, 1);
             }
         }

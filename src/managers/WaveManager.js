@@ -17,7 +17,8 @@ window.Game.WaveManager = {
         this.intermissionTimer = 0;
     },
 
-    update(dt, gameState, enemies, bossActive) {
+    update(dt, gameState, enemiesCount, bossActive) {
+        // Return new state requests (e.g., GAME_STATE change) or null
         const G = window.Game;
 
         if (gameState === 'INTERMISSION') {
@@ -28,13 +29,9 @@ window.Game.WaveManager = {
             return null;
         }
 
-        // Count Real Enemies (Exclude Minions)
-        const realEnemyCount = enemies ? enemies.filter(e => !e.isMinion).length : 0;
-
-        if (!bossActive && realEnemyCount === 0 && !this.waveInProgress && gameState === 'PLAY') {
+        if (!bossActive && enemiesCount === 0 && !this.waveInProgress && gameState === 'PLAY') {
             this.waveInProgress = true;
-            // PROGRESSION: 5 Levels then Boss
-            if (this.wave <= 5) return { action: 'START_INTERMISSION' };
+            if (this.wave <= 3) return { action: 'START_INTERMISSION' };
             else return { action: 'SPAWN_BOSS' };
         }
 
@@ -45,84 +42,42 @@ window.Game.WaveManager = {
         const G = window.Game;
         const enemies = [];
 
-        // STRICT PROGRESSION PATTERNS
         let pattern = 'RECT';
-        if (this.wave === 1) pattern = 'RECT';
-        else if (this.wave === 2) pattern = 'V_SHAPE';
-        else if (this.wave === 3) pattern = 'COLUMNS';
-        else if (this.wave === 4) pattern = 'PANIC';
-        else if (this.wave === 5) pattern = 'RECT'; // "The Wall" - dense
+        if (this.wave === 2) pattern = (window.isBearMarket ? 'PANIC' : 'V_SHAPE');
+        if (this.wave >= 3) pattern = (this.wave % 2 === 0) ? 'SINE_WAVE' : 'COLUMNS';
+        if (this.wave >= 4) pattern = 'PANIC'; // Earlier Panic normally
+        if (window.isBearMarket && this.wave >= 2) pattern = 'PANIC'; // CONSTANT PANIC in Bear Market
 
-        // Overrides
-        if (window.isBearMarket) pattern = 'PANIC';
-
-        // Configuration per Pattern
-        let rows = 4;
-        let spacing = 55;
-        let startY = 80;
-
-        if (pattern === 'RECT') { rows = 4; spacing = 55; }
-        if (pattern === 'V_SHAPE') { rows = 5; spacing = 60; } // Wings
-        if (pattern === 'COLUMNS') { rows = 6; spacing = 50; } // Tall columns
-        if (pattern === 'PANIC') { rows = 4; spacing = 70; } // Sparse
-        if (this.wave === 5) { rows = 6; spacing = 45; } // THE WALL (Dense)
-
+        const rows = pattern === 'COLUMNS' ? 7 : (pattern === 'V_SHAPE' ? 6 : 5);
+        const spacing = 60;
         const cols = Math.floor((gameWidth - 20) / spacing);
         const startX = (gameWidth - (cols * spacing)) / 2 + (spacing / 2);
+
+        // SINE WAVE Setup: We spawn them in a line but Enemy.js handles the movement
+        if (pattern === 'SINE_WAVE') {
+            // Logic handled in Enemy.update
+        }
 
         for (let r = 0; r < rows; r++) {
             for (let c = 0; c < cols; c++) {
                 let spawn = false;
-
                 if (pattern === 'RECT') spawn = true;
-                else if (pattern === 'V_SHAPE') {
-                    // V Shape logic: Row 0 is center, Row 4 is wide? Or inverse?
-                    // Let's do Standard V (Bird): Center is lowest (highest row index), edges are highest (lowest row index)?
-                    // Or simple Abs:
-                    const center = Math.floor(cols / 2);
-                    if (Math.abs(c - center) === r) spawn = true; // Thin V
-                    // Let's do Filled V?
-                    // if (Math.abs(c - center) <= r) spawn = true; // Triangle
-                    // Let's stick to the previous "Seagull" logic which was roughly valid
-                    if (Math.abs(c - center) < (rows - r)) spawn = true; // Inverted Pyramid?
-                }
-                else if (pattern === 'COLUMNS') {
-                    if (c % 4 !== 0) spawn = true; // Gaps every 4
-                }
-                else if (pattern === 'PANIC') {
-                    if (Math.random() > 0.4) spawn = true;
-                }
-
-                // FORCE THE WALL (Wave 5)
-                if (this.wave === 5) spawn = true;
+                else if (pattern === 'V_SHAPE' && Math.abs(c - cols / 2) < (rows - r) + 1) spawn = true;
+                else if (pattern === 'COLUMNS' && c % 5 < 2) spawn = true;
 
                 if (spawn) {
-                    let typeIdx = Math.floor(r / 2); // 0,0, 1,1, 2,2
+                    let typeIdx = Math.max(0, 3 - Math.floor(r / 2));
+                    // Check bounds of FIAT_TYPES
                     if (typeIdx >= G.FIAT_TYPES.length) typeIdx = G.FIAT_TYPES.length - 1;
 
-                    let baseConfig = G.FIAT_TYPES[typeIdx];
-
-                    // Create Instance Config (Clone)
-                    // HP SCALING FIX: Base + (Level * 2) instead of Base * Level
-                    // We treat 'wave' as level here.
-                    let scaledHp = baseConfig.hp + (this.wave * 2);
-
-                    // Clamp/Safety? Nah, let it grow linearly.
-
-                    // Create modified config object
-                    let p = {
-                        ...baseConfig,
-                        hp: scaledHp
-                    };
-
-                    enemies.push(new G.Enemy(startX + c * spacing, startY + r * spacing, p));
+                    let p = G.FIAT_TYPES[typeIdx];
+                    enemies.push(new G.Enemy(startX + c * spacing, 180 + r * spacing, p));
                 }
             }
         }
 
         this.wave++;
         this.waveInProgress = false;
-        this.lastSpawnCount = enemies.length;
         return { enemies: enemies, pattern: pattern };
     }
 };

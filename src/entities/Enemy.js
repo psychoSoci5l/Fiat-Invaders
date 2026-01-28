@@ -11,46 +11,26 @@ class Enemy extends window.Game.Entity {
         this.scoreVal = typeConf.val;
 
         this.active = true;
-        this.fireTimer = Math.random() * 10 + 2; // AI FIX: Desynchronize start (2-12s)
-
-        // Pre-assign Image
-        const G = window.Game;
-        let key = 'dollar'; // Default
-        switch (typeConf.s) {
-            case '$': key = 'dollar'; break;
-            case '€': key = 'euro'; break;
-            case '£': key = 'pound'; break;
-            case '¥': key = 'yen'; break;
-            case '₿': key = 'btc'; break;
-            case 'Ξ': key = 'eth'; break;
-        }
-        this.image = (G.images) ? G.images[key] : null;
+        this.fireTimer = Math.random() * 2 + 1; // Random start delay
     }
 
     attemptFire(dt, target) {
         this.fireTimer -= dt;
         if (this.fireTimer <= 0) {
-            const D = window.Game.DIFFICULTY;
-            // 1. ALWAYS Reset Timer
-            this.fireTimer = Math.random() * D.FIRE_RATE_VAR + D.FIRE_RATE_BASE;
+            this.fireTimer = Math.random() * 3 + 2;
 
-            // 2. Guard: If target invalid, just exit (but timer IS reset)
-            if (!target || target.hp <= 0) return null;
-
-            // 3. Aiming Logic
+            // Aiming Logic
             let vx = 0;
-            let vy = D.PROJ_SPEED;
+            let vy = 300;
 
             if (target) {
                 const dx = target.x - this.x;
                 const dy = target.y - this.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
                 if (dist > 0) {
-                    vx = (dx / dist) * D.PROJ_SPEED;
-                    vy = (dy / dist) * D.PROJ_SPEED;
+                    vx = (dx / dist) * 300;
+                    vy = (dy / dist) * 300;
                 }
-            } else {
-                vy = D.PROJ_SPEED;
             }
 
             return {
@@ -67,9 +47,6 @@ class Enemy extends window.Game.Entity {
     }
 
     update(dt, globalTime, wavePattern, gridSpeed, gridDir) {
-        // SAFETY FIX: Ensure Game Global exists
-        if (!window.Game) return;
-
         // Horizontal Grid Move
         this.x += gridSpeed * gridDir * dt;
 
@@ -92,17 +69,49 @@ class Enemy extends window.Game.Entity {
     }
 
     draw(ctx) {
-        if (!this.image) return; // Se l'immagine non c'è, non disegnare nulla
-
         ctx.save();
         ctx.translate(this.x, this.y);
 
-        // Pulisci stili residui
-        ctx.shadowBlur = 0;
-        ctx.lineWidth = 0;
+        // Neon Glow
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = this.color;
 
-        // DISEGNA SOLO L'IMMAGINE
-        ctx.drawImage(this.image, -25, -25, 50, 50);
+        // Determine Asset
+        let img = null;
+        const G = window.Game;
+        if (G.images) {
+            switch (this.symbol) {
+                case '$': img = G.images.ENEMY_DOLLAR; break;
+                case '€': img = G.images.ENEMY_EURO; break;
+                case '£': img = G.images.ENEMY_POUND; break;
+                case '¥': img = G.images.ENEMY_YEN; break;
+            }
+        }
+
+        if (img && img.complete) {
+            // Draw Sprite with Glow
+            ctx.globalCompositeOperation = 'screen'; // Fixes black box artifacts
+            ctx.drawImage(img, -25, -25, 50, 50);
+            ctx.globalCompositeOperation = 'source-over';
+        } else {
+            // Fallback Shape
+            ctx.strokeStyle = this.color;
+            ctx.lineWidth = 2;
+            ctx.fillStyle = 'rgba(0,0,0,0.5)';
+            ctx.beginPath();
+            // ... (Shape Drawing Logic preserved if needed, but simplified here)
+            ctx.rect(-15, -15, 30, 30);
+            ctx.fill();
+            ctx.stroke();
+
+            // Text Fallback
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 16px Courier New';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(this.symbol, 0, 0);
+        }
+
         ctx.restore();
     }
 }

@@ -37,23 +37,26 @@ class Bullet extends window.Game.Entity {
         ctx.save();
         ctx.translate(this.x, this.y);
 
-        const G = window.Game;
-        const imgKey = this.isHodl ? 'bullet_player' : 'bullet_enemy';
-        const img = (G.assets && imgKey) ? G.assets[imgKey] : null;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = this.color;
+        ctx.fillStyle = this.color;
 
-        if (img && img.complete) {
-            // Draw Candle
-            // Scale to width/height
-            // Candle sprite is vertical
-            ctx.drawImage(
-                img,
-                -this.width / 2, -this.height / 2, this.width, this.height
-            );
+        if (this.height > 20) {
+            // Laser Beam Style
+            ctx.fillRect(-this.width / 2, 0, this.width, this.height);
         } else {
-            // Fallback (Flat Rect)
-            ctx.fillStyle = this.color;
-            ctx.shadowBlur = 0;
-            ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
+            // Capsule / Plasma Blob
+            ctx.beginPath();
+            ctx.arc(0, 0, this.width, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Trail
+            ctx.beginPath();
+            ctx.moveTo(-this.width / 2, 0);
+            ctx.lineTo(0, -this.height);
+            ctx.lineTo(this.width / 2, 0);
+            ctx.fillStyle = this.color; // simpler trail
+            ctx.fill();
         }
 
         ctx.restore();

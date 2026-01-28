@@ -23,7 +23,6 @@ class Player extends window.Game.Entity {
         this.beastMode = 0;
         this.hp = 3;
         this.invulnTimer = 0;
-        this.rapidFireTimer = 0; // New Timer
     }
 
     configure(type) {
@@ -99,7 +98,6 @@ class Player extends window.Game.Entity {
             }
         }
         if (this.invulnTimer > 0) this.invulnTimer -= dt;
-        if (this.rapidFireTimer > 0) this.rapidFireTimer -= dt; // Countdown
         this.cooldown -= dt;
 
         // Action: Shield
@@ -133,12 +131,8 @@ class Player extends window.Game.Entity {
         window.Game.Input.vibrate(5); // Tiny haptic tick
 
         // Logic
-        // Logic
         const color = conf.color;
-        let rate = (this.weapon === 'RAPID' && this.weaponLevel > 1) ? conf.rate * 0.7 : ((this.weapon === 'NORMAL') ? this.stats.fireRate : conf.rate);
-
-        // DEFI POWERUP OVERRIDE
-        if (this.rapidFireTimer > 0) rate = 0.1;
+        const rate = (this.weapon === 'RAPID' && this.weaponLevel > 1) ? conf.rate * 0.7 : ((this.weapon === 'NORMAL') ? this.stats.fireRate : conf.rate);
 
         this.cooldown = rate;
 
@@ -159,18 +153,39 @@ class Player extends window.Game.Entity {
     }
 
     draw(ctx) {
-        // Se l'immagine non è pronta, non disegnare NULLA (evita rettangoli neri/errori)
-        if (!window.Game.images || !window.Game.images.player) return;
+        if (this.invulnTimer > 0 && Math.floor(Date.now() / 100) % 2 === 0) return;
 
         ctx.save();
         ctx.translate(this.x, this.y);
 
-        // Pulisci stili residui
-        ctx.shadowBlur = 0;
-        ctx.lineWidth = 0;
+        // Colors
+        ctx.fillStyle = this.stats.color;
 
-        // DISEGNA SOLO L'IMMAGINE
-        ctx.drawImage(window.Game.images.player, -this.width / 2, -this.height / 2, this.width, this.height);
+        // Render Sprite or Shape
+        const img = window.Game.images ? window.Game.images.PLAYER_SHIP : null;
+        if (img && img.complete) {
+            // Additive Blending for Neon Glow (Removes black BG artifacts)
+            ctx.globalCompositeOperation = 'screen';
+            ctx.drawImage(img, -35, -35, 70, 70); // Slightly larger
+            ctx.globalCompositeOperation = 'source-over'; // Reset
+        } else {
+            // Fallback Shape
+            ctx.beginPath();
+            ctx.moveTo(0, -20);
+            ctx.lineTo(-15, 15);
+            ctx.lineTo(15, 15);
+            ctx.fill();
+        }
+
+        // Shield Overlay
+        if (this.shieldActive) {
+            ctx.beginPath();
+            ctx.arc(0, 0, 35, 0, Math.PI * 2);
+            ctx.strokeStyle = '#00ffff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
         ctx.restore();
     }
 
