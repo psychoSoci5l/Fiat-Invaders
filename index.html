@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+
+    <!-- PWA / App Mode -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#000000">
+
+    <title>Fiat Invaders Alpha 2.0</title>
+
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-512.png">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="scanlines"></div>
+    <div class="vignette"></div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="ui-layer">
+        <!-- TOP BAR: Lives/Health | SCORE | Level/Shield -->
+        <div class="hud-top-bar">
+            <div class="hud-stat left">
+                <span class="label">LIVES</span>
+                <span id="livesText" class="value">3</span>
+                <div class="bar-container health-container">
+                    <div id="healthBar"></div>
+                </div>
+            </div>
+
+            <div class="hud-score terminal-score">
+                <span class="label">ACCOUNT BALANCE</span>
+                <span id="scoreVal" class="value">0</span>
+                <div id="score-ticker"></div>
+                <div id="meme-ticker"></div>
+            </div>
+
+            <div class="hud-stat right">
+                <span class="label">LEVEL</span>
+                <span id="lvlVal" class="value">1</span>
+                <div class="bar-container shield-container">
+                    <div id="shieldBar"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="perk-bar"></div>
+        <div id="kill-counter">
+            <span id="killNum">0</span>
+            <span id="killLabel">KILLS</span>
+        </div>
+    </div>
+
+    <div id="splash-layer">
+        <video id="intro-video" src="splashscreen.mp4" playsinline autoplay muted></video>
+    </div>
+
+    <div id="intro-screen" style="display: none;">
+        <!-- Clean Modern Start Screen -->
+        <div class="start-header">
+            <h1 class="game-title">FIAT<br>INVADERS</h1>
+            <div class="title-tagline">DEFEND THE BLOCKCHAIN</div>
+        </div>
+
+        <div class="start-ship">
+            <canvas id="intro-ship-canvas" width="200" height="200"></canvas>
+        </div>
+
+        <div class="start-score">
+            <span class="score-label">HIGH SCORE</span>
+            <span id="highScoreVal" class="score-value">0</span>
+        </div>
+
+        <div class="start-actions">
+            <button class="btn-play" onclick="goToHangar()">PLAY</button>
+            <button class="btn-bear" onclick="toggleBearMode()">BEAR MARKET</button>
+        </div>
+
+        <div class="start-footer">
+            <button class="icon-btn mute-toggle">🔇</button>
+            <button class="icon-btn" onclick="toggleSettings()">⚙️</button>
+            <span id="version-tag" class="version-text"></span>
+        </div>
+    </div>
+
+    <!-- HANGAR SCREEN -->
+    <div id="hangar-screen" style="display: none;">
+        <h2 class="neon-title" style="font-size: 30px;">SELECT SHIP</h2>
+        <div class="ship-container">
+            <!-- BTC STRIKER -->
+            <div class="ship-card" onclick="selectShip('BTC')" data-ship="BTC">
+                <div class="ship-icon" style="color: #F7931A;">🚀</div>
+                <h3>BTC STRIKER</h3>
+                <div class="stats">
+                    <div class="stat"><span class="stat-label">SPD:</span>
+                        <div class="bar">
+                            <div style="width: 65%; background: #F7931A;"></div>
+                        </div>
+                    </div>
+                    <div class="stat"><span class="stat-label">PWR:</span>
+                        <div class="bar">
+                            <div style="width: 70%; background: #F7931A;"></div>
+                        </div>
+                    </div>
+                    <div class="stat"><span class="stat-label">HP:</span> <span style="color:#F7931A">❤️❤️❤️</span>
+                    </div>
+                </div>
+            </div>
+            <!-- ETH HEAVY -->
+            <div class="ship-card" onclick="selectShip('ETH')" data-ship="ETH">
+                <div class="ship-icon" style="color: #8c7ae6;">🛡️</div>
+                <h3>ETH HEAVY</h3>
+                <div class="stats">
+                    <div class="stat"><span class="stat-label">SPD:</span>
+                        <div class="bar">
+                            <div style="width: 45%; background: #8c7ae6;"></div>
+                        </div>
+                    </div>
+                    <div class="stat"><span class="stat-label">PWR:</span>
+                        <div class="bar">
+                            <div style="width: 85%; background: #8c7ae6;"></div>
+                        </div>
+                    </div>
+                    <div class="stat"><span class="stat-label">HP:</span> <span style="color:#8c7ae6">❤️❤️❤️❤️</span>
+                    </div>
+                </div>
+            </div>
+            <!-- SOL SPEEDSTER -->
+            <div class="ship-card" onclick="selectShip('SOL')" data-ship="SOL">
+                <div class="ship-icon" style="color: #00d2d3;">⚡</div>
+                <h3>SOL SPEEDSTER</h3>
+                <div class="stats">
+                    <div class="stat"><span class="stat-label">SPD:</span>
+                        <div class="bar">
+                            <div style="width: 98%; background: #00d2d3;"></div>
+                        </div>
+                    </div>
+                    <div class="stat"><span class="stat-label">PWR:</span>
+                        <div class="bar">
+                            <div style="width: 55%; background: #00d2d3;"></div>
+                        </div>
+                    </div>
+                    <div class="stat"><span class="stat-label">HP:</span> <span style="color:#00d2d3">❤️❤️</span></div>
+                </div>
+            </div>
+        </div>
+        <button class="btn-coin mini" onclick="backToIntro()">BACK</button>
+    </div>
+
+    <!-- SETTINGS MODAL -->
+    <div id="settings-modal" style="display: none;">
+        <div class="modal-content">
+            <h2 style="color: #fff; margin-top: 0;">SETTINGS</h2>
+            <div class="setting-row">
+                <span>LANGUAGE:</span>
+                <button class="toggle-btn" onclick="toggleLang()" id="lang-btn">EN</button>
+            </div>
+            <div class="setting-row">
+                <span>CONTROLS:</span>
+                <button class="toggle-btn" onclick="toggleControlMode()" id="control-btn">SWIPE</button>
+            </div>
+            <div class="setting-row">
+                <span>JOYSTICK DEADZONE:</span>
+                <input type="range" id="joy-deadzone" min="0" max="40" value="15">
+            </div>
+            <div class="setting-row">
+                <span>JOYSTICK SENSITIVITY:</span>
+                <input type="range" id="joy-sensitivity" min="50" max="150" value="100">
+            </div>
+            <div class="how-to-play">
+                <h3>HOW TO PLAY</h3>
+                <p>⌨️ DESKTOP: Arrows to Move • Space to Shoot • Down for Shield</p>
+                <p>📱 MOBILE: Swipe or Joystick to Move • Tap Icon for Shield</p>
+                <p style="color: #F7931A;">ℹ️ TIPS: Stop moving to engage HODL MODE (Double Score).</p>
+            </div>
+            <button class="btn-coin mini" onclick="toggleSettings()">CLOSE</button>
+        </div>
+    </div>
+
+    <!-- PAUSE SCREEN -->
+    <div id="pause-screen" style="display: none;">
+        <h1 class="neon-title">MARKET HALTED</h1>
+        <button class="btn-coin" onclick="togglePause()">> RESUME</button>
+        <button class="btn-coin" onclick="toggleSettings()">> SETTINGS</button>
+        <button class="btn-coin" onclick="restartRun()">> RESTART RUN</button>
+        <button class="btn-coin" onclick="backToIntro()" style="background: #e74c3c;">> EXIT</button>
+        <div class="menu-row">
+            <button class="icon-btn mute-toggle">🔇</button>
+        </div>
+    </div>
+
+    <!-- PERK CHOICE MODAL -->
+    <div id="perk-modal" style="display: none;">
+        <div class="perk-panel terminal-panel">
+            <div class="terminal-header-small">UPGRADE OFFER</div>
+            <h2 class="neon-title">CHOOSE MODULE</h2>
+            <div id="perk-options" class="perk-options"></div>
+            <button id="perk-skip" class="btn-coin mini">SKIP</button>
+        </div>
+    </div>
+
+    <div id="gameover-screen" style="display: none;">
+        <h1 class="glitch-text">LIQUIDATION EVENT</h1>
+        <p id="gameover-meme" style="color: #6aa9ff; font-family: 'Courier New', monospace; font-size: 16px; margin: 8px 0;">PAPER HANDS</p>
+        <p id="roast-msg"
+            style="color: #F7931A; font-family: 'Courier New', monospace; font-size: 16px; margin: 10px 0;">ACCOUNT BALANCE</p>
+        <div class="final-score"><span id="finalScore">0</span></div>
+        <div id="gameover-stats">
+            <div>KILLS: <span id="killsVal">0</span></div>
+            <div>BEST STREAK: <span id="streakVal">0</span></div>
+        </div>
+        <button class="btn-coin" onclick="backToIntro()">> BUY THE DIP</button>
+        <div class="menu-row">
+            <button class="icon-btn mute-toggle">🔇</button>
+            <button class="icon-btn" onclick="toggleSettings()">⚙️</button>
+        </div>
+    </div>
+
+    <div id="touchControls">
+        <div class="touch-zone-left" id="t-left"></div>
+        <div class="touch-zone-right" id="t-right"></div>
+        <div id="joystick">
+            <div id="joystick-base"></div>
+            <div id="joystick-stick"></div>
+        </div>
+        <button id="pause-btn" onclick="togglePause()">⏸</button>
+        <div class="touch-shield-btn" id="t-shield">🛡️</div>
+    </div>
+
+    <div id="control-toast">CONTROLS: SWIPE</div>
+    <div id="meme-popup"></div>
+
+    <!-- Ordered Scripts for file:// compatibility (Namespace Pattern) -->
+    <script src="src/utils/Constants.js"></script>
+    <script src="src/core/EventBus.js"></script>
+    <script src="src/utils/RunState.js"></script>
+    <script src="src/utils/Upgrades.js"></script>
+    <script src="src/core/AudioSystem.js"></script>
+    <script src="src/core/InputSystem.js"></script>
+    <script src="src/core/ObjectPool.js"></script>
+    <script src="src/entities/Entity.js"></script>
+    <script src="src/entities/Bullet.js"></script>
+    <script src="src/entities/Player.js"></script>
+    <script src="src/entities/Enemy.js"></script>
+    <script src="src/entities/Boss.js"></script>
+    <script src="src/entities/PowerUp.js"></script>
+    <script src="src/managers/WaveManager.js"></script>
+    <script type="module" src="src/main.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('SW Registered!', reg.scope))
+                    .catch(err => console.log('SW Failed:', err));
+            });
+        }
+    </script>
+</body>
+
+</html>
