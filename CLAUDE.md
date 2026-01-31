@@ -47,6 +47,8 @@ All modules attach to `window.Game`. Script load order in `index.html` matters:
 - `window.Game.RunState` - Per-run state (perks, modifiers)
 - `window.Game.Bullet.Pool` - Object pool for bullets
 - `window.isBearMarket` - Hard mode flag (checked by WaveManager)
+- `window.marketCycle` - Current difficulty cycle (increases after boss)
+- `window.currentLevel` - Current level (for WaveManager)
 
 ### Game States
 
@@ -56,40 +58,178 @@ All modules attach to `window.Game`. Script load order in `index.html` matters:
 
 All game objects extend `window.Game.Entity` (base class with x, y, vx, vy, update, draw).
 
-## Tuning Parameters
+---
 
-Enemy fire pacing (`main.js`):
-- `enemyFireTimer` - Base interval between fire groups (0.25s)
-- `enemyFireStride` - Fire group size (3 = every 3rd enemy fires together)
+## Difficulty System
 
-Wave patterns (`WaveManager.js`):
-- Spawn bounds: `startY: 140`, `maxY: 380`
-- Pattern cycle: RECT → V_SHAPE → COLUMNS → SINE_WAVE → RECT → Boss
+Unified linear scaling via `getDifficulty()` in `main.js`:
 
-Enemy stats (`Constants.js` → `FIAT_TYPES`):
-- Fire timing: `fireMin`, `fireMax`
-- Aim accuracy: `aimSpread`
-- Fire pattern: `SINGLE`, `BURST`, `DOUBLE`
+```javascript
+function getDifficulty() {
+    const base = (level - 1) * 0.08;      // +8% per level
+    const cycleBonus = (marketCycle - 1) * 0.20; // +20% per cycle
+    return Math.min(0.85, base + cycleBonus);    // Cap at 0.85
+}
+```
+
+### Applied Parameters
+
+| Parameter | Formula | Range |
+|-----------|---------|-------|
+| `gridSpeed` | `12 + diff * 20` | 12 → 32 |
+| `bulletSpeed` | `150 + diff * 80` | 150 → 230 |
+| `rateMult` | `0.5 + diff * 0.5` | 0.5 → 1.0 |
+| `enemyHP` | `10 + floor(diff * 15)` | 10 → 25 |
+
+Bear Market applies additional 1.3x multiplier.
+
+---
+
+## Power-Up System
+
+Two categories, **mutually exclusive within category**:
+
+### Weapon Power-Ups (replace each other)
+| Type | Description | Fire Rate |
+|------|-------------|-----------|
+| NORMAL | Single shot straight | 0.18s |
+| WIDE | Triple shot, wide spread | 0.24s |
+| NARROW | Triple shot, tight spread | 0.22s |
+| FIRE | Triple shot, parallel | 0.28s |
+
+### Ship Power-Ups (replace each other)
+| Type | Effect | Duration |
+|------|--------|----------|
+| SPEED | 1.4x movement speed | 8s |
+| RAPID | 0.6x fire rate | 8s |
+| SHIELD | Instant shield activation | 2s |
+
+### Drop Limits
+- Level 1: Max 1 weapon + 1 ship
+- Level 2+: Max 2 weapon + 2 ship per level
+- Drop chance: 4% per enemy kill
+
+---
+
+## Enemy System (10 Fiat Currencies)
+
+### Tiers & Stats
+
+| Symbol | Name | Shape | Tier | HP | Fire Pattern |
+|--------|------|-------|------|-----|--------------|
+| ¥ | YEN | coin | Weak | 0.8 | SINGLE |
+| ₽ | RUBLE | bill | Weak | 0.8 | SINGLE |
+| ₹ | RUPEE | coin | Weak | 0.9 | SINGLE |
+| € | EURO | bill | Medium | 1.0 | BURST |
+| £ | POUND | coin | Medium | 1.0 | SINGLE |
+| ₣ | FRANC | bar | Medium | 1.1 | DOUBLE |
+| ₺ | LIRA | bill | Medium | 1.2 | BURST |
+| $ | DOLLAR | bill | Strong | 1.3 | DOUBLE |
+| 元 | YUAN | bar | Strong | 1.4 | BURST |
+| Ⓒ | CBDC | card | Strong | 1.5 | DOUBLE |
+
+### Visual Shapes (Enemy.js)
+- `coin` - Round with edge notches
+- `bill` - Rectangle with corner decorations
+- `bar` - 3D gold ingot
+- `card` - Credit card with chip
+
+### Row Assignment (WaveManager.js)
+Each row gets ONE currency type (organized, not random).
+
+---
+
+## Boss: "FEDERAL RESERVE"
+
+Size: 160x140 (double previous size)
+
+### 3 Phases
+
+| Phase | HP Range | Movement | Attack Pattern |
+|-------|----------|----------|----------------|
+| 1 | 100%-66% | Slow patrol | 5-bullet spread (green) |
+| 2 | 66%-33% | Fast + oscillating | Dual spiral + aimed shots (orange) |
+| 3 | 33%-0% | Figure-8 erratic | Triple spiral + side cannons + minion spawn (red) |
+
+### HP Scaling
+```javascript
+boss.hp = 500 + (level * 200) + (marketCycle * 300);
+```
+
+### Visual Features
+- Money printer animation (Phase 2+)
+- Side cannons (Phase 2+)
+- Glowing red eyes (Phase 3)
+- Rotating vault dial
+- Phase indicator on HP bar
+
+### Powell Memes
+During boss fight, meme ticker shows Fed/Powell quotes (faster rotation: 2.5s).
+
+---
 
 ## Visual System
 
-All graphics are **code-drawn** on Canvas (no sprite dependencies). Assets in `/assets` are optional legacy files.
+### Sky Progression (5 levels)
+| Level | Sky |
+|-------|-----|
+| 1 | Bright blue (morning) |
+| 2 | Warm afternoon |
+| 3 | Sunset (orange/pink/purple) |
+| 4 | Dusk (purple/dark blue) |
+| 5 | Night (dark + stars) |
+| Boss | Deep space + stars |
 
-- Player/enemies use vector drawing in their `draw()` methods
-- Power-ups rendered via Canvas
-- Particle system for explosions and score fly-ups
-- Sky gradient cycles with level (Day → Dusk → Night)
+### Score Display
+- 52px font with glow effects
+- Pulse animation
+- Bump effect on increase
 
-## Audio System
+### Bullet Visuals
+- **Player**: Colored bullet with upward trail
+- **Enemy**: Energy orb with glow + fading trail (inherits enemy color)
 
-Procedural synthesis via Web Audio API:
-- Sound effects: `AudioSystem.play(type)` - shoot, hit, explosion, coin, etc.
-- Background music: `startMusic()` generates a synthwave loop in real-time
-- iOS unlock hack: `unlockWebAudio()` plays silent buffer on first touch
+### Particle Effects
+- `createExplosion()` - Enemy death
+- `createBulletSpark()` - Bullet collision
+- `createScoreParticles()` - Score fly-up
+
+---
 
 ## Perk System
 
-- Perks apply via `RunState.js` modifiers
-- Trigger: Cancel 3 enemy bullets in 1.5s window
-- Perk pool in `Upgrades.js` with rarity/weight
-- No modal selection - random perk auto-applied
+- **Trigger**: Cancel 3 enemy bullets within 1.5s window
+- **Pool**: `Upgrades.js` with rarity/weight
+- **Display**: Horizontal scrolling ticker at `top: 100px`
+- **Selection**: Random perk auto-applied (no modal)
+
+---
+
+## UI Safe Zones
+
+| Zone | Position | Content |
+|------|----------|---------|
+| HUD | top: 0-90px | Score, Lives, Level |
+| Perk Bar | top: 100px | Scrolling perk ticker |
+| Gameplay | top: 145px+ | Enemies, Boss, Bullets |
+
+Boss `targetY: 145` ensures no overlap with HUD.
+
+---
+
+## Tuning Quick Reference
+
+### Enemy Fire Pacing (main.js)
+- `enemyFireTimer` - 0.35s between fire groups
+- `enemyFireStride` - 4 (every 4th enemy fires)
+- `MAX_ENEMY_SHOTS_PER_TICK` - 2
+
+### Wave Patterns (WaveManager.js)
+- Cycle: RECT → V_SHAPE → COLUMNS → SINE_WAVE → RECT → Boss
+- Bear Market: Forces SINE_WAVE from wave 2
+
+### Meme Sources (Constants.js)
+- `MEMES.LOW` / `MEMES.HIGH` - General crypto
+- `MEMES.SAYLOR` - Michael Saylor quotes
+- `MEMES.POWELL` - Fed/Powell quotes (boss fight)
+- `MEMES.FIAT_DEATH` - Enemy kill taunts
