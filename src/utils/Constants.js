@@ -1,7 +1,7 @@
 // Game Constants & Configuration (Namespace Pattern)
 window.Game = window.Game || {};
 
-window.Game.VERSION = "v2.4.0 Ship Select Integrated";
+window.Game.VERSION = "v2.5.2 Tier Balance 1:2:3";
 
 window.Game.TEXTS = {
     EN: {
@@ -160,17 +160,19 @@ window.Game.MEMES = {
 };
 
 // Weapon types (mutually exclusive - picking one replaces previous)
+// Balanced: Triple weapons have ~1.5-1.8x DPS vs NORMAL (not 2.5x)
 window.Game.WEAPONS = {
     NORMAL: { color: '#F7931A', rate: 0.18, bullets: 1 },
-    WIDE:   { color: '#9b59b6', rate: 0.24, bullets: 3, spread: 0.25, icon: '🔱' },  // Triple wide (narrowed from 0.4)
-    NARROW: { color: '#3498db', rate: 0.22, bullets: 3, spread: 0.12, icon: '🎯' }, // Triple tight angle
-    FIRE:   { color: '#e74c3c', rate: 0.28, bullets: 3, spread: 0, icon: '🔥' }     // Triple parallel (nerfed 30%: 0.22 -> 0.28)
+    WIDE:   { color: '#9b59b6', rate: 0.32, bullets: 3, spread: 0.25, icon: '🔱' },  // 9.4 bps = 1.7x DPS
+    NARROW: { color: '#3498db', rate: 0.30, bullets: 3, spread: 0.12, icon: '🎯' }, // 10 bps = 1.8x DPS
+    FIRE:   { color: '#e74c3c', rate: 0.36, bullets: 3, spread: 0, icon: '🔥' }     // 8.3 bps = 1.5x DPS + penetration
 };
 
 // Ship power-ups (mutually exclusive - picking one replaces previous)
+// Nerfed: smaller bonuses
 window.Game.SHIP_POWERUPS = {
-    SPEED:  { speedMult: 1.4, icon: '⚡', color: '#f1c40f' },
-    RAPID:  { rateMult: 0.6, icon: '🚀', color: '#3498db' },
+    SPEED:  { speedMult: 1.25, icon: '⚡', color: '#f1c40f' },  // Was 1.4
+    RAPID:  { rateMult: 0.80, icon: '🚀', color: '#3498db' },  // Was 0.6 (now 20% faster, not 40%)
     SHIELD: { instant: true, icon: '🛡️', color: '#2ecc71' }
 };
 

@@ -190,10 +190,15 @@ class Player extends window.Game.Entity {
             spawnBullet(this.x - 6, this.y - 22, -bulletSpeed * spread, -bulletSpeed * 0.95);
             spawnBullet(this.x + 6, this.y - 22, bulletSpeed * spread, -bulletSpeed * 0.95);
         } else if (this.weapon === 'FIRE') {
-            // Triple parallel (all straight up, spaced horizontally)
-            spawnBullet(this.x, this.y - 25, 0, -bulletSpeed);
-            spawnBullet(this.x - 15, this.y - 25, 0, -bulletSpeed);
-            spawnBullet(this.x + 15, this.y - 25, 0, -bulletSpeed);
+            // Triple parallel (all straight up, spaced horizontally) - PENETRATING
+            const spawnFireBullet = (x, y, vx, vy) => {
+                const b = window.Game.Bullet.Pool.acquire(x, y, vx, vy, color, bulletW, bulletH, isHodl);
+                b.penetration = true; // FIRE bullets pierce through enemies
+                bullets.push(b);
+            };
+            spawnFireBullet(this.x, this.y - 25, 0, -bulletSpeed);
+            spawnFireBullet(this.x - 15, this.y - 25, 0, -bulletSpeed);
+            spawnFireBullet(this.x + 15, this.y - 25, 0, -bulletSpeed);
         } else {
             // NORMAL: single shot
             spawnBullet(this.x, this.y - 25, 0, -bulletSpeed);

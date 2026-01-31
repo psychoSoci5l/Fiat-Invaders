@@ -21,7 +21,7 @@ class Enemy extends window.Game.Entity {
         this.telegraphLead = 0.12;
 
         this.active = true;
-        this.fireTimer = Math.random() * 3 + 1.5; // Wider random start delay (1.5-4.5s)
+        this.fireTimer = 0; // Set by spawner for Fibonacci ramp-up
     }
 
     attemptFire(dt, target, rateMult = 1, bulletSpeed = 300, aimSpreadMult = 1, allowFire = true) {

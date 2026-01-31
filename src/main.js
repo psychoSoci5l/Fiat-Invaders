@@ -89,16 +89,26 @@ let bulletCancelStreak = 0;
 let bulletCancelTimer = 0;
 let enemyFirePhase = 0;
 let enemyFireTimer = 0;
-let enemyFireStride = 4; // Increased: fewer enemies per group
+let enemyFireStride = 6; // Increased: fewer enemies per group (was 4)
 let enemyShotsThisTick = 0; // Rate limiter
 const MAX_ENEMY_SHOTS_PER_TICK = 2; // Max bullets spawned per frame
+
+// Fibonacci firing ramp-up at wave start
+let waveStartTime = 0;
+let fibonacciIndex = 0;
+let fibonacciTimer = 0;
+let enemiesAllowedToFire = 1; // Starts at 1, increases via Fibonacci
+const FIBONACCI_INTERVAL = 0.40; // Seconds between Fibonacci steps
+const FIBONACCI_SEQ = [1, 1, 2, 3, 5, 8, 13, 21, 34, 55]; // Pre-computed
 
 // Fiat Kill Counter System - Mini Boss every 100 kills of same type
 let fiatKillCounter = { '¥': 0, '₽': 0, '₹': 0, '€': 0, '£': 0, '₣': 0, '₺': 0, '$': 0, '元': 0, 'Ⓒ': 0 };
 const MINI_BOSS_THRESHOLD = 100;
 let miniBoss = null; // Special boss spawned from kill counter
-let weaponDropCount = 0; // Track weapon drops per level
-let shipDropCount = 0; // Track ship power-up drops per level
+
+// Drop system: time-based (every 5 seconds guarantees a drop opportunity)
+let lastDropTime = 0;
+const DROP_INTERVAL = 5.0; // Seconds between guaranteed drop opportunities
 
 // --- DIFFICULTY SYSTEM ---
 // Single unified difficulty multiplier (0.0 = Level 1, capped at 0.85)
@@ -946,7 +956,7 @@ function startGame() {
     // Reset fiat kill counter and mini-boss
     fiatKillCounter = { '¥': 0, '€': 0, '£': 0, '$': 0 };
     miniBoss = null;
-    weaponDropCount = 0; shipDropCount = 0; // Reset drop counters
+    lastDropTime = 0; // Reset time-based drop timer
 
     updateLivesUI();
     emitEvent('run_start', { bear: isBearMarket });
@@ -1246,7 +1256,7 @@ function update(dt) {
             if (waveMgr.wave > 1) {
                 level++; setUI('lvlVal', level);
                 window.currentLevel = level; // Update global for WaveManager
-                weaponDropCount = 0; shipDropCount = 0; // Reset drop counters for new level
+                lastDropTime = totalTime; // Reset time-based drop timer for new level
                 addText("LEVEL " + level, gameWidth / 2, gameHeight / 2 - 50, '#00ff00', 30);
                 // gridSpeed now computed dynamically via getGridSpeed()
             }
@@ -1258,6 +1268,13 @@ function update(dt) {
             enemies = spawnData.enemies;
             lastWavePattern = spawnData.pattern;
             gridDir = 1;
+
+            // Reset Fibonacci firing ramp-up for new wave
+            waveStartTime = totalTime;
+            fibonacciIndex = 0;
+            fibonacciTimer = 0;
+            enemiesAllowedToFire = 1; // Start with 1 enemy allowed
+
             emitEvent('wave_start', { wave: waveNumber, level: level, pattern: lastWavePattern });
             if (ui.memeTicker) ui.memeTicker.innerText = getRandomMeme();
         }
@@ -1383,8 +1400,8 @@ function checkBulletCollisions(b, bIdx) {
         let e = enemies[j];
         if (Math.abs(b.x - e.x) < 35 && Math.abs(b.y - e.y) < 35) {
             const dmgMult = (runState && runState.getMod) ? runState.getMod('damageMult', 1) : 1;
-            let dmg = 10 * dmgMult;
-            if (runState && runState.flags && runState.flags.hodlBonus && b.isHodl) dmg += 10;
+            let dmg = 11 * dmgMult; // Base damage +10% (was 10)
+            if (runState && runState.flags && runState.flags.hodlBonus && b.isHodl) dmg += 11;
             e.hp -= dmg; audioSys.play('hit');
             if (e.hp <= 0) {
                 enemies.splice(j, 1);
@@ -1411,34 +1428,34 @@ function checkBulletCollisions(b, bIdx) {
                     }
                 }
 
-                // DROP LOGIC - Two categories: Weapons (WIDE/NARROW/FIRE) and Ship (SPEED/RAPID/SHIELD)
-                // Limited drops per level: Level 1 = 1 each, Level 2+ = 2 each max
+                // DROP LOGIC - Time-based: guaranteed drop every 5 seconds + 2% bonus chance
                 const weaponTypes = ['WIDE', 'NARROW', 'FIRE'];
                 const shipTypes = ['SPEED', 'RAPID', 'SHIELD'];
-                const maxPerLevel = level === 1 ? 1 : 2;
-                const dropChance = 0.04; // 4% flat chance
+                const timeSinceLastDrop = totalTime - lastDropTime;
+                const guaranteedDrop = timeSinceLastDrop >= DROP_INTERVAL;
+                const bonusChance = 0.02; // 2% bonus chance
 
-                // Try weapon drop (only if under limit)
-                if (weaponDropCount < maxPerLevel && Math.random() < dropChance) {
-                    const type = weaponTypes[Math.floor(Math.random() * weaponTypes.length)];
-                    powerUps.push(new G.PowerUp(e.x, e.y, type));
-                    weaponDropCount++;
-                }
-                // Try ship power-up drop (only if under limit, separate roll)
-                if (shipDropCount < maxPerLevel && Math.random() < dropChance) {
-                    const type = shipTypes[Math.floor(Math.random() * shipTypes.length)];
-                    powerUps.push(new G.PowerUp(e.x + 20, e.y, type));
-                    shipDropCount++;
+                // Guaranteed drop if enough time passed, or small bonus chance
+                if (guaranteedDrop || Math.random() < bonusChance) {
+                    // Alternate between weapon and ship drops
+                    const dropWeapon = Math.random() < 0.5;
+                    if (dropWeapon) {
+                        const type = weaponTypes[Math.floor(Math.random() * weaponTypes.length)];
+                        powerUps.push(new G.PowerUp(e.x, e.y, type));
+                    } else {
+                        const type = shipTypes[Math.floor(Math.random() * shipTypes.length)];
+                        powerUps.push(new G.PowerUp(e.x, e.y, type));
+                    }
+                    lastDropTime = totalTime; // Reset drop timer
                 }
             }
             if (!b.penetration) {
-                b.markedForDeletion = true; // Let the loop handle release on next frame (safer) or do manual release here if careful
-                // Since we return, the calling loop won't see this bullet again for this frame logic.
-                // Correct logic:
+                b.markedForDeletion = true;
                 G.Bullet.Pool.release(b);
                 bullets.splice(bIdx, 1);
+                return; // Non-penetrating bullets stop after first hit
             }
-            return;
+            // Penetrating bullets continue checking other enemies (no return)
         }
     }
 }
@@ -1450,11 +1467,21 @@ function updateEnemies(dt) {
     // Reset rate limiter each frame
     enemyShotsThisTick = 0;
 
+    // Fibonacci ramp-up: increase enemies allowed to fire every 0.33s
+    fibonacciTimer += dt;
+    if (fibonacciTimer >= FIBONACCI_INTERVAL && fibonacciIndex < FIBONACCI_SEQ.length - 1) {
+        fibonacciTimer = 0;
+        fibonacciIndex++;
+        enemiesAllowedToFire = FIBONACCI_SEQ[fibonacciIndex];
+    }
+
     enemyFireTimer -= dt;
     if (enemyFireTimer <= 0) {
-        enemyFireTimer = 0.35; // Slower phase rotation (was 0.25)
+        enemyFireTimer = 0.5; // Slower phase rotation (was 0.35)
         enemyFirePhase = (enemyFirePhase + 1) % enemyFireStride;
     }
+
+    let enemiesFiredThisFrame = 0; // Track for Fibonacci limit
 
     for (let i = 0; i < enemies.length; i++) {
         const e = enemies[i];
@@ -1463,6 +1490,9 @@ function updateEnemies(dt) {
 
         // Rate limit check - skip if we've hit max shots this tick
         if (enemyShotsThisTick >= MAX_ENEMY_SHOTS_PER_TICK) continue;
+
+        // Fibonacci limit: only allow N enemies to fire per frame (based on ramp-up)
+        if (enemiesFiredThisFrame >= enemiesAllowedToFire) continue;
 
         // Unified difficulty scaling
         const diff = getDifficulty();
@@ -1473,6 +1503,7 @@ function updateEnemies(dt) {
         const allowFire = (i % enemyFireStride) === enemyFirePhase;
         const bulletData = e.attemptFire(dt, player, rateMult, bulletSpeed, aimSpreadMult, allowFire);
         if (bulletData) {
+            enemiesFiredThisFrame++;
             const bulletsToSpawn = Array.isArray(bulletData) ? bulletData : [bulletData];
             audioSys.play('enemyShoot');
             bulletsToSpawn.forEach(bd => {

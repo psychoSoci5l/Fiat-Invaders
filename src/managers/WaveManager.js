@@ -64,6 +64,12 @@ window.Game.WaveManager = {
             // Logic handled in Enemy.update
         }
 
+        // Calculate tier boundaries for 1:2:3 ratio (strong:medium:weak)
+        // Row 0 = STRONG, next ~33% = MEDIUM, rest = WEAK
+        const strongRows = 1; // Always 1 row of strong enemies
+        const mediumRows = Math.max(1, Math.floor((maxRows - 1) / 3)); // ~1/3 of remaining
+        const weakRows = maxRows - strongRows - mediumRows; // Rest are weak
+
         for (let r = 0; r < maxRows; r++) {
             for (let c = 0; c < cols; c++) {
                 let spawn = false;
@@ -72,11 +78,21 @@ window.Game.WaveManager = {
                 else if (pattern === 'COLUMNS' && c % 3 < 2) spawn = true; // More enemies in COLUMNS
 
                 if (spawn) {
-                    // Each row gets ONE currency type (organized, not scattered)
-                    // Row 0 (front) = strongest, Row 4 (back) = weakest
-                    // Offset by wave number to cycle through all 10 currencies
-                    const waveOffset = (this.wave - 1) % 2; // 0 or 1
-                    const typeIdx = Math.min(G.FIAT_TYPES.length - 1, (maxRows - 1 - r) * 2 + waveOffset);
+                    // Tier distribution: 1:2:3 ratio (strong:medium:weak)
+                    // FIAT_TYPES: 0-2 = WEAK, 3-6 = MEDIUM, 7-9 = STRONG
+                    let typeIdx;
+                    const waveOffset = (this.wave - 1) % 2; // Variety between waves
+
+                    if (r < strongRows) {
+                        // Front row(s): STRONG (indices 7-9)
+                        typeIdx = 7 + (waveOffset % 3);
+                    } else if (r < strongRows + mediumRows) {
+                        // Middle rows: MEDIUM (indices 3-6)
+                        typeIdx = 3 + ((r - strongRows + waveOffset) % 4);
+                    } else {
+                        // Back rows: WEAK (indices 0-2)
+                        typeIdx = 0 + ((r - strongRows - mediumRows + waveOffset) % 3);
+                    }
 
                     // Scale HP based on unified difficulty
                     const cycle = window.marketCycle || 1;
@@ -89,7 +105,18 @@ window.Game.WaveManager = {
                     const scaledType = Object.assign({}, baseType, {
                         hp: baseType.hp * scaledHP
                     });
-                    enemies.push(new G.Enemy(startX + c * spacing, startY + r * spacing, scaledType));
+                    const enemy = new G.Enemy(startX + c * spacing, startY + r * spacing, scaledType);
+
+                    // Fibonacci-based initial fire delay
+                    // Enemy 0: fires immediately, others staggered by 0.33s intervals
+                    const enemyIndex = enemies.length;
+                    if (enemyIndex === 0) {
+                        enemy.fireTimer = 0; // First enemy fires immediately
+                    } else {
+                        // Stagger based on Fibonacci timing + small jitter
+                        enemy.fireTimer = (enemyIndex * 0.15) + (Math.random() * 0.2);
+                    }
+                    enemies.push(enemy);
                 }
             }
         }
