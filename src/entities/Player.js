@@ -190,10 +190,15 @@ class Player extends window.Game.Entity {
             spawnBullet(this.x - 6, this.y - 22, -bulletSpeed * spread, -bulletSpeed * 0.95);
             spawnBullet(this.x + 6, this.y - 22, bulletSpeed * spread, -bulletSpeed * 0.95);
         } else if (this.weapon === 'FIRE') {
-            // Triple parallel (all straight up, spaced horizontally)
-            spawnBullet(this.x, this.y - 25, 0, -bulletSpeed);
-            spawnBullet(this.x - 15, this.y - 25, 0, -bulletSpeed);
-            spawnBullet(this.x + 15, this.y - 25, 0, -bulletSpeed);
+            // Triple parallel (all straight up, spaced horizontally) - PENETRATING
+            const spawnFireBullet = (x, y, vx, vy) => {
+                const b = window.Game.Bullet.Pool.acquire(x, y, vx, vy, color, bulletW, bulletH, isHodl);
+                b.penetration = true; // FIRE bullets pierce through enemies
+                bullets.push(b);
+            };
+            spawnFireBullet(this.x, this.y - 25, 0, -bulletSpeed);
+            spawnFireBullet(this.x - 15, this.y - 25, 0, -bulletSpeed);
+            spawnFireBullet(this.x + 15, this.y - 25, 0, -bulletSpeed);
         } else {
             // NORMAL: single shot
             spawnBullet(this.x, this.y - 25, 0, -bulletSpeed);
@@ -248,6 +253,19 @@ class Player extends window.Game.Entity {
                 ctx.lineTo(-24, 16);
                 ctx.closePath();
                 ctx.fill();
+
+                // Speed lines on left side - cell-shaded style
+                ctx.strokeStyle = '#4bc0c8';
+                ctx.lineWidth = 2;
+                ctx.globalAlpha = 0.6;
+                for (let i = 0; i < 3; i++) {
+                    const y = -5 + i * 8;
+                    ctx.beginPath();
+                    ctx.moveTo(-28 - i * 3, y);
+                    ctx.lineTo(-38 - i * 5, y);
+                    ctx.stroke();
+                }
+                ctx.globalAlpha = 1;
             } else {
                 // Moving left, right thruster fires
                 ctx.beginPath();
@@ -256,35 +274,79 @@ class Player extends window.Game.Entity {
                 ctx.lineTo(24, 16);
                 ctx.closePath();
                 ctx.fill();
+
+                // Speed lines on right side - cell-shaded style
+                ctx.strokeStyle = '#4bc0c8';
+                ctx.lineWidth = 2;
+                ctx.globalAlpha = 0.6;
+                for (let i = 0; i < 3; i++) {
+                    const y = -5 + i * 8;
+                    ctx.beginPath();
+                    ctx.moveTo(28 + i * 3, y);
+                    ctx.lineTo(38 + i * 5, y);
+                    ctx.stroke();
+                }
+                ctx.globalAlpha = 1;
             }
         }
 
-        // Vector ship (Cuphead-ish)
+        // Vector ship (Cuphead-ish) - cell-shaded two-tone
         ctx.lineWidth = 4;
         ctx.strokeStyle = '#111';
-        ctx.fillStyle = this.stats.color;
 
-        // Body
+        // Body - shadow side (left half)
+        ctx.fillStyle = this.darkenColor(this.stats.color, 0.3);
+        ctx.beginPath();
+        ctx.moveTo(0, -26);
+        ctx.lineTo(-22, 12);
+        ctx.lineTo(0, 12);
+        ctx.closePath();
+        ctx.fill();
+
+        // Body - light side (right half)
+        ctx.fillStyle = this.stats.color;
+        ctx.beginPath();
+        ctx.moveTo(0, -26);
+        ctx.lineTo(0, 12);
+        ctx.lineTo(22, 12);
+        ctx.closePath();
+        ctx.fill();
+
+        // Body outline
         ctx.beginPath();
         ctx.moveTo(0, -26);
         ctx.lineTo(-22, 12);
         ctx.lineTo(22, 12);
         ctx.closePath();
-        ctx.fill();
         ctx.stroke();
 
-        // Nose cone
-        ctx.fillStyle = '#f6b26b';
+        // Nose cone - two-tone
+        ctx.fillStyle = '#c47d3a'; // Shadow side
+        ctx.beginPath();
+        ctx.moveTo(0, -28);
+        ctx.lineTo(-10, -6);
+        ctx.lineTo(0, -6);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = '#f6b26b'; // Light side
+        ctx.beginPath();
+        ctx.moveTo(0, -28);
+        ctx.lineTo(0, -6);
+        ctx.lineTo(10, -6);
+        ctx.closePath();
+        ctx.fill();
+
+        // Nose outline
         ctx.beginPath();
         ctx.moveTo(0, -28);
         ctx.lineTo(-10, -6);
         ctx.lineTo(10, -6);
         ctx.closePath();
-        ctx.fill();
         ctx.stroke();
 
-        // Fins
-        ctx.fillStyle = '#4bc0c8';
+        // Left fin - shadow (left fin is in shadow)
+        ctx.fillStyle = '#2d8a91';
         ctx.beginPath();
         ctx.moveTo(-22, 8);
         ctx.lineTo(-34, 16);
@@ -292,12 +354,30 @@ class Player extends window.Game.Entity {
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
+
+        // Right fin - light
+        ctx.fillStyle = '#4bc0c8';
         ctx.beginPath();
         ctx.moveTo(22, 8);
         ctx.lineTo(34, 16);
         ctx.lineTo(16, 18);
         ctx.closePath();
         ctx.fill();
+        ctx.stroke();
+
+        // Rim lighting (right edge of body)
+        ctx.strokeStyle = this.lightenColor(this.stats.color, 0.5);
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(4, -24);
+        ctx.lineTo(22, 10);
+        ctx.stroke();
+
+        // Rim light on nose
+        ctx.strokeStyle = '#ffd699';
+        ctx.beginPath();
+        ctx.moveTo(2, -26);
+        ctx.lineTo(8, -8);
         ctx.stroke();
 
         // Window
@@ -392,6 +472,22 @@ class Player extends window.Game.Entity {
                 this.shipPowerUpTimer = 8.0;
             }
         }
+    }
+
+    darkenColor(hex, amount) {
+        const num = parseInt(hex.slice(1), 16);
+        const r = Math.max(0, (num >> 16) - Math.floor(255 * amount));
+        const g = Math.max(0, ((num >> 8) & 0x00FF) - Math.floor(255 * amount));
+        const b = Math.max(0, (num & 0x0000FF) - Math.floor(255 * amount));
+        return `rgb(${r},${g},${b})`;
+    }
+
+    lightenColor(hex, amount) {
+        const num = parseInt(hex.slice(1), 16);
+        const r = Math.min(255, (num >> 16) + Math.floor(255 * amount));
+        const g = Math.min(255, ((num >> 8) & 0x00FF) + Math.floor(255 * amount));
+        const b = Math.min(255, (num & 0x0000FF) + Math.floor(255 * amount));
+        return `rgb(${r},${g},${b})`;
     }
 }
 

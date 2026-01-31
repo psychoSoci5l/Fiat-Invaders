@@ -1,0 +1,11 @@
+﻿{
+  "name": "hotfix_fiat_invaders_allow_embed",
+  "modified": [
+    "index.html"
+  ],
+  "added": [
+    "_headers"
+  ],
+  "removed": [],
+  "notes": "Allow embedding via CSP frame-ancestors + postMessage ready signal."
+}
