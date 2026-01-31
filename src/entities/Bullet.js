@@ -39,6 +39,30 @@ class Bullet extends window.Game.Entity {
         if (isEnemy) {
             // Enemy bullet: Energy orb with glow
             const r = this.width || 5;
+            const angle = Math.atan2(-this.vy, -this.vx);
+
+            // Speed lines (3 lines trailing behind) - cell-shaded style
+            ctx.strokeStyle = this.color;
+            ctx.lineWidth = 2;
+            ctx.globalAlpha = 0.6;
+            for (let i = 0; i < 3; i++) {
+                const offset = (i - 1) * 4; // -4, 0, 4 perpendicular offset
+                const perpX = Math.cos(angle + Math.PI/2) * offset;
+                const perpY = Math.sin(angle + Math.PI/2) * offset;
+                const startDist = 8 + i * 3;
+                const endDist = 18 + i * 4;
+                ctx.beginPath();
+                ctx.moveTo(
+                    this.x + Math.cos(angle) * startDist + perpX,
+                    this.y + Math.sin(angle) * startDist + perpY
+                );
+                ctx.lineTo(
+                    this.x + Math.cos(angle) * endDist + perpX,
+                    this.y + Math.sin(angle) * endDist + perpY
+                );
+                ctx.stroke();
+            }
+            ctx.globalAlpha = 1;
 
             // Outer glow
             ctx.fillStyle = this.color;
@@ -47,43 +71,68 @@ class Bullet extends window.Game.Entity {
             ctx.arc(this.x, this.y, r + 4, 0, Math.PI * 2);
             ctx.fill();
 
-            // Core
+            // Core with bold outline
             ctx.globalAlpha = 1;
             ctx.fillStyle = this.color;
+            ctx.strokeStyle = '#111';
+            ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.arc(this.x, this.y, r, 0, Math.PI * 2);
             ctx.fill();
+            ctx.stroke();
 
             // Inner bright center
             ctx.fillStyle = '#fff';
             ctx.beginPath();
             ctx.arc(this.x, this.y, r * 0.4, 0, Math.PI * 2);
             ctx.fill();
-
-            // Small trail (2 fading dots behind)
-            ctx.globalAlpha = 0.5;
-            ctx.fillStyle = this.color;
-            const angle = Math.atan2(-this.vy, -this.vx);
-            ctx.beginPath();
-            ctx.arc(this.x + Math.cos(angle) * 8, this.y + Math.sin(angle) * 8, r * 0.6, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.globalAlpha = 0.25;
-            ctx.beginPath();
-            ctx.arc(this.x + Math.cos(angle) * 14, this.y + Math.sin(angle) * 14, r * 0.4, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.globalAlpha = 1;
         } else {
             // Player bullet
             ctx.fillStyle = this.color;
 
             if (this.height > 20) {
-                // Laser Beam Style
+                // Speed lines for laser - cell-shaded style
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = 2;
+                ctx.globalAlpha = 0.4;
+                for (let i = 0; i < 4; i++) {
+                    const offsetX = (i - 1.5) * 6;
+                    ctx.beginPath();
+                    ctx.moveTo(this.x + offsetX, this.y + this.height + 5);
+                    ctx.lineTo(this.x + offsetX, this.y + this.height + 15 + i * 2);
+                    ctx.stroke();
+                }
+                ctx.globalAlpha = 1;
+
+                // Laser Beam Style - bold cell-shaded outline
+                ctx.strokeStyle = '#111';
+                ctx.lineWidth = 2;
                 ctx.fillRect(this.x - this.width / 2, this.y, this.width, this.height);
+                ctx.strokeRect(this.x - this.width / 2, this.y, this.width, this.height);
             } else {
-                // Bullet with upward trail
+                // Speed lines behind bullet - cell-shaded style
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = 2;
+                ctx.globalAlpha = 0.5;
+                for (let i = 0; i < 3; i++) {
+                    const offsetX = (i - 1) * 5; // -5, 0, 5
+                    const startY = this.y + 12 + i * 2;
+                    const endY = this.y + 22 + i * 3;
+                    ctx.beginPath();
+                    ctx.moveTo(this.x + offsetX, startY);
+                    ctx.lineTo(this.x + offsetX, endY);
+                    ctx.stroke();
+                }
+                ctx.globalAlpha = 1;
+
+                // Bullet with upward trail - bold cell-shaded outline
+                ctx.strokeStyle = '#111';
+                ctx.lineWidth = 2;
+
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.width, 0, Math.PI * 2);
                 ctx.fill();
+                ctx.stroke();
 
                 // Trail pointing up (behind the bullet)
                 ctx.beginPath();
@@ -91,6 +140,7 @@ class Bullet extends window.Game.Entity {
                 ctx.lineTo(this.x, this.y + this.height);
                 ctx.lineTo(this.x + this.width * 0.6, this.y);
                 ctx.fill();
+                ctx.stroke();
             }
         }
     }

@@ -243,15 +243,35 @@ class Boss extends window.Game.Entity {
         const baseColor = this.phase === 3 ? '#4a1a1a' : (this.phase === 2 ? '#3d3d3d' : '#5a5a5a');
         const accentColor = this.phase === 3 ? '#ff0000' : (this.phase === 2 ? '#f39c12' : '#2ecc71');
 
-        // MAIN BODY - Central Bank Vault
-        ctx.fillStyle = isHit ? '#ffffff' : baseColor;
-        ctx.strokeStyle = '#222';
+        // MAIN BODY - Central Bank Vault - two-tone cell-shading
+        ctx.strokeStyle = '#111';
         ctx.lineWidth = 4;
 
-        // Main vault body
+        // Shadow side (left half of vault)
+        ctx.fillStyle = isHit ? '#ffffff' : this.darkenColor(baseColor, 0.25);
+        ctx.beginPath();
+        ctx.roundRect(x + 10, y + 30, (w - 20) / 2, h - 40, 8);
+        ctx.fill();
+
+        // Light side (right half of vault)
+        ctx.fillStyle = isHit ? '#ffffff' : baseColor;
+        ctx.beginPath();
+        ctx.roundRect(x + 10 + (w - 20) / 2, y + 30, (w - 20) / 2, h - 40, 8);
+        ctx.fill();
+
+        // Full vault outline
         ctx.beginPath();
         ctx.roundRect(x + 10, y + 30, w - 20, h - 40, 8);
-        ctx.fill();
+        ctx.stroke();
+
+        // Rim lighting (top and right edge of vault)
+        ctx.strokeStyle = this.lightenColor(baseColor, 0.4);
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(x + 20, y + 30);
+        ctx.lineTo(x + w - 18, y + 30);
+        ctx.quadraticCurveTo(x + w - 10, y + 30, x + w - 10, y + 38);
+        ctx.lineTo(x + w - 10, y + h - 18);
         ctx.stroke();
 
         // Top section (printer)
@@ -294,10 +314,10 @@ class Boss extends window.Game.Entity {
             ctx.fill();
         }
 
-        // Eye whites
+        // Eye whites - bold cell-shaded outline
         ctx.fillStyle = this.phase === 3 ? '#ffcccc' : '#fff';
         ctx.strokeStyle = '#111';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.arc(cx - eyeSpacing, eyeY, eyeSize, 0, Math.PI * 2);
         ctx.fill();
@@ -335,10 +355,10 @@ class Boss extends window.Game.Entity {
             ctx.stroke();
         }
 
-        // VAULT DIAL
+        // VAULT DIAL - bold cell-shaded outline
         ctx.fillStyle = '#c0c0c0';
         ctx.strokeStyle = '#111';
-        ctx.lineWidth = 3;
+        ctx.lineWidth = 4;
         ctx.beginPath();
         ctx.arc(cx, y + 110, 18, 0, Math.PI * 2);
         ctx.fill();
@@ -349,9 +369,10 @@ class Boss extends window.Game.Entity {
         ctx.beginPath();
         ctx.arc(cx, y + 110, 10, 0, Math.PI * 2);
         ctx.fill();
+        ctx.stroke();
 
         // Dial tick (rotating)
-        ctx.strokeStyle = '#333';
+        ctx.strokeStyle = '#222';
         ctx.lineWidth = 3;
         const dialAngle = this.animTime * 2;
         ctx.beginPath();
@@ -359,11 +380,11 @@ class Boss extends window.Game.Entity {
         ctx.lineTo(cx + Math.cos(dialAngle) * 14, y + 110 + Math.sin(dialAngle) * 14);
         ctx.stroke();
 
-        // SIDE CANNONS (Phase 2+)
+        // SIDE CANNONS (Phase 2+) - bold cell-shaded outline
         if (this.phase >= 2) {
             ctx.fillStyle = '#444';
-            ctx.strokeStyle = '#222';
-            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#111';
+            ctx.lineWidth = 3;
             // Left cannon
             ctx.beginPath();
             ctx.roundRect(x - 5, y + 70, 20, 35, 3);
@@ -422,6 +443,44 @@ class Boss extends window.Game.Entity {
         ctx.fillText('FEDERAL RESERVE', cx, barY - 22);
 
         ctx.restore();
+    }
+
+    darkenColor(hex, amount) {
+        // Handle rgb() format
+        if (hex.startsWith('rgb')) {
+            const match = hex.match(/(\d+),\s*(\d+),\s*(\d+)/);
+            if (match) {
+                const r = Math.max(0, parseInt(match[1]) - Math.floor(255 * amount));
+                const g = Math.max(0, parseInt(match[2]) - Math.floor(255 * amount));
+                const b = Math.max(0, parseInt(match[3]) - Math.floor(255 * amount));
+                return `rgb(${r},${g},${b})`;
+            }
+        }
+        // Handle hex format
+        const num = parseInt(hex.slice(1), 16);
+        const r = Math.max(0, (num >> 16) - Math.floor(255 * amount));
+        const g = Math.max(0, ((num >> 8) & 0x00FF) - Math.floor(255 * amount));
+        const b = Math.max(0, (num & 0x0000FF) - Math.floor(255 * amount));
+        return `rgb(${r},${g},${b})`;
+    }
+
+    lightenColor(hex, amount) {
+        // Handle rgb() format
+        if (hex.startsWith('rgb')) {
+            const match = hex.match(/(\d+),\s*(\d+),\s*(\d+)/);
+            if (match) {
+                const r = Math.min(255, parseInt(match[1]) + Math.floor(255 * amount));
+                const g = Math.min(255, parseInt(match[2]) + Math.floor(255 * amount));
+                const b = Math.min(255, parseInt(match[3]) + Math.floor(255 * amount));
+                return `rgb(${r},${g},${b})`;
+            }
+        }
+        // Handle hex format
+        const num = parseInt(hex.slice(1), 16);
+        const r = Math.min(255, (num >> 16) + Math.floor(255 * amount));
+        const g = Math.min(255, ((num >> 8) & 0x00FF) + Math.floor(255 * amount));
+        const b = Math.min(255, (num & 0x0000FF) + Math.floor(255 * amount));
+        return `rgb(${r},${g},${b})`;
     }
 }
 

@@ -80,6 +80,16 @@
             <div class="title-tagline">DEFEND THE BLOCKCHAIN</div>
         </div>
 
+        <!-- Quick Settings Row -->
+        <div class="quick-settings-row">
+            <button class="icon-btn-cell mute-toggle" id="intro-mute">
+                <svg viewBox="0 0 24 24" class="icon-svg"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+            </button>
+            <button class="icon-btn-cell" onclick="toggleSettings()" id="intro-settings">
+                <svg viewBox="0 0 24 24" class="icon-svg"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+            </button>
+        </div>
+
         <div class="start-ship">
             <button class="ship-arrow ship-arrow-left" onclick="cycleShip(-1)">‹</button>
             <div class="ship-preview">
@@ -101,12 +111,9 @@
 
         <div class="start-actions">
             <button class="btn-play" onclick="launchShipAndStart()">DESTROY THE SYSTEM</button>
-            <button class="btn-bear" onclick="toggleBearMode()">BEAR MARKET</button>
         </div>
 
         <div class="start-footer">
-            <button class="icon-btn mute-toggle">🔇</button>
-            <button class="icon-btn" onclick="toggleSettings()">⚙️</button>
             <span id="version-tag" class="version-text"></span>
         </div>
     </div>
@@ -175,33 +182,46 @@
         <button class="btn-coin mini" onclick="backToIntro()">BACK</button>
     </div>
 
-    <!-- SETTINGS MODAL -->
+    <!-- SETTINGS MODAL - Paper Mario Style -->
     <div id="settings-modal" style="display: none;">
-        <div class="modal-content">
-            <h2 style="color: #fff; margin-top: 0;">SETTINGS</h2>
+        <div class="modal-content paper-modal">
+            <h2 class="modal-title">IMPOSTAZIONI</h2>
+
+            <!-- Bear Market Toggle -->
+            <div class="setting-row setting-bear">
+                <span class="setting-label">BEAR MARKET</span>
+                <button class="toggle-switch" onclick="toggleBearMode()" id="bear-toggle">
+                    <span class="switch-track"></span>
+                    <span class="switch-thumb"></span>
+                    <span class="switch-label">OFF</span>
+                </button>
+            </div>
+
             <div class="setting-row">
-                <span>LANGUAGE:</span>
-                <button class="toggle-btn" onclick="toggleLang()" id="lang-btn">EN</button>
+                <span class="setting-label">LINGUA</span>
+                <button class="toggle-btn-cell" onclick="toggleLang()" id="lang-btn">IT</button>
             </div>
             <div class="setting-row">
-                <span>CONTROLS:</span>
-                <button class="toggle-btn" onclick="toggleControlMode()" id="control-btn">SWIPE</button>
+                <span class="setting-label">CONTROLLI</span>
+                <button class="toggle-btn-cell" onclick="toggleControlMode()" id="control-btn">SWIPE</button>
             </div>
             <div class="setting-row">
-                <span>JOYSTICK DEADZONE:</span>
-                <input type="range" id="joy-deadzone" min="0" max="40" value="15">
+                <span class="setting-label">DEADZONE</span>
+                <input type="range" class="slider-cell" id="joy-deadzone" min="0" max="40" value="15">
             </div>
             <div class="setting-row">
-                <span>JOYSTICK SENSITIVITY:</span>
-                <input type="range" id="joy-sensitivity" min="50" max="150" value="100">
+                <span class="setting-label">SENSIBILITÀ</span>
+                <input type="range" class="slider-cell" id="joy-sensitivity" min="50" max="150" value="100">
             </div>
-            <div class="how-to-play">
-                <h3>HOW TO PLAY</h3>
-                <p>⌨️ DESKTOP: Arrows to Move • Space to Shoot • Down for Shield</p>
-                <p>📱 MOBILE: Swipe or Joystick to Move • Tap Icon for Shield</p>
-                <p style="color: #F7931A;">ℹ️ TIPS: Stop moving to engage HODL MODE (Double Score).</p>
+
+            <div class="how-to-play paper-box">
+                <h3>COME GIOCARE</h3>
+                <p><span class="icon-tag">⌨️</span> Frecce = Muovi • Spazio = Spara • Giù = Scudo</p>
+                <p><span class="icon-tag">📱</span> Swipe o Joystick = Muovi • Icona = Scudo</p>
+                <p class="tip-text">💡 Stai fermo per HODL MODE (Punteggio x2)</p>
             </div>
-            <button class="btn-coin mini" onclick="toggleSettings()">CLOSE</button>
+
+            <button class="btn-cell" onclick="toggleSettings()">CHIUDI</button>
         </div>
     </div>
 

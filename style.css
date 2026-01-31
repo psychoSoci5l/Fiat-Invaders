@@ -547,15 +547,15 @@ canvas {
     flex-shrink: 0;
 }
 
+/* Ship canvas - NO transitions during JS launch animation */
 #intro-ship-canvas {
     filter: drop-shadow(0 0 20px rgba(247, 147, 26, 0.6));
-    transition: transform 0.8s cubic-bezier(0.4, 0, 1, 1), opacity 0.6s ease-out;
+    will-change: transform, filter, opacity;
+    /* transition removed - JS handles launch animation */
 }
 
 #intro-ship-canvas.launching {
-    transform: translateY(-150vh) scale(0.8);
-    opacity: 0;
-    filter: drop-shadow(0 0 40px rgba(247, 147, 26, 1));
+    /* Legacy - kept for fallback */
 }
 
 #intro-ship-canvas.ship-swap {
@@ -690,43 +690,7 @@ canvas {
     transform: scale(0.98);
 }
 
-/* Bear Market Button - Matching PLAY style */
-.btn-bear {
-    background: linear-gradient(135deg, #f1c40f 0%, #f39c12 100%);
-    color: #c0392b;
-    border: none;
-    padding: 14px 40px;
-    font-family: inherit;
-    font-size: 16px;
-    font-weight: 900;
-    letter-spacing: 3px;
-    cursor: pointer;
-    border-radius: 8px;
-    box-shadow: 0 4px 20px rgba(241, 196, 15, 0.4);
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    text-transform: uppercase;
-    min-width: 280px;
-}
-
-.btn-bear:hover {
-    transform: scale(1.05);
-    box-shadow: 0 6px 30px rgba(241, 196, 15, 0.6);
-}
-
-.btn-bear:active {
-    transform: scale(0.98);
-}
-
-/* Active Bear Mode State */
-body.bear-mode .btn-bear {
-    background: linear-gradient(135deg, #c0392b 0%, #e74c3c 100%);
-    color: #f1c40f;
-    box-shadow: 0 4px 20px rgba(192, 57, 43, 0.5);
-}
-
-body.bear-mode .btn-bear:hover {
-    box-shadow: 0 6px 30px rgba(231, 76, 60, 0.7);
-}
+/* Bear Market button moved to Settings toggle - see Paper Mario styles below */
 
 .start-footer {
     position: absolute;
@@ -1483,4 +1447,324 @@ body.bear-mode .neon-title {
 #meme-popup.show {
     transform: translate(-50%, -50%) scale(1);
     opacity: 1;
+}
+
+/* ========================================
+   PAPER MARIO STYLE UI - Phase 17+
+   ======================================== */
+
+/* Quick Settings Row (mute + settings buttons) */
+.quick-settings-row {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 15px;
+}
+
+/* Cell-Shaded Icon Buttons - Dark Theme */
+.icon-btn-cell {
+    width: 44px;
+    height: 44px;
+    background: linear-gradient(180deg, #2a2a3e 0%, #1a1a2e 100%);
+    border: 2px solid #444;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+    box-shadow: 0 3px 0 #111;
+    position: relative;
+}
+
+.icon-btn-cell:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 0 #111, 0 0 15px rgba(243, 156, 18, 0.3);
+    border-color: #f39c12;
+}
+
+.icon-btn-cell:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 #111;
+}
+
+.icon-btn-cell .icon-svg {
+    width: 24px;
+    height: 24px;
+    fill: #888;
+    transition: fill 0.15s;
+}
+
+.icon-btn-cell:hover .icon-svg {
+    fill: #f39c12;
+}
+
+.icon-btn-cell.muted .icon-svg {
+    fill: #e74c3c;
+}
+
+/* Cell-Shaded Modal - Dark Crypto Theme */
+.paper-modal {
+    background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%) !important;
+    border: 4px solid #f39c12 !important;
+    border-radius: 12px !important;
+    box-shadow: 0 0 30px rgba(243, 156, 18, 0.3), 8px 8px 0 rgba(0,0,0,0.5) !important;
+    padding: 25px 30px !important;
+}
+
+.modal-title {
+    color: #f39c12 !important;
+    font-size: 24px;
+    font-weight: 900;
+    letter-spacing: 3px;
+    margin: 0 0 20px 0;
+    text-transform: uppercase;
+    border-bottom: 3px solid #f39c12;
+    padding-bottom: 10px;
+    text-shadow: 0 0 10px rgba(243, 156, 18, 0.5);
+}
+
+/* Setting rows - Dark Crypto style */
+.paper-modal .setting-row {
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid #333;
+    border-radius: 8px;
+    padding: 12px 15px;
+    margin-bottom: 12px;
+}
+
+.paper-modal .setting-label {
+    color: #ccc;
+    font-weight: 900;
+    font-size: 14px;
+    letter-spacing: 1px;
+}
+
+/* Bear Market Toggle in Settings */
+.setting-bear {
+    background: rgba(192, 57, 43, 0.2) !important;
+    border-color: #c0392b !important;
+}
+
+.toggle-switch {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #2a2a3e;
+    border: 2px solid #444;
+    border-radius: 20px;
+    padding: 5px 15px 5px 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.switch-track {
+    width: 40px;
+    height: 22px;
+    background: #444;
+    border-radius: 11px;
+    border: 2px solid #555;
+    position: relative;
+    transition: background 0.2s;
+}
+
+.switch-thumb {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    background: #888;
+    border: 2px solid #666;
+    border-radius: 50%;
+    top: 1px;
+    left: 1px;
+    transition: left 0.2s;
+}
+
+.toggle-switch.active .switch-track {
+    background: #c0392b;
+    border-color: #e74c3c;
+}
+
+.toggle-switch.active .switch-thumb {
+    left: 19px;
+    background: #fff;
+}
+
+.toggle-switch .switch-label {
+    font-weight: 900;
+    font-size: 12px;
+    color: #aaa;
+    min-width: 30px;
+}
+
+/* Cell-Shaded Toggle Button - Dark Theme */
+.toggle-btn-cell {
+    background: linear-gradient(180deg, #4a90d9 0%, #3a70b9 100%);
+    color: #fff;
+    border: 2px solid #5aa0e9;
+    border-radius: 6px;
+    padding: 8px 20px;
+    font-family: inherit;
+    font-weight: 900;
+    font-size: 14px;
+    cursor: pointer;
+    box-shadow: 0 3px 0 #2a5080, 0 0 10px rgba(74, 144, 217, 0.3);
+    transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.toggle-btn-cell:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 0 #2a5080, 0 0 15px rgba(74, 144, 217, 0.5);
+}
+
+.toggle-btn-cell:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 #2a5080;
+}
+
+/* Cell-Shaded Slider - Dark Theme */
+.slider-cell {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 140px;
+    height: 10px;
+    background: #2a2a3e;
+    border: 2px solid #444;
+    border-radius: 6px;
+    outline: none;
+}
+
+.slider-cell::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: linear-gradient(180deg, #f39c12 0%, #d68910 100%);
+    border: 2px solid #f5b041;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(243, 156, 18, 0.5);
+}
+
+.slider-cell::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: linear-gradient(180deg, #f39c12 0%, #d68910 100%);
+    border: 2px solid #f5b041;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(243, 156, 18, 0.5);
+}
+
+/* How to Play - Dark Box */
+.paper-box {
+    background: rgba(0, 0, 0, 0.3) !important;
+    border: 2px solid #333 !important;
+    border-radius: 8px !important;
+    padding: 15px !important;
+    margin: 15px 0 !important;
+    text-align: left !important;
+}
+
+.paper-box h3 {
+    color: #f39c12 !important;
+    font-size: 14px !important;
+    margin: 0 0 10px 0 !important;
+    border-bottom: 1px solid #444;
+    padding-bottom: 5px;
+}
+
+.paper-box p {
+    color: #aaa !important;
+    font-size: 12px !important;
+    margin: 8px 0 !important;
+}
+
+.paper-box .icon-tag {
+    display: inline-block;
+    background: #2a2a3e;
+    border: 1px solid #444;
+    border-radius: 4px;
+    padding: 2px 6px;
+    margin-right: 5px;
+}
+
+.paper-box .tip-text {
+    color: #f39c12 !important;
+    font-weight: bold;
+}
+
+/* Cell-Shaded Button - Dark Theme */
+.btn-cell {
+    background: linear-gradient(180deg, #f39c12 0%, #d68910 100%);
+    color: #000;
+    border: 2px solid #f5b041;
+    border-radius: 8px;
+    padding: 12px 40px;
+    font-family: inherit;
+    font-weight: 900;
+    font-size: 16px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    box-shadow: 0 4px 0 #8a5a0a, 0 0 20px rgba(243, 156, 18, 0.4);
+    transition: transform 0.1s, box-shadow 0.1s;
+    text-transform: uppercase;
+}
+
+.btn-cell:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 0 #8a5a0a, 0 0 30px rgba(243, 156, 18, 0.6);
+}
+
+.btn-cell:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 #8a5a0a;
+}
+
+/* Bear mode body class - affect toggle */
+body.bear-mode .toggle-switch#bear-toggle {
+    background: rgba(192, 57, 43, 0.3);
+    border-color: #c0392b;
+}
+
+body.bear-mode .toggle-switch#bear-toggle .switch-track {
+    background: #c0392b;
+    border-color: #e74c3c;
+}
+
+body.bear-mode .toggle-switch#bear-toggle .switch-thumb {
+    left: 19px;
+    background: #fff;
+}
+
+body.bear-mode .toggle-switch#bear-toggle .switch-label {
+    color: #e74c3c;
+}
+
+/* ========================================
+   SHIP LAUNCH - TEXT DESTRUCTION EFFECT
+   ======================================== */
+
+.text-particle {
+    position: fixed;
+    pointer-events: none;
+    z-index: 9999;
+    animation: textExplode 1.2s ease-out forwards;
+    text-shadow: 0 0 15px currentColor, 0 0 30px currentColor;
+    font-family: inherit;
+}
+
+@keyframes textExplode {
+    0% {
+        opacity: 1;
+        transform: translate(0, 0) rotate(0deg) scale(1.2);
+    }
+    30% {
+        opacity: 1;
+        transform: translate(calc(var(--vx) * 0.3), calc(var(--vy) * 0.3)) rotate(calc(var(--rot) * 0.3)) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(var(--vx), var(--vy)) rotate(var(--rot)) scale(0.2);
+    }
 }
