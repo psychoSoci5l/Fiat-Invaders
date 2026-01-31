@@ -10,11 +10,14 @@ class Player extends window.Game.Entity {
         this.type = 'BTC';
         this.stats = window.Game.SHIPS['BTC'];
 
-        // State
+        // Weapon State (NORMAL, WIDE, NARROW, FIRE)
         this.weapon = 'NORMAL';
         this.weaponTimer = 0;
-        this.weaponLevel = 1;
         this.cooldown = 0;
+
+        // Ship Power-up State (SPEED, RAPID, SHIELD - mutually exclusive)
+        this.shipPowerUp = null;
+        this.shipPowerUpTimer = 0;
 
         this.shieldActive = false;
         this.shieldTimer = 0;
@@ -42,7 +45,9 @@ class Player extends window.Game.Entity {
         this.x = this.gameWidth / 2;
         this.y = this.gameHeight - 160; // Lifted for better visibility
         this.weapon = 'NORMAL';
-        this.weaponLevel = 1;
+        this.weaponTimer = 0;
+        this.shipPowerUp = null;
+        this.shipPowerUpTimer = 0;
         this.shieldActive = false;
         this.shieldCooldown = 0;
         this.invulnTimer = 0;
@@ -50,7 +55,9 @@ class Player extends window.Game.Entity {
 
     update(dt) {
         const input = window.Game.Input;
-        const speed = this.stats.speed * this.getRunMod('speedMult', 1);
+        const shipPU = window.Game.SHIP_POWERUPS;
+        const speedMult = (this.shipPowerUp === 'SPEED' && shipPU.SPEED) ? shipPU.SPEED.speedMult : 1;
+        const speed = this.stats.speed * this.getRunMod('speedMult', 1) * speedMult;
 
         // Animation timer for visual effects
         this.animTime += dt;
@@ -104,11 +111,18 @@ class Player extends window.Game.Entity {
         }
         if (this.shieldCooldown > 0) this.shieldCooldown -= dt;
 
+        // Weapon timer (WIDE, NARROW, FIRE revert to NORMAL)
         if (this.weapon !== 'NORMAL') {
             this.weaponTimer -= dt;
             if (this.weaponTimer <= 0) {
                 this.weapon = 'NORMAL';
-                // Callback to UI could go here, but avoiding circular deps for now
+            }
+        }
+        // Ship power-up timer (SPEED, RAPID expire)
+        if (this.shipPowerUp && this.shipPowerUp !== 'SHIELD') {
+            this.shipPowerUpTimer -= dt;
+            if (this.shipPowerUpTimer <= 0) {
+                this.shipPowerUp = null;
             }
         }
         if (this.invulnTimer > 0) this.invulnTimer -= dt;
@@ -137,55 +151,52 @@ class Player extends window.Game.Entity {
 
     fire() {
         const conf = window.Game.WEAPONS[this.weapon];
+        const shipPU = window.Game.SHIP_POWERUPS;
         const bullets = [];
         const isHodl = Math.abs(this.vx) < 10;
-        const flags = (window.Game.RunState && window.Game.RunState.flags) ? window.Game.RunState.flags : {};
-        const isLaser = !!flags.laserBeam;
-        const useTwin = !!flags.twinCannons;
-        const useWide = !!flags.wideSpread;
 
         // Play Sound
         window.Game.Audio.play(isHodl ? 'hodl' : 'shoot');
-        window.Game.Input.vibrate(5); // Tiny haptic tick
-        this.muzzleFlash = 0.08; // Trigger muzzle flash effect
+        window.Game.Input.vibrate(5);
+        this.muzzleFlash = 0.08;
 
-        // Logic
-        const color = isLaser ? '#e74c3c' : conf.color;
-        let baseRate = (this.weapon === 'RAPID' && this.weaponLevel > 1)
-            ? conf.rate * 0.7
-            : ((this.weapon === 'NORMAL') ? this.stats.fireRate : conf.rate);
-        if (isLaser) baseRate = Math.max(baseRate, 0.35);
-        const rate = baseRate * this.getRunMod('fireRateMult', 1) * this.getRunMod('tempFireRateMult', 1);
-
+        // Fire rate: base from weapon, modified by RAPID ship power-up
+        const rapidMult = (this.shipPowerUp === 'RAPID' && shipPU.RAPID) ? shipPU.RAPID.rateMult : 1;
+        const baseRate = this.weapon === 'NORMAL' ? this.stats.fireRate : conf.rate;
+        const rate = baseRate * rapidMult * this.getRunMod('fireRateMult', 1);
         this.cooldown = rate;
 
-        // Bullet Setup
-        const pierce = this.getRunFlag('pierce') || isLaser;
-        const bulletW = isLaser ? 6 : 5;
-        const bulletH = isLaser ? 40 : 20;
+        // Bullet setup
+        const color = conf.color;
+        const bulletW = 5;
+        const bulletH = 20;
+        const bulletSpeed = 900;
         const spawnBullet = (x, y, vx, vy) => {
             const b = window.Game.Bullet.Pool.acquire(x, y, vx, vy, color, bulletW, bulletH, isHodl);
-            b.penetration = pierce;
             bullets.push(b);
         };
 
-        if (this.weapon === 'SPREAD') {
-            // Center
-            spawnBullet(this.x, this.y - 25, 0, -800);
-            // Left
-            spawnBullet(this.x - 10, this.y - 20, -200, -700);
-            // Right
-            spawnBullet(this.x + 10, this.y - 20, 200, -700);
+        // Weapon patterns
+        if (this.weapon === 'WIDE') {
+            // Triple wide spread
+            const spread = conf.spread || 0.4;
+            spawnBullet(this.x, this.y - 25, 0, -bulletSpeed);
+            spawnBullet(this.x - 10, this.y - 20, -bulletSpeed * spread, -bulletSpeed * 0.9);
+            spawnBullet(this.x + 10, this.y - 20, bulletSpeed * spread, -bulletSpeed * 0.9);
+        } else if (this.weapon === 'NARROW') {
+            // Triple narrow spread
+            const spread = conf.spread || 0.15;
+            spawnBullet(this.x, this.y - 25, 0, -bulletSpeed);
+            spawnBullet(this.x - 6, this.y - 22, -bulletSpeed * spread, -bulletSpeed * 0.95);
+            spawnBullet(this.x + 6, this.y - 22, bulletSpeed * spread, -bulletSpeed * 0.95);
+        } else if (this.weapon === 'FIRE') {
+            // Triple parallel (all straight up, spaced horizontally)
+            spawnBullet(this.x, this.y - 25, 0, -bulletSpeed);
+            spawnBullet(this.x - 15, this.y - 25, 0, -bulletSpeed);
+            spawnBullet(this.x + 15, this.y - 25, 0, -bulletSpeed);
         } else {
-            // NORMAL, RAPID, LASER
-            spawnBullet(this.x, this.y - 25, 0, -900);
-            if (useTwin) {
-                spawnBullet(this.x + 10, this.y - 25, 0, -900);
-            }
-            if (useWide) {
-                spawnBullet(this.x - 12, this.y - 20, -280, -700);
-                spawnBullet(this.x + 12, this.y - 20, 280, -700);
-            }
+            // NORMAL: single shot
+            spawnBullet(this.x, this.y - 25, 0, -bulletSpeed);
         }
 
         return bullets;
@@ -362,14 +373,24 @@ class Player extends window.Game.Entity {
     }
 
     upgrade(type) {
-        window.Game.Audio.play('coin'); // Reusing coin sound for now
-        if (type === 'SHIELD') {
-            this.activateShield();
-            this.shieldCooldown = 0; // Reset CD if grabbed
-        } else {
+        window.Game.Audio.play('coin');
+        const weaponTypes = ['WIDE', 'NARROW', 'FIRE'];
+        const shipTypes = ['SPEED', 'RAPID', 'SHIELD'];
+
+        if (weaponTypes.includes(type)) {
+            // Weapon power-up (replaces current weapon)
             this.weapon = type;
-            this.weaponTimer = 9.0; // Lasts 9 seconds
-            this.weaponLevel = 1;
+            this.weaponTimer = 8.0;
+        } else if (shipTypes.includes(type)) {
+            // Ship power-up (replaces current ship power-up)
+            if (type === 'SHIELD') {
+                this.activateShield();
+                this.shieldCooldown = 0;
+                this.shipPowerUp = null; // Shield is instant, doesn't persist
+            } else {
+                this.shipPowerUp = type;
+                this.shipPowerUpTimer = 8.0;
+            }
         }
     }
 }

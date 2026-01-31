@@ -2,75 +2,127 @@ window.Game = window.Game || {};
 
 class Boss extends window.Game.Entity {
     constructor(gameWidth, gameHeight) {
-        super(gameWidth / 2 - 40, -100, 80, 80); // Start off-screen
+        // BIGGER: 160x140 instead of 80x80
+        super(gameWidth / 2 - 80, -160, 160, 140);
         this.gameWidth = gameWidth;
         this.gameHeight = gameHeight;
 
-        this.maxHp = 500;
-        this.hp = 500;
+        this.maxHp = 800;
+        this.hp = 800;
         this.active = true;
-        this.phaseState = 'NORMAL'; // 'NORMAL' | 'RAGE'
 
-        this.targetY = 100; // Drop to this Y
+        // 3 PHASES: PHASE1 (100-66%), PHASE2 (66-33%), PHASE3 (33-0%)
+        this.phase = 1;
+        this.phaseTransitioning = false;
+        this.phaseTransitionTimer = 0;
+
+        this.targetY = 145; // Below safe zone (HUD + perk bar)
         this.dir = 1;
-        this.moveSpeed = 80;
+        this.moveSpeed = 60;
 
         this.fireTimer = 0;
         this.printTimer = 0;
         this.hitTimer = 0;
         this.angle = 0;
+        this.laserAngle = 0;
+        this.animTime = 0;
+
+        // Visual state
+        this.eyeGlow = 0;
+        this.shakeIntensity = 0;
     }
 
     damage(amount) {
         this.hp -= amount;
-        this.hitTimer = 0.1; // Flash for 0.1s
+        this.hitTimer = 0.12;
+
+        // Phase transitions
+        const hpPct = this.hp / this.maxHp;
+        if (hpPct <= 0.33 && this.phase < 3) {
+            this.triggerPhaseTransition(3);
+        } else if (hpPct <= 0.66 && this.phase < 2) {
+            this.triggerPhaseTransition(2);
+        }
+    }
+
+    triggerPhaseTransition(newPhase) {
+        this.phase = newPhase;
+        this.phaseTransitioning = true;
+        this.phaseTransitionTimer = 1.5;
+        this.shakeIntensity = 15;
+        this.eyeGlow = 1;
+
+        if (window.Game.Audio) window.Game.Audio.play('bossSpawn');
+
+        // Screen shake via global
+        if (typeof shake !== 'undefined') shake = 30;
     }
 
     update(dt, player) {
-        // Visual Hit Timer logic
+        this.animTime += dt;
         if (this.hitTimer > 0) this.hitTimer -= dt;
+        if (this.eyeGlow > 0) this.eyeGlow -= dt * 0.5;
+        if (this.shakeIntensity > 0) this.shakeIntensity -= dt * 10;
 
-        // 1. Entrance Animation (Drop down)
-        if (this.y < this.targetY) {
-            this.y += 100 * dt;
-            // If we haven't reached target yet, don't attack or move laterally
+        // Phase transition pause
+        if (this.phaseTransitioning) {
+            this.phaseTransitionTimer -= dt;
+            if (this.phaseTransitionTimer <= 0) {
+                this.phaseTransitioning = false;
+            }
+            // Shake during transition
+            this.x += (Math.random() - 0.5) * this.shakeIntensity;
+            this.y = this.targetY + (Math.random() - 0.5) * this.shakeIntensity;
             return null;
         }
 
-        // 2. Phase Transition Trigger ( < 50% HP )
-        const hpPct = this.hp / this.maxHp;
-        if (hpPct < 0.5 && this.phaseState !== 'RAGE') {
-            this.phaseState = 'RAGE';
-            this.moveSpeed = 0; // Stop linear movement
-            if (window.Game.Audio) window.Game.Audio.play('bossSpawn'); // Roar
+        // Entrance Animation
+        if (this.y < this.targetY) {
+            this.y += 80 * dt;
+            return null;
         }
 
-        // 3. Movement Logic
-        if (this.phaseState === 'NORMAL') {
-            // Patrol Left/Right
+        // Movement based on phase
+        if (this.phase === 1) {
+            // Slow patrol
             this.x += this.moveSpeed * this.dir * dt;
             if (this.x < 20 || this.x + this.width > this.gameWidth - 20) {
                 this.dir *= -1;
             }
+        } else if (this.phase === 2) {
+            // Faster, erratic movement
+            this.moveSpeed = 120;
+            this.x += this.moveSpeed * this.dir * dt;
+            this.y = this.targetY + Math.sin(this.animTime * 3) * 20;
+            if (this.x < 20 || this.x + this.width > this.gameWidth - 20) {
+                this.dir *= -1;
+            }
         } else {
-            // RAGE: Center & Shake
-            const centerX = this.gameWidth / 2 - this.width / 2;
-            const dx = centerX - this.x;
-            this.x += dx * 2 * dt; // Lerp to center
+            // Phase 3: RAGE - Erratic aggressive movement
+            this.moveSpeed = 180;
 
-            // Shake Effect
-            this.y = this.targetY + (Math.random() - 0.5) * 5;
-            this.x = this.x + (Math.random() - 0.5) * 5;
+            // Figure-8 pattern with random jerks
+            const baseX = this.gameWidth / 2 - this.width / 2;
+            const patternX = Math.sin(this.animTime * 2) * 150;
+            const patternY = Math.sin(this.animTime * 4) * 30;
 
-            // Money Printer (Spawn Minions)
+            // Lerp to pattern position with some randomness
+            const targetX = baseX + patternX;
+            this.x += (targetX - this.x) * 3 * dt + (Math.random() - 0.5) * 8;
+            this.y = this.targetY + patternY + (Math.random() - 0.5) * 5;
+
+            // Keep in bounds
+            this.x = Math.max(20, Math.min(this.gameWidth - this.width - 20, this.x));
+
+            // Spawn minions more frequently
             this.printTimer -= dt;
             if (this.printTimer <= 0) {
                 this.printMoney();
-                this.printTimer = 2.5; // Every 2.5s
+                this.printTimer = 2.5;
             }
         }
 
-        // 4. Attack Logic
+        // Attack Logic
         this.fireTimer -= dt;
         if (this.fireTimer <= 0) {
             return this.attack(player);
@@ -82,48 +134,98 @@ class Boss extends window.Game.Entity {
         const G = window.Game;
         if (!G.enemies) return;
 
-        // Spawn 2 Minions (Dollars)
-        G.enemies.push(new G.Enemy(this.x - 30, this.y + 50, G.FIAT_TYPES[3]));
-        G.enemies.push(new G.Enemy(this.x + this.width + 30, this.y + 50, G.FIAT_TYPES[3]));
+        // Spawn strong minions in Phase 3
+        const typeIdx = Math.min(G.FIAT_TYPES.length - 1, 7); // Strong type
+        G.enemies.push(new G.Enemy(this.x - 40, this.y + 80, G.FIAT_TYPES[typeIdx]));
+        G.enemies.push(new G.Enemy(this.x + this.width + 40, this.y + 80, G.FIAT_TYPES[typeIdx]));
 
         if (G.Audio) G.Audio.play('coin');
     }
 
     attack(player) {
         const bullets = [];
+        const cx = this.x + this.width / 2;
+        const cy = this.y + this.height;
 
-        if (this.phaseState === 'NORMAL') {
-            // Standard Pattern: 2 Green Lasers
-            this.fireTimer = 0.8;
-            for (let i = -1; i <= 1; i += 2) {
+        if (this.phase === 1) {
+            // PHASE 1: Spread shot (5 bullets in arc)
+            this.fireTimer = 1.2;
+            for (let i = -2; i <= 2; i++) {
+                const angle = Math.PI / 2 + (i * 0.25);
                 bullets.push({
-                    x: this.x + this.width / 2 + (i * 40),
-                    y: this.y + this.height,
-                    vx: 0, vy: 300,
-                    color: '#00ff00', w: 8, h: 20
+                    x: cx,
+                    y: cy - 20,
+                    vx: Math.cos(angle) * 220,
+                    vy: Math.sin(angle) * 220,
+                    color: '#2ecc71', w: 8, h: 8
+                });
+            }
+        } else if (this.phase === 2) {
+            // PHASE 2: Spiral + aimed shot
+            this.fireTimer = 0.25;
+            this.angle += 0.35;
+
+            // Spiral
+            for (let i = 0; i < 2; i++) {
+                const a = this.angle + (i * Math.PI);
+                bullets.push({
+                    x: cx,
+                    y: cy - 30,
+                    vx: Math.cos(a) * 280,
+                    vy: Math.sin(a) * 280,
+                    color: '#f39c12', w: 10, h: 10
+                });
+            }
+
+            // Aimed shot every 4th attack
+            if (Math.floor(this.angle * 10) % 4 === 0 && player) {
+                const dx = player.x - cx;
+                const dy = player.y - cy;
+                const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+                bullets.push({
+                    x: cx,
+                    y: cy,
+                    vx: (dx / dist) * 350,
+                    vy: (dy / dist) * 350,
+                    color: '#e74c3c', w: 12, h: 12
                 });
             }
         } else {
-            // RAGE: Spiral Red Fire
-            this.fireTimer = 0.15;
-            this.angle += 0.4;
+            // PHASE 3: CHAOS - Triple spiral + laser sweep
+            this.fireTimer = 0.12;
+            this.angle += 0.25;
+            this.laserAngle += 0.08;
+
+            // Triple spiral
+            for (let i = 0; i < 3; i++) {
+                const a = this.angle + (i * Math.PI * 2 / 3);
+                bullets.push({
+                    x: cx,
+                    y: cy - 20,
+                    vx: Math.cos(a) * 300,
+                    vy: Math.sin(a) * 300,
+                    color: '#e74c3c', w: 10, h: 10
+                });
+            }
+
+            // Side cannons
+            const sideAngle = Math.PI / 2 + Math.sin(this.laserAngle) * 0.5;
             bullets.push({
-                x: this.x + this.width / 2,
-                y: this.y + this.height / 2,
-                vx: Math.cos(this.angle) * 400,
-                vy: Math.sin(this.angle) * 400,
-                color: '#ff0000',
-                w: 12, h: 12
+                x: this.x + 20,
+                y: cy - 40,
+                vx: Math.cos(sideAngle - 0.3) * 250,
+                vy: Math.sin(sideAngle - 0.3) * 250,
+                color: '#9b59b6', w: 8, h: 8
             });
             bullets.push({
-                x: this.x + this.width / 2,
-                y: this.y + this.height / 2,
-                vx: Math.cos(this.angle + Math.PI) * 400,
-                vy: Math.sin(this.angle + Math.PI) * 400,
-                color: '#ff0000',
-                w: 12, h: 12
+                x: this.x + this.width - 20,
+                y: cy - 40,
+                vx: Math.cos(sideAngle + 0.3) * 250,
+                vy: Math.sin(sideAngle + 0.3) * 250,
+                color: '#9b59b6', w: 8, h: 8
             });
         }
+
         return bullets;
     }
 
@@ -132,55 +234,194 @@ class Boss extends window.Game.Entity {
         const y = this.y;
         const w = this.width;
         const h = this.height;
+        const cx = x + w / 2;
 
-        // Optimized: no shadowBlur
-        // Vault body
+        ctx.save();
+
+        // Phase-based color scheme
+        const isHit = this.hitTimer > 0;
+        const baseColor = this.phase === 3 ? '#4a1a1a' : (this.phase === 2 ? '#3d3d3d' : '#5a5a5a');
+        const accentColor = this.phase === 3 ? '#ff0000' : (this.phase === 2 ? '#f39c12' : '#2ecc71');
+
+        // MAIN BODY - Central Bank Vault
+        ctx.fillStyle = isHit ? '#ffffff' : baseColor;
+        ctx.strokeStyle = '#222';
         ctx.lineWidth = 4;
-        ctx.strokeStyle = '#111';
-        ctx.fillStyle = (this.hitTimer > 0) ? '#f0f0f0' : '#6b6b6b';
+
+        // Main vault body
         ctx.beginPath();
-        ctx.rect(x, y + 10, w, h - 10);
+        ctx.roundRect(x + 10, y + 30, w - 20, h - 40, 8);
         ctx.fill();
         ctx.stroke();
 
-        // Face panel
-        ctx.fillStyle = '#3a3a3a';
+        // Top section (printer)
+        ctx.fillStyle = isHit ? '#ffffff' : '#333';
         ctx.beginPath();
-        ctx.rect(x + 12, y + 20, w - 24, 36);
+        ctx.roundRect(x + 30, y + 5, w - 60, 35, 5);
         ctx.fill();
         ctx.stroke();
 
-        // Eyes - white
-        ctx.fillStyle = '#fff';
-        ctx.beginPath();
-        ctx.arc(x + w / 2 - 12, y + 34, 5, 0, Math.PI * 2);
-        ctx.arc(x + w / 2 + 12, y + 34, 5, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-
-        // Pupils
+        // Printer slot
         ctx.fillStyle = '#111';
+        ctx.fillRect(x + 50, y + 15, w - 100, 8);
+
+        // Money coming out animation (Phase 2+)
+        if (this.phase >= 2) {
+            const moneyOffset = (this.animTime * 50) % 20;
+            ctx.fillStyle = '#2ecc71';
+            ctx.fillRect(x + 55, y + 12 + moneyOffset, 15, 6);
+            ctx.fillRect(x + w - 70, y + 12 + (moneyOffset + 10) % 20, 15, 6);
+        }
+
+        // FACE PANEL
+        ctx.fillStyle = '#222';
         ctx.beginPath();
-        ctx.arc(x + w / 2 - 12, y + 34, 2, 0, Math.PI * 2);
-        ctx.arc(x + w / 2 + 12, y + 34, 2, 0, Math.PI * 2);
+        ctx.roundRect(x + 25, y + 45, w - 50, 50, 5);
         ctx.fill();
 
-        // Vault dial
-        ctx.fillStyle = '#d9d9d9';
+        // EYES - Get angrier with each phase
+        const eyeSize = 12 + this.phase * 2;
+        const eyeY = y + 65;
+        const eyeSpacing = 25 + this.phase * 5;
+
+        // Eye glow (when transitioning or phase 3)
+        if (this.eyeGlow > 0 || this.phase === 3) {
+            const glowAlpha = this.phase === 3 ? 0.5 + Math.sin(this.animTime * 10) * 0.3 : this.eyeGlow;
+            ctx.fillStyle = `rgba(255, 0, 0, ${glowAlpha})`;
+            ctx.beginPath();
+            ctx.arc(cx - eyeSpacing, eyeY, eyeSize + 8, 0, Math.PI * 2);
+            ctx.arc(cx + eyeSpacing, eyeY, eyeSize + 8, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Eye whites
+        ctx.fillStyle = this.phase === 3 ? '#ffcccc' : '#fff';
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(x + w / 2, y + 64, 10, 0, Math.PI * 2);
+        ctx.arc(cx - eyeSpacing, eyeY, eyeSize, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(cx + eyeSpacing, eyeY, eyeSize, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
 
-        // HP Bar
+        // Pupils - track player or spin in rage
+        let pupilOffsetX = 0, pupilOffsetY = 0;
+        if (this.phase === 3) {
+            // Spinning crazy eyes
+            pupilOffsetX = Math.cos(this.animTime * 5) * 4;
+            pupilOffsetY = Math.sin(this.animTime * 5) * 4;
+        }
+
+        ctx.fillStyle = this.phase === 3 ? '#ff0000' : '#111';
+        ctx.beginPath();
+        ctx.arc(cx - eyeSpacing + pupilOffsetX, eyeY + pupilOffsetY, eyeSize * 0.5, 0, Math.PI * 2);
+        ctx.arc(cx + eyeSpacing + pupilOffsetX, eyeY + pupilOffsetY, eyeSize * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Angry eyebrows (Phase 2+)
+        if (this.phase >= 2) {
+            ctx.strokeStyle = '#111';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(cx - eyeSpacing - eyeSize, eyeY - eyeSize - 5);
+            ctx.lineTo(cx - eyeSpacing + eyeSize, eyeY - eyeSize + 3);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(cx + eyeSpacing + eyeSize, eyeY - eyeSize - 5);
+            ctx.lineTo(cx + eyeSpacing - eyeSize, eyeY - eyeSize + 3);
+            ctx.stroke();
+        }
+
+        // VAULT DIAL
+        ctx.fillStyle = '#c0c0c0';
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(cx, y + 110, 18, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Dial inner
+        ctx.fillStyle = '#888';
+        ctx.beginPath();
+        ctx.arc(cx, y + 110, 10, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Dial tick (rotating)
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 3;
+        const dialAngle = this.animTime * 2;
+        ctx.beginPath();
+        ctx.moveTo(cx, y + 110);
+        ctx.lineTo(cx + Math.cos(dialAngle) * 14, y + 110 + Math.sin(dialAngle) * 14);
+        ctx.stroke();
+
+        // SIDE CANNONS (Phase 2+)
+        if (this.phase >= 2) {
+            ctx.fillStyle = '#444';
+            ctx.strokeStyle = '#222';
+            ctx.lineWidth = 2;
+            // Left cannon
+            ctx.beginPath();
+            ctx.roundRect(x - 5, y + 70, 20, 35, 3);
+            ctx.fill();
+            ctx.stroke();
+            // Right cannon
+            ctx.beginPath();
+            ctx.roundRect(x + w - 15, y + 70, 20, 35, 3);
+            ctx.fill();
+            ctx.stroke();
+
+            // Cannon glow
+            ctx.fillStyle = accentColor;
+            ctx.beginPath();
+            ctx.arc(x + 5, y + 100, 5, 0, Math.PI * 2);
+            ctx.arc(x + w - 5, y + 100, 5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // $ SYMBOL on vault
+        ctx.fillStyle = accentColor;
+        ctx.font = 'bold 28px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('$', cx, y + 145);
+
+        // HP BAR - Bigger and more prominent
         const hpPct = Math.max(0, this.hp / this.maxHp);
-        ctx.fillStyle = '#550000';
-        ctx.fillRect(x, y - 20, w, 8);
-        ctx.fillStyle = (hpPct > 0.5) ? '#00ff00' : '#ff0000';
-        ctx.fillRect(x, y - 20, w * hpPct, 8);
+        const barW = w + 40;
+        const barH = 12;
+        const barX = x - 20;
+        const barY = y - 30;
+
+        // Bar background
+        ctx.fillStyle = '#330000';
+        ctx.fillRect(barX, barY, barW, barH);
+
+        // HP fill with phase colors
+        const hpColor = this.phase === 3 ? '#ff0000' : (this.phase === 2 ? '#f39c12' : '#2ecc71');
+        ctx.fillStyle = hpColor;
+        ctx.fillRect(barX, barY, barW * hpPct, barH);
+
+        // Bar border
         ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(x, y - 20, w, 8);
+        ctx.lineWidth = 2;
+        ctx.strokeRect(barX, barY, barW, barH);
+
+        // Phase indicator
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 10px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(`PHASE ${this.phase}`, cx, barY - 8);
+
+        // Boss name
+        ctx.font = 'bold 14px Arial';
+        ctx.fillText('FEDERAL RESERVE', cx, barY - 22);
+
+        ctx.restore();
     }
 }
 

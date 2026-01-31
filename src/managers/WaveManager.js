@@ -72,15 +72,22 @@ window.Game.WaveManager = {
                 else if (pattern === 'COLUMNS' && c % 3 < 2) spawn = true; // More enemies in COLUMNS
 
                 if (spawn) {
-                    let typeIdx = Math.max(0, 3 - Math.floor(r / 2));
-                    // Check bounds of FIAT_TYPES
-                    if (typeIdx >= G.FIAT_TYPES.length) typeIdx = G.FIAT_TYPES.length - 1;
+                    // Each row gets ONE currency type (organized, not scattered)
+                    // Row 0 (front) = strongest, Row 4 (back) = weakest
+                    // Offset by wave number to cycle through all 10 currencies
+                    const waveOffset = (this.wave - 1) % 2; // 0 or 1
+                    const typeIdx = Math.min(G.FIAT_TYPES.length - 1, (maxRows - 1 - r) * 2 + waveOffset);
 
-                    // Scale HP based on cycle (accessed from window.marketCycle or default 1)
+                    // Scale HP based on unified difficulty
                     const cycle = window.marketCycle || 1;
+                    const level = window.currentLevel || 1;
+                    const base = (level - 1) * 0.08;
+                    const cycleBonus = (cycle - 1) * 0.20;
+                    const diff = Math.min(0.85, base + cycleBonus);
+                    const scaledHP = 10 + Math.floor(diff * 15);
                     const baseType = G.FIAT_TYPES[typeIdx];
                     const scaledType = Object.assign({}, baseType, {
-                        hp: baseType.hp * (10 + (cycle - 1) * 5) // 10 HP base, +5 per cycle
+                        hp: baseType.hp * scaledHP
                     });
                     enemies.push(new G.Enemy(startX + c * spacing, startY + r * spacing, scaledType));
                 }

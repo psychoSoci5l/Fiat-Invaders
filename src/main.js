@@ -84,6 +84,7 @@ let streak = 0;
 let bestStreak = 0;
 let marketCycle = 1; // Track completed boss cycles for difficulty scaling
 window.marketCycle = marketCycle; // Expose for WaveManager
+window.currentLevel = level; // Expose for WaveManager difficulty calculation
 let bulletCancelStreak = 0;
 let bulletCancelTimer = 0;
 let enemyFirePhase = 0;
@@ -93,14 +94,43 @@ let enemyShotsThisTick = 0; // Rate limiter
 const MAX_ENEMY_SHOTS_PER_TICK = 2; // Max bullets spawned per frame
 
 // Fiat Kill Counter System - Mini Boss every 100 kills of same type
-let fiatKillCounter = { '¥': 0, '€': 0, '£': 0, '$': 0 };
+let fiatKillCounter = { '¥': 0, '₽': 0, '₹': 0, '€': 0, '£': 0, '₣': 0, '₺': 0, '$': 0, '元': 0, 'Ⓒ': 0 };
 const MINI_BOSS_THRESHOLD = 100;
 let miniBoss = null; // Special boss spawned from kill counter
+let weaponDropCount = 0; // Track weapon drops per level
+let shipDropCount = 0; // Track ship power-up drops per level
+
+// --- DIFFICULTY SYSTEM ---
+// Single unified difficulty multiplier (0.0 = Level 1, capped at 0.85)
+function getDifficulty() {
+    const base = (level - 1) * 0.08;  // +8% per level (0-4 = 0-0.32)
+    const cycleBonus = (marketCycle - 1) * 0.20; // +20% per cycle
+    return Math.min(0.85, base + cycleBonus); // Cap at 0.85 = "hard but fair"
+}
+
+// Dynamic grid speed based on difficulty
+function getGridSpeed() {
+    const diff = getDifficulty();
+    const base = 12 + diff * 20; // 12 → 32
+    return isBearMarket ? base * 1.3 : base;
+}
 
 const ui = {};
 
 // --- HELPER FUNCTIONS ---
 function t(key) { return Constants.TEXTS[currentLang][key] || key; }
+
+// Juicy score update with bump effect
+function updateScore(newScore) {
+    score = newScore;
+    const el = document.getElementById('scoreVal');
+    if (el) {
+        el.textContent = Math.floor(score);
+        el.classList.remove('score-bump');
+        void el.offsetWidth; // Force reflow
+        el.classList.add('score-bump');
+    }
+}
 function setStyle(id, prop, val) { const el = document.getElementById(id) || ui[id]; if (el) el.style[prop] = val; }
 function setUI(id, val) { const el = document.getElementById(id) || ui[id]; if (el) el.innerText = val; }
 function emitEvent(name, payload) { if (events && events.emit) events.emit(name, payload); }
@@ -117,6 +147,11 @@ function getRandomMeme() {
 function getFiatDeathMeme() {
     const pool = Constants.MEMES.FIAT_DEATH || Constants.MEMES.LOW;
     return pool[Math.floor(Math.random() * pool.length)] || "FIAT DESTROYED";
+}
+
+function getPowellMeme() {
+    const pool = Constants.MEMES.POWELL || Constants.MEMES.BOSS || [];
+    return pool[Math.floor(Math.random() * pool.length)] || "PRINTER GO BRRR";
 }
 
 function pushScoreTicker(text) {
@@ -224,20 +259,25 @@ function renderPerkBar(highlightId) {
     const upgradesById = {};
     (G.UPGRADES || []).forEach(p => upgradesById[p.id] = p);
 
-    // Show only last 3 perks (most recent first)
-    const toShow = recentPerks.slice(-3).reverse();
-    toShow.forEach((entry, i) => {
+    // Create inner container for scrolling
+    const inner = document.createElement('div');
+    inner.id = 'perk-bar-inner';
+
+    // Show all perks in a horizontal ticker
+    recentPerks.forEach((entry) => {
         const perk = upgradesById[entry.id];
         if (!perk) return;
         const chip = document.createElement('div');
         chip.className = 'perk-chip';
-        if (highlightId && entry.id === highlightId && i === 0) {
+        if (highlightId && entry.id === highlightId) {
             chip.classList.add('new');
         }
-        chip.innerHTML = `<span>${perk.icon || '•'}</span><span>${perk.name}</span>` +
-            (entry.stacks > 1 ? `<span class="stack">x${entry.stacks}</span>` : '');
-        ui.perkBar.appendChild(chip);
+        const stackText = entry.stacks > 1 ? ` x${entry.stacks}` : '';
+        chip.innerHTML = `<span>${perk.icon || '•'}</span><span>${perk.name}${stackText}</span>`;
+        inner.appendChild(chip);
     });
+
+    ui.perkBar.appendChild(inner);
 }
 
 function openPerkChoice() {
@@ -754,7 +794,7 @@ function startGame() {
 
     waveMgr.reset();
     gridDir = 1;
-    gridSpeed = 12; // Slower start for level 1
+    // gridSpeed now computed dynamically via getGridSpeed()
 
     gameState = 'PLAY';
     player.resetState();
@@ -762,7 +802,7 @@ function startGame() {
     if (isBearMarket) {
         player.hp = 1; // ONE HIT KILL
         player.maxHp = 1; // Full bar but Red (logic handled in updateLivesUI)
-        gridSpeed = 25; // Faster than normal but not insane
+        // Bear Market speed handled in getGridSpeed() via 1.3x multiplier
         addText("🩸 SURVIVE THE CRASH 🩸", gameWidth / 2, gameHeight / 2 - 100, '#ff0000', 30);
     }
 
@@ -771,11 +811,13 @@ function startGame() {
     bestStreak = 0;
     marketCycle = 1; // Reset cycle
     window.marketCycle = marketCycle;
+    window.currentLevel = level; // Reset for WaveManager
     updateKillCounter(); // Reset display
 
     // Reset fiat kill counter and mini-boss
     fiatKillCounter = { '¥': 0, '€': 0, '£': 0, '$': 0 };
     miniBoss = null;
+    weaponDropCount = 0; shipDropCount = 0; // Reset drop counters
 
     updateLivesUI();
     emitEvent('run_start', { bear: isBearMarket });
@@ -803,19 +845,24 @@ function startIntermission(msgOverride) {
 }
 
 function spawnBoss() {
-    // hp is handled inside Boss class now (or pass level?)
     boss = new G.Boss(gameWidth, gameHeight);
 
-    // boss.configure(level)? Currently Boss scales phases by HP pct, but maxHp is fixed 500 in class.
-    // Let's allow scaling via a method or constructor if needed.
-    // For now, default Boss is fine.
-    boss.hp = 300 * level; // Scale HP by level
+    // Scale boss HP: bigger boss needs more HP
+    boss.hp = 500 + (level * 200) + (marketCycle * 300);
     boss.maxHp = boss.hp;
 
     enemies = [];
-    if (window.Game) window.Game.enemies = enemies; // Ensure Global Sync
+    if (window.Game) window.Game.enemies = enemies;
 
-    addText(t('BOSS_ENTER'), gameWidth / 2, gameHeight / 2, '#FFD700', 40); shake = 20; audioSys.play('bossSpawn');
+    addText("FEDERAL RESERVE", gameWidth / 2, gameHeight / 2 - 40, '#FFD700', 40);
+    addText("FINAL BOSS", gameWidth / 2, gameHeight / 2, '#ff0000', 30);
+    showMemePopup(getPowellMeme());
+    shake = 30;
+    audioSys.play('bossSpawn');
+
+    // Start with a Powell meme in the ticker
+    if (ui.memeTicker) ui.memeTicker.innerText = getPowellMeme();
+    memeSwapTimer = 2.0;
 }
 
 // Mini-Boss System - Giant fiat currency after 100 kills of same type
@@ -1012,7 +1059,7 @@ function checkMiniBossHit(b) {
         if (miniBoss.hp <= 0) {
             // Mini-boss defeated!
             score += 2000 * marketCycle;
-            setUI('scoreVal', Math.floor(score));
+            updateScore(score);
             createExplosion(miniBoss.x, miniBoss.y, miniBoss.color, 30);
             createExplosion(miniBoss.x - 30, miniBoss.y - 20, '#fff', 15);
             createExplosion(miniBoss.x + 30, miniBoss.y + 20, '#fff', 15);
@@ -1052,8 +1099,9 @@ function update(dt) {
     if (ui.memeTicker) {
         memeSwapTimer -= dt;
         if (memeSwapTimer <= 0) {
-            ui.memeTicker.innerText = getRandomMeme();
-            memeSwapTimer = 5.0;
+            // Powell memes during boss fight!
+            ui.memeTicker.innerText = (boss && boss.active) ? getPowellMeme() : getRandomMeme();
+            memeSwapTimer = (boss && boss.active) ? 2.5 : 5.0; // Faster during boss
         }
     }
 
@@ -1068,8 +1116,10 @@ function update(dt) {
             gameState = 'PLAY';
             if (waveMgr.wave > 1) {
                 level++; setUI('lvlVal', level);
+                window.currentLevel = level; // Update global for WaveManager
+                weaponDropCount = 0; shipDropCount = 0; // Reset drop counters for new level
                 addText("LEVEL " + level, gameWidth / 2, gameHeight / 2 - 50, '#00ff00', 30);
-                gridSpeed += 4; // Gentler scaling
+                // gridSpeed now computed dynamically via getGridSpeed()
             }
             const waveNumber = waveMgr.wave;
             let msg = waveNumber === 1 ? t('WAVE1') : (waveNumber === 2 ? t('WAVE2') : t('WAVE3'));
@@ -1135,15 +1185,16 @@ function updateBullets(dt) {
                 }
                 if (boss.hp <= 0) {
                     score += 5000; boss.active = false; boss = null; shake = 50; audioSys.play('explosion');
-                    setUI('scoreVal', Math.floor(score));
+                    updateScore(score);
                     addText("MARKET CONQUERED", gameWidth / 2, gameHeight / 2, '#FFD700', 50);
                     level++; setUI('lvlVal', level);
+                    window.currentLevel = level; // Update global for WaveManager
 
                     // New cycle - increase difficulty
                     marketCycle++;
                     window.marketCycle = marketCycle; // Update global
                     waveMgr.reset();
-                    gridSpeed += 6 + (marketCycle * 2); // Harder each cycle
+                    // gridSpeed now computed dynamically via getGridSpeed()
 
                     // Warn player about increased difficulty
                     setTimeout(() => {
@@ -1211,7 +1262,7 @@ function checkBulletCollisions(b, bIdx) {
                 audioSys.play('coin');
                 const mult = (runState && runState.getMod) ? runState.getMod('scoreMult', 1) : 1;
                 score += e.scoreVal * (isBearMarket ? 2 : 1) * mult;
-                setUI('scoreVal', Math.floor(score));
+                updateScore(score);
                 createExplosion(e.x, e.y, e.color, 12);
                 createScoreParticles(e.x, e.y, e.color); // JUICE: Fly to score
                 pushScoreTicker(`${e.symbol} +${e.scoreVal}`);
@@ -1231,12 +1282,24 @@ function checkBulletCollisions(b, bIdx) {
                     }
                 }
 
-                // DROP LOGIC (reduced 40%)
-                const dropChance = Math.min(0.11, 0.07 + (level * 0.003));
-                if (Math.random() < dropChance) {
-                    const r = Math.random();
-                    const type = r < 0.35 ? 'RAPID' : (r < 0.70 ? 'SPREAD' : 'SHIELD');
+                // DROP LOGIC - Two categories: Weapons (WIDE/NARROW/FIRE) and Ship (SPEED/RAPID/SHIELD)
+                // Limited drops per level: Level 1 = 1 each, Level 2+ = 2 each max
+                const weaponTypes = ['WIDE', 'NARROW', 'FIRE'];
+                const shipTypes = ['SPEED', 'RAPID', 'SHIELD'];
+                const maxPerLevel = level === 1 ? 1 : 2;
+                const dropChance = 0.04; // 4% flat chance
+
+                // Try weapon drop (only if under limit)
+                if (weaponDropCount < maxPerLevel && Math.random() < dropChance) {
+                    const type = weaponTypes[Math.floor(Math.random() * weaponTypes.length)];
                     powerUps.push(new G.PowerUp(e.x, e.y, type));
+                    weaponDropCount++;
+                }
+                // Try ship power-up drop (only if under limit, separate roll)
+                if (shipDropCount < maxPerLevel && Math.random() < dropChance) {
+                    const type = shipTypes[Math.floor(Math.random() * shipTypes.length)];
+                    powerUps.push(new G.PowerUp(e.x + 20, e.y, type));
+                    shipDropCount++;
                 }
             }
             if (!b.penetration) {
@@ -1253,7 +1316,7 @@ function checkBulletCollisions(b, bIdx) {
 
 function updateEnemies(dt) {
     let hitEdge = false;
-    const speedMult = isBearMarket ? 1.5 : 1.0;
+    const currentGridSpeed = getGridSpeed(); // Dynamic grid speed
 
     // Reset rate limiter each frame
     enemyShotsThisTick = 0;
@@ -1266,19 +1329,18 @@ function updateEnemies(dt) {
 
     for (let i = 0; i < enemies.length; i++) {
         const e = enemies[i];
-        e.update(dt, totalTime, lastWavePattern, gridSpeed * speedMult, gridDir);
+        e.update(dt, totalTime, lastWavePattern, currentGridSpeed, gridDir);
         if ((gridDir === 1 && e.x > gameWidth - 20) || (gridDir === -1 && e.x < 20)) hitEdge = true;
 
         // Rate limit check - skip if we've hit max shots this tick
         if (enemyShotsThisTick >= MAX_ENEMY_SHOTS_PER_TICK) continue;
 
-        // Difficulty scaling - level 1 is easy, ramps up with cycle
-        const cycleMult = 1 + (marketCycle - 1) * 0.15; // +15% per cycle
-        const levelMult = 1 + Math.max(0, level - 1) * 0.02;
-        const bearAggro = isBearMarket ? 1.3 : 1.0;
-        const rateMult = levelMult * cycleMult * bearAggro * 0.55;
-        const bulletSpeed = 140 + (level * 4) + (marketCycle * 10); // Faster each cycle
-        const aimSpreadMult = isBearMarket ? 0.85 : (1.25 - (marketCycle * 0.05)); // Tighter each cycle
+        // Unified difficulty scaling
+        const diff = getDifficulty();
+        const bearMult = isBearMarket ? 1.3 : 1.0;
+        const rateMult = (0.5 + diff * 0.5) * bearMult; // 0.5 → 1.0 based on difficulty
+        const bulletSpeed = 150 + diff * 80; // 150 → 230
+        const aimSpreadMult = isBearMarket ? 0.85 : (1.2 - diff * 0.3); // Tighter aim with difficulty
         const allowFire = (i % enemyFireStride) === enemyFirePhase;
         const bulletData = e.attemptFire(dt, player, rateMult, bulletSpeed, aimSpreadMult, allowFire);
         if (bulletData) {
@@ -1439,57 +1501,85 @@ function updateSky(dt) {
 }
 
 function drawSky(ctx) {
-    // 1. Sky Gradient
+    // 1. Sky Gradient - 5 levels from bright day to night, boss = space
     const grad = ctx.createLinearGradient(0, 0, 0, gameHeight);
 
     if (isBearMarket) {
         // Bear Market: Dark Storm
-        grad.addColorStop(0, '#1a0000'); // Blood Red Black
+        grad.addColorStop(0, '#1a0000');
         grad.addColorStop(0.5, '#4a0000');
         grad.addColorStop(1, '#000000');
     } else if (boss && boss.active) {
-        // Boss: Deep Space
-        grad.addColorStop(0, '#000000');
-        grad.addColorStop(1, '#050510');
+        // Boss: Deep Space with stars
+        grad.addColorStop(0, '#000005');
+        grad.addColorStop(1, '#0a0a15');
     } else {
-        // Dynamic Level Cycle
-        const cycle = (level - 1) % 3; // 0=Day, 1=Dusk, 2=Night
+        // 5-Level progression: Day → Afternoon → Sunset → Dusk → Night
+        const skyLevel = Math.min(5, level); // Cap at 5 for cycle
 
-        if (cycle === 0) { // Level 1, 4, 7... DAY
-            grad.addColorStop(0, '#3498db'); // Blue
-            grad.addColorStop(1, '#87ceeb'); // Sky Blue
-        } else if (cycle === 1) { // Level 2, 5, 8... DUSK
-            grad.addColorStop(0, '#2c3e50'); // Dark Blue
-            grad.addColorStop(0.5, '#8e44ad'); // Purple
-            grad.addColorStop(1, '#e67e22'); // Orange Sunset
-        } else { // Level 3, 6, 9... NIGHT
-            grad.addColorStop(0, '#020205'); // Almost Black
-            grad.addColorStop(1, '#1a1a2e'); // Dark Blue
+        if (skyLevel === 1) { // Bright blue sky (morning)
+            grad.addColorStop(0, '#4a90d9');
+            grad.addColorStop(0.5, '#87ceeb');
+            grad.addColorStop(1, '#b0e0e6');
+        } else if (skyLevel === 2) { // Afternoon (warmer blue)
+            grad.addColorStop(0, '#3a7bc8');
+            grad.addColorStop(0.5, '#6bb3d9');
+            grad.addColorStop(1, '#f0e68c');
+        } else if (skyLevel === 3) { // Sunset (orange/pink)
+            grad.addColorStop(0, '#4a5568');
+            grad.addColorStop(0.3, '#9b59b6');
+            grad.addColorStop(0.6, '#e74c3c');
+            grad.addColorStop(1, '#f39c12');
+        } else if (skyLevel === 4) { // Dusk (purple/dark blue)
+            grad.addColorStop(0, '#1a1a3e');
+            grad.addColorStop(0.5, '#4a3f6b');
+            grad.addColorStop(1, '#2d1b4e');
+        } else { // Level 5+: Night
+            grad.addColorStop(0, '#0a0a15');
+            grad.addColorStop(0.5, '#151530');
+            grad.addColorStop(1, '#1a1a2e');
         }
     }
 
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, gameWidth, gameHeight);
 
-    // 2. Parallax Clouds / Stars
-    // If Space/Night, maybe draw small stars instead of clouds?
-    // For now, let's just dim the clouds in Space/Night.
+    // 2. Clouds (fade out as it gets darker) or stars for night/boss
+    const isNight = level >= 5 || (boss && boss.active);
+
+    if (isNight && !isBearMarket) {
+        // Draw stars instead of clouds
+        ctx.fillStyle = '#fff';
+        for (let i = 0; i < 50; i++) {
+            const sx = (i * 137 + level * 50) % gameWidth;
+            const sy = (i * 89 + level * 30) % (gameHeight * 0.6);
+            const size = (i % 3) + 1;
+            ctx.globalAlpha = 0.3 + (i % 5) * 0.1;
+            ctx.beginPath();
+            ctx.arc(sx, sy, size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+    }
 
     clouds.forEach(c => {
-        let alpha = 0.05 + (c.layer * 0.05);
-        if (boss && boss.active) alpha *= 0.2; // Very faint in space
-        if (!isBearMarket && (level - 1) % 3 === 2) alpha *= 0.5; // Faint at night
+        let alpha = 0.08 + (c.layer * 0.04);
+        if (boss && boss.active) alpha = 0; // No clouds in space
+        if (level >= 4) alpha *= 0.3; // Very faint at dusk/night
 
-        ctx.fillStyle = isBearMarket ? `rgba(20, 0, 0, ${0.3 + (c.layer * 0.1)})` : `rgba(255, 255, 255, ${alpha})`;
-
-        ctx.beginPath();
-        ctx.ellipse(c.x, c.y, c.w / 2, c.h / 2, 0, 0, Math.PI * 2);
-        ctx.fill();
+        if (alpha > 0) {
+            ctx.fillStyle = isBearMarket
+                ? `rgba(20, 0, 0, ${0.3 + (c.layer * 0.1)})`
+                : `rgba(255, 255, 255, ${alpha})`;
+            ctx.beginPath();
+            ctx.ellipse(c.x, c.y, c.w / 2, c.h / 2, 0, 0, Math.PI * 2);
+            ctx.fill();
+        }
     });
 
     // ⚡ Lightning Flash Overlay
     if (lightningFlash > 0) {
-        ctx.fillStyle = `rgba(200, 150, 255, ${lightningFlash})`; // Purple-white flash
+        ctx.fillStyle = `rgba(200, 150, 255, ${lightningFlash})`;
         ctx.fillRect(0, 0, gameWidth, gameHeight);
     }
 }
@@ -1497,6 +1587,30 @@ function drawSky(ctx) {
 function addText(text, x, y, c, size = 20) { floatingTexts.push({ text, x, y, c, size, life: 1.0 }); }
 function updateFloatingTexts(dt) { for (let i = floatingTexts.length - 1; i >= 0; i--) { floatingTexts[i].y -= 50 * dt; floatingTexts[i].life -= dt; if (floatingTexts[i].life <= 0) floatingTexts.splice(i, 1); } }
 // --- PARTICLES ---
+function createBulletSpark(x, y) {
+    // Small spark effect for bullet-on-bullet collision
+    for (let i = 0; i < 6; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 150 + 80;
+        particles.push({
+            x: x,
+            y: y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            life: 0.2,
+            maxLife: 0.2,
+            color: '#fff',
+            size: Math.random() * 3 + 1
+        });
+    }
+    // Central flash
+    particles.push({
+        x: x, y: y, vx: 0, vy: 0,
+        life: 0.1, maxLife: 0.1,
+        color: '#ffff00', size: 8, isRing: false
+    });
+}
+
 function createExplosion(x, y, color, count = 15) {
     // Core explosion - big fast particles
     for (let i = 0; i < count; i++) {
@@ -1720,13 +1834,16 @@ function updatePowerUps(dt) {
                 const hitX = Math.abs(bx - eb.x) < (bHalfW + (eb.width || 4) * 0.5);
                 const hitY = Math.abs(by - eb.y) < (bHalfH + (eb.height || 8) * 0.5);
                 if (hitX && hitY) {
+                    // Collision spark effect
+                    createBulletSpark(eb.x, eb.y);
+
                     eb.markedForDeletion = true;
                     G.Bullet.Pool.release(eb);
                     enemyBullets.splice(j, 1);
 
                     bulletCancelStreak += 1;
-                    bulletCancelTimer = 1.2; // Tighter window
-                    if (bulletCancelStreak >= 5) { // Harder to get perks (was 3)
+                    bulletCancelTimer = 1.5; // Wider window for aggressive play
+                    if (bulletCancelStreak >= 3) { // Easier perk acquisition
                         bulletCancelStreak = 0;
                         applyRandomPerk();
                     }

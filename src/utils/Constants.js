@@ -122,6 +122,35 @@ window.Game.MEMES = {
         "QUANTITATIVE EASING: MAXIMUM", "DEBT CEILING: BREACHED",
         "PONZI SCHEME DETECTED", "FIAT ENDGAME", "THE GREAT RESET"
     ],
+    // Powell / Fed Memes (during boss fight)
+    POWELL: [
+        "POWELL: INFLATION IS TRANSITORY",
+        "POWELL: WE HAVE THE TOOLS",
+        "POWELL: SOFT LANDING INCOMING",
+        "FED: TRUST US BRO",
+        "POWELL: NOT PRINTING, JUST QE",
+        "60% OF THE TIME, IT WORKS EVERY TIME",
+        "POWELL: HOLD MY BEER",
+        "FED: THIS IS FINE 🔥",
+        "POWELL: RATES STAY LOW FOREVER",
+        "FED: WE DIDN'T SEE IT COMING",
+        "POWELL: BITCOIN? NEVER HEARD OF IT",
+        "FED: EVERYTHING IS UNDER CONTROL",
+        "POWELL: WHAT INFLATION?",
+        "BRRRRRRRRRRRRRR",
+        "POWELL: JUST 2% GUYS, TRUST ME",
+        "FED: TEMPORARY MEANS 10 YEARS",
+        "JPOW ACTIVATED PRINTER MODE",
+        "POWELL: RECESSION? WHAT RECESSION?",
+        "FED: MORE DEBT = MORE GROWTH",
+        "POWELL: I AM THE ECONOMY",
+        "INFINITE MONEY GLITCH ENGAGED",
+        "CTRL+P INTENSIFIES",
+        "POWELL: MY PRINTER GOES BRRR",
+        "FED: AUDIT US? LOL NO",
+        "POWELL'S FINAL FORM",
+        "THE FED WILL REMEMBER THIS"
+    ],
     // Streak Multiplier
     STREAK: [
         "NICE ENTRY", "WHALE ALERT", "LIQUIDATION SPREE", "MARKET MAKER",
@@ -130,18 +159,39 @@ window.Game.MEMES = {
     ]
 };
 
+// Weapon types (mutually exclusive - picking one replaces previous)
 window.Game.WEAPONS = {
-    NORMAL: { color: '#F7931A', rate: 0.18 },
-    RAPID: { color: '#3498db', rate: 0.08, icon: '🚀' },
-    SPREAD: { color: '#9b59b6', rate: 0.25, icon: '🔱' },
-    LASER: { color: '#e74c3c', rate: 0.35, icon: '⚡' }
+    NORMAL: { color: '#F7931A', rate: 0.18, bullets: 1 },
+    WIDE:   { color: '#9b59b6', rate: 0.24, bullets: 3, spread: 0.25, icon: '🔱' },  // Triple wide (narrowed from 0.4)
+    NARROW: { color: '#3498db', rate: 0.22, bullets: 3, spread: 0.12, icon: '🎯' }, // Triple tight angle
+    FIRE:   { color: '#e74c3c', rate: 0.28, bullets: 3, spread: 0, icon: '🔥' }     // Triple parallel (nerfed 30%: 0.22 -> 0.28)
 };
 
+// Ship power-ups (mutually exclusive - picking one replaces previous)
+window.Game.SHIP_POWERUPS = {
+    SPEED:  { speedMult: 1.4, icon: '⚡', color: '#f1c40f' },
+    RAPID:  { rateMult: 0.6, icon: '🚀', color: '#3498db' },
+    SHIELD: { instant: true, icon: '🛡️', color: '#2ecc71' }
+};
+
+// 10 Fiat currencies with unique stats and visual styles
+// shape: 'coin' | 'bill' | 'card' | 'bar' determines draw style
 window.Game.FIAT_TYPES = [
-    { s: '¥', c: '#bdc3c7', val: 30, hp: 1, fireMin: 3.0, fireMax: 4.5, aimSpread: 0.28, pattern: 'SINGLE' },
-    { s: '€', c: '#3498db', val: 50, hp: 1, fireMin: 2.6, fireMax: 3.8, aimSpread: 0.22, pattern: 'BURST' },
-    { s: '£', c: '#9b59b6', val: 50, hp: 1, fireMin: 2.2, fireMax: 3.2, aimSpread: 0.18, pattern: 'SINGLE' },
-    { s: '$', c: '#2ecc71', val: 100, hp: 1, fireMin: 1.8, fireMax: 2.8, aimSpread: 0.14, pattern: 'DOUBLE' }
+    // Tier 1 - Weak (rows 4-5)
+    { s: '¥', name: 'YEN', c: '#e74c3c', val: 20, hp: 0.8, fireMin: 3.5, fireMax: 5.0, aimSpread: 0.35, pattern: 'SINGLE', shape: 'coin' },
+    { s: '₽', name: 'RUBLE', c: '#95a5a6', val: 25, hp: 0.8, fireMin: 3.2, fireMax: 4.5, aimSpread: 0.30, pattern: 'SINGLE', shape: 'bill' },
+    { s: '₹', name: 'RUPEE', c: '#f39c12', val: 25, hp: 0.9, fireMin: 3.0, fireMax: 4.2, aimSpread: 0.28, pattern: 'SINGLE', shape: 'coin' },
+
+    // Tier 2 - Medium (rows 2-3)
+    { s: '€', name: 'EURO', c: '#3498db', val: 40, hp: 1.0, fireMin: 2.6, fireMax: 3.8, aimSpread: 0.22, pattern: 'BURST', shape: 'bill' },
+    { s: '£', name: 'POUND', c: '#9b59b6', val: 45, hp: 1.0, fireMin: 2.4, fireMax: 3.5, aimSpread: 0.20, pattern: 'SINGLE', shape: 'coin' },
+    { s: '₣', name: 'FRANC', c: '#1abc9c', val: 50, hp: 1.1, fireMin: 2.2, fireMax: 3.2, aimSpread: 0.18, pattern: 'DOUBLE', shape: 'bar' },
+    { s: '₺', name: 'LIRA', c: '#e67e22', val: 55, hp: 1.2, fireMin: 2.0, fireMax: 3.0, aimSpread: 0.16, pattern: 'BURST', shape: 'bill' },
+
+    // Tier 3 - Strong (row 1)
+    { s: '$', name: 'DOLLAR', c: '#2ecc71', val: 80, hp: 1.3, fireMin: 1.8, fireMax: 2.8, aimSpread: 0.14, pattern: 'DOUBLE', shape: 'bill' },
+    { s: '元', name: 'YUAN', c: '#c0392b', val: 90, hp: 1.4, fireMin: 1.6, fireMax: 2.5, aimSpread: 0.12, pattern: 'BURST', shape: 'bar' },
+    { s: 'Ⓒ', name: 'CBDC', c: '#8e44ad', val: 100, hp: 1.5, fireMin: 1.4, fireMax: 2.2, aimSpread: 0.10, pattern: 'DOUBLE', shape: 'card' }
 ];
 
 window.Game.SHIPS = {

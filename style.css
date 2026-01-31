@@ -126,15 +126,35 @@ canvas {
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
-    top: 10px;
-    /* Adjust based on safe area if needed, but flex handles it */
+    top: 5px;
 }
 
 .hud-score .value {
-    font-size: 36px;
-    /* BIGGER */
+    font-size: 52px;
+    font-weight: 900;
     color: var(--neon-orange);
-    text-shadow: 0 0 15px var(--neon-orange);
+    text-shadow:
+        0 0 10px var(--neon-orange),
+        0 0 20px var(--neon-orange),
+        0 0 40px rgba(247, 147, 26, 0.5),
+        0 2px 0 #b35f00;
+    letter-spacing: 2px;
+    animation: scorePulse 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes scorePulse {
+    0% { text-shadow: 0 0 10px var(--neon-orange), 0 0 20px var(--neon-orange), 0 0 40px rgba(247, 147, 26, 0.5), 0 2px 0 #b35f00; }
+    100% { text-shadow: 0 0 15px var(--neon-orange), 0 0 30px var(--neon-orange), 0 0 60px rgba(247, 147, 26, 0.7), 0 2px 0 #b35f00; }
+}
+
+.hud-score .value.score-bump {
+    animation: scoreBump 0.15s ease-out;
+}
+
+@keyframes scoreBump {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.15); color: #fff; }
+    100% { transform: scale(1); }
 }
 
 .terminal-score .label {
@@ -182,27 +202,43 @@ canvas {
 
 #perk-bar {
     position: absolute;
-    top: 85px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
+    top: 100px;
+    left: 0;
+    right: 0;
+    height: 18px;
+    overflow: hidden;
     pointer-events: none;
+    display: flex;
+    justify-content: center;
+    z-index: 5;
+}
+
+#perk-bar-inner {
+    display: flex;
+    gap: 20px;
+    white-space: nowrap;
+    animation: perkScroll 12s linear infinite;
+}
+
+@keyframes perkScroll {
+    0% { transform: translateX(100%); }
+    100% { transform: translateX(-100%); }
+}
+
+#perk-bar:hover #perk-bar-inner {
+    animation-play-state: paused;
 }
 
 .perk-chip {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 4px 10px;
-    font-size: 11px;
-    background: rgba(10, 10, 15, 0.85);
-    border: 1px solid #444;
-    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 10px;
+    background: rgba(10, 10, 15, 0.7);
+    border: 1px solid #555;
+    border-radius: 3px;
     color: #fff;
-    transition: transform 0.15s ease, opacity 0.15s ease;
 }
 
 .perk-chip.new {
@@ -210,8 +246,7 @@ canvas {
 }
 
 @keyframes perkPop {
-    0% { transform: scale(0.5); opacity: 0; }
-    70% { transform: scale(1.1); }
+    0% { transform: scale(0.8); opacity: 0; }
     100% { transform: scale(1); opacity: 1; }
 }
 
