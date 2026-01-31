@@ -427,25 +427,106 @@ canvas {
 }
 
 .game-title {
-    font-size: clamp(52px, 12vw, 80px);
+    font-size: clamp(48px, 11vw, 72px);
     font-weight: 900;
-    line-height: 0.95;
+    line-height: 1.1;
     color: #fff;
-    text-shadow:
-        0 0 10px var(--neon-orange),
-        0 0 30px var(--neon-orange),
-        0 0 60px rgba(247, 147, 26, 0.5);
     margin: 0;
     letter-spacing: -2px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+}
+
+/* FIAT - Enemy red, menacing */
+.title-fiat {
+    color: #e74c3c;
+    text-shadow:
+        0 0 10px #e74c3c,
+        0 0 20px #c0392b,
+        0 0 40px rgba(231, 76, 60, 0.6),
+        -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000;
+    animation: fiatPulse 2s ease-in-out infinite;
+}
+
+/* vs - Small, electric, battle connector */
+.title-vs {
+    font-size: 0.4em;
+    color: #fff;
+    letter-spacing: 4px;
+    margin: -5px 0;
+    text-shadow:
+        0 0 5px #fff,
+        0 0 15px #3498db,
+        0 0 25px #3498db;
+    animation: vsBattle 1.5s ease-in-out infinite;
+}
+
+/* CRYPTO - Bitcoin gold, triumphant */
+.title-crypto {
+    color: #F7931A;
+    text-shadow:
+        0 0 10px #F7931A,
+        0 0 30px #F7931A,
+        0 0 50px rgba(247, 147, 26, 0.7),
+        0 0 80px rgba(247, 147, 26, 0.4),
+        -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000;
+    animation: cryptoGlow 2s ease-in-out infinite;
+}
+
+/* FIAT pulse - threatening */
+@keyframes fiatPulse {
+    0%, 100% {
+        text-shadow: 0 0 10px #e74c3c, 0 0 20px #c0392b, 0 0 40px rgba(231, 76, 60, 0.6),
+            -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000;
+        transform: scale(1);
+    }
+    50% {
+        text-shadow: 0 0 15px #e74c3c, 0 0 30px #c0392b, 0 0 60px rgba(231, 76, 60, 0.8),
+            -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000;
+        transform: scale(1.02);
+    }
+}
+
+/* VS battle flash */
+@keyframes vsBattle {
+    0%, 100% {
+        text-shadow: 0 0 5px #fff, 0 0 15px #3498db, 0 0 25px #3498db;
+        opacity: 0.9;
+    }
+    50% {
+        text-shadow: 0 0 10px #fff, 0 0 25px #e74c3c, 0 0 35px #F7931A;
+        opacity: 1;
+    }
+}
+
+/* CRYPTO glow - triumphant gold */
+@keyframes cryptoGlow {
+    0%, 100% {
+        text-shadow: 0 0 10px #F7931A, 0 0 30px #F7931A, 0 0 50px rgba(247, 147, 26, 0.7), 0 0 80px rgba(247, 147, 26, 0.4),
+            -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000;
+        transform: scale(1);
+    }
+    50% {
+        text-shadow: 0 0 15px #F7931A, 0 0 40px #F7931A, 0 0 70px rgba(247, 147, 26, 0.9), 0 0 100px rgba(247, 147, 26, 0.5),
+            -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000;
+        transform: scale(1.03);
+    }
 }
 
 .title-tagline {
-    font-size: 12px;
+    font-size: 14px;
     letter-spacing: 6px;
-    color: var(--neon-blue);
+    color: #fff;
     margin-top: 10px;
     text-transform: uppercase;
-    opacity: 0.8;
+    text-shadow:
+        0 0 10px var(--neon-orange),
+        -1px -1px 0 #000,
+        1px -1px 0 #000,
+        -1px 1px 0 #000,
+        1px 1px 0 #000;
 }
 
 .start-ship {
@@ -557,7 +638,8 @@ canvas {
 
 .start-score {
     text-align: center;
-    margin-bottom: 30px;
+    margin-top: 15px;
+    margin-bottom: 20px;
 }
 
 .score-label {

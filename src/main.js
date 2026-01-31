@@ -183,38 +183,131 @@ function updateKillCounter() {
     setTimeout(() => el.classList.remove('pulse'), 100);
 }
 
+// Streak milestones - only impactful moments (10, 25, 50)
 const STREAK_MEMES = [
-    { at: 5, text: "NICE ENTRY!" },
-    { at: 10, text: "WHALE ALERT!" },
-    { at: 15, text: "LIQUIDATION SPREE!" },
-    { at: 20, text: "MARKET MAKER!" },
-    { at: 25, text: "ABSOLUTE UNIT!" },
-    { at: 30, text: "GOD MODE!" },
-    { at: 40, text: "SATOSHI REBORN!" },
-    { at: 50, text: "UNSTOPPABLE!" }
+    { at: 10, text: "🐋 WHALE ALERT!" },
+    { at: 25, text: "💎 DIAMOND HANDS!" },
+    { at: 50, text: "👑 SATOSHI REBORN!" }
 ];
 
 function checkStreakMeme() {
-    // Streak milestones only (reduced 70% - removed random memes)
+    // Only major streak milestones - no random memes
     const meme = STREAK_MEMES.find(m => m.at === streak);
     if (meme) {
         showMemePopup(meme.text);
     }
-    // Random meme only every 30 kills (was 10)
-    else if (killCount > 0 && killCount % 30 === 0) {
-        showMemePopup(getRandomMeme());
-    }
 }
 
+// PowerUp memes - crypto-themed feedback
+const POWERUP_MEMES = {
+    WIDE: "🔱 SPREAD THE FUD",
+    NARROW: "🎯 LASER EYES",
+    FIRE: "🔥 BURN THE FIAT",
+    SPEED: "⚡ ZOOM OUT",
+    RAPID: "🚀 TO THE MOON",
+    SHIELD: "🛡️ HODL MODE"
+};
+
+// ============================================
+// MESSAGE SYSTEM - Visual Categories
+// ============================================
+
+// Meme colors pool (fun, vibrant)
+const MEME_COLORS = ['#00FFFF', '#FF00FF', '#00FF00', '#FFD700', '#FF6B6B', '#4ECDC4'];
+
+// Anti-overlap system
 let memePopupTimer = null;
-function showMemePopup(text) {
+let lastPopupTime = 0;
+let popupQueue = [];
+const POPUP_COOLDOWN = 600; // ms between popups
+const MSG_PRIORITY = { DANGER: 4, VICTORY: 3, POWERUP: 2, MEME: 1 };
+let currentPopupPriority = 0;
+
+function canShowPopup(priority) {
+    const now = Date.now();
+    // Always allow higher priority to interrupt
+    if (priority > currentPopupPriority) return true;
+    // Check cooldown for same/lower priority
+    return (now - lastPopupTime) >= POPUP_COOLDOWN;
+}
+
+function showPopupInternal(text, duration, color, fontSize, top, left, rotation, priority) {
     const el = document.getElementById('meme-popup');
     if (!el) return;
+
+    if (!canShowPopup(priority)) {
+        // Queue lower priority messages (max 2 in queue)
+        if (popupQueue.length < 2 && priority >= MSG_PRIORITY.POWERUP) {
+            popupQueue.push({ text, duration, color, fontSize, top, left, rotation, priority });
+        }
+        return;
+    }
+
+    lastPopupTime = Date.now();
+    currentPopupPriority = priority;
+
     el.textContent = text;
+    el.style.color = color;
+    el.style.fontSize = fontSize;
+    el.style.transform = rotation;
+    el.style.top = top;
+    el.style.left = left;
     el.classList.add('show');
+
     clearTimeout(memePopupTimer);
-    memePopupTimer = setTimeout(() => el.classList.remove('show'), 1500);
-    audioSys.play('coin'); // Satisfying sound
+    memePopupTimer = setTimeout(() => {
+        el.classList.remove('show');
+        el.style.transform = 'translate(-50%, -50%)';
+        el.style.top = '50%';
+        el.style.left = '50%';
+        currentPopupPriority = 0;
+
+        // Process queue
+        if (popupQueue.length > 0) {
+            const next = popupQueue.shift();
+            setTimeout(() => {
+                showPopupInternal(next.text, next.duration, next.color, next.fontSize, next.top, next.left, next.rotation, next.priority);
+            }, 100);
+        }
+    }, duration);
+
+    audioSys.play('coin');
+}
+
+// 🎭 MEME - Fun crypto messages (random color, position, size)
+function showMemeFun(text, duration = 1500) {
+    const color = MEME_COLORS[Math.floor(Math.random() * MEME_COLORS.length)];
+    const fontSize = (24 + Math.random() * 12) + 'px';
+    const rotation = `translate(-50%, -50%) rotate(${(Math.random() - 0.5) * 10}deg)`;
+    const top = (30 + Math.random() * 40) + '%';
+    const left = (30 + Math.random() * 40) + '%';
+    showPopupInternal(text, duration, color, fontSize, top, left, rotation, MSG_PRIORITY.MEME);
+}
+
+// ⚡ POWER-UP - Pickup feedback (gold, below player, quick)
+function showPowerUp(text) {
+    showPopupInternal(text, 800, '#FFD700', '24px', '75%', '50%', 'translate(-50%, -50%)', MSG_PRIORITY.POWERUP);
+}
+
+// 📊 GAME INFO - Progression messages (green, center)
+function showGameInfo(text) {
+    addText(text, gameWidth / 2, gameHeight / 2, '#00FF00', 40);
+}
+
+// ⚠️ DANGER - Boss/threat messages (red, center, large)
+function showDanger(text) {
+    addText(text, gameWidth / 2, gameHeight / 2, '#FF4444', 50);
+    shake = Math.max(shake, 20);
+}
+
+// 🏆 VICTORY - Celebration messages (gold, center, large)
+function showVictory(text) {
+    addText(text, gameWidth / 2, gameHeight / 2, '#FFD700', 50);
+}
+
+// Legacy wrapper for compatibility
+function showMemePopup(text, duration = 1500) {
+    showMemeFun(text, duration);
 }
 function canOfferPerk(perk) {
     if (!runState || !runState.perkStacks) return true;
@@ -261,8 +354,9 @@ function pickPerkOffers(count) {
 let recentPerks = []; // Track last 3 perks acquired
 
 function renderPerkBar(highlightId) {
-    if (!ui.perkBar) return;
-    ui.perkBar.innerHTML = '';
+    // Perk bar disabled - cleaner UI
+    if (ui.perkBar) ui.perkBar.style.display = 'none';
+    return;
 
     if (recentPerks.length === 0) return;
 
@@ -348,7 +442,7 @@ function applyPerk(perk) {
         if (delta > 0) player.hp = Math.min(player.maxHp, player.hp + delta);
     }
     audioSys.play('perk');
-    addText(perk.name.toUpperCase(), gameWidth / 2, gameHeight / 2 - 80, '#6aa9ff', 28);
+    // Perk name shown in perk bar, no floating text needed
     updateLivesUI();
     renderPerkBar(perk.id);
     emitEvent('perk_selected', { id: perk.id });
@@ -942,7 +1036,7 @@ function startGame() {
         player.hp = 1; // ONE HIT KILL
         player.maxHp = 1; // Full bar but Red (logic handled in updateLivesUI)
         // Bear Market speed handled in getGridSpeed() via 1.3x multiplier
-        addText("🩸 SURVIVE THE CRASH 🩸", gameWidth / 2, gameHeight / 2 - 100, '#ff0000', 30);
+        showDanger("🩸 SURVIVE THE CRASH 🩸");
     }
 
     killCount = 0;
@@ -971,15 +1065,12 @@ function highlightShip(idx) {
 
 function startIntermission(msgOverride) {
     gameState = 'INTERMISSION';
-    waveMgr.intermissionTimer = 3.0;
-    bullets = []; enemyBullets = []; // We can clear immediately or fade out. Simple clear for now.
-    // TODO: Release bullets back to pool if clearing? Yes, ideally.
-    // For now we just reset array, GC will eat them if we don't recycle, but since pool reserve exists, it's okay for Intermission reset.
-    // Ideally loop and release.
-    let pool = Constants.MEMES.LOW.concat(Constants.MEMES.HIGH);
-    currentMeme = pool[Math.floor(Math.random() * pool.length)];
-    let msg = msgOverride || "PREPARING NEXT WAVE...";
-    addText(msg, gameWidth / 2, gameHeight / 2 - 80, '#00ff00', 30);
+    waveMgr.intermissionTimer = 2.5; // Shorter pause
+    bullets = []; enemyBullets = [];
+    // Only show text if explicitly provided (boss defeat, etc.)
+    if (msgOverride) {
+        addText(msgOverride, gameWidth / 2, gameHeight / 2 - 80, '#00ff00', 30);
+    }
     emitEvent('intermission_start', { level: level, wave: waveMgr.wave });
 }
 
@@ -993,10 +1084,8 @@ function spawnBoss() {
     enemies = [];
     if (window.Game) window.Game.enemies = enemies;
 
-    addText("FEDERAL RESERVE", gameWidth / 2, gameHeight / 2 - 40, '#FFD700', 40);
-    addText("FINAL BOSS", gameWidth / 2, gameHeight / 2, '#ff0000', 30);
-    showMemePopup(getPowellMeme());
-    shake = 30;
+    showDanger("⚠️ FEDERAL RESERVE ⚠️");
+    showMemeFun(getPowellMeme(), 2000);
     audioSys.play('bossSpawn');
 
     // Start with a Powell meme in the ticker
@@ -1039,10 +1128,8 @@ function spawnMiniBoss(symbol, color) {
         active: true
     };
 
-    showMemePopup(getFiatDeathMeme());
-    addText(`${miniBoss.name} REVENGE!`, gameWidth / 2, gameHeight / 2 - 50, color, 40);
-    addText("100 KILLS TRIGGERED!", gameWidth / 2, gameHeight / 2, '#fff', 20);
-    shake = 30;
+    showDanger(`${miniBoss.name} REVENGE!`);
+    showMemeFun(getFiatDeathMeme(), 1500);
     audioSys.play('bossSpawn');
 }
 
@@ -1203,8 +1290,8 @@ function checkMiniBossHit(b) {
             createExplosion(miniBoss.x - 30, miniBoss.y - 20, '#fff', 15);
             createExplosion(miniBoss.x + 30, miniBoss.y + 20, '#fff', 15);
 
-            addText(miniBoss.name + " DESTROYED!", gameWidth / 2, gameHeight / 2, '#FFD700', 40);
-            showMemePopup("FIAT IS DEAD!");
+            showVictory(miniBoss.name + " DESTROYED!");
+            showMemeFun("💀 FIAT IS DEAD!", 1500);
             shake = 40;
             audioSys.play('explosion');
 
@@ -1235,12 +1322,17 @@ function update(dt) {
         }
     }
 
+    // Meme ticker: only visible during boss fight
     if (ui.memeTicker) {
-        memeSwapTimer -= dt;
-        if (memeSwapTimer <= 0) {
-            // Powell memes during boss fight!
-            ui.memeTicker.innerText = (boss && boss.active) ? getPowellMeme() : getRandomMeme();
-            memeSwapTimer = (boss && boss.active) ? 2.5 : 5.0; // Faster during boss
+        if (boss && boss.active) {
+            ui.memeTicker.style.display = 'block';
+            memeSwapTimer -= dt;
+            if (memeSwapTimer <= 0) {
+                ui.memeTicker.innerText = getPowellMeme();
+                memeSwapTimer = 4.0; // Powell memes every 4s during boss
+            }
+        } else {
+            ui.memeTicker.style.display = 'none';
         }
     }
 
@@ -1257,12 +1349,12 @@ function update(dt) {
                 level++; setUI('lvlVal', level);
                 window.currentLevel = level; // Update global for WaveManager
                 lastDropTime = totalTime; // Reset time-based drop timer for new level
-                addText("LEVEL " + level, gameWidth / 2, gameHeight / 2 - 50, '#00ff00', 30);
+                showGameInfo("📈 LEVEL " + level);
                 // gridSpeed now computed dynamically via getGridSpeed()
             }
             const waveNumber = waveMgr.wave;
             let msg = waveNumber === 1 ? t('WAVE1') : (waveNumber === 2 ? t('WAVE2') : t('WAVE3'));
-            addText(msg, gameWidth / 2, gameHeight / 2, '#F7931A', 40);
+            showGameInfo(msg);
 
             const spawnData = waveMgr.spawnWave(gameWidth);
             enemies = spawnData.enemies;
@@ -1276,7 +1368,6 @@ function update(dt) {
             enemiesAllowedToFire = 1; // Start with 1 enemy allowed
 
             emitEvent('wave_start', { wave: waveNumber, level: level, pattern: lastWavePattern });
-            if (ui.memeTicker) ui.memeTicker.innerText = getRandomMeme();
         }
     }
 
@@ -1332,7 +1423,8 @@ function updateBullets(dt) {
                 if (boss.hp <= 0) {
                     score += 5000; boss.active = false; boss = null; shake = 50; audioSys.play('explosion');
                     updateScore(score);
-                    addText("MARKET CONQUERED", gameWidth / 2, gameHeight / 2, '#FFD700', 50);
+                    showVictory("🏆 MARKET CONQUERED!");
+                    showMemeFun("💥 INFLATION CANCELLED!", 2000);
                     level++; setUI('lvlVal', level);
                     window.currentLevel = level; // Update global for WaveManager
 
@@ -1340,14 +1432,8 @@ function updateBullets(dt) {
                     marketCycle++;
                     window.marketCycle = marketCycle; // Update global
                     waveMgr.reset();
-                    // gridSpeed now computed dynamically via getGridSpeed()
 
-                    // Warn player about increased difficulty
-                    setTimeout(() => {
-                        showMemePopup("CYCLE " + marketCycle + " - HARDER!");
-                    }, 1500);
-
-                    startIntermission("MARKET CYCLE " + marketCycle);
+                    startIntermission("CYCLE " + marketCycle + " BEGINS");
                     emitEvent('boss_killed', { level: level, cycle: marketCycle });
                 }
             } else if (miniBoss && miniBoss.active && checkMiniBossHit(b)) {
@@ -1411,7 +1497,7 @@ function checkBulletCollisions(b, bIdx) {
                 updateScore(score);
                 createExplosion(e.x, e.y, e.color, 12);
                 createScoreParticles(e.x, e.y, e.color); // JUICE: Fly to score
-                pushScoreTicker(`${e.symbol} +${e.scoreVal}`);
+                // Score ticker removed - particles provide enough feedback
                 killCount++;
                 streak++;
                 if (streak > bestStreak) bestStreak = streak;
@@ -1572,7 +1658,7 @@ function executeDeath() {
         player.hp = player.maxHp;
         player.invulnTimer = 3.0;
         updateLivesUI();
-        addText("RESPAWN!", gameWidth / 2, gameHeight / 2, '#00ff00', 40);
+        showGameInfo("💚 RESPAWN!");
         // Maybe move player to center?
         player.x = gameWidth / 2;
     } else {
@@ -1744,8 +1830,21 @@ function drawSky(ctx) {
     }
 }
 
-function addText(text, x, y, c, size = 20) { floatingTexts.push({ text, x, y, c, size, life: 1.0 }); }
-function updateFloatingTexts(dt) { for (let i = floatingTexts.length - 1; i >= 0; i--) { floatingTexts[i].y -= 50 * dt; floatingTexts[i].life -= dt; if (floatingTexts[i].life <= 0) floatingTexts.splice(i, 1); } }
+const MAX_FLOATING_TEXTS = 3; // Limit simultaneous floating texts
+function addText(text, x, y, c, size = 20) {
+    // Remove oldest if at limit
+    if (floatingTexts.length >= MAX_FLOATING_TEXTS) {
+        floatingTexts.shift();
+    }
+    floatingTexts.push({ text, x, y, c, size, life: 1.0 });
+}
+function updateFloatingTexts(dt) {
+    for (let i = floatingTexts.length - 1; i >= 0; i--) {
+        floatingTexts[i].y -= 50 * dt;
+        floatingTexts[i].life -= dt;
+        if (floatingTexts[i].life <= 0) floatingTexts.splice(i, 1);
+    }
+}
 // --- PARTICLES ---
 function createBulletSpark(x, y) {
     // Small spark effect for bullet-on-bullet collision
@@ -1972,7 +2071,9 @@ function updatePowerUps(dt) {
         } else {
             if (Math.abs(p.x - player.x) < 40 && Math.abs(p.y - player.y) < 40) {
                 player.upgrade(p.type);
-                addText(p.type + "!", player.x, player.y - 40, '#FFD700', 30);
+                // Crypto-themed powerup feedback (gold, fixed position)
+                const meme = POWERUP_MEMES[p.type] || p.type;
+                showPowerUp(meme);
                 powerUps.splice(i, 1);
                 emitEvent('powerup_pickup', { type: p.type });
             }
