@@ -356,16 +356,66 @@ function applyRandomPerk() {
     applyPerk(offers[0]);
 }
 
-// --- INTRO SHIP ANIMATION ---
+// --- INTRO SHIP ANIMATION & SELECTION ---
 let introShipCanvas = null;
 let introShipCtx = null;
 let introShipTime = 0;
+let selectedShipIndex = 0;
+const SHIP_KEYS = ['BTC', 'ETH', 'SOL'];
+const SHIP_DISPLAY = {
+    BTC: { name: 'BTC STRIKER', color: '#F7931A', symbol: 'B', spd: 6, pwr: 7, hp: 3 },
+    ETH: { name: 'ETH HEAVY', color: '#8c7ae6', symbol: 'E', spd: 4, pwr: 8, hp: 4 },
+    SOL: { name: 'SOL SPEEDSTER', color: '#00d2d3', symbol: 'S', spd: 9, pwr: 5, hp: 2 }
+};
 
 function initIntroShip() {
     introShipCanvas = document.getElementById('intro-ship-canvas');
     if (!introShipCanvas) return;
     introShipCtx = introShipCanvas.getContext('2d');
+    updateShipUI();
     animateIntroShip();
+}
+
+window.cycleShip = function(dir) {
+    selectedShipIndex = (selectedShipIndex + dir + SHIP_KEYS.length) % SHIP_KEYS.length;
+    updateShipUI();
+    audioSys.play('coin');
+
+    // Swap animation
+    if (introShipCanvas) {
+        introShipCanvas.classList.remove('ship-swap');
+        void introShipCanvas.offsetWidth; // Force reflow
+        introShipCanvas.classList.add('ship-swap');
+    }
+}
+
+function updateShipUI() {
+    const key = SHIP_KEYS[selectedShipIndex];
+    const ship = SHIP_DISPLAY[key];
+
+    const nameEl = document.getElementById('ship-name');
+    const statsEl = document.getElementById('ship-stats');
+
+    if (nameEl) {
+        nameEl.textContent = ship.name;
+        nameEl.style.color = ship.color;
+        // Black outline for readability on any background
+        nameEl.style.textShadow = `0 0 10px ${ship.color}, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 8px rgba(0,0,0,0.8)`;
+    }
+
+    if (statsEl) {
+        // Scale stats to 8-bar display (original values: spd 4-9, pwr 5-8, hp 2-4)
+        const spdScaled = Math.round(ship.spd * 0.8);
+        const pwrScaled = Math.round(ship.pwr * 0.8);
+        const spdBar = '█'.repeat(spdScaled) + '░'.repeat(8 - spdScaled);
+        const pwrBar = '█'.repeat(pwrScaled) + '░'.repeat(8 - pwrScaled);
+        const hpHearts = '❤️'.repeat(ship.hp);
+        statsEl.innerHTML = `
+            <span class="stat-item">SPD ${spdBar}</span>
+            <span class="stat-item">PWR ${pwrBar}</span>
+            <span class="stat-item">HP ${hpHearts}</span>
+        `;
+    }
 }
 
 function animateIntroShip() {
@@ -377,6 +427,10 @@ function animateIntroShip() {
     const cx = w / 2, cy = h / 2 + 10;
 
     ctx.clearRect(0, 0, w, h);
+
+    // Get current ship data
+    const key = SHIP_KEYS[selectedShipIndex];
+    const ship = SHIP_DISPLAY[key];
 
     // Hover animation
     const hover = Math.sin(introShipTime) * 8;
@@ -399,8 +453,8 @@ function animateIntroShip() {
     ctx.closePath();
     ctx.fill();
 
-    // Ship body
-    ctx.fillStyle = '#F7931A';
+    // Ship body - use selected ship color
+    ctx.fillStyle = ship.color;
     ctx.strokeStyle = '#111';
     ctx.lineWidth = 3;
     ctx.beginPath();
@@ -412,7 +466,7 @@ function animateIntroShip() {
     ctx.stroke();
 
     // Nose cone
-    ctx.fillStyle = '#f6b26b';
+    ctx.fillStyle = lightenColor(ship.color, 30);
     ctx.beginPath();
     ctx.moveTo(0, -42);
     ctx.lineTo(-14, -5);
@@ -445,16 +499,26 @@ function animateIntroShip() {
     ctx.fill();
     ctx.stroke();
 
-    // BTC symbol
+    // Ship symbol
     ctx.fillStyle = '#111';
     ctx.font = 'bold 18px Courier New';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('B', 0, 6);
+    ctx.fillText(ship.symbol, 0, 6);
 
     ctx.restore();
 
     requestAnimationFrame(animateIntroShip);
+}
+
+// Helper to lighten a hex color
+function lightenColor(hex, percent) {
+    const num = parseInt(hex.replace('#', ''), 16);
+    const amt = Math.round(2.55 * percent);
+    const R = Math.min(255, (num >> 16) + amt);
+    const G = Math.min(255, ((num >> 8) & 0x00FF) + amt);
+    const B = Math.min(255, (num & 0x0000FF) + amt);
+    return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
 }
 
 // --- INITIALIZATION ---
@@ -576,31 +640,34 @@ function init() {
             setStyle('intro-screen', 'display', 'flex');
             try { updateUIText(); } catch (e) { }
             initIntroShip(); // Start animated ship on intro screen
+
+            // Open curtain after intro screen is ready
+            const curtain = document.getElementById('curtain-overlay');
+            if (curtain) {
+                setTimeout(() => curtain.classList.add('open'), 100);
+            }
         }, 1000);
     };
 
     inputSys.on('escape', () => {
         if (gameState === 'VIDEO') startApp();
         else if (gameState === 'PLAY' || gameState === 'PAUSE') togglePause();
-        else if (gameState === 'HANGAR' || gameState === 'SETTINGS') backToIntro();
+        else if (gameState === 'SETTINGS') backToIntro();
     });
 
     inputSys.on('start', () => {
         if (gameState === 'VIDEO') startApp();
-        else if (gameState === 'INTRO') goToHangar();
-        else if (gameState === 'HANGAR') selectShip(Object.keys(Constants.SHIPS)[currentShipIdx]);
+        else if (gameState === 'INTRO') launchShipAndStart();
         else if (gameState === 'GAMEOVER') backToIntro();
     });
 
     inputSys.on('navigate', (code) => {
-        if (gameState === 'HANGAR') {
+        if (gameState === 'INTRO') {
             if (code === 'ArrowRight' || code === 'KeyD') {
-                currentShipIdx = (currentShipIdx + 1) % 3;
-                highlightShip(currentShipIdx);
+                cycleShip(1);
             }
             if (code === 'ArrowLeft' || code === 'KeyA') {
-                currentShipIdx = (currentShipIdx - 1 + 3) % 3;
-                highlightShip(currentShipIdx);
+                cycleShip(-1);
             }
         }
     });
@@ -704,6 +771,53 @@ window.goToHangar = function () {
     gameState = 'HANGAR';
     initSky(); // Start BG effect early
 }
+
+// Ship launch animation - goes directly to game (skips hangar)
+let isLaunching = false;
+window.launchShipAndStart = function () {
+    if (isLaunching) return; // Prevent double-click
+    isLaunching = true;
+
+    audioSys.init();
+    audioSys.play('coin');
+
+    // Trigger ship launch animation
+    const shipCanvas = document.getElementById('intro-ship-canvas');
+    if (shipCanvas) {
+        shipCanvas.classList.add('launching');
+    }
+
+    // Play launch sound
+    setTimeout(() => audioSys.play('shoot'), 100);
+    setTimeout(() => audioSys.play('shoot'), 200);
+    setTimeout(() => audioSys.play('shoot'), 300);
+
+    // Close curtain after ship starts moving
+    const curtain = document.getElementById('curtain-overlay');
+    setTimeout(() => {
+        if (curtain) curtain.classList.remove('open');
+    }, 400);
+
+    // Wait for curtain to close, then start game directly
+    setTimeout(() => {
+        isLaunching = false;
+        if (shipCanvas) shipCanvas.classList.remove('launching');
+
+        // Configure player with selected ship and start game
+        const selectedShipKey = SHIP_KEYS[selectedShipIndex];
+        player.configure(selectedShipKey);
+
+        audioSys.startMusic();
+        setStyle('intro-screen', 'display', 'none');
+        initSky(); // Initialize sky background
+        startGame();
+
+        // Reopen curtain after game starts
+        setTimeout(() => {
+            if (curtain) curtain.classList.add('open');
+        }, 100);
+    }, 1200);
+}
 window.togglePause = function () {
     if (gameState === 'PLAY' || gameState === 'INTERMISSION') { gameState = 'PAUSE'; setStyle('pause-screen', 'display', 'flex'); setStyle('pause-btn', 'display', 'none'); }
     else if (gameState === 'PAUSE') { gameState = 'PLAY'; setStyle('pause-screen', 'display', 'none'); setStyle('pause-btn', 'display', 'block'); }
@@ -713,12 +827,27 @@ window.restartRun = function () {
     startGame();
 };
 window.backToIntro = function () {
-    setStyle('pause-screen', 'display', 'none'); setStyle('gameover-screen', 'display', 'none'); setStyle('hangar-screen', 'display', 'none');
-    if (ui.uiLayer) ui.uiLayer.style.display = 'none'; // HIDE HUD
-    if (ui.touchControls) ui.touchControls.style.display = 'none';
-    closePerkChoice();
-    setStyle('intro-screen', 'display', 'flex'); gameState = 'INTRO'; audioSys.init();
-    initIntroShip(); // Restart animated ship
+    // Close curtain first
+    const curtain = document.getElementById('curtain-overlay');
+    if (curtain) curtain.classList.remove('open');
+
+    setTimeout(() => {
+        setStyle('pause-screen', 'display', 'none');
+        setStyle('gameover-screen', 'display', 'none');
+        setStyle('hangar-screen', 'display', 'none');
+        if (ui.uiLayer) ui.uiLayer.style.display = 'none'; // HIDE HUD
+        if (ui.touchControls) ui.touchControls.style.display = 'none';
+        closePerkChoice();
+        setStyle('intro-screen', 'display', 'flex');
+        gameState = 'INTRO';
+        audioSys.init();
+        initIntroShip(); // Restart animated ship
+
+        // Reopen curtain
+        setTimeout(() => {
+            if (curtain) curtain.classList.add('open');
+        }, 100);
+    }, 800);
 };
 
 function selectShip(type) {
