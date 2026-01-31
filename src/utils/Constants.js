@@ -1,7 +1,7 @@
 // Game Constants & Configuration (Namespace Pattern)
 window.Game = window.Game || {};
 
-window.Game.VERSION = "v2.2.0 Mini-Boss Update";
+window.Game.VERSION = "v2.4.0 Ship Select Integrated";
 
 window.Game.TEXTS = {
     EN: {

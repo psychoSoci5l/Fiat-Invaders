@@ -297,6 +297,80 @@ canvas {
     transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* --- CURTAIN EFFECT --- */
+#curtain-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9000;
+    pointer-events: none;
+    display: flex;
+    flex-direction: row;
+}
+
+.curtain-left,
+.curtain-right {
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(180deg, #0a0a0f 0%, #1a1a2e 50%, #0a0a0f 100%);
+    transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+
+.curtain-left {
+    /* Left panel */
+    transform: translateX(0);
+    border-right: 2px solid var(--neon-orange);
+    box-shadow: 5px 0 30px rgba(247, 147, 26, 0.3);
+}
+
+.curtain-right {
+    /* Right panel */
+    transform: translateX(0);
+    border-left: 2px solid var(--neon-orange);
+    box-shadow: -5px 0 30px rgba(247, 147, 26, 0.3);
+}
+
+/* Curtain decorative lines */
+.curtain-left::after,
+.curtain-right::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    width: 2px;
+    height: 100%;
+    background: linear-gradient(180deg, transparent, var(--neon-orange), transparent);
+    opacity: 0.5;
+}
+
+.curtain-left::after {
+    right: 20px;
+}
+
+.curtain-right::after {
+    left: 20px;
+}
+
+/* Curtain OPEN state - panels move away to sides */
+#curtain-overlay.open .curtain-left {
+    transform: translateX(-100%);
+}
+
+#curtain-overlay.open .curtain-right {
+    transform: translateX(100%);
+}
+
+/* Curtain CLOSED state - panels meet at center */
+#curtain-overlay.closed .curtain-left {
+    transform: translateX(0);
+}
+
+#curtain-overlay.closed .curtain-right {
+    transform: translateX(0);
+}
+
 /* --- VIDEO SPLASH --- */
 #splash-layer {
     position: fixed;
@@ -375,13 +449,110 @@ canvas {
 }
 
 .start-ship {
-    margin: 30px 0;
+    margin: 20px 0;
     display: flex;
     justify-content: center;
+    align-items: center;
+    gap: 10px;
+    height: 320px;
+    flex-shrink: 0;
+}
+
+.ship-preview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 280px;
+    flex-shrink: 0;
 }
 
 #intro-ship-canvas {
     filter: drop-shadow(0 0 20px rgba(247, 147, 26, 0.6));
+    transition: transform 0.8s cubic-bezier(0.4, 0, 1, 1), opacity 0.6s ease-out;
+}
+
+#intro-ship-canvas.launching {
+    transform: translateY(-150vh) scale(0.8);
+    opacity: 0;
+    filter: drop-shadow(0 0 40px rgba(247, 147, 26, 1));
+}
+
+#intro-ship-canvas.ship-swap {
+    animation: shipSwap 0.3s ease-out;
+}
+
+@keyframes shipSwap {
+    0% { transform: scale(0.8); opacity: 0.5; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.ship-arrow {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid #444;
+    color: #888;
+    font-size: 48px;
+    width: 50px;
+    height: 80px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: Arial, sans-serif;
+}
+
+.ship-arrow:hover {
+    background: rgba(247, 147, 26, 0.2);
+    border-color: var(--neon-orange);
+    color: var(--neon-orange);
+}
+
+.ship-arrow:active {
+    transform: scale(0.95);
+}
+
+.ship-name {
+    font-size: 18px;
+    font-weight: 900;
+    letter-spacing: 3px;
+    color: var(--neon-orange);
+    text-shadow:
+        0 0 10px rgba(247, 147, 26, 0.5),
+        -1px -1px 0 #000,
+        1px -1px 0 #000,
+        -1px 1px 0 #000,
+        1px 1px 0 #000,
+        0 0 8px rgba(0, 0, 0, 0.8);
+    margin-top: 5px;
+    height: 24px;
+    line-height: 24px;
+    flex-shrink: 0;
+}
+
+.ship-stats {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-content: flex-start;
+    gap: 8px 15px;
+    margin-top: 8px;
+    font-size: 10px;
+    color: #888;
+    letter-spacing: 1px;
+    max-width: 280px;
+    margin-left: auto;
+    margin-right: auto;
+    height: 50px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.stat-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
 }
 
 .start-score {
@@ -416,15 +587,16 @@ canvas {
     background: linear-gradient(135deg, var(--neon-orange) 0%, #e67e22 100%);
     color: #000;
     border: none;
-    padding: 18px 80px;
+    padding: 18px 40px;
     font-family: inherit;
-    font-size: 28px;
+    font-size: 18px;
     font-weight: 900;
-    letter-spacing: 4px;
+    letter-spacing: 3px;
     cursor: pointer;
     border-radius: 8px;
     box-shadow: 0 4px 20px rgba(247, 147, 26, 0.5);
     transition: transform 0.15s, box-shadow 0.15s;
+    min-width: 280px;
 }
 
 .btn-play:hover {
@@ -436,74 +608,42 @@ canvas {
     transform: scale(0.98);
 }
 
-/* Bear Market Toggle - Sleek Switch Design */
+/* Bear Market Button - Matching PLAY style */
 .btn-bear {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: rgba(20, 20, 25, 0.8);
-    border: 1px solid #333;
-    color: #666;
-    padding: 12px 20px;
+    background: linear-gradient(135deg, #f1c40f 0%, #f39c12 100%);
+    color: #c0392b;
+    border: none;
+    padding: 14px 40px;
     font-family: inherit;
-    font-size: 12px;
-    font-weight: bold;
+    font-size: 16px;
+    font-weight: 900;
+    letter-spacing: 3px;
     cursor: pointer;
-    border-radius: 30px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    letter-spacing: 2px;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(241, 196, 15, 0.4);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     text-transform: uppercase;
-}
-
-.btn-bear::before {
-    content: '🐻';
-    font-size: 18px;
-    opacity: 0.5;
-    transition: all 0.3s;
-}
-
-.btn-bear::after {
-    content: '';
-    width: 36px;
-    height: 20px;
-    background: #333;
-    border-radius: 10px;
-    position: relative;
-    transition: all 0.3s;
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+    min-width: 280px;
 }
 
 .btn-bear:hover {
-    border-color: #555;
-    color: #999;
+    transform: scale(1.05);
+    box-shadow: 0 6px 30px rgba(241, 196, 15, 0.6);
 }
 
-.btn-bear:hover::before {
-    opacity: 0.8;
+.btn-bear:active {
+    transform: scale(0.98);
 }
 
 /* Active Bear Mode State */
 body.bear-mode .btn-bear {
-    border-color: #ff3333;
-    color: #ff4444;
-    background: rgba(80, 0, 0, 0.6);
-    box-shadow: 0 0 20px rgba(255, 0, 0, 0.2);
+    background: linear-gradient(135deg, #c0392b 0%, #e74c3c 100%);
+    color: #f1c40f;
+    box-shadow: 0 4px 20px rgba(192, 57, 43, 0.5);
 }
 
-body.bear-mode .btn-bear::before {
-    content: '🩸';
-    opacity: 1;
-    animation: bloodDrip 1s infinite;
-}
-
-body.bear-mode .btn-bear::after {
-    background: linear-gradient(90deg, #ff0000, #cc0000);
-    box-shadow: 0 0 8px rgba(255, 0, 0, 0.6), inset 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-@keyframes bloodDrip {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(2px); }
+body.bear-mode .btn-bear:hover {
+    box-shadow: 0 6px 30px rgba(231, 76, 60, 0.7);
 }
 
 .start-footer {

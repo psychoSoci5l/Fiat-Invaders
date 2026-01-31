@@ -23,6 +23,12 @@
     <div class="scanlines"></div>
     <div class="vignette"></div>
 
+    <!-- Curtain Effect (Top/Bottom panels) -->
+    <div id="curtain-overlay">
+        <div class="curtain-left"></div>  <!-- Top panel -->
+        <div class="curtain-right"></div> <!-- Bottom panel -->
+    </div>
+
     <canvas id="gameCanvas"></canvas>
 
     <div id="ui-layer">
@@ -71,7 +77,17 @@
         </div>
 
         <div class="start-ship">
-            <canvas id="intro-ship-canvas" width="200" height="200"></canvas>
+            <button class="ship-arrow ship-arrow-left" onclick="cycleShip(-1)">‹</button>
+            <div class="ship-preview">
+                <canvas id="intro-ship-canvas" width="200" height="200"></canvas>
+                <div id="ship-name" class="ship-name">BTC STRIKER</div>
+                <div id="ship-stats" class="ship-stats">
+                    <span class="stat-item">SPD █████░░░</span>
+                    <span class="stat-item">PWR ██████░░</span>
+                    <span class="stat-item">HP ❤️❤️❤️</span>
+                </div>
+            </div>
+            <button class="ship-arrow ship-arrow-right" onclick="cycleShip(1)">›</button>
         </div>
 
         <div class="start-score">
@@ -80,7 +96,7 @@
         </div>
 
         <div class="start-actions">
-            <button class="btn-play" onclick="goToHangar()">PLAY</button>
+            <button class="btn-play" onclick="launchShipAndStart()">DESTROY THE SYSTEM</button>
             <button class="btn-bear" onclick="toggleBearMode()">BEAR MARKET</button>
         </div>
 
