@@ -114,9 +114,33 @@
             <button class="ship-arrow ship-arrow-right" onclick="cycleShip(1)">›</button>
         </div>
 
+        <!-- Score/Progress Row - Switches based on mode -->
         <div class="start-score">
-            <span class="score-label">HIGH SCORE</span>
-            <span id="highScoreVal" class="score-value">0</span>
+            <!-- Arcade: High Score -->
+            <div id="arcade-score-display">
+                <span class="score-label">HIGH SCORE</span>
+                <span id="highScoreVal" class="score-value">0</span>
+            </div>
+            <!-- Campaign: Boss Progress -->
+            <div id="campaign-progress" style="display: none;">
+                <span class="score-label">CAMPAIGN PROGRESS</span>
+                <div class="boss-slots">
+                    <div class="boss-slot" id="slot-fed">
+                        <span class="boss-icon">$</span>
+                        <span class="boss-label">FED</span>
+                    </div>
+                    <div class="boss-arrow">→</div>
+                    <div class="boss-slot locked" id="slot-bce">
+                        <span class="boss-icon">€</span>
+                        <span class="boss-label">BCE</span>
+                    </div>
+                    <div class="boss-arrow">→</div>
+                    <div class="boss-slot locked" id="slot-boj">
+                        <span class="boss-icon">¥</span>
+                        <span class="boss-label">BOJ</span>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Game Mode Selector -->
@@ -124,33 +148,11 @@
             <button class="mode-btn active" id="mode-arcade" onclick="setGameMode('arcade')">
                 <span class="mode-icon">🎮</span>
                 <span class="mode-name">ARCADE</span>
-                <span class="mode-desc">Endless boss rotation</span>
             </button>
             <button class="mode-btn" id="mode-campaign" onclick="setGameMode('campaign')">
                 <span class="mode-icon">📖</span>
                 <span class="mode-name">CAMPAIGN</span>
-                <span class="mode-desc">FED → BCE → BOJ</span>
             </button>
-        </div>
-
-        <!-- Campaign Progress (shown in campaign mode) -->
-        <div id="campaign-progress" class="campaign-progress" style="display: none;">
-            <div class="boss-slots">
-                <div class="boss-slot" id="slot-fed">
-                    <span class="boss-icon">$</span>
-                    <span class="boss-label">FED</span>
-                </div>
-                <div class="boss-arrow">→</div>
-                <div class="boss-slot locked" id="slot-bce">
-                    <span class="boss-icon">€</span>
-                    <span class="boss-label">BCE</span>
-                </div>
-                <div class="boss-arrow">→</div>
-                <div class="boss-slot locked" id="slot-boj">
-                    <span class="boss-icon">¥</span>
-                    <span class="boss-label">BOJ</span>
-                </div>
-            </div>
         </div>
 
         <div class="start-actions">

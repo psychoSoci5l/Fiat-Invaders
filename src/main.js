@@ -616,13 +616,16 @@ window.setGameMode = function(mode) {
     const isEnabled = mode === 'campaign';
     campaignState.setEnabled(isEnabled);
 
-    // Update UI
+    // Update buttons
     const arcadeBtn = document.getElementById('mode-arcade');
     const campaignBtn = document.getElementById('mode-campaign');
-    const progressEl = document.getElementById('campaign-progress');
-
     if (arcadeBtn) arcadeBtn.classList.toggle('active', !isEnabled);
     if (campaignBtn) campaignBtn.classList.toggle('active', isEnabled);
+
+    // Toggle score/progress display (same row, no layout shift)
+    const arcadeScoreEl = document.getElementById('arcade-score-display');
+    const progressEl = document.getElementById('campaign-progress');
+    if (arcadeScoreEl) arcadeScoreEl.style.display = isEnabled ? 'none' : 'block';
     if (progressEl) progressEl.style.display = isEnabled ? 'block' : 'none';
 
     if (isEnabled) {
