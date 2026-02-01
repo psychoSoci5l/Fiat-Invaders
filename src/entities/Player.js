@@ -112,7 +112,10 @@ class Player extends window.Game.Entity {
         // Timers
         if (this.shieldActive) {
             this.shieldTimer -= dt;
-            if (this.shieldTimer <= 0) this.shieldActive = false;
+            if (this.shieldTimer <= 0) {
+                this.shieldActive = false;
+                if (window.Game.Audio) window.Game.Audio.play('shieldBreak');
+            }
         }
         if (this.shieldCooldown > 0) this.shieldCooldown -= dt;
 

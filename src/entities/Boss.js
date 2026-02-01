@@ -52,7 +52,10 @@ class Boss extends window.Game.Entity {
         this.shakeIntensity = 15;
         this.eyeGlow = 1;
 
-        if (window.Game.Audio) window.Game.Audio.play('bossSpawn');
+        if (window.Game.Audio) {
+            window.Game.Audio.play('bossPhaseChange');
+            window.Game.Audio.setBossPhase(newPhase);
+        }
 
         // Screen shake via global
         if (typeof shake !== 'undefined') shake = 30;

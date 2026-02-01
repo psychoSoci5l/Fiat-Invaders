@@ -131,6 +131,10 @@ let miniBoss = null; // Special boss spawned from kill counter
 let lastDropTime = 0;
 const DROP_INTERVAL = 5.0; // Seconds between guaranteed drop opportunities
 
+// Boss fight drops: power-ups every N hits to help player survive
+let bossHitCount = 0;
+const BOSS_DROP_INTERVAL = 25; // Drop power-up every 25 hits on boss
+
 // --- DIFFICULTY SYSTEM ---
 // Single unified difficulty multiplier (0.0 = Level 1, capped at 0.85)
 function getDifficulty() {
@@ -1186,10 +1190,12 @@ window.togglePause = function () {
 };
 window.restartRun = function () {
     setStyle('pause-screen', 'display', 'none');
+    audioSys.resetState(); // Reset audio state for new run
     startGame();
 };
 window.restartFromGameOver = function () {
     setStyle('gameover-screen', 'display', 'none');
+    audioSys.resetState(); // Reset audio state for new run
     startGame();
 };
 window.backToIntro = function () {
@@ -1206,6 +1212,7 @@ window.backToIntro = function () {
         closePerkChoice();
         setStyle('intro-screen', 'display', 'flex');
         gameState = 'INTRO';
+        audioSys.resetState(); // Reset audio state
         audioSys.init();
         initIntroShip(); // Restart animated ship
 
@@ -1356,6 +1363,7 @@ function startGame() {
     renderPerkBar();
 
     score = 0; displayScore = 0; level = 1; lives = 3; setUI('scoreVal', '0'); setUI('lvlVal', '1'); setUI('livesText', lives);
+    audioSys.setLevel(1, true); // Set music theme for level 1 (instant, no crossfade)
     bullets = []; enemies = []; enemyBullets = []; powerUps = []; particles = []; floatingTexts = []; muzzleFlashes = []; boss = null;
     G.enemies = enemies; // Expose for Boss Spawning logic
     window.enemyBullets = enemyBullets; // Update for Player core hitbox indicator
@@ -1406,6 +1414,11 @@ function startIntermission(msgOverride) {
     bullets = []; enemyBullets = [];
     window.enemyBullets = enemyBullets; // Update for Player core hitbox indicator
 
+    // Play wave complete jingle (unless boss defeat which has its own sound)
+    if (!msgOverride) {
+        audioSys.play('waveComplete');
+    }
+
     // Pick a random meme for the countdown
     const memePool = [...(Constants.MEMES.LOW || []), ...(Constants.MEMES.SAYLOR || [])];
     intermissionMeme = memePool[Math.floor(Math.random() * memePool.length)] || "HODL";
@@ -1429,12 +1442,16 @@ function spawnBoss() {
     boss.hp = 500 + (level * 200) + (marketCycle * 300);
     boss.maxHp = boss.hp;
 
+    // Reset boss hit counter for power-up drops
+    bossHitCount = 0;
+
     enemies = [];
     if (window.Game) window.Game.enemies = enemies;
 
     showDanger("⚠️ THE FED ⚠️");
     showMemeFun(getPowellMeme(), 2000);
     audioSys.play('bossSpawn');
+    audioSys.setBossPhase(1); // Start boss music phase 1
 
     // Start with a Powell meme in the ticker
     if (ui.memeTicker) ui.memeTicker.innerText = getPowellMeme();
@@ -1698,6 +1715,7 @@ function update(dt) {
             gameState = 'PLAY';
             if (waveMgr.wave > 1) {
                 level++;
+                audioSys.setLevel(level); // Change music theme for new level
                 updateLevelUI(); // With animation
                 lastDropTime = totalTime; // Reset time-based drop timer for new level
                 showGameInfo("📈 LEVEL " + level);
@@ -1749,6 +1767,34 @@ function update(dt) {
         if (miniBoss && miniBoss.active) {
             updateMiniBoss(dt);
         }
+
+        // Dynamic music intensity calculation
+        let intensity = 0;
+        intensity += enemyBullets.length * 2;        // +2 per enemy bullet on screen
+        intensity += (100 - grazeMeter);             // Less graze = more tension
+        intensity += boss ? 30 : 0;                  // Boss present
+        intensity += player.hp === 1 ? 20 : 0;       // Near death
+        intensity += enemies.length;                 // More enemies = more intense
+        audioSys.setIntensity(intensity);
+
+        // Near-death heartbeat (HP = 1)
+        if (player.hp === 1) {
+            if (!audioSys.isNearDeath) {
+                audioSys.setNearDeath(true);
+            }
+            // Play heartbeat every 0.75s
+            if (typeof nearDeathTimer === 'undefined') window.nearDeathTimer = 0;
+            window.nearDeathTimer -= dt;
+            if (window.nearDeathTimer <= 0) {
+                audioSys.play('nearDeath');
+                window.nearDeathTimer = 0.75;
+            }
+        } else {
+            if (audioSys.isNearDeath) {
+                audioSys.setNearDeath(false);
+            }
+            window.nearDeathTimer = 0;
+        }
     }
     updateFloatingTexts(dt);
     updateParticles(dt);
@@ -1770,6 +1816,27 @@ function updateBullets(dt) {
                 let dmg = b.isHodl ? 2 : 1;
                 if (runState && runState.flags && runState.flags.hodlBonus && b.isHodl) dmg += 1;
                 boss.damage(dmg * dmgMult);
+                audioSys.play('hit');
+
+                // Boss drops power-ups every N hits to help player
+                bossHitCount++;
+                if (bossHitCount >= BOSS_DROP_INTERVAL) {
+                    bossHitCount = 0;
+                    const weaponTypes = ['WIDE', 'NARROW', 'FIRE'];
+                    const shipTypes = ['SPEED', 'RAPID', 'SHIELD'];
+                    const dropWeapon = Math.random() < 0.5;
+                    const dropX = boss.x + boss.width / 2 + (Math.random() - 0.5) * 80;
+                    const dropY = boss.y + boss.height + 20;
+                    if (dropWeapon) {
+                        const type = weaponTypes[Math.floor(Math.random() * weaponTypes.length)];
+                        powerUps.push(new G.PowerUp(dropX, dropY, type));
+                    } else {
+                        const type = shipTypes[Math.floor(Math.random() * shipTypes.length)];
+                        powerUps.push(new G.PowerUp(dropX, dropY, type));
+                    }
+                    audioSys.play('coin');
+                }
+
                 if (!b.penetration) {
                     b.markedForDeletion = true;
                     G.Bullet.Pool.release(b);
@@ -1787,10 +1854,12 @@ function updateBullets(dt) {
                     transitionColor = '#ffffff';
 
                     score += 5000; boss.active = false; boss = null; shake = 60; audioSys.play('explosion');
+                    audioSys.setBossPhase(0); // Reset boss music
                     updateScore(score);
                     showVictory("🏆 FED DEFEATED!");
                     showMemeFun("💥 INFLATION CANCELLED!", 2000);
                     level++;
+                    audioSys.setLevel(level); // Change music theme for new level
                     updateLevelUI(); // With animation
 
                     // New cycle - increase difficulty
@@ -1871,13 +1940,19 @@ function updateBullets(dt) {
                 // Play graze sound (throttled to avoid spam)
                 const now = totalTime;
                 if (now - lastGrazeSoundTime > 0.1) {
-                    audioSys.play('coin'); // Subtle feedback
+                    audioSys.play('graze'); // Crystalline shimmer with pitch scaling
                     lastGrazeSoundTime = now;
+                }
+
+                // Graze streak every 10
+                if (grazeCount > 0 && grazeCount % 10 === 0) {
+                    audioSys.play('grazeStreak');
                 }
 
                 // Perk bonus every 50 graze
                 if (grazeCount > 0 && grazeCount % GRAZE_PERK_THRESHOLD === 0) {
                     applyRandomPerk();
+                    audioSys.play('grazePerk'); // Triumphant fanfare
                     showMemePopup("GRAZE BONUS!", 1200);
                 }
 

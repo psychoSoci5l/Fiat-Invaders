@@ -191,7 +191,60 @@
         <button class="btn-coin mini" onclick="backToIntro()">BACK</button>
     </div>
 
-    <!-- SETTINGS MODAL - Paper Mario Style -->
+    <!-- PAUSE SCREEN -->
+    <div id="pause-screen" style="display: none;">
+        <h1 class="neon-title">MARKET HALTED</h1>
+        <button class="btn-coin" onclick="togglePause()">> RESUME</button>
+        <button class="btn-coin" onclick="toggleSettings()">> SETTINGS</button>
+        <button class="btn-coin" onclick="restartRun()">> RESTART RUN</button>
+        <button class="btn-coin" onclick="backToIntro()" style="background: #e74c3c;">> EXIT</button>
+        <div class="menu-row">
+            <button class="icon-btn mute-toggle">🔇</button>
+        </div>
+    </div>
+
+    <!-- PERK CHOICE MODAL -->
+    <div id="perk-modal" style="display: none;">
+        <div class="perk-panel terminal-panel">
+            <div class="terminal-header-small">UPGRADE OFFER</div>
+            <h2 class="neon-title">CHOOSE MODULE</h2>
+            <div id="perk-options" class="perk-options"></div>
+            <button id="perk-skip" class="btn-coin mini">SKIP</button>
+        </div>
+    </div>
+
+    <div id="gameover-screen" style="display: none;">
+        <h1 class="glitch-text">LIQUIDATION EVENT</h1>
+        <p id="gameover-meme" style="color: #6aa9ff; font-family: 'Courier New', monospace; font-size: 16px; margin: 8px 0;">PAPER HANDS</p>
+        <p id="roast-msg"
+            style="color: #F7931A; font-family: 'Courier New', monospace; font-size: 16px; margin: 10px 0;">ACCOUNT BALANCE</p>
+        <div class="final-score"><span id="finalScore">0</span></div>
+        <div id="gameover-stats">
+            <div>KILLS: <span id="killsVal">0</span></div>
+            <div>BEST STREAK: <span id="streakVal">0</span></div>
+        </div>
+        <div class="gameover-actions">
+            <button class="btn-play" onclick="restartFromGameOver()">RETRY</button>
+            <button class="btn-secondary" onclick="backToIntro()">MENU</button>
+        </div>
+    </div>
+
+    <div id="touchControls">
+        <div class="touch-zone-left" id="t-left"></div>
+        <div class="touch-zone-right" id="t-right"></div>
+        <div id="joystick">
+            <div id="joystick-base"></div>
+            <div id="joystick-stick"></div>
+        </div>
+        <button id="pause-btn" onclick="togglePause()">⏸</button>
+        <div class="touch-shield-btn" id="t-shield">🛡️</div>
+    </div>
+
+        <div id="control-toast">CONTROLS: SWIPE</div>
+        <div id="meme-popup"></div>
+    </div><!-- /game-container -->
+
+    <!-- SETTINGS MODAL - Outside game-container for proper stacking -->
     <div id="settings-modal" style="display: none;">
         <div class="modal-content paper-modal">
             <h2 class="modal-title">IMPOSTAZIONI</h2>
@@ -234,7 +287,7 @@
         </div>
     </div>
 
-    <!-- HELP PANEL - Game Mechanics -->
+    <!-- HELP PANEL - Outside game-container for proper stacking -->
     <div id="help-panel" style="display: none;">
         <div class="modal-content paper-modal help-modal">
             <h2 class="modal-title">COME FARE PUNTI</h2>
@@ -259,25 +312,18 @@
                     <span class="help-icon">🔥</span>
                     <div class="help-text">
                         <strong>Kill Streak</strong>
-                        <p>Uccidi senza essere colpito per bonus streak</p>
+                        <p>Uccidi senza farti colpire = bonus crescente!</p>
                     </div>
                 </div>
             </div>
 
             <div class="help-section">
-                <h3>✨ GRAZE SYSTEM</h3>
+                <h3>✨ GRAZING</h3>
                 <div class="help-item">
-                    <span class="help-icon">⚡</span>
+                    <span class="help-icon">🌟</span>
                     <div class="help-text">
-                        <strong>Sfiora i Proiettili</strong>
-                        <p>Passa VICINO ai proiettili nemici senza toccarli</p>
-                    </div>
-                </div>
-                <div class="help-item">
-                    <span class="help-icon">📊</span>
-                    <div class="help-text">
-                        <strong>Graze Meter</strong>
-                        <p>Riempi il meter per aumentare il moltiplicatore (fino a 1.5x)</p>
+                        <strong>Sfiorare i Proiettili</strong>
+                        <p>Passa vicino ai proiettili nemici senza farti colpire = GRAZE POINTS + moltiplicatore!</p>
                     </div>
                 </div>
                 <div class="help-item">
@@ -331,61 +377,7 @@
 
             <button class="btn-cell" onclick="toggleHelpPanel()">CHIUDI</button>
         </div>
-        </div>
     </div>
-
-    <!-- PAUSE SCREEN -->
-    <div id="pause-screen" style="display: none;">
-        <h1 class="neon-title">MARKET HALTED</h1>
-        <button class="btn-coin" onclick="togglePause()">> RESUME</button>
-        <button class="btn-coin" onclick="toggleSettings()">> SETTINGS</button>
-        <button class="btn-coin" onclick="restartRun()">> RESTART RUN</button>
-        <button class="btn-coin" onclick="backToIntro()" style="background: #e74c3c;">> EXIT</button>
-        <div class="menu-row">
-            <button class="icon-btn mute-toggle">🔇</button>
-        </div>
-    </div>
-
-    <!-- PERK CHOICE MODAL -->
-    <div id="perk-modal" style="display: none;">
-        <div class="perk-panel terminal-panel">
-            <div class="terminal-header-small">UPGRADE OFFER</div>
-            <h2 class="neon-title">CHOOSE MODULE</h2>
-            <div id="perk-options" class="perk-options"></div>
-            <button id="perk-skip" class="btn-coin mini">SKIP</button>
-        </div>
-    </div>
-
-    <div id="gameover-screen" style="display: none;">
-        <h1 class="glitch-text">LIQUIDATION EVENT</h1>
-        <p id="gameover-meme" style="color: #6aa9ff; font-family: 'Courier New', monospace; font-size: 16px; margin: 8px 0;">PAPER HANDS</p>
-        <p id="roast-msg"
-            style="color: #F7931A; font-family: 'Courier New', monospace; font-size: 16px; margin: 10px 0;">ACCOUNT BALANCE</p>
-        <div class="final-score"><span id="finalScore">0</span></div>
-        <div id="gameover-stats">
-            <div>KILLS: <span id="killsVal">0</span></div>
-            <div>BEST STREAK: <span id="streakVal">0</span></div>
-        </div>
-        <div class="gameover-actions">
-            <button class="btn-play" onclick="restartFromGameOver()">RETRY</button>
-            <button class="btn-secondary" onclick="backToIntro()">MENU</button>
-        </div>
-    </div>
-
-    <div id="touchControls">
-        <div class="touch-zone-left" id="t-left"></div>
-        <div class="touch-zone-right" id="t-right"></div>
-        <div id="joystick">
-            <div id="joystick-base"></div>
-            <div id="joystick-stick"></div>
-        </div>
-        <button id="pause-btn" onclick="togglePause()">⏸</button>
-        <div class="touch-shield-btn" id="t-shield">🛡️</div>
-    </div>
-
-        <div id="control-toast">CONTROLS: SWIPE</div>
-        <div id="meme-popup"></div>
-    </div><!-- /game-container -->
 
     <!-- Ordered Scripts for file:// compatibility (Namespace Pattern) -->
     <script src="src/utils/Constants.js"></script>
