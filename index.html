@@ -70,6 +70,13 @@
             <span id="killNum">0</span>
             <span id="killLabel">KILLS</span>
         </div>
+
+        <!-- Graze Meter (Ikeda Rule 3) -->
+        <div id="graze-meter">
+            <div id="graze-fill"></div>
+            <span id="graze-label">GRAZE</span>
+            <span id="graze-count">0</span>
+        </div>
     </div>
 
     <div id="intro-screen" style="display: none;">
@@ -122,109 +129,94 @@
 
     <!-- HANGAR SCREEN -->
     <div id="hangar-screen" style="display: none;">
-        <h2 class="neon-title" style="font-size: 30px;">SELECT SHIP</h2>
+        <h2 class="neon-title" style="font-size: 28px;">SELECT SHIP</h2>
         <div class="ship-container">
             <!-- BTC STRIKER -->
             <div class="ship-card" onclick="selectShip('BTC')" data-ship="BTC">
-                <div class="ship-icon" style="color: #F7931A;">🚀</div>
-                <h3>BTC STRIKER</h3>
+                <div class="ship-icon" style="color: #F7931A;">₿</div>
+                <h3 style="color: #F7931A;">BTC STRIKER</h3>
+                <div class="ship-trait" style="color: #aaa; font-size: 11px; margin-bottom: 8px;">⚖️ BALANCED</div>
                 <div class="stats">
-                    <div class="stat"><span class="stat-label">SPD:</span>
-                        <div class="bar">
-                            <div style="width: 65%; background: #F7931A;"></div>
-                        </div>
+                    <div class="stat-row">
+                        <span class="stat-icon">💨</span>
+                        <span class="stat-name">Speed</span>
+                        <span class="stat-value" style="color:#F7931A">●●●○○</span>
                     </div>
-                    <div class="stat"><span class="stat-label">PWR:</span>
-                        <div class="bar">
-                            <div style="width: 70%; background: #F7931A;"></div>
-                        </div>
+                    <div class="stat-row">
+                        <span class="stat-icon">💥</span>
+                        <span class="stat-name">Damage</span>
+                        <span class="stat-value" style="color:#F7931A">●●●○○</span>
                     </div>
-                    <div class="stat"><span class="stat-label">HP:</span> <span style="color:#F7931A">❤️❤️❤️</span>
+                    <div class="stat-row">
+                        <span class="stat-icon">🔫</span>
+                        <span class="stat-name">Fire Rate</span>
+                        <span class="stat-value" style="color:#F7931A">●●●○○</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-icon">❤️</span>
+                        <span class="stat-name">Health</span>
+                        <span class="stat-value" style="color:#F7931A">●●●○○</span>
                     </div>
                 </div>
             </div>
             <!-- ETH HEAVY -->
             <div class="ship-card" onclick="selectShip('ETH')" data-ship="ETH">
-                <div class="ship-icon" style="color: #8c7ae6;">🛡️</div>
-                <h3>ETH HEAVY</h3>
+                <div class="ship-icon" style="color: #8c7ae6;">Ξ</div>
+                <h3 style="color: #8c7ae6;">ETH HEAVY</h3>
+                <div class="ship-trait" style="color: #aaa; font-size: 11px; margin-bottom: 8px;">🎯 HIGH DAMAGE</div>
                 <div class="stats">
-                    <div class="stat"><span class="stat-label">SPD:</span>
-                        <div class="bar">
-                            <div style="width: 45%; background: #8c7ae6;"></div>
-                        </div>
+                    <div class="stat-row">
+                        <span class="stat-icon">💨</span>
+                        <span class="stat-name">Speed</span>
+                        <span class="stat-value" style="color:#8c7ae6">●●○○○</span>
                     </div>
-                    <div class="stat"><span class="stat-label">PWR:</span>
-                        <div class="bar">
-                            <div style="width: 85%; background: #8c7ae6;"></div>
-                        </div>
+                    <div class="stat-row">
+                        <span class="stat-icon">💥</span>
+                        <span class="stat-name">Damage</span>
+                        <span class="stat-value" style="color:#8c7ae6">●●●●●</span>
                     </div>
-                    <div class="stat"><span class="stat-label">HP:</span> <span style="color:#8c7ae6">❤️❤️❤️❤️</span>
+                    <div class="stat-row">
+                        <span class="stat-icon">🔫</span>
+                        <span class="stat-name">Fire Rate</span>
+                        <span class="stat-value" style="color:#8c7ae6">●○○○○</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-icon">❤️</span>
+                        <span class="stat-name">Health</span>
+                        <span class="stat-value" style="color:#8c7ae6">●●●●○</span>
                     </div>
                 </div>
             </div>
             <!-- SOL SPEEDSTER -->
             <div class="ship-card" onclick="selectShip('SOL')" data-ship="SOL">
-                <div class="ship-icon" style="color: #00d2d3;">⚡</div>
-                <h3>SOL SPEEDSTER</h3>
+                <div class="ship-icon" style="color: #00d2d3;">◎</div>
+                <h3 style="color: #00d2d3;">SOL SPEEDSTER</h3>
+                <div class="ship-trait" style="color: #aaa; font-size: 11px; margin-bottom: 8px;">⚡ RAPID FIRE</div>
                 <div class="stats">
-                    <div class="stat"><span class="stat-label">SPD:</span>
-                        <div class="bar">
-                            <div style="width: 98%; background: #00d2d3;"></div>
-                        </div>
+                    <div class="stat-row">
+                        <span class="stat-icon">💨</span>
+                        <span class="stat-name">Speed</span>
+                        <span class="stat-value" style="color:#00d2d3">●●●●●</span>
                     </div>
-                    <div class="stat"><span class="stat-label">PWR:</span>
-                        <div class="bar">
-                            <div style="width: 55%; background: #00d2d3;"></div>
-                        </div>
+                    <div class="stat-row">
+                        <span class="stat-icon">💥</span>
+                        <span class="stat-name">Damage</span>
+                        <span class="stat-value" style="color:#00d2d3">●●○○○</span>
                     </div>
-                    <div class="stat"><span class="stat-label">HP:</span> <span style="color:#00d2d3">❤️❤️</span></div>
+                    <div class="stat-row">
+                        <span class="stat-icon">🔫</span>
+                        <span class="stat-name">Fire Rate</span>
+                        <span class="stat-value" style="color:#00d2d3">●●●●●</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-icon">❤️</span>
+                        <span class="stat-name">Health</span>
+                        <span class="stat-value" style="color:#00d2d3">●●○○○</span>
+                    </div>
                 </div>
             </div>
         </div>
         <button class="btn-coin mini" onclick="backToIntro()">BACK</button>
-    </div>
-
-    <!-- SETTINGS MODAL - Paper Mario Style -->
-    <div id="settings-modal" style="display: none;">
-        <div class="modal-content paper-modal">
-            <h2 class="modal-title">IMPOSTAZIONI</h2>
-
-            <!-- Bear Market Toggle -->
-            <div class="setting-row setting-bear">
-                <span class="setting-label">BEAR MARKET</span>
-                <button class="toggle-switch" onclick="toggleBearMode()" id="bear-toggle">
-                    <span class="switch-track"></span>
-                    <span class="switch-thumb"></span>
-                    <span class="switch-label">OFF</span>
-                </button>
-            </div>
-
-            <div class="setting-row">
-                <span class="setting-label">LINGUA</span>
-                <button class="toggle-btn-cell" onclick="toggleLang()" id="lang-btn">IT</button>
-            </div>
-            <div class="setting-row">
-                <span class="setting-label">CONTROLLI</span>
-                <button class="toggle-btn-cell" onclick="toggleControlMode()" id="control-btn">SWIPE</button>
-            </div>
-            <div class="setting-row">
-                <span class="setting-label">DEADZONE</span>
-                <input type="range" class="slider-cell" id="joy-deadzone" min="0" max="40" value="15">
-            </div>
-            <div class="setting-row">
-                <span class="setting-label">SENSIBILITÀ</span>
-                <input type="range" class="slider-cell" id="joy-sensitivity" min="50" max="150" value="100">
-            </div>
-
-            <div class="how-to-play paper-box">
-                <h3>COME GIOCARE</h3>
-                <p><span class="icon-tag">⌨️</span> Frecce = Muovi • Spazio = Spara • Giù = Scudo</p>
-                <p><span class="icon-tag">📱</span> Swipe o Joystick = Muovi • Icona = Scudo</p>
-                <p class="tip-text">💡 Stai fermo per HODL MODE (Punteggio x2)</p>
-            </div>
-
-            <button class="btn-cell" onclick="toggleSettings()">CHIUDI</button>
-        </div>
     </div>
 
     <!-- PAUSE SCREEN -->
@@ -280,9 +272,147 @@
         <div id="meme-popup"></div>
     </div><!-- /game-container -->
 
+    <!-- SETTINGS MODAL - Outside game-container for proper stacking -->
+    <div id="settings-modal" style="display: none;">
+        <div class="modal-content paper-modal">
+            <h2 class="modal-title">IMPOSTAZIONI</h2>
+
+            <!-- Bear Market Toggle -->
+            <div class="setting-row setting-bear">
+                <span class="setting-label">BEAR MARKET</span>
+                <button class="toggle-switch" onclick="toggleBearMode()" id="bear-toggle">
+                    <span class="switch-track"></span>
+                    <span class="switch-thumb"></span>
+                    <span class="switch-label">OFF</span>
+                </button>
+            </div>
+
+            <div class="setting-row">
+                <span class="setting-label">LINGUA</span>
+                <button class="toggle-btn-cell" onclick="toggleLang()" id="lang-btn">IT</button>
+            </div>
+            <div class="setting-row">
+                <span class="setting-label">CONTROLLI</span>
+                <button class="toggle-btn-cell" onclick="toggleControlMode()" id="control-btn">SWIPE</button>
+            </div>
+            <div class="setting-row">
+                <span class="setting-label">DEADZONE</span>
+                <input type="range" class="slider-cell" id="joy-deadzone" min="0" max="40" value="15">
+            </div>
+            <div class="setting-row">
+                <span class="setting-label">SENSIBILITÀ</span>
+                <input type="range" class="slider-cell" id="joy-sensitivity" min="50" max="150" value="100">
+            </div>
+
+            <div class="how-to-play paper-box">
+                <h3>CONTROLLI</h3>
+                <p><span class="icon-tag">⌨️</span> Frecce = Muovi • Spazio = Spara • Giù = Scudo</p>
+                <p><span class="icon-tag">📱</span> Swipe o Joystick = Muovi • Icona = Scudo</p>
+            </div>
+
+            <button class="btn-cell help-btn" onclick="toggleHelpPanel()">? HELP</button>
+            <button class="btn-cell" onclick="toggleSettings()">CHIUDI</button>
+        </div>
+    </div>
+
+    <!-- HELP PANEL - Outside game-container for proper stacking -->
+    <div id="help-panel" style="display: none;">
+        <div class="modal-content paper-modal help-modal">
+            <h2 class="modal-title">COME FARE PUNTI</h2>
+
+            <div class="help-section">
+                <h3>💰 SCORING</h3>
+                <div class="help-item">
+                    <span class="help-icon">💀</span>
+                    <div class="help-text">
+                        <strong>Kill Enemies</strong>
+                        <p>Ogni nemico ucciso = punti base (20-100 in base al tipo)</p>
+                    </div>
+                </div>
+                <div class="help-item">
+                    <span class="help-icon">💎</span>
+                    <div class="help-text">
+                        <strong>HODL Mode (2x Score)</strong>
+                        <p>Stai fermo mentre spari = danno e punti doppi!</p>
+                    </div>
+                </div>
+                <div class="help-item">
+                    <span class="help-icon">🔥</span>
+                    <div class="help-text">
+                        <strong>Kill Streak</strong>
+                        <p>Uccidi senza farti colpire = bonus crescente!</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="help-section">
+                <h3>✨ GRAZING</h3>
+                <div class="help-item">
+                    <span class="help-icon">🌟</span>
+                    <div class="help-text">
+                        <strong>Sfiorare i Proiettili</strong>
+                        <p>Passa vicino ai proiettili nemici senza farti colpire = GRAZE POINTS + moltiplicatore!</p>
+                    </div>
+                </div>
+                <div class="help-item">
+                    <span class="help-icon">🎁</span>
+                    <div class="help-text">
+                        <strong>Graze Bonus</strong>
+                        <p>Ogni 50 graze = perk bonus automatico!</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="help-section">
+                <h3>🎯 HITBOX</h3>
+                <div class="help-item">
+                    <span class="help-icon">⭕</span>
+                    <div class="help-text">
+                        <strong>Core Hitbox</strong>
+                        <p>Solo il CENTRO della nave prende danno. Il cerchio bianco indica la zona di pericolo.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="help-section">
+                <h3>⬆️ POWER-UPS</h3>
+                <div class="help-item">
+                    <span class="help-icon">🔱</span>
+                    <div class="help-text">
+                        <strong>Armi</strong>
+                        <p>WIDE (triplo largo) • NARROW (triplo stretto) • FIRE (penetrante)</p>
+                    </div>
+                </div>
+                <div class="help-item">
+                    <span class="help-icon">🚀</span>
+                    <div class="help-text">
+                        <strong>Ship Boost</strong>
+                        <p>SPEED (velocità) • RAPID (fire rate) • SHIELD (scudo istantaneo)</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="help-section">
+                <h3>🐻 BEAR MARKET</h3>
+                <div class="help-item">
+                    <span class="help-icon">📈</span>
+                    <div class="help-text">
+                        <strong>Hard Mode</strong>
+                        <p>Nemici più veloci e aggressivi, ma PUNTI DOPPI!</p>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-cell" onclick="toggleHelpPanel()">CHIUDI</button>
+        </div>
+    </div>
+
     <!-- Ordered Scripts for file:// compatibility (Namespace Pattern) -->
     <script src="src/utils/Constants.js"></script>
+    <script src="src/systems/BulletPatterns.js"></script>
     <script src="src/core/EventBus.js"></script>
+    <script src="src/systems/HarmonicSequences.js"></script>
+    <script src="src/systems/HarmonicConductor.js"></script>
     <script src="src/utils/RunState.js"></script>
     <script src="src/utils/Upgrades.js"></script>
     <script src="src/core/AudioSystem.js"></script>

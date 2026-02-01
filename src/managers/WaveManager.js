@@ -51,11 +51,12 @@ window.Game.WaveManager = {
         // Bear Market: Panic patterns from Wave 2
         if (window.isBearMarket && this.wave >= 2) pattern = 'SINE_WAVE';
 
-        const rows = pattern === 'COLUMNS' ? 6 : (pattern === 'V_SHAPE' ? 6 : 5);
-        const spacing = 60;
-        const cols = Math.floor((gameWidth - 20) / spacing);
+        // Reduced grid with larger enemies (4 rows max, wider spacing)
+        const rows = pattern === 'COLUMNS' ? 5 : (pattern === 'V_SHAPE' ? 5 : 4);
+        const spacing = 75; // Wider spacing for larger enemies
+        const cols = Math.floor((gameWidth - 40) / spacing); // Fewer columns
         const startX = (gameWidth - (cols * spacing)) / 2 + (spacing / 2);
-        const startY = 140;
+        const startY = 150; // Slightly lower start
         const maxY = 380;
         const maxRows = Math.min(rows, Math.floor((maxY - startY) / spacing) + 1);
 

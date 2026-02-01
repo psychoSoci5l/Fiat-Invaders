@@ -160,12 +160,12 @@ window.Game.MEMES = {
 };
 
 // Weapon types (mutually exclusive - picking one replaces previous)
-// Balanced: Triple weapons have ~1.5-1.8x DPS vs NORMAL (not 2.5x)
+// Rebalanced: Base twin-shot is strong, power-ups are utility (spread/penetration) not DPS multipliers
 window.Game.WEAPONS = {
-    NORMAL: { color: '#F7931A', rate: 0.18, bullets: 1 },
-    WIDE:   { color: '#9b59b6', rate: 0.32, bullets: 3, spread: 0.25, icon: '🔱' },  // 9.4 bps = 1.7x DPS
-    NARROW: { color: '#3498db', rate: 0.30, bullets: 3, spread: 0.12, icon: '🎯' }, // 10 bps = 1.8x DPS
-    FIRE:   { color: '#e74c3c', rate: 0.36, bullets: 3, spread: 0, icon: '🔥' }     // 8.3 bps = 1.5x DPS + penetration
+    NORMAL: { color: '#F7931A', rate: 0.18, bullets: 2 },                           // Twin shot base
+    WIDE:   { color: '#9b59b6', rate: 0.40, bullets: 3, spread: 0.18, icon: '🔱' },  // Tighter spread (was 0.25)
+    NARROW: { color: '#3498db', rate: 0.38, bullets: 3, spread: 0.08, icon: '🎯' }, // Tighter focused (was 0.12)
+    FIRE:   { color: '#e74c3c', rate: 0.44, bullets: 3, spread: 0, icon: '🔥' }     // Penetration utility
 };
 
 // Ship power-ups (mutually exclusive - picking one replaces previous)
@@ -197,9 +197,19 @@ window.Game.FIAT_TYPES = [
 ];
 
 window.Game.SHIPS = {
-    BTC: { speed: 420, hp: 3, fireRate: 0.26, color: '#F7931A', hitboxSize: 30 },
-    ETH: { speed: 320, hp: 4, fireRate: 0.57, color: '#8c7ae6', hitboxSize: 38 },
-    SOL: { speed: 560, hp: 2, fireRate: 0.20, color: '#00d2d3', hitboxSize: 18 }
+    BTC: { speed: 420, hp: 3, fireRate: 0.26, baseDamage: 14, color: '#F7931A', hitboxSize: 30, coreHitboxSize: 6 },
+    ETH: { speed: 320, hp: 4, fireRate: 0.57, baseDamage: 22, color: '#8c7ae6', hitboxSize: 38, coreHitboxSize: 8 },
+    SOL: { speed: 560, hp: 2, fireRate: 0.20, baseDamage: 10, color: '#00d2d3', hitboxSize: 18, coreHitboxSize: 4 }
+};
+
+// Bullet Hell Color Palette (Ikeda Style - High Contrast)
+window.Game.BULLET_HELL_COLORS = {
+    PINK: '#ff69b4',
+    CYAN: '#00ffff',
+    MAGENTA: '#ff00ff',
+    YELLOW: '#ffff00',
+    WHITE: '#ffffff',
+    ORANGE: '#ff8c00'
 };
 
 window.Game.ASSETS = {};

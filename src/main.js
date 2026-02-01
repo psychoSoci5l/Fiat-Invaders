@@ -105,13 +105,28 @@ const BULLET_CANCEL_FOR_PERK = 5; // Bullets to cancel for perk (was 3)
 let perkCooldown = 0;         // Cooldown timer between perks
 const PERK_COOLDOWN_TIME = 8; // Seconds between perk rewards
 
+// --- PERK PAUSE SYSTEM ---
+let perkPauseTimer = 0;       // When > 0, game is paused for perk display
+let perkPauseData = null;     // Data about the perk being displayed
+const PERK_PAUSE_DURATION = 1.2; // Seconds to pause for perk notification
+
+// --- BOSS WARNING SYSTEM ---
+let bossWarningTimer = 0;     // When > 0, showing boss warning
+let bossWarningType = null;   // Boss type to spawn after warning
+const BOSS_WARNING_DURATION = 2.0; // Seconds of warning before boss spawns
+
 // --- GRAZING SYSTEM (Ikeda Rule 3) ---
 let grazeCount = 0;           // Total graze count this run
 let grazeMeter = 0;           // 0-100 meter fill
 let grazeMultiplier = 1.0;    // Score multiplier from grazing (up to 1.5x)
 const GRAZE_RADIUS = 25;      // Pixels outside core hitbox for graze detection
-const GRAZE_PERK_THRESHOLD = 80; // Graze count to trigger bonus perk (was 50)
+const GRAZE_CLOSE_RADIUS = 15; // Close graze radius for 2x bonus
+const GRAZE_PERK_THRESHOLD = 120; // Graze count to trigger bonus perk (was 80)
+const GRAZE_DECAY_RATE = 5;   // Meter decay per second when not grazing
+const MAX_GRAZE_PERKS_PER_LEVEL = 2; // Cap graze perks per level
+let grazePerksThisLevel = 0;  // Track graze perks awarded this level
 let lastGrazeSoundTime = 0;   // Throttle graze sound
+let lastGrazeTime = 0;        // For decay calculation
 
 let enemyFirePhase = 0;
 let enemyFireTimer = 0;
@@ -132,9 +147,18 @@ let fiatKillCounter = { '¥': 0, '₽': 0, '₹': 0, '€': 0, '£': 0, '₣': 0
 const MINI_BOSS_THRESHOLD = 100;
 let miniBoss = null; // Special boss spawned from kill counter
 
-// Drop system: time-based (every 5 seconds guarantees a drop opportunity)
-let lastDropTime = 0;
-const DROP_INTERVAL = 5.0; // Seconds between guaranteed drop opportunities
+// Drop system: tier-based with cooldown and pity timer
+let lastWeaponDropTime = 0;
+const WEAPON_DROP_COOLDOWN = 8.0; // Minimum seconds between weapon drops
+let killsSinceLastDrop = 0;
+const PITY_TIMER_KILLS = 30; // Guaranteed drop after this many kills without one
+
+// Tier-based drop chances (replaces time-based system)
+const DROP_CHANCE_STRONG = 0.06;  // 6% for strong enemies ($, 元, Ⓒ)
+const DROP_CHANCE_MEDIUM = 0.04;  // 4% for medium enemies (€, £, ₣, ₺)
+const DROP_CHANCE_WEAK = 0.02;    // 2% for weak enemies (¥, ₽, ₹)
+const STRONG_TIERS = ['$', '元', 'Ⓒ'];
+const MEDIUM_TIERS = ['€', '£', '₣', '₺'];
 
 // Boss fight drops: power-ups every N hits to help player survive
 let bossHitCount = 0;
@@ -501,8 +525,12 @@ function applyRandomPerk() {
     if (perkCooldown > 0) return; // On cooldown, skip
     const offers = pickPerkOffers(1);
     if (!offers || offers.length === 0) return;
-    applyPerk(offers[0]);
+
+    const perk = offers[0];
+    applyPerk(perk);
     perkCooldown = PERK_COOLDOWN_TIME; // Start cooldown
+    audioSys.play('perk'); // Play perk sound
+    // Perk icon appears above ship via addPerkIcon() called in applyPerk()
 }
 
 // --- INTRO SHIP ANIMATION & SELECTION ---
@@ -1425,9 +1453,34 @@ function startGame() {
     updateKillCounter(); // Reset display
 
     // Reset fiat kill counter and mini-boss
-    fiatKillCounter = { '¥': 0, '€': 0, '£': 0, '$': 0 };
+    fiatKillCounter = { '¥': 0, '₽': 0, '₹': 0, '€': 0, '£': 0, '₣': 0, '₺': 0, '$': 0, '元': 0, 'Ⓒ': 0 };
     miniBoss = null;
-    lastDropTime = 0; // Reset time-based drop timer
+    killsSinceLastDrop = 0; // Reset pity timer
+    lastWeaponDropTime = 0; // Reset weapon cooldown
+    grazePerksThisLevel = 0; // Reset graze perk cap
+    lastGrazeTime = 0; // Reset graze decay
+    perkPauseTimer = 0; // Reset perk pause
+    perkPauseData = null;
+    bossWarningTimer = 0; // Reset boss warning
+    bossWarningType = null;
+
+    // Reset Fibonacci firing system
+    waveStartTime = 0;
+    fibonacciIndex = 0;
+    fibonacciTimer = 0;
+    enemiesAllowedToFire = 1;
+
+    // Reset boss drop system
+    bossHitCount = 0;
+    bossDropCooldown = 0;
+
+    // Reset visual effects
+    shake = 0;
+    totalTime = 0;
+    lightningTimer = 0;
+    lightningFlash = 0;
+    transitionAlpha = 0;
+    transitionDir = 0;
 
     updateLivesUI();
 
@@ -1495,6 +1548,28 @@ function startIntermission(msgOverride) {
     }
 }
 
+function startBossWarning() {
+    // Determine boss type for warning display
+    const bossRotation = G.BOSS_ROTATION || ['FEDERAL_RESERVE', 'BCE', 'BOJ'];
+    bossWarningType = bossRotation[(marketCycle - 1) % bossRotation.length];
+
+    // Start warning timer
+    bossWarningTimer = BOSS_WARNING_DURATION;
+
+    // Clear remaining enemies and bullets for clean boss entrance
+    enemies = [];
+    bullets = [];
+    enemyBullets.forEach(b => { b.markedForDeletion = true; G.Bullet.Pool.release(b); });
+    enemyBullets = [];
+    window.enemyBullets = enemyBullets;
+
+    // Play warning sound (use explosion for dramatic effect)
+    audioSys.play('explosion');
+
+    // Dramatic screen shake
+    shake = 10;
+}
+
 function spawnBoss() {
     // Determine boss type based on market cycle (rotation: FED → BCE → BOJ → repeat)
     const bossRotation = G.BOSS_ROTATION || ['FEDERAL_RESERVE', 'BCE', 'BOJ'];
@@ -1508,11 +1583,21 @@ function spawnBoss() {
 
     boss = new G.Boss(gameWidth, gameHeight, bossType);
 
-    // Scale boss HP using boss config
+    // Scale boss HP using boss config + perk-aware scaling
     const baseHp = bossConfig.baseHp || 4500;
     const hpPerLevel = bossConfig.hpPerLevel || 600;
     const hpPerCycle = bossConfig.hpPerCycle || 800;
-    boss.hp = baseHp + (level * hpPerLevel) + ((marketCycle - 1) * hpPerCycle);
+
+    // Perk-aware scaling: boss gets stronger based on player's accumulated power
+    const perkCount = (runState && runState.perks) ? runState.perks.length : 0;
+    const perkScaling = 1 + (perkCount * 0.12); // +12% HP per perk acquired
+
+    // Also scale based on player's damage multiplier (if player hits harder, boss has more HP)
+    const playerDmgMult = (runState && runState.getMod) ? runState.getMod('damageMult', 1) : 1;
+    const dmgCompensation = Math.sqrt(playerDmgMult); // Square root for softer scaling
+
+    const rawHp = baseHp + (level * hpPerLevel) + ((marketCycle - 1) * hpPerCycle);
+    boss.hp = Math.floor(rawHp * perkScaling * dmgCompensation);
     boss.maxHp = boss.hp;
 
     // Reset boss hit counter and cooldown for power-up drops
@@ -1559,16 +1644,26 @@ function spawnMiniBoss(symbol, color) {
     const savedEnemies = [...enemies];
     enemies = [];
 
-    // Create mini-boss object
-    const fiatNames = { '¥': 'YEN', '€': 'EURO', '£': 'POUND', '$': 'DOLLAR' };
+    // Create mini-boss object with perk-aware scaling
+    const fiatNames = { '¥': 'YEN', '€': 'EURO', '£': 'POUND', '$': 'DOLLAR', '₽': 'RUBLE', '₹': 'RUPEE', '₣': 'FRANC', '₺': 'LIRA', '元': 'YUAN', 'Ⓒ': 'CBDC' };
+
+    // Mini-boss HP formula: significantly buffed + perk scaling
+    const baseHp = 400;
+    const hpPerLevel = 100;
+    const hpPerCycle = 150;
+    const perkCount = (runState && runState.perks) ? runState.perks.length : 0;
+    const perkScaling = 1 + (perkCount * 0.10); // +10% HP per perk
+    const rawHp = baseHp + (level * hpPerLevel) + (marketCycle * hpPerCycle);
+    const scaledHp = Math.floor(rawHp * perkScaling);
+
     miniBoss = {
         x: gameWidth / 2,
         y: 150,
         targetY: 180,
         width: 120,
         height: 120,
-        hp: 200 + (level * 30) + (marketCycle * 50),
-        maxHp: 200 + (level * 30) + (marketCycle * 50),
+        hp: scaledHp,
+        maxHp: scaledHp,
         symbol: symbol,
         color: color,
         name: fiatNames[symbol] || 'FIAT',
@@ -1768,6 +1863,9 @@ function update(dt) {
     if (gameState !== 'PLAY' && gameState !== 'INTERMISSION') return;
     totalTime += dt;
 
+    // Perk pause disabled - perks now show only as floating icon above ship
+    // Game continues without interruption
+
     if (bulletCancelTimer > 0) {
         bulletCancelTimer -= dt;
         if (bulletCancelTimer <= 0) bulletCancelStreak = 0;
@@ -1780,6 +1878,13 @@ function update(dt) {
         if (volatilityTimer <= 0 && runState && runState.modifiers) {
             runState.modifiers.tempFireRateMult = 1;
         }
+    }
+
+    // Graze meter decay: lose points if not actively grazing
+    if (grazeMeter > 0 && totalTime - lastGrazeTime > 0.5) {
+        grazeMeter = Math.max(0, grazeMeter - GRAZE_DECAY_RATE * dt);
+        grazeMultiplier = 1 + (grazeMeter / 200);
+        updateGrazeUI();
     }
 
     // Meme ticker: only visible during boss fight
@@ -1798,18 +1903,27 @@ function update(dt) {
 
     const waveAction = waveMgr.update(dt, gameState, enemies.length, !!boss);
 
+    // Boss warning timer countdown
+    if (bossWarningTimer > 0) {
+        bossWarningTimer -= dt;
+        if (bossWarningTimer <= 0) {
+            spawnBoss(); // Actually spawn boss after warning
+        }
+    }
+
     if (waveAction) {
         if (waveAction.action === 'START_INTERMISSION') {
             startIntermission();
         } else if (waveAction.action === 'SPAWN_BOSS') {
-            spawnBoss();
+            startBossWarning(); // Start warning instead of immediate spawn
         } else if (waveAction.action === 'START_WAVE') {
             gameState = 'PLAY';
             if (waveMgr.wave > 1) {
                 level++;
                 audioSys.setLevel(level); // Change music theme for new level
                 updateLevelUI(); // With animation
-                lastDropTime = totalTime; // Reset time-based drop timer for new level
+                killsSinceLastDrop = 0; // Reset pity timer for new level
+                grazePerksThisLevel = 0; // Reset graze perk cap for new level
                 showGameInfo("📈 LEVEL " + level);
                 // gridSpeed now computed dynamically via getGridSpeed()
             }
@@ -2053,17 +2167,25 @@ function updateBullets(dt) {
             // Check if within graze zone (but not core) - award graze points
             else if (dx < grazeR && dy < grazeR && !eb.grazed) {
                 eb.grazed = true; // Mark as grazed to prevent double-counting
-                grazeCount++;
-                grazeMeter = Math.min(100, grazeMeter + 8); // Increased from 2 to 8 for faster meter fill
+                lastGrazeTime = totalTime; // Reset decay timer
+
+                // Close graze bonus: 2x points if within GRAZE_CLOSE_RADIUS
+                const closeGrazeR = coreR + GRAZE_CLOSE_RADIUS;
+                const isCloseGraze = dx < closeGrazeR && dy < closeGrazeR;
+                const grazeBonus = isCloseGraze ? 2 : 1;
+
+                grazeCount += grazeBonus;
+                const meterGain = isCloseGraze ? 12 : 6; // Close graze fills meter faster
+                grazeMeter = Math.min(100, grazeMeter + meterGain);
                 grazeMultiplier = 1 + (grazeMeter / 200); // Up to 1.5x at full meter
 
                 // Award graze points
-                const grazePoints = Math.floor(5 * grazeMultiplier);
+                const grazePoints = Math.floor(5 * grazeMultiplier * grazeBonus);
                 score += grazePoints;
                 updateScore(score);
 
-                // Graze visual effect
-                createGrazeSpark(eb.x, eb.y, player.x, player.y);
+                // Graze visual effect (bigger for close graze)
+                createGrazeSpark(eb.x, eb.y, player.x, player.y, isCloseGraze);
 
                 // Play graze sound (throttled to avoid spam)
                 const now = totalTime;
@@ -2077,11 +2199,19 @@ function updateBullets(dt) {
                     audioSys.play('grazeStreak');
                 }
 
-                // Perk bonus every 50 graze
+                // Perk bonus every GRAZE_PERK_THRESHOLD (capped per level)
                 if (grazeCount > 0 && grazeCount % GRAZE_PERK_THRESHOLD === 0) {
-                    applyRandomPerk();
-                    audioSys.play('grazePerk'); // Triumphant fanfare
-                    showMemePopup("GRAZE BONUS!", 1200);
+                    if (grazePerksThisLevel < MAX_GRAZE_PERKS_PER_LEVEL) {
+                        applyRandomPerk();
+                        audioSys.play('grazePerk'); // Triumphant fanfare
+                        showMemePopup("GRAZE BONUS!", 1200);
+                        grazePerksThisLevel++;
+                    } else {
+                        // Max graze perks reached, give score instead
+                        score += 500;
+                        updateScore(score);
+                        showGameInfo("+500 GRAZE MASTER");
+                    }
                 }
 
                 // Update graze HUD
@@ -2092,15 +2222,19 @@ function updateBullets(dt) {
 }
 
 // Graze spark effect - particles flying toward player
-function createGrazeSpark(bx, by, px, py) {
+function createGrazeSpark(bx, by, px, py, isCloseGraze = false) {
     const dx = px - bx;
     const dy = py - by;
     const dist = Math.sqrt(dx * dx + dy * dy) || 1;
     const dirX = dx / dist;
     const dirY = dy / dist;
 
-    // 2-3 white particles moving toward player
-    for (let i = 0; i < 3; i++) {
+    // Close graze = more particles, bigger, golden color
+    const count = isCloseGraze ? 5 : 3;
+    const color = isCloseGraze ? '#ffd700' : '#ffffff';
+    const sizeBase = isCloseGraze ? 3 : 2;
+
+    for (let i = 0; i < count; i++) {
         particles.push({
             x: bx + (Math.random() - 0.5) * 6,
             y: by + (Math.random() - 0.5) * 6,
@@ -2108,8 +2242,8 @@ function createGrazeSpark(bx, by, px, py) {
             vy: dirY * (150 + Math.random() * 100) + (Math.random() - 0.5) * 50,
             life: 0.25 + Math.random() * 0.15,
             maxLife: 0.4,
-            size: 2 + Math.random() * 2,
-            color: '#ffffff',
+            size: sizeBase + Math.random() * 2,
+            color: color,
             type: 'graze'
         });
     }
@@ -2172,25 +2306,39 @@ function checkBulletCollisions(b, bIdx) {
                     }
                 }
 
-                // DROP LOGIC - Time-based: guaranteed drop every 5 seconds + 2% bonus chance
+                // DROP LOGIC - Tier-based with cooldown and pity timer
+                killsSinceLastDrop++;
                 const weaponTypes = ['WIDE', 'NARROW', 'FIRE'];
                 const shipTypes = ['SPEED', 'RAPID', 'SHIELD'];
-                const timeSinceLastDrop = totalTime - lastDropTime;
-                const guaranteedDrop = timeSinceLastDrop >= DROP_INTERVAL;
-                const bonusChance = 0.02; // 2% bonus chance
 
-                // Guaranteed drop if enough time passed, or small bonus chance
-                if (guaranteedDrop || Math.random() < bonusChance) {
-                    // Alternate between weapon and ship drops
-                    const dropWeapon = Math.random() < 0.5;
-                    if (dropWeapon) {
+                // Determine drop chance based on enemy tier
+                let dropChance = DROP_CHANCE_WEAK; // Default for weak tier
+                if (e.symbol && STRONG_TIERS.includes(e.symbol)) {
+                    dropChance = DROP_CHANCE_STRONG;
+                } else if (e.symbol && MEDIUM_TIERS.includes(e.symbol)) {
+                    dropChance = DROP_CHANCE_MEDIUM;
+                }
+
+                // Pity timer: guaranteed drop after PITY_TIMER_KILLS without any drop
+                const pityDrop = killsSinceLastDrop >= PITY_TIMER_KILLS;
+
+                // Check if drop should occur
+                if (pityDrop || Math.random() < dropChance) {
+                    // Decide weapon vs ship (50/50), but weapon has cooldown
+                    const timeSinceWeaponDrop = totalTime - lastWeaponDropTime;
+                    const canDropWeapon = timeSinceWeaponDrop >= WEAPON_DROP_COOLDOWN;
+
+                    // 50% weapon / 50% ship, but fall back to ship if weapon on cooldown
+                    const wantsWeapon = Math.random() < 0.5;
+                    if (wantsWeapon && canDropWeapon) {
                         const type = weaponTypes[Math.floor(Math.random() * weaponTypes.length)];
                         powerUps.push(new G.PowerUp(e.x, e.y, type));
+                        lastWeaponDropTime = totalTime;
                     } else {
                         const type = shipTypes[Math.floor(Math.random() * shipTypes.length)];
                         powerUps.push(new G.PowerUp(e.x, e.y, type));
                     }
-                    lastDropTime = totalTime; // Reset drop timer
+                    killsSinceLastDrop = 0; // Reset pity counter
                 }
             }
             if (!b.penetration) {
@@ -2447,6 +2595,13 @@ function draw() {
             ctx.fillText(intermissionMeme, centerX, centerY + 50);
             ctx.restore();
         }
+
+        // Perk pause overlay disabled - using floating icon above ship instead
+
+        // Boss warning overlay
+        if (bossWarningTimer > 0 && bossWarningType) {
+            drawBossWarningOverlay(ctx);
+        }
     }
     // Bear Market danger vignette overlay
     if (isBearMarket && gameState === 'PLAY') {
@@ -2460,6 +2615,149 @@ function draw() {
 
     // Debug overlay (F3 toggle)
     if (debugMode) drawDebug(ctx);
+}
+
+// Perk pause overlay - shows acquired perk with dimmed background
+function drawPerkPauseOverlay(ctx) {
+    if (!perkPauseData) return;
+
+    const centerX = gameWidth / 2;
+    const centerY = gameHeight / 2;
+
+    // Dim background
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+    ctx.fillRect(0, 0, gameWidth, gameHeight);
+
+    // Perk card background
+    const cardW = 280;
+    const cardH = 140;
+    const cardX = centerX - cardW / 2;
+    const cardY = centerY - cardH / 2;
+
+    // Rarity colors
+    const rarityColors = {
+        common: '#888',
+        uncommon: '#2ecc71',
+        rare: '#3498db',
+        epic: '#9b59b6'
+    };
+    const rarityColor = rarityColors[perkPauseData.rarity] || '#888';
+
+    // Card with glow
+    ctx.save();
+
+    // Glow effect
+    ctx.shadowColor = rarityColor;
+    ctx.shadowBlur = 20;
+
+    // Card background (manual rounded rect for compatibility)
+    ctx.fillStyle = 'rgba(20, 20, 30, 0.95)';
+    ctx.strokeStyle = rarityColor;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    const r = 10;
+    ctx.moveTo(cardX + r, cardY);
+    ctx.lineTo(cardX + cardW - r, cardY);
+    ctx.quadraticCurveTo(cardX + cardW, cardY, cardX + cardW, cardY + r);
+    ctx.lineTo(cardX + cardW, cardY + cardH - r);
+    ctx.quadraticCurveTo(cardX + cardW, cardY + cardH, cardX + cardW - r, cardY + cardH);
+    ctx.lineTo(cardX + r, cardY + cardH);
+    ctx.quadraticCurveTo(cardX, cardY + cardH, cardX, cardY + cardH - r);
+    ctx.lineTo(cardX, cardY + r);
+    ctx.quadraticCurveTo(cardX, cardY, cardX + r, cardY);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.shadowBlur = 0;
+
+    // "PERK ACQUIRED" header
+    ctx.font = 'bold 14px "Courier New", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = rarityColor;
+    ctx.fillText('PERK ACQUIRED', centerX, cardY + 22);
+
+    // Icon + Name
+    ctx.font = 'bold 28px "Courier New", monospace';
+    ctx.fillStyle = '#fff';
+    ctx.fillText(`${perkPauseData.icon} ${perkPauseData.name}`, centerX, cardY + 60);
+
+    // Description
+    ctx.font = '14px "Courier New", monospace';
+    ctx.fillStyle = '#aaa';
+    ctx.fillText(perkPauseData.desc, centerX, cardY + 90);
+
+    // Rarity badge
+    ctx.font = 'bold 12px "Courier New", monospace';
+    ctx.fillStyle = rarityColor;
+    ctx.fillText(perkPauseData.rarity.toUpperCase(), centerX, cardY + 120);
+
+    ctx.restore();
+}
+
+// Boss warning overlay - dramatic warning before boss spawns
+function drawBossWarningOverlay(ctx) {
+    if (!bossWarningType) return;
+
+    const centerX = gameWidth / 2;
+    const centerY = gameHeight / 2;
+
+    // Get boss config for display
+    const bossConfig = G.BOSSES[bossWarningType] || G.BOSSES.FEDERAL_RESERVE;
+
+    // Pulsing red overlay
+    const pulse = Math.sin(bossWarningTimer * 8) * 0.5 + 0.5; // 0-1 oscillation
+    const overlayAlpha = 0.3 + pulse * 0.2;
+
+    // Red danger overlay
+    ctx.fillStyle = `rgba(80, 0, 0, ${overlayAlpha})`;
+    ctx.fillRect(0, 0, gameWidth, gameHeight);
+
+    // Vignette effect
+    const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, gameWidth * 0.7);
+    gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    gradient.addColorStop(1, 'rgba(0, 0, 0, 0.6)');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, gameWidth, gameHeight);
+
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    // "WARNING" flashing text
+    const warningAlpha = pulse > 0.5 ? 1 : 0.3;
+    ctx.font = 'bold 32px "Courier New", monospace';
+    ctx.fillStyle = `rgba(255, 50, 50, ${warningAlpha})`;
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 4;
+    ctx.strokeText('⚠ WARNING ⚠', centerX, centerY - 60);
+    ctx.fillText('⚠ WARNING ⚠', centerX, centerY - 60);
+
+    // Boss name
+    const bossName = bossConfig.name || 'CENTRAL BANK';
+    ctx.font = 'bold 28px "Courier New", monospace';
+    ctx.fillStyle = '#fff';
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 3;
+    ctx.strokeText(bossName, centerX, centerY);
+    ctx.fillText(bossName, centerX, centerY);
+
+    // "INCOMING" text
+    ctx.font = 'bold 24px "Courier New", monospace';
+    ctx.fillStyle = '#ff6666';
+    ctx.strokeText('INCOMING', centerX, centerY + 40);
+    ctx.fillText('INCOMING', centerX, centerY + 40);
+
+    // Countdown (shows seconds remaining)
+    const countdown = Math.ceil(bossWarningTimer);
+    ctx.font = `bold ${60 + pulse * 10}px "Courier New", monospace`;
+    ctx.fillStyle = '#F7931A';
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 5;
+    ctx.strokeText(countdown, centerX, centerY + 110);
+    ctx.fillText(countdown, centerX, centerY + 110);
+
+    ctx.restore();
 }
 
 function drawDebug(ctx) {
