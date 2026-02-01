@@ -1,6 +1,19 @@
 # Changelog
 
-## 2026-01-30
+## v2.7.1 - 2026-02-01
+### Bug Fixes
+- Fixed intro screen layout shift when changing ships or game modes
+- "DESTROY THE SYSTEM" button now stays fixed in position
+- Removed spurious files (nul, styles.css) causing potential rendering issues
+
+### Technical
+- Added fixed heights to ship selector (290px), ship preview (280px), score area (85px), mode selector (44px)
+- Added flex-shrink: 0 to prevent container compression
+- Improved ship arrow alignment with margin-top positioning
+
+---
+
+## v2.7.0 - 2026-01-30
 ### Gameplay
 - 5 waves before boss (cycle repeats).
 - Enemy fire staggered in groups (no full volleys).
