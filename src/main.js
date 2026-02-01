@@ -24,8 +24,10 @@ let player;
 let bullets = [], enemyBullets = [], enemies = [], powerUps = [], particles = [], floatingTexts = [], muzzleFlashes = [];
 let clouds = []; // ☁️
 let hills = []; // 🏔️ Paper Mario parallax hills
+let floatingSymbols = []; // ₿ Floating crypto symbols in background
 let lightningTimer = 0; // ⚡ Bear Market lightning
 let lightningFlash = 0;
+let skyTime = 0; // ✨ Animation timer for sky effects
 let images = {}; // 🖼️ Asset Cache
 
 // Load Assets
@@ -2136,11 +2138,27 @@ function initSky() {
         { layer: 1, y: gameHeight * 0.80, height: 100, speed: 12, offset: 50 },
         { layer: 2, y: gameHeight * 0.85, height: 80, speed: 20, offset: 100 }
     ];
+
+    // Floating crypto symbols (background decoration)
+    const symbols = ['₿', 'Ξ', '◎', '₮', '∞'];
+    floatingSymbols = [];
+    for (let i = 0; i < 8; i++) {
+        floatingSymbols.push({
+            symbol: symbols[i % symbols.length],
+            x: Math.random() * gameWidth,
+            y: Math.random() * gameHeight * 0.6 + gameHeight * 0.15,
+            speed: Math.random() * 15 + 8,
+            size: Math.random() * 12 + 14,
+            alpha: Math.random() * 0.15 + 0.08,
+            wobble: Math.random() * Math.PI * 2
+        });
+    }
 }
 
 function updateSky(dt) {
     if (clouds.length === 0) initSky();
     const speedMult = isBearMarket ? 5.0 : 1.0;
+    skyTime += dt; // Increment sky animation timer
 
     // Update clouds (for loop)
     for (let i = 0; i < clouds.length; i++) {
@@ -2158,6 +2176,17 @@ function updateSky(dt) {
         const h = hills[i];
         h.offset += h.speed * speedMult * dt;
         if (h.offset > 628) h.offset -= 628;
+    }
+
+    // Update floating crypto symbols
+    for (let i = 0; i < floatingSymbols.length; i++) {
+        const s = floatingSymbols[i];
+        s.x -= s.speed * speedMult * dt;
+        s.wobble += dt * 2; // Gentle oscillation
+        if (s.x < -30) {
+            s.x = gameWidth + 30;
+            s.y = Math.random() * gameHeight * 0.5 + gameHeight * 0.15;
+        }
     }
 
     // ⚡ Bear Market Lightning
@@ -2243,18 +2272,36 @@ function drawSky(ctx) {
         yPos += bandHeight;
     }
 
-    // 2. Stars for night/boss - Paper Mario style with outlines
+    // Floating crypto symbols (subtle background layer)
+    if (!isBearMarket && !(boss && boss.active)) {
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        for (let i = 0; i < floatingSymbols.length; i++) {
+            const s = floatingSymbols[i];
+            const wobbleY = Math.sin(s.wobble) * 5;
+            ctx.globalAlpha = s.alpha;
+            ctx.font = `bold ${s.size}px Arial`;
+            ctx.fillStyle = level >= 4 ? '#8888aa' : '#aabbcc';
+            ctx.fillText(s.symbol, s.x, s.y + wobbleY);
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    // 2. Stars for night/boss - Paper Mario style with twinkle
     const isNight = level >= 5 || (boss && boss.active);
 
     if (isNight && !isBearMarket) {
-        ctx.strokeStyle = '#fff';
         ctx.fillStyle = '#ffffcc';
         ctx.lineWidth = 1;
         for (let i = 0; i < 40; i++) {
             const sx = (i * 137 + level * 50) % gameWidth;
             const sy = (i * 89 + level * 30) % (gameHeight * 0.6);
-            const size = (i % 3) + 2;
-            ctx.globalAlpha = 0.5 + (i % 4) * 0.12;
+            const baseSize = (i % 3) + 2;
+            // Twinkle effect: each star has unique phase offset
+            const twinkle = Math.sin(skyTime * (2 + i * 0.3) + i * 1.7);
+            const alpha = 0.4 + (i % 4) * 0.1 + twinkle * 0.25;
+            const size = baseSize * (1 + twinkle * 0.15);
+            ctx.globalAlpha = Math.max(0.15, alpha);
 
             // 4-point star shape (Paper Mario style)
             if (i % 3 === 0) {
@@ -2270,7 +2317,7 @@ function drawSky(ctx) {
                 ctx.closePath();
                 ctx.fill();
             } else {
-                // Simple dot with outline
+                // Simple dot
                 ctx.beginPath();
                 ctx.arc(sx, sy, size * 0.6, 0, Math.PI * 2);
                 ctx.fill();
@@ -2399,47 +2446,56 @@ function createBulletSpark(x, y) {
 }
 
 function createExplosion(x, y, color, count = 12) {
-    // Optimized: fewer particles, simpler shapes, capped
+    // Enhanced explosion with rings and varied particles
     const available = MAX_PARTICLES - particles.length;
     if (available <= 0) return;
 
-    // Scale down count based on available space
-    const actualCount = Math.min(count, Math.floor(available * 0.7));
+    const actualCount = Math.min(count, Math.floor(available * 0.6));
 
-    // Core explosion particles (simple circles)
+    // Core explosion particles (varied sizes for depth)
     for (let i = 0; i < actualCount; i++) {
         const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * 250 + 100;
+        const speed = Math.random() * 280 + 80;
+        const sizeVariant = i < actualCount / 3 ? 7 : (i < actualCount * 2/3 ? 5 : 3);
         addParticle({
-            x: x, y: y,
+            x: x + (Math.random() - 0.5) * 10,
+            y: y + (Math.random() - 0.5) * 10,
             vx: Math.cos(angle) * speed,
             vy: Math.sin(angle) * speed,
-            life: 0.4, maxLife: 0.4,
+            life: 0.45, maxLife: 0.45,
             color: color,
-            size: Math.random() * 5 + 3
+            size: sizeVariant + Math.random() * 2
         });
     }
 
-    // White highlights (reduced)
-    const highlightCount = Math.min(2, available - actualCount);
+    // White spark highlights
+    const highlightCount = Math.min(4, available - actualCount);
     for (let i = 0; i < highlightCount; i++) {
         const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * 80 + 40;
+        const speed = Math.random() * 120 + 60;
         addParticle({
             x: x, y: y,
             vx: Math.cos(angle) * speed,
             vy: Math.sin(angle) * speed,
-            life: 0.3, maxLife: 0.3,
+            life: 0.25, maxLife: 0.25,
             color: '#fff',
-            size: Math.random() * 3 + 2
+            size: Math.random() * 4 + 2
         });
     }
 
-    // Flash ring (keep for impact feel)
+    // Outer flash ring (colored, large)
     addParticle({
         x: x, y: y, vx: 0, vy: 0,
-        life: 0.12, maxLife: 0.12,
-        color: color, size: 20,
+        life: 0.15, maxLife: 0.15,
+        color: color, size: 25,
+        isRing: true
+    });
+
+    // Inner flash ring (white, smaller, faster)
+    addParticle({
+        x: x, y: y, vx: 0, vy: 0,
+        life: 0.1, maxLife: 0.1,
+        color: '#fff', size: 12,
         isRing: true
     });
 }
