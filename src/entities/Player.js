@@ -487,6 +487,44 @@ class Player extends window.Game.Entity {
             ctx.stroke();
         }
 
+        // Core Hitbox Indicator (Ikeda Rule 1 - visible when danger near)
+        // Check if any enemy bullets are within 60px
+        const enemyBullets = window.enemyBullets || [];
+        let dangerNear = false;
+        for (let i = 0; i < enemyBullets.length; i++) {
+            const eb = enemyBullets[i];
+            const dx = eb.x - this.x;
+            const dy = eb.y - this.y;
+            if (dx * dx + dy * dy < 3600) { // 60px radius squared
+                dangerNear = true;
+                break;
+            }
+        }
+
+        if (dangerNear) {
+            const coreR = this.stats.coreHitboxSize || 6;
+            const pulse = Math.sin(this.animTime * 15) * 0.3 + 0.7;
+
+            // Outer glow ring
+            ctx.strokeStyle = `rgba(255, 255, 255, ${pulse * 0.4})`;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(0, 0, coreR + 4, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Core hitbox circle (pulsing white)
+            ctx.fillStyle = `rgba(255, 255, 255, ${pulse * 0.8})`;
+            ctx.beginPath();
+            ctx.arc(0, 0, coreR, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Inner bright core
+            ctx.fillStyle = `rgba(255, 255, 255, ${pulse})`;
+            ctx.beginPath();
+            ctx.arc(0, 0, coreR * 0.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
         ctx.restore();
     }
 

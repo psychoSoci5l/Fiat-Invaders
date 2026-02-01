@@ -197,9 +197,19 @@ window.Game.FIAT_TYPES = [
 ];
 
 window.Game.SHIPS = {
-    BTC: { speed: 420, hp: 3, fireRate: 0.26, color: '#F7931A', hitboxSize: 30 },
-    ETH: { speed: 320, hp: 4, fireRate: 0.57, color: '#8c7ae6', hitboxSize: 38 },
-    SOL: { speed: 560, hp: 2, fireRate: 0.20, color: '#00d2d3', hitboxSize: 18 }
+    BTC: { speed: 420, hp: 3, fireRate: 0.26, color: '#F7931A', hitboxSize: 30, coreHitboxSize: 6 },
+    ETH: { speed: 320, hp: 4, fireRate: 0.57, color: '#8c7ae6', hitboxSize: 38, coreHitboxSize: 8 },
+    SOL: { speed: 560, hp: 2, fireRate: 0.20, color: '#00d2d3', hitboxSize: 18, coreHitboxSize: 4 }
+};
+
+// Bullet Hell Color Palette (Ikeda Style - High Contrast)
+window.Game.BULLET_HELL_COLORS = {
+    PINK: '#ff69b4',
+    CYAN: '#00ffff',
+    MAGENTA: '#ff00ff',
+    YELLOW: '#ffff00',
+    WHITE: '#ffffff',
+    ORANGE: '#ff8c00'
 };
 
 window.Game.ASSETS = {};

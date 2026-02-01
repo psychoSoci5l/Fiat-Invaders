@@ -70,6 +70,13 @@
             <span id="killNum">0</span>
             <span id="killLabel">KILLS</span>
         </div>
+
+        <!-- Graze Meter (Ikeda Rule 3) -->
+        <div id="graze-meter">
+            <div id="graze-fill"></div>
+            <span id="graze-label">GRAZE</span>
+            <span id="graze-count">0</span>
+        </div>
     </div>
 
     <div id="intro-screen" style="display: none;">
@@ -217,13 +224,113 @@
             </div>
 
             <div class="how-to-play paper-box">
-                <h3>COME GIOCARE</h3>
+                <h3>CONTROLLI</h3>
                 <p><span class="icon-tag">⌨️</span> Frecce = Muovi • Spazio = Spara • Giù = Scudo</p>
                 <p><span class="icon-tag">📱</span> Swipe o Joystick = Muovi • Icona = Scudo</p>
-                <p class="tip-text">💡 Stai fermo per HODL MODE (Punteggio x2)</p>
             </div>
 
+            <button class="btn-cell help-btn" onclick="toggleHelpPanel()">? HELP</button>
             <button class="btn-cell" onclick="toggleSettings()">CHIUDI</button>
+        </div>
+    </div>
+
+    <!-- HELP PANEL - Game Mechanics -->
+    <div id="help-panel" style="display: none;">
+        <div class="modal-content paper-modal help-modal">
+            <h2 class="modal-title">COME FARE PUNTI</h2>
+
+            <div class="help-section">
+                <h3>💰 SCORING</h3>
+                <div class="help-item">
+                    <span class="help-icon">💀</span>
+                    <div class="help-text">
+                        <strong>Kill Enemies</strong>
+                        <p>Ogni nemico ucciso = punti base (20-100 in base al tipo)</p>
+                    </div>
+                </div>
+                <div class="help-item">
+                    <span class="help-icon">💎</span>
+                    <div class="help-text">
+                        <strong>HODL Mode (2x Score)</strong>
+                        <p>Stai fermo mentre spari = danno e punti doppi!</p>
+                    </div>
+                </div>
+                <div class="help-item">
+                    <span class="help-icon">🔥</span>
+                    <div class="help-text">
+                        <strong>Kill Streak</strong>
+                        <p>Uccidi senza essere colpito per bonus streak</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="help-section">
+                <h3>✨ GRAZE SYSTEM</h3>
+                <div class="help-item">
+                    <span class="help-icon">⚡</span>
+                    <div class="help-text">
+                        <strong>Sfiora i Proiettili</strong>
+                        <p>Passa VICINO ai proiettili nemici senza toccarli</p>
+                    </div>
+                </div>
+                <div class="help-item">
+                    <span class="help-icon">📊</span>
+                    <div class="help-text">
+                        <strong>Graze Meter</strong>
+                        <p>Riempi il meter per aumentare il moltiplicatore (fino a 1.5x)</p>
+                    </div>
+                </div>
+                <div class="help-item">
+                    <span class="help-icon">🎁</span>
+                    <div class="help-text">
+                        <strong>Graze Bonus</strong>
+                        <p>Ogni 50 graze = perk bonus automatico!</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="help-section">
+                <h3>🎯 HITBOX</h3>
+                <div class="help-item">
+                    <span class="help-icon">⭕</span>
+                    <div class="help-text">
+                        <strong>Core Hitbox</strong>
+                        <p>Solo il CENTRO della nave prende danno. Il cerchio bianco indica la zona di pericolo.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="help-section">
+                <h3>⬆️ POWER-UPS</h3>
+                <div class="help-item">
+                    <span class="help-icon">🔱</span>
+                    <div class="help-text">
+                        <strong>Armi</strong>
+                        <p>WIDE (triplo largo) • NARROW (triplo stretto) • FIRE (penetrante)</p>
+                    </div>
+                </div>
+                <div class="help-item">
+                    <span class="help-icon">🚀</span>
+                    <div class="help-text">
+                        <strong>Ship Boost</strong>
+                        <p>SPEED (velocità) • RAPID (fire rate) • SHIELD (scudo istantaneo)</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="help-section">
+                <h3>🐻 BEAR MARKET</h3>
+                <div class="help-item">
+                    <span class="help-icon">📈</span>
+                    <div class="help-text">
+                        <strong>Hard Mode</strong>
+                        <p>Nemici più veloci e aggressivi, ma PUNTI DOPPI!</p>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-cell" onclick="toggleHelpPanel()">CHIUDI</button>
+        </div>
         </div>
     </div>
 
@@ -282,6 +389,7 @@
 
     <!-- Ordered Scripts for file:// compatibility (Namespace Pattern) -->
     <script src="src/utils/Constants.js"></script>
+    <script src="src/systems/BulletPatterns.js"></script>
     <script src="src/core/EventBus.js"></script>
     <script src="src/utils/RunState.js"></script>
     <script src="src/utils/Upgrades.js"></script>

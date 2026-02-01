@@ -146,85 +146,137 @@ class Boss extends window.Game.Entity {
         const bullets = [];
         const cx = this.x + this.width / 2;
         const cy = this.y + this.height;
+        const Patterns = window.Game.BulletPatterns;
+        const Colors = window.Game.BULLET_HELL_COLORS || {};
 
-        // All bullet speeds reduced 15%
-        if (this.phase === 1) {
-            // PHASE 1: Spread shot (5 bullets in arc)
-            this.fireTimer = 1.2;
+        // Fallback if BulletPatterns not loaded
+        if (!Patterns) {
+            // Simple spread shot fallback
+            this.fireTimer = 1.0;
             for (let i = -2; i <= 2; i++) {
                 const angle = Math.PI / 2 + (i * 0.25);
                 bullets.push({
-                    x: cx,
-                    y: cy - 20,
-                    vx: Math.cos(angle) * 187,
-                    vy: Math.sin(angle) * 187,
-                    color: '#2ecc71', w: 8, h: 8
+                    x: cx, y: cy - 20,
+                    vx: Math.cos(angle) * 180,
+                    vy: Math.sin(angle) * 180,
+                    color: '#ff69b4', w: 10, h: 10
                 });
+            }
+            return bullets;
+        }
+
+        // Ikeda-style geometric patterns per phase
+        if (this.phase === 1) {
+            // PHASE 1: Alternating expandingRing and sineWave
+            this.fireTimer = 0.8;
+            this.angle += 0.15;
+
+            // Every other attack: ring vs wave
+            if (Math.floor(this.angle * 2) % 2 === 0) {
+                // Expanding ring (cyan)
+                const ringBullets = Patterns.expandingRing(cx, cy - 20, this.angle, {
+                    count: 12,
+                    speed: 140,
+                    color: Colors.CYAN || '#00ffff',
+                    size: 10,
+                    rotate: true
+                });
+                bullets.push(...ringBullets);
+            } else {
+                // Sine wave (pink)
+                const waveBullets = Patterns.sineWave(cx, cy - 20, this.animTime, {
+                    count: 10,
+                    width: 350,
+                    amplitude: 25,
+                    speed: 160,
+                    color: Colors.PINK || '#ff69b4',
+                    size: 8
+                });
+                bullets.push(...waveBullets);
             }
         } else if (this.phase === 2) {
-            // PHASE 2: Spiral + aimed shot
-            this.fireTimer = 0.25;
-            this.angle += 0.35;
+            // PHASE 2: Spiral + flower burst every 3s
+            this.fireTimer = 0.18;
+            this.angle += 0.3;
 
-            // Spiral
-            for (let i = 0; i < 2; i++) {
-                const a = this.angle + (i * Math.PI);
-                bullets.push({
-                    x: cx,
-                    y: cy - 30,
-                    vx: Math.cos(a) * 238,
-                    vy: Math.sin(a) * 238,
-                    color: '#f39c12', w: 10, h: 10
+            // Dual spiral (orange)
+            const spiralBullets = Patterns.spiral(cx, cy - 20, this.angle, {
+                arms: 2,
+                speed: 200,
+                color: Colors.ORANGE || '#ff8c00',
+                size: 10
+            });
+            bullets.push(...spiralBullets);
+
+            // Flower burst every ~3 seconds
+            if (Math.floor(this.animTime * 0.33) !== Math.floor((this.animTime - 0.18) * 0.33)) {
+                const flowerBullets = Patterns.flower(cx, cy - 30, this.animTime, {
+                    petals: 6,
+                    bulletsPerPetal: 3,
+                    speed: 180,
+                    color: Colors.MAGENTA || '#ff00ff',
+                    size: 9
                 });
+                bullets.push(...flowerBullets);
             }
 
-            // Aimed shot every 4th attack
-            if (Math.floor(this.angle * 10) % 4 === 0 && player) {
-                const dx = player.x - cx;
-                const dy = player.y - cy;
-                const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-                bullets.push({
-                    x: cx,
-                    y: cy,
-                    vx: (dx / dist) * 298,
-                    vy: (dy / dist) * 298,
-                    color: '#e74c3c', w: 12, h: 12
+            // Aimed burst occasionally
+            if (Math.floor(this.angle * 3) % 5 === 0 && player) {
+                const aimedBullets = Patterns.aimedBurst(cx, cy, player.x, player.y, {
+                    count: 3,
+                    speed: 250,
+                    spread: 0.3,
+                    color: '#e74c3c',
+                    size: 11
                 });
+                bullets.push(...aimedBullets);
             }
         } else {
-            // PHASE 3: CHAOS - Triple spiral + laser sweep
-            this.fireTimer = 0.12;
-            this.angle += 0.25;
-            this.laserAngle += 0.08;
+            // PHASE 3: CHAOS - Quad spiral + curtain with gap
+            this.fireTimer = 0.1;
+            this.angle += 0.22;
+            this.laserAngle += 0.06;
 
-            // Triple spiral
-            for (let i = 0; i < 3; i++) {
-                const a = this.angle + (i * Math.PI * 2 / 3);
-                bullets.push({
-                    x: cx,
-                    y: cy - 20,
-                    vx: Math.cos(a) * 255,
-                    vy: Math.sin(a) * 255,
-                    color: '#e74c3c', w: 10, h: 10
+            // Quad spiral (yellow/pink alternating)
+            const spiralColor = Math.floor(this.angle * 2) % 2 === 0 ?
+                (Colors.YELLOW || '#ffff00') : (Colors.PINK || '#ff69b4');
+            const spiralBullets = Patterns.spiral(cx, cy - 20, this.angle, {
+                arms: 4,
+                speed: 220,
+                color: spiralColor,
+                size: 10
+            });
+            bullets.push(...spiralBullets);
+
+            // Curtain with gap (follows player) every ~1.5s
+            if (Math.floor(this.animTime * 0.67) !== Math.floor((this.animTime - 0.1) * 0.67) && player) {
+                const curtainBullets = Patterns.curtain(cx, cy - 40, player.x, {
+                    width: 450,
+                    count: 18,
+                    gapSize: 70,
+                    speed: 180,
+                    color: Colors.CYAN || '#00ffff',
+                    size: 9
                 });
+                bullets.push(...curtainBullets);
             }
 
-            // Side cannons
-            const sideAngle = Math.PI / 2 + Math.sin(this.laserAngle) * 0.5;
-            bullets.push({
-                x: this.x + 20,
-                y: cy - 40,
-                vx: Math.cos(sideAngle - 0.3) * 213,
-                vy: Math.sin(sideAngle - 0.3) * 213,
-                color: '#9b59b6', w: 8, h: 8
+            // Side cannons with double helix
+            const helixBullets = Patterns.doubleHelix(this.x + 20, cy - 30, this.laserAngle, {
+                speed: 200,
+                color1: Colors.PINK || '#ff69b4',
+                color2: Colors.CYAN || '#00ffff',
+                size: 8
             });
-            bullets.push({
-                x: this.x + this.width - 20,
-                y: cy - 40,
-                vx: Math.cos(sideAngle + 0.3) * 213,
-                vy: Math.sin(sideAngle + 0.3) * 213,
-                color: '#9b59b6', w: 8, h: 8
+            bullets.push(...helixBullets);
+
+            const helixBullets2 = Patterns.doubleHelix(this.x + this.width - 20, cy - 30, this.laserAngle + Math.PI, {
+                speed: 200,
+                color1: Colors.CYAN || '#00ffff',
+                color2: Colors.PINK || '#ff69b4',
+                size: 8
             });
+            bullets.push(...helixBullets2);
         }
 
         return bullets;

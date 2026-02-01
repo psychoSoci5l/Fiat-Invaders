@@ -22,6 +22,7 @@ window.isBearMarket = isBearMarket; // Expose globally for WaveManager
 // Game Entities
 let player;
 let bullets = [], enemyBullets = [], enemies = [], powerUps = [], particles = [], floatingTexts = [], muzzleFlashes = [];
+window.enemyBullets = enemyBullets; // Expose for Player core hitbox indicator
 let clouds = []; // ☁️
 let hills = []; // 🏔️ Paper Mario parallax hills
 let floatingSymbols = []; // ₿ Floating crypto symbols in background
@@ -98,6 +99,15 @@ window.marketCycle = marketCycle; // Expose for WaveManager
 window.currentLevel = level; // Expose for WaveManager difficulty calculation
 let bulletCancelStreak = 0;
 let bulletCancelTimer = 0;
+
+// --- GRAZING SYSTEM (Ikeda Rule 3) ---
+let grazeCount = 0;           // Total graze count this run
+let grazeMeter = 0;           // 0-100 meter fill
+let grazeMultiplier = 1.0;    // Score multiplier from grazing (up to 1.5x)
+const GRAZE_RADIUS = 25;      // Pixels outside core hitbox for graze detection
+const GRAZE_PERK_THRESHOLD = 50; // Graze count to trigger bonus perk
+let lastGrazeSoundTime = 0;   // Throttle graze sound
+
 let enemyFirePhase = 0;
 let enemyFireTimer = 0;
 let enemyFireStride = 6; // Increased: fewer enemies per group (was 4)
@@ -659,14 +669,12 @@ function init() {
     if (startBtn) {
         startBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            audioSys.init(); // Force Init on first user gesture
-            if (audioSys.ctx && audioSys.ctx.state === 'suspended') audioSys.ctx.resume();
+            audioSys.init(); // Create context (stays suspended until user unmutes)
             inputSys.trigger('start');
         });
         startBtn.addEventListener('touchstart', (e) => {
             e.stopPropagation(); e.preventDefault();
             audioSys.init();
-            if (audioSys.ctx && audioSys.ctx.state === 'suspended') audioSys.ctx.resume();
             inputSys.trigger('start');
         });
     }
@@ -721,21 +729,6 @@ function init() {
             if (G.Input && G.Input.setJoystickSettings) G.Input.setJoystickSettings(null, s);
         });
     }
-
-    // GLOBAL AUDIO UNLOCKER: Catch-all for any interaction
-    const unlockAudio = () => {
-        if (!audioSys.ctx) audioSys.init(); // Force Create
-        if (audioSys.ctx && audioSys.ctx.state === 'suspended') {
-            audioSys.unlockWebAudio(); // Apply iOS Hack
-            audioSys.ctx.resume().then(() => {
-                // Audio Unlocked Globally
-                updateMuteUI(false);
-            });
-        }
-    };
-    document.addEventListener('click', unlockAudio);
-    document.addEventListener('touchstart', unlockAudio);
-    document.addEventListener('touchend', unlockAudio);
 
     resize();
     window.addEventListener('resize', resize);
@@ -938,6 +931,10 @@ function updateUIText() {
 
 window.toggleLang = function () { currentLang = (currentLang === 'EN') ? 'IT' : 'EN'; updateUIText(); };
 window.toggleSettings = function () { setStyle('settings-modal', 'display', (document.getElementById('settings-modal').style.display === 'flex') ? 'none' : 'flex'); updateUIText(); };
+window.toggleHelpPanel = function () {
+    const panel = document.getElementById('help-panel');
+    if (panel) panel.style.display = (panel.style.display === 'flex') ? 'none' : 'flex';
+};
 window.toggleControlMode = function () {
     const useJoystick = !(G.Input && G.Input.touch && G.Input.touch.useJoystick);
     if (G.Input && G.Input.setControlMode) G.Input.setControlMode(useJoystick ? 'JOYSTICK' : 'SWIPE');
@@ -955,16 +952,10 @@ function showControlToast(mode) {
     }, 1200);
 }
 window.goToHangar = function () {
-    audioSys.init(); // Ensure Context is ready
-    audioSys.startMusic(); // START THE BEAT
-    audioSys.play('coin');
+    audioSys.init(); // Create context (stays suspended until user unmutes)
+    audioSys.startMusic(); // Queue music (plays when unmuted)
     window.scrollTo(0, 0);
     setStyle('intro-screen', 'display', 'none');
-
-    // Update Mute Icon since startMusic resumes context
-    const muteBtn = document.getElementById('mute-btn');
-    if (muteBtn && audioSys.ctx && audioSys.ctx.state === 'running') muteBtn.innerText = '🔊';
-
     setStyle('hangar-screen', 'display', 'flex');
     gameState = 'HANGAR';
     initSky(); // Start BG effect early
@@ -976,13 +967,8 @@ window.launchShipAndStart = function () {
     if (isLaunching) return;
     isLaunching = true;
 
-    // iOS Audio Unlock: Must happen in direct response to user interaction
+    // Init audio context (stays suspended until user unmutes)
     if (!audioSys.ctx) audioSys.init();
-    if (audioSys.ctx && audioSys.ctx.state === 'suspended') {
-        audioSys.unlockWebAudio();
-        audioSys.ctx.resume();
-    }
-    audioSys.play('coin');
 
     const shipCanvas = document.getElementById('intro-ship-canvas');
     const introScreen = document.getElementById('intro-screen');
@@ -1372,6 +1358,8 @@ function startGame() {
     score = 0; displayScore = 0; level = 1; lives = 3; setUI('scoreVal', '0'); setUI('lvlVal', '1'); setUI('livesText', lives);
     bullets = []; enemies = []; enemyBullets = []; powerUps = []; particles = []; floatingTexts = []; muzzleFlashes = []; boss = null;
     G.enemies = enemies; // Expose for Boss Spawning logic
+    window.enemyBullets = enemyBullets; // Update for Player core hitbox indicator
+    grazeCount = 0; grazeMeter = 0; grazeMultiplier = 1.0; updateGrazeUI(); // Reset grazing
 
     waveMgr.reset();
     gridDir = 1;
@@ -1416,6 +1404,7 @@ function startIntermission(msgOverride) {
     waveMgr.intermissionTimer = 1.9; // 25% shorter pause (was 2.5)
     waveMgr.waveInProgress = false; // Safety reset
     bullets = []; enemyBullets = [];
+    window.enemyBullets = enemyBullets; // Update for Player core hitbox indicator
 
     // Pick a random meme for the countdown
     const memePool = [...(Constants.MEMES.LOW || []), ...(Constants.MEMES.SAYLOR || [])];
@@ -1460,6 +1449,7 @@ function spawnMiniBoss(symbol, color) {
     // Clear regular enemies and bullets for 1v1 fight
     enemyBullets.forEach(b => { b.markedForDeletion = true; G.Bullet.Pool.release(b); });
     enemyBullets = [];
+    window.enemyBullets = enemyBullets; // Update for Player core hitbox indicator
 
     // Store current enemies to restore later
     const savedEnemies = [...enemies];
@@ -1825,6 +1815,7 @@ function updateBullets(dt) {
     }
 
     // Enemy Bullets (Now using Bullet class instances from Pool)
+    // Ikeda Rule 1: Core Hitbox - tiny hitbox for damage, larger graze zone
     for (let i = enemyBullets.length - 1; i >= 0; i--) {
         let eb = enemyBullets[i];
         if (!eb) { enemyBullets.splice(i, 1); continue; } // Safety check
@@ -1833,8 +1824,16 @@ function updateBullets(dt) {
             G.Bullet.Pool.release(eb);
             enemyBullets.splice(i, 1);
         } else {
-            const hitR = player.stats.hitboxSize || 30;
-            if (Math.abs(eb.x - player.x) < hitR && Math.abs(eb.y - player.y) < hitR) {
+            // Core hitbox for actual damage (tiny - Ikeda Rule 1)
+            const coreR = player.stats.coreHitboxSize || 6;
+            // Graze radius - outer zone for grazing points (Ikeda Rule 3)
+            const grazeR = coreR + GRAZE_RADIUS;
+
+            const dx = Math.abs(eb.x - player.x);
+            const dy = Math.abs(eb.y - player.y);
+
+            // Check if within core hitbox (take damage)
+            if (dx < coreR && dy < coreR) {
                 if (player.takeDamage()) {
                     updateLivesUI(true); // Hit animation
                     G.Bullet.Pool.release(eb);
@@ -1842,6 +1841,8 @@ function updateBullets(dt) {
                     shake = 20;
                     bulletCancelStreak = 0;
                     bulletCancelTimer = 0;
+                    grazeCount = 0; // Reset graze on hit
+                    grazeMeter = Math.max(0, grazeMeter - 30); // Lose graze meter
                     emitEvent('player_hit', { hp: player.hp, maxHp: player.maxHp });
 
                     if (player.hp <= 0) {
@@ -1852,7 +1853,74 @@ function updateBullets(dt) {
                     streak = 0;
                 }
             }
+            // Check if within graze zone (but not core) - award graze points
+            else if (dx < grazeR && dy < grazeR && !eb.grazed) {
+                eb.grazed = true; // Mark as grazed to prevent double-counting
+                grazeCount++;
+                grazeMeter = Math.min(100, grazeMeter + 2);
+                grazeMultiplier = 1 + (grazeMeter / 200); // Up to 1.5x at full meter
+
+                // Award graze points
+                const grazePoints = Math.floor(5 * grazeMultiplier);
+                score += grazePoints;
+                updateScore(score);
+
+                // Graze visual effect
+                createGrazeSpark(eb.x, eb.y, player.x, player.y);
+
+                // Play graze sound (throttled to avoid spam)
+                const now = totalTime;
+                if (now - lastGrazeSoundTime > 0.1) {
+                    audioSys.play('coin'); // Subtle feedback
+                    lastGrazeSoundTime = now;
+                }
+
+                // Perk bonus every 50 graze
+                if (grazeCount > 0 && grazeCount % GRAZE_PERK_THRESHOLD === 0) {
+                    applyRandomPerk();
+                    showMemePopup("GRAZE BONUS!", 1200);
+                }
+
+                // Update graze HUD
+                updateGrazeUI();
+            }
         }
+    }
+}
+
+// Graze spark effect - particles flying toward player
+function createGrazeSpark(bx, by, px, py) {
+    const dx = px - bx;
+    const dy = py - by;
+    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+    const dirX = dx / dist;
+    const dirY = dy / dist;
+
+    // 2-3 white particles moving toward player
+    for (let i = 0; i < 3; i++) {
+        particles.push({
+            x: bx + (Math.random() - 0.5) * 6,
+            y: by + (Math.random() - 0.5) * 6,
+            vx: dirX * (150 + Math.random() * 100) + (Math.random() - 0.5) * 50,
+            vy: dirY * (150 + Math.random() * 100) + (Math.random() - 0.5) * 50,
+            life: 0.25 + Math.random() * 0.15,
+            maxLife: 0.4,
+            size: 2 + Math.random() * 2,
+            color: '#ffffff',
+            type: 'graze'
+        });
+    }
+}
+
+// Update graze meter UI
+function updateGrazeUI() {
+    const fill = document.getElementById('graze-fill');
+    if (fill) {
+        fill.style.width = grazeMeter + '%';
+    }
+    const count = document.getElementById('graze-count');
+    if (count) {
+        count.textContent = grazeCount;
     }
 }
 
@@ -2083,6 +2151,13 @@ function draw() {
         for (let i = 0; i < bullets.length; i++) {
             const b = bullets[i];
             if (b.y > -20 && b.y < gameHeight + 20) b.draw(ctx);
+        }
+
+        // Screen dimming when many enemy bullets (Ikeda Rule 4 - Climax Visual)
+        if (enemyBullets.length > 15) {
+            const dimAlpha = Math.min(0.35, (enemyBullets.length - 15) * 0.015);
+            ctx.fillStyle = `rgba(0, 0, 0, ${dimAlpha})`;
+            ctx.fillRect(0, 0, gameWidth, gameHeight);
         }
 
         // Enemy bullets with culling

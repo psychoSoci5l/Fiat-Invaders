@@ -10,6 +10,10 @@ class AudioSystem {
         try {
             const AC = window.AudioContext || window.webkitAudioContext;
             this.ctx = new AC();
+            // Force suspended state - user must explicitly unmute
+            if (this.ctx.state === 'running') {
+                this.ctx.suspend();
+            }
         }
         catch (e) {
             console.warn("Audio Context init failed:", e);
@@ -17,11 +21,8 @@ class AudioSystem {
     }
 
     play(type) {
-        if (!this.ctx) return;
-        // iOS: Ensure context is running before playing
-        if (this.ctx.state === 'suspended') {
-            this.ctx.resume();
-        }
+        // Only play sounds if audio is unmuted (context running)
+        if (!this.ctx || this.ctx.state !== 'running') return;
         const t = this.ctx.currentTime;
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
@@ -121,6 +122,11 @@ class AudioSystem {
 
     schedule() {
         if (!this.isPlaying) return;
+        // Don't schedule if muted (context suspended)
+        if (this.ctx.state !== 'running') {
+            this.timerID = setTimeout(() => this.schedule(), 100);
+            return;
+        }
         while (this.noteTime < this.ctx.currentTime + 0.2) {
             this.playBassNote(this.noteTime, this.noteIndex);
             if (this.noteIndex % 2 === 0) { // Melody is half-speed (8th notes) or full speed? Let's do arps on 16ths
@@ -200,14 +206,16 @@ class AudioSystem {
         if (!this.ctx) this.init();
         if (!this.ctx) return true; // Failed to init
 
-        // Fix for iOS/Safari: If suspended (Autoplay policy), force resume immediately.
-        // This acts as "Unmute" via user interaction.
+        // If suspended, unmute (resume)
         if (this.ctx.state === 'suspended') {
+            this.unlockWebAudio(); // iOS hack
             this.ctx.resume().catch(e => console.error(e));
+            // Start music if not already playing
+            if (!this.isPlaying) this.startMusic();
             return false; // Now Unmuted
         }
 
-        // If running, we suspend (Mute)
+        // If running, mute (suspend)
         if (this.ctx.state === 'running') {
             this.ctx.suspend();
             return true; // Now Muted

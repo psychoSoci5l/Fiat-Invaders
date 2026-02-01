@@ -12,6 +12,7 @@ class Bullet extends window.Game.Entity {
         this.height = h;
         this.weaponType = 'NORMAL'; // Default weapon type
         this.age = 0; // Animation timer
+        this.grazed = false; // Graze tracking (Ikeda Rule 3)
     }
 
     reset(x, y, vx, vy, color, w, h, isHodl) {
@@ -27,6 +28,7 @@ class Bullet extends window.Game.Entity {
         this.penetration = false;
         this.weaponType = 'NORMAL'; // Default, set by Player.fire()
         this.age = 0; // For animations
+        this.grazed = false; // Graze tracking (Ikeda Rule 3)
     }
 
     update(dt) {
@@ -318,11 +320,12 @@ class Bullet extends window.Game.Entity {
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    // ENEMY: Aggressive Energy Bolt - Fiat danger projectile
+    // ENEMY: Aggressive Energy Bolt - Bullet Hell Style (Ikeda Rule 4)
+    // High contrast, readable even with screen full of projectiles
     // ═══════════════════════════════════════════════════════════════════
     drawEnemyBolt(ctx) {
-        const r = (this.width || 5) * 1.6;  // Scaled up for visibility
-        const pulse = Math.sin(this.age * 25) * 0.12 + 1;
+        const r = (this.width || 5) * 1.8;  // Larger for bullet hell visibility
+        const pulse = Math.sin(this.age * 25) * 0.15 + 1;
 
         // Calculate direction for oriented drawing
         const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy) || 1;
@@ -332,13 +335,13 @@ class Bullet extends window.Game.Entity {
         const perpY = dirX;
 
         // Trail length based on speed
-        const trailLen = Math.min(22, speed * 0.1);
+        const trailLen = Math.min(28, speed * 0.12);
 
-        // Multi-segment fading trail (3 segments)
-        for (let i = 3; i > 0; i--) {
-            const segDist = (i / 3) * trailLen;
-            const segAlpha = 0.15 * (4 - i);
-            const segWidth = r * (0.3 + (i * 0.15));
+        // Multi-segment fading trail (4 segments for longer trail)
+        for (let i = 4; i > 0; i--) {
+            const segDist = (i / 4) * trailLen;
+            const segAlpha = 0.12 * (5 - i);
+            const segWidth = r * (0.25 + (i * 0.12));
 
             ctx.fillStyle = this.color;
             ctx.globalAlpha = segAlpha;
@@ -348,8 +351,8 @@ class Bullet extends window.Game.Entity {
                 this.y - dirY * segDist - perpY * segWidth
             );
             ctx.lineTo(
-                this.x - dirX * (segDist + 6),
-                this.y - dirY * (segDist + 6)
+                this.x - dirX * (segDist + 8),
+                this.y - dirY * (segDist + 8)
             );
             ctx.lineTo(
                 this.x - dirX * segDist + perpX * segWidth,
@@ -360,52 +363,48 @@ class Bullet extends window.Game.Entity {
         }
         ctx.globalAlpha = 1;
 
-        // Outer danger glow (pulsing)
+        // Outer danger glow - LARGER (Ikeda Rule 4: bigger glow)
         ctx.fillStyle = this.color;
-        ctx.globalAlpha = 0.35 * pulse;
+        ctx.globalAlpha = 0.3 * pulse;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, r + 4, 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, r + 8, 0, Math.PI * 2);
         ctx.fill();
         ctx.globalAlpha = 1;
 
-        // Main bolt body - elongated diamond oriented in direction of travel
-        const frontDist = r * 1.6;  // Pointy front
-        const backDist = r * 0.8;   // Shorter back
-        const sideDist = r * 0.9 * pulse;   // Width
+        // Secondary white ring (Ikeda Rule 4: white secondary ring)
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, r + 3, 0, Math.PI * 2);
+        ctx.stroke();
 
+        // Main bolt body - circular for bullet hell style
         ctx.fillStyle = this.color;
         ctx.beginPath();
-        // Front point (direction of travel)
-        ctx.moveTo(this.x + dirX * frontDist, this.y + dirY * frontDist);
-        // Right side
-        ctx.lineTo(this.x + perpX * sideDist, this.y + perpY * sideDist);
-        // Back point
-        ctx.lineTo(this.x - dirX * backDist, this.y - dirY * backDist);
-        // Left side
-        ctx.lineTo(this.x - perpX * sideDist, this.y - perpY * sideDist);
-        ctx.closePath();
+        ctx.arc(this.x, this.y, r * pulse, 0, Math.PI * 2);
         ctx.fill();
 
-        // Bold outline
-        ctx.strokeStyle = '#111';
+        // White contour on bullet (Ikeda Rule 4)
+        ctx.strokeStyle = '#fff';
         ctx.lineWidth = 2;
         ctx.stroke();
 
-        // Inner core (brighter) - smaller diamond
-        const coreScale = 0.5;
-        ctx.fillStyle = this.lightenColorSimple(this.color, 0.4);
+        // Inner colored ring
+        ctx.fillStyle = this.lightenColorSimple(this.color, 0.3);
         ctx.beginPath();
-        ctx.moveTo(this.x + dirX * frontDist * coreScale, this.y + dirY * frontDist * coreScale);
-        ctx.lineTo(this.x + perpX * sideDist * coreScale, this.y + perpY * sideDist * coreScale);
-        ctx.lineTo(this.x - dirX * backDist * coreScale, this.y - dirY * backDist * coreScale);
-        ctx.lineTo(this.x - perpX * sideDist * coreScale, this.y - perpY * sideDist * coreScale);
-        ctx.closePath();
+        ctx.arc(this.x, this.y, r * 0.65, 0, Math.PI * 2);
         ctx.fill();
 
-        // Hot center spark
+        // Bright white core center (Ikeda Rule 4)
         ctx.fillStyle = '#fff';
         ctx.beginPath();
-        ctx.arc(this.x, this.y, r * 0.25, 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, r * 0.35, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Inner core highlight
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.beginPath();
+        ctx.arc(this.x - r * 0.1, this.y - r * 0.1, r * 0.15, 0, Math.PI * 2);
         ctx.fill();
     }
 
