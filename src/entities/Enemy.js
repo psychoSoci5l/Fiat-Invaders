@@ -177,6 +177,9 @@ class Enemy extends window.Game.Entity {
         const offsetY = (Math.random() * 40) - 20;   // Small vertical offset
         this.x += offsetX;
         this.y += offsetY;
+        // Clamp to safe bounds (canvas max 600px, margin 50px)
+        this.x = Math.max(50, Math.min(550, this.x));
+        this.y = Math.max(100, Math.min(500, this.y));
         this.teleportCooldown = 3 + Math.random() * 2; // 3-5 second cooldown
         this.teleportFlash = 1;
         if (window.Game.Audio) window.Game.Audio.play('grazeNearMiss');

@@ -1,7 +1,7 @@
 // Game Constants & Configuration (Namespace Pattern)
 window.Game = window.Game || {};
 
-window.Game.VERSION = "v2.7.1 FIAT vs CRYPTO";
+window.Game.VERSION = "v2.8.0 FIAT vs CRYPTO";
 
 window.Game.TEXTS = {
     EN: {
@@ -227,7 +227,7 @@ window.Game.ASSETS = {};
 window.Game.M_CHARS = "01BTCETH$$£€¥HODL";
 
 // Boss Definitions - Rotation: FED → BCE → BOJ → repeat
-// Uniform difficulty: same base HP, cycle bonus adds ~10% per rotation
+// Uniform difficulty: balanced HP for ~5-8 second fights
 window.Game.BOSSES = {
     FEDERAL_RESERVE: {
         name: 'THE FED',
@@ -238,9 +238,9 @@ window.Game.BOSSES = {
         symbol: '$',
         country: '🇺🇸',
         personality: 'arrogant',
-        baseHp: 5500,               // Increased from 4500 (+22%)
-        hpPerLevel: 500,
-        hpPerCycle: 600             // Uniform cycle scaling
+        baseHp: 2000,               // Reduced for better pacing (was 5500)
+        hpPerLevel: 150,            // Was 500
+        hpPerCycle: 250             // Was 600
     },
     BCE: {
         name: 'BCE',
@@ -251,9 +251,9 @@ window.Game.BOSSES = {
         symbol: '€',
         country: '🇪🇺',
         personality: 'bureaucratic',
-        baseHp: 5500,               // Same as FED (was 5000+850 effective)
-        hpPerLevel: 500,
-        hpPerCycle: 600
+        baseHp: 2000,
+        hpPerLevel: 150,
+        hpPerCycle: 250
     },
     BOJ: {
         name: 'BOJ',
@@ -264,9 +264,9 @@ window.Game.BOSSES = {
         symbol: '¥',
         country: '🇯🇵',
         personality: 'zen',
-        baseHp: 5500,               // Same as others
-        hpPerLevel: 500,
-        hpPerCycle: 600
+        baseHp: 2000,
+        hpPerLevel: 150,
+        hpPerCycle: 250
     }
 };
 

@@ -1,5 +1,31 @@
 # Changelog
 
+## v2.8.0 - 2026-02-01
+### Balance Overhaul
+- **Boss HP drastically reduced**: 5500 → 2000 base HP (-64%)
+- **Boss fire rate slowed**: Phase 2/3 fire timers doubled for fairer fights
+- **Boss fights now ~5-8 seconds** instead of 15+ seconds
+- Mini-boss threshold: 100 → 30 kills (actually spawns now)
+- Perk cooldown: 8s → 4s (more perks per wave)
+- Graze threshold: 120 → 60 (achievable)
+- Weapon drop cooldown: 8s → 5s
+
+### HarmonicConductor Cleanup
+- Removed bullet-hell patterns (spiral, curtain, flower) from normal waves
+- Normal waves now use enemy-based firing only (SYNC_FIRE, SWEEP, CASCADE)
+- Bullet-hell patterns reserved exclusively for boss fights
+- Clearer distinction between regular enemies and boss attacks
+
+### Bug Fixes
+- Fixed duplicate boss phase handler (dialogues triggered twice)
+- Fixed teleport enemies going off-screen (added bounds clamping)
+- Fixed ship stats layout shifting after launch animation (CSS order)
+
+### Performance
+- Implemented particle object pool (100 pre-allocated) to reduce GC churn
+
+---
+
 ## v2.7.1 - 2026-02-01
 ### Bug Fixes
 - Fixed intro screen layout shift when changing ships or game modes

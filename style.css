@@ -623,6 +623,11 @@ body {
     height: 280px;
 }
 
+/* Force correct order: canvas (1) → name (2) → stats (3) */
+#intro-ship-canvas { order: 1; }
+.ship-name { order: 2; }
+.ship-stats { order: 3; }
+
 /* Ship canvas - NO transitions during JS launch animation */
 #intro-ship-canvas {
     filter: drop-shadow(0 0 20px rgba(247, 147, 26, 0.6));

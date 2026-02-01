@@ -134,7 +134,7 @@ const BULLET_CANCEL_FOR_PERK = 5; // Bullets to cancel for perk (was 3)
 
 // --- PERK COOLDOWN ---
 let perkCooldown = 0;         // Cooldown timer between perks
-const PERK_COOLDOWN_TIME = 8; // Seconds between perk rewards
+const PERK_COOLDOWN_TIME = 4; // Seconds between perk rewards (was 8)
 
 // --- PERK PAUSE SYSTEM ---
 let perkPauseTimer = 0;       // When > 0, game is paused for perk display
@@ -152,7 +152,7 @@ let grazeMeter = 0;           // 0-100 meter fill
 let grazeMultiplier = 1.0;    // Score multiplier from grazing (up to 1.5x)
 const GRAZE_RADIUS = 25;      // Pixels outside core hitbox for graze detection
 const GRAZE_CLOSE_RADIUS = 15; // Close graze radius for 2x bonus
-const GRAZE_PERK_THRESHOLD = 120; // Graze count to trigger bonus perk (was 80)
+const GRAZE_PERK_THRESHOLD = 60; // Graze count to trigger bonus perk (was 120)
 const GRAZE_DECAY_RATE = 5;   // Meter decay per second when not grazing
 const MAX_GRAZE_PERKS_PER_LEVEL = 2; // Cap graze perks per level
 let grazePerksThisLevel = 0;  // Track graze perks awarded this level
@@ -175,12 +175,12 @@ const FIBONACCI_SEQ = [1, 1, 2, 3, 5, 8, 13, 21, 34, 55]; // Pre-computed
 
 // Fiat Kill Counter System - Mini Boss every 100 kills of same type
 let fiatKillCounter = { '¥': 0, '₽': 0, '₹': 0, '€': 0, '£': 0, '₣': 0, '₺': 0, '$': 0, '元': 0, 'Ⓒ': 0 };
-const MINI_BOSS_THRESHOLD = 100;
+const MINI_BOSS_THRESHOLD = 30; // Kills of same currency to spawn mini-boss (was 100)
 let miniBoss = null; // Special boss spawned from kill counter
 
 // Drop system: tier-based with cooldown and pity timer
 let lastWeaponDropTime = 0;
-const WEAPON_DROP_COOLDOWN = 8.0; // Minimum seconds between weapon drops
+const WEAPON_DROP_COOLDOWN = 5.0; // Minimum seconds between weapon drops (was 8)
 let killsSinceLastDrop = 0;
 const PITY_TIMER_KILLS = 30; // Guaranteed drop after this many kills without one
 
@@ -1546,6 +1546,8 @@ function startGame() {
     score = 0; displayScore = 0; level = 1; lives = 3; setUI('scoreVal', '0'); setUI('lvlVal', '1'); setUI('livesText', lives);
     updateDifficultyCache(); // Initialize difficulty cache for level 1
     audioSys.setLevel(1, true); // Set music theme for level 1 (instant, no crossfade)
+    // Release pooled particles before clearing
+    particles.forEach(p => releaseParticle(p));
     bullets = []; enemies = []; enemyBullets = []; powerUps = []; particles = []; floatingTexts = []; muzzleFlashes = []; perkIcons = []; boss = null;
     G.enemies = enemies; // Expose for Boss Spawning logic
     window.enemyBullets = enemyBullets; // Update for Player core hitbox indicator
@@ -1722,9 +1724,10 @@ function spawnBoss() {
     boss = new G.Boss(gameWidth, gameHeight, bossType);
 
     // Scale boss HP using boss config + perk-aware scaling
-    const baseHp = bossConfig.baseHp || 4500;
-    const hpPerLevel = bossConfig.hpPerLevel || 600;
-    const hpPerCycle = bossConfig.hpPerCycle || 800;
+    // Reduced significantly for better pacing (was 4500/600/800)
+    const baseHp = bossConfig.baseHp || 1800;
+    const hpPerLevel = bossConfig.hpPerLevel || 150;
+    const hpPerCycle = bossConfig.hpPerCycle || 300;
 
     // Perk-aware scaling: boss gets stronger based on player's accumulated power
     const perkCount = (runState && runState.perks) ? runState.perks.length : 0;
@@ -2397,7 +2400,7 @@ function createGrazeSpark(bx, by, px, py, isCloseGraze = false) {
     const sizeBase = isCloseGraze ? 3 : 2;
 
     for (let i = 0; i < count; i++) {
-        particles.push({
+        addParticle({
             x: bx + (Math.random() - 0.5) * 6,
             y: by + (Math.random() - 0.5) * 6,
             vx: dirX * (150 + Math.random() * 100) + (Math.random() - 0.5) * 50,
@@ -3509,13 +3512,19 @@ function drawPerkIcons(ctx) {
     }
 }
 
-// --- PARTICLES (Optimized) ---
+// --- PARTICLES (Optimized with Object Pool) ---
 const MAX_PARTICLES = 80;
 
-function addParticle(p) {
+function addParticle(props) {
     if (particles.length >= MAX_PARTICLES) return false;
+    // Use pool to avoid GC churn
+    const p = G.ParticlePool ? G.ParticlePool.acquire(props) : props;
     particles.push(p);
     return true;
+}
+
+function releaseParticle(p) {
+    if (G.ParticlePool) G.ParticlePool.release(p);
 }
 
 function createBulletSpark(x, y) {
@@ -3807,6 +3816,7 @@ function updateParticles(dt) {
             const dist = Math.sqrt(dx * dx + dy * dy);
 
             if (dist < 30) {
+                releaseParticle(p);
                 particles.splice(i, 1);
                 continue;
             }
@@ -3832,6 +3842,7 @@ function updateParticles(dt) {
 
             // Remove dead or offscreen particles
             if (p.life <= 0 || p.x < -50 || p.x > gameWidth + 50 || p.y > gameHeight + 50) {
+                releaseParticle(p);
                 particles.splice(i, 1);
             }
         }

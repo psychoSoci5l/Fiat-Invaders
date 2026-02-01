@@ -94,11 +94,6 @@ class Boss extends window.Game.Entity {
             window.Game.HarmonicConductor.setBossSequence(newPhase);
         }
 
-        // Story: Boss phase change dialogue
-        if (window.Game.Story) {
-            window.Game.Story.onBossPhaseChange(newPhase, this.bossType);
-        }
-
         // Screen shake via global
         if (typeof shake !== 'undefined') shake = 30;
     }
@@ -358,14 +353,14 @@ class Boss extends window.Game.Entity {
                 bullets.push(...waveBullets);
             }
         } else if (this.phase === 2) {
-            this.fireTimer = 0.18;
+            this.fireTimer = 0.35; // Balanced: was 0.18 (too fast)
             this.angle += 0.3;
             const spiralBullets = Patterns.spiral(cx, cy - 20, this.angle, {
                 arms: 2, speed: 200, color: Colors.ORANGE || '#ff8c00', size: 10
             });
             bullets.push(...spiralBullets);
 
-            if (Math.floor(this.animTime * 0.33) !== Math.floor((this.animTime - 0.18) * 0.33)) {
+            if (Math.floor(this.animTime * 0.33) !== Math.floor((this.animTime - 0.35) * 0.33)) {
                 const flowerBullets = Patterns.flower(cx, cy - 30, this.animTime, {
                     petals: 6, bulletsPerPetal: 3, speed: 180, color: Colors.MAGENTA || '#ff00ff', size: 9
                 });
@@ -379,7 +374,7 @@ class Boss extends window.Game.Entity {
                 bullets.push(...aimedBullets);
             }
         } else {
-            this.fireTimer = 0.1;
+            this.fireTimer = 0.2; // Balanced: was 0.1 (too fast)
             this.angle += 0.22;
             this.laserAngle += 0.06;
 
@@ -390,7 +385,7 @@ class Boss extends window.Game.Entity {
             });
             bullets.push(...spiralBullets);
 
-            if (Math.floor(this.animTime * 0.67) !== Math.floor((this.animTime - 0.1) * 0.67) && player) {
+            if (Math.floor(this.animTime * 0.67) !== Math.floor((this.animTime - 0.2) * 0.67) && player) {
                 const curtainBullets = Patterns.curtain(cx, cy - 40, player.x, {
                     width: 450, count: 18, gapSize: 70, speed: 180, color: Colors.CYAN || '#00ffff', size: 9
                 });
@@ -549,7 +544,7 @@ class Boss extends window.Game.Entity {
                 bullets.push(...waveBullets);
             } else {
                 // INTERVENTION! Fast aimed burst
-                this.fireTimer = 0.15;
+                this.fireTimer = 0.25; // Balanced: was 0.15
                 if (player) {
                     const burstBullets = Patterns.aimedBurst(cx, cy - 20, player.x, player.y, {
                         count: 5, speed: 280, spread: 0.4, color: '#ffffff', size: 11
@@ -568,7 +563,7 @@ class Boss extends window.Game.Entity {
 
         } else {
             // FULL INTERVENTION: Bouncing bullets, chaos
-            this.fireTimer = 0.12;
+            this.fireTimer = 0.2; // Balanced: was 0.12
             this.wavePhase += 0.25;
             this.angle += 0.18;
 

@@ -370,6 +370,43 @@
 - **Campaign Victory Screen**: Special golden victory overlay when all bosses defeated
 - **NG+ System**: Carry perks, +25% difficulty per NG+ cycle
 
+## Phase 19.5: Bug Fixes & Balance Pass 🐛 ✅
+*Goal: Fix critical bugs and balance issues from code audit (Feb 1, 2026).*
+
+### Bug Fixes Applied:
+- [x] **Duplicate Boss Phase Handler**: Removed duplicate `onBossPhaseChange()` call in Boss.js:97-100
+- [x] **Teleport Bounds Fix**: Added clamping in `Enemy.js:doTeleport()` (x: 50-550, y: 100-500)
+- [x] **Particle Object Pool**: Implemented in ObjectPool.js with 100 pre-allocated particles
+- [x] **Ship Stats Layout**: Added CSS `order` to fix stats positioning after launch animation
+
+### Balance Adjustments:
+- [x] **Mini-Boss Threshold**: 100 → 30 kills (now spawns during normal gameplay)
+- [x] **Perk Cooldown**: 8s → 4s (more perks in shorter waves)
+- [x] **Graze Threshold**: 120 → 60 (achievable with 5/sec decay)
+- [x] **Weapon Drop Cooldown**: 8s → 5s (more variety per wave)
+
+### Boss Balance (Major):
+- [x] **Boss HP Reduced**: 5500/500/600 → 2000/150/250 (baseHp/perLevel/perCycle)
+- [x] **Boss FireTimer Phase 2**: FED 0.18s → 0.35s, BOJ 0.15s → 0.25s
+- [x] **Boss FireTimer Phase 3**: FED 0.10s → 0.20s, BOJ 0.12s → 0.20s
+- [x] **Boss fights now ~5-8 seconds** instead of 15+ seconds
+
+### HarmonicConductor Cleanup:
+- [x] **Removed bullet-hell patterns from normal waves** (spiral, curtain, flower, ring)
+- [x] **Normal waves now use**: SYNC_FIRE, SWEEP, CASCADE, AIMED_VOLLEY only
+- [x] **Bullet-hell patterns reserved for boss fights only**
+
+### Documentation Note:
+> ⚠️ The initial audit incorrectly flagged HarmonicConductor as "dead code" because
+> roadmap/comments were outdated. It was actually ACTIVE and managing enemy firing.
+> Always verify code behavior before removing systems marked as "unused".
+
+### Known Issues (Non-Critical):
+- [ ] **DialogueData.js**: Empty file, story dialogues not fully implemented
+- [ ] **Perk Bar Hidden**: `renderPerkBar()` disabled intentionally for cleaner UI
+
+---
+
 ## Phase 20: Leaderboards & Social 🏆 (Future)
 *Goal: Competition and sharing.*
 - [ ] **Local Leaderboard**: Top 10 scores with date
