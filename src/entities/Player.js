@@ -39,6 +39,10 @@ class Player extends window.Game.Entity {
         this.maxHp = (this.stats.hp || 3) + this.getRunMod('maxHpBonus', 0);
         this.hp = this.maxHp;
         this.resetState();
+
+        // Pre-cache colors for performance
+        this._colorDark30 = this.darkenColor(this.stats.color, 0.3);
+        this._colorLight50 = this.lightenColor(this.stats.color, 0.5);
     }
 
     resetState() {
@@ -210,34 +214,37 @@ class Player extends window.Game.Entity {
     draw(ctx) {
         if (this.invulnTimer > 0 && Math.floor(Date.now() / 100) % 2 === 0) return;
 
-        // Trail effect (draw before ship)
+        // Trail effect simplified (only 2 dots max)
         if (this.trail.length > 1) {
-            for (let i = 0; i < this.trail.length - 1; i++) {
-                const t = this.trail[i];
-                const alpha = (1 - t.age / 0.15) * 0.3;
-                const size = 8 - i;
-                ctx.fillStyle = `rgba(247, 147, 26, ${alpha})`;
-                ctx.beginPath();
-                ctx.arc(t.x, t.y + 10, Math.max(2, size), 0, Math.PI * 2);
-                ctx.fill();
-            }
+            ctx.fillStyle = 'rgba(247, 147, 26, 0.25)';
+            const t = this.trail[0];
+            ctx.beginPath();
+            ctx.arc(t.x, t.y + 10, 5, 0, Math.PI * 2);
+            ctx.fill();
         }
 
         ctx.save();
         ctx.translate(this.x, this.y);
 
-        // Reactor flame (animated) - draw behind ship
+        // Reactor flame (animated) - FLAT cell-shaded style (no gradient)
         const flameHeight = 18 + Math.sin(this.animTime * 12) * 6;
         const flameWidth = 8 + Math.sin(this.animTime * 10) * 3;
-        const flameGrad = ctx.createLinearGradient(0, 12, 0, 12 + flameHeight);
-        flameGrad.addColorStop(0, '#fff');
-        flameGrad.addColorStop(0.2, '#ffcc00');
-        flameGrad.addColorStop(0.5, '#ff6600');
-        flameGrad.addColorStop(1, 'transparent');
-        ctx.fillStyle = flameGrad;
+
+        // Outer flame (orange)
+        ctx.fillStyle = '#ff6600';
         ctx.beginPath();
         ctx.moveTo(-flameWidth, 12);
-        ctx.quadraticCurveTo(0, 12 + flameHeight * 1.3, flameWidth, 12);
+        ctx.lineTo(0, 12 + flameHeight);
+        ctx.lineTo(flameWidth, 12);
+        ctx.closePath();
+        ctx.fill();
+
+        // Inner flame (yellow, smaller)
+        ctx.fillStyle = '#ffcc00';
+        ctx.beginPath();
+        ctx.moveTo(-flameWidth * 0.5, 12);
+        ctx.lineTo(0, 12 + flameHeight * 0.6);
+        ctx.lineTo(flameWidth * 0.5, 12);
         ctx.closePath();
         ctx.fill();
 
@@ -253,19 +260,6 @@ class Player extends window.Game.Entity {
                 ctx.lineTo(-24, 16);
                 ctx.closePath();
                 ctx.fill();
-
-                // Speed lines on left side - cell-shaded style
-                ctx.strokeStyle = '#4bc0c8';
-                ctx.lineWidth = 2;
-                ctx.globalAlpha = 0.6;
-                for (let i = 0; i < 3; i++) {
-                    const y = -5 + i * 8;
-                    ctx.beginPath();
-                    ctx.moveTo(-28 - i * 3, y);
-                    ctx.lineTo(-38 - i * 5, y);
-                    ctx.stroke();
-                }
-                ctx.globalAlpha = 1;
             } else {
                 // Moving left, right thruster fires
                 ctx.beginPath();
@@ -274,19 +268,6 @@ class Player extends window.Game.Entity {
                 ctx.lineTo(24, 16);
                 ctx.closePath();
                 ctx.fill();
-
-                // Speed lines on right side - cell-shaded style
-                ctx.strokeStyle = '#4bc0c8';
-                ctx.lineWidth = 2;
-                ctx.globalAlpha = 0.6;
-                for (let i = 0; i < 3; i++) {
-                    const y = -5 + i * 8;
-                    ctx.beginPath();
-                    ctx.moveTo(28 + i * 3, y);
-                    ctx.lineTo(38 + i * 5, y);
-                    ctx.stroke();
-                }
-                ctx.globalAlpha = 1;
             }
         }
 
@@ -295,7 +276,7 @@ class Player extends window.Game.Entity {
         ctx.strokeStyle = '#111';
 
         // Body - shadow side (left half)
-        ctx.fillStyle = this.darkenColor(this.stats.color, 0.3);
+        ctx.fillStyle = this._colorDark30;
         ctx.beginPath();
         ctx.moveTo(0, -26);
         ctx.lineTo(-22, 12);
@@ -366,7 +347,7 @@ class Player extends window.Game.Entity {
         ctx.stroke();
 
         // Rim lighting (right edge of body)
-        ctx.strokeStyle = this.lightenColor(this.stats.color, 0.5);
+        ctx.strokeStyle = this._colorLight50;
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(4, -24);
