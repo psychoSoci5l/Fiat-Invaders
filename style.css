@@ -26,11 +26,22 @@ body {
     /* Removed Padding from Body to allow Fullscreen Canvas */
 }
 
-canvas {
+/* Game Container: adapts to safe areas in Safari, fullscreen in PWA */
+#game-container {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 600px;
+    width: 100%;
+    overflow: hidden;
+    background: #000;
+    /* Dimensions and position set by JS resize() */
+}
+
+#game-container canvas {
     display: block;
     width: 100%;
     height: 100%;
-    max-width: 600px;
 }
 
 /* EFFECTS */
@@ -61,11 +72,9 @@ canvas {
 #ui-layer {
     position: absolute;
     top: 0;
-    left: 50%;
-    transform: translateX(-50%);
+    left: 0;
     width: 100%;
     height: 100%;
-    max-width: 600px;
     pointer-events: none;
     z-index: 120;
     /* ABOVE Scanlines (100) and Vignette (90) */
@@ -75,19 +84,15 @@ canvas {
     align-items: flex-start;
     /* CRUCIALE: Impedisce lo stretching verticale */
     padding: 20px;
-    padding-top: max(20px, env(safe-area-inset-top));
-    /* NOTCH SAFE */
-    padding-left: max(20px, env(safe-area-inset-left));
-    padding-right: max(20px, env(safe-area-inset-right));
     box-sizing: border-box;
-    /* Grid pattern removed */
+    /* Safe areas now handled by game-container */
 }
 
 /* IL MODULO GRAFICO */
 /* --- NEW HUD LAYOUT --- */
 .hud-top-bar {
     position: absolute;
-    top: env(safe-area-inset-top);
+    top: 0;
     left: 0;
     width: 100%;
     padding: 10px 20px;
@@ -97,6 +102,7 @@ canvas {
     box-sizing: border-box;
     z-index: 100;
     pointer-events: none;
+    /* Safe areas handled by game-container */
 }
 
 .hud-stat {
@@ -410,14 +416,9 @@ canvas {
     align-items: center;
     z-index: 110;
     padding: 40px;
-
-    /* Safe Area Padding applied here */
-    padding-top: max(100px, calc(env(safe-area-inset-top) + 40px));
-    padding-bottom: max(40px, env(safe-area-inset-bottom));
-    padding-left: max(40px, env(safe-area-inset-left));
-    padding-right: max(40px, env(safe-area-inset-right));
-
+    padding-top: 60px;
     box-sizing: border-box;
+    /* Safe areas now handled by game-container */
 }
 
 /* === NEW START SCREEN === */
@@ -669,7 +670,7 @@ canvas {
     background: linear-gradient(135deg, var(--neon-orange) 0%, #e67e22 100%);
     color: #000;
     border: none;
-    padding: 18px 40px;
+    padding: 18px 40px 14px;
     font-family: inherit;
     font-size: 18px;
     font-weight: 900;
@@ -679,6 +680,17 @@ canvas {
     box-shadow: 0 4px 20px rgba(247, 147, 26, 0.5);
     transition: transform 0.15s, box-shadow 0.15s;
     min-width: 280px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-play .version-text {
+    font-size: 9px;
+    font-weight: 400;
+    letter-spacing: 1px;
+    color: rgba(0, 0, 0, 0.5);
 }
 
 .btn-play:hover {
@@ -692,30 +704,7 @@ canvas {
 
 /* Bear Market button moved to Settings toggle - see Paper Mario styles below */
 
-.start-footer {
-    position: absolute;
-    bottom: max(20px, env(safe-area-inset-bottom));
-    left: 0;
-    right: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 15px;
-}
-
-.start-footer .icon-btn {
-    width: 44px;
-    height: 44px;
-    font-size: 20px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid #333;
-}
-
-.version-text {
-    font-size: 10px;
-    color: #444;
-    letter-spacing: 1px;
-}
+/* Version text styled inside button - see .btn-play .version-text */
 
 /* Legacy classes kept for compatibility */
 .neon-title {
@@ -883,11 +872,12 @@ canvas {
 #joystick {
     position: absolute;
     left: 50%;
-    bottom: max(30px, env(safe-area-inset-bottom));
+    bottom: 30px;
     transform: translateX(-50%);
     width: 120px;
     height: 120px;
     pointer-events: auto;
+    /* Safe areas handled by game-container */
 }
 
 #joystick-base {
@@ -936,23 +926,29 @@ canvas {
     right: 0;
 }
 
+/* Touch control buttons - Minimal transparent style */
 .touch-shield-btn {
     position: absolute;
-    bottom: 30px;
-    right: 30px;
-    width: 80px;
-    height: 80px;
-    background: rgba(52, 152, 219, 0.15);
-    border: 2px solid var(--neon-blue);
+    bottom: 200px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    background: rgba(52, 152, 219, 0.2);
+    border: 2px solid rgba(52, 152, 219, 0.5);
     border-radius: 50%;
-    color: #fff;
-    font-size: 32px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 18px;
     display: flex;
     justify-content: center;
     align-items: center;
     pointer-events: auto;
-    backdrop-filter: blur(4px);
-    box-shadow: 0 0 15px rgba(52, 152, 219, 0.3);
+    backdrop-filter: blur(2px);
+    transition: background 0.1s, border-color 0.1s;
+}
+
+.touch-shield-btn:active {
+    background: rgba(52, 152, 219, 0.4);
+    border-color: rgba(52, 152, 219, 0.8);
 }
 
 @keyframes pulse {
@@ -1034,9 +1030,8 @@ canvas {
 /* --- SETTINGS BUTTON --- */
 #btn-settings {
     position: absolute;
-    top: max(20px, env(safe-area-inset-top));
-    /* NOTCH SAFE */
-    right: max(20px, env(safe-area-inset-right));
+    top: 20px;
+    right: 20px;
     background: rgba(0, 0, 0, 0.6);
     border: 1px solid #444;
     color: #888;
@@ -1051,6 +1046,7 @@ canvas {
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     backdrop-filter: blur(4px);
     z-index: 120;
+    /* Safe areas handled by game-container */
 }
 
 #btn-settings:hover {
@@ -1268,7 +1264,7 @@ body.bear-mode .neon-title {
 @media (max-height: 740px) {
     #intro-screen,
     #gameover-screen {
-        padding-top: max(90px, calc(env(safe-area-inset-top) + 30px));
+        padding-top: 50px;
     }
     .terminal-boot {
         margin-top: 18px;
@@ -1390,25 +1386,28 @@ body.bear-mode .neon-title {
 .perk-card.rarity-rare .perk-name { color: #6aa9ff; }
 .perk-card.rarity-epic .perk-name { color: #f3a4ff; }
 
+/* Pause button - Minimal transparent style, above shield */
 #pause-btn {
     position: absolute;
-    right: calc(max(30px, env(safe-area-inset-right)) + 16px);
-    bottom: calc(max(30px, env(safe-area-inset-bottom)) + 96px);
-    width: 48px;
-    height: 48px;
+    right: 20px;
+    bottom: 250px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
-    border: 2px solid rgba(106, 169, 255, 0.6);
-    background: radial-gradient(circle at 30% 30%, rgba(106, 169, 255, 0.35), rgba(4, 8, 12, 0.9));
-    color: #fff;
-    font-size: 18px;
+    border: 2px solid rgba(243, 156, 18, 0.5);
+    background: rgba(243, 156, 18, 0.2);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 16px;
     pointer-events: auto;
-    box-shadow: 0 0 16px rgba(106, 169, 255, 0.35);
+    backdrop-filter: blur(2px);
     z-index: 140;
     display: none;
+    transition: background 0.1s, border-color 0.1s;
 }
 
 #pause-btn:active {
-    transform: scale(0.95);
+    background: rgba(243, 156, 18, 0.4);
+    border-color: rgba(243, 156, 18, 0.8);
 }
 
 @media (min-width: 520px) {
