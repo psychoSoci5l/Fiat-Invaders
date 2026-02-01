@@ -108,6 +108,21 @@ window.Game.WaveManager = {
                     });
                     const enemy = new G.Enemy(startX + c * spacing, startY + r * spacing, scaledType);
 
+                    // Set special behaviors based on tier (with chance)
+                    const behaviorChance = Math.min(0.5, 0.1 + cycle * 0.1); // 10-50% based on cycle
+
+                    if (typeIdx <= 2) {
+                        // WEAK tier: Kamikaze chance
+                        enemy.isKamikaze = Math.random() < behaviorChance * 0.5; // Half the chance
+                    } else if (typeIdx <= 6) {
+                        // MEDIUM tier: Shield chance
+                        enemy.hasShield = Math.random() < behaviorChance;
+                        if (enemy.hasShield) enemy.activateShield();
+                    } else {
+                        // STRONG tier: Teleport chance
+                        enemy.canTeleport = Math.random() < behaviorChance;
+                    }
+
                     // Fibonacci-based initial fire delay
                     // Enemy 0: fires immediately, others staggered by 0.33s intervals
                     const enemyIndex = enemies.length;

@@ -74,6 +74,37 @@ loadAssets(); // Start loading immediately
 
 let highScore = parseInt(localStorage.getItem('fiat_highscore')) || 0; // PERSISTENCE
 setUI('highScoreVal', highScore); // UI Update
+
+// WEAPON PROGRESSION - Persisted in localStorage
+const BASE_WEAPONS = ['WIDE', 'NARROW', 'FIRE']; // Always unlocked
+const ADVANCED_WEAPONS = ['SPREAD', 'HOMING', 'LASER']; // Unlock per cycle
+const WEAPON_UNLOCK_CYCLE = { SPREAD: 2, HOMING: 3, LASER: 4 }; // Cycle required
+let maxCycleReached = parseInt(localStorage.getItem('fiat_maxcycle')) || 1;
+
+function getUnlockedWeapons() {
+    const unlocked = [...BASE_WEAPONS];
+    for (const [weapon, cycle] of Object.entries(WEAPON_UNLOCK_CYCLE)) {
+        if (maxCycleReached >= cycle) {
+            unlocked.push(weapon);
+        }
+    }
+    return unlocked;
+}
+
+function checkWeaponUnlocks(cycle) {
+    if (cycle > maxCycleReached) {
+        maxCycleReached = cycle;
+        localStorage.setItem('fiat_maxcycle', maxCycleReached);
+        // Check for new unlocks
+        for (const [weapon, reqCycle] of Object.entries(WEAPON_UNLOCK_CYCLE)) {
+            if (reqCycle === cycle) {
+                showGameInfo(`NEW WEAPON UNLOCKED: ${weapon}!`);
+                if (G.Audio) G.Audio.play('levelUp');
+            }
+        }
+    }
+}
+
 let boss = null;
 let score = 0, displayScore = 0, level = 1, lives = 3;
 let shake = 0, gridDir = 1, gridSpeed = 25, timeScale = 1.0, totalTime = 0, intermissionTimer = 0, currentMeme = "";
@@ -167,17 +198,30 @@ let bossDropCooldown = 0; // Prevent multiple drops in quick succession
 
 // --- DIFFICULTY SYSTEM ---
 // Single unified difficulty multiplier (0.0 = Level 1, capped at 0.85)
+// Cached per-frame for performance (avoid recalculating in enemy loops)
+let cachedDifficulty = 0;
+let cachedGridSpeed = 0;
+
 function getDifficulty() {
+    return cachedDifficulty;
+}
+
+function _calculateDifficulty() {
     const base = (level - 1) * 0.08;  // +8% per level (0-4 = 0-0.32)
     const cycleBonus = (marketCycle - 1) * 0.20; // +20% per cycle
     return Math.min(0.85, base + cycleBonus); // Cap at 0.85 = "hard but fair"
 }
 
-// Dynamic grid speed based on difficulty
+// Call once per frame to update cached values
+function updateDifficultyCache() {
+    cachedDifficulty = _calculateDifficulty();
+    const base = 12 + cachedDifficulty * 20; // 12 → 32
+    cachedGridSpeed = isBearMarket ? base * 1.3 : base;
+}
+
+// Dynamic grid speed based on difficulty (uses cache)
 function getGridSpeed() {
-    const diff = getDifficulty();
-    const base = 12 + diff * 20; // 12 → 32
-    return isBearMarket ? base * 1.3 : base;
+    return cachedGridSpeed;
 }
 
 const ui = {};
@@ -338,7 +382,7 @@ function showPopupInternal(text, duration, color, fontSize, top, left, rotation,
         }
     }, duration);
 
-    audioSys.play('coin');
+    audioSys.play('coinUI');
 }
 
 // 🎭 MEME - Fun crypto messages (random color, position, size)
@@ -556,7 +600,7 @@ function initIntroShip() {
 window.cycleShip = function(dir) {
     selectedShipIndex = (selectedShipIndex + dir + SHIP_KEYS.length) % SHIP_KEYS.length;
     updateShipUI();
-    audioSys.play('coin');
+    audioSys.play('coinUI');
 
     // Swap animation
     if (introShipCanvas) {
@@ -797,6 +841,17 @@ function init() {
     // iOS needs orientationchange + delay for safe area recalculation
     window.addEventListener('orientationchange', () => setTimeout(resize, 100));
     inputSys.init();
+
+    // Vibration fallback: visual flash when vibration unavailable
+    inputSys.setVibrationFallback((pattern) => {
+        // Convert pattern to intensity (longer = stronger flash)
+        const duration = Array.isArray(pattern) ? pattern.reduce((a, b) => a + b, 0) : pattern;
+        const intensity = Math.min(0.3, duration / 200);  // Cap at 0.3 alpha
+        // Trigger brief screen flash
+        if (gameState === 'PLAY' && ctx) {
+            flashRed = Math.max(flashRed || 0, intensity);
+        }
+    });
 
     player = new G.Player(gameWidth, gameHeight);
     waveMgr.init();
@@ -1199,6 +1254,9 @@ window.launchShipAndStart = function () {
     function finishLaunch() {
         isLaunching = false;
 
+        // IMPORTANT: Hide intro screen FIRST to prevent visual glitch
+        setStyle('intro-screen', 'display', 'none');
+
         // Move canvas back to original parent
         shipCanvas.style.width = '';
         shipCanvas.style.height = '';
@@ -1230,7 +1288,6 @@ window.launchShipAndStart = function () {
         player.configure(selectedShipKey);
 
         audioSys.startMusic();
-        setStyle('intro-screen', 'display', 'none');
         initSky();
         startGame();
 
@@ -1297,7 +1354,9 @@ window.toggleBearMode = function () {
     // Update body class
     if (isBearMarket) {
         document.body.classList.add('bear-mode');
-        audioSys.play('bossSpawn'); // Scary sound
+        audioSys.play('bearMarketToggle'); // Ominous toggle sound
+        // Story: Bear market start dialogue
+        if (G.Story) G.Story.onBearMarketStart();
     } else {
         document.body.classList.remove('bear-mode');
     }
@@ -1424,6 +1483,7 @@ function startGame() {
     renderPerkBar();
 
     score = 0; displayScore = 0; level = 1; lives = 3; setUI('scoreVal', '0'); setUI('lvlVal', '1'); setUI('livesText', lives);
+    updateDifficultyCache(); // Initialize difficulty cache for level 1
     audioSys.setLevel(1, true); // Set music theme for level 1 (instant, no crossfade)
     bullets = []; enemies = []; enemyBullets = []; powerUps = []; particles = []; floatingTexts = []; muzzleFlashes = []; perkIcons = []; boss = null;
     G.enemies = enemies; // Expose for Boss Spawning logic
@@ -1830,7 +1890,7 @@ function checkMiniBossHit(b) {
         let dmg = baseDmg * dmgMult;
         if (b.isHodl) dmg *= 1.25; // HODL: +25% damage
         miniBoss.hp -= dmg;
-        audioSys.play('hit');
+        audioSys.play('hitEnemy');
 
         if (miniBoss.hp <= 0) {
             // Mini-boss defeated!
@@ -1921,6 +1981,7 @@ function update(dt) {
             if (waveMgr.wave > 1) {
                 level++;
                 audioSys.setLevel(level); // Change music theme for new level
+                audioSys.play('levelUp'); // Triumphant jingle
                 updateLevelUI(); // With animation
                 killsSinceLastDrop = 0; // Reset pity timer for new level
                 grazePerksThisLevel = 0; // Reset graze perk cap for new level
@@ -2022,7 +2083,7 @@ function updateBullets(dt) {
     for (let i = bullets.length - 1; i >= 0; i--) {
         let b = bullets[i];
         if (!b) { bullets.splice(i, 1); continue; } // Safety check
-        b.update(dt);
+        b.update(dt, enemies, boss); // Pass enemies and boss for homing tracking
         if (b.markedForDeletion) {
             G.Bullet.Pool.release(b);
             bullets.splice(i, 1);
@@ -2034,14 +2095,14 @@ function updateBullets(dt) {
                 if (b.isHodl) dmg = Math.ceil(dmg * 1.5); // HODL: +50% vs boss
                 if (runState && runState.flags && runState.flags.hodlBonus && b.isHodl) dmg = Math.ceil(dmg * 1.15);
                 boss.damage(dmg);
-                audioSys.play('hit');
+                audioSys.play('hitEnemy');
 
                 // Boss drops power-ups every N hits to help player (with cooldown to prevent clustering)
                 bossHitCount++;
                 if (bossHitCount >= BOSS_DROP_INTERVAL && bossDropCooldown <= 0) {
                     bossHitCount = 0;
                     bossDropCooldown = 1.5; // 1.5 second cooldown between drops
-                    const weaponTypes = ['WIDE', 'NARROW', 'FIRE'];
+                    const weaponTypes = getUnlockedWeapons();
                     const shipTypes = ['SPEED', 'RAPID', 'SHIELD'];
                     const dropWeapon = Math.random() < 0.5;
                     const dropX = boss.x + boss.width / 2 + (Math.random() - 0.5) * 80;
@@ -2053,7 +2114,7 @@ function updateBullets(dt) {
                         const type = shipTypes[Math.floor(Math.random() * shipTypes.length)];
                         powerUps.push(new G.PowerUp(dropX, dropY, type));
                     }
-                    audioSys.play('coin');
+                    audioSys.play('coinPerk');
                 }
 
                 if (!b.penetration) {
@@ -2091,11 +2152,13 @@ function updateBullets(dt) {
 
                     level++;
                     audioSys.setLevel(level); // Change music theme for new level
+                    audioSys.play('levelUp'); // Triumphant jingle
                     updateLevelUI(); // With animation
 
                     // New cycle - increase difficulty
                     marketCycle++;
                     window.marketCycle = marketCycle; // Update global
+                    checkWeaponUnlocks(marketCycle); // Check for new weapon unlocks
                     waveMgr.reset();
 
                     // Reset Harmonic Conductor for new wave cycle
@@ -2190,7 +2253,11 @@ function updateBullets(dt) {
                 // Play graze sound (throttled to avoid spam)
                 const now = totalTime;
                 if (now - lastGrazeSoundTime > 0.1) {
-                    audioSys.play('graze'); // Crystalline shimmer with pitch scaling
+                    if (isCloseGraze) {
+                        audioSys.play('grazeNearMiss'); // Whoosh for close calls
+                    } else {
+                        audioSys.play('graze'); // Crystalline shimmer with pitch scaling
+                    }
                     lastGrazeSoundTime = now;
                 }
 
@@ -2279,11 +2346,14 @@ function checkBulletCollisions(b, bIdx) {
             let dmg = baseDmg * dmgMult;
             if (b.isHodl) dmg *= 1.25; // HODL: +25% damage
             if (runState && runState.flags && runState.flags.hodlBonus && b.isHodl) dmg *= 1.15; // Stacks with perk
-            e.hp -= dmg; audioSys.play('hit');
-            e.hitFlash = 0.6; // Trigger hit flash effect
-            if (e.hp <= 0) {
+
+            // Use takeDamage which handles shields
+            const shouldDie = e.takeDamage(dmg);
+            audioSys.play('hitEnemy');
+
+            if (shouldDie) {
                 enemies.splice(j, 1);
-                audioSys.play('coin');
+                audioSys.play('coinScore');
                 const mult = (runState && runState.getMod) ? runState.getMod('scoreMult', 1) : 1;
                 score += e.scoreVal * (isBearMarket ? 2 : 1) * mult;
                 updateScore(score);
@@ -2308,7 +2378,7 @@ function checkBulletCollisions(b, bIdx) {
 
                 // DROP LOGIC - Tier-based with cooldown and pity timer
                 killsSinceLastDrop++;
-                const weaponTypes = ['WIDE', 'NARROW', 'FIRE'];
+                const weaponTypes = getUnlockedWeapons();
                 const shipTypes = ['SPEED', 'RAPID', 'SHIELD'];
 
                 // Determine drop chance based on enemy tier
@@ -2387,8 +2457,13 @@ function updateEnemies(dt) {
 
     for (let i = 0; i < enemies.length; i++) {
         const e = enemies[i];
-        e.update(dt, totalTime, lastWavePattern, currentGridSpeed, gridDir);
+        e.update(dt, totalTime, lastWavePattern, currentGridSpeed, gridDir, player.x, player.y);
         if ((gridDir === 1 && e.x > gameWidth - 20) || (gridDir === -1 && e.x < 20)) hitEdge = true;
+
+        // Kamikaze trigger - weak tier enemies occasionally dive at player
+        if (e.isKamikaze && !e.kamikazeDiving && e.y > 250 && Math.random() < 0.0005) {
+            e.triggerKamikaze();
+        }
 
         // Skip legacy firing if Harmonic Conductor is active
         if (conductorEnabled) continue;
@@ -2510,9 +2585,13 @@ function draw() {
     if (gameState === 'PLAY' || gameState === 'PAUSE' || gameState === 'GAMEOVER' || gameState === 'INTERMISSION') {
         player.draw(ctx);
 
-        // Enemies (for loop instead of forEach)
+        // Enemies (for loop instead of forEach) with off-screen culling
         for (let i = 0; i < enemies.length; i++) {
-            enemies[i].draw(ctx);
+            const e = enemies[i];
+            // Skip draw if completely off-screen (65px is enemy size)
+            if (e.x > -65 && e.x < gameWidth + 65 && e.y > -65 && e.y < gameHeight + 65) {
+                e.draw(ctx);
+            }
         }
 
         if (boss && boss.active) {
@@ -2525,7 +2604,8 @@ function draw() {
         // Bullets with culling (for loop)
         for (let i = 0; i < bullets.length; i++) {
             const b = bullets[i];
-            if (b.y > -20 && b.y < gameHeight + 20) b.draw(ctx);
+            // Off-screen culling (X and Y)
+            if (b.x > -20 && b.x < gameWidth + 20 && b.y > -20 && b.y < gameHeight + 20) b.draw(ctx);
         }
 
         // Screen dimming when many enemy bullets (Ikeda Rule 4 - Climax Visual)
@@ -2543,12 +2623,17 @@ function draw() {
         // Enemy bullets with culling
         for (let i = 0; i < enemyBullets.length; i++) {
             const eb = enemyBullets[i];
-            if (eb.y > -20 && eb.y < gameHeight + 20) eb.draw(ctx);
+            // Off-screen culling (X and Y)
+            if (eb.x > -20 && eb.x < gameWidth + 20 && eb.y > -20 && eb.y < gameHeight + 20) eb.draw(ctx);
         }
 
-        // PowerUps (fewer items, forEach is fine)
+        // PowerUps with off-screen culling
         for (let i = 0; i < powerUps.length; i++) {
-            powerUps[i].draw(ctx);
+            const p = powerUps[i];
+            // Skip draw if completely off-screen (40px is powerup size)
+            if (p.x > -40 && p.x < gameWidth + 40 && p.y > -40 && p.y < gameHeight + 40) {
+                p.draw(ctx);
+            }
         }
 
         drawParticles(ctx);
@@ -3724,6 +3809,9 @@ function loop(timestamp) {
     let dt = realDt;
     lastTime = timestamp;
     if (dt > 0.1) dt = 0.1;
+
+    // Update cached difficulty values once per frame
+    updateDifficultyCache();
 
     // Death Sequence (uses real time, not slowed time)
     if (deathTimer > 0) {

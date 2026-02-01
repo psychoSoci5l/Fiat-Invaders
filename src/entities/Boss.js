@@ -84,6 +84,11 @@ class Boss extends window.Game.Entity {
             window.Game.Audio.setBossPhase(newPhase);
         }
 
+        // Story: Boss phase change dialogue
+        if (window.Game.Story) {
+            window.Game.Story.onBossPhaseChange(newPhase, this.bossType);
+        }
+
         // Update Harmonic Conductor for new boss phase
         if (window.Game.HarmonicConductor) {
             window.Game.HarmonicConductor.setBossSequence(newPhase);
@@ -275,20 +280,36 @@ class Boss extends window.Game.Entity {
         const G = window.Game;
         if (!G.enemies) return;
 
-        // Spawn type based on boss
-        let typeIdx;
+        // Use MINION_TYPE with boss-specific color
+        const minionConfig = Object.assign({}, G.MINION_TYPE);
+
+        // Color based on boss type
         if (this.bossType === 'BCE') {
-            typeIdx = 3; // EURO
+            minionConfig.c = '#3498db'; // Euro blue
+            minionConfig.s = '€';
         } else if (this.bossType === 'BOJ') {
-            typeIdx = 0; // YEN
+            minionConfig.c = '#e74c3c'; // Yen red
+            minionConfig.s = '¥';
         } else {
-            typeIdx = Math.min(G.FIAT_TYPES.length - 1, 7); // DOLLAR
+            minionConfig.c = '#2ecc71'; // Dollar green
+            minionConfig.s = '$';
         }
 
-        G.enemies.push(new G.Enemy(this.x - 40, this.y + 80, G.FIAT_TYPES[typeIdx]));
-        G.enemies.push(new G.Enemy(this.x + this.width + 40, this.y + 80, G.FIAT_TYPES[typeIdx]));
+        // Scale minion HP with boss phase
+        minionConfig.hp = minionConfig.hp * (5 + this.phase * 2);
 
-        if (G.Audio) G.Audio.play('coin');
+        // Spawn minions on both sides
+        const minion1 = new G.Enemy(this.x - 40, this.y + 80, minionConfig);
+        const minion2 = new G.Enemy(this.x + this.width + 40, this.y + 80, minionConfig);
+
+        // Mark as minions for special behavior
+        minion1.isMinion = true;
+        minion2.isMinion = true;
+
+        G.enemies.push(minion1);
+        G.enemies.push(minion2);
+
+        if (G.Audio) G.Audio.play('coinUI');
     }
 
     attack(player) {

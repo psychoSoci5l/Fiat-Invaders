@@ -43,7 +43,7 @@
 
 ## Phase 7: Balance & Game Feel (RC 1.1) ⚖️
 - [x] **Balance**: Buffed SOL (Hitbox), Nerfed ETH (FireRate).
-- [x] **Panic Selling**: Enemy vertical drop pattern on Wave 5+.
+- [x] **Panic Selling**: Enemy vertical drop on edge hit (20px normal, 35px in Bear Market).
 - [x] **Bug Fix**: UI Buttons fix on mobile.
 
 # ✅ PROJECT COMPLETE: RELEASE CANDIDATE 1.1 READY
@@ -60,7 +60,7 @@
 *Goal: For the hardcore trading veterans.*
 - [x] **Hard Mode Toggle**: "Bear Market" button.
 - [x] **Red Aesthetics**: Tint the whole game blood red (CSS filter + dark storm sky).
-- [x] **Difficulty Spike**: Faster enemies (1.5x), Panic from Wave 2 (SINE_WAVE), 1HP Challenge, aggressive drop (35px).
+- [x] **Difficulty Spike**: Faster enemies (1.3x), Panic from Wave 2 (SINE_WAVE), aggressive drop (35px).
 
 ## Phase 9: Visual Overhaul (Sky Pivot) ☁️ ✅
 - [x] **Background**: Dusk Gradient + Parallax Clouds (Day/Dusk/Night cycle).
@@ -80,7 +80,7 @@
 - [x] **Market Cycle System**: Track boss completions, scale difficulty each cycle.
 - [x] **Enemy HP Scaling**: 10 base + 5 per cycle.
 - [x] **Fire Rate Scaling**: +15% per cycle.
-- [x] **Cycle Warning**: "CYCLE X - HARDER!" popup after boss.
+- [x] **Cycle Warning**: "CYCLE X BEGINS" intermission message after boss.
 - [x] **Drop Rate -40%**: Power-ups less frequent.
 - [x] **Wave 3 Fix**: More enemies in COLUMNS pattern.
 
@@ -261,16 +261,14 @@
 ### B) Code Quality & Stability 🛡️ ✅
 
 #### B1) Object Pool Optimization ✅
-- [x] **Set-Based Lookup**: Replace `indexOf()` with `Set.has()` for O(1) release
-- [x] **Pool Validation**: Prevent double-release with reserveSet tracking
-- [x] **Pool Stats**: Added `getStats()` method for debugging
+- [x] **Array-Based Pool**: Efficient acquire/release pattern with reserve array
+- [x] **Pool Pre-population**: 10 initial objects created at startup
+- [x] **Reset Method**: Objects properly reset on acquire for reuse
 
 #### B2) Error Handling ✅
 - [x] **Audio Fallback**: Graceful degradation with disabled flag after 10 errors
-- [x] **Audio Refactor**: Separated play() and _playSfx() with try-catch
-- [x] **Event Bus Recovery**: Added error logging with console.warn
-- [x] **Event Bus Cleanup**: Added clear() method for listener cleanup
-- [x] **Touch Fallback**: Dynamic shield button creation if missing
+- [x] **Event Bus Recovery**: EventBus emit() has error handling
+- [ ] **Touch Fallback**: Dynamic shield button creation if missing
 
 #### B3) State Cleanup ✅
 - [x] **Comprehensive Reset**: Added missing resets (Fibonacci, boss drops, effects)
@@ -278,64 +276,69 @@
 - [x] **Firing System Reset**: waveStartTime, fibonacciIndex, enemiesAllowedToFire
 - [ ] **Centralized Globals**: Move globals into RunState (future refactor)
 
-### D) Mobile Experience 📱
+### D) Mobile Experience 📱 ✅
 
-#### D1) Touch Reliability
-- [ ] **Shield Button Check**: Validate element exists before binding
-- [ ] **Fallback UI**: Create shield button dynamically if missing
-- [ ] **Touch Debug Mode**: Visual touch zones for testing
+#### D1) Touch Reliability ✅
+- [x] **Shield Button Check**: Validate element exists before binding
+- [x] **Fallback UI**: Create shield button dynamically via `_createShieldButton()`
+- [x] **Touch Debug Mode**: F4 toggle shows touch overlay with position, axisX, shield state
 
-#### D2) Input Polish
-- [ ] **Deadzone Smoothing**: Gradual transition at deadzone edge (not hard cutoff)
-- [ ] **Sensitivity Clamp**: Cap post-sensitivity values to [-1, 1]
-- [ ] **Vibration Fallback**: Visual flash if vibration unavailable
+#### D2) Input Polish ✅
+- [x] **Deadzone Smoothing**: Gradual remap from [deadzone, 1] to [0, 1] via `_applyDeadzone()`
+- [x] **Sensitivity Clamp**: Already implemented (line 67)
+- [x] **Vibration Fallback**: Visual flash via `setVibrationFallback()` callback
 
-### E) Audio Completeness 🔊
+### E) Audio Completeness 🔊 ✅
 
-#### E1) Missing Sound Effects
-- [ ] **Shield Activate**: Satisfying "power up" sound
-- [ ] **Shield Deactivate**: Gentle "power down" fade
-- [ ] **Bullet Cancel**: Distinct "ping" for each cancel
-- [ ] **Wave Complete**: Victory fanfare (short)
-- [ ] **Level Up**: Triumphant jingle
-- [ ] **Bear Market Toggle**: Ominous tone shift
-- [ ] **Graze Near-Miss**: Subtle "whoosh" for close calls
+#### E1) Missing Sound Effects ✅
+- [x] **Shield Activate**: 'shield' - rising shimmer (already existed)
+- [x] **Shield Deactivate**: 'shieldDeactivate' - gentle descending fade
+- [x] **Bullet Cancel**: 'bulletCancel' - pop sound (already existed)
+- [x] **Wave Complete**: 'waveComplete' - victory jingle (already existed)
+- [x] **Level Up**: 'levelUp' - triumphant ascending fanfare
+- [x] **Bear Market Toggle**: 'bearMarketToggle' - ominous low rumble
+- [x] **Graze Near-Miss**: 'grazeNearMiss' - subtle whoosh for close calls
 
-#### E2) Audio Variety
-- [ ] **Hit Sound Variants**: 3 variations for enemy hit, 2 for player hit
-- [ ] **Coin Sound Context**: Different pitch for score vs UI vs perk
+#### E2) Audio Variety ✅
+- [x] **Hit Sound Variants**: 'hitEnemy' (3 random), 'hitPlayer' (2 random)
+- [x] **Coin Sound Context**: 'coinScore', 'coinUI', 'coinPerk' (different pitch)
 
 ### F) Content Expansion 🎮
 
-#### F1) Weapon Variety
-- [ ] **LASER Weapon**: Continuous beam, low damage, penetrates
-- [ ] **SPREAD Weapon**: 5-shot fan, slow fire rate
-- [ ] **HOMING Weapon**: Slow missiles that track nearest enemy
-- [ ] **Weapon Progression**: Unlock new weapons per cycle (not reset)
+#### F1) Weapon Variety ✅
+- [x] **LASER Weapon**: Continuous beam (rate 0.06s), penetrates, cyan energy
+- [x] **SPREAD Weapon**: 5-shot fan pattern, green spinning stars
+- [x] **HOMING Weapon**: Tracking missiles, orange with exhaust trail
+- [x] **Weapon Progression**: SPREAD unlocks at cycle 2, HOMING at cycle 3, LASER at cycle 4 (persisted in localStorage)
 
-#### F2) Enemy Behavior
-- [ ] **Kamikaze Enemies**: Weak tier can dive at player (rare)
-- [ ] **Shield Enemies**: Medium tier with 1-hit shield (blocks first hit)
-- [ ] **Teleport Enemies**: Strong tier can short-range teleport
-- [ ] **Boss Minions**: Unique enemy type during boss fight only
+#### F2) Enemy Behavior ✅
+- [x] **Kamikaze Enemies**: Weak tier can dive at player (0.05% per frame, scales with cycle)
+- [x] **Shield Enemies**: Medium tier with 1-hit hexagonal barrier (10-50% chance based on cycle)
+- [x] **Teleport Enemies**: Strong tier can dodge when player is close (1% chance, 3-5s cooldown)
+- [x] **Boss Minions**: Flying money enemies with wings, spawned in Phase 3, smaller hitbox + glow
 
-#### F3) Story Integration
-- [ ] **Intro Dialogue**: Brief story setup before Wave 1
-- [ ] **Boss Dialogue**: Taunt before each boss phase
-- [ ] **Victory Dialogue**: Unique ending per boss defeated
-- [ ] **Pause During Dialogue**: Game pauses for story beats
+#### F3) Story Integration ✅
+- [x] **Intro Dialogue**: Ship intro on selection + level complete messages
+- [x] **Boss Dialogue**: Boss intro taunt + phase change taunts (per boss type)
+- [x] **Victory Dialogue**: Boss defeat messages with ironic crypto/fiat commentary
+- [x] **Dialogue System**: Full modular system (DialogueData, StoryManager, DialogueUI)
+- [x] **Bear Market Dialogue**: Special dialogue when activating bear market mode
 
-### G) Performance Optimization ⚡
+### G) Performance Optimization ⚡ ✅
 
-#### G1) Calculation Caching
-- [ ] **Difficulty Cache**: Calculate `getDifficulty()` once per frame, store in variable
-- [ ] **Color Cache**: Pre-compute enemy colors, don't recalculate per draw
-- [ ] **String Interning**: Reuse color strings instead of creating new ones
+#### G1) Calculation Caching ✅
+- [x] **Difficulty Cache**: `cachedDifficulty` updated once per frame via `updateDifficultyCache()`
+- [x] **Grid Speed Cache**: `cachedGridSpeed` computed with difficulty
+- [x] **Color Cache**: Enemy colors pre-computed in constructor (`_colorDark30`, etc.)
 
-#### G2) Render Optimization
-- [ ] **Dirty Rectangles**: Only redraw changed regions (advanced)
-- [ ] **Off-Screen Culling**: Skip draw for entities outside viewport
-- [ ] **Batch Similar Draws**: Group enemy draws by type
+#### G2) Render Optimization ✅
+- [x] **Off-Screen Culling**: All entities skip draw if outside viewport
+  - Enemies: ±65px bounds check
+  - Bullets: ±20px bounds check (X and Y)
+  - PowerUps: ±40px bounds check
+  - Particles: Already had culling
+- [ ] **Dirty Rectangles**: Skipped (complex, minimal benefit for this game)
+- [ ] **Batch Similar Draws**: Skipped (requires canvas layer restructure)
 
 ---
 
@@ -346,10 +349,10 @@
 | **18.1** | Balance Critical | A1, A2, A3, A4 | ✅ |
 | **18.2** | UX Critical | C1, C2, C3 | ✅ |
 | **18.3** | Code Stability | B1, B2, B3 | ✅ |
-| **18.4** | Audio | E1, E2 | |
-| **18.5** | Mobile | D1, D2 | |
-| **18.6** | Content | F1, F2, F3 | |
-| **18.7** | Performance | G1, G2 | |
+| **18.4** | Audio | E1, E2 | ✅ |
+| **18.5** | Mobile | D1, D2 | ✅ |
+| **18.6** | Content | F1, F2, F3 | ✅ |
+| **18.7** | Performance | G1, G2 | ✅ |
 
 ---
 

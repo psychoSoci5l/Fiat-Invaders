@@ -6,6 +6,9 @@ const POWERUP_CONFIG = {
     WIDE:   { color: '#9b59b6', symbol: '🔱', category: 'weapon', name: 'WIDE' },
     NARROW: { color: '#3498db', symbol: '🎯', category: 'weapon', name: 'NARROW' },
     FIRE:   { color: '#e74c3c', symbol: '🔥', category: 'weapon', name: 'FIRE' },
+    SPREAD: { color: '#2ecc71', symbol: '🌟', category: 'weapon', name: 'SPREAD' },
+    HOMING: { color: '#e67e22', symbol: '🚀', category: 'weapon', name: 'HOMING' },
+    LASER:  { color: '#00ffff', symbol: '⚡', category: 'weapon', name: 'LASER' },
     // Ship types (change ship stats)
     SPEED:  { color: '#f1c40f', symbol: '⚡', category: 'ship', name: 'SPEED' },
     RAPID:  { color: '#e91e63', symbol: '⚡', category: 'ship', name: 'RAPID' },
@@ -178,6 +181,50 @@ class PowerUp extends window.Game.Entity {
             ctx.quadraticCurveTo(iconSize * 0.2, iconSize * 0.1, 0, iconSize * 0.5);
             ctx.quadraticCurveTo(-iconSize * 0.2, iconSize * 0.1, -iconSize * 0.4, iconSize * 0.3);
             ctx.quadraticCurveTo(-iconSize * 0.6, -iconSize * 0.3, 0, -iconSize);
+            ctx.fill();
+        } else if (this.type === 'SPREAD') {
+            // 5-point star
+            ctx.beginPath();
+            for (let i = 0; i < 5; i++) {
+                const outerAngle = (Math.PI * 2 / 5) * i - Math.PI / 2;
+                const innerAngle = outerAngle + Math.PI / 5;
+                const outerX = Math.cos(outerAngle) * iconSize;
+                const outerY = Math.sin(outerAngle) * iconSize;
+                const innerX = Math.cos(innerAngle) * (iconSize * 0.4);
+                const innerY = Math.sin(innerAngle) * (iconSize * 0.4);
+                if (i === 0) ctx.moveTo(outerX, outerY);
+                else ctx.lineTo(outerX, outerY);
+                ctx.lineTo(innerX, innerY);
+            }
+            ctx.closePath();
+            ctx.fill();
+        } else if (this.type === 'HOMING') {
+            // Missile/rocket shape
+            ctx.beginPath();
+            ctx.moveTo(0, -iconSize);           // Nose
+            ctx.lineTo(iconSize * 0.4, iconSize * 0.2);   // Right
+            ctx.lineTo(iconSize * 0.6, iconSize * 0.7);   // Right fin
+            ctx.lineTo(iconSize * 0.2, iconSize * 0.4);   // Right inner
+            ctx.lineTo(0, iconSize * 0.8);               // Tail
+            ctx.lineTo(-iconSize * 0.2, iconSize * 0.4);  // Left inner
+            ctx.lineTo(-iconSize * 0.6, iconSize * 0.7);  // Left fin
+            ctx.lineTo(-iconSize * 0.4, iconSize * 0.2);  // Left
+            ctx.closePath();
+            ctx.fill();
+        } else if (this.type === 'LASER') {
+            // Lightning bolt / beam shape
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(0, -iconSize);
+            ctx.lineTo(-iconSize * 0.3, -iconSize * 0.2);
+            ctx.lineTo(iconSize * 0.2, -iconSize * 0.1);
+            ctx.lineTo(-iconSize * 0.2, iconSize * 0.5);
+            ctx.lineTo(iconSize * 0.1, iconSize * 0.3);
+            ctx.lineTo(0, iconSize);
+            ctx.stroke();
+            // Center glow dot
+            ctx.beginPath();
+            ctx.arc(0, 0, iconSize * 0.2, 0, Math.PI * 2);
             ctx.fill();
         }
 

@@ -165,7 +165,10 @@ window.Game.WEAPONS = {
     NORMAL: { color: '#F7931A', rate: 0.18, bullets: 2 },                           // Twin shot base
     WIDE:   { color: '#9b59b6', rate: 0.40, bullets: 3, spread: 0.18, icon: '🔱' },  // Tighter spread (was 0.25)
     NARROW: { color: '#3498db', rate: 0.38, bullets: 3, spread: 0.08, icon: '🎯' }, // Tighter focused (was 0.12)
-    FIRE:   { color: '#e74c3c', rate: 0.44, bullets: 3, spread: 0, icon: '🔥' }     // Penetration utility
+    FIRE:   { color: '#e74c3c', rate: 0.44, bullets: 3, spread: 0, icon: '🔥' },    // Penetration utility
+    SPREAD: { color: '#2ecc71', rate: 0.55, bullets: 5, spread: 0.35, icon: '🌟' }, // 5-shot wide fan
+    HOMING: { color: '#e67e22', rate: 0.50, bullets: 2, icon: '🎯' },               // Tracking missiles
+    LASER:  { color: '#00ffff', rate: 0.06, bullets: 1, icon: '⚡' }                 // Rapid beam (penetrating)
 };
 
 // Ship power-ups (mutually exclusive - picking one replaces previous)
@@ -195,6 +198,13 @@ window.Game.FIAT_TYPES = [
     { s: '元', name: 'YUAN', c: '#c0392b', val: 90, hp: 1.4, fireMin: 1.6, fireMax: 2.5, aimSpread: 0.12, pattern: 'BURST', shape: 'bar' },
     { s: 'Ⓒ', name: 'CBDC', c: '#8e44ad', val: 100, hp: 1.5, fireMin: 1.4, fireMax: 2.2, aimSpread: 0.10, pattern: 'DOUBLE', shape: 'card' }
 ];
+
+// Boss minion type - spawned during boss fights
+window.Game.MINION_TYPE = {
+    s: '💵', name: 'MINION', c: '#e74c3c', val: 15, hp: 0.5,
+    fireMin: 2.0, fireMax: 3.0, aimSpread: 0.25, pattern: 'SINGLE', shape: 'coin',
+    isMinion: true
+};
 
 window.Game.SHIPS = {
     BTC: { speed: 420, hp: 3, fireRate: 0.26, baseDamage: 14, color: '#F7931A', hitboxSize: 30, coreHitboxSize: 6 },

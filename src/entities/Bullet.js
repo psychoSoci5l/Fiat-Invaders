@@ -30,9 +30,68 @@ class Bullet extends window.Game.Entity {
         this.age = 0; // For animations
         this.grazed = false; // Graze tracking (Ikeda Rule 3)
         this.beatSynced = false; // Harmonic Conductor beat-synced bullet
+        this.homing = false; // Homing missile tracking
+        this.homingSpeed = 0; // Turn rate for homing
     }
 
-    update(dt) {
+    update(dt, enemies, boss) {
+        // Homing tracking logic
+        if (this.homing) {
+            // Find nearest target (enemy or boss)
+            let nearestTarget = null;
+            let nearestDist = Infinity;
+
+            // Check enemies
+            if (enemies && enemies.length > 0) {
+                for (const enemy of enemies) {
+                    if (enemy.markedForDeletion) continue;
+                    const dx = enemy.x - this.x;
+                    const dy = enemy.y - this.y;
+                    // Only track targets ahead (above the bullet)
+                    if (dy > 0) continue;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < nearestDist) {
+                        nearestDist = dist;
+                        nearestTarget = { x: enemy.x, y: enemy.y };
+                    }
+                }
+            }
+
+            // Check boss (prioritize if closer)
+            if (boss && boss.active) {
+                const bossCenter = { x: boss.x + boss.width / 2, y: boss.y + boss.height / 2 };
+                const dx = bossCenter.x - this.x;
+                const dy = bossCenter.y - this.y;
+                if (dy < 0) { // Boss is above
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < nearestDist) {
+                        nearestDist = dist;
+                        nearestTarget = bossCenter;
+                    }
+                }
+            }
+
+            if (nearestTarget) {
+                // Calculate direction to target
+                const dx = nearestTarget.x - this.x;
+                const dy = nearestTarget.y - this.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const targetVx = (dx / dist) * Math.abs(this.vy || 200);
+                const targetVy = (dy / dist) * Math.abs(this.vy || 200);
+
+                // Gradual turn towards target
+                const turnRate = this.homingSpeed * dt;
+                this.vx += (targetVx - this.vx) * turnRate;
+                this.vy += (targetVy - this.vy) * turnRate;
+
+                // Normalize speed
+                const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                const targetSpeed = 200; // Base homing speed
+                this.vx = (this.vx / speed) * targetSpeed;
+                this.vy = (this.vy / speed) * targetSpeed;
+            }
+        }
+
         super.update(dt);
         this.age += dt; // Track age for animations
         // Bounds check (vertical only for now)
@@ -81,6 +140,15 @@ class Bullet extends window.Game.Entity {
                     break;
                 case 'FIRE':
                     this.drawFireBullet(ctx, pulse);
+                    break;
+                case 'SPREAD':
+                    this.drawSpreadBullet(ctx, pulse);
+                    break;
+                case 'HOMING':
+                    this.drawHomingBullet(ctx, pulse);
+                    break;
+                case 'LASER':
+                    this.drawLaserBullet(ctx, pulse);
                     break;
                 default: // NORMAL
                     this.drawNormalBullet(ctx, pulse);
@@ -318,6 +386,237 @@ class Bullet extends window.Game.Entity {
         ctx.beginPath();
         ctx.arc(this.x, this.y, r + 1, 0, Math.PI * 2);
         ctx.stroke();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // SPREAD: Green Star Burst - 5-shot fan projectile
+    // ═══════════════════════════════════════════════════════════════════
+    drawSpreadBullet(ctx, pulse) {
+        const r = this.width * 1.8 * pulse;
+        const rotation = this.age * 8; // Spinning star
+
+        // Outer glow
+        ctx.fillStyle = '#2ecc71';
+        ctx.globalAlpha = 0.3;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, r + 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        // Sparkle trail
+        ctx.fillStyle = '#2ecc71';
+        ctx.globalAlpha = 0.5;
+        for (let i = 1; i <= 3; i++) {
+            const trailY = this.y + i * 6;
+            const trailSize = r * (1 - i * 0.25);
+            ctx.beginPath();
+            ctx.arc(this.x, trailY, trailSize * 0.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+
+        // Main star body (5-point star)
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(rotation);
+
+        ctx.fillStyle = '#2ecc71';
+        ctx.beginPath();
+        for (let i = 0; i < 5; i++) {
+            const outerAngle = (Math.PI * 2 / 5) * i - Math.PI / 2;
+            const innerAngle = outerAngle + Math.PI / 5;
+            const outerX = Math.cos(outerAngle) * r;
+            const outerY = Math.sin(outerAngle) * r;
+            const innerX = Math.cos(innerAngle) * (r * 0.4);
+            const innerY = Math.sin(innerAngle) * (r * 0.4);
+            if (i === 0) ctx.moveTo(outerX, outerY);
+            else ctx.lineTo(outerX, outerY);
+            ctx.lineTo(innerX, innerY);
+        }
+        ctx.closePath();
+        ctx.fill();
+
+        // Bold outline
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Inner bright core
+        ctx.fillStyle = '#82e0aa';
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 0.35, 0, Math.PI * 2);
+        ctx.fill();
+
+        // White center spark
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 0.15, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // HOMING: Orange Missile - Tracking projectile with exhaust trail
+    // ═══════════════════════════════════════════════════════════════════
+    drawHomingBullet(ctx, pulse) {
+        const w = this.width * 2.0;
+        const h = this.height * 1.5;
+
+        // Calculate missile rotation based on velocity
+        const angle = Math.atan2(this.vy, this.vx) + Math.PI / 2;
+
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(angle);
+
+        // Exhaust flame trail
+        const flicker = Math.sin(this.age * 40) * 3;
+        ctx.globalAlpha = 0.8;
+        for (let i = 3; i > 0; i--) {
+            const trailLen = 8 + i * 5 + flicker;
+            const trailWidth = w * (0.3 + i * 0.1);
+            ctx.fillStyle = i === 3 ? '#c0392b' : (i === 2 ? '#e67e22' : '#f39c12');
+            ctx.beginPath();
+            ctx.moveTo(-trailWidth, h * 0.4);
+            ctx.quadraticCurveTo(0, h * 0.4 + trailLen, trailWidth, h * 0.4);
+            ctx.closePath();
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+
+        // Missile body (elongated diamond)
+        ctx.fillStyle = '#e67e22';
+        ctx.beginPath();
+        ctx.moveTo(0, -h * 0.6);          // Nose
+        ctx.lineTo(w * 0.5, 0);           // Right side
+        ctx.lineTo(w * 0.4, h * 0.4);     // Right rear
+        ctx.lineTo(-w * 0.4, h * 0.4);    // Left rear
+        ctx.lineTo(-w * 0.5, 0);          // Left side
+        ctx.closePath();
+        ctx.fill();
+
+        // Bold outline
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Fins (small triangles)
+        ctx.fillStyle = '#d35400';
+        // Left fin
+        ctx.beginPath();
+        ctx.moveTo(-w * 0.4, h * 0.2);
+        ctx.lineTo(-w * 0.8, h * 0.5);
+        ctx.lineTo(-w * 0.4, h * 0.4);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        // Right fin
+        ctx.beginPath();
+        ctx.moveTo(w * 0.4, h * 0.2);
+        ctx.lineTo(w * 0.8, h * 0.5);
+        ctx.lineTo(w * 0.4, h * 0.4);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Nose cone (brighter)
+        ctx.fillStyle = '#f39c12';
+        ctx.beginPath();
+        ctx.moveTo(0, -h * 0.6);
+        ctx.lineTo(w * 0.25, -h * 0.2);
+        ctx.lineTo(-w * 0.25, -h * 0.2);
+        ctx.closePath();
+        ctx.fill();
+
+        // White tip
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.moveTo(0, -h * 0.55);
+        ctx.lineTo(w * 0.1, -h * 0.35);
+        ctx.lineTo(-w * 0.1, -h * 0.35);
+        ctx.closePath();
+        ctx.fill();
+
+        // Target seeker (red dot)
+        ctx.fillStyle = '#e74c3c';
+        ctx.beginPath();
+        ctx.arc(0, -h * 0.3, 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // LASER: Cyan Energy Beam - Rapid continuous penetrating shot
+    // ═══════════════════════════════════════════════════════════════════
+    drawLaserBullet(ctx, pulse) {
+        const w = this.width * 2.5;
+        const h = this.height * 1.2;
+        const flicker = Math.sin(this.age * 50) * 0.2 + 0.8;
+
+        // Outer glow (wide, soft)
+        ctx.fillStyle = '#00ffff';
+        ctx.globalAlpha = 0.2 * flicker;
+        ctx.beginPath();
+        ctx.ellipse(this.x, this.y, w + 8, h * 0.6, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        // Electric trail (multiple segments)
+        ctx.strokeStyle = '#00ffff';
+        ctx.globalAlpha = 0.5;
+        ctx.lineWidth = 1;
+        for (let i = 1; i <= 4; i++) {
+            const trailY = this.y + i * 8;
+            const offset = Math.sin(this.age * 40 + i * 2) * 3;
+            ctx.beginPath();
+            ctx.moveTo(this.x + offset, trailY - 4);
+            ctx.lineTo(this.x - offset, trailY + 4);
+            ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+        ctx.lineWidth = 2;
+
+        // Main beam body (elongated rectangle with pointed ends)
+        ctx.fillStyle = '#00ffff';
+        ctx.beginPath();
+        ctx.moveTo(this.x, this.y - h * 0.7);          // Top point
+        ctx.lineTo(this.x + w * 0.4, this.y - h * 0.3); // Upper right
+        ctx.lineTo(this.x + w * 0.3, this.y + h * 0.5); // Lower right
+        ctx.lineTo(this.x, this.y + h * 0.3);           // Bottom point
+        ctx.lineTo(this.x - w * 0.3, this.y + h * 0.5); // Lower left
+        ctx.lineTo(this.x - w * 0.4, this.y - h * 0.3); // Upper left
+        ctx.closePath();
+        ctx.fill();
+
+        // Bold outline
+        ctx.strokeStyle = '#111';
+        ctx.stroke();
+
+        // Inner bright core (white-cyan gradient effect)
+        ctx.fillStyle = '#80ffff';
+        ctx.beginPath();
+        ctx.moveTo(this.x, this.y - h * 0.5);
+        ctx.lineTo(this.x + w * 0.2, this.y);
+        ctx.lineTo(this.x, this.y + h * 0.2);
+        ctx.lineTo(this.x - w * 0.2, this.y);
+        ctx.closePath();
+        ctx.fill();
+
+        // Hot white center
+        ctx.fillStyle = '#fff';
+        ctx.globalAlpha = flicker;
+        ctx.beginPath();
+        ctx.ellipse(this.x, this.y - h * 0.2, w * 0.15, h * 0.25, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        // Tip spark
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(this.x, this.y - h * 0.6, 2 * pulse, 0, Math.PI * 2);
+        ctx.fill();
     }
 
     // ═══════════════════════════════════════════════════════════════════

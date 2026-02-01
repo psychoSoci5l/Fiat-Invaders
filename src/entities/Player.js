@@ -114,7 +114,7 @@ class Player extends window.Game.Entity {
             this.shieldTimer -= dt;
             if (this.shieldTimer <= 0) {
                 this.shieldActive = false;
-                if (window.Game.Audio) window.Game.Audio.play('shieldBreak');
+                if (window.Game.Audio) window.Game.Audio.play('shieldDeactivate'); // Natural expiration
             }
         }
         if (this.shieldCooldown > 0) this.shieldCooldown -= dt;
@@ -209,6 +209,34 @@ class Player extends window.Game.Entity {
             spawnFireBullet(this.x, this.y - 25, 0, -bulletSpeed);
             spawnFireBullet(this.x - 10, this.y - 25, 0, -bulletSpeed);
             spawnFireBullet(this.x + 10, this.y - 25, 0, -bulletSpeed);
+        } else if (this.weapon === 'SPREAD') {
+            // 5-shot wide fan pattern
+            const spread = conf.spread || 0.35;
+            spawnBullet(this.x, this.y - 25, 0, -bulletSpeed); // Center
+            spawnBullet(this.x - 6, this.y - 23, -bulletSpeed * spread * 0.5, -bulletSpeed * 0.95); // Inner left
+            spawnBullet(this.x + 6, this.y - 23, bulletSpeed * spread * 0.5, -bulletSpeed * 0.95);  // Inner right
+            spawnBullet(this.x - 12, this.y - 20, -bulletSpeed * spread, -bulletSpeed * 0.88);      // Outer left
+            spawnBullet(this.x + 12, this.y - 20, bulletSpeed * spread, -bulletSpeed * 0.88);       // Outer right
+        } else if (this.weapon === 'HOMING') {
+            // Tracking missiles - spawn with homing flag
+            const spawnHomingBullet = (x, y) => {
+                const b = window.Game.Bullet.Pool.acquire(x, y, 0, -bulletSpeed * 0.6, color, 8, 16, isHodl);
+                b.homing = true;
+                b.homingSpeed = 4.0; // Turn rate
+                b.weaponType = 'HOMING';
+                bullets.push(b);
+            };
+            spawnHomingBullet(this.x - 10, this.y - 20);
+            spawnHomingBullet(this.x + 10, this.y - 20);
+        } else if (this.weapon === 'LASER') {
+            // Rapid continuous beam - thin penetrating shots
+            const spawnLaserBullet = (x, y) => {
+                const b = window.Game.Bullet.Pool.acquire(x, y, 0, -bulletSpeed * 1.4, color, 3, 30, isHodl);
+                b.penetration = true; // Laser pierces through enemies
+                b.weaponType = 'LASER';
+                bullets.push(b);
+            };
+            spawnLaserBullet(this.x, this.y - 25);
         } else {
             // NORMAL: twin shot (2 parallel bullets for stronger base attack)
             spawnBullet(this.x - 6, this.y - 25, 0, -bulletSpeed);
@@ -537,7 +565,7 @@ class Player extends window.Game.Entity {
 
         this.hp--;
         this.invulnTimer = 1.4; // Reduced 30% (was 2.0)
-        window.Game.Audio.play('hit');
+        window.Game.Audio.play('hitPlayer');
         window.Game.Input.vibrate([50, 50, 50]); // heavy shake
         return true;
     }
@@ -554,8 +582,8 @@ class Player extends window.Game.Entity {
     }
 
     upgrade(type) {
-        window.Game.Audio.play('coin');
-        const weaponTypes = ['WIDE', 'NARROW', 'FIRE'];
+        window.Game.Audio.play('coinPerk');
+        const weaponTypes = ['WIDE', 'NARROW', 'FIRE', 'SPREAD', 'HOMING', 'LASER'];
         const shipTypes = ['SPEED', 'RAPID', 'SHIELD'];
 
         if (weaponTypes.includes(type)) {

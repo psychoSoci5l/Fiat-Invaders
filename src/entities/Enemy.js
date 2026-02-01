@@ -24,6 +24,21 @@ class Enemy extends window.Game.Entity {
         this.fireTimer = 0; // Set by spawner for Fibonacci ramp-up
         this.hitFlash = 0; // Flash white when hit
 
+        // Special behaviors (set by spawner based on tier)
+        this.isKamikaze = false;      // Weak tier: can dive at player
+        this.kamikazeDiving = false;  // Currently diving
+        this.kamikazeSpeed = 400;     // Dive speed
+
+        this.hasShield = false;       // Medium tier: absorbs first hit
+        this.shieldActive = false;    // Shield currently up
+        this.shieldFlash = 0;         // Visual feedback
+
+        this.canTeleport = false;     // Strong tier: can teleport
+        this.teleportCooldown = 0;    // Time until next teleport
+        this.teleportFlash = 0;       // Visual feedback
+
+        this.isMinion = false;        // Boss minion type
+
         // Pre-cache colors for performance (avoid recalculating every frame)
         this._colorDark30 = this.darkenColor(this.color, 0.3);
         this._colorDark35 = this.darkenColor(this.color, 0.35);
@@ -99,9 +114,34 @@ class Enemy extends window.Game.Entity {
         };
     }
 
-    update(dt, globalTime, wavePattern, gridSpeed, gridDir) {
+    update(dt, globalTime, wavePattern, gridSpeed, gridDir, playerX, playerY) {
         // Decrement hit flash
         if (this.hitFlash > 0) this.hitFlash -= dt * 8; // Fast fade
+        if (this.shieldFlash > 0) this.shieldFlash -= dt * 5;
+        if (this.teleportFlash > 0) this.teleportFlash -= dt * 4;
+        if (this.teleportCooldown > 0) this.teleportCooldown -= dt;
+
+        // KAMIKAZE DIVE - When diving, ignore normal movement
+        if (this.kamikazeDiving && playerY !== undefined) {
+            const dx = playerX - this.x;
+            const dy = playerY - this.y;
+            const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+            this.x += (dx / dist) * this.kamikazeSpeed * dt;
+            this.y += (dy / dist) * this.kamikazeSpeed * dt;
+            this.rotation = Math.atan2(dy, dx) - Math.PI / 2;
+            return; // Skip normal movement
+        }
+
+        // TELEPORT - Random chance when player is close
+        if (this.canTeleport && this.teleportCooldown <= 0 && playerX !== undefined) {
+            const dx = playerX - this.x;
+            const dy = playerY - this.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            // Teleport if player bullet might be coming (player below, within range)
+            if (dist < 200 && dy > 0 && Math.random() < 0.01) { // 1% chance per frame
+                this.doTeleport();
+            }
+        }
 
         // Horizontal Grid Move
         this.x += gridSpeed * gridDir * dt;
@@ -124,6 +164,46 @@ class Enemy extends window.Game.Entity {
         }
     }
 
+    // Trigger kamikaze dive towards player
+    triggerKamikaze() {
+        if (!this.isKamikaze || this.kamikazeDiving) return;
+        this.kamikazeDiving = true;
+        if (window.Game.Audio) window.Game.Audio.play('enemyTelegraph');
+    }
+
+    // Short-range teleport to dodge
+    doTeleport() {
+        const offsetX = (Math.random() - 0.5) * 120; // Random horizontal offset
+        const offsetY = (Math.random() * 40) - 20;   // Small vertical offset
+        this.x += offsetX;
+        this.y += offsetY;
+        this.teleportCooldown = 3 + Math.random() * 2; // 3-5 second cooldown
+        this.teleportFlash = 1;
+        if (window.Game.Audio) window.Game.Audio.play('grazeNearMiss');
+    }
+
+    // Take damage - returns true if enemy should die
+    takeDamage(amount) {
+        // Shield absorbs first hit
+        if (this.shieldActive) {
+            this.shieldActive = false;
+            this.shieldFlash = 1;
+            if (window.Game.Audio) window.Game.Audio.play('shieldDeactivate');
+            return false; // Don't reduce HP
+        }
+
+        this.hp -= amount;
+        this.hitFlash = 1;
+        return this.hp <= 0;
+    }
+
+    // Activate shield (called by spawner)
+    activateShield() {
+        if (this.hasShield) {
+            this.shieldActive = true;
+        }
+    }
+
     draw(ctx) {
         const x = this.x;
         const y = this.y;
@@ -135,7 +215,9 @@ class Enemy extends window.Game.Entity {
         ctx.lineWidth = 3; // Bold cell-shaded outline
 
         // Draw based on shape type
-        if (this.shape === 'coin') {
+        if (this.isMinion) {
+            this.drawMinion(ctx, x, y);
+        } else if (this.shape === 'coin') {
             this.drawCoin(ctx, x, y);
         } else if (this.shape === 'bill') {
             this.drawBill(ctx, x, y);
@@ -168,6 +250,60 @@ class Enemy extends window.Game.Entity {
             ctx.beginPath();
             ctx.arc(x, y, 34, 0, Math.PI * 2);
             ctx.stroke();
+            ctx.globalAlpha = 1;
+        }
+
+        // SHIELD indicator (blue hexagonal barrier)
+        if (this.shieldActive) {
+            const shieldPulse = Math.sin(Date.now() * 0.01) * 0.2 + 0.8;
+            ctx.strokeStyle = '#00ffff';
+            ctx.lineWidth = 3;
+            ctx.globalAlpha = shieldPulse;
+            ctx.beginPath();
+            for (let i = 0; i < 6; i++) {
+                const angle = (Math.PI / 3) * i - Math.PI / 2;
+                const px = x + Math.cos(angle) * 35;
+                const py = y + Math.sin(angle) * 35;
+                if (i === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+        }
+
+        // Shield break flash
+        if (this.shieldFlash > 0) {
+            ctx.globalAlpha = this.shieldFlash;
+            ctx.strokeStyle = '#00ffff';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.arc(x, y, 40 + (1 - this.shieldFlash) * 20, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+        }
+
+        // Teleport flash effect
+        if (this.teleportFlash > 0) {
+            ctx.globalAlpha = this.teleportFlash * 0.6;
+            ctx.fillStyle = '#9b59b6';
+            ctx.beginPath();
+            ctx.arc(x, y, 40, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+        }
+
+        // Kamikaze dive indicator (red trailing flames)
+        if (this.kamikazeDiving) {
+            ctx.globalAlpha = 0.7;
+            for (let i = 1; i <= 3; i++) {
+                const trailX = x - Math.sin(this.rotation + Math.PI / 2) * i * 15;
+                const trailY = y - Math.cos(this.rotation + Math.PI / 2) * i * 15;
+                ctx.fillStyle = i === 1 ? '#ff6600' : (i === 2 ? '#ff3300' : '#cc0000');
+                ctx.beginPath();
+                ctx.arc(trailX, trailY, 15 - i * 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
             ctx.globalAlpha = 1;
         }
     }
@@ -418,6 +554,69 @@ class Enemy extends window.Game.Entity {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(this.symbol, x + 8, y - 3);
+    }
+
+    drawMinion(ctx, x, y) {
+        // Boss minions: smaller, flying money with glow
+        const r = 18; // Smaller than regular enemies
+        const pulse = Math.sin(Date.now() * 0.01) * 0.15 + 1;
+
+        // Flying animation - minions bob up and down
+        const bobOffset = Math.sin(Date.now() * 0.005 + x * 0.1) * 5;
+        y += bobOffset;
+
+        // Danger glow (minions are aggressive)
+        ctx.fillStyle = this.color;
+        ctx.globalAlpha = 0.3 * pulse;
+        ctx.beginPath();
+        ctx.arc(x, y, r + 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        // Main body (small coin)
+        ctx.fillStyle = this._colorDark35;
+        ctx.beginPath();
+        ctx.arc(x, y, r, Math.PI * 0.4, Math.PI * 1.4);
+        ctx.lineTo(x, y);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(x, y, r, Math.PI * 1.4, Math.PI * 0.4);
+        ctx.lineTo(x, y);
+        ctx.closePath();
+        ctx.fill();
+
+        // Outline
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Wing-like sparkles on sides (flying money effect)
+        ctx.fillStyle = '#fff';
+        ctx.globalAlpha = 0.7;
+        const wingAngle = Date.now() * 0.02;
+        for (let i = -1; i <= 1; i += 2) {
+            const wingX = x + i * (r + 4);
+            const wingY = y + Math.sin(wingAngle + i) * 4;
+            ctx.beginPath();
+            ctx.moveTo(wingX, wingY - 6);
+            ctx.lineTo(wingX + i * 8, wingY);
+            ctx.lineTo(wingX, wingY + 6);
+            ctx.closePath();
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+
+        // Symbol (smaller)
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 14px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(this.symbol, x, y);
     }
 
     roundRect(ctx, x, y, w, h, r) {

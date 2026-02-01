@@ -28,6 +28,11 @@ class AudioSystem {
         this.heartbeatTimer = 0;
         this.isNearDeath = false;
 
+        // Error tracking for graceful degradation
+        this.errorCounts = {};  // Track errors per sound type
+        this.disabledSounds = new Set();  // Sounds disabled after too many errors
+        this.MAX_ERRORS_BEFORE_DISABLE = 10;
+
         // Level-based music themes (1-5, loops after)
         this.currentLevel = 1;
 
@@ -131,6 +136,10 @@ class AudioSystem {
         this.currentLevel = 1;
         this.lastEmittedBeat = -1; // Reset beat tracking
 
+        // Reset error tracking (give sounds another chance after restart)
+        this.errorCounts = {};
+        this.disabledSounds.clear();
+
         // Reset master gain to normal (in case we were mid-crossfade)
         if (this.masterGain && this.ctx) {
             this.masterGain.gain.cancelScheduledValues(this.ctx.currentTime);
@@ -189,6 +198,31 @@ class AudioSystem {
     play(type) {
         // Only play sounds if audio is unmuted (context running)
         if (!this.ctx || this.ctx.state !== 'running') return;
+
+        // Skip if this sound type has been disabled due to errors
+        if (this.disabledSounds.has(type)) return;
+
+        try {
+            this._playSfx(type);
+        } catch (e) {
+            this._handlePlayError(type, e);
+        }
+    }
+
+    _handlePlayError(type, error) {
+        // Track error count per sound type
+        this.errorCounts[type] = (this.errorCounts[type] || 0) + 1;
+
+        if (this.errorCounts[type] >= this.MAX_ERRORS_BEFORE_DISABLE) {
+            this.disabledSounds.add(type);
+            console.warn(`[AudioSystem] Sound '${type}' disabled after ${this.MAX_ERRORS_BEFORE_DISABLE} errors`);
+        } else if (this.errorCounts[type] === 1) {
+            // Only log first error per type to avoid spam
+            console.warn(`[AudioSystem] Error playing '${type}':`, error.message);
+        }
+    }
+
+    _playSfx(type) {
         const t = this.ctx.currentTime;
         const output = this.getOutput();
 
@@ -685,6 +719,200 @@ class AudioSystem {
                 alarm.stop(start + 0.1);
             }
         }
+        // === NEW SOUNDS (Phase 18.4) ===
+        else if (type === 'shieldDeactivate') {
+            // Gentle power down - descending shimmer (natural expiration)
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.connect(gain);
+            gain.connect(output);
+
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(800, t);
+            osc.frequency.exponentialRampToValueAtTime(200, t + 0.3);
+
+            gain.gain.setValueAtTime(0.06, t);
+            gain.gain.exponentialRampToValueAtTime(0.01, t + 0.35);
+
+            osc.start(t);
+            osc.stop(t + 0.35);
+        }
+        else if (type === 'levelUp') {
+            // Triumphant ascending fanfare (different from waveComplete)
+            const notes = [392, 523, 659, 784, 1047]; // G4-C5-E5-G5-C6
+            notes.forEach((freq, i) => {
+                const osc = this.ctx.createOscillator();
+                const osc2 = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.connect(gain);
+                osc2.connect(gain);
+                gain.connect(output);
+
+                osc.type = 'square';
+                osc2.type = 'triangle';
+                osc.frequency.value = freq;
+                osc2.frequency.value = freq * 2; // Octave up shimmer
+
+                const start = t + i * 0.1;
+                gain.gain.setValueAtTime(0.1, start);
+                gain.gain.exponentialRampToValueAtTime(0.02, start + 0.2);
+
+                osc.start(start);
+                osc.stop(start + 0.2);
+                osc2.start(start);
+                osc2.stop(start + 0.2);
+            });
+        }
+        else if (type === 'bearMarketToggle') {
+            // Ominous low rumble + descending tone
+            const sub = this.ctx.createOscillator();
+            const subGain = this.ctx.createGain();
+            sub.connect(subGain);
+            subGain.connect(output);
+
+            sub.type = 'sawtooth';
+            sub.frequency.setValueAtTime(80, t);
+            sub.frequency.exponentialRampToValueAtTime(40, t + 0.5);
+
+            subGain.gain.setValueAtTime(0.15, t);
+            subGain.gain.exponentialRampToValueAtTime(0.01, t + 0.5);
+
+            sub.start(t);
+            sub.stop(t + 0.5);
+
+            // Dissonant high tone
+            const high = this.ctx.createOscillator();
+            const highGain = this.ctx.createGain();
+            high.connect(highGain);
+            highGain.connect(output);
+
+            high.type = 'square';
+            high.frequency.setValueAtTime(220, t);
+            high.frequency.exponentialRampToValueAtTime(110, t + 0.4);
+
+            highGain.gain.setValueAtTime(0.05, t);
+            highGain.gain.exponentialRampToValueAtTime(0.01, t + 0.4);
+
+            high.start(t);
+            high.stop(t + 0.4);
+        }
+        else if (type === 'grazeNearMiss') {
+            // Subtle whoosh for close calls
+            const noise = this.createNoiseOsc(0.08);
+            if (noise) {
+                const filter = this.ctx.createBiquadFilter();
+                const gain = this.ctx.createGain();
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(output);
+
+                filter.type = 'bandpass';
+                filter.frequency.setValueAtTime(2000, t);
+                filter.frequency.exponentialRampToValueAtTime(500, t + 0.08);
+                filter.Q.value = 2;
+
+                gain.gain.setValueAtTime(0.04, t);
+                gain.gain.exponentialRampToValueAtTime(0.01, t + 0.08);
+
+                noise.start(t);
+                noise.stop(t + 0.08);
+            }
+        }
+        // === SOUND VARIANTS (E2) ===
+        else if (type === 'hitEnemy') {
+            // Random enemy hit variant (1 of 3)
+            this._playHitVariant(output, t, 'enemy');
+        }
+        else if (type === 'hitPlayer') {
+            // Random player hit variant (1 of 2)
+            this._playHitVariant(output, t, 'player');
+        }
+        else if (type === 'coinScore') {
+            // Score coin - standard pitch
+            this._playCoinVariant(output, t, 1.0);
+        }
+        else if (type === 'coinUI') {
+            // UI coin - higher pitch
+            this._playCoinVariant(output, t, 1.3);
+        }
+        else if (type === 'coinPerk') {
+            // Perk coin - lower pitch, longer
+            this._playCoinVariant(output, t, 0.8);
+        }
+    }
+
+    // Hit sound variants helper
+    _playHitVariant(output, t, target) {
+        const osc = this.ctx.createOscillator();
+        const osc2 = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.connect(gain);
+        osc2.connect(gain);
+        gain.connect(output);
+
+        osc.type = 'square';
+        osc2.type = 'sawtooth';
+
+        // Random variation
+        const variant = Math.floor(Math.random() * (target === 'enemy' ? 3 : 2));
+        let baseFreq, decay;
+
+        if (target === 'enemy') {
+            // Enemy hit variants: crunchy, punchy, sharp
+            const freqs = [350, 280, 420];
+            baseFreq = freqs[variant] + Math.random() * 50;
+            decay = 0.06 + variant * 0.01;
+        } else {
+            // Player hit variants: heavy, medium
+            const freqs = [200, 250];
+            baseFreq = freqs[variant] + Math.random() * 30;
+            decay = 0.1;
+        }
+
+        osc.frequency.setValueAtTime(baseFreq, t);
+        osc.frequency.exponentialRampToValueAtTime(baseFreq * 0.3, t + decay);
+        osc2.frequency.setValueAtTime(baseFreq * 0.5, t);
+        osc2.frequency.exponentialRampToValueAtTime(baseFreq * 0.15, t + decay + 0.02);
+
+        const vol = target === 'player' ? 0.15 : 0.1;
+        gain.gain.setValueAtTime(vol, t);
+        gain.gain.setValueAtTime(vol * 0.7, t + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.01, t + decay);
+
+        osc.start(t);
+        osc.stop(t + decay);
+        osc2.start(t);
+        osc2.stop(t + decay + 0.02);
+    }
+
+    // Coin sound variants helper
+    _playCoinVariant(output, t, pitchMult) {
+        const osc = this.ctx.createOscillator();
+        const osc2 = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.connect(gain);
+        osc2.connect(gain);
+        gain.connect(output);
+
+        osc.type = 'square';
+        osc2.type = 'triangle';
+
+        const baseFreq = 1200 * pitchMult;
+        const highFreq = 1600 * pitchMult;
+
+        osc.frequency.setValueAtTime(baseFreq, t);
+        osc.frequency.setValueAtTime(highFreq, t + 0.05);
+        osc2.frequency.setValueAtTime(baseFreq, t);
+        osc2.frequency.setValueAtTime(highFreq, t + 0.05);
+
+        const duration = pitchMult < 1 ? 0.18 : 0.12;
+        gain.gain.setValueAtTime(0.08, t);
+        gain.gain.exponentialRampToValueAtTime(0.01, t + duration);
+
+        osc.start(t);
+        osc.stop(t + duration);
+        osc2.start(t);
+        osc2.stop(t + duration);
     }
 
     // Create white noise oscillator
