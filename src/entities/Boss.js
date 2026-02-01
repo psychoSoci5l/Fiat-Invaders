@@ -147,6 +147,7 @@ class Boss extends window.Game.Entity {
         const cx = this.x + this.width / 2;
         const cy = this.y + this.height;
 
+        // All bullet speeds reduced 15%
         if (this.phase === 1) {
             // PHASE 1: Spread shot (5 bullets in arc)
             this.fireTimer = 1.2;
@@ -155,8 +156,8 @@ class Boss extends window.Game.Entity {
                 bullets.push({
                     x: cx,
                     y: cy - 20,
-                    vx: Math.cos(angle) * 220,
-                    vy: Math.sin(angle) * 220,
+                    vx: Math.cos(angle) * 187,
+                    vy: Math.sin(angle) * 187,
                     color: '#2ecc71', w: 8, h: 8
                 });
             }
@@ -171,8 +172,8 @@ class Boss extends window.Game.Entity {
                 bullets.push({
                     x: cx,
                     y: cy - 30,
-                    vx: Math.cos(a) * 280,
-                    vy: Math.sin(a) * 280,
+                    vx: Math.cos(a) * 238,
+                    vy: Math.sin(a) * 238,
                     color: '#f39c12', w: 10, h: 10
                 });
             }
@@ -185,8 +186,8 @@ class Boss extends window.Game.Entity {
                 bullets.push({
                     x: cx,
                     y: cy,
-                    vx: (dx / dist) * 350,
-                    vy: (dy / dist) * 350,
+                    vx: (dx / dist) * 298,
+                    vy: (dy / dist) * 298,
                     color: '#e74c3c', w: 12, h: 12
                 });
             }
@@ -202,8 +203,8 @@ class Boss extends window.Game.Entity {
                 bullets.push({
                     x: cx,
                     y: cy - 20,
-                    vx: Math.cos(a) * 300,
-                    vy: Math.sin(a) * 300,
+                    vx: Math.cos(a) * 255,
+                    vy: Math.sin(a) * 255,
                     color: '#e74c3c', w: 10, h: 10
                 });
             }
@@ -213,15 +214,15 @@ class Boss extends window.Game.Entity {
             bullets.push({
                 x: this.x + 20,
                 y: cy - 40,
-                vx: Math.cos(sideAngle - 0.3) * 250,
-                vy: Math.sin(sideAngle - 0.3) * 250,
+                vx: Math.cos(sideAngle - 0.3) * 213,
+                vy: Math.sin(sideAngle - 0.3) * 213,
                 color: '#9b59b6', w: 8, h: 8
             });
             bullets.push({
                 x: this.x + this.width - 20,
                 y: cy - 40,
-                vx: Math.cos(sideAngle + 0.3) * 250,
-                vy: Math.sin(sideAngle + 0.3) * 250,
+                vx: Math.cos(sideAngle + 0.3) * 213,
+                vy: Math.sin(sideAngle + 0.3) * 213,
                 color: '#9b59b6', w: 8, h: 8
             });
         }

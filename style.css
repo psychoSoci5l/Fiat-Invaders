@@ -58,14 +58,7 @@ body {
 }
 
 .vignette {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: radial-gradient(circle, rgba(0, 0, 0, 0) 50%, rgba(0, 0, 0, 0.9) 100%);
-    pointer-events: none;
-    z-index: 90;
+    display: none; /* Disabled for sharper visuals */
 }
 
 /* --- UI LAYOUT: COCKPIT MODULES (FIXED) --- */
@@ -113,9 +106,16 @@ body {
 
 .hud-stat .label {
     font-size: 10px;
-    color: #888;
+    color: #fff;
+    font-weight: 700;
     letter-spacing: 2px;
     margin-bottom: 2px;
+    text-shadow:
+        -1px -1px 0 #000,
+        1px -1px 0 #000,
+        -1px 1px 0 #000,
+        1px 1px 0 #000,
+        0 0 8px rgba(0, 0, 0, 0.8);
 }
 
 .hud-stat .value {
@@ -165,8 +165,16 @@ body {
 
 .terminal-score .label {
     letter-spacing: 3px;
-    color: #6aa9ff;
-    text-shadow: 0 0 6px var(--terminal-glow);
+    color: #fff;
+    font-weight: 900;
+    font-size: 12px;
+    text-shadow:
+        -1px -1px 0 #000,
+        1px -1px 0 #000,
+        -1px 1px 0 #000,
+        1px 1px 0 #000,
+        0 0 10px rgba(0, 0, 0, 0.9),
+        0 0 6px var(--terminal-glow);
 }
 
 .terminal-score .value {
@@ -401,8 +409,7 @@ body {
 
 /* --- SCREENS --- */
 /* --- INTRO SCREEN OVERHAUL --- */
-#intro-screen,
-#gameover-screen {
+#intro-screen {
     position: absolute;
     top: 0;
     left: 0;
@@ -410,6 +417,19 @@ body {
     height: 100%;
     background: transparent;
     /* Show the Sky! */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+#gameover-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    /* Dark overlay over game */
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -702,6 +722,40 @@ body {
     transform: scale(0.98);
 }
 
+/* Game Over Actions */
+.gameover-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 20px;
+    align-items: center;
+}
+
+.btn-secondary {
+    background: transparent;
+    color: #888;
+    border: 2px solid #444;
+    padding: 12px 40px;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.15s;
+    min-width: 200px;
+}
+
+.btn-secondary:hover {
+    border-color: #666;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.btn-secondary:active {
+    transform: scale(0.98);
+}
+
 /* Bear Market button moved to Settings toggle - see Paper Mario styles below */
 
 /* Version text styled inside button - see .btn-play .version-text */
@@ -780,12 +834,13 @@ body {
 }
 
 .glitch-text {
-    font-size: 70px;
+    font-size: clamp(28px, 8vw, 42px);
     color: #e74c3c;
     margin: 0;
-    text-shadow: 4px 4px 0px #fff;
+    text-shadow: 3px 3px 0px #fff;
     animation: shake 0.4s infinite;
     font-weight: 900;
+    letter-spacing: 2px;
 }
 
 .final-score {

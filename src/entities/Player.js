@@ -170,7 +170,7 @@ class Player extends window.Game.Entity {
         const color = conf.color;
         const bulletW = 5;
         const bulletH = 20;
-        const bulletSpeed = 900;
+        const bulletSpeed = 765; // Reduced 15% (was 900)
         const spawnBullet = (x, y, vx, vy) => {
             const b = window.Game.Bullet.Pool.acquire(x, y, vx, vy, color, bulletW, bulletH, isHodl);
             bullets.push(b);
@@ -435,7 +435,7 @@ class Player extends window.Game.Entity {
         if (this.invulnTimer > 0 || this.shieldActive) return false;
 
         this.hp--;
-        this.invulnTimer = 2.0;
+        this.invulnTimer = 1.4; // Reduced 30% (was 2.0)
         window.Game.Audio.play('hit');
         window.Game.Input.vibrate([50, 50, 50]); // heavy shake
         return true;

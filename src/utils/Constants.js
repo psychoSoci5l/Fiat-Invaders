@@ -197,9 +197,9 @@ window.Game.FIAT_TYPES = [
 ];
 
 window.Game.SHIPS = {
-    BTC: { speed: 420, hp: 3, fireRate: 0.18, color: '#F7931A', hitboxSize: 30 },
-    ETH: { speed: 320, hp: 4, fireRate: 0.40, color: '#8c7ae6', hitboxSize: 38 },
-    SOL: { speed: 560, hp: 2, fireRate: 0.14, color: '#00d2d3', hitboxSize: 18 }
+    BTC: { speed: 420, hp: 3, fireRate: 0.26, color: '#F7931A', hitboxSize: 30 },
+    ETH: { speed: 320, hp: 4, fireRate: 0.57, color: '#8c7ae6', hitboxSize: 38 },
+    SOL: { speed: 560, hp: 2, fireRate: 0.20, color: '#00d2d3', hitboxSize: 18 }
 };
 
 window.Game.ASSETS = {};
