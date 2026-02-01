@@ -134,6 +134,7 @@ const DROP_INTERVAL = 5.0; // Seconds between guaranteed drop opportunities
 // Boss fight drops: power-ups every N hits to help player survive
 let bossHitCount = 0;
 const BOSS_DROP_INTERVAL = 25; // Drop power-up every 25 hits on boss
+let bossDropCooldown = 0; // Prevent multiple drops in quick succession
 
 // --- DIFFICULTY SYSTEM ---
 // Single unified difficulty multiplier (0.0 = Level 1, capped at 0.85)
@@ -719,6 +720,16 @@ function init() {
                 if (runState.modifiers) runState.modifiers.tempFireRateMult = 0.6;
             }
         });
+        // Harmonic Conductor bullet spawning
+        events.on('harmonic_bullets', (data) => {
+            if (!data || !data.bullets) return;
+            data.bullets.forEach(bd => {
+                const bullet = G.Bullet.Pool.acquire(bd.x, bd.y, bd.vx, bd.vy, bd.color, bd.w || 8, bd.h || 8, false);
+                // Enhanced trail for beat-synced bullets
+                bullet.beatSynced = true;
+                enemyBullets.push(bullet);
+            });
+        });
     }
 
     if (ui.joyDeadzone) {
@@ -1214,6 +1225,8 @@ window.backToIntro = function () {
         gameState = 'INTRO';
         audioSys.resetState(); // Reset audio state
         audioSys.init();
+        // Reset Harmonic Conductor
+        if (G.HarmonicConductor) G.HarmonicConductor.reset();
         initIntroShip(); // Restart animated ship
 
         // Reopen curtain
@@ -1397,6 +1410,14 @@ function startGame() {
     lastDropTime = 0; // Reset time-based drop timer
 
     updateLivesUI();
+
+    // Initialize Harmonic Conductor
+    if (G.HarmonicConductor) {
+        G.HarmonicConductor.init(enemies, player, gameWidth, gameHeight);
+        G.HarmonicConductor.setDifficulty(level, marketCycle, isBearMarket);
+        G.HarmonicConductor.enabled = true;
+    }
+
     emitEvent('run_start', { bear: isBearMarket });
 }
 
@@ -1442,8 +1463,9 @@ function spawnBoss() {
     boss.hp = 500 + (level * 200) + (marketCycle * 300);
     boss.maxHp = boss.hp;
 
-    // Reset boss hit counter for power-up drops
+    // Reset boss hit counter and cooldown for power-up drops
     bossHitCount = 0;
+    bossDropCooldown = 0;
 
     enemies = [];
     if (window.Game) window.Game.enemies = enemies;
@@ -1452,6 +1474,12 @@ function spawnBoss() {
     showMemeFun(getPowellMeme(), 2000);
     audioSys.play('bossSpawn');
     audioSys.setBossPhase(1); // Start boss music phase 1
+
+    // Set Harmonic Conductor to boss sequence
+    if (G.HarmonicConductor) {
+        G.HarmonicConductor.enemies = [];
+        G.HarmonicConductor.setBossSequence(1);
+    }
 
     // Start with a Powell meme in the ticker
     if (ui.memeTicker) ui.memeTicker.innerText = getPowellMeme();
@@ -1736,6 +1764,13 @@ function update(dt) {
             fibonacciTimer = 0;
             enemiesAllowedToFire = 1; // Start with 1 enemy allowed
 
+            // Update Harmonic Conductor for new wave
+            if (G.HarmonicConductor) {
+                G.HarmonicConductor.enemies = enemies;
+                G.HarmonicConductor.setDifficulty(level, marketCycle, isBearMarket);
+                G.HarmonicConductor.setSequence(lastWavePattern, audioSys.intensity, isBearMarket);
+            }
+
             emitEvent('wave_start', { wave: waveNumber, level: level, pattern: lastWavePattern });
         }
     }
@@ -1761,6 +1796,8 @@ function update(dt) {
                     enemyBullets.push(G.Bullet.Pool.acquire(bd.x, bd.y, bd.vx, bd.vy, bd.color, bd.w, bd.h, false));
                 });
             }
+            // Decrement boss drop cooldown
+            if (bossDropCooldown > 0) bossDropCooldown -= dt;
         }
 
         // Mini-boss update (fiat revenge boss)
@@ -1818,10 +1855,11 @@ function updateBullets(dt) {
                 boss.damage(dmg * dmgMult);
                 audioSys.play('hit');
 
-                // Boss drops power-ups every N hits to help player
+                // Boss drops power-ups every N hits to help player (with cooldown to prevent clustering)
                 bossHitCount++;
-                if (bossHitCount >= BOSS_DROP_INTERVAL) {
+                if (bossHitCount >= BOSS_DROP_INTERVAL && bossDropCooldown <= 0) {
                     bossHitCount = 0;
+                    bossDropCooldown = 1.5; // 1.5 second cooldown between drops
                     const weaponTypes = ['WIDE', 'NARROW', 'FIRE'];
                     const shipTypes = ['SPEED', 'RAPID', 'SHIELD'];
                     const dropWeapon = Math.random() < 0.5;
@@ -1866,6 +1904,12 @@ function updateBullets(dt) {
                     marketCycle++;
                     window.marketCycle = marketCycle; // Update global
                     waveMgr.reset();
+
+                    // Reset Harmonic Conductor for new wave cycle
+                    if (G.HarmonicConductor) {
+                        G.HarmonicConductor.setDifficulty(level, marketCycle, isBearMarket);
+                        G.HarmonicConductor.currentSequence = null; // Will be set when wave spawns
+                    }
 
                     startIntermission("CYCLE " + marketCycle + " BEGINS");
                     emitEvent('boss_killed', { level: level, cycle: marketCycle });
@@ -2002,7 +2046,7 @@ function updateGrazeUI() {
 function checkBulletCollisions(b, bIdx) {
     for (let j = enemies.length - 1; j >= 0; j--) {
         let e = enemies[j];
-        if (Math.abs(b.x - e.x) < 35 && Math.abs(b.y - e.y) < 35) {
+        if (Math.abs(b.x - e.x) < 40 && Math.abs(b.y - e.y) < 40) { // Adjusted for larger enemies
             const dmgMult = (runState && runState.getMod) ? runState.getMod('damageMult', 1) : 1;
             let dmg = 11 * dmgMult; // Base damage +10% (was 10)
             if (runState && runState.flags && runState.flags.hodlBonus && b.isHodl) dmg += 11;
@@ -2069,21 +2113,31 @@ function updateEnemies(dt) {
     let hitEdge = false;
     const currentGridSpeed = getGridSpeed(); // Dynamic grid speed
 
-    // Reset rate limiter each frame
-    enemyShotsThisTick = 0;
-
-    // Fibonacci ramp-up: increase enemies allowed to fire every 0.33s
-    fibonacciTimer += dt;
-    if (fibonacciTimer >= FIBONACCI_INTERVAL && fibonacciIndex < FIBONACCI_SEQ.length - 1) {
-        fibonacciTimer = 0;
-        fibonacciIndex++;
-        enemiesAllowedToFire = FIBONACCI_SEQ[fibonacciIndex];
+    // Update Harmonic Conductor (handles beat-synced telegraph visuals)
+    if (G.HarmonicConductor) {
+        G.HarmonicConductor.update(dt);
     }
 
-    enemyFireTimer -= dt;
-    if (enemyFireTimer <= 0) {
-        enemyFireTimer = 0.5; // Slower phase rotation (was 0.35)
-        enemyFirePhase = (enemyFirePhase + 1) % enemyFireStride;
+    // Check if Harmonic Conductor is handling firing (uses self-managed beat timing)
+    const conductorEnabled = G.HarmonicConductor && G.HarmonicConductor.enabled && G.HarmonicConductor.currentSequence;
+
+    // Reset rate limiter each frame (only used for legacy firing)
+    enemyShotsThisTick = 0;
+
+    // Fibonacci ramp-up: increase enemies allowed to fire every 0.33s (legacy system)
+    if (!conductorEnabled) {
+        fibonacciTimer += dt;
+        if (fibonacciTimer >= FIBONACCI_INTERVAL && fibonacciIndex < FIBONACCI_SEQ.length - 1) {
+            fibonacciTimer = 0;
+            fibonacciIndex++;
+            enemiesAllowedToFire = FIBONACCI_SEQ[fibonacciIndex];
+        }
+
+        enemyFireTimer -= dt;
+        if (enemyFireTimer <= 0) {
+            enemyFireTimer = 0.5; // Slower phase rotation (was 0.35)
+            enemyFirePhase = (enemyFirePhase + 1) % enemyFireStride;
+        }
     }
 
     let enemiesFiredThisFrame = 0; // Track for Fibonacci limit
@@ -2092,6 +2146,9 @@ function updateEnemies(dt) {
         const e = enemies[i];
         e.update(dt, totalTime, lastWavePattern, currentGridSpeed, gridDir);
         if ((gridDir === 1 && e.x > gameWidth - 20) || (gridDir === -1 && e.x < 20)) hitEdge = true;
+
+        // Skip legacy firing if Harmonic Conductor is active
+        if (conductorEnabled) continue;
 
         // Rate limit check - skip if we've hit max shots this tick
         if (enemyShotsThisTick >= MAX_ENEMY_SHOTS_PER_TICK) continue;
@@ -2125,7 +2182,7 @@ function updateEnemies(dt) {
     if (hitEdge) { gridDir *= -1; enemies.forEach(e => e.baseY += dropAmount); }
 
     enemies.forEach(e => {
-        const hitR = (player.stats.hitboxSize || 30) + 10; // Slightly larger for body collision
+        const hitR = (player.stats.hitboxSize || 30) + 15; // Adjusted for larger enemies
         if (Math.abs(e.x - player.x) < hitR && Math.abs(e.y - player.y) < hitR) {
             if (player.takeDamage()) {
                 updateLivesUI(true); // Hit animation
@@ -2233,6 +2290,11 @@ function draw() {
             const dimAlpha = Math.min(0.35, (enemyBullets.length - 15) * 0.015);
             ctx.fillStyle = `rgba(0, 0, 0, ${dimAlpha})`;
             ctx.fillRect(0, 0, gameWidth, gameHeight);
+        }
+
+        // Harmonic Conductor telegraphs (draw BEFORE bullets for layering)
+        if (G.HarmonicConductor) {
+            G.HarmonicConductor.draw(ctx);
         }
 
         // Enemy bullets with culling

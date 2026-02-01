@@ -57,6 +57,11 @@ class Boss extends window.Game.Entity {
             window.Game.Audio.setBossPhase(newPhase);
         }
 
+        // Update Harmonic Conductor for new boss phase
+        if (window.Game.HarmonicConductor) {
+            window.Game.HarmonicConductor.setBossSequence(newPhase);
+        }
+
         // Screen shake via global
         if (typeof shake !== 'undefined') shake = 30;
     }

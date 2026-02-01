@@ -29,6 +29,7 @@ class Bullet extends window.Game.Entity {
         this.weaponType = 'NORMAL'; // Default, set by Player.fire()
         this.age = 0; // For animations
         this.grazed = false; // Graze tracking (Ikeda Rule 3)
+        this.beatSynced = false; // Harmonic Conductor beat-synced bullet
     }
 
     update(dt) {
@@ -322,8 +323,11 @@ class Bullet extends window.Game.Entity {
     // ═══════════════════════════════════════════════════════════════════
     // ENEMY: Aggressive Energy Bolt - Bullet Hell Style (Ikeda Rule 4)
     // High contrast, readable even with screen full of projectiles
+    // Beat-synced bullets from Harmonic Conductor have enhanced trails
     // ═══════════════════════════════════════════════════════════════════
     drawEnemyBolt(ctx) {
+        // Beat-synced bullets are 1.5x brighter
+        const beatBoost = this.beatSynced ? 1.5 : 1.0;
         const r = (this.width || 5) * 1.8;  // Larger for bullet hell visibility
         const pulse = Math.sin(this.age * 25) * 0.15 + 1;
 
@@ -364,10 +368,11 @@ class Bullet extends window.Game.Entity {
         ctx.globalAlpha = 1;
 
         // Outer danger glow - LARGER (Ikeda Rule 4: bigger glow)
+        // Beat-synced bullets have enhanced glow
         ctx.fillStyle = this.color;
-        ctx.globalAlpha = 0.3 * pulse;
+        ctx.globalAlpha = 0.3 * pulse * beatBoost;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, r + 8, 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, r + 8 + (this.beatSynced ? 4 : 0), 0, Math.PI * 2);
         ctx.fill();
         ctx.globalAlpha = 1;
 

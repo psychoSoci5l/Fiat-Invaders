@@ -2,7 +2,7 @@ window.Game = window.Game || {};
 
 class Enemy extends window.Game.Entity {
     constructor(x, y, typeConf) {
-        super(x, y, 50, 50); // Fixed size for now as per legacy spawn logic
+        super(x, y, 65, 65); // Larger enemies for better proportions with bullets
 
         this.baseY = y;
         this.symbol = typeConf.s;
@@ -90,12 +90,12 @@ class Enemy extends window.Game.Entity {
 
         return {
             x: this.x,
-            y: this.y + 25,
+            y: this.y + 32, // Adjusted for larger enemy size
             vx: vx,
             vy: vy,
             color: this.color, // Match enemy color
-            w: 5,
-            h: 5
+            w: 6, // Slightly larger bullet
+            h: 6
         };
     }
 
@@ -154,29 +154,31 @@ class Enemy extends window.Game.Entity {
             ctx.globalAlpha = this.hitFlash;
             ctx.fillStyle = '#fff';
             ctx.beginPath();
-            ctx.arc(x, y, 22, 0, Math.PI * 2);
+            ctx.arc(x, y, 30, 0, Math.PI * 2);
             ctx.fill();
             ctx.globalAlpha = 1;
         }
 
-        // Telegraph indicator
+        // Telegraph indicator (larger for bigger enemies)
         if (this.telegraphTimer > 0) {
             const mult = (this.pattern === 'BURST') ? 5 : (this.pattern === 'DOUBLE' ? 5.5 : 6);
             ctx.globalAlpha = Math.min(1, this.telegraphTimer * mult);
             ctx.strokeStyle = (this.pattern === 'BURST') ? '#ff6b6b' : (this.pattern === 'DOUBLE' ? '#4ecdc4' : '#fff');
             ctx.lineWidth = 3;
             ctx.beginPath();
-            ctx.arc(x, y, 26, 0, Math.PI * 2);
+            ctx.arc(x, y, 34, 0, Math.PI * 2);
             ctx.stroke();
             ctx.globalAlpha = 1;
         }
     }
 
     drawCoin(ctx, x, y) {
+        const r = 25; // Larger radius for better proportions
+
         // Shadow side (bottom-left arc) - cell-shading
         ctx.fillStyle = this._colorDark35;
         ctx.beginPath();
-        ctx.arc(x, y, 18, Math.PI * 0.4, Math.PI * 1.4);
+        ctx.arc(x, y, r, Math.PI * 0.4, Math.PI * 1.4);
         ctx.lineTo(x, y);
         ctx.closePath();
         ctx.fill();
@@ -184,54 +186,54 @@ class Enemy extends window.Game.Entity {
         // Light side (top-right arc)
         ctx.fillStyle = this.color;
         ctx.beginPath();
-        ctx.arc(x, y, 18, Math.PI * 1.4, Math.PI * 0.4);
+        ctx.arc(x, y, r, Math.PI * 1.4, Math.PI * 0.4);
         ctx.lineTo(x, y);
         ctx.closePath();
         ctx.fill();
 
         // Full outline
         ctx.beginPath();
-        ctx.arc(x, y, 18, 0, Math.PI * 2);
+        ctx.arc(x, y, r, 0, Math.PI * 2);
         ctx.stroke();
 
         // Inner circle (darker)
         ctx.fillStyle = this._colorDark40;
         ctx.beginPath();
-        ctx.arc(x, y, 12, 0, Math.PI * 2);
+        ctx.arc(x, y, r * 0.65, 0, Math.PI * 2);
         ctx.fill();
 
         // Rim lighting (top-right arc highlight)
         ctx.strokeStyle = this._colorLight50;
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(x, y, 16, -Math.PI * 0.6, Math.PI * 0.1);
+        ctx.arc(x, y, r - 2, -Math.PI * 0.6, Math.PI * 0.1);
         ctx.stroke();
 
-        // Edge notches reduced from 12 to 6 for performance
+        // Edge notches (8 for larger coin)
         ctx.strokeStyle = this._colorDark50;
-        ctx.lineWidth = 1;
-        for (let i = 0; i < 6; i++) {
-            const angle = (Math.PI * 2 / 6) * i;
-            const x1 = x + Math.cos(angle) * 15;
-            const y1 = y + Math.sin(angle) * 15;
-            const x2 = x + Math.cos(angle) * 18;
-            const y2 = y + Math.sin(angle) * 18;
+        ctx.lineWidth = 1.5;
+        for (let i = 0; i < 8; i++) {
+            const angle = (Math.PI * 2 / 8) * i;
+            const x1 = x + Math.cos(angle) * (r - 4);
+            const y1 = y + Math.sin(angle) * (r - 4);
+            const x2 = x + Math.cos(angle) * r;
+            const y2 = y + Math.sin(angle) * r;
             ctx.beginPath();
             ctx.moveTo(x1, y1);
             ctx.lineTo(x2, y2);
             ctx.stroke();
         }
 
-        // Symbol
+        // Symbol (larger)
         ctx.fillStyle = '#fff';
-        ctx.font = 'bold 16px Arial';
+        ctx.font = 'bold 20px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(this.symbol, x, y);
     }
 
     drawBill(ctx, x, y) {
-        const w = 36, h = 20;
+        const w = 48, h = 28; // Larger bill
 
         // Shadow side (bottom-left triangle) - cell-shading
         ctx.fillStyle = this._colorDark35;
@@ -258,52 +260,52 @@ class Enemy extends window.Game.Entity {
 
         // Inner border
         ctx.strokeStyle = this._colorDark50;
-        ctx.lineWidth = 1;
-        ctx.strokeRect(x - w/2 + 3, y - h/2 + 3, w - 6, h - 6);
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(x - w/2 + 4, y - h/2 + 4, w - 8, h - 8);
 
-        // Corner decorations
+        // Corner decorations (larger)
         ctx.fillStyle = this._colorDark40;
-        ctx.fillRect(x - w/2 + 2, y - h/2 + 2, 5, 5);
-        ctx.fillRect(x + w/2 - 7, y - h/2 + 2, 5, 5);
-        ctx.fillRect(x - w/2 + 2, y + h/2 - 7, 5, 5);
-        ctx.fillRect(x + w/2 - 7, y + h/2 - 7, 5, 5);
+        ctx.fillRect(x - w/2 + 3, y - h/2 + 3, 7, 7);
+        ctx.fillRect(x + w/2 - 10, y - h/2 + 3, 7, 7);
+        ctx.fillRect(x - w/2 + 3, y + h/2 - 10, 7, 7);
+        ctx.fillRect(x + w/2 - 10, y + h/2 - 10, 7, 7);
 
         // Rim lighting (top and right edge)
         ctx.strokeStyle = this._colorLight50;
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.moveTo(x - w/2 + 2, y - h/2);
+        ctx.moveTo(x - w/2 + 3, y - h/2);
         ctx.lineTo(x + w/2, y - h/2);
-        ctx.lineTo(x + w/2, y + h/2 - 2);
+        ctx.lineTo(x + w/2, y + h/2 - 3);
         ctx.stroke();
 
-        // Symbol
+        // Symbol (larger)
         ctx.fillStyle = '#fff';
-        ctx.font = 'bold 14px Arial';
+        ctx.font = 'bold 18px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(this.symbol, x, y);
     }
 
     drawBar(ctx, x, y) {
-        // Gold bar / ingot shape (trapezoid) - front face with two-tone
+        // Gold bar / ingot shape (trapezoid) - larger front face with two-tone
         // Shadow side (left half)
         ctx.fillStyle = this._colorDark30;
         ctx.beginPath();
-        ctx.moveTo(x - 20, y + 10);
-        ctx.lineTo(x - 14, y - 10);
-        ctx.lineTo(x, y - 10);
-        ctx.lineTo(x, y + 10);
+        ctx.moveTo(x - 26, y + 14);
+        ctx.lineTo(x - 18, y - 14);
+        ctx.lineTo(x, y - 14);
+        ctx.lineTo(x, y + 14);
         ctx.closePath();
         ctx.fill();
 
         // Light side (right half)
         ctx.fillStyle = this.color;
         ctx.beginPath();
-        ctx.moveTo(x, y + 10);
-        ctx.lineTo(x, y - 10);
-        ctx.lineTo(x + 14, y - 10);
-        ctx.lineTo(x + 20, y + 10);
+        ctx.moveTo(x, y + 14);
+        ctx.lineTo(x, y - 14);
+        ctx.lineTo(x + 18, y - 14);
+        ctx.lineTo(x + 26, y + 14);
         ctx.closePath();
         ctx.fill();
 
@@ -311,102 +313,111 @@ class Enemy extends window.Game.Entity {
         ctx.strokeStyle = '#111';
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.moveTo(x - 20, y + 10);
-        ctx.lineTo(x - 14, y - 10);
-        ctx.lineTo(x + 14, y - 10);
-        ctx.lineTo(x + 20, y + 10);
+        ctx.moveTo(x - 26, y + 14);
+        ctx.lineTo(x - 18, y - 14);
+        ctx.lineTo(x + 18, y - 14);
+        ctx.lineTo(x + 26, y + 14);
         ctx.closePath();
         ctx.stroke();
 
         // Top face (lighter) - cell-shading highlight
         ctx.fillStyle = this._colorLight35;
         ctx.beginPath();
-        ctx.moveTo(x - 14, y - 10);
-        ctx.lineTo(x - 10, y - 14);
-        ctx.lineTo(x + 10, y - 14);
-        ctx.lineTo(x + 14, y - 10);
+        ctx.moveTo(x - 18, y - 14);
+        ctx.lineTo(x - 13, y - 20);
+        ctx.lineTo(x + 13, y - 20);
+        ctx.lineTo(x + 18, y - 14);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
 
-        // Shine line (simplified - removed rim light)
+        // Shine line
         ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 2.5;
         ctx.globalAlpha = 0.7;
         ctx.beginPath();
-        ctx.moveTo(x - 8, y - 12);
-        ctx.lineTo(x + 8, y - 12);
+        ctx.moveTo(x - 10, y - 17);
+        ctx.lineTo(x + 10, y - 17);
         ctx.stroke();
         ctx.globalAlpha = 1;
 
-        // Symbol
+        // Symbol (larger)
         ctx.fillStyle = '#111';
-        ctx.font = 'bold 14px Arial';
+        ctx.font = 'bold 18px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(this.symbol, x, y + 2);
     }
 
     drawCard(ctx, x, y) {
-        const w = 32, h = 22;
+        const w = 44, h = 30; // Larger card
 
         // Shadow side (bottom-left) - cell-shading
         ctx.fillStyle = this._colorDark35;
         ctx.beginPath();
-        ctx.moveTo(x - w/2 + 4, y - h/2);
+        ctx.moveTo(x - w/2 + 5, y - h/2);
         ctx.lineTo(x + w/2, y + h/2);
         ctx.lineTo(x - w/2, y + h/2);
-        ctx.lineTo(x - w/2, y - h/2 + 4);
-        ctx.quadraticCurveTo(x - w/2, y - h/2, x - w/2 + 4, y - h/2);
+        ctx.lineTo(x - w/2, y - h/2 + 5);
+        ctx.quadraticCurveTo(x - w/2, y - h/2, x - w/2 + 5, y - h/2);
         ctx.closePath();
         ctx.fill();
 
         // Light side (top-right)
         ctx.fillStyle = this.color;
         ctx.beginPath();
-        ctx.moveTo(x - w/2 + 4, y - h/2);
-        ctx.lineTo(x + w/2 - 4, y - h/2);
-        ctx.quadraticCurveTo(x + w/2, y - h/2, x + w/2, y - h/2 + 4);
-        ctx.lineTo(x + w/2, y + h/2 - 4);
-        ctx.quadraticCurveTo(x + w/2, y + h/2, x + w/2 - 4, y + h/2);
+        ctx.moveTo(x - w/2 + 5, y - h/2);
+        ctx.lineTo(x + w/2 - 5, y - h/2);
+        ctx.quadraticCurveTo(x + w/2, y - h/2, x + w/2, y - h/2 + 5);
+        ctx.lineTo(x + w/2, y + h/2 - 5);
+        ctx.quadraticCurveTo(x + w/2, y + h/2, x + w/2 - 5, y + h/2);
         ctx.lineTo(x + w/2, y + h/2);
-        ctx.lineTo(x - w/2 + 4, y - h/2);
+        ctx.lineTo(x - w/2 + 5, y - h/2);
         ctx.closePath();
         ctx.fill();
 
         // Full outline
         ctx.strokeStyle = '#111';
         ctx.lineWidth = 3;
-        this.roundRect(ctx, x - w/2, y - h/2, w, h, 4);
+        this.roundRect(ctx, x - w/2, y - h/2, w, h, 5);
         ctx.stroke();
 
-        // Chip (simplified - removed chip lines)
+        // Chip (larger with detail)
         ctx.fillStyle = '#f1c40f';
-        ctx.fillRect(x - w/2 + 4, y - 4, 8, 8);
+        ctx.fillRect(x - w/2 + 5, y - 6, 12, 12);
         ctx.strokeStyle = '#b8860b';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(x - w/2 + 5, y - 6, 12, 12);
+        // Chip lines
+        ctx.strokeStyle = '#c9a007';
         ctx.lineWidth = 1;
-        ctx.strokeRect(x - w/2 + 4, y - 4, 8, 8);
+        ctx.beginPath();
+        ctx.moveTo(x - w/2 + 8, y - 3);
+        ctx.lineTo(x - w/2 + 14, y - 3);
+        ctx.moveTo(x - w/2 + 8, y + 3);
+        ctx.lineTo(x - w/2 + 14, y + 3);
+        ctx.stroke();
 
         // Magnetic stripe
         ctx.fillStyle = '#222';
-        ctx.fillRect(x - w/2, y + h/2 - 6, w, 4);
+        ctx.fillRect(x - w/2, y + h/2 - 8, w, 5);
 
         // Rim lighting (top and right edge)
         ctx.strokeStyle = this._colorLight50;
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.moveTo(x - w/2 + 6, y - h/2);
-        ctx.lineTo(x + w/2 - 4, y - h/2);
-        ctx.quadraticCurveTo(x + w/2, y - h/2, x + w/2, y - h/2 + 4);
-        ctx.lineTo(x + w/2, y + h/2 - 8);
+        ctx.moveTo(x - w/2 + 8, y - h/2);
+        ctx.lineTo(x + w/2 - 5, y - h/2);
+        ctx.quadraticCurveTo(x + w/2, y - h/2, x + w/2, y - h/2 + 5);
+        ctx.lineTo(x + w/2, y + h/2 - 10);
         ctx.stroke();
 
-        // Symbol
+        // Symbol (larger)
         ctx.fillStyle = '#fff';
-        ctx.font = 'bold 12px Arial';
+        ctx.font = 'bold 16px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(this.symbol, x + 6, y - 2);
+        ctx.fillText(this.symbol, x + 8, y - 3);
     }
 
     roundRect(ctx, x, y, w, h, r) {

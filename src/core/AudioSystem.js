@@ -11,6 +11,9 @@ class AudioSystem {
         this.tempo = 0.2;
         this.noteIndex = 0;
 
+        // Beat event tracking for Harmonic Conductor
+        this.lastEmittedBeat = -1;
+
         // Boss phase state (0=no boss, 1-3=phases)
         this.bossPhase = 0;
 
@@ -126,6 +129,7 @@ class AudioSystem {
         this.isNearDeath = false;
         this.tempo = 0.2; // Reset to normal tempo
         this.currentLevel = 1;
+        this.lastEmittedBeat = -1; // Reset beat tracking
 
         // Reset master gain to normal (in case we were mid-crossfade)
         if (this.masterGain && this.ctx) {
@@ -729,6 +733,19 @@ class AudioSystem {
         }
 
         while (this.noteTime < this.ctx.currentTime + 0.2) {
+            // Emit beat event for Harmonic Conductor (only once per beat)
+            if (this.noteIndex !== this.lastEmittedBeat) {
+                this.lastEmittedBeat = this.noteIndex;
+                if (window.Game && window.Game.Events) {
+                    window.Game.Events.emit('beat', {
+                        index: this.noteIndex,
+                        tempo: this.tempo,
+                        isKick: this.noteIndex === 0 || this.noteIndex === 8,
+                        isSnare: this.noteIndex === 4 || this.noteIndex === 12
+                    });
+                }
+            }
+
             // Always play bass (intensity 0+)
             this.playBassNote(this.noteTime, this.noteIndex);
 
