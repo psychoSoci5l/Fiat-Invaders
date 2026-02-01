@@ -1822,3 +1822,90 @@ body.bear-mode .toggle-switch#bear-toggle .switch-label {
         transform: translate(var(--vx), var(--vy)) rotate(var(--rot)) scale(0.2);
     }
 }
+
+/* ========================================
+   DIALOGUE SYSTEM - Story/Visual Novel
+   ======================================== */
+
+.dialogue-container {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 20px;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    pointer-events: auto;
+    z-index: 200;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.dialogue-container.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.dialogue-box {
+    background: rgba(0, 0, 0, 0.92);
+    border: 3px solid #F7931A;
+    border-radius: 12px;
+    padding: 15px 20px;
+    max-width: 500px;
+    margin: 0 auto;
+    box-shadow:
+        0 0 20px rgba(247, 147, 26, 0.4),
+        inset 0 0 30px rgba(0, 0, 0, 0.5);
+    position: relative;
+}
+
+.dialogue-box::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: 20px;
+    right: 20px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #F7931A, transparent);
+}
+
+.dialogue-speaker {
+    font-size: 14px;
+    font-weight: 900;
+    letter-spacing: 3px;
+    color: #F7931A;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    text-shadow: 0 0 10px currentColor;
+}
+
+.dialogue-text {
+    font-size: 16px;
+    line-height: 1.5;
+    color: #fff;
+    min-height: 24px;
+}
+
+.dialogue-tap-hint {
+    position: absolute;
+    bottom: 8px;
+    right: 15px;
+    font-size: 9px;
+    color: #666;
+    letter-spacing: 1px;
+    animation: tapHintPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes tapHintPulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
+/* Speaker color variants */
+.dialogue-speaker.speaker-btc { color: #F7931A; }
+.dialogue-speaker.speaker-eth { color: #8c7ae6; }
+.dialogue-speaker.speaker-sol { color: #00d2d3; }
+.dialogue-speaker.speaker-powell { color: #e74c3c; }
+.dialogue-speaker.speaker-fed { color: #c0392b; }
+.dialogue-speaker.speaker-system { color: #3498db; }
+.dialogue-speaker.speaker-player { color: #2ecc71; }

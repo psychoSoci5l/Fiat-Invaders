@@ -1365,6 +1365,11 @@ function startGame() {
 
     updateLivesUI();
     emitEvent('run_start', { bear: isBearMarket });
+
+    // Story: Ship selection dialogue
+    if (G.Story) {
+        G.Story.onShipSelect(player.type);
+    }
 }
 
 function highlightShip(idx) {
@@ -1389,6 +1394,11 @@ function startIntermission(msgOverride) {
         addText(msgOverride, gameWidth / 2, gameHeight / 2 - 80, '#00ff00', 30);
     }
     emitEvent('intermission_start', { level: level, wave: waveMgr.wave });
+
+    // Story: Level complete dialogue
+    if (G.Story) {
+        G.Story.onLevelComplete(level);
+    }
 }
 
 function spawnBoss() {
@@ -1408,6 +1418,11 @@ function spawnBoss() {
     // Start with a Powell meme in the ticker
     if (ui.memeTicker) ui.memeTicker.innerText = getPowellMeme();
     memeSwapTimer = 2.0;
+
+    // Story: Boss intro dialogue
+    if (G.Story) {
+        G.Story.onBossIntro('FEDERAL_RESERVE');
+    }
 }
 
 // Mini-Boss System - Giant fiat currency after 100 kills of same type
@@ -1752,6 +1767,11 @@ function updateBullets(dt) {
 
                     startIntermission("CYCLE " + marketCycle + " BEGINS");
                     emitEvent('boss_killed', { level: level, cycle: marketCycle });
+
+                    // Story: Boss defeated dialogue
+                    if (G.Story) {
+                        G.Story.onBossDefeat('FEDERAL_RESERVE');
+                    }
                 }
             } else if (miniBoss && miniBoss.active && checkMiniBossHit(b)) {
                 // Mini-boss was hit
@@ -2613,6 +2633,11 @@ function triggerGameOver() {
     setStyle('gameover-screen', 'display', 'flex');
     setUI('finalScore', Math.floor(score));
     if (ui.gameoverMeme) ui.gameoverMeme.innerText = getRandomMeme();
+
+    // Story: Game over dialogue
+    if (G.Story) {
+        G.Story.onGameOver();
+    }
     if (ui.killsVal) ui.killsVal.innerText = killCount;
     if (ui.streakVal) ui.streakVal.innerText = bestStreak;
     setStyle('pause-btn', 'display', 'none');
