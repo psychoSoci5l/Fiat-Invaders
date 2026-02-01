@@ -68,12 +68,13 @@ class Player extends window.Game.Entity {
         if (this.muzzleFlash > 0) this.muzzleFlash -= dt;
 
         // Trail effect - store position history
-        if (this.trail.length === 0 || Math.abs(this.x - this.trail[this.trail.length - 1].x) > 2) {
+        // Store position for trail when moving
+        if (this.trail.length === 0 || Math.abs(this.x - this.trail[this.trail.length - 1].x) > 4) {
             this.trail.push({ x: this.x, y: this.y, age: 0 });
-            if (this.trail.length > 8) this.trail.shift();
+            if (this.trail.length > 6) this.trail.shift();
         }
         this.trail.forEach(t => t.age += dt);
-        this.trail = this.trail.filter(t => t.age < 0.15);
+        this.trail = this.trail.filter(t => t.age < 0.12);
 
         // Movement Physics (Inertia)
         const accel = 2500;
@@ -175,8 +176,10 @@ class Player extends window.Game.Entity {
         const bulletW = 5;
         const bulletH = 20;
         const bulletSpeed = 765; // Reduced 15% (was 900)
+        const weaponType = this.weapon;
         const spawnBullet = (x, y, vx, vy) => {
             const b = window.Game.Bullet.Pool.acquire(x, y, vx, vy, color, bulletW, bulletH, isHodl);
+            b.weaponType = weaponType;
             bullets.push(b);
         };
 
@@ -214,13 +217,67 @@ class Player extends window.Game.Entity {
     draw(ctx) {
         if (this.invulnTimer > 0 && Math.floor(Date.now() / 100) % 2 === 0) return;
 
-        // Trail effect simplified (only 2 dots max)
-        if (this.trail.length > 1) {
-            ctx.fillStyle = 'rgba(247, 147, 26, 0.25)';
-            const t = this.trail[0];
+        // HODL MODE AURA - Golden glow when stationary (2x damage!)
+        const isHodl = Math.abs(this.vx) < 10;
+        if (isHodl) {
+            const hodlPulse = Math.sin(this.animTime * 8) * 0.15 + 0.4;
+            const hodlSize = 45 + Math.sin(this.animTime * 6) * 8;
+
+            // Outer golden glow
+            const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, hodlSize);
+            gradient.addColorStop(0, `rgba(255, 215, 0, ${hodlPulse * 0.6})`);
+            gradient.addColorStop(0.5, `rgba(255, 180, 0, ${hodlPulse * 0.3})`);
+            gradient.addColorStop(1, 'transparent');
+            ctx.fillStyle = gradient;
             ctx.beginPath();
-            ctx.arc(t.x, t.y + 10, 5, 0, Math.PI * 2);
+            ctx.arc(this.x, this.y, hodlSize, 0, Math.PI * 2);
             ctx.fill();
+
+            // Inner bright ring
+            ctx.strokeStyle = `rgba(255, 255, 200, ${hodlPulse * 0.8})`;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, 30 + Math.sin(this.animTime * 10) * 3, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Orbiting sparkles
+            for (let i = 0; i < 4; i++) {
+                const angle = this.animTime * 3 + (Math.PI / 2) * i;
+                const dist = 35 + Math.sin(this.animTime * 5 + i) * 5;
+                const sparkX = this.x + Math.cos(angle) * dist;
+                const sparkY = this.y + Math.sin(angle) * dist;
+
+                ctx.fillStyle = `rgba(255, 255, 150, ${hodlPulse})`;
+                ctx.beginPath();
+                ctx.arc(sparkX, sparkY, 2 + Math.sin(this.animTime * 8 + i) * 1, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // Enhanced trail effect - multiple afterimages when moving fast
+        if (this.trail.length > 0 && Math.abs(this.vx) > 80) {
+            const trailCount = Math.min(this.trail.length, 4);
+            for (let i = 0; i < trailCount; i++) {
+                const t = this.trail[i];
+                const alpha = 0.25 * (1 - i / trailCount) * (1 - t.age / 0.15);
+                if (alpha <= 0) continue;
+
+                // Afterimage silhouette
+                ctx.save();
+                ctx.globalAlpha = alpha;
+                ctx.translate(t.x, t.y);
+
+                // Simplified ship shape
+                ctx.fillStyle = this.stats.color;
+                ctx.beginPath();
+                ctx.moveTo(0, -20);
+                ctx.lineTo(-15, 10);
+                ctx.lineTo(15, 10);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.restore();
+            }
         }
 
         ctx.save();

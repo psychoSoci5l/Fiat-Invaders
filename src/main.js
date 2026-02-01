@@ -76,6 +76,11 @@ setUI('highScoreVal', highScore); // UI Update
 let boss = null;
 let score = 0, displayScore = 0, level = 1, lives = 3;
 let shake = 0, gridDir = 1, gridSpeed = 25, timeScale = 1.0, totalTime = 0, intermissionTimer = 0, currentMeme = "";
+// Screen transition system
+let transitionAlpha = 0;
+let transitionDir = 0; // 0 = none, 1 = fading in (to black), -1 = fading out
+let transitionCallback = null;
+let transitionColor = '#000';
 let currentShipIdx = 0;
 let lastWavePattern = 'RECT';
 let perkChoiceActive = false;
@@ -1302,7 +1307,19 @@ function updateMuteUI(isMuted) {
     });
 }
 
-function updateLivesUI() {
+function updateLevelUI() {
+    setUI('lvlVal', level);
+    // Trigger level up animation
+    const lvlEl = document.getElementById('lvlVal');
+    if (lvlEl) {
+        lvlEl.classList.remove('level-up');
+        void lvlEl.offsetWidth; // Force reflow
+        lvlEl.classList.add('level-up');
+    }
+    window.currentLevel = level;
+}
+
+function updateLivesUI(wasHit = false) {
     if (!ui.healthBar) return;
     const pct = Math.max(0, (player.hp / player.maxHp) * 100);
     ui.healthBar.style.width = pct + "%";
@@ -1311,12 +1328,23 @@ function updateLivesUI() {
     if (player.hp <= 1 || pct <= 34) {
         ui.healthBar.style.backgroundColor = '#ff0000'; // RED (Critical)
         ui.healthBar.style.boxShadow = '0 0 15px #ff0000';
+        // Add critical pulse
+        ui.healthBar.classList.add('health-critical');
     } else if (pct <= 67) {
         ui.healthBar.style.backgroundColor = '#F7931A'; // ORANGE (Warn)
         ui.healthBar.style.boxShadow = '0 0 10px #F7931A';
+        ui.healthBar.classList.remove('health-critical');
     } else {
         ui.healthBar.style.backgroundColor = '#2ecc71'; // GREEN (Safe)
         ui.healthBar.style.boxShadow = '0 0 10px #2ecc71';
+        ui.healthBar.classList.remove('health-critical');
+    }
+
+    // Shake animation when hit
+    if (wasHit && ui.livesText) {
+        ui.livesText.classList.remove('lives-shake');
+        void ui.livesText.offsetWidth; // Force reflow
+        ui.livesText.classList.add('lives-shake');
     }
 }
 
@@ -1401,6 +1429,11 @@ function startIntermission(msgOverride) {
 }
 
 function spawnBoss() {
+    // Red danger flash
+    transitionAlpha = 0.6;
+    transitionDir = -1;
+    transitionColor = '#400000';
+
     boss = new G.Boss(gameWidth, gameHeight);
 
     // Scale boss HP: bigger boss needs more HP
@@ -1410,7 +1443,7 @@ function spawnBoss() {
     enemies = [];
     if (window.Game) window.Game.enemies = enemies;
 
-    showDanger("⚠️ FEDERAL RESERVE ⚠️");
+    showDanger("⚠️ THE FED ⚠️");
     showMemeFun(getPowellMeme(), 2000);
     audioSys.play('bossSpawn');
 
@@ -1612,9 +1645,11 @@ function checkMiniBossHit(b) {
             // Mini-boss defeated!
             score += 2000 * marketCycle;
             updateScore(score);
-            createExplosion(miniBoss.x, miniBoss.y, miniBoss.color, 30);
-            createExplosion(miniBoss.x - 30, miniBoss.y - 20, '#fff', 15);
-            createExplosion(miniBoss.x + 30, miniBoss.y + 20, '#fff', 15);
+            // Epic mini-boss death
+            createEnemyDeathExplosion(miniBoss.x, miniBoss.y, miniBoss.color, miniBoss.symbol);
+            createExplosion(miniBoss.x - 40, miniBoss.y - 30, miniBoss.color, 15);
+            createExplosion(miniBoss.x + 40, miniBoss.y + 30, miniBoss.color, 15);
+            createExplosion(miniBoss.x, miniBoss.y, '#fff', 20);
 
             showVictory(miniBoss.name + " DESTROYED!");
             showMemeFun("💀 FIAT IS DEAD!", 1500);
@@ -1672,8 +1707,8 @@ function update(dt) {
         } else if (waveAction.action === 'START_WAVE') {
             gameState = 'PLAY';
             if (waveMgr.wave > 1) {
-                level++; setUI('lvlVal', level);
-                window.currentLevel = level; // Update global for WaveManager
+                level++;
+                updateLevelUI(); // With animation
                 lastDropTime = totalTime; // Reset time-based drop timer for new level
                 showGameInfo("📈 LEVEL " + level);
                 // gridSpeed now computed dynamically via getGridSpeed()
@@ -1699,7 +1734,10 @@ function update(dt) {
 
     if (gameState === 'PLAY') {
         const newBullets = player.update(dt);
-        if (newBullets && newBullets.length > 0) bullets.push(...newBullets);
+        if (newBullets && newBullets.length > 0) {
+            bullets.push(...newBullets);
+            createMuzzleFlashParticles(player.x, player.y - 25, player.stats.color);
+        }
 
         let sPct = player.shieldActive ? 100 : Math.max(0, 100 - (player.shieldCooldown / 8 * 100));
         setStyle('shieldBar', 'width', sPct + "%");
@@ -1724,6 +1762,7 @@ function update(dt) {
     }
     updateFloatingTexts(dt);
     updateParticles(dt);
+    updateTransition(dt);
 }
 
 function updateBullets(dt) {
@@ -1747,12 +1786,22 @@ function updateBullets(dt) {
                     bullets.splice(i, 1);
                 }
                 if (boss.hp <= 0) {
-                    score += 5000; boss.active = false; boss = null; shake = 50; audioSys.play('explosion');
+                    // Epic boss death explosion!
+                    const bossX = boss.x + boss.width / 2;
+                    const bossY = boss.y + boss.height / 2;
+                    createBossDeathExplosion(bossX, bossY);
+
+                    // Victory flash!
+                    transitionAlpha = 0.8;
+                    transitionDir = -1;
+                    transitionColor = '#ffffff';
+
+                    score += 5000; boss.active = false; boss = null; shake = 60; audioSys.play('explosion');
                     updateScore(score);
-                    showVictory("🏆 MARKET CONQUERED!");
+                    showVictory("🏆 FED DEFEATED!");
                     showMemeFun("💥 INFLATION CANCELLED!", 2000);
-                    level++; setUI('lvlVal', level);
-                    window.currentLevel = level; // Update global for WaveManager
+                    level++;
+                    updateLevelUI(); // With animation
 
                     // New cycle - increase difficulty
                     marketCycle++;
@@ -1787,7 +1836,7 @@ function updateBullets(dt) {
             const hitR = player.stats.hitboxSize || 30;
             if (Math.abs(eb.x - player.x) < hitR && Math.abs(eb.y - player.y) < hitR) {
                 if (player.takeDamage()) {
-                    updateLivesUI();
+                    updateLivesUI(true); // Hit animation
                     G.Bullet.Pool.release(eb);
                     enemyBullets.splice(i, 1);
                     shake = 20;
@@ -1822,7 +1871,7 @@ function checkBulletCollisions(b, bIdx) {
                 const mult = (runState && runState.getMod) ? runState.getMod('scoreMult', 1) : 1;
                 score += e.scoreVal * (isBearMarket ? 2 : 1) * mult;
                 updateScore(score);
-                createExplosion(e.x, e.y, e.color, 12);
+                createEnemyDeathExplosion(e.x, e.y, e.color, e.symbol || '$');
                 createScoreParticles(e.x, e.y, e.color); // JUICE: Fly to score
                 // Score ticker removed - particles provide enough feedback
                 killCount++;
@@ -1936,7 +1985,7 @@ function updateEnemies(dt) {
         const hitR = (player.stats.hitboxSize || 30) + 10; // Slightly larger for body collision
         if (Math.abs(e.x - player.x) < hitR && Math.abs(e.y - player.y) < hitR) {
             if (player.takeDamage()) {
-                updateLivesUI();
+                updateLivesUI(true); // Hit animation
                 shake = 40; // Heavy shake
                 hitStopTimer = 0.5; // Contact hit slowmo
                 emitEvent('player_hit', { hp: player.hp, maxHp: player.maxHp });
@@ -2089,7 +2138,15 @@ function draw() {
             ctx.restore();
         }
     }
+    // Bear Market danger vignette overlay
+    if (isBearMarket && gameState === 'PLAY') {
+        drawBearMarketOverlay(ctx);
+    }
+
     ctx.restore(); // Restore shake
+
+    // Screen transition overlay (on top of everything)
+    drawTransition(ctx);
 
     // Debug overlay (F3 toggle)
     if (debugMode) drawDebug(ctx);
@@ -2193,12 +2250,108 @@ function updateSky(dt) {
     if (isBearMarket && gameState === 'PLAY') {
         lightningTimer -= dt;
         if (lightningTimer <= 0) {
-            lightningFlash = 0.3; // Flash intensity
-            lightningTimer = 2 + Math.random() * 4; // Next lightning in 2-6 seconds
+            lightningFlash = 0.4; // Flash intensity (increased)
+            lightningTimer = 1.5 + Math.random() * 3; // More frequent: 1.5-4.5 seconds
+            shake = Math.max(shake, 8); // Screen shake on lightning
             audioSys.play('hit'); // Thunder sound
         }
     }
-    if (lightningFlash > 0) lightningFlash -= dt * 2; // Fade out quickly
+    if (lightningFlash > 0) lightningFlash -= dt * 1.5; // Slightly slower fade
+}
+
+// Screen transition functions
+function startTransition(callback, color = '#000') {
+    transitionDir = 1; // Fade to black
+    transitionCallback = callback;
+    transitionColor = color;
+}
+
+function updateTransition(dt) {
+    if (transitionDir === 0) return;
+
+    const speed = 3; // Transition speed
+    transitionAlpha += transitionDir * speed * dt;
+
+    if (transitionDir === 1 && transitionAlpha >= 1) {
+        // Fully black - execute callback and start fade out
+        transitionAlpha = 1;
+        if (transitionCallback) {
+            transitionCallback();
+            transitionCallback = null;
+        }
+        transitionDir = -1; // Start fading out
+    } else if (transitionDir === -1 && transitionAlpha <= 0) {
+        // Fully transparent - done
+        transitionAlpha = 0;
+        transitionDir = 0;
+    }
+}
+
+function drawTransition(ctx) {
+    if (transitionAlpha <= 0) return;
+
+    ctx.fillStyle = transitionColor;
+    ctx.globalAlpha = transitionAlpha;
+    ctx.fillRect(0, 0, gameWidth, gameHeight);
+    ctx.globalAlpha = 1;
+
+    // Add some flair during transition
+    if (transitionAlpha > 0.3 && transitionAlpha < 0.95) {
+        // Wipe line effect
+        const wipePos = transitionDir === 1 ?
+            transitionAlpha * gameHeight :
+            (1 - transitionAlpha) * gameHeight;
+
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 4;
+        ctx.globalAlpha = 0.8;
+        ctx.beginPath();
+        ctx.moveTo(0, wipePos);
+        ctx.lineTo(gameWidth, wipePos);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+    }
+}
+
+// Bear Market danger overlay - red vignette + blood rain
+function drawBearMarketOverlay(ctx) {
+    // Pulsing red vignette
+    const pulse = Math.sin(totalTime * 2) * 0.1 + 0.25;
+    const gradient = ctx.createRadialGradient(
+        gameWidth / 2, gameHeight / 2, gameHeight * 0.3,
+        gameWidth / 2, gameHeight / 2, gameHeight * 0.8
+    );
+    gradient.addColorStop(0, 'transparent');
+    gradient.addColorStop(0.7, `rgba(80, 0, 0, ${pulse * 0.3})`);
+    gradient.addColorStop(1, `rgba(100, 0, 0, ${pulse * 0.6})`);
+
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, gameWidth, gameHeight);
+
+    // Blood rain effect (falling red streaks)
+    ctx.strokeStyle = 'rgba(150, 20, 20, 0.4)';
+    ctx.lineWidth = 2;
+    const rainCount = 15;
+    for (let i = 0; i < rainCount; i++) {
+        const seed = i * 137.5 + totalTime * 100;
+        const x = ((seed * 7) % gameWidth);
+        const y = ((seed * 3 + totalTime * 300) % (gameHeight + 50)) - 25;
+        const len = 15 + (i % 3) * 8;
+
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x - 2, y + len);
+        ctx.stroke();
+    }
+
+    // Edge danger indicators (flashing corners)
+    const dangerPulse = Math.sin(totalTime * 8) * 0.5 + 0.5;
+    ctx.fillStyle = `rgba(255, 0, 0, ${dangerPulse * 0.15})`;
+
+    // Top edge
+    ctx.fillRect(0, 0, gameWidth, 8);
+    // Bottom edge
+    ctx.fillRect(0, gameHeight - 8, gameWidth, 8);
 }
 
 function drawSky(ctx) {
@@ -2399,8 +2552,44 @@ function drawSky(ctx) {
 
     // ⚡ Lightning Flash Overlay
     if (lightningFlash > 0) {
-        ctx.fillStyle = `rgba(200, 150, 255, ${lightningFlash})`;
+        // Screen flash
+        ctx.fillStyle = `rgba(200, 150, 255, ${lightningFlash * 0.6})`;
         ctx.fillRect(0, 0, gameWidth, gameHeight);
+
+        // Draw actual lightning bolts
+        if (lightningFlash > 0.15) {
+            ctx.strokeStyle = `rgba(255, 255, 255, ${lightningFlash * 2})`;
+            ctx.lineWidth = 3;
+            ctx.shadowColor = '#fff';
+            ctx.shadowBlur = 15;
+
+            // Draw 2-3 lightning bolts
+            for (let bolt = 0; bolt < 2; bolt++) {
+                const startX = gameWidth * 0.2 + bolt * gameWidth * 0.5 + Math.random() * 50;
+                let x = startX;
+                let y = 0;
+
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+
+                while (y < gameHeight * 0.4) {
+                    x += (Math.random() - 0.5) * 40;
+                    y += 20 + Math.random() * 30;
+                    ctx.lineTo(x, y);
+
+                    // Branch occasionally
+                    if (Math.random() < 0.3) {
+                        const branchX = x + (Math.random() - 0.5) * 60;
+                        const branchY = y + 30 + Math.random() * 20;
+                        ctx.moveTo(x, y);
+                        ctx.lineTo(branchX, branchY);
+                        ctx.moveTo(x, y);
+                    }
+                }
+                ctx.stroke();
+            }
+            ctx.shadowBlur = 0;
+        }
     }
 }
 
@@ -2441,6 +2630,79 @@ function createBulletSpark(x, y) {
             life: 0.2, maxLife: 0.2,
             color: '#fff',
             size: Math.random() * 3 + 2
+        });
+    }
+}
+
+// Muzzle flash particles when player fires
+// Power-up pickup burst effect
+function createPowerUpPickupEffect(x, y, color) {
+    const available = MAX_PARTICLES - particles.length;
+    if (available <= 0) return;
+
+    // Expanding ring
+    addParticle({
+        x: x, y: y, vx: 0, vy: 0,
+        life: 0.3, maxLife: 0.3,
+        color: color, size: 20,
+        isRing: true
+    });
+
+    // Star burst pattern
+    const count = Math.min(8, available - 1);
+    for (let i = 0; i < count; i++) {
+        const angle = (Math.PI * 2 / count) * i;
+        const speed = Math.random() * 150 + 100;
+        addParticle({
+            x: x,
+            y: y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            life: 0.4,
+            maxLife: 0.4,
+            color: i % 2 === 0 ? color : '#fff',
+            size: Math.random() * 5 + 3
+        });
+    }
+
+    // Center flash
+    addParticle({
+        x: x, y: y, vx: 0, vy: 0,
+        life: 0.15, maxLife: 0.15,
+        color: '#fff', size: 15,
+        isRing: true
+    });
+}
+
+function createMuzzleFlashParticles(x, y, color) {
+    const available = MAX_PARTICLES - particles.length;
+    if (available <= 0) return;
+
+    const count = Math.min(5, available);
+
+    // Upward sparks (following bullet direction)
+    for (let i = 0; i < count; i++) {
+        const spread = (Math.random() - 0.5) * 0.8; // Slight horizontal spread
+        const speed = Math.random() * 200 + 150;
+        addParticle({
+            x: x + (Math.random() - 0.5) * 8,
+            y: y,
+            vx: spread * speed,
+            vy: -speed * 0.6, // Upward bias
+            life: 0.15,
+            maxLife: 0.15,
+            color: i < 2 ? '#fff' : color, // Mix white and colored
+            size: Math.random() * 4 + 2
+        });
+    }
+
+    // Quick flash ring
+    if (available > count) {
+        addParticle({
+            x: x, y: y, vx: 0, vy: 0,
+            life: 0.08, maxLife: 0.08,
+            color: color, size: 8,
+            isRing: true
         });
     }
 }
@@ -2500,6 +2762,122 @@ function createExplosion(x, y, color, count = 12) {
     });
 }
 
+// Enhanced explosion for enemy deaths with flying currency symbols
+function createEnemyDeathExplosion(x, y, color, symbol) {
+    // Base explosion (smaller, since we're adding more effects)
+    createExplosion(x, y, color, 8);
+
+    const available = MAX_PARTICLES - particles.length;
+    if (available <= 2) return;
+
+    // Flying currency symbols (3 symbols spinning outward)
+    const symbolCount = Math.min(3, available - 2);
+    for (let i = 0; i < symbolCount; i++) {
+        const angle = (Math.PI * 2 / symbolCount) * i + Math.random() * 0.5;
+        const speed = Math.random() * 150 + 100;
+        addParticle({
+            x: x,
+            y: y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - 50, // Slight upward bias
+            life: 0.7,
+            maxLife: 0.7,
+            color: color,
+            size: 18 + Math.random() * 6, // Font size
+            symbol: symbol,
+            rotation: Math.random() * Math.PI * 2,
+            rotSpeed: (Math.random() - 0.5) * 15 // Random spin direction
+        });
+    }
+
+    // Debris chunks (colored fragments)
+    const debrisCount = Math.min(4, available - symbolCount);
+    for (let i = 0; i < debrisCount; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 200 + 120;
+        addParticle({
+            x: x + (Math.random() - 0.5) * 15,
+            y: y + (Math.random() - 0.5) * 15,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            life: 0.35,
+            maxLife: 0.35,
+            color: color,
+            size: Math.random() * 6 + 4
+        });
+    }
+}
+
+// EPIC Boss death explosion - massive with flying $ symbols
+function createBossDeathExplosion(x, y) {
+    // Multiple explosion waves
+    createExplosion(x, y, '#ff0000', 20);
+    createExplosion(x - 40, y - 30, '#f39c12', 12);
+    createExplosion(x + 40, y - 30, '#f39c12', 12);
+    createExplosion(x, y + 40, '#2ecc71', 10);
+
+    const available = MAX_PARTICLES - particles.length;
+    if (available <= 5) return;
+
+    // Flying $ symbols in all directions
+    const symbolCount = Math.min(8, Math.floor(available * 0.4));
+    const symbols = ['$', '€', '¥', '£', '₣'];
+    for (let i = 0; i < symbolCount; i++) {
+        const angle = (Math.PI * 2 / symbolCount) * i + Math.random() * 0.3;
+        const speed = Math.random() * 200 + 150;
+        addParticle({
+            x: x + (Math.random() - 0.5) * 40,
+            y: y + (Math.random() - 0.5) * 40,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - 80,
+            life: 1.2,
+            maxLife: 1.2,
+            color: ['#2ecc71', '#f39c12', '#e74c3c', '#fff'][i % 4],
+            size: 24 + Math.random() * 12,
+            symbol: symbols[i % symbols.length],
+            rotation: Math.random() * Math.PI * 2,
+            rotSpeed: (Math.random() - 0.5) * 20
+        });
+    }
+
+    // Big flash rings
+    addParticle({
+        x: x, y: y, vx: 0, vy: 0,
+        life: 0.4, maxLife: 0.4,
+        color: '#fff', size: 60,
+        isRing: true
+    });
+    addParticle({
+        x: x, y: y, vx: 0, vy: 0,
+        life: 0.3, maxLife: 0.3,
+        color: '#ff0000', size: 80,
+        isRing: true
+    });
+    addParticle({
+        x: x, y: y, vx: 0, vy: 0,
+        life: 0.5, maxLife: 0.5,
+        color: '#f39c12', size: 100,
+        isRing: true
+    });
+
+    // Extra debris
+    const debrisCount = Math.min(10, available - symbolCount - 3);
+    for (let i = 0; i < debrisCount; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 350 + 100;
+        addParticle({
+            x: x + (Math.random() - 0.5) * 60,
+            y: y + (Math.random() - 0.5) * 60,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            life: 0.6,
+            maxLife: 0.6,
+            color: ['#ff0000', '#f39c12', '#2ecc71', '#fff'][i % 4],
+            size: Math.random() * 8 + 4
+        });
+    }
+}
+
 function createScoreParticles(x, y, color) {
     const count = Math.min(3, MAX_PARTICLES - particles.length); // Reduced from 5
     for (let i = 0; i < count; i++) {
@@ -2544,7 +2922,12 @@ function updateParticles(dt) {
             p.x += p.vx * dt;
             p.y += p.vy * dt;
             p.life -= dt;
-            p.size *= 0.92; // Slightly slower shrink
+            // Rotate symbols, shrink regular particles
+            if (p.symbol) {
+                p.rotation = (p.rotation || 0) + (p.rotSpeed || 5) * dt;
+            } else {
+                p.size *= 0.92; // Slightly slower shrink
+            }
 
             // Remove dead or offscreen particles
             if (p.life <= 0 || p.x < -50 || p.x > gameWidth + 50 || p.y > gameHeight + 50) {
@@ -2581,6 +2964,20 @@ function drawParticles(ctx) {
             ctx.stroke();
             ctx.strokeStyle = '#111'; // Reset
             ctx.lineWidth = 2;
+        } else if (p.symbol) {
+            // Symbol particle (flying currency symbols)
+            ctx.fillStyle = p.color;
+            ctx.strokeStyle = '#111';
+            ctx.lineWidth = 2;
+            ctx.font = `bold ${Math.floor(p.size)}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rotation || 0);
+            ctx.strokeText(p.symbol, 0, 0);
+            ctx.fillText(p.symbol, 0, 0);
+            ctx.restore();
         } else {
             // All particles are now simple circles with outline
             ctx.fillStyle = p.color;
@@ -2666,6 +3063,8 @@ function updatePowerUps(dt) {
             powerUps.splice(i, 1);
         } else {
             if (Math.abs(p.x - player.x) < 40 && Math.abs(p.y - player.y) < 40) {
+                // Pickup effect!
+                createPowerUpPickupEffect(p.x, p.y, p.config.color);
                 player.upgrade(p.type);
                 // Crypto-themed powerup feedback (gold, fixed position)
                 const meme = POWERUP_MEMES[p.type] || p.type;

@@ -244,6 +244,16 @@ class Boss extends window.Game.Entity {
         const baseColor = this.phase === 3 ? '#4a1a1a' : (this.phase === 2 ? '#3d3d3d' : '#5a5a5a');
         const accentColor = this.phase === 3 ? '#ff0000' : (this.phase === 2 ? '#f39c12' : '#2ecc71');
 
+        // AURA EFFECT - Pulsing danger glow (bigger in higher phases)
+        const auraPulse = Math.sin(this.animTime * 4) * 0.15 + 0.3;
+        const auraSize = 20 + this.phase * 15;
+        ctx.fillStyle = accentColor;
+        ctx.globalAlpha = auraPulse * (this.phase * 0.3);
+        ctx.beginPath();
+        ctx.ellipse(cx, y + h / 2, w / 2 + auraSize, h / 2 + auraSize * 0.6, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
         // MAIN BODY - Central Bank Vault - two-tone cell-shading
         ctx.strokeStyle = '#111';
         ctx.lineWidth = 4;
@@ -292,6 +302,19 @@ class Boss extends window.Game.Entity {
             ctx.fillStyle = '#2ecc71';
             ctx.fillRect(x + 55, y + 12 + moneyOffset, 15, 6);
             ctx.fillRect(x + w - 70, y + 12 + (moneyOffset + 10) % 20, 15, 6);
+
+            // Smoke/steam from printer
+            ctx.globalAlpha = 0.4;
+            for (let i = 0; i < 3; i++) {
+                const smokeX = cx + Math.sin(this.animTime * 3 + i * 2) * 15;
+                const smokeY = y - 5 - (this.animTime * 30 + i * 10) % 25;
+                const smokeSize = 6 + i * 2;
+                ctx.fillStyle = '#aaa';
+                ctx.beginPath();
+                ctx.arc(smokeX, smokeY, smokeSize, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
         }
 
         // FACE PANEL
@@ -405,12 +428,39 @@ class Boss extends window.Game.Entity {
             ctx.fill();
         }
 
-        // $ SYMBOL on vault
+        // $ SYMBOL on vault (pulsing in phase 3)
         ctx.fillStyle = accentColor;
+        if (this.phase === 3) {
+            ctx.shadowColor = '#ff0000';
+            ctx.shadowBlur = 15 + Math.sin(this.animTime * 10) * 8;
+        }
         ctx.font = 'bold 28px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('$', cx, y + 145);
+        ctx.shadowBlur = 0;
+
+        // Phase 3 RAGE effects - energy sparks around body
+        if (this.phase === 3) {
+            ctx.strokeStyle = '#ff4444';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 4; i++) {
+                const sparkAngle = this.animTime * 8 + i * Math.PI / 2;
+                const sparkDist = 70 + Math.sin(this.animTime * 12 + i) * 15;
+                const sparkX = cx + Math.cos(sparkAngle) * sparkDist;
+                const sparkY = y + h / 2 + Math.sin(sparkAngle) * sparkDist * 0.5;
+
+                ctx.globalAlpha = 0.6 + Math.sin(this.animTime * 15 + i * 2) * 0.4;
+                ctx.beginPath();
+                // Lightning bolt shape
+                ctx.moveTo(sparkX - 4, sparkY - 6);
+                ctx.lineTo(sparkX + 2, sparkY - 1);
+                ctx.lineTo(sparkX - 2, sparkY + 1);
+                ctx.lineTo(sparkX + 4, sparkY + 6);
+                ctx.stroke();
+            }
+            ctx.globalAlpha = 1;
+        }
 
         // HP BAR - Bigger and more prominent
         const hpPct = Math.max(0, this.hp / this.maxHp);
@@ -440,8 +490,8 @@ class Boss extends window.Game.Entity {
         ctx.fillText(`PHASE ${this.phase}`, cx, barY - 8);
 
         // Boss name
-        ctx.font = 'bold 14px Arial';
-        ctx.fillText('FEDERAL RESERVE', cx, barY - 22);
+        ctx.font = 'bold 16px Arial';
+        ctx.fillText('THE FED', cx, barY - 22);
 
         ctx.restore();
     }
