@@ -77,6 +77,7 @@ let shake = 0, gridDir = 1, gridSpeed = 25, timeScale = 1.0, totalTime = 0, inte
 let currentShipIdx = 0;
 let lastWavePattern = 'RECT';
 let perkChoiceActive = false;
+let intermissionMeme = ""; // Meme shown during countdown
 let perkOffers = [];
 let volatilityTimer = 0;
 let memeSwapTimer = 0;
@@ -913,8 +914,12 @@ function updateUIText() {
     if (setHeader) setHeader.innerText = t('SETTINGS');
     const closeBtn = document.querySelector('#settings-modal .btn-coin.mini');
     if (closeBtn) closeBtn.innerText = t('CLOSE');
-    const LangLabel = document.querySelector('.setting-row span');
-    if (LangLabel) LangLabel.innerText = t('LANG') + ":";
+    // Select the lang row specifically (parent of #lang-btn)
+    const langBtn = document.getElementById('lang-btn');
+    if (langBtn) {
+        const langLabel = langBtn.parentElement.querySelector('.setting-label');
+        if (langLabel) langLabel.innerText = t('LANG');
+    }
 }
 
 window.toggleLang = function () { currentLang = (currentLang === 'EN') ? 'IT' : 'EN'; updateUIText(); };
@@ -957,7 +962,12 @@ window.launchShipAndStart = function () {
     if (isLaunching) return;
     isLaunching = true;
 
-    audioSys.init();
+    // iOS Audio Unlock: Must happen in direct response to user interaction
+    if (!audioSys.ctx) audioSys.init();
+    if (audioSys.ctx && audioSys.ctx.state === 'suspended') {
+        audioSys.unlockWebAudio();
+        audioSys.ctx.resume();
+    }
     audioSys.play('coin');
 
     const shipCanvas = document.getElementById('intro-ship-canvas');
@@ -1178,6 +1188,10 @@ window.restartRun = function () {
     setStyle('pause-screen', 'display', 'none');
     startGame();
 };
+window.restartFromGameOver = function () {
+    setStyle('gameover-screen', 'display', 'none');
+    startGame();
+};
 window.backToIntro = function () {
     // Close curtain first
     const curtain = document.getElementById('curtain-overlay');
@@ -1231,6 +1245,29 @@ window.toggleBearMode = function () {
         } else {
             toggle.classList.remove('active');
             if (label) label.textContent = 'OFF';
+        }
+    }
+
+    // Restart game if currently playing (mode change requires restart)
+    if (gameState === 'PLAY' || gameState === 'PAUSE' || gameState === 'INTERMISSION') {
+        const modeName = isBearMarket ? 'BEAR MARKET' : 'BULL MARKET';
+        if (confirm(`Passare a ${modeName}?\nLa partita verrà riavviata.`)) {
+            setStyle('settings-modal', 'display', 'none');
+            setStyle('pause-screen', 'display', 'none');
+            startGame(); // Restart with new mode
+        } else {
+            // User cancelled - revert the toggle
+            isBearMarket = !isBearMarket;
+            window.isBearMarket = isBearMarket;
+            if (isBearMarket) {
+                document.body.classList.add('bear-mode');
+                toggle.classList.add('active');
+                toggle.querySelector('.switch-label').textContent = 'ON';
+            } else {
+                document.body.classList.remove('bear-mode');
+                toggle.classList.remove('active');
+                toggle.querySelector('.switch-label').textContent = 'OFF';
+            }
         }
     }
 };
@@ -1339,8 +1376,14 @@ function highlightShip(idx) {
 
 function startIntermission(msgOverride) {
     gameState = 'INTERMISSION';
-    waveMgr.intermissionTimer = 2.5; // Shorter pause
+    waveMgr.intermissionTimer = 1.9; // 25% shorter pause (was 2.5)
+    waveMgr.waveInProgress = false; // Safety reset
     bullets = []; enemyBullets = [];
+
+    // Pick a random meme for the countdown
+    const memePool = [...(Constants.MEMES.LOW || []), ...(Constants.MEMES.SAYLOR || [])];
+    intermissionMeme = memePool[Math.floor(Math.random() * memePool.length)] || "HODL";
+
     // Only show text if explicitly provided (boss defeat, etc.)
     if (msgOverride) {
         addText(msgOverride, gameWidth / 2, gameHeight / 2 - 80, '#00ff00', 30);
@@ -1441,7 +1484,7 @@ function updateMiniBoss(dt) {
 
 function fireMiniBossBullets() {
     if (!miniBoss) return;
-    const bulletSpeed = 200 + (miniBoss.phase * 50);
+    const bulletSpeed = 170 + (miniBoss.phase * 42); // Reduced 15%
 
     // Different patterns per phase
     if (miniBoss.phase === 0) {
@@ -1858,7 +1901,7 @@ function updateEnemies(dt) {
         const diff = getDifficulty();
         const bearMult = isBearMarket ? 1.3 : 1.0;
         const rateMult = (0.5 + diff * 0.5) * bearMult; // 0.5 → 1.0 based on difficulty
-        const bulletSpeed = 150 + diff * 80; // 150 → 230
+        const bulletSpeed = 128 + diff * 68; // Reduced 15% (was 150 + diff * 80)
         const aimSpreadMult = isBearMarket ? 0.85 : (1.2 - diff * 0.3); // Tighter aim with difficulty
         const allowFire = (i % enemyFireStride) === enemyFirePhase;
         const bulletData = e.attemptFire(dt, player, rateMult, bulletSpeed, aimSpreadMult, allowFire);
@@ -1930,7 +1973,7 @@ function executeDeath() {
     if (lives > 0) {
         // RESPAWN
         player.hp = player.maxHp;
-        player.invulnTimer = 3.0;
+        player.invulnTimer = 2.1; // Reduced 30% (was 3.0)
         updateLivesUI();
         showGameInfo("💚 RESPAWN!");
         // Maybe move player to center?
@@ -1977,6 +2020,38 @@ function draw() {
         drawParticles(ctx);
         ctx.font = '20px Courier New';
         floatingTexts.forEach(t => { ctx.fillStyle = t.c; ctx.fillText(t.text, t.x, t.y); });
+
+        // Intermission countdown overlay
+        if (gameState === 'INTERMISSION' && waveMgr.intermissionTimer > 0) {
+            const countdown = Math.ceil(waveMgr.intermissionTimer);
+            const centerX = gameWidth / 2;
+            const centerY = gameHeight / 2;
+
+            // Pulse effect based on timer
+            const pulse = 1 + Math.sin(waveMgr.intermissionTimer * 8) * 0.1;
+
+            // Countdown number (big, bold, cell-shaded)
+            ctx.save();
+            ctx.font = `bold ${Math.floor(80 * pulse)}px "Courier New", monospace`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            // Black outline
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 6;
+            ctx.strokeText(countdown, centerX, centerY - 20);
+            // Gold fill
+            ctx.fillStyle = '#F7931A';
+            ctx.fillText(countdown, centerX, centerY - 20);
+
+            // Meme text below (smaller, white with outline)
+            ctx.font = 'bold 22px "Courier New", monospace';
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 4;
+            ctx.strokeText(intermissionMeme, centerX, centerY + 50);
+            ctx.fillStyle = '#fff';
+            ctx.fillText(intermissionMeme, centerX, centerY + 50);
+            ctx.restore();
+        }
     }
     ctx.restore(); // Restore shake
 }
@@ -2488,23 +2563,25 @@ let flashRed = 0;
 let gameOverPending = false;
 
 function loop(timestamp) {
-    let dt = (timestamp - lastTime) / 1000;
+    const realDt = (timestamp - lastTime) / 1000; // Save real delta before modifying lastTime
+    let dt = realDt;
     lastTime = timestamp;
     if (dt > 0.1) dt = 0.1;
 
-    // Bullet Time Logic
-    if (hitStopTimer > 0) {
-        hitStopTimer -= dt; // Decrement by real time
-        dt *= 0.1; // Slow down game physics
-        if (hitStopTimer < 0) hitStopTimer = 0;
-    }
-
-    // Death Sequence
+    // Death Sequence (uses real time, not slowed time)
     if (deathTimer > 0) {
-        deathTimer -= (timestamp - lastTime) / 1000; // Use REAL time, not scaled dt
+        deathTimer -= realDt;
         if (deathTimer <= 0) {
+            deathTimer = 0;
             executeDeath(); // Trigger actual death logic after slow-mo
         }
+    }
+
+    // Bullet Time Logic
+    if (hitStopTimer > 0) {
+        hitStopTimer -= realDt; // Decrement by real time
+        dt *= 0.1; // Slow down game physics
+        if (hitStopTimer < 0) hitStopTimer = 0;
     }
 
     // Remove old "delayed game over" check since executeDeath handles it

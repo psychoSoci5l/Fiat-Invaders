@@ -18,6 +18,10 @@ class AudioSystem {
 
     play(type) {
         if (!this.ctx) return;
+        // iOS: Ensure context is running before playing
+        if (this.ctx.state === 'suspended') {
+            this.ctx.resume();
+        }
         const t = this.ctx.currentTime;
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
