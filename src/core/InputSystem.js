@@ -121,6 +121,7 @@ class InputSystem {
     handleGlobalKeys(code) {
         if (code === 'Escape' && this.callbacks['escape']) this.callbacks['escape']();
         if ((code === 'Enter' || code === 'Space') && this.callbacks['start']) this.callbacks['start']();
+        if (code === 'F3' && this.callbacks['toggleDebug']) this.callbacks['toggleDebug']();
         if (this.callbacks['navigate']) this.callbacks['navigate'](code);
     }
 

@@ -22,6 +22,15 @@ class Enemy extends window.Game.Entity {
 
         this.active = true;
         this.fireTimer = 0; // Set by spawner for Fibonacci ramp-up
+
+        // Pre-cache colors for performance (avoid recalculating every frame)
+        this._colorDark30 = this.darkenColor(this.color, 0.3);
+        this._colorDark35 = this.darkenColor(this.color, 0.35);
+        this._colorDark40 = this.darkenColor(this.color, 0.4);
+        this._colorDark50 = this.darkenColor(this.color, 0.5);
+        this._colorLight35 = this.lightenColor(this.color, 0.35);
+        this._colorLight40 = this.lightenColor(this.color, 0.4);
+        this._colorLight50 = this.lightenColor(this.color, 0.5);
     }
 
     attemptFire(dt, target, rateMult = 1, bulletSpeed = 300, aimSpreadMult = 1, allowFire = true) {
@@ -151,7 +160,7 @@ class Enemy extends window.Game.Entity {
 
     drawCoin(ctx, x, y) {
         // Shadow side (bottom-left arc) - cell-shading
-        ctx.fillStyle = this.darkenColor(this.color, 0.35);
+        ctx.fillStyle = this._colorDark35;
         ctx.beginPath();
         ctx.arc(x, y, 18, Math.PI * 0.4, Math.PI * 1.4);
         ctx.lineTo(x, y);
@@ -172,23 +181,23 @@ class Enemy extends window.Game.Entity {
         ctx.stroke();
 
         // Inner circle (darker)
-        ctx.fillStyle = this.darkenColor(this.color, 0.4);
+        ctx.fillStyle = this._colorDark40;
         ctx.beginPath();
         ctx.arc(x, y, 12, 0, Math.PI * 2);
         ctx.fill();
 
         // Rim lighting (top-right arc highlight)
-        ctx.strokeStyle = this.lightenColor(this.color, 0.5);
+        ctx.strokeStyle = this._colorLight50;
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.arc(x, y, 16, -Math.PI * 0.6, Math.PI * 0.1);
         ctx.stroke();
 
-        // Edge notches (coin ridges)
-        ctx.strokeStyle = this.darkenColor(this.color, 0.5);
+        // Edge notches reduced from 12 to 6 for performance
+        ctx.strokeStyle = this._colorDark50;
         ctx.lineWidth = 1;
-        for (let i = 0; i < 12; i++) {
-            const angle = (Math.PI * 2 / 12) * i;
+        for (let i = 0; i < 6; i++) {
+            const angle = (Math.PI * 2 / 6) * i;
             const x1 = x + Math.cos(angle) * 15;
             const y1 = y + Math.sin(angle) * 15;
             const x2 = x + Math.cos(angle) * 18;
@@ -211,7 +220,7 @@ class Enemy extends window.Game.Entity {
         const w = 36, h = 20;
 
         // Shadow side (bottom-left triangle) - cell-shading
-        ctx.fillStyle = this.darkenColor(this.color, 0.35);
+        ctx.fillStyle = this._colorDark35;
         ctx.beginPath();
         ctx.moveTo(x - w/2, y - h/2);
         ctx.lineTo(x + w/2, y + h/2);
@@ -234,19 +243,19 @@ class Enemy extends window.Game.Entity {
         ctx.strokeRect(x - w/2, y - h/2, w, h);
 
         // Inner border
-        ctx.strokeStyle = this.darkenColor(this.color, 0.5);
+        ctx.strokeStyle = this._colorDark50;
         ctx.lineWidth = 1;
         ctx.strokeRect(x - w/2 + 3, y - h/2 + 3, w - 6, h - 6);
 
         // Corner decorations
-        ctx.fillStyle = this.darkenColor(this.color, 0.4);
+        ctx.fillStyle = this._colorDark40;
         ctx.fillRect(x - w/2 + 2, y - h/2 + 2, 5, 5);
         ctx.fillRect(x + w/2 - 7, y - h/2 + 2, 5, 5);
         ctx.fillRect(x - w/2 + 2, y + h/2 - 7, 5, 5);
         ctx.fillRect(x + w/2 - 7, y + h/2 - 7, 5, 5);
 
         // Rim lighting (top and right edge)
-        ctx.strokeStyle = this.lightenColor(this.color, 0.5);
+        ctx.strokeStyle = this._colorLight50;
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(x - w/2 + 2, y - h/2);
@@ -265,7 +274,7 @@ class Enemy extends window.Game.Entity {
     drawBar(ctx, x, y) {
         // Gold bar / ingot shape (trapezoid) - front face with two-tone
         // Shadow side (left half)
-        ctx.fillStyle = this.darkenColor(this.color, 0.3);
+        ctx.fillStyle = this._colorDark30;
         ctx.beginPath();
         ctx.moveTo(x - 20, y + 10);
         ctx.lineTo(x - 14, y - 10);
@@ -296,7 +305,7 @@ class Enemy extends window.Game.Entity {
         ctx.stroke();
 
         // Top face (lighter) - cell-shading highlight
-        ctx.fillStyle = this.lightenColor(this.color, 0.35);
+        ctx.fillStyle = this._colorLight35;
         ctx.beginPath();
         ctx.moveTo(x - 14, y - 10);
         ctx.lineTo(x - 10, y - 14);
@@ -306,21 +315,13 @@ class Enemy extends window.Game.Entity {
         ctx.fill();
         ctx.stroke();
 
-        // Shine line + rim lighting
+        // Shine line (simplified - removed rim light)
         ctx.strokeStyle = '#fff';
         ctx.lineWidth = 2;
         ctx.globalAlpha = 0.7;
         ctx.beginPath();
         ctx.moveTo(x - 8, y - 12);
         ctx.lineTo(x + 8, y - 12);
-        ctx.stroke();
-
-        // Rim light on right edge
-        ctx.strokeStyle = this.lightenColor(this.color, 0.4);
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(x + 14, y - 10);
-        ctx.lineTo(x + 20, y + 10);
         ctx.stroke();
         ctx.globalAlpha = 1;
 
@@ -336,7 +337,7 @@ class Enemy extends window.Game.Entity {
         const w = 32, h = 22;
 
         // Shadow side (bottom-left) - cell-shading
-        ctx.fillStyle = this.darkenColor(this.color, 0.35);
+        ctx.fillStyle = this._colorDark35;
         ctx.beginPath();
         ctx.moveTo(x - w/2 + 4, y - h/2);
         ctx.lineTo(x + w/2, y + h/2);
@@ -365,26 +366,19 @@ class Enemy extends window.Game.Entity {
         this.roundRect(ctx, x - w/2, y - h/2, w, h, 4);
         ctx.stroke();
 
-        // Chip
+        // Chip (simplified - removed chip lines)
         ctx.fillStyle = '#f1c40f';
         ctx.fillRect(x - w/2 + 4, y - 4, 8, 8);
         ctx.strokeStyle = '#b8860b';
         ctx.lineWidth = 1;
         ctx.strokeRect(x - w/2 + 4, y - 4, 8, 8);
-        // Chip lines
-        ctx.beginPath();
-        ctx.moveTo(x - w/2 + 8, y - 4);
-        ctx.lineTo(x - w/2 + 8, y + 4);
-        ctx.moveTo(x - w/2 + 4, y);
-        ctx.lineTo(x - w/2 + 12, y);
-        ctx.stroke();
 
         // Magnetic stripe
         ctx.fillStyle = '#222';
         ctx.fillRect(x - w/2, y + h/2 - 6, w, 4);
 
         // Rim lighting (top and right edge)
-        ctx.strokeStyle = this.lightenColor(this.color, 0.5);
+        ctx.strokeStyle = this._colorLight50;
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(x - w/2 + 6, y - h/2);

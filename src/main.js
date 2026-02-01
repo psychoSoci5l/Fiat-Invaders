@@ -78,6 +78,8 @@ let currentShipIdx = 0;
 let lastWavePattern = 'RECT';
 let perkChoiceActive = false;
 let intermissionMeme = ""; // Meme shown during countdown
+let debugMode = false; // F3 toggle for performance stats
+let fpsHistory = []; // For smooth FPS display
 let perkOffers = [];
 let volatilityTimer = 0;
 let memeSwapTimer = 0;
@@ -779,6 +781,11 @@ function init() {
                 cycleShip(-1);
             }
         }
+    });
+
+    inputSys.on('toggleDebug', () => {
+        debugMode = !debugMode;
+        console.log('Debug mode:', debugMode ? 'ON' : 'OFF');
     });
 
     const vid = document.getElementById('intro-video');
@@ -2007,19 +2014,45 @@ function draw() {
     }
     if (gameState === 'PLAY' || gameState === 'PAUSE' || gameState === 'GAMEOVER' || gameState === 'INTERMISSION') {
         player.draw(ctx);
-        enemies.forEach(e => e.draw(ctx));
+
+        // Enemies (for loop instead of forEach)
+        for (let i = 0; i < enemies.length; i++) {
+            enemies[i].draw(ctx);
+        }
+
         if (boss && boss.active) {
-            boss.draw(ctx); // Use new Class draw
+            boss.draw(ctx);
         }
         if (miniBoss && miniBoss.active) {
-            drawMiniBoss(ctx); // Fiat revenge boss
+            drawMiniBoss(ctx);
         }
-        bullets.forEach(b => b.draw(ctx));
-        enemyBullets.forEach(eb => eb.draw(ctx));
-        powerUps.forEach(p => p.draw(ctx)); // <--- DRAW DROPS
+
+        // Bullets with culling (for loop)
+        for (let i = 0; i < bullets.length; i++) {
+            const b = bullets[i];
+            if (b.y > -20 && b.y < gameHeight + 20) b.draw(ctx);
+        }
+
+        // Enemy bullets with culling
+        for (let i = 0; i < enemyBullets.length; i++) {
+            const eb = enemyBullets[i];
+            if (eb.y > -20 && eb.y < gameHeight + 20) eb.draw(ctx);
+        }
+
+        // PowerUps (fewer items, forEach is fine)
+        for (let i = 0; i < powerUps.length; i++) {
+            powerUps[i].draw(ctx);
+        }
+
         drawParticles(ctx);
+
+        // Floating texts
         ctx.font = '20px Courier New';
-        floatingTexts.forEach(t => { ctx.fillStyle = t.c; ctx.fillText(t.text, t.x, t.y); });
+        for (let i = 0; i < floatingTexts.length; i++) {
+            const t = floatingTexts[i];
+            ctx.fillStyle = t.c;
+            ctx.fillText(t.text, t.x, t.y);
+        }
 
         // Intermission countdown overlay
         if (gameState === 'INTERMISSION' && waveMgr.intermissionTimer > 0) {
@@ -2054,47 +2087,76 @@ function draw() {
         }
     }
     ctx.restore(); // Restore shake
+
+    // Debug overlay (F3 toggle)
+    if (debugMode) drawDebug(ctx);
+}
+
+function drawDebug(ctx) {
+    // Calculate FPS
+    const now = performance.now();
+    fpsHistory.push(now);
+    while (fpsHistory.length > 0 && fpsHistory[0] < now - 1000) fpsHistory.shift();
+    const fps = fpsHistory.length;
+
+    ctx.save();
+    ctx.font = '12px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(5, gameHeight - 85, 140, 80);
+
+    ctx.fillStyle = fps >= 55 ? '#0f0' : (fps >= 30 ? '#ff0' : '#f00');
+    ctx.fillText(`FPS: ${fps}`, 10, gameHeight - 70);
+    ctx.fillStyle = '#0f0';
+    ctx.fillText(`Particles: ${particles.length}/${MAX_PARTICLES}`, 10, gameHeight - 55);
+    ctx.fillText(`Bullets: ${bullets.length}`, 10, gameHeight - 40);
+    ctx.fillText(`Enemy Bullets: ${enemyBullets.length}`, 10, gameHeight - 25);
+    ctx.fillText(`Enemies: ${enemies.length}`, 10, gameHeight - 10);
+    ctx.restore();
 }
 
 function initSky() {
     clouds = [];
-    const count = 20;
+    const count = 12; // Reduced from 20 for performance
     for (let i = 0; i < count; i++) {
         clouds.push({
             x: Math.random() * gameWidth,
-            y: Math.random() * gameHeight * 0.5, // Upper half only
+            y: Math.random() * gameHeight * 0.5,
             w: Math.random() * 100 + 50,
             h: Math.random() * 40 + 20,
             speed: Math.random() * 20 + 10,
-            layer: Math.floor(Math.random() * 3) // 0, 1, 2 (Depth)
+            layer: Math.floor(Math.random() * 3)
         });
     }
 
     // Paper Mario style parallax hills (3 layers)
     hills = [
-        { layer: 0, y: gameHeight * 0.75, height: 120, speed: 5, offset: 0 },  // Back layer
-        { layer: 1, y: gameHeight * 0.80, height: 100, speed: 12, offset: 50 }, // Mid layer
-        { layer: 2, y: gameHeight * 0.85, height: 80, speed: 20, offset: 100 }  // Front layer
+        { layer: 0, y: gameHeight * 0.75, height: 120, speed: 5, offset: 0 },
+        { layer: 1, y: gameHeight * 0.80, height: 100, speed: 12, offset: 50 },
+        { layer: 2, y: gameHeight * 0.85, height: 80, speed: 20, offset: 100 }
     ];
 }
 
 function updateSky(dt) {
     if (clouds.length === 0) initSky();
-    const speedMult = isBearMarket ? 5.0 : 1.0; // Storm is fast!
+    const speedMult = isBearMarket ? 5.0 : 1.0;
 
-    clouds.forEach(c => {
+    // Update clouds (for loop)
+    for (let i = 0; i < clouds.length; i++) {
+        const c = clouds[i];
         c.x -= c.speed * (c.layer + 1) * 0.5 * speedMult * dt;
         if (c.x + c.w < 0) {
             c.x = gameWidth + 50;
             c.y = Math.random() * gameHeight * 0.5;
         }
-    });
+    }
 
-    // Update parallax hills offset
-    hills.forEach(h => {
+    // Update parallax hills offset (for loop)
+    for (let i = 0; i < hills.length; i++) {
+        const h = hills[i];
         h.offset += h.speed * speedMult * dt;
-        if (h.offset > 200) h.offset -= 200; // Loop seamlessly
-    });
+        if (h.offset > 200) h.offset -= 200;
+    }
 
     // ⚡ Bear Market Lightning
     if (isBearMarket && gameState === 'PLAY') {
@@ -2319,124 +2381,98 @@ function updateFloatingTexts(dt) {
         if (floatingTexts[i].life <= 0) floatingTexts.splice(i, 1);
     }
 }
-// --- PARTICLES ---
-function createBulletSpark(x, y) {
-    // INK SPLATTER spark effect for bullet-on-bullet collision
-    for (let i = 0; i < 6; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * 150 + 80;
-        particles.push({
-            x: x,
-            y: y,
-            vx: Math.cos(angle) * speed,
-            vy: Math.sin(angle) * speed,
-            life: 0.25,
-            maxLife: 0.25,
-            color: '#fff',
-            size: Math.random() * 3 + 2,
-            isInk: true,
-            inkShape: Math.random() < 0.5 ? 1 : 0, // Star or blob
-            rotation: Math.random() * Math.PI * 2
-        });
-    }
-    // Central flash with ink style
-    particles.push({
-        x: x, y: y, vx: 0, vy: 0,
-        life: 0.12, maxLife: 0.12,
-        color: '#ffff00', size: 10,
-        isInk: true, inkShape: 1
-    });
+// --- PARTICLES (Optimized) ---
+const MAX_PARTICLES = 80;
+
+function addParticle(p) {
+    if (particles.length >= MAX_PARTICLES) return false;
+    particles.push(p);
+    return true;
 }
 
-function createExplosion(x, y, color, count = 15) {
-    // INK SPLATTER - Core blobs (irregular shapes)
+function createBulletSpark(x, y) {
+    // Simplified spark effect - fewer particles, simpler shapes
+    const count = Math.min(4, MAX_PARTICLES - particles.length);
     for (let i = 0; i < count; i++) {
         const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * 280 + 120;
-        particles.push({
-            x: x,
-            y: y,
+        const speed = Math.random() * 150 + 80;
+        addParticle({
+            x: x, y: y,
             vx: Math.cos(angle) * speed,
             vy: Math.sin(angle) * speed,
-            life: 0.5,
-            maxLife: 0.5,
-            color: color,
-            size: Math.random() * 6 + 4,
-            isInk: true,
-            inkShape: Math.floor(Math.random() * 3), // 0=blob, 1=star, 2=splat
-            rotation: Math.random() * Math.PI * 2
-        });
-    }
-    // INK DROPS - small droplets trailing
-    for (let i = 0; i < 6; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * 150 + 50;
-        particles.push({
-            x: x + (Math.random() - 0.5) * 15,
-            y: y + (Math.random() - 0.5) * 15,
-            vx: Math.cos(angle) * speed,
-            vy: Math.sin(angle) * speed,
-            life: 0.6,
-            maxLife: 0.6,
-            color: color,
-            size: Math.random() * 3 + 2,
-            isInk: true,
-            inkShape: 0
-        });
-    }
-    // White highlights - comic style star bursts
-    for (let i = 0; i < 4; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * 100 + 40;
-        particles.push({
-            x: x + (Math.random() - 0.5) * 10,
-            y: y + (Math.random() - 0.5) * 10,
-            vx: Math.cos(angle) * speed,
-            vy: Math.sin(angle) * speed,
-            life: 0.4,
-            maxLife: 0.4,
+            life: 0.2, maxLife: 0.2,
             color: '#fff',
-            size: Math.random() * 3 + 2,
-            isInk: true,
-            inkShape: 1 // star highlight
+            size: Math.random() * 3 + 2
         });
     }
-    // Flash ring with bold outline
-    particles.push({
-        x: x,
-        y: y,
-        vx: 0,
-        vy: 0,
-        life: 0.15,
-        maxLife: 0.15,
-        color: color,
-        size: 25,
+}
+
+function createExplosion(x, y, color, count = 12) {
+    // Optimized: fewer particles, simpler shapes, capped
+    const available = MAX_PARTICLES - particles.length;
+    if (available <= 0) return;
+
+    // Scale down count based on available space
+    const actualCount = Math.min(count, Math.floor(available * 0.7));
+
+    // Core explosion particles (simple circles)
+    for (let i = 0; i < actualCount; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 250 + 100;
+        addParticle({
+            x: x, y: y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            life: 0.4, maxLife: 0.4,
+            color: color,
+            size: Math.random() * 5 + 3
+        });
+    }
+
+    // White highlights (reduced)
+    const highlightCount = Math.min(2, available - actualCount);
+    for (let i = 0; i < highlightCount; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 80 + 40;
+        addParticle({
+            x: x, y: y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            life: 0.3, maxLife: 0.3,
+            color: '#fff',
+            size: Math.random() * 3 + 2
+        });
+    }
+
+    // Flash ring (keep for impact feel)
+    addParticle({
+        x: x, y: y, vx: 0, vy: 0,
+        life: 0.12, maxLife: 0.12,
+        color: color, size: 20,
         isRing: true
     });
 }
 
 function createScoreParticles(x, y, color) {
-    const count = 5; // Bursts of "Score Energy"
+    const count = Math.min(3, MAX_PARTICLES - particles.length); // Reduced from 5
     for (let i = 0; i < count; i++) {
         const angle = Math.random() * Math.PI * 2;
         const speed = Math.random() * 100 + 50;
-        particles.push({
-            x: x,
-            y: y,
+        addParticle({
+            x: x, y: y,
             vx: Math.cos(angle) * speed,
             vy: Math.sin(angle) * speed,
-            life: 1.5,
-            maxLife: 1.5,
-            color: color || '#FFD700', // Gold by default
+            life: 1.2, maxLife: 1.2, // Slightly shorter
+            color: color || '#FFD700',
             size: Math.random() * 4 + 2,
-            target: { x: gameWidth / 2, y: 30 } // Target Score UI (Approx)
+            target: { x: gameWidth / 2, y: 30 }
         });
     }
 }
 
 function updateParticles(dt) {
     for (let i = particles.length - 1; i >= 0; i--) {
-        let p = particles[i];
+        const p = particles[i];
 
         if (p.target) {
             // Homing Logic (Score Particles)
@@ -2445,113 +2481,69 @@ function updateParticles(dt) {
             const dist = Math.sqrt(dx * dx + dy * dy);
 
             if (dist < 30) {
-                // Arrived!
                 particles.splice(i, 1);
-                // Optional: Flash UI?
-                const scoreUI = document.getElementById('scoreVal');
-                if (scoreUI) {
-                    scoreUI.style.color = '#fff';
-                    setTimeout(() => scoreUI.style.color = '#F7931A', 50);
-                }
                 continue;
             }
 
-            // Steer towards target (Accelerate)
-            p.vx += (dx / dist) * 1500 * dt;
-            p.vy += (dy / dist) * 1500 * dt;
+            // Steer towards target
+            const accel = 1500 * dt / dist;
+            p.vx += dx * accel;
+            p.vy += dy * accel;
             p.x += p.vx * dt;
             p.y += p.vy * dt;
-            p.size = Math.max(1, p.size * 0.95); // Dont vanish completely until hit
-
-            // Limit Speed? No, let them zoom!
+            p.size = Math.max(1, p.size * 0.95);
         } else {
             // Standard Physics
             p.x += p.vx * dt;
             p.y += p.vy * dt;
             p.life -= dt;
-            p.size *= 0.90; // Shrink fast
-            if (p.life <= 0) particles.splice(i, 1);
+            p.size *= 0.92; // Slightly slower shrink
+
+            // Remove dead or offscreen particles
+            if (p.life <= 0 || p.x < -50 || p.x > gameWidth + 50 || p.y > gameHeight + 50) {
+                particles.splice(i, 1);
+            }
         }
     }
 }
 
 function drawParticles(ctx) {
-    // Cell-shaded ink splatter particles
-    if (particles.length === 0) return;
+    // Optimized particle drawing - simplified shapes
+    const len = particles.length;
+    if (len === 0) return;
+
     ctx.save();
-    for (let i = 0; i < particles.length; i++) {
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#111';
+
+    for (let i = 0; i < len; i++) {
         const p = particles[i];
+
+        // Skip offscreen particles (culling)
+        if (p.x < -20 || p.x > gameWidth + 20 || p.y < -20 || p.y > gameHeight + 20) continue;
+
         ctx.globalAlpha = p.life / p.maxLife;
 
         if (p.isRing) {
-            // Expanding ring with bold outline - cell-shaded
-            const expand = (1 - p.life / p.maxLife) * 40;
+            // Expanding ring - simplified (single ring)
+            const expand = (1 - p.life / p.maxLife) * 35;
             ctx.strokeStyle = p.color;
-            ctx.lineWidth = 4;
+            ctx.lineWidth = 3;
             ctx.beginPath();
             ctx.arc(p.x, p.y, p.size + expand, 0, Math.PI * 2);
             ctx.stroke();
-            // Inner ring
-            ctx.strokeStyle = '#fff';
+            ctx.strokeStyle = '#111'; // Reset
             ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.size + expand - 4, 0, Math.PI * 2);
-            ctx.stroke();
-        } else if (p.isInk) {
-            // INK SPLATTER shapes - cell-shaded with bold outlines
-            ctx.fillStyle = p.color;
-            ctx.strokeStyle = '#111';
-            ctx.lineWidth = 2;
-
-            if (p.inkShape === 1) {
-                // Star burst shape
-                ctx.save();
-                ctx.translate(p.x, p.y);
-                ctx.rotate(p.rotation || 0);
-                ctx.beginPath();
-                for (let j = 0; j < 4; j++) {
-                    const a = (j / 4) * Math.PI * 2;
-                    ctx.moveTo(0, 0);
-                    ctx.lineTo(Math.cos(a) * p.size * 1.5, Math.sin(a) * p.size * 1.5);
-                }
-                ctx.strokeStyle = p.color;
-                ctx.lineWidth = 3;
-                ctx.stroke();
-                ctx.restore();
-            } else if (p.inkShape === 2) {
-                // Splat shape (irregular blob)
-                ctx.save();
-                ctx.translate(p.x, p.y);
-                ctx.rotate(p.rotation || 0);
-                ctx.beginPath();
-                ctx.moveTo(p.size, 0);
-                for (let j = 1; j <= 6; j++) {
-                    const a = (j / 6) * Math.PI * 2;
-                    const r = p.size * (0.7 + Math.sin(j * 2.5) * 0.4);
-                    ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
-                }
-                ctx.closePath();
-                ctx.fill();
-                ctx.stroke();
-                ctx.restore();
-            } else {
-                // Blob with outline (default)
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.stroke();
-            }
         } else {
-            // Standard particle (score particles etc)
+            // All particles are now simple circles with outline
             ctx.fillStyle = p.color;
-            ctx.strokeStyle = '#111';
-            ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
             ctx.fill();
             if (p.size > 2) ctx.stroke();
         }
     }
+
     ctx.globalAlpha = 1;
     ctx.restore();
 }

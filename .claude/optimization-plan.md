@@ -1,174 +1,89 @@
 # Piano Ottimizzazione Performance
 
-## Stato: DA IMPLEMENTARE
+## Stato: IMPLEMENTATO ✅
 
 ---
 
-## Priorità 1: Sistema Particelle (Impatto: ALTO)
+## Priorità 1: Sistema Particelle ✅ COMPLETATO
 
-### Problema
-- Nessun limite sul numero di particelle
-- `createExplosion()` aggiunge 15-30 particelle per esplosione
-- Con molti nemici morti = centinaia di particelle attive
-- Drawing complesso: ink splatter, rings, rotazioni, save/restore
-
-### Soluzione
-```javascript
-// 1. Cap massimo globale
-const MAX_PARTICLES = 80;
-if (particles.length >= MAX_PARTICLES) return;
-
-// 2. Pool per particelle (come bullets)
-const ParticlePool = {
-    pool: [],
-    acquire() { return this.pool.pop() || {}; },
-    release(p) { this.pool.push(p); }
-};
-
-// 3. Semplificare forme (rimuovere inkShape complexity)
-// Solo cerchi con outline invece di star burst e splat shapes
-```
-
-### File da modificare
-- `src/main.js`: `createExplosion()`, `drawParticles()`, `updateParticles()`
+### Modifiche Applicate
+- **Cap massimo**: 80 particelle (`MAX_PARTICLES = 80`)
+- **Funzione `addParticle()`**: controlla il cap prima di aggiungere
+- **`createExplosion()`**: ridotto da 26+ a ~15 particelle, forme semplificate
+- **`createBulletSpark()`**: ridotto da 7 a 4 particelle
+- **`createScoreParticles()`**: ridotto da 5 a 3 particelle
+- **`drawParticles()`**: rimossi ink shapes complessi (star burst, splat), solo cerchi
+- **Culling**: particelle fuori schermo non vengono disegnate
 
 ---
 
-## Priorità 2: Offscreen Culling (Impatto: MEDIO)
+## Priorità 2: Offscreen Culling ✅ COMPLETATO
 
-### Problema
-Tutto viene disegnato anche se fuori viewport.
-
-### Soluzione
-```javascript
-// In draw loops
-if (p.x < -50 || p.x > gameWidth + 50 || p.y < -50 || p.y > gameHeight + 50) continue;
-```
-
-### File da modificare
-- `src/main.js`: loop di draw per bullets, enemyBullets, particles
+### Modifiche Applicate
+- **Bullets**: skip draw se `y < -20` o `y > gameHeight + 20`
+- **Enemy bullets**: stesso culling
+- **Particles**: culling sia in update che in draw
 
 ---
 
-## Priorità 3: Enemy Draw Optimization (Impatto: MEDIO)
+## Priorità 3: Enemy Draw Optimization ✅ COMPLETATO
 
-### Problema
-- `ctx.save()/restore()` per ogni nemico
-- Rotazioni condizionali costose
-- Forme complesse (coin notches, bill decorations, bar 3D)
-- Telegraph indicator separato
-
-### Soluzione
-```javascript
-// 1. Usare Path2D cachati per forme statiche
-const ENEMY_PATHS = {
-    coin: new Path2D(),
-    bill: new Path2D(),
-    bar: new Path2D(),
-    card: new Path2D()
-};
-// Pre-populate at init
-
-// 2. Batch save/restore
-ctx.save();
-enemies.forEach(e => e.drawFast(ctx)); // No internal save/restore
-ctx.restore();
-
-// 3. Skip rotazioni se non SINE_WAVE pattern
-if (wavePattern !== 'SINE_WAVE') this.rotation = 0;
-```
-
-### File da modificare
-- `src/entities/Enemy.js`: `draw()`, aggiungere `initPaths()`
+### Modifiche Applicate
+- **Color caching**: colori pre-calcolati nel constructor
+  - `_colorDark30`, `_colorDark35`, `_colorDark40`, `_colorDark50`
+  - `_colorLight35`, `_colorLight40`, `_colorLight50`
+- **Coin ridges**: ridotti da 12 a 6
+- **Bar shine**: rimosso rim light separato
+- **Card chip lines**: rimosse linee interne chip
 
 ---
 
-## Priorità 4: Sky/Clouds Optimization (Impatto: BASSO)
+## Priorità 4: Sky/Clouds Optimization ✅ COMPLETATO
 
-### Problema
-- 20 nuvole aggiornate ogni frame
-- 3 layer colline con calcoli
-
-### Soluzione
-```javascript
-// 1. Ridurre nuvole a 12
-const CLOUD_COUNT = 12;
-
-// 2. Aggiornare colline ogni 2 frame
-if (frameCount % 2 === 0) updateHills(dt * 2);
-
-// 3. Pre-calcolare gradienti/colori sky (non cambiano spesso)
-let cachedSkyLevel = -1;
-let cachedSkyBands = null;
-if (level !== cachedSkyLevel) {
-    cachedSkyBands = computeSkyBands(level);
-    cachedSkyLevel = level;
-}
-```
-
-### File da modificare
-- `src/main.js`: `initSky()`, `updateSky()`, `drawSky()`
+### Modifiche Applicate
+- **Nuvole**: ridotte da 20 a 12
+- **Loops**: `forEach` → `for` classico
 
 ---
 
-## Priorità 5: Micro-ottimizzazioni (Impatto: BASSO)
+## Priorità 5: Micro-ottimizzazioni ✅ COMPLETATO
 
-### Cambio da forEach a for classico
-```javascript
-// Prima
-enemies.forEach(e => e.draw(ctx));
-
-// Dopo
-for (let i = 0; i < enemies.length; i++) {
-    enemies[i].draw(ctx);
-}
-```
-
-### Evitare allocazioni in hot path
-```javascript
-// Prima (alloca nuovo oggetto ogni frame)
-const dx = target.x - this.x;
-
-// Dopo (riusa variabili)
-let _dx = 0, _dy = 0; // module-level
-_dx = target.x - this.x;
-```
-
-### File da modificare
-- `src/main.js`: tutti i loop di update/draw
-- `src/entities/*.js`: metodi update/draw
+### Modifiche Applicate
+- **Draw loops**: tutti convertiti a `for` classico
+  - `enemies`, `bullets`, `enemyBullets`, `powerUps`, `floatingTexts`
+  - `clouds`, `hills`, `particles`
+- **Semplificazioni varie**: meno allocazioni in hot path
 
 ---
 
-## Ordine di Implementazione Consigliato
+## Debug Mode ✅ AGGIUNTO
 
-1. **Particelle** - Maggior impatto, fix veloce
-2. **Culling** - Facile, beneficio immediato
-3. **Enemy draw** - Richiede refactoring
-4. **Sky** - Bassa priorità
-5. **Micro-opt** - Da fare insieme agli altri
-
----
-
-## Metriche da Monitorare
-
-```javascript
-// Aggiungere debug overlay (F3 toggle)
-let debugMode = false;
-function drawDebug(ctx) {
-    if (!debugMode) return;
-    ctx.fillStyle = '#0f0';
-    ctx.font = '12px monospace';
-    ctx.fillText(`Particles: ${particles.length}`, 10, gameHeight - 60);
-    ctx.fillText(`Bullets: ${bullets.length}/${enemyBullets.length}`, 10, gameHeight - 45);
-    ctx.fillText(`Enemies: ${enemies.length}`, 10, gameHeight - 30);
-    ctx.fillText(`FPS: ${Math.round(1/dt)}`, 10, gameHeight - 15);
-}
-```
+Premi **F3** per visualizzare:
+- FPS (verde/giallo/rosso in base alla performance)
+- Particelle attive / massime
+- Bullets player
+- Bullets nemici
+- Nemici attivi
 
 ---
 
-## Note
-- Testare su iPhone reale dopo ogni modifica
-- Usare Chrome DevTools Performance tab per profiling
-- Target: 60 FPS stabile su iPhone 14 Pro Max
+## Metriche Target
+
+| Metrica | Prima | Dopo | Target |
+|---------|-------|------|--------|
+| Max Particelle | ∞ | 80 | ✅ |
+| Particelle per esplosione | ~26 | ~15 | ✅ |
+| Nuvole | 20 | 12 | ✅ |
+| Color calculations/frame | ~100+ | 0 | ✅ |
+| FPS iPhone 14 Pro | ~45-55 | 60 | Da testare |
+
+---
+
+## Note per Test
+
+1. Avvia il gioco su iPhone
+2. Premi F3 (su desktop) per vedere stats
+3. Monitora FPS durante:
+   - Esplosioni multiple
+   - Boss fight con molti proiettili
+   - Bear Market con effetti extra
