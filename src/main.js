@@ -21,7 +21,7 @@ window.isBearMarket = isBearMarket; // Expose globally for WaveManager
 
 // Game Entities
 let player;
-let bullets = [], enemyBullets = [], enemies = [], powerUps = [], particles = [], floatingTexts = [], muzzleFlashes = [];
+let bullets = [], enemyBullets = [], enemies = [], powerUps = [], particles = [], floatingTexts = [], muzzleFlashes = [], perkIcons = [];
 window.enemyBullets = enemyBullets; // Expose for Player core hitbox indicator
 let clouds = []; // ☁️
 let hills = []; // 🏔️ Paper Mario parallax hills
@@ -99,13 +99,18 @@ window.marketCycle = marketCycle; // Expose for WaveManager
 window.currentLevel = level; // Expose for WaveManager difficulty calculation
 let bulletCancelStreak = 0;
 let bulletCancelTimer = 0;
+const BULLET_CANCEL_FOR_PERK = 5; // Bullets to cancel for perk (was 3)
+
+// --- PERK COOLDOWN ---
+let perkCooldown = 0;         // Cooldown timer between perks
+const PERK_COOLDOWN_TIME = 8; // Seconds between perk rewards
 
 // --- GRAZING SYSTEM (Ikeda Rule 3) ---
 let grazeCount = 0;           // Total graze count this run
 let grazeMeter = 0;           // 0-100 meter fill
 let grazeMultiplier = 1.0;    // Score multiplier from grazing (up to 1.5x)
 const GRAZE_RADIUS = 25;      // Pixels outside core hitbox for graze detection
-const GRAZE_PERK_THRESHOLD = 50; // Graze count to trigger bonus perk
+const GRAZE_PERK_THRESHOLD = 80; // Graze count to trigger bonus perk (was 50)
 let lastGrazeSoundTime = 0;   // Throttle graze sound
 
 let enemyFirePhase = 0;
@@ -480,7 +485,7 @@ function applyPerk(perk) {
         if (delta > 0) player.hp = Math.min(player.maxHp, player.hp + delta);
     }
     audioSys.play('perk');
-    // Perk name shown in perk bar, no floating text needed
+    addPerkIcon(perk); // Visual glow effect above player
     updateLivesUI();
     renderPerkBar(perk.id);
     emitEvent('perk_selected', { id: perk.id });
@@ -493,9 +498,11 @@ function applyPerk(perk) {
 
 function applyRandomPerk() {
     if (!G.UPGRADES || G.UPGRADES.length === 0) return;
+    if (perkCooldown > 0) return; // On cooldown, skip
     const offers = pickPerkOffers(1);
     if (!offers || offers.length === 0) return;
     applyPerk(offers[0]);
+    perkCooldown = PERK_COOLDOWN_TIME; // Start cooldown
 }
 
 // --- INTRO SHIP ANIMATION & SELECTION ---
@@ -1380,6 +1387,7 @@ function startGame() {
     volatilityTimer = 0;
     bulletCancelStreak = 0;
     bulletCancelTimer = 0;
+    perkCooldown = 0;
     enemyFirePhase = 0;
     enemyFireTimer = 0;
     memeSwapTimer = 2.0;
@@ -1389,7 +1397,7 @@ function startGame() {
 
     score = 0; displayScore = 0; level = 1; lives = 3; setUI('scoreVal', '0'); setUI('lvlVal', '1'); setUI('livesText', lives);
     audioSys.setLevel(1, true); // Set music theme for level 1 (instant, no crossfade)
-    bullets = []; enemies = []; enemyBullets = []; powerUps = []; particles = []; floatingTexts = []; muzzleFlashes = []; boss = null;
+    bullets = []; enemies = []; enemyBullets = []; powerUps = []; particles = []; floatingTexts = []; muzzleFlashes = []; perkIcons = []; boss = null;
     G.enemies = enemies; // Expose for Boss Spawning logic
     window.enemyBullets = enemyBullets; // Update for Player core hitbox indicator
     grazeCount = 0; grazeMeter = 0; grazeMultiplier = 1.0; updateGrazeUI(); // Reset grazing
@@ -1764,6 +1772,9 @@ function update(dt) {
         bulletCancelTimer -= dt;
         if (bulletCancelTimer <= 0) bulletCancelStreak = 0;
     }
+    if (perkCooldown > 0) {
+        perkCooldown -= dt;
+    }
     if (volatilityTimer > 0) {
         volatilityTimer -= dt;
         if (volatilityTimer <= 0 && runState && runState.modifiers) {
@@ -1887,6 +1898,7 @@ function update(dt) {
         }
     }
     updateFloatingTexts(dt);
+    updatePerkIcons(dt);
     updateParticles(dt);
     updateTransition(dt);
 }
@@ -2401,6 +2413,9 @@ function draw() {
             ctx.fillText(t.text, t.x, t.y);
         }
 
+        // Perk icons (glow above player)
+        drawPerkIcons(ctx);
+
         // Intermission countdown overlay
         if (gameState === 'INTERMISSION' && waveMgr.intermissionTimer > 0) {
             const countdown = Math.ceil(waveMgr.intermissionTimer);
@@ -2903,6 +2918,119 @@ function updateFloatingTexts(dt) {
         if (floatingTexts[i].life <= 0) floatingTexts.splice(i, 1);
     }
 }
+
+// --- PERK ICONS (Glow effect above player) ---
+const RARITY_COLORS = {
+    common: '#95a5a6',
+    uncommon: '#3498db',
+    rare: '#9b59b6',
+    epic: '#f39c12'
+};
+
+function addPerkIcon(perk) {
+    if (!player || !perk) return;
+    perkIcons.push({
+        icon: perk.icon || '?',
+        name: perk.name || 'Perk',
+        color: RARITY_COLORS[perk.rarity] || RARITY_COLORS.common,
+        rarity: perk.rarity || 'common',
+        x: player.x,
+        y: player.y - 60,
+        life: 2.5,        // Total duration
+        maxLife: 2.5,
+        scale: 0,         // Start small, grow
+        glowPhase: 0      // For pulsing glow
+    });
+}
+
+function updatePerkIcons(dt) {
+    for (let i = perkIcons.length - 1; i >= 0; i--) {
+        const p = perkIcons[i];
+        p.life -= dt;
+        p.y -= 25 * dt;   // Float upward
+        p.glowPhase += dt * 6;  // Glow pulse speed
+
+        // Scale animation: grow in first 0.3s, then shrink in last 0.5s
+        const age = p.maxLife - p.life;
+        if (age < 0.3) {
+            p.scale = age / 0.3;  // 0 -> 1
+        } else if (p.life < 0.5) {
+            p.scale = p.life / 0.5;  // 1 -> 0
+        } else {
+            p.scale = 1;
+        }
+
+        if (p.life <= 0) perkIcons.splice(i, 1);
+    }
+}
+
+// Helper to convert hex color to rgba
+function hexToRgba(hex, alpha) {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function drawPerkIcons(ctx) {
+    for (let i = 0; i < perkIcons.length; i++) {
+        const p = perkIcons[i];
+        if (p.scale <= 0) continue;
+
+        const alpha = Math.min(1, p.life / 0.5);  // Fade out in last 0.5s
+        const glowIntensity = 0.5 + Math.sin(p.glowPhase) * 0.3;
+        const size = 36 * p.scale;
+
+        ctx.save();
+        ctx.globalAlpha = alpha;
+
+        // Outer glow (large, soft)
+        const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, size * 1.8);
+        gradient.addColorStop(0, hexToRgba(p.color, glowIntensity * 0.5));
+        gradient.addColorStop(0.5, hexToRgba(p.color, 0.25));
+        gradient.addColorStop(1, hexToRgba(p.color, 0));
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, size * 1.8, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Inner glow (brighter)
+        const innerGlow = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, size * 0.9);
+        innerGlow.addColorStop(0, '#fff');
+        innerGlow.addColorStop(0.3, p.color);
+        innerGlow.addColorStop(1, hexToRgba(p.color, 0));
+        ctx.fillStyle = innerGlow;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, size * 0.9, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Icon
+        ctx.font = `bold ${Math.floor(size)}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        // Shadow/outline for visibility
+        ctx.shadowColor = '#000';
+        ctx.shadowBlur = 8;
+        ctx.fillStyle = '#fff';
+        ctx.fillText(p.icon, p.x, p.y);
+        ctx.shadowBlur = 0;
+
+        // Perk name below icon (smaller, fades in)
+        if (p.scale > 0.5) {
+            const nameAlpha = (p.scale - 0.5) * 2 * alpha;
+            ctx.globalAlpha = nameAlpha;
+            ctx.font = 'bold 14px "Courier New", monospace';
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 3;
+            ctx.strokeText(p.name, p.x, p.y + size * 0.8);
+            ctx.fillStyle = p.color;
+            ctx.fillText(p.name, p.x, p.y + size * 0.8);
+        }
+
+        ctx.restore();
+    }
+}
+
 // --- PARTICLES (Optimized) ---
 const MAX_PARTICLES = 80;
 
@@ -3399,7 +3527,7 @@ function updatePowerUps(dt) {
 
                     bulletCancelStreak += 1;
                     bulletCancelTimer = 1.5; // Wider window for aggressive play
-                    if (bulletCancelStreak >= 3) { // Easier perk acquisition
+                    if (bulletCancelStreak >= BULLET_CANCEL_FOR_PERK) {
                         bulletCancelStreak = 0;
                         applyRandomPerk();
                     }
