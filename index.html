@@ -29,9 +29,16 @@
         <div class="curtain-right"></div> <!-- Bottom panel -->
     </div>
 
-    <canvas id="gameCanvas"></canvas>
+    <!-- Splash Video (fullscreen, outside container) -->
+    <div id="splash-layer">
+        <video id="intro-video" src="splashscreen.mp4" playsinline autoplay muted></video>
+    </div>
 
-    <div id="ui-layer">
+    <!-- Game Container: respects safe areas in Safari, fullscreen in PWA -->
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+
+        <div id="ui-layer">
         <!-- TOP BAR: Lives/Health | SCORE | Level/Shield -->
         <div class="hud-top-bar">
             <div class="hud-stat left">
@@ -63,10 +70,6 @@
             <span id="killNum">0</span>
             <span id="killLabel">KILLS</span>
         </div>
-    </div>
-
-    <div id="splash-layer">
-        <video id="intro-video" src="splashscreen.mp4" playsinline autoplay muted></video>
     </div>
 
     <div id="intro-screen" style="display: none;">
@@ -110,11 +113,10 @@
         </div>
 
         <div class="start-actions">
-            <button class="btn-play" onclick="launchShipAndStart()">DESTROY THE SYSTEM</button>
-        </div>
-
-        <div class="start-footer">
-            <span id="version-tag" class="version-text"></span>
+            <button class="btn-play" onclick="launchShipAndStart()">
+                DESTROY THE SYSTEM
+                <span id="version-tag" class="version-text"></span>
+            </button>
         </div>
     </div>
 
@@ -275,8 +277,9 @@
         <div class="touch-shield-btn" id="t-shield">🛡️</div>
     </div>
 
-    <div id="control-toast">CONTROLS: SWIPE</div>
-    <div id="meme-popup"></div>
+        <div id="control-toast">CONTROLS: SWIPE</div>
+        <div id="meme-popup"></div>
+    </div><!-- /game-container -->
 
     <!-- Ordered Scripts for file:// compatibility (Namespace Pattern) -->
     <script src="src/utils/Constants.js"></script>

@@ -10,7 +10,7 @@ window.Game.images = {}; // Placeholder, populated by main.js
 
 
 // --- GLOBAL STATE ---
-let canvas, ctx;
+let canvas, ctx, gameContainer;
 let gameWidth = 600;
 let gameHeight = 800;
 let gameState = 'VIDEO';
@@ -630,6 +630,7 @@ function lightenColor(hex, percent) {
 function init() {
     canvas = document.getElementById('gameCanvas');
     ctx = canvas.getContext('2d', { alpha: false });
+    gameContainer = document.getElementById('game-container');
 
     ['intro-screen', 'hangar-screen', 'settings-modal', 'pause-screen', 'gameover-screen',
         'scoreVal', 'score-ticker', 'meme-ticker', 'lvlVal', 'weaponName', 'shieldBar', 'healthBar', 'finalScore',
@@ -728,6 +729,8 @@ function init() {
 
     resize();
     window.addEventListener('resize', resize);
+    // iOS needs orientationchange + delay for safe area recalculation
+    window.addEventListener('orientationchange', () => setTimeout(resize, 100));
     inputSys.init();
 
     player = new G.Player(gameWidth, gameHeight);
@@ -790,10 +793,81 @@ function init() {
     requestAnimationFrame(loop);
 }
 
+// Detect if running as installed PWA (standalone mode)
+function isPWAStandalone() {
+    // iOS Safari standalone mode
+    if (window.navigator.standalone === true) return true;
+    // Android/Desktop PWA
+    if (window.matchMedia('(display-mode: standalone)').matches) return true;
+    if (window.matchMedia('(display-mode: fullscreen)').matches) return true;
+    return false;
+}
+
+// Get safe area insets from CSS environment variables
+function getSafeAreaInsets() {
+    const div = document.createElement('div');
+    div.style.position = 'fixed';
+    div.style.left = '0';
+    div.style.top = '0';
+    div.style.width = '100%';
+    div.style.height = '100%';
+    div.style.paddingTop = 'env(safe-area-inset-top)';
+    div.style.paddingBottom = 'env(safe-area-inset-bottom)';
+    div.style.paddingLeft = 'env(safe-area-inset-left)';
+    div.style.paddingRight = 'env(safe-area-inset-right)';
+    div.style.boxSizing = 'border-box';
+    div.style.visibility = 'hidden';
+    div.style.pointerEvents = 'none';
+    document.body.appendChild(div);
+    const computed = getComputedStyle(div);
+    const insets = {
+        top: parseFloat(computed.paddingTop) || 0,
+        bottom: parseFloat(computed.paddingBottom) || 0,
+        left: parseFloat(computed.paddingLeft) || 0,
+        right: parseFloat(computed.paddingRight) || 0
+    };
+    document.body.removeChild(div);
+    return insets;
+}
+
+// Store safe area values globally for rendering adjustments
+window.safeAreaInsets = { top: 0, bottom: 0, left: 0, right: 0 };
+window.isPWA = false;
+
 function resize() {
-    gameHeight = window.innerHeight;
-    gameWidth = Math.min(600, window.innerWidth);
-    canvas.width = gameWidth; canvas.height = gameHeight;
+    window.isPWA = isPWAStandalone();
+    const insets = getSafeAreaInsets();
+    window.safeAreaInsets = insets;
+
+    // In PWA standalone mode: use full screen
+    // In browser (Safari): respect safe areas
+    if (window.isPWA) {
+        gameHeight = window.innerHeight;
+        gameWidth = Math.min(600, window.innerWidth);
+        // Position container at top (fullscreen)
+        if (gameContainer) {
+            gameContainer.style.top = '0';
+            gameContainer.style.height = gameHeight + 'px';
+            gameContainer.style.width = gameWidth + 'px';
+        }
+    } else {
+        // Safari/Browser mode: account for notch and home bar
+        const safeTop = insets.top;
+        const safeBottom = insets.bottom;
+        gameHeight = window.innerHeight - safeTop - safeBottom;
+        gameWidth = Math.min(600, window.innerWidth - insets.left - insets.right);
+        // Position container below notch, above home bar
+        if (gameContainer) {
+            gameContainer.style.top = safeTop + 'px';
+            gameContainer.style.height = gameHeight + 'px';
+            gameContainer.style.width = gameWidth + 'px';
+        }
+    }
+
+    // Canvas fills the container
+    canvas.width = gameWidth;
+    canvas.height = gameHeight;
+
     if (player) {
         player.gameWidth = gameWidth;
         player.gameHeight = gameHeight;
