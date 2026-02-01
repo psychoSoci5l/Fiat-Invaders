@@ -206,3 +206,85 @@ window.Game.ASSETS = {};
 
 window.Game.M_CHARS = "01BTCETH$$£€¥HODL";
 
+// Boss Definitions - Rotation: FED → BCE → BOJ → repeat
+// Uniform difficulty: same base HP, cycle bonus adds ~10% per rotation
+window.Game.BOSSES = {
+    FEDERAL_RESERVE: {
+        name: 'THE FED',
+        fullName: 'FEDERAL RESERVE',
+        color: '#2ecc71',           // Dollar green
+        accentColor: '#27ae60',
+        darkColor: '#1a5a3a',
+        symbol: '$',
+        country: '🇺🇸',
+        personality: 'arrogant',
+        baseHp: 5500,               // Increased from 4500 (+22%)
+        hpPerLevel: 500,
+        hpPerCycle: 600             // Uniform cycle scaling
+    },
+    BCE: {
+        name: 'BCE',
+        fullName: 'BANCA CENTRALE EUROPEA',
+        color: '#003399',           // EU blue
+        accentColor: '#ffcc00',     // EU gold stars
+        darkColor: '#001a4d',
+        symbol: '€',
+        country: '🇪🇺',
+        personality: 'bureaucratic',
+        baseHp: 5500,               // Same as FED (was 5000+850 effective)
+        hpPerLevel: 500,
+        hpPerCycle: 600
+    },
+    BOJ: {
+        name: 'BOJ',
+        fullName: 'BANK OF JAPAN',
+        color: '#bc002d',           // Japan red
+        accentColor: '#ffffff',     // White
+        darkColor: '#6b0019',
+        symbol: '¥',
+        country: '🇯🇵',
+        personality: 'zen',
+        baseHp: 5500,               // Same as others
+        hpPerLevel: 500,
+        hpPerCycle: 600
+    }
+};
+
+// Boss rotation order
+window.Game.BOSS_ROTATION = ['FEDERAL_RESERVE', 'BCE', 'BOJ'];
+
+// Boss-specific memes
+window.Game.MEMES.BCE = [
+    "LAGARDE: WHATEVER IT TAKES",
+    "BCE: FRAGMENTATION RISK",
+    "LAGARDE: INFLATION? TRANSITORIA",
+    "BCE: NEGATIVE RATES FOREVER",
+    "LAGARDE: WE ARE NOT HERE TO CLOSE SPREADS",
+    "BCE: TRANSMISSION MECHANISM BROKEN",
+    "LAGARDE: HOLD MY WINE",
+    "BCE: EURO IS IRREVERSIBLE... LOL",
+    "LAGARDE: CRYPTO IS WORTH NOTHING",
+    "BCE: DIGITAL EURO INCOMING",
+    "DRAGHI GHOST: DO YOU MISS ME?",
+    "BCE: EMERGENCY MEETING CALLED",
+    "LAGARDE: WE HAVE NO TOOLS LEFT",
+    "BCE: BRRR BUT IN EUROPEAN"
+];
+
+window.Game.MEMES.BOJ = [
+    "KURODA: YIELD CURVE CONTROLLED",
+    "BOJ: YEN INTERVENTION ACTIVATED",
+    "KURODA: INFLATION? NANI?",
+    "BOJ: UNLIMITED QE FOREVER",
+    "KURODA: PRINTER? WHICH PRINTER?",
+    "BOJ: NEGATIVE RATES? HAI!",
+    "UEDA: WE WILL NORMALIZE... SOMEDAY",
+    "BOJ: BUYING ALL THE BONDS",
+    "KURODA: THIS IS FINE 🔥",
+    "BOJ: ¥150? ¥160? WHO'S COUNTING?",
+    "UEDA: WE SEE NOTHING",
+    "BOJ: ABENOMICS NEVER DIES",
+    "KURODA: ZEN AND THE ART OF MONEY PRINTING",
+    "BOJ: INTERVENTION SURPRISE!"
+];
+

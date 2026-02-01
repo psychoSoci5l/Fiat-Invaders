@@ -89,21 +89,65 @@ window.Game.DIALOGUES = {
             { speaker: "POWELL", text: "Audit the Fed? Audit THIS!" },
             { speaker: "POWELL", text: "Tassi su, voi GIÙ." },
             { speaker: "FED", text: "Brrrrrrr... preparatevi." }
+        ],
+        BCE: [
+            { speaker: "LAGARDE", text: "Whatever it takes. Anche distruggerti." },
+            { speaker: "LAGARDE", text: "La frammentazione? L'unica frammentazione sarai TU." },
+            { speaker: "BCE", text: "Benvenuto nella burocrazia europea. Non ne uscirai." },
+            { speaker: "LAGARDE", text: "I tassi negativi erano solo l'antipasto." },
+            { speaker: "LAGARDE", text: "Crypto? Non vale niente. Come te tra poco." },
+            { speaker: "BCE", text: "12 stelle. 12 modi per distruggerti." },
+            { speaker: "LAGARDE", text: "L'Euro è irreversibile. La tua fine anche." }
+        ],
+        BOJ: [
+            { speaker: "KURODA", text: "Yield curve... sotto controllo. Come la tua fine." },
+            { speaker: "BOJ", text: "Lo Yen è debole? La mia furia no." },
+            { speaker: "UEDA", text: "L'intervento sarà... inaspettato." },
+            { speaker: "KURODA", text: "Stampare è un'arte. Io sono il maestro." },
+            { speaker: "BOJ", text: "Abenomics never dies. Tu invece sì." },
+            { speaker: "KURODA", text: "Zen... poi distruzione." },
+            { speaker: "BOJ", text: "¥160? ¥180? Chi conta quando stampi infinito?" }
         ]
     },
 
     // === BOSS PHASE CHANGE ===
     BOSS_PHASE: {
-        2: [
-            { speaker: "POWELL", text: "Credevi fosse finita? Accendo la stampante!" },
-            { speaker: "POWELL", text: "Quantitative Easing: ENGAGED!" },
-            { speaker: "FED", text: "UNLIMITED POWER!" }
-        ],
-        3: [
-            { speaker: "POWELL", text: "MODALITÀ PANICO! STAMPATE TUTTO!" },
-            { speaker: "POWELL", text: "Non posso perdere! Sono TOO BIG TO FAIL!" },
-            { speaker: "FED", text: "BRRRRRRRRRRRRR!!!" }
-        ]
+        FEDERAL_RESERVE: {
+            2: [
+                { speaker: "POWELL", text: "Credevi fosse finita? Accendo la stampante!" },
+                { speaker: "POWELL", text: "Quantitative Easing: ENGAGED!" },
+                { speaker: "FED", text: "UNLIMITED POWER!" }
+            ],
+            3: [
+                { speaker: "POWELL", text: "MODALITÀ PANICO! STAMPATE TUTTO!" },
+                { speaker: "POWELL", text: "Non posso perdere! Sono TOO BIG TO FAIL!" },
+                { speaker: "FED", text: "BRRRRRRRRRRRRR!!!" }
+            ]
+        },
+        BCE: {
+            2: [
+                { speaker: "LAGARDE", text: "Riunione d'emergenza! Tutti i documenti!" },
+                { speaker: "BCE", text: "PROCEDURE ATTIVATE. BUROCRAZIA INTENSIFICATA." },
+                { speaker: "LAGARDE", text: "Pensavi che la burocrazia fosse lenta? SBAGLIATO." }
+            ],
+            3: [
+                { speaker: "LAGARDE", text: "FRAMMENTAZIONE TOTALE! 27 paesi ti attaccano!" },
+                { speaker: "BCE", text: "STELLE EUROPEE: FUOCO A VOLONTÀ!" },
+                { speaker: "LAGARDE", text: "WHATEVER IT TAKES! WHATEVER IT TAKES!" }
+            ]
+        },
+        BOJ: {
+            2: [
+                { speaker: "KURODA", text: "Intervento valutario ATTIVATO!" },
+                { speaker: "BOJ", text: "Lo yen cade... TU cadi più veloce." },
+                { speaker: "UEDA", text: "La pazienza zen è finita." }
+            ],
+            3: [
+                { speaker: "KURODA", text: "INTERVENTO TOTALE! VENDIAMO TUTTO!" },
+                { speaker: "BOJ", text: "YIELD CURVE CONTROL ESTREMO!" },
+                { speaker: "KURODA", text: "NON C'È FUGA DAL SOL LEVANTE!" }
+            ]
+        }
     },
 
     // === BOSS DEFEAT ===
@@ -115,6 +159,22 @@ window.Game.DIALOGUES = {
             { speaker: "PLAYER", text: "The Fed is dead. Long live the blockchain." },
             { speaker: "POWELL", text: "Noooo! I miei strumenti!" },
             { speaker: "PLAYER", text: "Inflation DEFEATED. Literally." }
+        ],
+        BCE: [
+            { speaker: "LAGARDE", text: "Non può finire così! Ho i documenti!" },
+            { speaker: "PLAYER", text: "La burocrazia non ti salverà stavolta." },
+            { speaker: "PLAYER", text: "Whatever it takes? Non abbastanza." },
+            { speaker: "LAGARDE", text: "Le stelle... si spengono..." },
+            { speaker: "PLAYER", text: "L'Euro è irreversibile, dicevi. Irreversibilmente SCONFITTO." },
+            { speaker: "PLAYER", text: "Frammentazione completata. Ma non quella che pensavi." }
+        ],
+        BOJ: [
+            { speaker: "KURODA", text: "Lo... yen... impossibile..." },
+            { speaker: "PLAYER", text: "Il Sol Levante tramonta. Finalmente." },
+            { speaker: "PLAYER", text: "Yield curve? Più come yield DESTROYED." },
+            { speaker: "UEDA", text: "L'intervento... ha fallito..." },
+            { speaker: "PLAYER", text: "La pazienza zen non basta contro la blockchain." },
+            { speaker: "PLAYER", text: "Abenomics? Più come ENDONOMICS." }
         ]
     },
 

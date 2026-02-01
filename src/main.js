@@ -22,10 +22,13 @@ window.isBearMarket = isBearMarket; // Expose globally for WaveManager
 // Game Entities
 let player;
 let bullets = [], enemyBullets = [], enemies = [], powerUps = [], particles = [], floatingTexts = [], muzzleFlashes = [];
+window.enemyBullets = enemyBullets; // Expose for Player core hitbox indicator
 let clouds = []; // ☁️
 let hills = []; // 🏔️ Paper Mario parallax hills
+let floatingSymbols = []; // ₿ Floating crypto symbols in background
 let lightningTimer = 0; // ⚡ Bear Market lightning
 let lightningFlash = 0;
+let skyTime = 0; // ✨ Animation timer for sky effects
 let images = {}; // 🖼️ Asset Cache
 
 // Load Assets
@@ -74,10 +77,17 @@ setUI('highScoreVal', highScore); // UI Update
 let boss = null;
 let score = 0, displayScore = 0, level = 1, lives = 3;
 let shake = 0, gridDir = 1, gridSpeed = 25, timeScale = 1.0, totalTime = 0, intermissionTimer = 0, currentMeme = "";
+// Screen transition system
+let transitionAlpha = 0;
+let transitionDir = 0; // 0 = none, 1 = fading in (to black), -1 = fading out
+let transitionCallback = null;
+let transitionColor = '#000';
 let currentShipIdx = 0;
 let lastWavePattern = 'RECT';
 let perkChoiceActive = false;
 let intermissionMeme = ""; // Meme shown during countdown
+let debugMode = false; // F3 toggle for performance stats
+let fpsHistory = []; // For smooth FPS display
 let perkOffers = [];
 let volatilityTimer = 0;
 let memeSwapTimer = 0;
@@ -89,11 +99,20 @@ window.marketCycle = marketCycle; // Expose for WaveManager
 window.currentLevel = level; // Expose for WaveManager difficulty calculation
 let bulletCancelStreak = 0;
 let bulletCancelTimer = 0;
+
+// --- GRAZING SYSTEM (Ikeda Rule 3) ---
+let grazeCount = 0;           // Total graze count this run
+let grazeMeter = 0;           // 0-100 meter fill
+let grazeMultiplier = 1.0;    // Score multiplier from grazing (up to 1.5x)
+const GRAZE_RADIUS = 25;      // Pixels outside core hitbox for graze detection
+const GRAZE_PERK_THRESHOLD = 50; // Graze count to trigger bonus perk
+let lastGrazeSoundTime = 0;   // Throttle graze sound
+
 let enemyFirePhase = 0;
 let enemyFireTimer = 0;
-let enemyFireStride = 6; // Increased: fewer enemies per group (was 4)
+let enemyFireStride = 8; // Increased: fewer enemies per group (was 6) - 20% reduction
 let enemyShotsThisTick = 0; // Rate limiter
-const MAX_ENEMY_SHOTS_PER_TICK = 2; // Max bullets spawned per frame
+const MAX_ENEMY_SHOTS_PER_TICK = 1; // Reduced: max bullets spawned per frame (was 2)
 
 // Fibonacci firing ramp-up at wave start
 let waveStartTime = 0;
@@ -111,6 +130,11 @@ let miniBoss = null; // Special boss spawned from kill counter
 // Drop system: time-based (every 5 seconds guarantees a drop opportunity)
 let lastDropTime = 0;
 const DROP_INTERVAL = 5.0; // Seconds between guaranteed drop opportunities
+
+// Boss fight drops: power-ups every N hits to help player survive
+let bossHitCount = 0;
+const BOSS_DROP_INTERVAL = 25; // Drop power-up every 25 hits on boss
+let bossDropCooldown = 0; // Prevent multiple drops in quick succession
 
 // --- DIFFICULTY SYSTEM ---
 // Single unified difficulty multiplier (0.0 = Level 1, capped at 0.85)
@@ -164,6 +188,18 @@ function getFiatDeathMeme() {
 function getPowellMeme() {
     const pool = Constants.MEMES.POWELL || Constants.MEMES.BOSS || [];
     return pool[Math.floor(Math.random() * pool.length)] || "PRINTER GO BRRR";
+}
+
+function getBossMeme(bossType) {
+    let pool;
+    if (bossType === 'BCE') {
+        pool = Constants.MEMES.BCE || Constants.MEMES.BOSS || [];
+    } else if (bossType === 'BOJ') {
+        pool = Constants.MEMES.BOJ || Constants.MEMES.BOSS || [];
+    } else {
+        pool = Constants.MEMES.POWELL || Constants.MEMES.BOSS || [];
+    }
+    return pool[Math.floor(Math.random() * pool.length)] || "CENTRAL BANK ALERT";
 }
 
 function pushScoreTicker(text) {
@@ -650,14 +686,12 @@ function init() {
     if (startBtn) {
         startBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            audioSys.init(); // Force Init on first user gesture
-            if (audioSys.ctx && audioSys.ctx.state === 'suspended') audioSys.ctx.resume();
+            audioSys.init(); // Create context (stays suspended until user unmutes)
             inputSys.trigger('start');
         });
         startBtn.addEventListener('touchstart', (e) => {
             e.stopPropagation(); e.preventDefault();
             audioSys.init();
-            if (audioSys.ctx && audioSys.ctx.state === 'suspended') audioSys.ctx.resume();
             inputSys.trigger('start');
         });
     }
@@ -698,6 +732,16 @@ function init() {
                 if (runState.modifiers) runState.modifiers.tempFireRateMult = 0.6;
             }
         });
+        // Harmonic Conductor bullet spawning
+        events.on('harmonic_bullets', (data) => {
+            if (!data || !data.bullets) return;
+            data.bullets.forEach(bd => {
+                const bullet = G.Bullet.Pool.acquire(bd.x, bd.y, bd.vx, bd.vy, bd.color, bd.w || 8, bd.h || 8, false);
+                // Enhanced trail for beat-synced bullets
+                bullet.beatSynced = true;
+                enemyBullets.push(bullet);
+            });
+        });
     }
 
     if (ui.joyDeadzone) {
@@ -712,21 +756,6 @@ function init() {
             if (G.Input && G.Input.setJoystickSettings) G.Input.setJoystickSettings(null, s);
         });
     }
-
-    // GLOBAL AUDIO UNLOCKER: Catch-all for any interaction
-    const unlockAudio = () => {
-        if (!audioSys.ctx) audioSys.init(); // Force Create
-        if (audioSys.ctx && audioSys.ctx.state === 'suspended') {
-            audioSys.unlockWebAudio(); // Apply iOS Hack
-            audioSys.ctx.resume().then(() => {
-                // Audio Unlocked Globally
-                updateMuteUI(false);
-            });
-        }
-    };
-    document.addEventListener('click', unlockAudio);
-    document.addEventListener('touchstart', unlockAudio);
-    document.addEventListener('touchend', unlockAudio);
 
     resize();
     window.addEventListener('resize', resize);
@@ -779,6 +808,11 @@ function init() {
                 cycleShip(-1);
             }
         }
+    });
+
+    inputSys.on('toggleDebug', () => {
+        debugMode = !debugMode;
+        console.log('Debug mode:', debugMode ? 'ON' : 'OFF');
     });
 
     const vid = document.getElementById('intro-video');
@@ -924,6 +958,10 @@ function updateUIText() {
 
 window.toggleLang = function () { currentLang = (currentLang === 'EN') ? 'IT' : 'EN'; updateUIText(); };
 window.toggleSettings = function () { setStyle('settings-modal', 'display', (document.getElementById('settings-modal').style.display === 'flex') ? 'none' : 'flex'); updateUIText(); };
+window.toggleHelpPanel = function () {
+    const panel = document.getElementById('help-panel');
+    if (panel) panel.style.display = (panel.style.display === 'flex') ? 'none' : 'flex';
+};
 window.toggleControlMode = function () {
     const useJoystick = !(G.Input && G.Input.touch && G.Input.touch.useJoystick);
     if (G.Input && G.Input.setControlMode) G.Input.setControlMode(useJoystick ? 'JOYSTICK' : 'SWIPE');
@@ -941,16 +979,10 @@ function showControlToast(mode) {
     }, 1200);
 }
 window.goToHangar = function () {
-    audioSys.init(); // Ensure Context is ready
-    audioSys.startMusic(); // START THE BEAT
-    audioSys.play('coin');
+    audioSys.init(); // Create context (stays suspended until user unmutes)
+    audioSys.startMusic(); // Queue music (plays when unmuted)
     window.scrollTo(0, 0);
     setStyle('intro-screen', 'display', 'none');
-
-    // Update Mute Icon since startMusic resumes context
-    const muteBtn = document.getElementById('mute-btn');
-    if (muteBtn && audioSys.ctx && audioSys.ctx.state === 'running') muteBtn.innerText = '🔊';
-
     setStyle('hangar-screen', 'display', 'flex');
     gameState = 'HANGAR';
     initSky(); // Start BG effect early
@@ -962,13 +994,8 @@ window.launchShipAndStart = function () {
     if (isLaunching) return;
     isLaunching = true;
 
-    // iOS Audio Unlock: Must happen in direct response to user interaction
+    // Init audio context (stays suspended until user unmutes)
     if (!audioSys.ctx) audioSys.init();
-    if (audioSys.ctx && audioSys.ctx.state === 'suspended') {
-        audioSys.unlockWebAudio();
-        audioSys.ctx.resume();
-    }
-    audioSys.play('coin');
 
     const shipCanvas = document.getElementById('intro-ship-canvas');
     const introScreen = document.getElementById('intro-screen');
@@ -1186,10 +1213,12 @@ window.togglePause = function () {
 };
 window.restartRun = function () {
     setStyle('pause-screen', 'display', 'none');
+    audioSys.resetState(); // Reset audio state for new run
     startGame();
 };
 window.restartFromGameOver = function () {
     setStyle('gameover-screen', 'display', 'none');
+    audioSys.resetState(); // Reset audio state for new run
     startGame();
 };
 window.backToIntro = function () {
@@ -1206,7 +1235,10 @@ window.backToIntro = function () {
         closePerkChoice();
         setStyle('intro-screen', 'display', 'flex');
         gameState = 'INTRO';
+        audioSys.resetState(); // Reset audio state
         audioSys.init();
+        // Reset Harmonic Conductor
+        if (G.HarmonicConductor) G.HarmonicConductor.reset();
         initIntroShip(); // Restart animated ship
 
         // Reopen curtain
@@ -1293,7 +1325,19 @@ function updateMuteUI(isMuted) {
     });
 }
 
-function updateLivesUI() {
+function updateLevelUI() {
+    setUI('lvlVal', level);
+    // Trigger level up animation
+    const lvlEl = document.getElementById('lvlVal');
+    if (lvlEl) {
+        lvlEl.classList.remove('level-up');
+        void lvlEl.offsetWidth; // Force reflow
+        lvlEl.classList.add('level-up');
+    }
+    window.currentLevel = level;
+}
+
+function updateLivesUI(wasHit = false) {
     if (!ui.healthBar) return;
     const pct = Math.max(0, (player.hp / player.maxHp) * 100);
     ui.healthBar.style.width = pct + "%";
@@ -1302,12 +1346,23 @@ function updateLivesUI() {
     if (player.hp <= 1 || pct <= 34) {
         ui.healthBar.style.backgroundColor = '#ff0000'; // RED (Critical)
         ui.healthBar.style.boxShadow = '0 0 15px #ff0000';
+        // Add critical pulse
+        ui.healthBar.classList.add('health-critical');
     } else if (pct <= 67) {
         ui.healthBar.style.backgroundColor = '#F7931A'; // ORANGE (Warn)
         ui.healthBar.style.boxShadow = '0 0 10px #F7931A';
+        ui.healthBar.classList.remove('health-critical');
     } else {
         ui.healthBar.style.backgroundColor = '#2ecc71'; // GREEN (Safe)
         ui.healthBar.style.boxShadow = '0 0 10px #2ecc71';
+        ui.healthBar.classList.remove('health-critical');
+    }
+
+    // Shake animation when hit
+    if (wasHit && ui.livesText) {
+        ui.livesText.classList.remove('lives-shake');
+        void ui.livesText.offsetWidth; // Force reflow
+        ui.livesText.classList.add('lives-shake');
     }
 }
 
@@ -1333,8 +1388,11 @@ function startGame() {
     renderPerkBar();
 
     score = 0; displayScore = 0; level = 1; lives = 3; setUI('scoreVal', '0'); setUI('lvlVal', '1'); setUI('livesText', lives);
+    audioSys.setLevel(1, true); // Set music theme for level 1 (instant, no crossfade)
     bullets = []; enemies = []; enemyBullets = []; powerUps = []; particles = []; floatingTexts = []; muzzleFlashes = []; boss = null;
     G.enemies = enemies; // Expose for Boss Spawning logic
+    window.enemyBullets = enemyBullets; // Update for Player core hitbox indicator
+    grazeCount = 0; grazeMeter = 0; grazeMultiplier = 1.0; updateGrazeUI(); // Reset grazing
 
     waveMgr.reset();
     gridDir = 1;
@@ -1364,6 +1422,14 @@ function startGame() {
     lastDropTime = 0; // Reset time-based drop timer
 
     updateLivesUI();
+
+    // Initialize Harmonic Conductor
+    if (G.HarmonicConductor) {
+        G.HarmonicConductor.init(enemies, player, gameWidth, gameHeight);
+        G.HarmonicConductor.setDifficulty(level, marketCycle, isBearMarket);
+        G.HarmonicConductor.enabled = true;
+    }
+
     emitEvent('run_start', { bear: isBearMarket });
 
     // Story: Ship selection dialogue
@@ -1383,7 +1449,27 @@ function startIntermission(msgOverride) {
     gameState = 'INTERMISSION';
     waveMgr.intermissionTimer = 1.9; // 25% shorter pause (was 2.5)
     waveMgr.waveInProgress = false; // Safety reset
+
+    // Convert all remaining enemy bullets to bonus points with explosion effect
+    const bulletBonus = enemyBullets.length * 10;
+    if (enemyBullets.length > 0) {
+        enemyBullets.forEach(eb => {
+            createExplosion(eb.x, eb.y, eb.color || '#ff0', 6);
+        });
+        if (bulletBonus > 0) {
+            score += bulletBonus;
+            updateScore(score);
+            addText(`+${bulletBonus} BULLET BONUS`, gameWidth / 2, gameHeight / 2 + 50, '#0ff', 18);
+        }
+    }
+
     bullets = []; enemyBullets = [];
+    window.enemyBullets = enemyBullets; // Update for Player core hitbox indicator
+
+    // Play wave complete jingle (unless boss defeat which has its own sound)
+    if (!msgOverride) {
+        audioSys.play('waveComplete');
+    }
 
     // Pick a random meme for the countdown
     const memePool = [...(Constants.MEMES.LOW || []), ...(Constants.MEMES.SAYLOR || [])];
@@ -1402,26 +1488,52 @@ function startIntermission(msgOverride) {
 }
 
 function spawnBoss() {
-    boss = new G.Boss(gameWidth, gameHeight);
+    // Determine boss type based on market cycle (rotation: FED → BCE → BOJ → repeat)
+    const bossRotation = G.BOSS_ROTATION || ['FEDERAL_RESERVE', 'BCE', 'BOJ'];
+    const bossType = bossRotation[(marketCycle - 1) % bossRotation.length];
+    const bossConfig = G.BOSSES[bossType] || G.BOSSES.FEDERAL_RESERVE;
 
-    // Scale boss HP: bigger boss needs more HP
-    boss.hp = 500 + (level * 200) + (marketCycle * 300);
+    // Flash color based on boss
+    transitionAlpha = 0.6;
+    transitionDir = -1;
+    transitionColor = bossType === 'BCE' ? '#000033' : (bossType === 'BOJ' ? '#330000' : '#400000');
+
+    boss = new G.Boss(gameWidth, gameHeight, bossType);
+
+    // Scale boss HP using boss config
+    const baseHp = bossConfig.baseHp || 4500;
+    const hpPerLevel = bossConfig.hpPerLevel || 600;
+    const hpPerCycle = bossConfig.hpPerCycle || 800;
+    boss.hp = baseHp + (level * hpPerLevel) + ((marketCycle - 1) * hpPerCycle);
     boss.maxHp = boss.hp;
+
+    // Reset boss hit counter and cooldown for power-up drops
+    bossHitCount = 0;
+    bossDropCooldown = 0;
 
     enemies = [];
     if (window.Game) window.Game.enemies = enemies;
 
-    showDanger("⚠️ FEDERAL RESERVE ⚠️");
-    showMemeFun(getPowellMeme(), 2000);
+    // Boss-specific danger message
+    const dangerMsg = bossConfig.country + ' ' + bossConfig.name + ' ' + bossConfig.country;
+    showDanger("⚠️ " + dangerMsg + " ⚠️");
+    showMemeFun(getBossMeme(bossType), 2000);
     audioSys.play('bossSpawn');
+    audioSys.setBossPhase(1); // Start boss music phase 1
 
-    // Start with a Powell meme in the ticker
-    if (ui.memeTicker) ui.memeTicker.innerText = getPowellMeme();
+    // Set Harmonic Conductor to boss sequence
+    if (G.HarmonicConductor) {
+        G.HarmonicConductor.enemies = [];
+        G.HarmonicConductor.setBossSequence(1);
+    }
+
+    // Start with boss-specific meme in the ticker
+    if (ui.memeTicker) ui.memeTicker.innerText = getBossMeme(bossType);
     memeSwapTimer = 2.0;
 
     // Story: Boss intro dialogue
     if (G.Story) {
-        G.Story.onBossIntro('FEDERAL_RESERVE');
+        G.Story.onBossIntro(bossType);
     }
 }
 
@@ -1433,6 +1545,7 @@ function spawnMiniBoss(symbol, color) {
     // Clear regular enemies and bullets for 1v1 fight
     enemyBullets.forEach(b => { b.markedForDeletion = true; G.Bullet.Pool.release(b); });
     enemyBullets = [];
+    window.enemyBullets = enemyBullets; // Update for Player core hitbox indicator
 
     // Store current enemies to restore later
     const savedEnemies = [...enemies];
@@ -1609,18 +1722,22 @@ function checkMiniBossHit(b) {
     if (!miniBoss || !miniBoss.active) return false;
 
     if (Math.abs(b.x - miniBoss.x) < 60 && Math.abs(b.y - miniBoss.y) < 60) {
+        const baseDmg = player.stats.baseDamage || 14;
         const dmgMult = (runState && runState.getMod) ? runState.getMod('damageMult', 1) : 1;
-        let dmg = b.isHodl ? 20 : 10;
-        miniBoss.hp -= dmg * dmgMult;
+        let dmg = baseDmg * dmgMult;
+        if (b.isHodl) dmg *= 1.25; // HODL: +25% damage
+        miniBoss.hp -= dmg;
         audioSys.play('hit');
 
         if (miniBoss.hp <= 0) {
             // Mini-boss defeated!
             score += 2000 * marketCycle;
             updateScore(score);
-            createExplosion(miniBoss.x, miniBoss.y, miniBoss.color, 30);
-            createExplosion(miniBoss.x - 30, miniBoss.y - 20, '#fff', 15);
-            createExplosion(miniBoss.x + 30, miniBoss.y + 20, '#fff', 15);
+            // Epic mini-boss death
+            createEnemyDeathExplosion(miniBoss.x, miniBoss.y, miniBoss.color, miniBoss.symbol);
+            createExplosion(miniBoss.x - 40, miniBoss.y - 30, miniBoss.color, 15);
+            createExplosion(miniBoss.x + 40, miniBoss.y + 30, miniBoss.color, 15);
+            createExplosion(miniBoss.x, miniBoss.y, '#fff', 20);
 
             showVictory(miniBoss.name + " DESTROYED!");
             showMemeFun("💀 FIAT IS DEAD!", 1500);
@@ -1678,8 +1795,9 @@ function update(dt) {
         } else if (waveAction.action === 'START_WAVE') {
             gameState = 'PLAY';
             if (waveMgr.wave > 1) {
-                level++; setUI('lvlVal', level);
-                window.currentLevel = level; // Update global for WaveManager
+                level++;
+                audioSys.setLevel(level); // Change music theme for new level
+                updateLevelUI(); // With animation
                 lastDropTime = totalTime; // Reset time-based drop timer for new level
                 showGameInfo("📈 LEVEL " + level);
                 // gridSpeed now computed dynamically via getGridSpeed()
@@ -1699,13 +1817,23 @@ function update(dt) {
             fibonacciTimer = 0;
             enemiesAllowedToFire = 1; // Start with 1 enemy allowed
 
+            // Update Harmonic Conductor for new wave
+            if (G.HarmonicConductor) {
+                G.HarmonicConductor.enemies = enemies;
+                G.HarmonicConductor.setDifficulty(level, marketCycle, isBearMarket);
+                G.HarmonicConductor.setSequence(lastWavePattern, audioSys.intensity, isBearMarket);
+            }
+
             emitEvent('wave_start', { wave: waveNumber, level: level, pattern: lastWavePattern });
         }
     }
 
     if (gameState === 'PLAY') {
         const newBullets = player.update(dt);
-        if (newBullets && newBullets.length > 0) bullets.push(...newBullets);
+        if (newBullets && newBullets.length > 0) {
+            bullets.push(...newBullets);
+            createMuzzleFlashParticles(player.x, player.y - 25, player.stats.color);
+        }
 
         let sPct = player.shieldActive ? 100 : Math.max(0, 100 - (player.shieldCooldown / 8 * 100));
         setStyle('shieldBar', 'width', sPct + "%");
@@ -1721,15 +1849,46 @@ function update(dt) {
                     enemyBullets.push(G.Bullet.Pool.acquire(bd.x, bd.y, bd.vx, bd.vy, bd.color, bd.w, bd.h, false));
                 });
             }
+            // Decrement boss drop cooldown
+            if (bossDropCooldown > 0) bossDropCooldown -= dt;
         }
 
         // Mini-boss update (fiat revenge boss)
         if (miniBoss && miniBoss.active) {
             updateMiniBoss(dt);
         }
+
+        // Dynamic music intensity calculation
+        let intensity = 0;
+        intensity += enemyBullets.length * 2;        // +2 per enemy bullet on screen
+        intensity += (100 - grazeMeter);             // Less graze = more tension
+        intensity += boss ? 30 : 0;                  // Boss present
+        intensity += player.hp === 1 ? 20 : 0;       // Near death
+        intensity += enemies.length;                 // More enemies = more intense
+        audioSys.setIntensity(intensity);
+
+        // Near-death heartbeat (HP = 1)
+        if (player.hp === 1) {
+            if (!audioSys.isNearDeath) {
+                audioSys.setNearDeath(true);
+            }
+            // Play heartbeat every 0.75s
+            if (typeof nearDeathTimer === 'undefined') window.nearDeathTimer = 0;
+            window.nearDeathTimer -= dt;
+            if (window.nearDeathTimer <= 0) {
+                audioSys.play('nearDeath');
+                window.nearDeathTimer = 0.75;
+            }
+        } else {
+            if (audioSys.isNearDeath) {
+                audioSys.setNearDeath(false);
+            }
+            window.nearDeathTimer = 0;
+        }
     }
     updateFloatingTexts(dt);
     updateParticles(dt);
+    updateTransition(dt);
 }
 
 function updateBullets(dt) {
@@ -1743,34 +1902,88 @@ function updateBullets(dt) {
             bullets.splice(i, 1);
         } else {
             if (boss && boss.active && b.x > boss.x && b.x < boss.x + boss.width && b.y > boss.y && b.y < boss.y + boss.height) {
+                const baseBossDmg = Math.ceil((player.stats.baseDamage || 14) / 4);
                 const dmgMult = (runState && runState.getMod) ? runState.getMod('damageMult', 1) : 1;
-                let dmg = b.isHodl ? 2 : 1;
-                if (runState && runState.flags && runState.flags.hodlBonus && b.isHodl) dmg += 1;
-                boss.damage(dmg * dmgMult);
+                let dmg = baseBossDmg * dmgMult;
+                if (b.isHodl) dmg = Math.ceil(dmg * 1.5); // HODL: +50% vs boss
+                if (runState && runState.flags && runState.flags.hodlBonus && b.isHodl) dmg = Math.ceil(dmg * 1.15);
+                boss.damage(dmg);
+                audioSys.play('hit');
+
+                // Boss drops power-ups every N hits to help player (with cooldown to prevent clustering)
+                bossHitCount++;
+                if (bossHitCount >= BOSS_DROP_INTERVAL && bossDropCooldown <= 0) {
+                    bossHitCount = 0;
+                    bossDropCooldown = 1.5; // 1.5 second cooldown between drops
+                    const weaponTypes = ['WIDE', 'NARROW', 'FIRE'];
+                    const shipTypes = ['SPEED', 'RAPID', 'SHIELD'];
+                    const dropWeapon = Math.random() < 0.5;
+                    const dropX = boss.x + boss.width / 2 + (Math.random() - 0.5) * 80;
+                    const dropY = boss.y + boss.height + 20;
+                    if (dropWeapon) {
+                        const type = weaponTypes[Math.floor(Math.random() * weaponTypes.length)];
+                        powerUps.push(new G.PowerUp(dropX, dropY, type));
+                    } else {
+                        const type = shipTypes[Math.floor(Math.random() * shipTypes.length)];
+                        powerUps.push(new G.PowerUp(dropX, dropY, type));
+                    }
+                    audioSys.play('coin');
+                }
+
                 if (!b.penetration) {
                     b.markedForDeletion = true;
                     G.Bullet.Pool.release(b);
                     bullets.splice(i, 1);
                 }
                 if (boss.hp <= 0) {
-                    score += 5000; boss.active = false; boss = null; shake = 50; audioSys.play('explosion');
+                    // Save boss info before clearing
+                    const defeatedBossType = boss.bossType || 'FEDERAL_RESERVE';
+                    const defeatedBossName = boss.name || 'THE FED';
+
+                    // Epic boss death explosion!
+                    const bossX = boss.x + boss.width / 2;
+                    const bossY = boss.y + boss.height / 2;
+                    createBossDeathExplosion(bossX, bossY);
+
+                    // Victory flash!
+                    transitionAlpha = 0.8;
+                    transitionDir = -1;
+                    transitionColor = '#ffffff';
+
+                    score += 5000; boss.active = false; boss = null; shake = 60; audioSys.play('explosion');
+                    audioSys.setBossPhase(0); // Reset boss music
                     updateScore(score);
-                    showVictory("🏆 MARKET CONQUERED!");
-                    showMemeFun("💥 INFLATION CANCELLED!", 2000);
-                    level++; setUI('lvlVal', level);
-                    window.currentLevel = level; // Update global for WaveManager
+                    showVictory("🏆 " + defeatedBossName + " DEFEATED!");
+
+                    // Boss-specific victory meme
+                    const victoryMemes = {
+                        'FEDERAL_RESERVE': "💥 INFLATION CANCELLED!",
+                        'BCE': "💥 FRAGMENTATION COMPLETE!",
+                        'BOJ': "💥 YEN LIBERATED!"
+                    };
+                    showMemeFun(victoryMemes[defeatedBossType] || "💥 CENTRAL BANK DESTROYED!", 2000);
+
+                    level++;
+                    audioSys.setLevel(level); // Change music theme for new level
+                    updateLevelUI(); // With animation
 
                     // New cycle - increase difficulty
                     marketCycle++;
                     window.marketCycle = marketCycle; // Update global
                     waveMgr.reset();
 
+                    // Reset Harmonic Conductor for new wave cycle
+                    if (G.HarmonicConductor) {
+                        G.HarmonicConductor.setDifficulty(level, marketCycle, isBearMarket);
+                        G.HarmonicConductor.currentSequence = null; // Will be set when wave spawns
+                    }
+
                     startIntermission("CYCLE " + marketCycle + " BEGINS");
-                    emitEvent('boss_killed', { level: level, cycle: marketCycle });
+                    emitEvent('boss_killed', { level: level, cycle: marketCycle, bossType: defeatedBossType });
 
                     // Story: Boss defeated dialogue
                     if (G.Story) {
-                        G.Story.onBossDefeat('FEDERAL_RESERVE');
+                        G.Story.onBossDefeat(defeatedBossType);
                     }
                 }
             } else if (miniBoss && miniBoss.active && checkMiniBossHit(b)) {
@@ -1787,6 +2000,7 @@ function updateBullets(dt) {
     }
 
     // Enemy Bullets (Now using Bullet class instances from Pool)
+    // Ikeda Rule 1: Core Hitbox - tiny hitbox for damage, larger graze zone
     for (let i = enemyBullets.length - 1; i >= 0; i--) {
         let eb = enemyBullets[i];
         if (!eb) { enemyBullets.splice(i, 1); continue; } // Safety check
@@ -1795,15 +2009,25 @@ function updateBullets(dt) {
             G.Bullet.Pool.release(eb);
             enemyBullets.splice(i, 1);
         } else {
-            const hitR = player.stats.hitboxSize || 30;
-            if (Math.abs(eb.x - player.x) < hitR && Math.abs(eb.y - player.y) < hitR) {
+            // Core hitbox for actual damage (tiny - Ikeda Rule 1)
+            const coreR = player.stats.coreHitboxSize || 6;
+            // Graze radius - outer zone for grazing points (Ikeda Rule 3)
+            const grazeR = coreR + GRAZE_RADIUS;
+
+            const dx = Math.abs(eb.x - player.x);
+            const dy = Math.abs(eb.y - player.y);
+
+            // Check if within core hitbox (take damage)
+            if (dx < coreR && dy < coreR) {
                 if (player.takeDamage()) {
-                    updateLivesUI();
+                    updateLivesUI(true); // Hit animation
                     G.Bullet.Pool.release(eb);
                     enemyBullets.splice(i, 1);
                     shake = 20;
                     bulletCancelStreak = 0;
                     bulletCancelTimer = 0;
+                    grazeCount = 0; // Reset graze on hit
+                    grazeMeter = Math.max(0, grazeMeter - 30); // Lose graze meter
                     emitEvent('player_hit', { hp: player.hp, maxHp: player.maxHp });
 
                     if (player.hp <= 0) {
@@ -1814,25 +2038,110 @@ function updateBullets(dt) {
                     streak = 0;
                 }
             }
+            // Check if within graze zone (but not core) - award graze points
+            else if (dx < grazeR && dy < grazeR && !eb.grazed) {
+                eb.grazed = true; // Mark as grazed to prevent double-counting
+                grazeCount++;
+                grazeMeter = Math.min(100, grazeMeter + 8); // Increased from 2 to 8 for faster meter fill
+                grazeMultiplier = 1 + (grazeMeter / 200); // Up to 1.5x at full meter
+
+                // Award graze points
+                const grazePoints = Math.floor(5 * grazeMultiplier);
+                score += grazePoints;
+                updateScore(score);
+
+                // Graze visual effect
+                createGrazeSpark(eb.x, eb.y, player.x, player.y);
+
+                // Play graze sound (throttled to avoid spam)
+                const now = totalTime;
+                if (now - lastGrazeSoundTime > 0.1) {
+                    audioSys.play('graze'); // Crystalline shimmer with pitch scaling
+                    lastGrazeSoundTime = now;
+                }
+
+                // Graze streak every 10
+                if (grazeCount > 0 && grazeCount % 10 === 0) {
+                    audioSys.play('grazeStreak');
+                }
+
+                // Perk bonus every 50 graze
+                if (grazeCount > 0 && grazeCount % GRAZE_PERK_THRESHOLD === 0) {
+                    applyRandomPerk();
+                    audioSys.play('grazePerk'); // Triumphant fanfare
+                    showMemePopup("GRAZE BONUS!", 1200);
+                }
+
+                // Update graze HUD
+                updateGrazeUI();
+            }
         }
+    }
+}
+
+// Graze spark effect - particles flying toward player
+function createGrazeSpark(bx, by, px, py) {
+    const dx = px - bx;
+    const dy = py - by;
+    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+    const dirX = dx / dist;
+    const dirY = dy / dist;
+
+    // 2-3 white particles moving toward player
+    for (let i = 0; i < 3; i++) {
+        particles.push({
+            x: bx + (Math.random() - 0.5) * 6,
+            y: by + (Math.random() - 0.5) * 6,
+            vx: dirX * (150 + Math.random() * 100) + (Math.random() - 0.5) * 50,
+            vy: dirY * (150 + Math.random() * 100) + (Math.random() - 0.5) * 50,
+            life: 0.25 + Math.random() * 0.15,
+            maxLife: 0.4,
+            size: 2 + Math.random() * 2,
+            color: '#ffffff',
+            type: 'graze'
+        });
+    }
+}
+
+// Update graze meter UI
+function updateGrazeUI() {
+    const fill = document.getElementById('graze-fill');
+    const meter = document.getElementById('graze-meter');
+    if (fill) {
+        fill.style.width = grazeMeter + '%';
+    }
+    // Pulsing effect when meter is full
+    if (meter) {
+        if (grazeMeter >= 100) {
+            meter.classList.add('graze-full');
+        } else {
+            meter.classList.remove('graze-full');
+        }
+    }
+    const count = document.getElementById('graze-count');
+    if (count) {
+        count.textContent = grazeCount;
     }
 }
 
 function checkBulletCollisions(b, bIdx) {
     for (let j = enemies.length - 1; j >= 0; j--) {
         let e = enemies[j];
-        if (Math.abs(b.x - e.x) < 35 && Math.abs(b.y - e.y) < 35) {
+        if (Math.abs(b.x - e.x) < 40 && Math.abs(b.y - e.y) < 40) { // Adjusted for larger enemies
+            const baseDmg = player.stats.baseDamage || 14;
             const dmgMult = (runState && runState.getMod) ? runState.getMod('damageMult', 1) : 1;
-            let dmg = 11 * dmgMult; // Base damage +10% (was 10)
-            if (runState && runState.flags && runState.flags.hodlBonus && b.isHodl) dmg += 11;
+            let dmg = baseDmg * dmgMult;
+            if (b.isHodl) dmg *= 1.25; // HODL: +25% damage
+            if (runState && runState.flags && runState.flags.hodlBonus && b.isHodl) dmg *= 1.15; // Stacks with perk
             e.hp -= dmg; audioSys.play('hit');
+            e.hitFlash = 0.6; // Trigger hit flash effect
             if (e.hp <= 0) {
                 enemies.splice(j, 1);
                 audioSys.play('coin');
                 const mult = (runState && runState.getMod) ? runState.getMod('scoreMult', 1) : 1;
                 score += e.scoreVal * (isBearMarket ? 2 : 1) * mult;
                 updateScore(score);
-                createExplosion(e.x, e.y, e.color, 12);
+                createEnemyDeathExplosion(e.x, e.y, e.color, e.symbol || '$');
                 createScoreParticles(e.x, e.y, e.color); // JUICE: Fly to score
                 // Score ticker removed - particles provide enough feedback
                 killCount++;
@@ -1887,21 +2196,31 @@ function updateEnemies(dt) {
     let hitEdge = false;
     const currentGridSpeed = getGridSpeed(); // Dynamic grid speed
 
-    // Reset rate limiter each frame
-    enemyShotsThisTick = 0;
-
-    // Fibonacci ramp-up: increase enemies allowed to fire every 0.33s
-    fibonacciTimer += dt;
-    if (fibonacciTimer >= FIBONACCI_INTERVAL && fibonacciIndex < FIBONACCI_SEQ.length - 1) {
-        fibonacciTimer = 0;
-        fibonacciIndex++;
-        enemiesAllowedToFire = FIBONACCI_SEQ[fibonacciIndex];
+    // Update Harmonic Conductor (handles beat-synced telegraph visuals)
+    if (G.HarmonicConductor) {
+        G.HarmonicConductor.update(dt);
     }
 
-    enemyFireTimer -= dt;
-    if (enemyFireTimer <= 0) {
-        enemyFireTimer = 0.5; // Slower phase rotation (was 0.35)
-        enemyFirePhase = (enemyFirePhase + 1) % enemyFireStride;
+    // Check if Harmonic Conductor is handling firing (uses self-managed beat timing)
+    const conductorEnabled = G.HarmonicConductor && G.HarmonicConductor.enabled && G.HarmonicConductor.currentSequence;
+
+    // Reset rate limiter each frame (only used for legacy firing)
+    enemyShotsThisTick = 0;
+
+    // Fibonacci ramp-up: increase enemies allowed to fire every 0.33s (legacy system)
+    if (!conductorEnabled) {
+        fibonacciTimer += dt;
+        if (fibonacciTimer >= FIBONACCI_INTERVAL && fibonacciIndex < FIBONACCI_SEQ.length - 1) {
+            fibonacciTimer = 0;
+            fibonacciIndex++;
+            enemiesAllowedToFire = FIBONACCI_SEQ[fibonacciIndex];
+        }
+
+        enemyFireTimer -= dt;
+        if (enemyFireTimer <= 0) {
+            enemyFireTimer = 0.5; // Slower phase rotation (was 0.35)
+            enemyFirePhase = (enemyFirePhase + 1) % enemyFireStride;
+        }
     }
 
     let enemiesFiredThisFrame = 0; // Track for Fibonacci limit
@@ -1910,6 +2229,9 @@ function updateEnemies(dt) {
         const e = enemies[i];
         e.update(dt, totalTime, lastWavePattern, currentGridSpeed, gridDir);
         if ((gridDir === 1 && e.x > gameWidth - 20) || (gridDir === -1 && e.x < 20)) hitEdge = true;
+
+        // Skip legacy firing if Harmonic Conductor is active
+        if (conductorEnabled) continue;
 
         // Rate limit check - skip if we've hit max shots this tick
         if (enemyShotsThisTick >= MAX_ENEMY_SHOTS_PER_TICK) continue;
@@ -1943,10 +2265,10 @@ function updateEnemies(dt) {
     if (hitEdge) { gridDir *= -1; enemies.forEach(e => e.baseY += dropAmount); }
 
     enemies.forEach(e => {
-        const hitR = (player.stats.hitboxSize || 30) + 10; // Slightly larger for body collision
+        const hitR = (player.stats.hitboxSize || 30) + 15; // Adjusted for larger enemies
         if (Math.abs(e.x - player.x) < hitR && Math.abs(e.y - player.y) < hitR) {
             if (player.takeDamage()) {
-                updateLivesUI();
+                updateLivesUI(true); // Hit animation
                 shake = 40; // Heavy shake
                 hitStopTimer = 0.5; // Contact hit slowmo
                 emitEvent('player_hit', { hp: player.hp, maxHp: player.maxHp });
@@ -2027,19 +2349,57 @@ function draw() {
     }
     if (gameState === 'PLAY' || gameState === 'PAUSE' || gameState === 'GAMEOVER' || gameState === 'INTERMISSION') {
         player.draw(ctx);
-        enemies.forEach(e => e.draw(ctx));
+
+        // Enemies (for loop instead of forEach)
+        for (let i = 0; i < enemies.length; i++) {
+            enemies[i].draw(ctx);
+        }
+
         if (boss && boss.active) {
-            boss.draw(ctx); // Use new Class draw
+            boss.draw(ctx);
         }
         if (miniBoss && miniBoss.active) {
-            drawMiniBoss(ctx); // Fiat revenge boss
+            drawMiniBoss(ctx);
         }
-        bullets.forEach(b => b.draw(ctx));
-        enemyBullets.forEach(eb => eb.draw(ctx));
-        powerUps.forEach(p => p.draw(ctx)); // <--- DRAW DROPS
+
+        // Bullets with culling (for loop)
+        for (let i = 0; i < bullets.length; i++) {
+            const b = bullets[i];
+            if (b.y > -20 && b.y < gameHeight + 20) b.draw(ctx);
+        }
+
+        // Screen dimming when many enemy bullets (Ikeda Rule 4 - Climax Visual)
+        if (enemyBullets.length > 15) {
+            const dimAlpha = Math.min(0.35, (enemyBullets.length - 15) * 0.015);
+            ctx.fillStyle = `rgba(0, 0, 0, ${dimAlpha})`;
+            ctx.fillRect(0, 0, gameWidth, gameHeight);
+        }
+
+        // Harmonic Conductor telegraphs (draw BEFORE bullets for layering)
+        if (G.HarmonicConductor) {
+            G.HarmonicConductor.draw(ctx);
+        }
+
+        // Enemy bullets with culling
+        for (let i = 0; i < enemyBullets.length; i++) {
+            const eb = enemyBullets[i];
+            if (eb.y > -20 && eb.y < gameHeight + 20) eb.draw(ctx);
+        }
+
+        // PowerUps (fewer items, forEach is fine)
+        for (let i = 0; i < powerUps.length; i++) {
+            powerUps[i].draw(ctx);
+        }
+
         drawParticles(ctx);
+
+        // Floating texts
         ctx.font = '20px Courier New';
-        floatingTexts.forEach(t => { ctx.fillStyle = t.c; ctx.fillText(t.text, t.x, t.y); });
+        for (let i = 0; i < floatingTexts.length; i++) {
+            const t = floatingTexts[i];
+            ctx.fillStyle = t.c;
+            ctx.fillText(t.text, t.x, t.y);
+        }
 
         // Intermission countdown overlay
         if (gameState === 'INTERMISSION' && waveMgr.intermissionTimer > 0) {
@@ -2073,59 +2433,220 @@ function draw() {
             ctx.restore();
         }
     }
+    // Bear Market danger vignette overlay
+    if (isBearMarket && gameState === 'PLAY') {
+        drawBearMarketOverlay(ctx);
+    }
+
     ctx.restore(); // Restore shake
+
+    // Screen transition overlay (on top of everything)
+    drawTransition(ctx);
+
+    // Debug overlay (F3 toggle)
+    if (debugMode) drawDebug(ctx);
+}
+
+function drawDebug(ctx) {
+    // Calculate FPS
+    const now = performance.now();
+    fpsHistory.push(now);
+    while (fpsHistory.length > 0 && fpsHistory[0] < now - 1000) fpsHistory.shift();
+    const fps = fpsHistory.length;
+
+    ctx.save();
+    ctx.font = '12px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(5, gameHeight - 85, 140, 80);
+
+    ctx.fillStyle = fps >= 55 ? '#0f0' : (fps >= 30 ? '#ff0' : '#f00');
+    ctx.fillText(`FPS: ${fps}`, 10, gameHeight - 70);
+    ctx.fillStyle = '#0f0';
+    ctx.fillText(`Particles: ${particles.length}/${MAX_PARTICLES}`, 10, gameHeight - 55);
+    ctx.fillText(`Bullets: ${bullets.length}`, 10, gameHeight - 40);
+    ctx.fillText(`Enemy Bullets: ${enemyBullets.length}`, 10, gameHeight - 25);
+    ctx.fillText(`Enemies: ${enemies.length}`, 10, gameHeight - 10);
+    ctx.restore();
 }
 
 function initSky() {
     clouds = [];
-    const count = 20;
+    const count = 12; // Reduced from 20 for performance
     for (let i = 0; i < count; i++) {
         clouds.push({
             x: Math.random() * gameWidth,
-            y: Math.random() * gameHeight * 0.5, // Upper half only
+            y: Math.random() * gameHeight * 0.5,
             w: Math.random() * 100 + 50,
             h: Math.random() * 40 + 20,
             speed: Math.random() * 20 + 10,
-            layer: Math.floor(Math.random() * 3) // 0, 1, 2 (Depth)
+            layer: Math.floor(Math.random() * 3)
         });
     }
 
     // Paper Mario style parallax hills (3 layers)
     hills = [
-        { layer: 0, y: gameHeight * 0.75, height: 120, speed: 5, offset: 0 },  // Back layer
-        { layer: 1, y: gameHeight * 0.80, height: 100, speed: 12, offset: 50 }, // Mid layer
-        { layer: 2, y: gameHeight * 0.85, height: 80, speed: 20, offset: 100 }  // Front layer
+        { layer: 0, y: gameHeight * 0.75, height: 120, speed: 5, offset: 0 },
+        { layer: 1, y: gameHeight * 0.80, height: 100, speed: 12, offset: 50 },
+        { layer: 2, y: gameHeight * 0.85, height: 80, speed: 20, offset: 100 }
     ];
+
+    // Floating crypto symbols (background decoration)
+    const symbols = ['₿', 'Ξ', '◎', '₮', '∞'];
+    floatingSymbols = [];
+    for (let i = 0; i < 8; i++) {
+        floatingSymbols.push({
+            symbol: symbols[i % symbols.length],
+            x: Math.random() * gameWidth,
+            y: Math.random() * gameHeight * 0.6 + gameHeight * 0.15,
+            speed: Math.random() * 15 + 8,
+            size: Math.random() * 12 + 14,
+            alpha: Math.random() * 0.15 + 0.08,
+            wobble: Math.random() * Math.PI * 2
+        });
+    }
 }
 
 function updateSky(dt) {
     if (clouds.length === 0) initSky();
-    const speedMult = isBearMarket ? 5.0 : 1.0; // Storm is fast!
+    const speedMult = isBearMarket ? 5.0 : 1.0;
+    skyTime += dt; // Increment sky animation timer
 
-    clouds.forEach(c => {
+    // Update clouds (for loop)
+    for (let i = 0; i < clouds.length; i++) {
+        const c = clouds[i];
         c.x -= c.speed * (c.layer + 1) * 0.5 * speedMult * dt;
         if (c.x + c.w < 0) {
             c.x = gameWidth + 50;
             c.y = Math.random() * gameHeight * 0.5;
         }
-    });
+    }
 
-    // Update parallax hills offset
-    hills.forEach(h => {
+    // Update parallax hills offset (for loop)
+    // Use 628 (≈ 2π/0.01) to avoid discontinuity in sine wave
+    for (let i = 0; i < hills.length; i++) {
+        const h = hills[i];
         h.offset += h.speed * speedMult * dt;
-        if (h.offset > 200) h.offset -= 200; // Loop seamlessly
-    });
+        if (h.offset > 628) h.offset -= 628;
+    }
+
+    // Update floating crypto symbols
+    for (let i = 0; i < floatingSymbols.length; i++) {
+        const s = floatingSymbols[i];
+        s.x -= s.speed * speedMult * dt;
+        s.wobble += dt * 2; // Gentle oscillation
+        if (s.x < -30) {
+            s.x = gameWidth + 30;
+            s.y = Math.random() * gameHeight * 0.5 + gameHeight * 0.15;
+        }
+    }
 
     // ⚡ Bear Market Lightning
     if (isBearMarket && gameState === 'PLAY') {
         lightningTimer -= dt;
         if (lightningTimer <= 0) {
-            lightningFlash = 0.3; // Flash intensity
-            lightningTimer = 2 + Math.random() * 4; // Next lightning in 2-6 seconds
+            lightningFlash = 0.4; // Flash intensity (increased)
+            lightningTimer = 1.5 + Math.random() * 3; // More frequent: 1.5-4.5 seconds
+            shake = Math.max(shake, 8); // Screen shake on lightning
             audioSys.play('hit'); // Thunder sound
         }
     }
-    if (lightningFlash > 0) lightningFlash -= dt * 2; // Fade out quickly
+    if (lightningFlash > 0) lightningFlash -= dt * 1.5; // Slightly slower fade
+}
+
+// Screen transition functions
+function startTransition(callback, color = '#000') {
+    transitionDir = 1; // Fade to black
+    transitionCallback = callback;
+    transitionColor = color;
+}
+
+function updateTransition(dt) {
+    if (transitionDir === 0) return;
+
+    const speed = 3; // Transition speed
+    transitionAlpha += transitionDir * speed * dt;
+
+    if (transitionDir === 1 && transitionAlpha >= 1) {
+        // Fully black - execute callback and start fade out
+        transitionAlpha = 1;
+        if (transitionCallback) {
+            transitionCallback();
+            transitionCallback = null;
+        }
+        transitionDir = -1; // Start fading out
+    } else if (transitionDir === -1 && transitionAlpha <= 0) {
+        // Fully transparent - done
+        transitionAlpha = 0;
+        transitionDir = 0;
+    }
+}
+
+function drawTransition(ctx) {
+    if (transitionAlpha <= 0) return;
+
+    ctx.fillStyle = transitionColor;
+    ctx.globalAlpha = transitionAlpha;
+    ctx.fillRect(0, 0, gameWidth, gameHeight);
+    ctx.globalAlpha = 1;
+
+    // Add some flair during transition
+    if (transitionAlpha > 0.3 && transitionAlpha < 0.95) {
+        // Wipe line effect
+        const wipePos = transitionDir === 1 ?
+            transitionAlpha * gameHeight :
+            (1 - transitionAlpha) * gameHeight;
+
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 4;
+        ctx.globalAlpha = 0.8;
+        ctx.beginPath();
+        ctx.moveTo(0, wipePos);
+        ctx.lineTo(gameWidth, wipePos);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+    }
+}
+
+// Bear Market danger overlay - red vignette + blood rain
+function drawBearMarketOverlay(ctx) {
+    // Pulsing red vignette
+    const pulse = Math.sin(totalTime * 2) * 0.1 + 0.25;
+    const gradient = ctx.createRadialGradient(
+        gameWidth / 2, gameHeight / 2, gameHeight * 0.3,
+        gameWidth / 2, gameHeight / 2, gameHeight * 0.8
+    );
+    gradient.addColorStop(0, 'transparent');
+    gradient.addColorStop(0.7, `rgba(80, 0, 0, ${pulse * 0.3})`);
+    gradient.addColorStop(1, `rgba(100, 0, 0, ${pulse * 0.6})`);
+
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, gameWidth, gameHeight);
+
+    // Blood rain effect (falling red streaks)
+    ctx.strokeStyle = 'rgba(150, 20, 20, 0.4)';
+    ctx.lineWidth = 2;
+    const rainCount = 15;
+    for (let i = 0; i < rainCount; i++) {
+        const seed = i * 137.5 + totalTime * 100;
+        const x = ((seed * 7) % gameWidth);
+        const y = ((seed * 3 + totalTime * 300) % (gameHeight + 50)) - 25;
+        const len = 15 + (i % 3) * 8;
+
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x - 2, y + len);
+        ctx.stroke();
+    }
+
+    // Edge danger indicators (flashing corners)
+    const dangerPulse = Math.sin(totalTime * 8) * 0.5 + 0.5;
+    ctx.fillStyle = `rgba(255, 0, 0, ${dangerPulse * 0.15})`;
+
+    // Top edge
+    ctx.fillRect(0, 0, gameWidth, 8);
+    // Bottom edge
+    ctx.fillRect(0, gameHeight - 8, gameWidth, 8);
 }
 
 function drawSky(ctx) {
@@ -2199,18 +2720,36 @@ function drawSky(ctx) {
         yPos += bandHeight;
     }
 
-    // 2. Stars for night/boss - Paper Mario style with outlines
+    // Floating crypto symbols (subtle background layer)
+    if (!isBearMarket && !(boss && boss.active)) {
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        for (let i = 0; i < floatingSymbols.length; i++) {
+            const s = floatingSymbols[i];
+            const wobbleY = Math.sin(s.wobble) * 5;
+            ctx.globalAlpha = s.alpha;
+            ctx.font = `bold ${s.size}px Arial`;
+            ctx.fillStyle = level >= 4 ? '#8888aa' : '#aabbcc';
+            ctx.fillText(s.symbol, s.x, s.y + wobbleY);
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    // 2. Stars for night/boss - Paper Mario style with twinkle
     const isNight = level >= 5 || (boss && boss.active);
 
     if (isNight && !isBearMarket) {
-        ctx.strokeStyle = '#fff';
         ctx.fillStyle = '#ffffcc';
         ctx.lineWidth = 1;
         for (let i = 0; i < 40; i++) {
             const sx = (i * 137 + level * 50) % gameWidth;
             const sy = (i * 89 + level * 30) % (gameHeight * 0.6);
-            const size = (i % 3) + 2;
-            ctx.globalAlpha = 0.5 + (i % 4) * 0.12;
+            const baseSize = (i % 3) + 2;
+            // Twinkle effect: each star has unique phase offset
+            const twinkle = Math.sin(skyTime * (2 + i * 0.3) + i * 1.7);
+            const alpha = 0.4 + (i % 4) * 0.1 + twinkle * 0.25;
+            const size = baseSize * (1 + twinkle * 0.15);
+            ctx.globalAlpha = Math.max(0.15, alpha);
 
             // 4-point star shape (Paper Mario style)
             if (i % 3 === 0) {
@@ -2226,7 +2765,7 @@ function drawSky(ctx) {
                 ctx.closePath();
                 ctx.fill();
             } else {
-                // Simple dot with outline
+                // Simple dot
                 ctx.beginPath();
                 ctx.arc(sx, sy, size * 0.6, 0, Math.PI * 2);
                 ctx.fill();
@@ -2245,21 +2784,22 @@ function drawSky(ctx) {
                     ? ['#4a3040', '#5a3848', '#6a4050'] // Sunset pink
                     : ['#3a6080', '#4a7090', '#5a80a0']; // Day blue
 
-        hills.forEach((h, idx) => {
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 3;
+
+        for (let idx = 0; idx < hills.length; idx++) {
+            const h = hills[idx];
             const color = hillColors[idx] || hillColors[0];
             const y = h.y;
-            const height = h.height;
 
             ctx.fillStyle = color;
-            ctx.strokeStyle = '#111';
-            ctx.lineWidth = 3;
 
-            // Draw wavy hill silhouette
+            // Draw wavy hill silhouette + outline in single pass
             ctx.beginPath();
             ctx.moveTo(-10, gameHeight + 10);
 
-            // Create rolling hills with sine wave
-            for (let x = -10; x <= gameWidth + 10; x += 20) {
+            // Create rolling hills with sine wave (larger step = fewer calculations)
+            for (let x = -10; x <= gameWidth + 10; x += 30) {
                 const waveY = y + Math.sin((x + h.offset) * 0.02) * 25
                             + Math.sin((x + h.offset) * 0.01 + idx) * 15;
                 ctx.lineTo(x, waveY);
@@ -2268,59 +2808,83 @@ function drawSky(ctx) {
             ctx.lineTo(gameWidth + 10, gameHeight + 10);
             ctx.closePath();
             ctx.fill();
-
-            // Bold outline on top edge only (Paper Mario style)
-            ctx.beginPath();
-            ctx.moveTo(-10, y + Math.sin(h.offset * 0.02) * 25);
-            for (let x = -10; x <= gameWidth + 10; x += 20) {
-                const waveY = y + Math.sin((x + h.offset) * 0.02) * 25
-                            + Math.sin((x + h.offset) * 0.01 + idx) * 15;
-                ctx.lineTo(x, waveY);
-            }
-            ctx.stroke();
-        });
+            ctx.stroke(); // Stroke the entire shape (simpler than separate outline)
+        }
     }
 
     // 3. Clouds - Paper Mario style FLAT with bold outlines
-    clouds.forEach(c => {
-        let visible = true;
-        if (boss && boss.active) visible = false;
-        if (level >= 5) visible = false; // No clouds at night
+    const showClouds = !(boss && boss.active) && level < 5;
+    if (showClouds) {
+        const cloudAlpha = level >= 4 ? 0.4 : 0.85;
+        ctx.globalAlpha = cloudAlpha;
 
-        if (visible) {
-            const cloudAlpha = level >= 4 ? 0.4 : 0.85;
-            ctx.globalAlpha = cloudAlpha;
+        const shadowColor = isBearMarket ? '#200808' : '#c8d8e8';
+        const mainColor = isBearMarket ? '#301010' : '#f0f8ff';
+        const strokeColor = isBearMarket ? '#401515' : '#8090a0';
 
-            // Cloud shadow (bottom half darker) - two-tone Paper Mario style
-            const shadowColor = isBearMarket ? '#200808' : '#c8d8e8';
-            const mainColor = isBearMarket ? '#301010' : '#f0f8ff';
+        for (let i = 0; i < clouds.length; i++) {
+            const c = clouds[i];
 
-            // Draw cloud blob shape
+            // Cloud shadow
             ctx.fillStyle = shadowColor;
             ctx.beginPath();
             ctx.ellipse(c.x, c.y + 3, c.w / 2, c.h / 2, 0, 0, Math.PI * 2);
             ctx.fill();
 
+            // Main cloud
             ctx.fillStyle = mainColor;
             ctx.beginPath();
             ctx.ellipse(c.x, c.y, c.w / 2, c.h / 2.2, 0, 0, Math.PI * 2);
             ctx.fill();
 
-            // Bold outline (Paper Mario signature)
-            ctx.strokeStyle = isBearMarket ? '#401515' : '#8090a0';
+            // Outline
+            ctx.strokeStyle = strokeColor;
             ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.ellipse(c.x, c.y, c.w / 2, c.h / 2, 0, 0, Math.PI * 2);
-            ctx.stroke();
-
-            ctx.globalAlpha = 1;
+            ctx.stroke(); // Reuse last path
         }
-    });
+        ctx.globalAlpha = 1;
+    }
 
     // ⚡ Lightning Flash Overlay
     if (lightningFlash > 0) {
-        ctx.fillStyle = `rgba(200, 150, 255, ${lightningFlash})`;
+        // Screen flash
+        ctx.fillStyle = `rgba(200, 150, 255, ${lightningFlash * 0.6})`;
         ctx.fillRect(0, 0, gameWidth, gameHeight);
+
+        // Draw actual lightning bolts
+        if (lightningFlash > 0.15) {
+            ctx.strokeStyle = `rgba(255, 255, 255, ${lightningFlash * 2})`;
+            ctx.lineWidth = 3;
+            ctx.shadowColor = '#fff';
+            ctx.shadowBlur = 15;
+
+            // Draw 2-3 lightning bolts
+            for (let bolt = 0; bolt < 2; bolt++) {
+                const startX = gameWidth * 0.2 + bolt * gameWidth * 0.5 + Math.random() * 50;
+                let x = startX;
+                let y = 0;
+
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+
+                while (y < gameHeight * 0.4) {
+                    x += (Math.random() - 0.5) * 40;
+                    y += 20 + Math.random() * 30;
+                    ctx.lineTo(x, y);
+
+                    // Branch occasionally
+                    if (Math.random() < 0.3) {
+                        const branchX = x + (Math.random() - 0.5) * 60;
+                        const branchY = y + 30 + Math.random() * 20;
+                        ctx.moveTo(x, y);
+                        ctx.lineTo(branchX, branchY);
+                        ctx.moveTo(x, y);
+                    }
+                }
+                ctx.stroke();
+            }
+            ctx.shadowBlur = 0;
+        }
     }
 }
 
@@ -2339,124 +2903,296 @@ function updateFloatingTexts(dt) {
         if (floatingTexts[i].life <= 0) floatingTexts.splice(i, 1);
     }
 }
-// --- PARTICLES ---
-function createBulletSpark(x, y) {
-    // INK SPLATTER spark effect for bullet-on-bullet collision
-    for (let i = 0; i < 6; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * 150 + 80;
-        particles.push({
-            x: x,
-            y: y,
-            vx: Math.cos(angle) * speed,
-            vy: Math.sin(angle) * speed,
-            life: 0.25,
-            maxLife: 0.25,
-            color: '#fff',
-            size: Math.random() * 3 + 2,
-            isInk: true,
-            inkShape: Math.random() < 0.5 ? 1 : 0, // Star or blob
-            rotation: Math.random() * Math.PI * 2
-        });
-    }
-    // Central flash with ink style
-    particles.push({
-        x: x, y: y, vx: 0, vy: 0,
-        life: 0.12, maxLife: 0.12,
-        color: '#ffff00', size: 10,
-        isInk: true, inkShape: 1
-    });
+// --- PARTICLES (Optimized) ---
+const MAX_PARTICLES = 80;
+
+function addParticle(p) {
+    if (particles.length >= MAX_PARTICLES) return false;
+    particles.push(p);
+    return true;
 }
 
-function createExplosion(x, y, color, count = 15) {
-    // INK SPLATTER - Core blobs (irregular shapes)
+function createBulletSpark(x, y) {
+    // Simplified spark effect - fewer particles, simpler shapes
+    const count = Math.min(4, MAX_PARTICLES - particles.length);
     for (let i = 0; i < count; i++) {
         const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * 280 + 120;
-        particles.push({
+        const speed = Math.random() * 150 + 80;
+        addParticle({
+            x: x, y: y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            life: 0.2, maxLife: 0.2,
+            color: '#fff',
+            size: Math.random() * 3 + 2
+        });
+    }
+}
+
+// Muzzle flash particles when player fires
+// Power-up pickup burst effect
+function createPowerUpPickupEffect(x, y, color) {
+    const available = MAX_PARTICLES - particles.length;
+    if (available <= 0) return;
+
+    // Expanding ring
+    addParticle({
+        x: x, y: y, vx: 0, vy: 0,
+        life: 0.3, maxLife: 0.3,
+        color: color, size: 20,
+        isRing: true
+    });
+
+    // Star burst pattern
+    const count = Math.min(8, available - 1);
+    for (let i = 0; i < count; i++) {
+        const angle = (Math.PI * 2 / count) * i;
+        const speed = Math.random() * 150 + 100;
+        addParticle({
             x: x,
             y: y,
-            vx: Math.cos(angle) * speed,
-            vy: Math.sin(angle) * speed,
-            life: 0.5,
-            maxLife: 0.5,
-            color: color,
-            size: Math.random() * 6 + 4,
-            isInk: true,
-            inkShape: Math.floor(Math.random() * 3), // 0=blob, 1=star, 2=splat
-            rotation: Math.random() * Math.PI * 2
-        });
-    }
-    // INK DROPS - small droplets trailing
-    for (let i = 0; i < 6; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * 150 + 50;
-        particles.push({
-            x: x + (Math.random() - 0.5) * 15,
-            y: y + (Math.random() - 0.5) * 15,
-            vx: Math.cos(angle) * speed,
-            vy: Math.sin(angle) * speed,
-            life: 0.6,
-            maxLife: 0.6,
-            color: color,
-            size: Math.random() * 3 + 2,
-            isInk: true,
-            inkShape: 0
-        });
-    }
-    // White highlights - comic style star bursts
-    for (let i = 0; i < 4; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * 100 + 40;
-        particles.push({
-            x: x + (Math.random() - 0.5) * 10,
-            y: y + (Math.random() - 0.5) * 10,
             vx: Math.cos(angle) * speed,
             vy: Math.sin(angle) * speed,
             life: 0.4,
             maxLife: 0.4,
-            color: '#fff',
-            size: Math.random() * 3 + 2,
-            isInk: true,
-            inkShape: 1 // star highlight
+            color: i % 2 === 0 ? color : '#fff',
+            size: Math.random() * 5 + 3
         });
     }
-    // Flash ring with bold outline
-    particles.push({
-        x: x,
-        y: y,
-        vx: 0,
-        vy: 0,
-        life: 0.15,
-        maxLife: 0.15,
-        color: color,
-        size: 25,
+
+    // Center flash
+    addParticle({
+        x: x, y: y, vx: 0, vy: 0,
+        life: 0.15, maxLife: 0.15,
+        color: '#fff', size: 15,
         isRing: true
     });
 }
 
-function createScoreParticles(x, y, color) {
-    const count = 5; // Bursts of "Score Energy"
+function createMuzzleFlashParticles(x, y, color) {
+    const available = MAX_PARTICLES - particles.length;
+    if (available <= 0) return;
+
+    const count = Math.min(5, available);
+
+    // Upward sparks (following bullet direction)
     for (let i = 0; i < count; i++) {
+        const spread = (Math.random() - 0.5) * 0.8; // Slight horizontal spread
+        const speed = Math.random() * 200 + 150;
+        addParticle({
+            x: x + (Math.random() - 0.5) * 8,
+            y: y,
+            vx: spread * speed,
+            vy: -speed * 0.6, // Upward bias
+            life: 0.15,
+            maxLife: 0.15,
+            color: i < 2 ? '#fff' : color, // Mix white and colored
+            size: Math.random() * 4 + 2
+        });
+    }
+
+    // Quick flash ring
+    if (available > count) {
+        addParticle({
+            x: x, y: y, vx: 0, vy: 0,
+            life: 0.08, maxLife: 0.08,
+            color: color, size: 8,
+            isRing: true
+        });
+    }
+}
+
+function createExplosion(x, y, color, count = 12) {
+    // Enhanced explosion with rings and varied particles
+    const available = MAX_PARTICLES - particles.length;
+    if (available <= 0) return;
+
+    const actualCount = Math.min(count, Math.floor(available * 0.6));
+
+    // Core explosion particles (varied sizes for depth)
+    for (let i = 0; i < actualCount; i++) {
         const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * 100 + 50;
-        particles.push({
+        const speed = Math.random() * 280 + 80;
+        const sizeVariant = i < actualCount / 3 ? 7 : (i < actualCount * 2/3 ? 5 : 3);
+        addParticle({
+            x: x + (Math.random() - 0.5) * 10,
+            y: y + (Math.random() - 0.5) * 10,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            life: 0.45, maxLife: 0.45,
+            color: color,
+            size: sizeVariant + Math.random() * 2
+        });
+    }
+
+    // White spark highlights
+    const highlightCount = Math.min(4, available - actualCount);
+    for (let i = 0; i < highlightCount; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 120 + 60;
+        addParticle({
+            x: x, y: y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            life: 0.25, maxLife: 0.25,
+            color: '#fff',
+            size: Math.random() * 4 + 2
+        });
+    }
+
+    // Outer flash ring (colored, large)
+    addParticle({
+        x: x, y: y, vx: 0, vy: 0,
+        life: 0.15, maxLife: 0.15,
+        color: color, size: 25,
+        isRing: true
+    });
+
+    // Inner flash ring (white, smaller, faster)
+    addParticle({
+        x: x, y: y, vx: 0, vy: 0,
+        life: 0.1, maxLife: 0.1,
+        color: '#fff', size: 12,
+        isRing: true
+    });
+}
+
+// Enhanced explosion for enemy deaths with flying currency symbols
+function createEnemyDeathExplosion(x, y, color, symbol) {
+    // Base explosion (smaller, since we're adding more effects)
+    createExplosion(x, y, color, 8);
+
+    const available = MAX_PARTICLES - particles.length;
+    if (available <= 2) return;
+
+    // Flying currency symbols (3 symbols spinning outward)
+    const symbolCount = Math.min(3, available - 2);
+    for (let i = 0; i < symbolCount; i++) {
+        const angle = (Math.PI * 2 / symbolCount) * i + Math.random() * 0.5;
+        const speed = Math.random() * 150 + 100;
+        addParticle({
             x: x,
             y: y,
             vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - 50, // Slight upward bias
+            life: 0.7,
+            maxLife: 0.7,
+            color: color,
+            size: 18 + Math.random() * 6, // Font size
+            symbol: symbol,
+            rotation: Math.random() * Math.PI * 2,
+            rotSpeed: (Math.random() - 0.5) * 15 // Random spin direction
+        });
+    }
+
+    // Debris chunks (colored fragments)
+    const debrisCount = Math.min(4, available - symbolCount);
+    for (let i = 0; i < debrisCount; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 200 + 120;
+        addParticle({
+            x: x + (Math.random() - 0.5) * 15,
+            y: y + (Math.random() - 0.5) * 15,
+            vx: Math.cos(angle) * speed,
             vy: Math.sin(angle) * speed,
-            life: 1.5,
-            maxLife: 1.5,
-            color: color || '#FFD700', // Gold by default
+            life: 0.35,
+            maxLife: 0.35,
+            color: color,
+            size: Math.random() * 6 + 4
+        });
+    }
+}
+
+// EPIC Boss death explosion - massive with flying $ symbols
+function createBossDeathExplosion(x, y) {
+    // Multiple explosion waves
+    createExplosion(x, y, '#ff0000', 20);
+    createExplosion(x - 40, y - 30, '#f39c12', 12);
+    createExplosion(x + 40, y - 30, '#f39c12', 12);
+    createExplosion(x, y + 40, '#2ecc71', 10);
+
+    const available = MAX_PARTICLES - particles.length;
+    if (available <= 5) return;
+
+    // Flying $ symbols in all directions
+    const symbolCount = Math.min(8, Math.floor(available * 0.4));
+    const symbols = ['$', '€', '¥', '£', '₣'];
+    for (let i = 0; i < symbolCount; i++) {
+        const angle = (Math.PI * 2 / symbolCount) * i + Math.random() * 0.3;
+        const speed = Math.random() * 200 + 150;
+        addParticle({
+            x: x + (Math.random() - 0.5) * 40,
+            y: y + (Math.random() - 0.5) * 40,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - 80,
+            life: 1.2,
+            maxLife: 1.2,
+            color: ['#2ecc71', '#f39c12', '#e74c3c', '#fff'][i % 4],
+            size: 24 + Math.random() * 12,
+            symbol: symbols[i % symbols.length],
+            rotation: Math.random() * Math.PI * 2,
+            rotSpeed: (Math.random() - 0.5) * 20
+        });
+    }
+
+    // Big flash rings
+    addParticle({
+        x: x, y: y, vx: 0, vy: 0,
+        life: 0.4, maxLife: 0.4,
+        color: '#fff', size: 60,
+        isRing: true
+    });
+    addParticle({
+        x: x, y: y, vx: 0, vy: 0,
+        life: 0.3, maxLife: 0.3,
+        color: '#ff0000', size: 80,
+        isRing: true
+    });
+    addParticle({
+        x: x, y: y, vx: 0, vy: 0,
+        life: 0.5, maxLife: 0.5,
+        color: '#f39c12', size: 100,
+        isRing: true
+    });
+
+    // Extra debris
+    const debrisCount = Math.min(10, available - symbolCount - 3);
+    for (let i = 0; i < debrisCount; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 350 + 100;
+        addParticle({
+            x: x + (Math.random() - 0.5) * 60,
+            y: y + (Math.random() - 0.5) * 60,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            life: 0.6,
+            maxLife: 0.6,
+            color: ['#ff0000', '#f39c12', '#2ecc71', '#fff'][i % 4],
+            size: Math.random() * 8 + 4
+        });
+    }
+}
+
+function createScoreParticles(x, y, color) {
+    const count = Math.min(3, MAX_PARTICLES - particles.length); // Reduced from 5
+    for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 100 + 50;
+        addParticle({
+            x: x, y: y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            life: 1.2, maxLife: 1.2, // Slightly shorter
+            color: color || '#FFD700',
             size: Math.random() * 4 + 2,
-            target: { x: gameWidth / 2, y: 30 } // Target Score UI (Approx)
+            target: { x: gameWidth / 2, y: 30 }
         });
     }
 }
 
 function updateParticles(dt) {
     for (let i = particles.length - 1; i >= 0; i--) {
-        let p = particles[i];
+        const p = particles[i];
 
         if (p.target) {
             // Homing Logic (Score Particles)
@@ -2465,113 +3201,88 @@ function updateParticles(dt) {
             const dist = Math.sqrt(dx * dx + dy * dy);
 
             if (dist < 30) {
-                // Arrived!
                 particles.splice(i, 1);
-                // Optional: Flash UI?
-                const scoreUI = document.getElementById('scoreVal');
-                if (scoreUI) {
-                    scoreUI.style.color = '#fff';
-                    setTimeout(() => scoreUI.style.color = '#F7931A', 50);
-                }
                 continue;
             }
 
-            // Steer towards target (Accelerate)
-            p.vx += (dx / dist) * 1500 * dt;
-            p.vy += (dy / dist) * 1500 * dt;
+            // Steer towards target
+            const accel = 1500 * dt / dist;
+            p.vx += dx * accel;
+            p.vy += dy * accel;
             p.x += p.vx * dt;
             p.y += p.vy * dt;
-            p.size = Math.max(1, p.size * 0.95); // Dont vanish completely until hit
-
-            // Limit Speed? No, let them zoom!
+            p.size = Math.max(1, p.size * 0.95);
         } else {
             // Standard Physics
             p.x += p.vx * dt;
             p.y += p.vy * dt;
             p.life -= dt;
-            p.size *= 0.90; // Shrink fast
-            if (p.life <= 0) particles.splice(i, 1);
+            // Rotate symbols, shrink regular particles
+            if (p.symbol) {
+                p.rotation = (p.rotation || 0) + (p.rotSpeed || 5) * dt;
+            } else {
+                p.size *= 0.92; // Slightly slower shrink
+            }
+
+            // Remove dead or offscreen particles
+            if (p.life <= 0 || p.x < -50 || p.x > gameWidth + 50 || p.y > gameHeight + 50) {
+                particles.splice(i, 1);
+            }
         }
     }
 }
 
 function drawParticles(ctx) {
-    // Cell-shaded ink splatter particles
-    if (particles.length === 0) return;
+    // Optimized particle drawing - simplified shapes
+    const len = particles.length;
+    if (len === 0) return;
+
     ctx.save();
-    for (let i = 0; i < particles.length; i++) {
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#111';
+
+    for (let i = 0; i < len; i++) {
         const p = particles[i];
+
+        // Skip offscreen particles (culling)
+        if (p.x < -20 || p.x > gameWidth + 20 || p.y < -20 || p.y > gameHeight + 20) continue;
+
         ctx.globalAlpha = p.life / p.maxLife;
 
         if (p.isRing) {
-            // Expanding ring with bold outline - cell-shaded
-            const expand = (1 - p.life / p.maxLife) * 40;
+            // Expanding ring - simplified (single ring)
+            const expand = (1 - p.life / p.maxLife) * 35;
             ctx.strokeStyle = p.color;
-            ctx.lineWidth = 4;
+            ctx.lineWidth = 3;
             ctx.beginPath();
             ctx.arc(p.x, p.y, p.size + expand, 0, Math.PI * 2);
             ctx.stroke();
-            // Inner ring
-            ctx.strokeStyle = '#fff';
+            ctx.strokeStyle = '#111'; // Reset
             ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.size + expand - 4, 0, Math.PI * 2);
-            ctx.stroke();
-        } else if (p.isInk) {
-            // INK SPLATTER shapes - cell-shaded with bold outlines
+        } else if (p.symbol) {
+            // Symbol particle (flying currency symbols)
             ctx.fillStyle = p.color;
             ctx.strokeStyle = '#111';
             ctx.lineWidth = 2;
-
-            if (p.inkShape === 1) {
-                // Star burst shape
-                ctx.save();
-                ctx.translate(p.x, p.y);
-                ctx.rotate(p.rotation || 0);
-                ctx.beginPath();
-                for (let j = 0; j < 4; j++) {
-                    const a = (j / 4) * Math.PI * 2;
-                    ctx.moveTo(0, 0);
-                    ctx.lineTo(Math.cos(a) * p.size * 1.5, Math.sin(a) * p.size * 1.5);
-                }
-                ctx.strokeStyle = p.color;
-                ctx.lineWidth = 3;
-                ctx.stroke();
-                ctx.restore();
-            } else if (p.inkShape === 2) {
-                // Splat shape (irregular blob)
-                ctx.save();
-                ctx.translate(p.x, p.y);
-                ctx.rotate(p.rotation || 0);
-                ctx.beginPath();
-                ctx.moveTo(p.size, 0);
-                for (let j = 1; j <= 6; j++) {
-                    const a = (j / 6) * Math.PI * 2;
-                    const r = p.size * (0.7 + Math.sin(j * 2.5) * 0.4);
-                    ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
-                }
-                ctx.closePath();
-                ctx.fill();
-                ctx.stroke();
-                ctx.restore();
-            } else {
-                // Blob with outline (default)
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.stroke();
-            }
+            ctx.font = `bold ${Math.floor(p.size)}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rotation || 0);
+            ctx.strokeText(p.symbol, 0, 0);
+            ctx.fillText(p.symbol, 0, 0);
+            ctx.restore();
         } else {
-            // Standard particle (score particles etc)
+            // All particles are now simple circles with outline
             ctx.fillStyle = p.color;
-            ctx.strokeStyle = '#111';
-            ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
             ctx.fill();
             if (p.size > 2) ctx.stroke();
         }
     }
+
     ctx.globalAlpha = 1;
     ctx.restore();
 }
@@ -2652,6 +3363,8 @@ function updatePowerUps(dt) {
             powerUps.splice(i, 1);
         } else {
             if (Math.abs(p.x - player.x) < 40 && Math.abs(p.y - player.y) < 40) {
+                // Pickup effect!
+                createPowerUpPickupEffect(p.x, p.y, p.config.color);
                 player.upgrade(p.type);
                 // Crypto-themed powerup feedback (gold, fixed position)
                 const meme = POWERUP_MEMES[p.type] || p.type;

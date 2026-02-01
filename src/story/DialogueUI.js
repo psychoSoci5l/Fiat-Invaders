@@ -138,6 +138,11 @@ class DialogueUI {
             'SOL': '#00d2d3',
             'POWELL': '#e74c3c',
             'FED': '#c0392b',
+            'LAGARDE': '#003399',
+            'BCE': '#003399',
+            'KURODA': '#bc002d',
+            'UEDA': '#bc002d',
+            'BOJ': '#bc002d',
             'SYSTEM': '#3498db',
             'PLAYER': '#2ecc71'
         };

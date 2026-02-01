@@ -9,6 +9,7 @@ window.Game = window.Game || {};
 class StoryManager {
     constructor() {
         this.currentShip = 'BTC';
+        this.currentBoss = 'FEDERAL_RESERVE';
         this.dialogueQueue = [];
         this.isShowingDialogue = false;
         this.lastShownDialogue = null;
@@ -104,6 +105,7 @@ class StoryManager {
      * Boss appears
      */
     onBossIntro(bossType = 'FEDERAL_RESERVE') {
+        this.currentBoss = bossType;
         const dialogues = window.Game.DIALOGUES?.BOSS_INTRO?.[bossType];
         if (dialogues) {
             this._showDialogue(this._randomPick(dialogues));
@@ -113,8 +115,10 @@ class StoryManager {
     /**
      * Boss changes phase
      */
-    onBossPhaseChange(phase) {
-        const dialogues = window.Game.DIALOGUES?.BOSS_PHASE?.[phase];
+    onBossPhaseChange(phase, bossType = null) {
+        const boss = bossType || this.currentBoss;
+        const bossPhases = window.Game.DIALOGUES?.BOSS_PHASE?.[boss];
+        const dialogues = bossPhases?.[phase];
         if (dialogues) {
             this._showDialogue(this._randomPick(dialogues));
         }
