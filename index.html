@@ -119,6 +119,40 @@
             <span id="highScoreVal" class="score-value">0</span>
         </div>
 
+        <!-- Game Mode Selector -->
+        <div class="game-mode-selector">
+            <button class="mode-btn active" id="mode-arcade" onclick="setGameMode('arcade')">
+                <span class="mode-icon">🎮</span>
+                <span class="mode-name">ARCADE</span>
+                <span class="mode-desc">Endless boss rotation</span>
+            </button>
+            <button class="mode-btn" id="mode-campaign" onclick="setGameMode('campaign')">
+                <span class="mode-icon">📖</span>
+                <span class="mode-name">CAMPAIGN</span>
+                <span class="mode-desc">FED → BCE → BOJ</span>
+            </button>
+        </div>
+
+        <!-- Campaign Progress (shown in campaign mode) -->
+        <div id="campaign-progress" class="campaign-progress" style="display: none;">
+            <div class="boss-slots">
+                <div class="boss-slot" id="slot-fed">
+                    <span class="boss-icon">$</span>
+                    <span class="boss-label">FED</span>
+                </div>
+                <div class="boss-arrow">→</div>
+                <div class="boss-slot locked" id="slot-bce">
+                    <span class="boss-icon">€</span>
+                    <span class="boss-label">BCE</span>
+                </div>
+                <div class="boss-arrow">→</div>
+                <div class="boss-slot locked" id="slot-boj">
+                    <span class="boss-icon">¥</span>
+                    <span class="boss-label">BOJ</span>
+                </div>
+            </div>
+        </div>
+
         <div class="start-actions">
             <button class="btn-play" onclick="launchShipAndStart()">
                 DESTROY THE SYSTEM
@@ -425,6 +459,7 @@
     <script src="src/entities/Boss.js"></script>
     <script src="src/entities/PowerUp.js"></script>
     <script src="src/managers/WaveManager.js"></script>
+    <script src="src/managers/CampaignState.js"></script>
     <!-- Story System -->
     <script src="src/story/DialogueData.js"></script>
     <script src="src/story/StoryManager.js"></script>

@@ -610,6 +610,56 @@ window.cycleShip = function(dir) {
     }
 }
 
+// --- GAME MODE SELECTION (Arcade vs Campaign) ---
+window.setGameMode = function(mode) {
+    const campaignState = G.CampaignState;
+    const isEnabled = mode === 'campaign';
+    campaignState.setEnabled(isEnabled);
+
+    // Update UI
+    const arcadeBtn = document.getElementById('mode-arcade');
+    const campaignBtn = document.getElementById('mode-campaign');
+    const progressEl = document.getElementById('campaign-progress');
+
+    if (arcadeBtn) arcadeBtn.classList.toggle('active', !isEnabled);
+    if (campaignBtn) campaignBtn.classList.toggle('active', isEnabled);
+    if (progressEl) progressEl.style.display = isEnabled ? 'block' : 'none';
+
+    if (isEnabled) {
+        updateCampaignProgressUI();
+    }
+
+    audioSys.play('coinUI');
+}
+
+function updateCampaignProgressUI() {
+    const campaignState = G.CampaignState;
+    if (!campaignState) return;
+
+    const slots = {
+        'slot-fed': 'FEDERAL_RESERVE',
+        'slot-bce': 'BCE',
+        'slot-boj': 'BOJ'
+    };
+
+    const nextBoss = campaignState.getNextBoss();
+
+    for (const [slotId, bossType] of Object.entries(slots)) {
+        const el = document.getElementById(slotId);
+        if (!el) continue;
+
+        el.classList.remove('locked', 'defeated', 'current');
+
+        if (campaignState.isBossDefeated(bossType)) {
+            el.classList.add('defeated');
+        } else if (!campaignState.isBossUnlocked(bossType)) {
+            el.classList.add('locked');
+        } else if (bossType === nextBoss) {
+            el.classList.add('current');
+        }
+    }
+}
+
 function updateShipUI() {
     const key = SHIP_KEYS[selectedShipIndex];
     const ship = SHIP_DISPLAY[key];
@@ -856,6 +906,9 @@ function init() {
     player = new G.Player(gameWidth, gameHeight);
     waveMgr.init();
 
+    // Initialize Campaign State
+    if (G.CampaignState) G.CampaignState.init();
+
     const startApp = () => {
         const splash = document.getElementById('splash-layer');
         if (!splash || splash.style.opacity === '0') return;
@@ -868,6 +921,11 @@ function init() {
             setStyle('intro-screen', 'display', 'flex');
             try { updateUIText(); } catch (e) { }
             initIntroShip(); // Start animated ship on intro screen
+
+            // Restore campaign mode UI state
+            if (G.CampaignState && G.CampaignState.isEnabled()) {
+                setGameMode('campaign');
+            }
 
             // Open curtain after intro screen is ready
             const curtain = document.getElementById('curtain-overlay');
@@ -1610,8 +1668,15 @@ function startIntermission(msgOverride) {
 
 function startBossWarning() {
     // Determine boss type for warning display
-    const bossRotation = G.BOSS_ROTATION || ['FEDERAL_RESERVE', 'BCE', 'BOJ'];
-    bossWarningType = bossRotation[(marketCycle - 1) % bossRotation.length];
+    const campaignState = G.CampaignState;
+    if (campaignState && campaignState.isEnabled()) {
+        // Campaign mode: use next unlocked boss
+        bossWarningType = campaignState.getNextBoss() || 'FEDERAL_RESERVE';
+    } else {
+        // Arcade mode: cycle through bosses
+        const bossRotation = G.BOSS_ROTATION || ['FEDERAL_RESERVE', 'BCE', 'BOJ'];
+        bossWarningType = bossRotation[(marketCycle - 1) % bossRotation.length];
+    }
 
     // Start warning timer
     bossWarningTimer = BOSS_WARNING_DURATION;
@@ -1631,9 +1696,19 @@ function startBossWarning() {
 }
 
 function spawnBoss() {
-    // Determine boss type based on market cycle (rotation: FED → BCE → BOJ → repeat)
-    const bossRotation = G.BOSS_ROTATION || ['FEDERAL_RESERVE', 'BCE', 'BOJ'];
-    const bossType = bossRotation[(marketCycle - 1) % bossRotation.length];
+    // Determine boss type based on game mode
+    const campaignState = G.CampaignState;
+    let bossType;
+
+    if (campaignState && campaignState.isEnabled()) {
+        // Campaign mode: fight next unlocked boss
+        bossType = campaignState.getNextBoss() || 'FEDERAL_RESERVE';
+    } else {
+        // Arcade mode: cycle through bosses
+        const bossRotation = G.BOSS_ROTATION || ['FEDERAL_RESERVE', 'BCE', 'BOJ'];
+        bossType = bossRotation[(marketCycle - 1) % bossRotation.length];
+    }
+
     const bossConfig = G.BOSSES[bossType] || G.BOSSES.FEDERAL_RESERVE;
 
     // Flash color based on boss
@@ -1656,8 +1731,11 @@ function spawnBoss() {
     const playerDmgMult = (runState && runState.getMod) ? runState.getMod('damageMult', 1) : 1;
     const dmgCompensation = Math.sqrt(playerDmgMult); // Square root for softer scaling
 
+    // NG+ scaling (campaign mode)
+    const ngPlusMult = (campaignState && campaignState.isEnabled()) ? campaignState.getNGPlusMultiplier() : 1;
+
     const rawHp = baseHp + (level * hpPerLevel) + ((marketCycle - 1) * hpPerCycle);
-    boss.hp = Math.floor(rawHp * perkScaling * dmgCompensation);
+    boss.hp = Math.floor(rawHp * perkScaling * dmgCompensation * ngPlusMult);
     boss.maxHp = boss.hp;
 
     // Reset boss hit counter and cooldown for power-up drops
@@ -2167,8 +2245,22 @@ function updateBullets(dt) {
                         G.HarmonicConductor.currentSequence = null; // Will be set when wave spawns
                     }
 
-                    startIntermission("CYCLE " + marketCycle + " BEGINS");
-                    emitEvent('boss_killed', { level: level, cycle: marketCycle, bossType: defeatedBossType });
+                    // Campaign mode: track boss defeat and check for completion
+                    const campaignState = G.CampaignState;
+                    let campaignComplete = false;
+                    if (campaignState && campaignState.isEnabled()) {
+                        campaignComplete = campaignState.defeatBoss(defeatedBossType);
+                        updateCampaignProgressUI();
+                    }
+
+                    if (campaignComplete) {
+                        // Campaign complete! Show special victory screen
+                        showCampaignVictory();
+                    } else {
+                        startIntermission("CYCLE " + marketCycle + " BEGINS");
+                    }
+
+                    emitEvent('boss_killed', { level: level, cycle: marketCycle, bossType: defeatedBossType, campaignComplete: campaignComplete });
 
                     // Story: Boss defeated dialogue
                     if (G.Story) {
@@ -3845,6 +3937,118 @@ function submitToGameCenter(scoreValue) {
     // e.g., GameCenter.submitScore({ leaderboardId: 'fiat_invaders_highscore', score: scoreValue });
     console.log('[GameCenter] Score submitted:', scoreValue);
     emitEvent('gamecenter_submit', { score: scoreValue });
+}
+
+// Campaign Victory - All 3 central banks defeated!
+function showCampaignVictory() {
+    const campaignState = G.CampaignState;
+
+    // Dramatic screen effects
+    shake = 30;
+    transitionAlpha = 1.0;
+    transitionColor = '#ffd700'; // Gold!
+
+    // Show campaign complete screen
+    gameState = 'CAMPAIGN_VICTORY';
+
+    // Create victory overlay if doesn't exist
+    let victoryOverlay = document.getElementById('campaign-victory-screen');
+    if (!victoryOverlay) {
+        victoryOverlay = document.createElement('div');
+        victoryOverlay.id = 'campaign-victory-screen';
+        victoryOverlay.className = 'campaign-victory-screen';
+        victoryOverlay.innerHTML = `
+            <div class="victory-content">
+                <h1 class="victory-title">🏆 CAMPAIGN COMPLETE 🏆</h1>
+                <div class="victory-subtitle">ALL CENTRAL BANKS DESTROYED</div>
+                <div class="boss-trophies">
+                    <div class="trophy">💵 FED</div>
+                    <div class="trophy">💶 BCE</div>
+                    <div class="trophy">💴 BOJ</div>
+                </div>
+                <div class="final-score">FINAL SCORE: <span id="campaign-final-score">0</span></div>
+                <div class="ng-plus-info" id="ng-plus-info"></div>
+                <div class="victory-actions">
+                    <button class="btn-play" onclick="startNewGamePlus()">NEW GAME+ 🔄</button>
+                    <button class="btn-secondary" onclick="backToIntroFromVictory()">MAIN MENU</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(victoryOverlay);
+    }
+
+    // Update score
+    const scoreEl = document.getElementById('campaign-final-score');
+    if (scoreEl) scoreEl.textContent = Math.floor(score);
+
+    // Update NG+ info
+    const ngInfo = document.getElementById('ng-plus-info');
+    if (ngInfo) {
+        const ngLevel = campaignState ? campaignState.ngPlusLevel : 0;
+        if (ngLevel > 0) {
+            ngInfo.textContent = `NG+${ngLevel} COMPLETE! Next: NG+${ngLevel + 1}`;
+        } else {
+            ngInfo.textContent = 'Unlock NG+ with carried perks!';
+        }
+    }
+
+    victoryOverlay.style.display = 'flex';
+
+    // Epic victory audio
+    audioSys.play('levelUp');
+    setTimeout(() => audioSys.play('levelUp'), 300);
+    setTimeout(() => audioSys.play('levelUp'), 600);
+
+    // Save high score
+    if (score > highScore) {
+        highScore = Math.floor(score);
+        localStorage.setItem('fiat_highscore', highScore);
+        setUI('highScoreVal', highScore);
+        submitToGameCenter(highScore);
+    }
+
+    emitEvent('campaign_complete', { score: score, ngPlusLevel: campaignState?.ngPlusLevel || 0 });
+}
+
+// Start New Game+ with perk carryover
+window.startNewGamePlus = function() {
+    const campaignState = G.CampaignState;
+    if (!campaignState) return;
+
+    // Get current perks to carry over
+    const perksToCarry = (runState && runState.perks) ? runState.perks.slice() : [];
+    campaignState.startNewGamePlus(perksToCarry);
+
+    // Hide victory screen
+    const victoryOverlay = document.getElementById('campaign-victory-screen');
+    if (victoryOverlay) victoryOverlay.style.display = 'none';
+
+    // Apply carried perks to new run
+    if (runState && runState.reset) runState.reset();
+    if (runState && campaignState.getCarryoverPerks().length > 0) {
+        // Re-apply carried perks
+        const carriedPerks = campaignState.getCarryoverPerks();
+        carriedPerks.forEach(perkId => {
+            const perk = G.Upgrades?.ALL_PERKS?.find(p => p.id === perkId);
+            if (perk && runState.applyPerk) {
+                runState.applyPerk(perk);
+            }
+        });
+    }
+
+    // Start new campaign run
+    startGame();
+    updateCampaignProgressUI();
+
+    audioSys.play('coinUI');
+}
+
+// Return to intro from campaign victory
+window.backToIntroFromVictory = function() {
+    const victoryOverlay = document.getElementById('campaign-victory-screen');
+    if (victoryOverlay) victoryOverlay.style.display = 'none';
+
+    backToIntro();
 }
 
 function triggerGameOver() {
