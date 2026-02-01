@@ -77,11 +77,18 @@ function getDifficulty() {
 | Parameter | Formula | Range |
 |-----------|---------|-------|
 | `gridSpeed` | `12 + diff * 20` | 12 → 32 |
-| `bulletSpeed` | `150 + diff * 80` | 150 → 230 |
+| `bulletSpeed` | `128 + diff * 68` | 128 → 196 |
 | `rateMult` | `0.5 + diff * 0.5` | 0.5 → 1.0 |
 | `enemyHP` | `10 + floor(diff * 15)` | 10 → 25 |
 
 Bear Market applies additional 1.3x multiplier.
+
+### Player Fire Rates (after 30% nerf)
+| Ship | Fire Rate (cooldown) |
+|------|---------------------|
+| BTC | 0.26s |
+| ETH | 0.57s |
+| SOL | 0.20s |
 
 ---
 

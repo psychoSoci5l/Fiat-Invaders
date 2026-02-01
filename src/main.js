@@ -77,6 +77,7 @@ let shake = 0, gridDir = 1, gridSpeed = 25, timeScale = 1.0, totalTime = 0, inte
 let currentShipIdx = 0;
 let lastWavePattern = 'RECT';
 let perkChoiceActive = false;
+let intermissionMeme = ""; // Meme shown during countdown
 let perkOffers = [];
 let volatilityTimer = 0;
 let memeSwapTimer = 0;
@@ -1375,9 +1376,14 @@ function highlightShip(idx) {
 
 function startIntermission(msgOverride) {
     gameState = 'INTERMISSION';
-    waveMgr.intermissionTimer = 2.5; // Shorter pause
+    waveMgr.intermissionTimer = 1.9; // 25% shorter pause (was 2.5)
     waveMgr.waveInProgress = false; // Safety reset
     bullets = []; enemyBullets = [];
+
+    // Pick a random meme for the countdown
+    const memePool = [...(Constants.MEMES.LOW || []), ...(Constants.MEMES.SAYLOR || [])];
+    intermissionMeme = memePool[Math.floor(Math.random() * memePool.length)] || "HODL";
+
     // Only show text if explicitly provided (boss defeat, etc.)
     if (msgOverride) {
         addText(msgOverride, gameWidth / 2, gameHeight / 2 - 80, '#00ff00', 30);
@@ -2014,6 +2020,38 @@ function draw() {
         drawParticles(ctx);
         ctx.font = '20px Courier New';
         floatingTexts.forEach(t => { ctx.fillStyle = t.c; ctx.fillText(t.text, t.x, t.y); });
+
+        // Intermission countdown overlay
+        if (gameState === 'INTERMISSION' && waveMgr.intermissionTimer > 0) {
+            const countdown = Math.ceil(waveMgr.intermissionTimer);
+            const centerX = gameWidth / 2;
+            const centerY = gameHeight / 2;
+
+            // Pulse effect based on timer
+            const pulse = 1 + Math.sin(waveMgr.intermissionTimer * 8) * 0.1;
+
+            // Countdown number (big, bold, cell-shaded)
+            ctx.save();
+            ctx.font = `bold ${Math.floor(80 * pulse)}px "Courier New", monospace`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            // Black outline
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 6;
+            ctx.strokeText(countdown, centerX, centerY - 20);
+            // Gold fill
+            ctx.fillStyle = '#F7931A';
+            ctx.fillText(countdown, centerX, centerY - 20);
+
+            // Meme text below (smaller, white with outline)
+            ctx.font = 'bold 22px "Courier New", monospace';
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 4;
+            ctx.strokeText(intermissionMeme, centerX, centerY + 50);
+            ctx.fillStyle = '#fff';
+            ctx.fillText(intermissionMeme, centerX, centerY + 50);
+            ctx.restore();
+        }
     }
     ctx.restore(); // Restore shake
 }
