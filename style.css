@@ -707,6 +707,10 @@ body {
     align-items: center;
     gap: 4px;
     white-space: nowrap;
+    color: #fff;
+    font-weight: bold;
+    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000,
+                 -2px 0 0 #000, 2px 0 0 #000, 0 -2px 0 #000, 0 2px 0 #000;
 }
 
 .start-score {
@@ -741,7 +745,7 @@ body {
 .btn-play {
     background: linear-gradient(135deg, var(--neon-orange) 0%, #e67e22 100%);
     color: #000;
-    border: none;
+    border: 3px solid #000;
     padding: 18px 40px 14px;
     font-family: inherit;
     font-size: 18px;
@@ -829,9 +833,9 @@ body {
 }
 
 .icon-btn {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid #444;
-    color: #fff;
+    background: linear-gradient(180deg, #f5c842 0%, #e6a800 100%);
+    border: 3px solid #000;
+    color: #000;
     width: 50px;
     height: 50px;
     font-size: 24px;
@@ -855,7 +859,7 @@ body {
 .btn-coin {
     background: var(--neon-orange);
     color: #000;
-    border: none;
+    border: 3px solid #000;
     padding: 20px 60px;
     font-family: inherit;
     font-size: 24px;
@@ -1326,6 +1330,50 @@ body {
     height: 100%;
 }
 
+/* New stat row format for ship selection */
+.stat-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    margin: 6px 0;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.stat-row:last-child {
+    border-bottom: none;
+}
+
+.stat-icon {
+    font-size: 12px;
+    width: 18px;
+    text-align: center;
+}
+
+.stat-name {
+    color: #888;
+    font-size: 10px;
+    flex: 1;
+    text-align: left;
+    margin-left: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stat-value {
+    font-size: 11px;
+    letter-spacing: -1px;
+    font-weight: bold;
+}
+
+.ship-trait {
+    padding: 4px 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    display: inline-block;
+}
+
 /* --- PAUSE UI --- */
 /* #pause-btn replaced by harmonized rule above */
 
@@ -1569,6 +1617,39 @@ body.bear-mode .neon-title {
     100% { background-position: -200% 0; }
 }
 
+/* Pulsing effect when graze meter is FULL */
+#graze-meter.graze-full {
+    animation: grazePulse 0.5s ease-in-out infinite;
+    box-shadow: 0 0 15px #ff69b4, 0 0 30px #ffff00, 0 0 45px #ff69b4;
+}
+
+#graze-meter.graze-full #graze-fill {
+    background: linear-gradient(90deg, #ffff00, #ff69b4, #00ffff, #ff69b4, #ffff00);
+    background-size: 300% 100%;
+    animation: grazeRainbow 0.8s linear infinite;
+}
+
+#graze-meter.graze-full #graze-label {
+    color: #ffff00;
+    text-shadow: 0 0 10px #ff69b4, 0 0 20px #ffff00, 1px 1px 0 #000;
+    animation: grazeLabelPulse 0.3s ease-in-out infinite alternate;
+}
+
+@keyframes grazePulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+}
+
+@keyframes grazeRainbow {
+    0% { background-position: 0% 0; }
+    100% { background-position: 300% 0; }
+}
+
+@keyframes grazeLabelPulse {
+    0% { opacity: 0.8; }
+    100% { opacity: 1; }
+}
+
 #graze-label {
     position: relative;
     font-size: 10px;
@@ -1720,12 +1801,12 @@ body.bear-mode .neon-title {
     margin-bottom: 15px;
 }
 
-/* Cell-Shaded Icon Buttons - Dark Theme */
+/* Cell-Shaded Icon Buttons - Yellow Theme to match main button */
 .icon-btn-cell {
     width: 44px;
     height: 44px;
-    background: linear-gradient(180deg, #2a2a3e 0%, #1a1a2e 100%);
-    border: 2px solid #444;
+    background: linear-gradient(180deg, #f5c842 0%, #e6a800 100%);
+    border: 3px solid #000;
     border-radius: 8px;
     cursor: pointer;
     display: flex;
@@ -1738,8 +1819,8 @@ body.bear-mode .neon-title {
 
 .icon-btn-cell:hover {
     transform: translateY(-2px);
-    box-shadow: 0 5px 0 #111, 0 0 15px rgba(243, 156, 18, 0.3);
-    border-color: #f39c12;
+    box-shadow: 0 5px 0 #111, 0 0 15px rgba(247, 147, 26, 0.5);
+    background: linear-gradient(180deg, #ffdb4d 0%, #f5c842 100%);
 }
 
 .icon-btn-cell:active {
@@ -1750,16 +1831,16 @@ body.bear-mode .neon-title {
 .icon-btn-cell .icon-svg {
     width: 24px;
     height: 24px;
-    fill: #888;
+    fill: #000;
     transition: fill 0.15s;
 }
 
 .icon-btn-cell:hover .icon-svg {
-    fill: #f39c12;
+    fill: #333;
 }
 
 .icon-btn-cell.muted .icon-svg {
-    fill: #e74c3c;
+    fill: #c0392b;
 }
 
 /* Cell-Shaded Modal - Dark Crypto Theme */

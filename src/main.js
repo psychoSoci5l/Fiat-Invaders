@@ -110,9 +110,9 @@ let lastGrazeSoundTime = 0;   // Throttle graze sound
 
 let enemyFirePhase = 0;
 let enemyFireTimer = 0;
-let enemyFireStride = 6; // Increased: fewer enemies per group (was 4)
+let enemyFireStride = 8; // Increased: fewer enemies per group (was 6) - 20% reduction
 let enemyShotsThisTick = 0; // Rate limiter
-const MAX_ENEMY_SHOTS_PER_TICK = 2; // Max bullets spawned per frame
+const MAX_ENEMY_SHOTS_PER_TICK = 1; // Reduced: max bullets spawned per frame (was 2)
 
 // Fibonacci firing ramp-up at wave start
 let waveStartTime = 0;
@@ -1432,6 +1432,20 @@ function startIntermission(msgOverride) {
     gameState = 'INTERMISSION';
     waveMgr.intermissionTimer = 1.9; // 25% shorter pause (was 2.5)
     waveMgr.waveInProgress = false; // Safety reset
+
+    // Convert all remaining enemy bullets to bonus points with explosion effect
+    const bulletBonus = enemyBullets.length * 10;
+    if (enemyBullets.length > 0) {
+        enemyBullets.forEach(eb => {
+            createExplosion(eb.x, eb.y, eb.color || '#ff0', 6);
+        });
+        if (bulletBonus > 0) {
+            score += bulletBonus;
+            updateScore(score);
+            addText(`+${bulletBonus} BULLET BONUS`, gameWidth / 2, gameHeight / 2 + 50, '#0ff', 18);
+        }
+    }
+
     bullets = []; enemyBullets = [];
     window.enemyBullets = enemyBullets; // Update for Player core hitbox indicator
 
@@ -1459,8 +1473,9 @@ function spawnBoss() {
 
     boss = new G.Boss(gameWidth, gameHeight);
 
-    // Scale boss HP: bigger boss needs more HP
-    boss.hp = 500 + (level * 200) + (marketCycle * 300);
+    // Scale boss HP: rebalanced for twin-shot damage system
+    // BTC: ~7 dmg/shot * 2 bullets * 5.5 shots/sec = ~77 DPS → needs ~5000+ HP for 60s+ fight
+    boss.hp = 4500 + (level * 600) + (marketCycle * 800);
     boss.maxHp = boss.hp;
 
     // Reset boss hit counter and cooldown for power-up drops
@@ -1671,9 +1686,11 @@ function checkMiniBossHit(b) {
     if (!miniBoss || !miniBoss.active) return false;
 
     if (Math.abs(b.x - miniBoss.x) < 60 && Math.abs(b.y - miniBoss.y) < 60) {
+        const baseDmg = player.stats.baseDamage || 14;
         const dmgMult = (runState && runState.getMod) ? runState.getMod('damageMult', 1) : 1;
-        let dmg = b.isHodl ? 20 : 10;
-        miniBoss.hp -= dmg * dmgMult;
+        let dmg = baseDmg * dmgMult;
+        if (b.isHodl) dmg *= 1.25; // HODL: +25% damage
+        miniBoss.hp -= dmg;
         audioSys.play('hit');
 
         if (miniBoss.hp <= 0) {
@@ -1849,10 +1866,12 @@ function updateBullets(dt) {
             bullets.splice(i, 1);
         } else {
             if (boss && boss.active && b.x > boss.x && b.x < boss.x + boss.width && b.y > boss.y && b.y < boss.y + boss.height) {
+                const baseBossDmg = Math.ceil((player.stats.baseDamage || 14) / 4);
                 const dmgMult = (runState && runState.getMod) ? runState.getMod('damageMult', 1) : 1;
-                let dmg = b.isHodl ? 2 : 1;
-                if (runState && runState.flags && runState.flags.hodlBonus && b.isHodl) dmg += 1;
-                boss.damage(dmg * dmgMult);
+                let dmg = baseBossDmg * dmgMult;
+                if (b.isHodl) dmg = Math.ceil(dmg * 1.5); // HODL: +50% vs boss
+                if (runState && runState.flags && runState.flags.hodlBonus && b.isHodl) dmg = Math.ceil(dmg * 1.15);
+                boss.damage(dmg);
                 audioSys.play('hit');
 
                 // Boss drops power-ups every N hits to help player (with cooldown to prevent clustering)
@@ -1970,7 +1989,7 @@ function updateBullets(dt) {
             else if (dx < grazeR && dy < grazeR && !eb.grazed) {
                 eb.grazed = true; // Mark as grazed to prevent double-counting
                 grazeCount++;
-                grazeMeter = Math.min(100, grazeMeter + 2);
+                grazeMeter = Math.min(100, grazeMeter + 8); // Increased from 2 to 8 for faster meter fill
                 grazeMultiplier = 1 + (grazeMeter / 200); // Up to 1.5x at full meter
 
                 // Award graze points
@@ -2034,8 +2053,17 @@ function createGrazeSpark(bx, by, px, py) {
 // Update graze meter UI
 function updateGrazeUI() {
     const fill = document.getElementById('graze-fill');
+    const meter = document.getElementById('graze-meter');
     if (fill) {
         fill.style.width = grazeMeter + '%';
+    }
+    // Pulsing effect when meter is full
+    if (meter) {
+        if (grazeMeter >= 100) {
+            meter.classList.add('graze-full');
+        } else {
+            meter.classList.remove('graze-full');
+        }
     }
     const count = document.getElementById('graze-count');
     if (count) {
@@ -2047,9 +2075,11 @@ function checkBulletCollisions(b, bIdx) {
     for (let j = enemies.length - 1; j >= 0; j--) {
         let e = enemies[j];
         if (Math.abs(b.x - e.x) < 40 && Math.abs(b.y - e.y) < 40) { // Adjusted for larger enemies
+            const baseDmg = player.stats.baseDamage || 14;
             const dmgMult = (runState && runState.getMod) ? runState.getMod('damageMult', 1) : 1;
-            let dmg = 11 * dmgMult; // Base damage +10% (was 10)
-            if (runState && runState.flags && runState.flags.hodlBonus && b.isHodl) dmg += 11;
+            let dmg = baseDmg * dmgMult;
+            if (b.isHodl) dmg *= 1.25; // HODL: +25% damage
+            if (runState && runState.flags && runState.flags.hodlBonus && b.isHodl) dmg *= 1.15; // Stacks with perk
             e.hp -= dmg; audioSys.play('hit');
             e.hitFlash = 0.6; // Trigger hit flash effect
             if (e.hp <= 0) {

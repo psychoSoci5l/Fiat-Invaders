@@ -186,32 +186,33 @@ class Player extends window.Game.Entity {
             bullets.push(b);
         };
 
-        // Weapon patterns
+        // Weapon patterns (tighter spreads for better control)
         if (this.weapon === 'WIDE') {
-            // Triple wide spread
-            const spread = conf.spread || 0.4;
+            // Triple spread - tighter pattern
+            const spread = conf.spread || 0.18;
             spawnBullet(this.x, this.y - 25, 0, -bulletSpeed);
-            spawnBullet(this.x - 10, this.y - 20, -bulletSpeed * spread, -bulletSpeed * 0.9);
-            spawnBullet(this.x + 10, this.y - 20, bulletSpeed * spread, -bulletSpeed * 0.9);
+            spawnBullet(this.x - 8, this.y - 22, -bulletSpeed * spread, -bulletSpeed * 0.92);
+            spawnBullet(this.x + 8, this.y - 22, bulletSpeed * spread, -bulletSpeed * 0.92);
         } else if (this.weapon === 'NARROW') {
-            // Triple narrow spread
-            const spread = conf.spread || 0.15;
+            // Triple focused - very tight pattern
+            const spread = conf.spread || 0.08;
             spawnBullet(this.x, this.y - 25, 0, -bulletSpeed);
-            spawnBullet(this.x - 6, this.y - 22, -bulletSpeed * spread, -bulletSpeed * 0.95);
-            spawnBullet(this.x + 6, this.y - 22, bulletSpeed * spread, -bulletSpeed * 0.95);
+            spawnBullet(this.x - 4, this.y - 23, -bulletSpeed * spread, -bulletSpeed * 0.97);
+            spawnBullet(this.x + 4, this.y - 23, bulletSpeed * spread, -bulletSpeed * 0.97);
         } else if (this.weapon === 'FIRE') {
-            // Triple parallel (all straight up, spaced horizontally) - PENETRATING
+            // Triple parallel (tighter spacing) - PENETRATING
             const spawnFireBullet = (x, y, vx, vy) => {
                 const b = window.Game.Bullet.Pool.acquire(x, y, vx, vy, color, bulletW, bulletH, isHodl);
                 b.penetration = true; // FIRE bullets pierce through enemies
                 bullets.push(b);
             };
             spawnFireBullet(this.x, this.y - 25, 0, -bulletSpeed);
-            spawnFireBullet(this.x - 15, this.y - 25, 0, -bulletSpeed);
-            spawnFireBullet(this.x + 15, this.y - 25, 0, -bulletSpeed);
+            spawnFireBullet(this.x - 10, this.y - 25, 0, -bulletSpeed);
+            spawnFireBullet(this.x + 10, this.y - 25, 0, -bulletSpeed);
         } else {
-            // NORMAL: single shot
-            spawnBullet(this.x, this.y - 25, 0, -bulletSpeed);
+            // NORMAL: twin shot (2 parallel bullets for stronger base attack)
+            spawnBullet(this.x - 6, this.y - 25, 0, -bulletSpeed);
+            spawnBullet(this.x + 6, this.y - 25, 0, -bulletSpeed);
         }
 
         return bullets;
