@@ -37,10 +37,34 @@ class Bullet extends window.Game.Entity {
         const isEnemy = this.vy > 0; // Enemy bullets go down
 
         if (isEnemy) {
-            // Enemy bullet: Simplified - core with outline + inner dot
+            // Enemy bullet: Energy orb with trail
             const r = this.width || 5;
 
-            // Core with bold outline (single arc, fill+stroke)
+            // Motion trail (single line in direction of movement)
+            const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+            const trailLen = Math.min(18, speed * 0.08);
+            const angle = Math.atan2(this.vy, this.vx);
+            ctx.strokeStyle = this.color;
+            ctx.lineWidth = 3;
+            ctx.globalAlpha = 0.5;
+            ctx.beginPath();
+            ctx.moveTo(this.x, this.y);
+            ctx.lineTo(
+                this.x - Math.cos(angle) * trailLen,
+                this.y - Math.sin(angle) * trailLen
+            );
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+
+            // Outer glow (subtle)
+            ctx.fillStyle = this.color;
+            ctx.globalAlpha = 0.3;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, r + 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+
+            // Core with bold outline
             ctx.fillStyle = this.color;
             ctx.strokeStyle = '#111';
             ctx.lineWidth = 2;
@@ -52,31 +76,54 @@ class Bullet extends window.Game.Entity {
             // Inner bright center
             ctx.fillStyle = '#fff';
             ctx.beginPath();
-            ctx.arc(this.x, this.y, r * 0.35, 0, Math.PI * 2);
+            ctx.arc(this.x, this.y, r * 0.4, 0, Math.PI * 2);
             ctx.fill();
         } else {
-            // Player bullet - simplified
-            ctx.fillStyle = this.color;
+            // Player bullet - polished cell-shaded style
             ctx.strokeStyle = '#111';
             ctx.lineWidth = 2;
 
             if (this.height > 20) {
-                // Laser Beam Style
+                // Laser Beam Style with glow
+                ctx.fillStyle = this.color;
+                ctx.globalAlpha = 0.4;
+                ctx.fillRect(this.x - this.width / 2 - 2, this.y - 2, this.width + 4, this.height + 4);
+                ctx.globalAlpha = 1;
                 ctx.fillRect(this.x - this.width / 2, this.y, this.width, this.height);
                 ctx.strokeRect(this.x - this.width / 2, this.y, this.width, this.height);
             } else {
-                // Bullet with simple trail
+                // Bullet with glowing trail
+                // Trail glow
+                ctx.fillStyle = this.color;
+                ctx.globalAlpha = 0.4;
+                ctx.beginPath();
+                ctx.moveTo(this.x - this.width * 0.8, this.y);
+                ctx.lineTo(this.x, this.y + this.height + 4);
+                ctx.lineTo(this.x + this.width * 0.8, this.y);
+                ctx.closePath();
+                ctx.fill();
+                ctx.globalAlpha = 1;
+
+                // Main bullet body
+                ctx.fillStyle = this.color;
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.width, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.stroke();
 
-                // Simple trail (single triangle, no separate stroke)
+                // Trail (solid)
                 ctx.beginPath();
                 ctx.moveTo(this.x - this.width * 0.5, this.y);
                 ctx.lineTo(this.x, this.y + this.height);
                 ctx.lineTo(this.x + this.width * 0.5, this.y);
                 ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+                // Highlight dot
+                ctx.fillStyle = '#fff';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y - this.width * 0.3, this.width * 0.3, 0, Math.PI * 2);
                 ctx.fill();
             }
         }

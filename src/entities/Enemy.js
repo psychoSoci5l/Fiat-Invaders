@@ -22,6 +22,7 @@ class Enemy extends window.Game.Entity {
 
         this.active = true;
         this.fireTimer = 0; // Set by spawner for Fibonacci ramp-up
+        this.hitFlash = 0; // Flash white when hit
 
         // Pre-cache colors for performance (avoid recalculating every frame)
         this._colorDark30 = this.darkenColor(this.color, 0.3);
@@ -99,6 +100,9 @@ class Enemy extends window.Game.Entity {
     }
 
     update(dt, globalTime, wavePattern, gridSpeed, gridDir) {
+        // Decrement hit flash
+        if (this.hitFlash > 0) this.hitFlash -= dt * 8; // Fast fade
+
         // Horizontal Grid Move
         this.x += gridSpeed * gridDir * dt;
 
@@ -144,6 +148,16 @@ class Enemy extends window.Game.Entity {
         }
 
         ctx.restore();
+
+        // Hit flash effect (white overlay)
+        if (this.hitFlash > 0) {
+            ctx.globalAlpha = this.hitFlash;
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(x, y, 22, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+        }
 
         // Telegraph indicator
         if (this.telegraphTimer > 0) {

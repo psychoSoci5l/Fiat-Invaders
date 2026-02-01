@@ -226,11 +226,23 @@ class Player extends window.Game.Entity {
         ctx.save();
         ctx.translate(this.x, this.y);
 
-        // Reactor flame (animated) - FLAT cell-shaded style (no gradient)
-        const flameHeight = 18 + Math.sin(this.animTime * 12) * 6;
-        const flameWidth = 8 + Math.sin(this.animTime * 10) * 3;
+        // Reactor flame (animated) - 4-layer cell-shaded style
+        const flameHeight = 20 + Math.sin(this.animTime * 12) * 8;
+        const flameWidth = 10 + Math.sin(this.animTime * 10) * 3;
+        const pulse = 1 + Math.sin(this.animTime * 8) * 0.1;
 
-        // Outer flame (orange)
+        // Outer glow (red, largest)
+        ctx.fillStyle = '#cc3300';
+        ctx.globalAlpha = 0.6;
+        ctx.beginPath();
+        ctx.moveTo(-flameWidth * 1.3 * pulse, 12);
+        ctx.lineTo(0, 12 + flameHeight * 1.1);
+        ctx.lineTo(flameWidth * 1.3 * pulse, 12);
+        ctx.closePath();
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        // Main flame (orange)
         ctx.fillStyle = '#ff6600';
         ctx.beginPath();
         ctx.moveTo(-flameWidth, 12);
@@ -239,12 +251,21 @@ class Player extends window.Game.Entity {
         ctx.closePath();
         ctx.fill();
 
-        // Inner flame (yellow, smaller)
+        // Inner flame (yellow)
         ctx.fillStyle = '#ffcc00';
         ctx.beginPath();
         ctx.moveTo(-flameWidth * 0.5, 12);
-        ctx.lineTo(0, 12 + flameHeight * 0.6);
+        ctx.lineTo(0, 12 + flameHeight * 0.65);
         ctx.lineTo(flameWidth * 0.5, 12);
+        ctx.closePath();
+        ctx.fill();
+
+        // Hot core (white)
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.moveTo(-flameWidth * 0.2, 12);
+        ctx.lineTo(0, 12 + flameHeight * 0.3);
+        ctx.lineTo(flameWidth * 0.2, 12);
         ctx.closePath();
         ctx.fill();
 

@@ -1813,6 +1813,7 @@ function checkBulletCollisions(b, bIdx) {
             let dmg = 11 * dmgMult; // Base damage +10% (was 10)
             if (runState && runState.flags && runState.flags.hodlBonus && b.isHodl) dmg += 11;
             e.hp -= dmg; audioSys.play('hit');
+            e.hitFlash = 0.6; // Trigger hit flash effect
             if (e.hp <= 0) {
                 enemies.splice(j, 1);
                 audioSys.play('coin');
