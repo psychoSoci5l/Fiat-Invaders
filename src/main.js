@@ -2152,10 +2152,11 @@ function updateSky(dt) {
     }
 
     // Update parallax hills offset (for loop)
+    // Use 628 (≈ 2π/0.01) to avoid discontinuity in sine wave
     for (let i = 0; i < hills.length; i++) {
         const h = hills[i];
         h.offset += h.speed * speedMult * dt;
-        if (h.offset > 200) h.offset -= 200;
+        if (h.offset > 628) h.offset -= 628;
     }
 
     // ⚡ Bear Market Lightning
@@ -2287,21 +2288,22 @@ function drawSky(ctx) {
                     ? ['#4a3040', '#5a3848', '#6a4050'] // Sunset pink
                     : ['#3a6080', '#4a7090', '#5a80a0']; // Day blue
 
-        hills.forEach((h, idx) => {
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 3;
+
+        for (let idx = 0; idx < hills.length; idx++) {
+            const h = hills[idx];
             const color = hillColors[idx] || hillColors[0];
             const y = h.y;
-            const height = h.height;
 
             ctx.fillStyle = color;
-            ctx.strokeStyle = '#111';
-            ctx.lineWidth = 3;
 
-            // Draw wavy hill silhouette
+            // Draw wavy hill silhouette + outline in single pass
             ctx.beginPath();
             ctx.moveTo(-10, gameHeight + 10);
 
-            // Create rolling hills with sine wave
-            for (let x = -10; x <= gameWidth + 10; x += 20) {
+            // Create rolling hills with sine wave (larger step = fewer calculations)
+            for (let x = -10; x <= gameWidth + 10; x += 30) {
                 const waveY = y + Math.sin((x + h.offset) * 0.02) * 25
                             + Math.sin((x + h.offset) * 0.01 + idx) * 15;
                 ctx.lineTo(x, waveY);
@@ -2310,54 +2312,42 @@ function drawSky(ctx) {
             ctx.lineTo(gameWidth + 10, gameHeight + 10);
             ctx.closePath();
             ctx.fill();
-
-            // Bold outline on top edge only (Paper Mario style)
-            ctx.beginPath();
-            ctx.moveTo(-10, y + Math.sin(h.offset * 0.02) * 25);
-            for (let x = -10; x <= gameWidth + 10; x += 20) {
-                const waveY = y + Math.sin((x + h.offset) * 0.02) * 25
-                            + Math.sin((x + h.offset) * 0.01 + idx) * 15;
-                ctx.lineTo(x, waveY);
-            }
-            ctx.stroke();
-        });
+            ctx.stroke(); // Stroke the entire shape (simpler than separate outline)
+        }
     }
 
     // 3. Clouds - Paper Mario style FLAT with bold outlines
-    clouds.forEach(c => {
-        let visible = true;
-        if (boss && boss.active) visible = false;
-        if (level >= 5) visible = false; // No clouds at night
+    const showClouds = !(boss && boss.active) && level < 5;
+    if (showClouds) {
+        const cloudAlpha = level >= 4 ? 0.4 : 0.85;
+        ctx.globalAlpha = cloudAlpha;
 
-        if (visible) {
-            const cloudAlpha = level >= 4 ? 0.4 : 0.85;
-            ctx.globalAlpha = cloudAlpha;
+        const shadowColor = isBearMarket ? '#200808' : '#c8d8e8';
+        const mainColor = isBearMarket ? '#301010' : '#f0f8ff';
+        const strokeColor = isBearMarket ? '#401515' : '#8090a0';
 
-            // Cloud shadow (bottom half darker) - two-tone Paper Mario style
-            const shadowColor = isBearMarket ? '#200808' : '#c8d8e8';
-            const mainColor = isBearMarket ? '#301010' : '#f0f8ff';
+        for (let i = 0; i < clouds.length; i++) {
+            const c = clouds[i];
 
-            // Draw cloud blob shape
+            // Cloud shadow
             ctx.fillStyle = shadowColor;
             ctx.beginPath();
             ctx.ellipse(c.x, c.y + 3, c.w / 2, c.h / 2, 0, 0, Math.PI * 2);
             ctx.fill();
 
+            // Main cloud
             ctx.fillStyle = mainColor;
             ctx.beginPath();
             ctx.ellipse(c.x, c.y, c.w / 2, c.h / 2.2, 0, 0, Math.PI * 2);
             ctx.fill();
 
-            // Bold outline (Paper Mario signature)
-            ctx.strokeStyle = isBearMarket ? '#401515' : '#8090a0';
+            // Outline
+            ctx.strokeStyle = strokeColor;
             ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.ellipse(c.x, c.y, c.w / 2, c.h / 2, 0, 0, Math.PI * 2);
-            ctx.stroke();
-
-            ctx.globalAlpha = 1;
+            ctx.stroke(); // Reuse last path
         }
-    });
+        ctx.globalAlpha = 1;
+    }
 
     // ⚡ Lightning Flash Overlay
     if (lightningFlash > 0) {
