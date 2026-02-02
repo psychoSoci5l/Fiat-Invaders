@@ -1,5 +1,34 @@
 # Changelog
 
+## v2.15.0 - 2026-02-03
+### Sprint 23.4: main.js Decomposition (Part 1)
+
+**New: SkyRenderer.js Module** (~400 lines)
+- Parallax clouds, hills, floating crypto symbols
+- Star field with twinkle animation
+- Bear Market lightning and blood rain effects
+- Level-based sky color progression (5 levels + boss)
+- `init()`, `update()`, `draw()`, `drawBearMarketOverlay()`
+
+**New: TransitionManager.js Module** (~140 lines)
+- Screen fade transitions with callback support
+- Wipe line visual effect during transitions
+- `start(callback, color)` for fade-to-black with callback
+- `startFadeOut(alpha, color)` for dramatic effects
+
+**Refactored: main.js**
+- Removed 420 lines of sky/transition code
+- All sky/transition calls delegate to new modules
+- main.js: 4630 → 4210 lines (-9%)
+
+**Files Changed**
+- NEW: `src/systems/SkyRenderer.js`
+- NEW: `src/systems/TransitionManager.js`
+- `src/main.js`: Sky and transition code removed
+- `index.html`: Added new module scripts
+
+---
+
 ## v2.14.2 - 2026-02-02
 ### Sprint 23.3: System Extraction - EffectsRenderer
 
