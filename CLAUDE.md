@@ -2,6 +2,20 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Development Workflow
+
+### End of Session Checklist (MANDATORY)
+When completing a feature or ending a session, **always update these files without being asked**:
+
+1. **CHANGELOG.md** - Add new version entry with feature summary
+2. **roadmap.md** - Mark completed tasks, add new phases if needed
+3. **Constants.js** - Bump `VERSION` string
+4. **CLAUDE.md** - Update if new systems/patterns were added
+
+This is a **priority rule** - documentation updates are part of the work, not an afterthought.
+
+---
+
 ## Project Overview
 
 **Fiat Invaders** is an HTML5 Canvas arcade shooter (Space Invaders-style) built with vanilla JavaScript using a global namespace pattern (`window.Game`). It's a PWA-ready mobile-first game with procedural audio, code-drawn graphics, and localization (EN/IT).
