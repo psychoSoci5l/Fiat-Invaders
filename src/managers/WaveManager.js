@@ -5,7 +5,6 @@ window.Game.WaveManager = {
     wave: 1,
     waveInProgress: false,
     intermissionTimer: 0,
-    wavesPerCycle: 5,
 
     // Dependencies injected usually, or accessed via Game.State
     init() {
@@ -16,6 +15,14 @@ window.Game.WaveManager = {
         this.wave = 1;
         this.waveInProgress = false;
         this.intermissionTimer = 0;
+    },
+
+    /**
+     * Get waves per cycle from Balance config
+     */
+    getWavesPerCycle() {
+        const Balance = window.Game.Balance;
+        return Balance ? Balance.WAVES.PER_CYCLE : 5;
     },
 
     update(dt, gameState, enemiesCount, bossActive) {
@@ -32,7 +39,7 @@ window.Game.WaveManager = {
 
         if (!bossActive && enemiesCount === 0 && !this.waveInProgress && gameState === 'PLAY') {
             this.waveInProgress = true;
-            if (this.wave <= this.wavesPerCycle) return { action: 'START_INTERMISSION' };
+            if (this.wave <= this.getWavesPerCycle()) return { action: 'START_INTERMISSION' };
             else return { action: 'SPAWN_BOSS' };
         }
 

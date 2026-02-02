@@ -2007,8 +2007,9 @@ function update(dt) {
                 // gridSpeed now computed dynamically via getGridSpeed()
             }
             const waveNumber = waveMgr.wave;
-            let msg = waveNumber === 1 ? t('WAVE1') : (waveNumber === 2 ? t('WAVE2') : t('WAVE3'));
-            showGameInfo(msg);
+            const waveMessages = ['WAVE1', 'WAVE2', 'WAVE3', 'WAVE4', 'WAVE5'];
+            const msgKey = waveMessages[Math.min(waveNumber - 1, waveMessages.length - 1)];
+            showGameInfo(t(msgKey));
 
             const spawnData = waveMgr.spawnWave(gameWidth);
             enemies = spawnData.enemies;

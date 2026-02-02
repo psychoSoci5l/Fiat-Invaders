@@ -438,10 +438,12 @@
 - [x] **Power-up system** - Durate differenziate (base 10s, adv 8s, elite 6s), drop scaling con ciclo
 - [x] **Boss fights centralizzati** - HP/fire rates/speeds in Balance.BOSS. HP: 1000 + level*30 + cycle*400
 
+### Completati (cont. 2):
+- [x] **Level progression fix** - WaveManager usa Balance.WAVES.PER_CYCLE, aggiunti WAVE4/WAVE5 messages
+
 ### Da completare:
 - [ ] **Perk system** ottimizzato (trigger, cooldown, effetti)
 - [ ] **Intro screen redesign** - Ship preview compatta, sfondo trasparente, layout ottimizzato
-- [ ] **Level progression fix** - Problemi segnalati nella successione dei livelli
 
 ### Principi guida (Ikeda Rules):
 1. **Core Hitbox** - Difficoltà da pattern, non hitbox sleali
