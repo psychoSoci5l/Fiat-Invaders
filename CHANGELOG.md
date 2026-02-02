@@ -35,6 +35,12 @@
 - `src/main.js`: Effects code replaced with delegations
 - `index.html`: Added EffectsRenderer.js script
 
+**Deferred: UIRenderer.js**
+- Planned extraction deferred to Sprint 23.4 (main.js decomposition)
+- HUD is DOM-based (HTML elements), not canvas-drawn
+- Canvas UI functions (`drawHyperUI`, `drawSacrificeUI`) tightly coupled to game state
+- Better to extract during main.js refactoring when state management improves
+
 ---
 
 ## v2.14.1 - 2026-02-02

@@ -838,17 +838,10 @@ Balance.SACRIFICE = {
 ### Sprint 23.3: System Extraction - Rendering (v2.14.2) 🆕
 *Goal: Separate rendering logic from main.js.*
 
-- [ ] **UIRenderer.js**: New system module (~300 lines)
-  - Extract from: main.js:3600-3900
-  - File: `src/systems/UIRenderer.js`
-  - Interface:
-    - `drawScore(ctx, score, x, y)`
-    - `drawLives(ctx, lives, x, y)`
-    - `drawLevelIndicator(ctx, level, wave)`
-    - `drawGrazeMeter(ctx, value, max, hyperReady)`
-    - `drawHyperUI(ctx, state)`
-    - `drawSacrificeUI(ctx, state)`
-    - `drawHUDMessage(ctx, message, type)`
+- [→] **UIRenderer.js**: Deferred to Sprint 23.4 ⏳
+  - **Reason**: HUD is DOM-based (HTML elements), not canvas. Canvas UI functions (`drawHyperUI`, `drawSacrificeUI`, `drawTypedMessages`) are tightly coupled to game state variables. Better to extract during main.js decomposition when state management is refactored.
+  - **DOM functions to move**: `updateGrazeUI`, `updateLivesUI`, `updateLevelUI`, `updateShipUI`, `updateCampaignProgressUI`
+  - **Canvas functions to move**: `drawHyperUI`, `drawSacrificeUI`, `drawTypedMessages`, `drawPerkIcons`
 
 - [x] **EffectsRenderer.js**: New system module (~330 lines) ✅
   - Extract from: main.js (scattered effect code)
