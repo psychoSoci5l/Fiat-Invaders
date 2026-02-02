@@ -2012,6 +2012,12 @@ function spawnMiniBoss(symbol, color) {
     // Store current enemies to restore later
     const savedEnemies = [...enemies];
     enemies = [];
+    // Update global references
+    G.enemies = enemies;
+    if (window.Game) window.Game.enemies = enemies;
+
+    // Pause wave spawning during mini-boss
+    if (waveMgr) waveMgr.miniBossActive = true;
 
     // Create mini-boss object with perk-aware scaling
     const fiatNames = { '¥': 'YEN', '€': 'EURO', '£': 'POUND', '$': 'DOLLAR', '₽': 'RUBLE', '₹': 'RUPEE', '₣': 'FRANC', '₺': 'LIRA', '元': 'YUAN', 'Ⓒ': 'CBDC' };
@@ -2215,7 +2221,18 @@ function checkMiniBossHit(b) {
             // Restore enemies if any were saved
             if (miniBoss.savedEnemies && miniBoss.savedEnemies.length > 0) {
                 enemies = miniBoss.savedEnemies;
+                // Reset Fibonacci firing so restored enemies don't fire at full rate immediately
+                waveStartTime = totalTime;
+                fibonacciIndex = 0;
+                fibonacciTimer = 0;
+                enemiesAllowedToFire = 1;
             }
+            // Update global references
+            G.enemies = enemies;
+            if (window.Game) window.Game.enemies = enemies;
+
+            // Resume wave spawning
+            if (waveMgr) waveMgr.miniBossActive = false;
 
             miniBoss = null;
         }
@@ -2283,19 +2300,23 @@ function update(dt) {
             startBossWarning(); // Start warning instead of immediate spawn
         } else if (waveAction.action === 'START_WAVE') {
             gameState = 'PLAY';
-            if (waveMgr.wave > 1) {
+            // Increment level for every wave EXCEPT the very first one (level=1, wave=1)
+            const isFirstWaveEver = (level === 1 && waveMgr.wave === 1);
+            if (!isFirstWaveEver) {
                 level++;
                 audioSys.setLevel(level); // Change music theme for new level
                 audioSys.play('levelUp'); // Triumphant jingle
                 updateLevelUI(); // With animation
                 grazePerksThisLevel = 0; // Reset graze perk cap for new level
                 showGameInfo("📈 LEVEL " + level);
-                // gridSpeed now computed dynamically via getGridSpeed()
             }
             const waveNumber = waveMgr.wave;
             const waveMessages = ['WAVE1', 'WAVE2', 'WAVE3', 'WAVE4', 'WAVE5'];
             const msgKey = waveMessages[Math.min(waveNumber - 1, waveMessages.length - 1)];
             showGameInfo(t(msgKey));
+
+            // Update global level BEFORE spawnWave so enemy HP scaling is correct
+            window.currentLevel = level;
 
             const spawnData = waveMgr.spawnWave(gameWidth);
             enemies = spawnData.enemies;
@@ -2445,12 +2466,7 @@ function updateBullets(dt) {
                     };
                     showMemeFun(victoryMemes[defeatedBossType] || "💥 CENTRAL BANK DESTROYED!", 2000);
 
-                    level++;
-                    audioSys.setLevel(level); // Change music theme for new level
-                    audioSys.play('levelUp'); // Triumphant jingle
-                    updateLevelUI(); // With animation
-
-                    // New cycle - increase difficulty
+                    // New cycle - increase difficulty (level will increment on next wave start)
                     marketCycle++;
                     window.marketCycle = marketCycle; // Update global
                     checkWeaponUnlocks(marketCycle); // Check for new weapon unlocks
@@ -2650,6 +2666,7 @@ function updateGrazeUI() {
 function checkBulletCollisions(b, bIdx) {
     for (let j = enemies.length - 1; j >= 0; j--) {
         let e = enemies[j];
+        if (!e) continue; // Safety check: enemy may have been removed during iteration
         if (Math.abs(b.x - e.x) < 40 && Math.abs(b.y - e.y) < 40) { // Adjusted for larger enemies
             const baseDmg = player.stats.baseDamage || 14;
             const dmgMult = (runState && runState.getMod) ? runState.getMod('damageMult', 1) : 1;
@@ -2759,6 +2776,7 @@ function updateEnemies(dt) {
 
     for (let i = 0; i < enemies.length; i++) {
         const e = enemies[i];
+        if (!e) continue; // Safety check
         e.update(dt, totalTime, lastWavePattern, currentGridSpeed, gridDir, player.x, player.y);
         if ((gridDir === 1 && e.x > gameWidth - 20) || (gridDir === -1 && e.x < 20)) hitEdge = true;
 
@@ -2892,6 +2910,7 @@ function draw() {
         // Enemies (for loop instead of forEach) with off-screen culling
         for (let i = 0; i < enemies.length; i++) {
             const e = enemies[i];
+            if (!e) continue; // Safety check
             // Skip draw if completely off-screen (65px is enemy size)
             if (e.x > -65 && e.x < gameWidth + 65 && e.y > -65 && e.y < gameHeight + 65) {
                 e.draw(ctx);
@@ -2927,6 +2946,7 @@ function draw() {
         // Enemy bullets with culling
         for (let i = 0; i < enemyBullets.length; i++) {
             const eb = enemyBullets[i];
+            if (!eb) continue; // Safety check
             // Off-screen culling (X and Y)
             if (eb.x > -20 && eb.x < gameWidth + 20 && eb.y > -20 && eb.y < gameHeight + 20) eb.draw(ctx);
         }
@@ -2934,6 +2954,7 @@ function draw() {
         // PowerUps with off-screen culling
         for (let i = 0; i < powerUps.length; i++) {
             const p = powerUps[i];
+            if (!p) continue; // Safety check
             // Skip draw if completely off-screen (40px is powerup size)
             if (p.x > -40 && p.x < gameWidth + 40 && p.y > -40 && p.y < gameHeight + 40) {
                 p.draw(ctx);
@@ -4299,6 +4320,7 @@ function triggerGameOver() {
 function updatePowerUps(dt) {
     for (let i = powerUps.length - 1; i >= 0; i--) {
         let p = powerUps[i];
+        if (!p) { powerUps.splice(i, 1); continue; } // Safety check
         p.update(dt);
         if (p.markedForDeletion) {
             powerUps.splice(i, 1);

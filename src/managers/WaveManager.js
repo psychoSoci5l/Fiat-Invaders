@@ -15,6 +15,7 @@ window.Game.WaveManager = {
         this.wave = 1;
         this.waveInProgress = false;
         this.intermissionTimer = 0;
+        this.miniBossActive = false;
     },
 
     /**
@@ -37,7 +38,8 @@ window.Game.WaveManager = {
             return null;
         }
 
-        if (!bossActive && enemiesCount === 0 && !this.waveInProgress && gameState === 'PLAY') {
+        // Don't spawn new waves during mini-boss fight
+        if (!bossActive && !this.miniBossActive && enemiesCount === 0 && !this.waveInProgress && gameState === 'PLAY') {
             this.waveInProgress = true;
             if (this.wave <= this.getWavesPerCycle()) return { action: 'START_INTERMISSION' };
             else return { action: 'SPAWN_BOSS' };
