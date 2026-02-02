@@ -1,5 +1,28 @@
 # Changelog
 
+## v2.9.1 - 2026-02-02
+### Intro Screen Redesign
+
+**Unified Two-Phase Intro**
+- Single screen with element show/hide (no page jump)
+- Splash state: Title + BTC ship + TAP TO START
+- Selection state: Ship arrows + stats + mode toggle + LAUNCH
+- Smooth transition - ship stays in place while UI elements fade in/out
+
+**Ship Preview**
+- Detailed cell-shaded rendering (matches in-game ship)
+- 4-layer animated reactor flames
+- Two-tone body with shadow/highlight
+- Fins, cockpit, and crypto symbol
+
+**UI Polish**
+- TAP TO START button with shine sweep effect and pulse animation
+- Yellow cell-shaded icon buttons restored (mute/settings)
+- Staggered fade animations for selection elements
+- Responsive font sizes with clamp()
+
+---
+
 ## v2.9.0 - 2026-02-02
 ### Phase 20: Gameplay Redesign (Complete)
 

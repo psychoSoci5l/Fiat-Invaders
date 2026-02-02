@@ -450,6 +450,29 @@
 
 ---
 
+## Phase 20.5: Intro Screen Redesign ✅
+*Goal: Polished two-phase intro with smooth transitions.*
+
+### Unified Intro Structure:
+- [x] **Single Screen**: Replaced two separate divs with unified element show/hide
+- [x] **Splash State**: Title + BTC ship + TAP TO START + yellow icons
+- [x] **Selection State**: Ship arrows + stats + mode toggle + LAUNCH button
+- [x] **Smooth Transition**: Ship canvas stays in place, elements fade in/out
+
+### Ship Preview:
+- [x] **Cell-Shaded Rendering**: Matches in-game ship (two-tone body, shadows)
+- [x] **4-Layer Flames**: Red outer → orange → yellow → white core
+- [x] **Full Details**: Fins, cockpit with highlight, crypto symbol (₿/Ξ/◎)
+- [x] **Hover Animation**: Gentle floating motion
+
+### UI Polish:
+- [x] **TAP TO START**: Shine sweep effect + pulse animation + 3D shadow
+- [x] **Icon Buttons**: Yellow cell-shaded style restored (mute/settings)
+- [x] **Staggered Animations**: Selection elements fade in sequentially
+- [x] **Responsive Sizing**: clamp() for fonts, flexible layout
+
+---
+
 ## Phase 21: Leaderboards & Social 🏆 (Future)
 *Goal: Competition and sharing.*
 - [ ] **Local Leaderboard**: Top 10 scores with date
