@@ -426,17 +426,18 @@ function drawTypedMessages(ctx) {
 
         ctx.save();
         ctx.globalAlpha = alpha;
+        ctx.font = 'bold 24px "Press Start 2P", monospace'; // Set font BEFORE measureText
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        const textWidth = ctx.measureText(m.text).width || 200;
         ctx.fillStyle = 'rgba(0, 50, 0, 0.8)';
         ctx.strokeStyle = '#00FF00';
         ctx.lineWidth = 2;
-        const textWidth = ctx.measureText(m.text).width || 200;
         ctx.fillRect(cx - textWidth/2 - 20, y - 18, textWidth + 40, 36);
         ctx.strokeRect(cx - textWidth/2 - 20, y - 18, textWidth + 40, 36);
 
         ctx.fillStyle = '#00FF00';
-        ctx.font = 'bold 24px "Press Start 2P", monospace';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
         ctx.fillText(m.text, cx, y);
         ctx.restore();
     });
@@ -449,21 +450,22 @@ function drawTypedMessages(ctx) {
 
         ctx.save();
         ctx.globalAlpha = alpha;
+        ctx.font = 'bold 28px "Press Start 2P", monospace'; // Set font BEFORE measureText
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        const textWidth = ctx.measureText(m.text).width || 300;
 
         // Pulsing red background
         ctx.fillStyle = `rgba(80, 0, 0, ${0.9 * pulse})`;
         ctx.strokeStyle = '#FF0000';
         ctx.lineWidth = 4 + pulse * 2;
-        const textWidth = ctx.measureText(m.text).width || 300;
         ctx.fillRect(cx - textWidth/2 - 30, y - 25, textWidth + 60, 50);
         ctx.strokeRect(cx - textWidth/2 - 30, y - 25, textWidth + 60, 50);
 
         ctx.fillStyle = '#FF4444';
         ctx.shadowColor = '#FF0000';
         ctx.shadowBlur = 15;
-        ctx.font = 'bold 28px "Press Start 2P", monospace';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
         ctx.fillText(m.text, cx, y);
         ctx.restore();
     });
@@ -476,6 +478,12 @@ function drawTypedMessages(ctx) {
 
         ctx.save();
         ctx.globalAlpha = alpha;
+        ctx.font = 'bold 32px "Press Start 2P", monospace'; // Set font BEFORE measureText
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        const textWidth = ctx.measureText(m.text).width || 300;
+
         ctx.translate(cx, y);
         ctx.scale(scale, scale);
 
@@ -483,16 +491,12 @@ function drawTypedMessages(ctx) {
         ctx.fillStyle = 'rgba(50, 40, 0, 0.9)';
         ctx.strokeStyle = '#FFD700';
         ctx.lineWidth = 3;
-        const textWidth = ctx.measureText(m.text).width || 300;
         ctx.fillRect(-textWidth/2 - 30, -30, textWidth + 60, 60);
         ctx.strokeRect(-textWidth/2 - 30, -30, textWidth + 60, 60);
 
         ctx.fillStyle = '#FFD700';
         ctx.shadowColor = '#FFD700';
         ctx.shadowBlur = 20;
-        ctx.font = 'bold 32px "Press Start 2P", monospace';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
         ctx.fillText(m.text, 0, 0);
         ctx.restore();
     });

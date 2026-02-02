@@ -1,5 +1,20 @@
 # Changelog
 
+## v2.13.2 - 2026-02-02
+### Bug Fixes: iOS Button Overlap & HUD Message Box Rendering
+
+**iOS Intro Screen**
+- `.intro-icons`: Added `env(safe-area-inset-bottom)` and reduced from 100px to 70px
+- `.intro-version`: Added `env(safe-area-inset-bottom)` and reduced from 30px to 20px
+- Fixes mute/settings/manual buttons overlapping LAUNCH button on iOS
+
+**HUD Message Boxes (Canvas)**
+- Fixed `ctx.measureText()` called BEFORE `ctx.font` was set
+- GAME_INFO, DANGER, VICTORY messages now measure text width correctly
+- Boxes now properly fit the text content
+
+---
+
 ## v2.13.1 - 2026-02-02
 ### iOS Safari Safe Area Compatibility
 

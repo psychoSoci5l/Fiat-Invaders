@@ -803,14 +803,14 @@ body {
 /* Bottom icons */
 .intro-icons {
     position: absolute;
-    bottom: 100px;
+    bottom: calc(70px + env(safe-area-inset-bottom, 0px));
     display: flex;
     gap: 20px;
 }
 
 .intro-version {
     position: absolute;
-    bottom: 30px;
+    bottom: calc(20px + env(safe-area-inset-bottom, 0px));
     font-size: 14px;
     color: rgba(255, 255, 255, 0.4);
     letter-spacing: 3px;
