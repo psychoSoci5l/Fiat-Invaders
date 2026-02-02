@@ -281,216 +281,35 @@ const POWERUP_MEMES = {
 // MESSAGE SYSTEM - Visual Categories
 // ============================================
 
-// Meme colors pool (fun, vibrant)
-const MEME_COLORS = ['#00FFFF', '#FF00FF', '#00FF00', '#FFD700', '#FF6B6B', '#4ECDC4'];
+// Message system moved to MessageSystem.js
 
-// Anti-overlap system
-let memePopupTimer = null;
-let lastPopupTime = 0;
-let popupQueue = [];
-const POPUP_COOLDOWN = 600; // ms between popups
-const MSG_PRIORITY = { DANGER: 4, VICTORY: 3, POWERUP: 2, MEME: 1 };
-let currentPopupPriority = 0;
-
-function canShowPopup(priority) {
-    const now = Date.now();
-    // Always allow higher priority to interrupt
-    if (priority > currentPopupPriority) return true;
-    // Check cooldown for same/lower priority
-    return (now - lastPopupTime) >= POPUP_COOLDOWN;
-}
-
-function showPopupInternal(text, duration, color, fontSize, top, left, rotation, priority) {
-    const el = document.getElementById('meme-popup');
-    if (!el) return;
-
-    if (!canShowPopup(priority)) {
-        // Queue lower priority messages (max 2 in queue)
-        if (popupQueue.length < 2 && priority >= MSG_PRIORITY.POWERUP) {
-            popupQueue.push({ text, duration, color, fontSize, top, left, rotation, priority });
-        }
-        return;
-    }
-
-    lastPopupTime = Date.now();
-    currentPopupPriority = priority;
-
-    el.textContent = text;
-    el.style.color = color;
-    el.style.fontSize = fontSize;
-    el.style.transform = rotation;
-    el.style.top = top;
-    el.style.left = left;
-    el.classList.add('show');
-
-    clearTimeout(memePopupTimer);
-    memePopupTimer = setTimeout(() => {
-        el.classList.remove('show');
-        el.style.transform = 'translate(-50%, -50%)';
-        el.style.top = '50%';
-        el.style.left = '50%';
-        currentPopupPriority = 0;
-
-        // Process queue
-        if (popupQueue.length > 0) {
-            const next = popupQueue.shift();
-            setTimeout(() => {
-                showPopupInternal(next.text, next.duration, next.color, next.fontSize, next.top, next.left, next.rotation, next.priority);
-            }, 100);
-        }
-    }, duration);
-
-    audioSys.play('coinUI');
-}
-
-// Message display functions (check HUD_MESSAGES flags for clean testing)
-// Each type has distinct visual style and position for quick recognition
-
-// Separate message queues for each type (independent of FLOATING_TEXT)
-let gameInfoMessages = [];   // Green, top area
-let dangerMessages = [];     // Red, center, pulsing
-let victoryMessages = [];    // Gold, center, celebratory
-
+// Message functions - delegate to MessageSystem
 function showMemeFun(text, duration = 1500) {
-    if (!Balance.HUD_MESSAGES.MEME_POPUP) return;
-    const color = MEME_COLORS[Math.floor(Math.random() * MEME_COLORS.length)];
-    const fontSize = (24 + Math.random() * 12) + 'px';
-    const rotation = `translate(-50%, -50%) rotate(${(Math.random() - 0.5) * 10}deg)`;
-    const top = (30 + Math.random() * 40) + '%';
-    const left = (30 + Math.random() * 40) + '%';
-    showPopupInternal(text, duration, color, fontSize, top, left, rotation, MSG_PRIORITY.MEME);
+    if (G.MessageSystem) G.MessageSystem.showMemeFun(text, duration);
 }
-
 function showPowerUp(text) {
-    if (!Balance.HUD_MESSAGES.POWERUP_POPUP) return;
-    showPopupInternal(text, 800, '#FFD700', '24px', '75%', '50%', 'translate(-50%, -50%)', MSG_PRIORITY.POWERUP);
+    if (G.MessageSystem) G.MessageSystem.showPowerUp(text);
 }
-
-// GAME_INFO: Green box at top - progression feedback (LEVEL, WAVE)
 function showGameInfo(text) {
-    if (!Balance.HUD_MESSAGES.GAME_INFO) return;
-    gameInfoMessages = [{ text, life: 2.0, maxLife: 2.0 }]; // Replace, don't stack
+    if (G.MessageSystem) G.MessageSystem.showGameInfo(text);
 }
-
-// DANGER: Red pulsing at center - warnings require attention
 function showDanger(text) {
-    if (!Balance.HUD_MESSAGES.DANGER) return;
-    dangerMessages = [{ text, life: 2.5, maxLife: 2.5 }];
-    shake = Math.max(shake, 20);
+    if (G.MessageSystem) G.MessageSystem.showDanger(text, 20);
+    else shake = Math.max(shake, 20); // Fallback shake
 }
-
-// VICTORY: Gold celebratory at center - achievements
 function showVictory(text) {
-    if (!Balance.HUD_MESSAGES.VICTORY) return;
-    victoryMessages = [{ text, life: 3.0, maxLife: 3.0 }];
+    if (G.MessageSystem) G.MessageSystem.showVictory(text);
 }
-
 function showMemePopup(text, duration = 1500) {
-    showMemeFun(text, duration);
+    if (G.MessageSystem) G.MessageSystem.showMemePopup(text, duration);
 }
-
-// Update typed messages (called in main loop)
 function updateTypedMessages(dt) {
-    for (let i = gameInfoMessages.length - 1; i >= 0; i--) {
-        gameInfoMessages[i].life -= dt;
-        if (gameInfoMessages[i].life <= 0) gameInfoMessages.splice(i, 1);
-    }
-    for (let i = dangerMessages.length - 1; i >= 0; i--) {
-        dangerMessages[i].life -= dt;
-        if (dangerMessages[i].life <= 0) dangerMessages.splice(i, 1);
-    }
-    for (let i = victoryMessages.length - 1; i >= 0; i--) {
-        victoryMessages[i].life -= dt;
-        if (victoryMessages[i].life <= 0) victoryMessages.splice(i, 1);
-    }
+    if (G.MessageSystem) G.MessageSystem.update(dt);
 }
-
-// Draw typed messages with distinct styles
 function drawTypedMessages(ctx) {
-    const cx = gameWidth / 2;
-
-    // GAME_INFO: Top area, green box, clean
-    gameInfoMessages.forEach(m => {
-        const alpha = Math.min(1, m.life * 2);
-        const y = 130 - (1 - m.life / m.maxLife) * 20; // Slide up
-
-        ctx.save();
-        ctx.globalAlpha = alpha;
-        ctx.font = 'bold 24px "Press Start 2P", monospace'; // Set font BEFORE measureText
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-
-        const textWidth = ctx.measureText(m.text).width || 200;
-        ctx.fillStyle = 'rgba(0, 50, 0, 0.8)';
-        ctx.strokeStyle = '#00FF00';
-        ctx.lineWidth = 2;
-        ctx.fillRect(cx - textWidth/2 - 20, y - 18, textWidth + 40, 36);
-        ctx.strokeRect(cx - textWidth/2 - 20, y - 18, textWidth + 40, 36);
-
-        ctx.fillStyle = '#00FF00';
-        ctx.fillText(m.text, cx, y);
-        ctx.restore();
-    });
-
-    // DANGER: Center, red pulsing border, attention-grabbing
-    dangerMessages.forEach(m => {
-        const alpha = Math.min(1, m.life);
-        const pulse = Math.sin(totalTime * 10) * 0.3 + 0.7;
-        const y = gameHeight / 2 - 30;
-
-        ctx.save();
-        ctx.globalAlpha = alpha;
-        ctx.font = 'bold 28px "Press Start 2P", monospace'; // Set font BEFORE measureText
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-
-        const textWidth = ctx.measureText(m.text).width || 300;
-
-        // Pulsing red background
-        ctx.fillStyle = `rgba(80, 0, 0, ${0.9 * pulse})`;
-        ctx.strokeStyle = '#FF0000';
-        ctx.lineWidth = 4 + pulse * 2;
-        ctx.fillRect(cx - textWidth/2 - 30, y - 25, textWidth + 60, 50);
-        ctx.strokeRect(cx - textWidth/2 - 30, y - 25, textWidth + 60, 50);
-
-        ctx.fillStyle = '#FF4444';
-        ctx.shadowColor = '#FF0000';
-        ctx.shadowBlur = 15;
-        ctx.fillText(m.text, cx, y);
-        ctx.restore();
-    });
-
-    // VICTORY: Center, gold with glow, celebratory
-    victoryMessages.forEach(m => {
-        const alpha = Math.min(1, m.life);
-        const scale = 1 + Math.sin(totalTime * 5) * 0.05;
-        const y = gameHeight / 2;
-
-        ctx.save();
-        ctx.globalAlpha = alpha;
-        ctx.font = 'bold 32px "Press Start 2P", monospace'; // Set font BEFORE measureText
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-
-        const textWidth = ctx.measureText(m.text).width || 300;
-
-        ctx.translate(cx, y);
-        ctx.scale(scale, scale);
-
-        // Gold glow background
-        ctx.fillStyle = 'rgba(50, 40, 0, 0.9)';
-        ctx.strokeStyle = '#FFD700';
-        ctx.lineWidth = 3;
-        ctx.fillRect(-textWidth/2 - 30, -30, textWidth + 60, 60);
-        ctx.strokeRect(-textWidth/2 - 30, -30, textWidth + 60, 60);
-
-        ctx.fillStyle = '#FFD700';
-        ctx.shadowColor = '#FFD700';
-        ctx.shadowBlur = 20;
-        ctx.fillText(m.text, 0, 0);
-        ctx.restore();
-    });
+    if (G.MessageSystem) G.MessageSystem.draw(ctx, totalTime);
 }
+
 function canOfferPerk(perk) {
     if (!runState || !runState.perkStacks) return true;
     const stacks = runState.perkStacks[perk.id] || 0;
@@ -1401,6 +1220,10 @@ window.goToHangar = function () {
     setStyle('hangar-screen', 'display', 'flex');
     gameState = 'HANGAR';
     if (G.SkyRenderer) G.SkyRenderer.init(gameWidth, gameHeight); // Start BG effect early
+    if (G.MessageSystem) G.MessageSystem.init(gameWidth, gameHeight, {
+        onShake: (intensity) => { shake = Math.max(shake, intensity); },
+        onPlaySound: (sound) => { if (audioSys) audioSys.play(sound); }
+    });
 }
 
 // Ship launch animation - goes directly to game (skips hangar)
