@@ -503,7 +503,71 @@
 
 ---
 
-## Phase 22: Leaderboards & Social 🏆 (Future)
+## Phase 21.5: Technical Revision v2.11.0 🔧 ✅
+*Goal: Fix critical and high-priority bugs identified in code audit.*
+
+### Critical Fixes
+- [x] **Division by Zero (Bullet.js:78)**: Guard clause for homing when dist < 1
+- [x] **Double Release (main.js:2894)**: Removed Pool.release, keep only markedForDeletion
+
+### High Priority Fixes
+- [x] **lastGrazeTime Init (main.js:1854)**: Set to totalTime instead of 0
+- [x] **Pool indexOf Safety (main.js:521)**: Check idx !== -1 before splice
+- [x] **Speed Normalization (Bullet.js:88)**: Added `|| 1` fallback
+
+### Excluded (False Positives)
+- InputSystem event leak: `init()` called once, no accumulation
+- ObjectPool double-release: Already protected with indexOf check
+- Enemy bullet race: Protected by existing markedForDeletion check
+
+---
+
+## Phase 21.6: Campaign Mode Fix v2.11.1 🔧 ✅
+*Goal: Fix campaign completion bug.*
+
+### Bug Fix
+- [x] **Campaign Auto-Complete Bug**: Campaign showed "complete" after defeating 1 boss
+  - Root cause: localStorage retained defeated boss states from previous sessions
+  - Fix: Auto-reset campaign when already complete (on mode select or game start)
+  - Files: main.js (setGameMode, startGame)
+
+---
+
+## Phase 22: Technical Debt v2.12.0 🔧 (Next)
+*Goal: Code quality, maintainability, and test coverage.*
+
+### A) Code Refactoring
+- [ ] **main.js Decomposition**: Split 4000+ line file into logical modules
+  - GameLoop.js (update/draw cycle)
+  - CollisionSystem.js (all collision detection)
+  - UIManager.js (HUD, messages, screens)
+  - StateManager.js (game states, transitions)
+- [ ] **Global Variable Cleanup**: Move globals into RunState or dedicated managers
+- [ ] **Magic Numbers**: Extract remaining hardcoded values to BalanceConfig
+
+### B) Module Consolidation
+- [ ] **Entity Factory**: Centralize entity creation (bullets, enemies, powerups)
+- [ ] **Event System Audit**: Document all events, remove unused ones
+- [ ] **Audio Presets**: Consolidate sound definitions into AudioConfig.js
+
+### C) Performance Optimization
+- [ ] **Spatial Partitioning**: Grid-based collision for O(n) instead of O(n²)
+- [ ] **Draw Call Batching**: Group similar entities for fewer ctx state changes
+- [ ] **Memory Profiling**: Identify and fix any memory leaks
+
+### D) Test Coverage
+- [ ] **Unit Tests**: Core systems (CampaignState, DropSystem, WaveManager)
+- [ ] **Integration Tests**: Game flow (start → wave → boss → cycle)
+- [ ] **Regression Tests**: Automated checks for fixed bugs
+
+### E) Documentation
+- [ ] **Code Comments**: JSDoc for all public methods
+- [ ] **Architecture Diagram**: Visual module dependency map
+- [ ] **API Reference**: Document window.Game namespace
+
+---
+
+## Phase 23: Leaderboards & Social 🏆 (Future)
 *Goal: Competition and sharing.*
 - [ ] **Local Leaderboard**: Top 10 scores with date
 - [ ] **Share Score**: Screenshot + share button

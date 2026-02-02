@@ -76,19 +76,23 @@ class Bullet extends window.Game.Entity {
                 const dx = nearestTarget.x - this.x;
                 const dy = nearestTarget.y - this.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
-                const targetVx = (dx / dist) * Math.abs(this.vy || 200);
-                const targetVy = (dy / dist) * Math.abs(this.vy || 200);
+                if (dist < 1) {
+                    // Skip homing if too close (prevents NaN from division by zero)
+                } else {
+                    const targetVx = (dx / dist) * Math.abs(this.vy || 200);
+                    const targetVy = (dy / dist) * Math.abs(this.vy || 200);
 
-                // Gradual turn towards target
-                const turnRate = this.homingSpeed * dt;
-                this.vx += (targetVx - this.vx) * turnRate;
-                this.vy += (targetVy - this.vy) * turnRate;
+                    // Gradual turn towards target
+                    const turnRate = this.homingSpeed * dt;
+                    this.vx += (targetVx - this.vx) * turnRate;
+                    this.vy += (targetVy - this.vy) * turnRate;
 
-                // Normalize speed
-                const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
-                const targetSpeed = 200; // Base homing speed
-                this.vx = (this.vx / speed) * targetSpeed;
-                this.vy = (this.vy / speed) * targetSpeed;
+                    // Normalize speed (|| 1 prevents division by zero if bullet is stationary)
+                    const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy) || 1;
+                    const targetSpeed = 200; // Base homing speed
+                    this.vx = (this.vx / speed) * targetSpeed;
+                    this.vy = (this.vy / speed) * targetSpeed;
+                }
             }
         }
 

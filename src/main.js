@@ -518,7 +518,8 @@ function pickPerkOffers(count) {
         const picked = rollWeighted(pool);
         if (!picked) break;
         picks.push(picked);
-        pool.splice(pool.indexOf(picked), 1);
+        const idx = pool.indexOf(picked);
+        if (idx !== -1) pool.splice(idx, 1);
     }
     return picks;
 }
@@ -686,6 +687,11 @@ window.setGameMode = function(mode) {
     const campaignState = G.CampaignState;
     const isEnabled = mode === 'campaign';
     campaignState.setEnabled(isEnabled);
+
+    // Reset campaign if already complete (fresh start after victory)
+    if (isEnabled && campaignState.isCampaignComplete()) {
+        campaignState.resetCampaign();
+    }
 
     // Update buttons
     const arcadeBtn = document.getElementById('mode-arcade');
@@ -1827,6 +1833,13 @@ function startGame() {
     gameState = 'PLAY';
     player.resetState();
 
+    // Reset campaign if already complete (allow fresh start after victory)
+    const campaignState = G.CampaignState;
+    if (campaignState && campaignState.isEnabled() && campaignState.isCampaignComplete()) {
+        campaignState.resetCampaign();
+        updateCampaignProgressUI();
+    }
+
     if (isBearMarket) {
         player.hp = 1; // ONE HIT KILL
         player.maxHp = 1; // Full bar but Red (logic handled in updateLivesUI)
@@ -1851,7 +1864,7 @@ function startGame() {
     G.DropSystem.reset(); // Reset drop system (pity timer, weapon cooldown, boss drops)
     G.MemeEngine.reset(); // Reset meme engine (ticker timer, popup cooldown)
     grazePerksThisLevel = 0; // Reset graze perk cap
-    lastGrazeTime = 0; // Reset graze decay
+    lastGrazeTime = totalTime; // Reset graze decay to current time
     perkPauseTimer = 0; // Reset perk pause
     perkPauseData = null;
     bossWarningTimer = 0; // Reset boss warning
@@ -2889,21 +2902,10 @@ function startDeathSequence() {
     audioSys.play('explosion');
     shake = Balance.EFFECTS.SHAKE.PLAYER_DEATH;
 
-    // 3. Clear Bullets (Fairness)
-    // 3. Clear Bullets (Fairness) - Mark for deletion to avoid loop crashes
+    // 3. Clear Bullets (Fairness) - Mark for deletion, let update loop release
     enemyBullets.forEach(b => {
         b.markedForDeletion = true;
-        window.Game.Bullet.Pool.release(b); // Release immediately or let loop handle it? 
-        // Better: just mark them. But we need to ensure they don't hit player again this frame.
-        // Actually, loop handles deletion. Just marking is safe.
-        // But wait, if I release them here, and loop continues, loop will access released object?
-        // Safe bet: Just clear the array safely? No, loop index issue.
-        // Safest: enemyBullets.forEach(b => b.markedForDeletion = true);
     });
-    // To be absolutely safe and instant:
-    // We can't clear the array if we are iterating it.
-    // So we just mark them. The update loop checks markedForDeletion at start of iteration.
-    enemyBullets.forEach(b => b.markedForDeletion = true);
 }
 
 function executeDeath() {

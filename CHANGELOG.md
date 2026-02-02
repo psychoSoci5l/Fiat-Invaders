@@ -1,5 +1,33 @@
 # Changelog
 
+## v2.11.1 - 2026-02-02
+### Campaign Mode Fix
+
+**Bug Fix**
+- Fixed campaign completion triggering after defeating just one boss
+- Root cause: localStorage retained defeated boss states from previous sessions
+- Campaign now auto-resets when already complete (on mode select or game start)
+
+---
+
+## v2.11.0 - 2026-02-02
+### Technical Revision - Bug Fixes
+
+**Critical Fixes**
+- Fixed division by zero in Bullet homing logic when bullet and target coincide (Bullet.js:78)
+- Fixed startDeathSequence double-release bug causing wasted cycles (main.js:2894)
+
+**High Priority Fixes**
+- Fixed lastGrazeTime initialization causing immediate decay on game start (main.js:1854)
+- Fixed pool indexOf safety issue that could remove wrong element if index was -1 (main.js:521)
+- Added fallback for bullet speed normalization to prevent NaN from stationary bullets (Bullet.js:88)
+
+**Code Quality**
+- Conservative approach: only defensive fixes, no gameplay changes
+- All fixes use guard clauses and fallback values
+
+---
+
 ## v2.10.0 - 2026-02-02
 ### Interactive Player Manual
 
