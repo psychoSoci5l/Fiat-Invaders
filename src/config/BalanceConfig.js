@@ -482,6 +482,15 @@
             PERK_BAR_TOP: 100,            // Perk display position
             GAMEPLAY_START: 145,          // Where gameplay area begins (boss targetY)
 
+            // Dynamic safe area offset (iOS notch/safe areas)
+            get SAFE_OFFSET() {
+                return (window.safeAreaInsets?.top || 0);
+            },
+            // Gameplay start with safe area offset applied
+            get GAMEPLAY_START_SAFE() {
+                return this.GAMEPLAY_START + this.SAFE_OFFSET;
+            },
+
             // Z-indices
             Z_INDEX: {
                 TOUCH_CONTROLS: 50,

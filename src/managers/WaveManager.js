@@ -65,7 +65,8 @@ window.Game.WaveManager = {
         const spacing = 75; // Wider spacing for larger enemies
         const cols = Math.floor((gameWidth - 40) / spacing); // Fewer columns
         const startX = (gameWidth - (cols * spacing)) / 2 + (spacing / 2);
-        const startY = 150; // Slightly lower start
+        const safeOffset = window.safeAreaInsets?.top || 0;
+        const startY = 150 + safeOffset; // Below HUD + safe area
         const maxY = 380;
         const maxRows = Math.min(rows, Math.floor((maxY - startY) / spacing) + 1);
 

@@ -1,5 +1,29 @@
 # Changelog
 
+## v2.13.1 - 2026-02-02
+### iOS Safari Safe Area Compatibility
+
+**CSS Safe Area Support**
+- `.hud-top-bar`: Added `env(safe-area-inset-top)` padding for notched devices
+- `#perk-bar`: Position now respects top safe area inset
+- `#joystick`: Position now respects bottom safe area inset (home bar)
+- `.touch-shield-btn`: Position now respects bottom safe area inset
+- `#pause-btn`: Position now respects bottom safe area inset
+- `#control-toast`: Position now respects bottom safe area inset
+
+**JavaScript Safe Area Offset**
+- `BalanceConfig.js`: Added `UI.SAFE_OFFSET` and `UI.GAMEPLAY_START_SAFE` dynamic getters
+- `WaveManager.js`: Enemy spawn Y now includes `safeAreaInsets.top` offset
+- `Boss.js`: Boss `targetY` now includes `safeAreaInsets.top` offset
+
+**Benefits**
+- HUD elements no longer hidden under iOS notch
+- Touch controls no longer blocked by iOS home bar
+- Enemy grid and boss spawn below safe area on notched devices
+- Desktop experience unchanged (env() returns 0px by default)
+
+---
+
 ## v2.13.0 - 2026-02-02
 ### Phase 23: Enemy Firing System Refactor
 

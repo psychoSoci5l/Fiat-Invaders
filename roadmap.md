@@ -21,6 +21,7 @@
 *Goal: It feels like an App, not a website.*
 - [x] **Viewport Management**: Prevent all rubber-banding/zooming.
 - [x] **Notch Support**: CSS updates for Safe Areas.
+- [x] **Safe Area v2 (v2.13.1)**: Full env() safe-area-inset support for HUD, controls, and game logic.
 - [x] **Touch Control v2**: Refine the touch zones and sensitivity for mobile play.
 - [x] **Haptics**: Add vibration feedback (Navigator.vibrate for now, Capacitor Haptics later).
 
