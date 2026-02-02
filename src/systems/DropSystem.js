@@ -102,14 +102,24 @@
          */
         tryEnemyDrop(enemySymbol, enemyX, enemyY, totalTime, getUnlockedWeapons) {
             const Balance = G.Balance;
+            const cycle = window.marketCycle || 1;
 
             this.killsSinceLastDrop++;
 
-            // Determine drop chance based on enemy tier
-            const dropChance = Balance.getDropChance(enemySymbol);
+            // Base drop chance from enemy tier
+            let dropChance = Balance.getDropChance(enemySymbol);
 
-            // Pity timer: guaranteed drop after N kills without any drop
-            const pityDrop = this.killsSinceLastDrop >= Balance.DROPS.PITY_TIMER_KILLS;
+            // Cycle bonus: +1% per cycle to help with increasing difficulty
+            if (Balance.DROP_SCALING) {
+                dropChance += (cycle - 1) * Balance.DROP_SCALING.CYCLE_BONUS;
+            }
+
+            // Pity timer: decreases with cycle (more forgiving at higher difficulty)
+            let pityThreshold = Balance.DROPS.PITY_TIMER_KILLS;
+            if (Balance.DROP_SCALING) {
+                pityThreshold = Math.max(15, Balance.DROP_SCALING.PITY_BASE - (cycle - 1) * Balance.DROP_SCALING.PITY_REDUCTION);
+            }
+            const pityDrop = this.killsSinceLastDrop >= pityThreshold;
 
             if (pityDrop || Math.random() < dropChance) {
                 const dropInfo = this.selectDropType(totalTime, getUnlockedWeapons);

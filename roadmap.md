@@ -426,22 +426,28 @@
 
 ---
 
-## Phase 20: Gameplay Redesign 🎮 (Next)
+## Phase 20: Gameplay Redesign 🎮 (In Progress)
 *Goal: Ridefinire il gameplay da zero sfruttando la centralizzazione dei parametri.*
 
-### Obiettivi:
-- [ ] **Revisione completa del bilanciamento** via BalanceConfig.js
-- [ ] **Curva di difficoltà** ripensata (livelli, cicli, bear market)
-- [ ] **Sistema di scoring** ridefinito (multiplier, bonus, combo)
-- [ ] **Power-up system** rivisto (drop rate, durate, effetti)
-- [ ] **Boss fights** ribilanciati (fasi, HP, pattern)
-- [ ] **Perk system** ottimizzato (trigger, cooldown, effetti)
+### Completati:
+- [x] **Curva di difficoltà a scalini** - Progressione per ciclo (0.0 → 0.30 → 0.60)
+- [x] **Sistema grazing potenziato** - Punti 5→25, close bonus 2x→3x, multiplier 1.5x→2.5x
+- [x] **Pattern density centralizzata** - Balance.PATTERNS con gapSize, maxBullets, complexity per ciclo
+- [x] **HUD Messages toggle** - Balance.HUD_MESSAGES per testing pulito
+- [x] **Sistema di scoring** - Kill streak (+10%/kill, max 2x), graze-kill synergy (+50% bonus)
+- [x] **Power-up system** - Durate differenziate (base 10s, adv 8s, elite 6s), drop scaling con ciclo
+- [x] **Boss fights centralizzati** - HP/fire rates/speeds in Balance.BOSS. HP: 1000 + level*30 + cycle*400
 
-### Vantaggi della centralizzazione:
-- Tutti i parametri in un unico file (BalanceConfig.js)
-- Test rapido di configurazioni alternative
-- Nessun rischio di formule duplicate
-- Documentazione implicita dei valori
+### Da completare:
+- [ ] **Perk system** ottimizzato (trigger, cooldown, effetti)
+- [ ] **Intro screen redesign** - Ship preview compatta, sfondo trasparente, layout ottimizzato
+- [ ] **Level progression fix** - Problemi segnalati nella successione dei livelli
+
+### Principi guida (Ikeda Rules):
+1. **Core Hitbox** - Difficoltà da pattern, non hitbox sleali
+2. **Geometria Ipnotica** - Corridoi leggibili anche con molti proiettili
+3. **Grazing** - Rischio = ricompensa, fonte principale di score
+4. **Climax Visivo** - Densità alta ma sempre leggibile
 
 ---
 

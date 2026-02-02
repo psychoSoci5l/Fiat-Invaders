@@ -55,46 +55,9 @@ window.Game.HarmonicConductor = {
     },
 
     setDifficulty(level, marketCycle, isBearMarket) {
-        const base = (level - 1) * 0.08;
-        const cycleBonus = (marketCycle - 1) * 0.20;
-        const diff = Math.min(0.85, base + cycleBonus);
-
-        if (level === 1) {
-            this.difficultyParams = {
-                gapSize: 100,
-                telegraphTime: 0.3,
-                maxBullets: 12,
-                complexity: 1
-            };
-        } else if (level <= 3) {
-            this.difficultyParams = {
-                gapSize: 80,
-                telegraphTime: 0.2,
-                maxBullets: 25,
-                complexity: 2
-            };
-        } else if (level <= 5) {
-            this.difficultyParams = {
-                gapSize: 65,
-                telegraphTime: 0.15,
-                maxBullets: 40,
-                complexity: 3
-            };
-        } else {
-            this.difficultyParams = {
-                gapSize: 55,
-                telegraphTime: 0.12,
-                maxBullets: 60,
-                complexity: 4
-            };
-        }
-
-        if (isBearMarket) {
-            this.difficultyParams.gapSize = Math.max(50, this.difficultyParams.gapSize - 10);
-            this.difficultyParams.telegraphTime *= 0.8;
-            this.difficultyParams.maxBullets = Math.min(80, this.difficultyParams.maxBullets * 1.3);
-            this.difficultyParams.complexity = Math.min(5, this.difficultyParams.complexity + 1);
-        }
+        // Get pattern params from centralized Balance config
+        const Balance = window.Game.Balance;
+        this.difficultyParams = Balance.getPatternParams(marketCycle, isBearMarket);
     },
 
     setSequence(wavePattern, intensity, isBearMarket) {

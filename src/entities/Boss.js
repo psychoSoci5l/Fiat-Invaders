@@ -28,7 +28,11 @@ class Boss extends window.Game.Entity {
 
         this.targetY = 145; // Below safe zone (HUD + perk bar)
         this.dir = 1;
-        this.moveSpeed = 60;
+
+        // Movement speed from Balance config (phase 1 default)
+        const Balance = window.Game.Balance;
+        const speeds = Balance && Balance.BOSS.PHASE_SPEEDS[bossType];
+        this.moveSpeed = speeds ? speeds[0] : 60;
 
         this.fireTimer = 0;
         this.printTimer = 0;
@@ -73,6 +77,12 @@ class Boss extends window.Game.Entity {
         this.phaseTransitionTimer = 1.5;
         this.shakeIntensity = 15;
         this.eyeGlow = 1;
+
+        // Update movement speed from Balance config
+        const Balance = window.Game.Balance;
+        if (Balance && Balance.BOSS.PHASE_SPEEDS[this.bossType]) {
+            this.moveSpeed = Balance.BOSS.PHASE_SPEEDS[this.bossType][newPhase - 1];
+        }
 
         // BOJ becomes aggressive in later phases
         if (this.bossType === 'BOJ' && newPhase >= 2) {
@@ -154,16 +164,14 @@ class Boss extends window.Game.Entity {
                 this.dir *= -1;
             }
         } else if (this.phase === 2) {
-            // Faster, erratic movement
-            this.moveSpeed = 120;
+            // Faster, erratic movement (speed from Balance config)
             this.x += this.moveSpeed * this.dir * dt;
             this.y = this.targetY + Math.sin(this.animTime * 3) * 20;
             if (this.x < 20 || this.x + this.width > this.gameWidth - 20) {
                 this.dir *= -1;
             }
         } else {
-            // Phase 3: RAGE - Erratic aggressive movement
-            this.moveSpeed = 180;
+            // Phase 3: RAGE - Erratic aggressive movement (speed from Balance config)
             const baseX = this.gameWidth / 2 - this.width / 2;
             const patternX = Math.sin(this.animTime * 2) * 150;
             const patternY = Math.sin(this.animTime * 4) * 30;
@@ -172,27 +180,26 @@ class Boss extends window.Game.Entity {
             this.y = this.targetY + patternY + (Math.random() - 0.5) * 5;
             this.x = Math.max(20, Math.min(this.gameWidth - this.width - 20, this.x));
 
-            // Spawn minions
+            // Spawn minions (rate from Balance config)
             this.printTimer -= dt;
             if (this.printTimer <= 0) {
                 this.printMoney();
-                this.printTimer = 2.5;
+                const Balance = window.Game.Balance;
+                this.printTimer = Balance ? Balance.BOSS.MINION_SPAWN_RATE.FEDERAL_RESERVE : 2.5;
             }
         }
     }
 
     updateMovementBCE(dt) {
-        // BCE: Slow, methodical, bureaucratic movement
+        // BCE: Slow, methodical, bureaucratic movement (speeds from Balance config)
         if (this.phase === 1) {
             // Very slow patrol - bureaucracy is slow
-            this.moveSpeed = 40;
             this.x += this.moveSpeed * this.dir * dt;
             if (this.x < 40 || this.x + this.width > this.gameWidth - 40) {
                 this.dir *= -1;
             }
         } else if (this.phase === 2) {
             // Still slow but with vertical oscillation
-            this.moveSpeed = 60;
             this.x += this.moveSpeed * this.dir * dt;
             this.y = this.targetY + Math.sin(this.animTime * 1.5) * 15;
             if (this.x < 30 || this.x + this.width > this.gameWidth - 30) {
@@ -200,18 +207,18 @@ class Boss extends window.Game.Entity {
             }
         } else {
             // Phase 3: Fragmentation - faster, erratic
-            this.moveSpeed = 100;
             this.x += this.moveSpeed * this.dir * dt;
             this.y = this.targetY + Math.sin(this.animTime * 3) * 25 + Math.cos(this.animTime * 5) * 10;
             if (this.x < 20 || this.x + this.width > this.gameWidth - 20) {
                 this.dir *= -1;
             }
 
-            // Spawn euro minions
+            // Spawn euro minions (rate from Balance config)
             this.printTimer -= dt;
             if (this.printTimer <= 0) {
                 this.printMoney();
-                this.printTimer = 3.0;
+                const Balance = window.Game.Balance;
+                this.printTimer = Balance ? Balance.BOSS.MINION_SPAWN_RATE.BCE : 3.0;
             }
         }
 
@@ -222,16 +229,14 @@ class Boss extends window.Game.Entity {
     }
 
     updateMovementBOJ(dt) {
-        // BOJ: Zen precision, then sudden interventions
+        // BOJ: Zen precision, then sudden interventions (speeds from Balance config)
         if (this.phase === 1) {
             // Smooth, zen-like movement
-            this.moveSpeed = 50;
             const centerX = this.gameWidth / 2 - this.width / 2;
             const offsetX = Math.sin(this.animTime * 0.8) * 100;
             this.x += (centerX + offsetX - this.x) * 2 * dt;
         } else if (this.phase === 2) {
             // Yield curve control - smooth waves
-            this.moveSpeed = 80;
             const wave = Math.sin(this.animTime * 1.2) * 120;
             const targetX = this.gameWidth / 2 - this.width / 2 + wave;
             this.x += (targetX - this.x) * 3 * dt;
@@ -245,7 +250,6 @@ class Boss extends window.Game.Entity {
             }
         } else {
             // Phase 3: Full intervention mode
-            this.moveSpeed = 150;
 
             // Unpredictable movements with sudden stops
             if (Math.floor(this.animTime * 2) % 3 === 0) {
@@ -262,11 +266,12 @@ class Boss extends window.Game.Entity {
 
             this.x = Math.max(20, Math.min(this.gameWidth - this.width - 20, this.x));
 
-            // Spawn yen minions
+            // Spawn yen minions (rate from Balance config)
             this.printTimer -= dt;
             if (this.printTimer <= 0) {
                 this.printMoney();
-                this.printTimer = 2.0;
+                const Balance = window.Game.Balance;
+                this.printTimer = Balance ? Balance.BOSS.MINION_SPAWN_RATE.BOJ : 2.0;
             }
         }
     }
@@ -323,9 +328,11 @@ class Boss extends window.Game.Entity {
         const cy = this.y + this.height;
         const Patterns = window.Game.BulletPatterns;
         const Colors = window.Game.PROJECTILE_COLORS || window.Game.BULLET_HELL_COLORS || {};
+        const Balance = window.Game.Balance;
+        const fireRates = Balance ? Balance.BOSS.FIRE_RATES.FEDERAL_RESERVE : [0.9, 0.4, 0.22];
 
         if (!Patterns) {
-            this.fireTimer = 1.0;
+            this.fireTimer = fireRates[this.phase - 1];
             for (let i = -2; i <= 2; i++) {
                 const angle = Math.PI / 2 + (i * 0.25);
                 bullets.push({
@@ -339,7 +346,7 @@ class Boss extends window.Game.Entity {
         }
 
         if (this.phase === 1) {
-            this.fireTimer = 0.8;
+            this.fireTimer = fireRates[0];
             this.angle += 0.15;
             if (Math.floor(this.angle * 2) % 2 === 0) {
                 const ringBullets = Patterns.expandingRing(cx, cy - 20, this.angle, {
@@ -353,14 +360,14 @@ class Boss extends window.Game.Entity {
                 bullets.push(...waveBullets);
             }
         } else if (this.phase === 2) {
-            this.fireTimer = 0.35;
+            this.fireTimer = fireRates[1];
             this.angle += 0.3;
             const spiralBullets = Patterns.spiral(cx, cy - 20, this.angle, {
                 arms: 2, speed: 200, color: Colors.ORANGE || '#ff8c00', size: 10
             });
             bullets.push(...spiralBullets);
 
-            if (Math.floor(this.animTime * 0.33) !== Math.floor((this.animTime - 0.35) * 0.33)) {
+            if (Math.floor(this.animTime * 0.33) !== Math.floor((this.animTime - fireRates[1]) * 0.33)) {
                 const flowerBullets = Patterns.flower(cx, cy - 30, this.animTime, {
                     petals: 6, bulletsPerPetal: 3, speed: 180, color: Colors.MAGENTA || '#ff00ff', size: 9
                 });
@@ -374,7 +381,7 @@ class Boss extends window.Game.Entity {
                 bullets.push(...aimedBullets);
             }
         } else {
-            this.fireTimer = 0.2;
+            this.fireTimer = fireRates[2];
             this.angle += 0.22;
             this.laserAngle += 0.06;
 
@@ -385,7 +392,7 @@ class Boss extends window.Game.Entity {
             });
             bullets.push(...spiralBullets);
 
-            if (Math.floor(this.animTime * 0.67) !== Math.floor((this.animTime - 0.2) * 0.67) && player) {
+            if (Math.floor(this.animTime * 0.67) !== Math.floor((this.animTime - fireRates[2]) * 0.67) && player) {
                 const curtainBullets = Patterns.curtain(cx, cy - 40, player.x, {
                     width: 450, count: 18, gapSize: 70, speed: 180, color: Colors.CYAN || '#00ffff', size: 9
                 });
@@ -411,9 +418,11 @@ class Boss extends window.Game.Entity {
         const cx = this.x + this.width / 2;
         const cy = this.y + this.height;
         const Patterns = window.Game.BulletPatterns;
+        const Balance = window.Game.Balance;
+        const fireRates = Balance ? Balance.BOSS.FIRE_RATES.BCE : [1.3, 0.65, 0.3];
 
         if (!Patterns) {
-            this.fireTimer = 1.2;
+            this.fireTimer = fireRates[this.phase - 1];
             for (let i = -3; i <= 3; i++) {
                 bullets.push({
                     x: cx + i * 40, y: cy,
@@ -426,7 +435,7 @@ class Boss extends window.Game.Entity {
 
         if (this.phase === 1) {
             // BUREAUCRACY: Slow walls of bullets, dense but avoidable
-            this.fireTimer = 1.2;
+            this.fireTimer = fireRates[0];
             this.angle += 0.1;
 
             // Horizontal curtain (wall)
@@ -437,7 +446,7 @@ class Boss extends window.Game.Entity {
 
         } else if (this.phase === 2) {
             // NEGATIVE RATES: Bullets that curve/attract
-            this.fireTimer = 0.6;
+            this.fireTimer = fireRates[1];
             this.angle += 0.2;
 
             // Slow spiral with many arms
@@ -447,7 +456,7 @@ class Boss extends window.Game.Entity {
             bullets.push(...spiralBullets);
 
             // Stars shoot independently
-            if (Math.floor(this.animTime * 0.5) !== Math.floor((this.animTime - 0.6) * 0.5)) {
+            if (Math.floor(this.animTime * 0.5) !== Math.floor((this.animTime - fireRates[1]) * 0.5)) {
                 for (let i = 0; i < 4; i++) {
                     const star = this.stars[i * 3];
                     const sx = cx + Math.cos(star.angle) * star.dist;
@@ -464,7 +473,7 @@ class Boss extends window.Game.Entity {
 
         } else {
             // FRAGMENTATION: Everything at once, chaos
-            this.fireTimer = 0.25;
+            this.fireTimer = fireRates[2];
             this.angle += 0.25;
 
             // Triple walls from different angles
@@ -482,7 +491,7 @@ class Boss extends window.Game.Entity {
             }
 
             // All stars fire
-            if (Math.floor(this.animTime * 0.8) !== Math.floor((this.animTime - 0.25) * 0.8)) {
+            if (Math.floor(this.animTime * 0.8) !== Math.floor((this.animTime - fireRates[2]) * 0.8)) {
                 for (let i = 0; i < 12; i++) {
                     const star = this.stars[i];
                     const sx = cx + Math.cos(star.angle) * star.dist;
@@ -505,9 +514,11 @@ class Boss extends window.Game.Entity {
         const cx = this.x + this.width / 2;
         const cy = this.y + this.height;
         const Patterns = window.Game.BulletPatterns;
+        const Balance = window.Game.Balance;
+        const fireRates = Balance ? Balance.BOSS.FIRE_RATES.BOJ : [0.8, 0.5, 0.22];
 
         if (!Patterns) {
-            this.fireTimer = 0.8;
+            this.fireTimer = fireRates[this.phase - 1];
             for (let i = -2; i <= 2; i++) {
                 const angle = Math.PI / 2 + Math.sin(this.animTime + i) * 0.3;
                 bullets.push({
@@ -522,7 +533,7 @@ class Boss extends window.Game.Entity {
 
         if (this.phase === 1) {
             // YIELD CURVE: Beautiful sine waves, zen patterns
-            this.fireTimer = 0.7;
+            this.fireTimer = fireRates[0];
             this.wavePhase += 0.15;
 
             // Precise sine wave
@@ -537,14 +548,14 @@ class Boss extends window.Game.Entity {
 
             if (this.zenMode || Math.floor(this.animTime * 2) % 4 < 2) {
                 // Zen mode: slow waves
-                this.fireTimer = 0.5;
+                this.fireTimer = fireRates[1];
                 const waveBullets = Patterns.sineWave(cx, cy - 20, this.wavePhase, {
                     count: 12, width: 350, amplitude: 35, speed: 140, color: '#bc002d', size: 9
                 });
                 bullets.push(...waveBullets);
             } else {
                 // INTERVENTION! Fast aimed burst
-                this.fireTimer = 0.25;
+                this.fireTimer = fireRates[1] * 0.5;
                 if (player) {
                     const burstBullets = Patterns.aimedBurst(cx, cy - 20, player.x, player.y, {
                         count: 5, speed: 280, spread: 0.4, color: '#ffffff', size: 11
@@ -554,7 +565,7 @@ class Boss extends window.Game.Entity {
             }
 
             // Occasional flower pattern
-            if (Math.floor(this.animTime * 0.4) !== Math.floor((this.animTime - 0.5) * 0.4)) {
+            if (Math.floor(this.animTime * 0.4) !== Math.floor((this.animTime - fireRates[1]) * 0.4)) {
                 const flowerBullets = Patterns.flower(cx, cy - 30, this.wavePhase, {
                     petals: 8, bulletsPerPetal: 2, speed: 120, color: '#bc002d', size: 8
                 });
@@ -563,7 +574,7 @@ class Boss extends window.Game.Entity {
 
         } else {
             // FULL INTERVENTION: Bouncing bullets, chaos
-            this.fireTimer = 0.2;
+            this.fireTimer = fireRates[2];
             this.wavePhase += 0.25;
             this.angle += 0.18;
 

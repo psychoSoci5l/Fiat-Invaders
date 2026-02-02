@@ -156,32 +156,51 @@ Each row gets ONE currency type (organized, not random).
 
 ---
 
-## Boss: "FEDERAL RESERVE"
+## Boss System (3 Boss Types)
 
-Size: 160x140 (double previous size)
+All boss parameters are in `Balance.BOSS`. Size: 160x140.
 
-### 3 Phases
+### Boss Types
+| Type | Symbol | Movement Style | Theme |
+|------|--------|----------------|-------|
+| FEDERAL_RESERVE | $ | Aggressive | Money printer |
+| BCE | € | Bureaucratic | EU tower |
+| BOJ | ¥ | Zen precision | Rising sun |
 
-| Phase | HP Range | Movement | Attack Pattern |
-|-------|----------|----------|----------------|
-| 1 | 100%-66% | Slow patrol | 5-bullet spread (green) |
-| 2 | 66%-33% | Fast + oscillating | Dual spiral + aimed shots (orange) |
-| 3 | 33%-0% | Figure-8 erratic | Triple spiral + side cannons + minion spawn (red) |
+### 3 Phases (All Bosses)
 
-### HP Scaling
+| Phase | HP Range | Behavior |
+|-------|----------|----------|
+| 1 | 100%-66% | Slow patrol, simple patterns |
+| 2 | 66%-33% | Faster, complex patterns |
+| 3 | 33%-0% | Erratic, minion spawns |
+
+### HP Scaling (Balance.BOSS.HP)
 ```javascript
-boss.hp = 500 + (level * 200) + (marketCycle * 300);
+baseHP = 1000 + (level * 30) + ((cycle - 1) * 400)
+// Cycle 1: ~1150 HP, Cycle 2: ~1700 HP, Cycle 3: ~2250 HP
+// + 12% per player perk
 ```
 
+### Fire Rates per Phase (seconds)
+| Boss | Phase 1 | Phase 2 | Phase 3 |
+|------|---------|---------|---------|
+| FED | 0.9 | 0.4 | 0.22 |
+| BCE | 1.3 | 0.65 | 0.3 |
+| BOJ | 0.8 | 0.5 | 0.22 |
+
+### Movement Speeds per Phase
+| Boss | Phase 1 | Phase 2 | Phase 3 |
+|------|---------|---------|---------|
+| FED | 60 | 120 | 180 |
+| BCE | 40 | 60 | 100 |
+| BOJ | 50 | 80 | 150 |
+
 ### Visual Features
-- Money printer animation (Phase 2+)
+- Phase-specific colors and effects
 - Side cannons (Phase 2+)
 - Glowing red eyes (Phase 3)
-- Rotating vault dial
 - Phase indicator on HP bar
-
-### Powell Memes
-During boss fight, meme ticker shows Fed/Powell quotes (faster rotation: 2.5s).
 
 ---
 

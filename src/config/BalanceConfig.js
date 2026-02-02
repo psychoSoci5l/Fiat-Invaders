@@ -16,12 +16,20 @@
     const G = window.Game = window.Game || {};
 
     G.Balance = {
-        // --- DIFFICULTY SCALING ---
+        // --- DIFFICULTY SCALING (Stepped Progression) ---
+        // 3 cycles = complete run (~12 min). Difficulty jumps per cycle, subtle increase per wave.
         DIFFICULTY: {
-            LEVEL_SCALE: 0.08,        // +8% per level (0-4 = 0-0.32)
-            CYCLE_SCALE: 0.20,        // +20% per boss cycle completed
-            MAX_DIFFICULTY: 0.85,     // Cap at 85% (hard but fair)
-            BEAR_MARKET_MULT: 1.3     // Bear Market mode multiplier
+            // Base difficulty per cycle (stepped progression)
+            CYCLE_BASE: [0.0, 0.30, 0.60],  // Cycle 1: Tutorial, Cycle 2: Learning, Cycle 3: Skilled
+
+            // Per-wave scaling within cycle
+            WAVE_SCALE: 0.03,               // +3% per wave (5 waves = +12% total within cycle)
+
+            // Bear Market additive bonus (not multiplier)
+            BEAR_MARKET_BONUS: 0.25,        // Starts at Cycle 2 equivalent difficulty
+
+            // Maximum cap
+            MAX: 1.0
         },
 
         // --- PLAYER PHYSICS ---
@@ -38,13 +46,29 @@
             PAUSE_DURATION: 1.2       // Seconds to pause for perk notification
         },
 
-        // --- GRAZING SYSTEM ---
+        // --- GRAZING SYSTEM (Core Risk/Reward Mechanic) ---
+        // Grazing is the primary skill expression. Close to danger = maximum reward.
         GRAZE: {
             RADIUS: 25,               // Pixels outside core hitbox for graze
-            CLOSE_RADIUS: 15,         // Close graze radius for 2x bonus
-            PERK_THRESHOLD: 60,       // Graze count to trigger bonus perk
-            DECAY_RATE: 5,            // Meter decay per second when not grazing
-            MAX_PERKS_PER_LEVEL: 2    // Cap graze perks per level
+            CLOSE_RADIUS: 12,         // Close graze radius for 3x bonus (tighter = more skill)
+
+            // Scoring (grazing = primary score source)
+            POINTS_BASE: 25,          // Base points per graze
+            CLOSE_BONUS: 3,           // Close graze multiplier (3x)
+            METER_GAIN: 8,            // Normal graze meter gain
+            METER_GAIN_CLOSE: 20,     // Close graze meter gain
+
+            // Multiplier system
+            MULT_MAX: 2.5,            // Maximum score multiplier from full meter
+            MULT_DIVISOR: 100,        // grazeMeter / this = multiplier bonus (100 = 2.5x at full)
+
+            // Perk rewards
+            PERK_THRESHOLD: 50,       // Graze count to trigger bonus perk
+            MAX_PERKS_PER_LEVEL: 2,   // Cap graze perks per level
+
+            // Decay (use it or lose it)
+            DECAY_RATE: 6,            // Meter decay per second when not grazing
+            DECAY_DELAY: 0.5          // Seconds before decay starts
         },
 
         // --- ENEMY FIRING ---
@@ -65,6 +89,26 @@
         // --- ENEMY BEHAVIORS ---
         ENEMY_BEHAVIOR: {
             KAMIKAZE_SPEED: 400       // Dive speed for kamikaze enemies
+        },
+
+        // --- PATTERN DENSITY (Per Cycle) ---
+        // Patterns follow Ikeda Rule 2: geometric, readable corridors
+        PATTERNS: {
+            // Gap size = width of safe corridor in pixels (smaller = harder)
+            GAP_SIZE: [100, 75, 55],       // Per cycle: [Tutorial, Learning, Skilled]
+            GAP_SIZE_BEAR_BONUS: -15,      // Bear Market reduces gap
+
+            // Max bullets per pattern spawn
+            MAX_BULLETS: [15, 30, 50],     // Per cycle
+            MAX_BULLETS_BEAR_BONUS: 15,    // Bear Market adds bullets
+
+            // Pattern complexity (affects visual density)
+            COMPLEXITY: [1, 2, 3],         // Per cycle
+            COMPLEXITY_BEAR_BONUS: 1,      // Bear Market adds complexity
+
+            // Telegraph time (how long warning shows before pattern)
+            TELEGRAPH_TIME: [0.30, 0.20, 0.15],  // Per cycle
+            TELEGRAPH_TIME_BEAR_MULT: 0.85       // Bear Market reduces warning time
         },
 
         // --- GRID MOVEMENT ---
@@ -101,28 +145,67 @@
         },
 
         // --- BOSS FIGHTS ---
+        // Designed for 3-cycle runs (~12 min). Each boss ~2-3 min fight.
         BOSS: {
             WARNING_DURATION: 2.0,    // Seconds of warning before boss spawns
             DROP_INTERVAL: 25,        // Drop power-up every N hits on boss
             MEME_ROTATION_INTERVAL: 4.0,  // Seconds between boss meme rotations
             PHASE_THRESHOLDS: [0.66, 0.33], // HP % for phase transitions (Phase 2, Phase 3)
             PHASE_TRANSITION_TIME: 1.5,    // Seconds for phase transition
-            PHASE_SPEEDS: {           // Movement speed per phase per boss type
-                FEDERAL_RESERVE: [60, 180, 80],
-                BCE: [50, 150, 70],
-                BOJ: [55, 160, 75]
+
+            // HP scaling (applied before perk/damage modifiers)
+            HP: {
+                BASE: 1000,           // Base HP for all bosses
+                PER_LEVEL: 30,        // +30 HP per level
+                PER_CYCLE: 400,       // +400 HP per cycle (significant jump)
+                PERK_SCALE: 0.12,     // +12% per player perk
+                MIN_FLOOR: 800        // Minimum HP regardless of modifiers
+            },
+
+            // Movement speed per phase per boss type
+            PHASE_SPEEDS: {
+                FEDERAL_RESERVE: [60, 120, 180],
+                BCE: [40, 60, 100],
+                BOJ: [50, 80, 150]
+            },
+
+            // Fire rate per phase (seconds between attacks, lower = faster)
+            FIRE_RATES: {
+                FEDERAL_RESERVE: [0.9, 0.4, 0.22],   // Aggressive in all phases
+                BCE: [1.3, 0.65, 0.3],               // Slower, wall-based
+                BOJ: [0.8, 0.5, 0.22]                // Precision bursts
+            },
+
+            // Minion spawn rate (seconds between spawns in Phase 3)
+            MINION_SPAWN_RATE: {
+                FEDERAL_RESERVE: 2.5,
+                BCE: 3.0,
+                BOJ: 2.0
             }
         },
 
         // --- SCORE SYSTEM ---
         SCORE: {
+            // Damage multipliers
             HODL_MULT_ENEMY: 1.25,    // HODL damage multiplier vs enemies
             HODL_MULT_BOSS: 1.5,      // HODL damage multiplier vs boss
-            GRAZE_MULT_MAX: 1.5,      // Maximum graze score multiplier
-            GRAZE_METER_DIVISOR: 200, // grazeMeter / this = multiplier bonus
+
+            // Base multipliers
             BEAR_MARKET_MULT: 2,      // Score multiplier in Bear Market mode
-            BOSS_DEFEAT_BONUS: 5000,  // Fixed points for boss defeat
-            CYCLE_BONUS: 2000         // Points per market cycle completed
+
+            // Boss rewards (scale with cycle)
+            BOSS_DEFEAT_BASE: 3000,   // Base points for boss defeat
+            BOSS_DEFEAT_PER_CYCLE: 2000, // Additional per cycle
+            CYCLE_BONUS: 2000,        // Points per market cycle completed
+
+            // Kill streak system
+            STREAK_MULT_PER_KILL: 0.1,   // +10% per consecutive kill
+            STREAK_MULT_MAX: 2.0,        // Max 2x multiplier
+            STREAK_TIMEOUT: 2.0,         // Seconds before streak resets
+
+            // Graze-kill synergy
+            GRAZE_KILL_THRESHOLD: 50,    // grazeMeter above this = bonus
+            GRAZE_KILL_BONUS: 1.5        // 50% bonus for kills during high graze
         },
 
         // --- MEME SYSTEM ---
@@ -212,6 +295,19 @@
             }
         },
 
+        // --- HUD MESSAGES (Toggle for clean testing) ---
+        // Set to false to disable message type, true to enable
+        HUD_MESSAGES: {
+            MEME_POPUP: false,            // Meme popups (streaks, kills, etc.)
+            POWERUP_POPUP: false,         // Power-up acquired messages
+            GAME_INFO: false,             // Level up, respawn, general info
+            DANGER: false,                // Boss warnings, bear market, etc.
+            VICTORY: false,               // Boss defeated, victory messages
+            FLOATING_TEXT: false,         // Damage numbers, score particles
+            MEME_TICKER: false,           // Bottom ticker during boss fights
+            PERK_NOTIFICATION: false      // Perk acquired overlay
+        },
+
         // --- UI LAYOUT ---
         UI: {
             // Safe zones (pixels from top)
@@ -253,12 +349,37 @@
             BOSS_DEFAULT_HEIGHT: 140
         },
 
-        // --- POWERUP PHYSICS ---
+        // --- POWERUP SYSTEM ---
         POWERUPS: {
+            // Physics
             FALL_SPEED: 100,              // Pixels per second
             WOBBLE_AMPLITUDE: 35,         // Horizontal wobble range
             WOBBLE_SPEED: 3,              // Wobble oscillation speed
-            AUTO_DELETE_Y: 1000           // Y position to auto-remove
+            AUTO_DELETE_Y: 1000,          // Y position to auto-remove
+
+            // Weapon durations (stronger = shorter)
+            DURATION_WEAPON_BASE: 10.0,   // WIDE, NARROW, FIRE
+            DURATION_WEAPON_ADV: 8.0,     // SPREAD, HOMING
+            DURATION_WEAPON_ELITE: 6.0,   // LASER
+
+            // Ship power-up durations
+            DURATION_SPEED: 10.0,
+            DURATION_RAPID: 8.0,
+            DURATION_SHIELD: 3.0,
+
+            // Ship power-up effects
+            SPEED_MULTIPLIER: 1.5,        // Movement speed boost
+            RAPID_MULTIPLIER: 0.5         // Fire rate multiplier (lower = faster)
+        },
+
+        // --- DROP SCALING ---
+        DROP_SCALING: {
+            // Per-cycle bonus to drop chance
+            CYCLE_BONUS: 0.01,            // +1% per cycle
+
+            // Pity timer decreases with cycle
+            PITY_BASE: 30,                // Base kills for guaranteed drop
+            PITY_REDUCTION: 5             // -5 kills per cycle (min 15)
         },
 
         // --- WAVES ---
@@ -271,25 +392,42 @@
 
         /**
          * Calculate difficulty multiplier for current game state
-         * @param {number} level - Current level (1-based)
+         * Uses stepped progression per cycle with subtle wave scaling.
+         * @param {number} level - Current level (1-based, continuous)
          * @param {number} cycle - Current market cycle (1-based)
-         * @returns {number} Difficulty multiplier (0 to MAX_DIFFICULTY)
+         * @returns {number} Difficulty multiplier (0 to MAX)
          */
         calculateDifficulty(level, cycle) {
-            const base = (level - 1) * this.DIFFICULTY.LEVEL_SCALE;
-            const cycleBonus = (cycle - 1) * this.DIFFICULTY.CYCLE_SCALE;
-            return Math.min(this.DIFFICULTY.MAX_DIFFICULTY, base + cycleBonus);
+            // Get base difficulty for this cycle (stepped)
+            const cycleIndex = Math.min(cycle - 1, this.DIFFICULTY.CYCLE_BASE.length - 1);
+            const baseDiff = this.DIFFICULTY.CYCLE_BASE[cycleIndex];
+
+            // Calculate wave within current cycle (0-4)
+            const waveInCycle = ((level - 1) % this.WAVES.PER_CYCLE);
+
+            // Add wave scaling within cycle
+            const waveBonus = waveInCycle * this.DIFFICULTY.WAVE_SCALE;
+
+            return Math.min(this.DIFFICULTY.MAX, baseDiff + waveBonus);
         },
 
         /**
          * Calculate grid speed for current difficulty
-         * @param {number} difficulty - Current difficulty (0 to MAX_DIFFICULTY)
+         * Bear Market adds flat speed bonus instead of multiplier.
+         * @param {number} difficulty - Current difficulty (0 to MAX)
          * @param {boolean} isBearMarket - Whether bear market mode is active
          * @returns {number} Grid movement speed
          */
         calculateGridSpeed(difficulty, isBearMarket) {
-            const base = this.GRID.SPEED_BASE + difficulty * this.GRID.SPEED_SCALE;
-            return isBearMarket ? base * this.DIFFICULTY.BEAR_MARKET_MULT : base;
+            // Base speed from difficulty
+            let speed = this.GRID.SPEED_BASE + difficulty * this.GRID.SPEED_SCALE;
+
+            // Bear Market: add flat bonus (equivalent to +25% difficulty)
+            if (isBearMarket) {
+                speed += this.DIFFICULTY.BEAR_MARKET_BONUS * this.GRID.SPEED_SCALE;
+            }
+
+            return speed;
         },
 
         /**
@@ -351,10 +489,37 @@
         /**
          * Get graze score multiplier from meter value
          * @param {number} grazeMeter - Current graze meter (0-100)
-         * @returns {number} Score multiplier (1.0 to GRAZE_MULT_MAX)
+         * @returns {number} Score multiplier (1.0 to MULT_MAX)
          */
         getGrazeMultiplier(grazeMeter) {
-            return 1 + (grazeMeter / this.SCORE.GRAZE_METER_DIVISOR);
+            return 1 + (grazeMeter / this.GRAZE.MULT_DIVISOR) * (this.GRAZE.MULT_MAX - 1);
+        },
+
+        /**
+         * Get pattern difficulty parameters for cycle
+         * @param {number} cycle - Current market cycle (1-based)
+         * @param {boolean} isBearMarket - Whether bear market mode is active
+         * @returns {Object} Pattern params {gapSize, telegraphTime, maxBullets, complexity}
+         */
+        getPatternParams(cycle, isBearMarket) {
+            const P = this.PATTERNS;
+            const idx = Math.min(cycle - 1, P.GAP_SIZE.length - 1);
+
+            let params = {
+                gapSize: P.GAP_SIZE[idx],
+                telegraphTime: P.TELEGRAPH_TIME[idx],
+                maxBullets: P.MAX_BULLETS[idx],
+                complexity: P.COMPLEXITY[idx]
+            };
+
+            if (isBearMarket) {
+                params.gapSize = Math.max(45, params.gapSize + P.GAP_SIZE_BEAR_BONUS);
+                params.telegraphTime *= P.TELEGRAPH_TIME_BEAR_MULT;
+                params.maxBullets = Math.min(70, params.maxBullets + P.MAX_BULLETS_BEAR_BONUS);
+                params.complexity = Math.min(4, params.complexity + P.COMPLEXITY_BEAR_BONUS);
+            }
+
+            return params;
         },
 
         /**
@@ -396,6 +561,28 @@
         getBossPhaseSpeed(bossType, phase) {
             const speeds = this.BOSS.PHASE_SPEEDS[bossType];
             return speeds ? speeds[phase - 1] : 60;
+        },
+
+        /**
+         * Get boss fire rate for phase
+         * @param {string} bossType - Boss type (FEDERAL_RESERVE, BCE, BOJ)
+         * @param {number} phase - Phase number (1, 2, 3)
+         * @returns {number} Fire rate in seconds
+         */
+        getBossFireRate(bossType, phase) {
+            const rates = this.BOSS.FIRE_RATES[bossType];
+            return rates ? rates[phase - 1] : 0.5;
+        },
+
+        /**
+         * Calculate boss base HP (before modifiers)
+         * @param {number} level - Current level
+         * @param {number} cycle - Market cycle (1-based)
+         * @returns {number} Base HP
+         */
+        calculateBossHP(level, cycle) {
+            const hp = this.BOSS.HP;
+            return hp.BASE + (level * hp.PER_LEVEL) + ((cycle - 1) * hp.PER_CYCLE);
         }
     };
 })();

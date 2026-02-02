@@ -60,8 +60,8 @@ class Player extends window.Game.Entity {
 
     update(dt) {
         const input = window.Game.Input;
-        const shipPU = window.Game.SHIP_POWERUPS;
-        const speedMult = (this.shipPowerUp === 'SPEED' && shipPU.SPEED) ? shipPU.SPEED.speedMult : 1;
+        const Balance = window.Game.Balance;
+        const speedMult = (this.shipPowerUp === 'SPEED') ? Balance.POWERUPS.SPEED_MULTIPLIER : 1;
         const speed = this.stats.speed * this.getRunMod('speedMult', 1) * speedMult;
 
         // Animation timer for visual effects
@@ -78,7 +78,6 @@ class Player extends window.Game.Entity {
         this.trail = this.trail.filter(t => t.age < 0.12);
 
         // Movement Physics (Inertia) - values from Balance config
-        const Balance = window.Game.Balance;
         const accel = Balance.PLAYER.ACCELERATION;
         const friction = Balance.PLAYER.FRICTION;
 
@@ -161,7 +160,7 @@ class Player extends window.Game.Entity {
 
     fire() {
         const conf = window.Game.WEAPONS[this.weapon];
-        const shipPU = window.Game.SHIP_POWERUPS;
+        const Balance = window.Game.Balance;
         const bullets = [];
         const isHodl = Math.abs(this.vx) < 10;
 
@@ -171,7 +170,7 @@ class Player extends window.Game.Entity {
         this.muzzleFlash = 0.08;
 
         // Fire rate: base from weapon, modified by RAPID ship power-up
-        const rapidMult = (this.shipPowerUp === 'RAPID' && shipPU.RAPID) ? shipPU.RAPID.rateMult : 1;
+        const rapidMult = (this.shipPowerUp === 'RAPID') ? Balance.POWERUPS.RAPID_MULTIPLIER : 1;
         const baseRate = this.weapon === 'NORMAL' ? this.stats.fireRate : conf.rate;
         const rate = baseRate * rapidMult * this.getRunMod('fireRateMult', 1);
         this.cooldown = rate;
@@ -585,22 +584,34 @@ class Player extends window.Game.Entity {
 
     upgrade(type) {
         window.Game.Audio.play('coinPerk');
-        const weaponTypes = ['WIDE', 'NARROW', 'FIRE', 'SPREAD', 'HOMING', 'LASER'];
+        const Balance = window.Game.Balance;
+        const PU = Balance.POWERUPS;
+
+        const baseWeapons = ['WIDE', 'NARROW', 'FIRE'];
+        const advWeapons = ['SPREAD', 'HOMING'];
+        const eliteWeapons = ['LASER'];
         const shipTypes = ['SPEED', 'RAPID', 'SHIELD'];
 
-        if (weaponTypes.includes(type)) {
-            // Weapon power-up (replaces current weapon)
+        if (baseWeapons.includes(type)) {
             this.weapon = type;
-            this.weaponTimer = 8.0;
+            this.weaponTimer = PU.DURATION_WEAPON_BASE;
+        } else if (advWeapons.includes(type)) {
+            this.weapon = type;
+            this.weaponTimer = PU.DURATION_WEAPON_ADV;
+        } else if (eliteWeapons.includes(type)) {
+            this.weapon = type;
+            this.weaponTimer = PU.DURATION_WEAPON_ELITE;
         } else if (shipTypes.includes(type)) {
-            // Ship power-up (replaces current ship power-up)
             if (type === 'SHIELD') {
                 this.activateShield();
                 this.shieldCooldown = 0;
-                this.shipPowerUp = null; // Shield is instant, doesn't persist
-            } else {
+                this.shieldTimer = PU.DURATION_SHIELD;
+            } else if (type === 'SPEED') {
                 this.shipPowerUp = type;
-                this.shipPowerUpTimer = 8.0;
+                this.shipPowerUpTimer = PU.DURATION_SPEED;
+            } else if (type === 'RAPID') {
+                this.shipPowerUp = type;
+                this.shipPowerUpTimer = PU.DURATION_RAPID;
             }
         }
     }

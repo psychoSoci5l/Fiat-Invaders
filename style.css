@@ -631,11 +631,11 @@ body {
 .ship-name { order: 2; }
 .ship-stats { order: 3; }
 
-/* Ship canvas - NO transitions during JS launch animation */
+/* Ship canvas - transparent background, ship floats over sky */
 #intro-ship-canvas {
-    filter: drop-shadow(0 0 20px rgba(247, 147, 26, 0.6));
+    background: transparent;
+    filter: drop-shadow(0 0 15px rgba(247, 147, 26, 0.5));
     will-change: transform, filter, opacity;
-    /* transition removed - JS handles launch animation */
 }
 
 #intro-ship-canvas.launching {

@@ -148,10 +148,15 @@ let bossWarningType = null;   // Boss type to spawn after warning
 // --- GRAZING SYSTEM ---
 let grazeCount = 0;           // Total graze count this run
 let grazeMeter = 0;           // 0-100 meter fill
-let grazeMultiplier = 1.0;    // Score multiplier from grazing (up to 1.5x)
+let grazeMultiplier = 1.0;    // Score multiplier from grazing
 let grazePerksThisLevel = 0;  // Track graze perks awarded this level
 let lastGrazeSoundTime = 0;   // Throttle graze sound
 let lastGrazeTime = 0;        // For decay calculation
+
+// --- KILL STREAK SYSTEM ---
+let killStreak = 0;           // Consecutive kills
+let killStreakMult = 1.0;     // Current streak multiplier
+let lastKillTime = 0;         // Time of last kill (for timeout)
 
 let enemyFirePhase = 0;
 let enemyFireTimer = 0;
@@ -332,8 +337,10 @@ function showPopupInternal(text, duration, color, fontSize, top, left, rotation,
     audioSys.play('coinUI');
 }
 
-// 🎭 MEME - Fun crypto messages (random color, position, size)
+// Message display functions (check HUD_MESSAGES flags for clean testing)
+
 function showMemeFun(text, duration = 1500) {
+    if (!Balance.HUD_MESSAGES.MEME_POPUP) return;
     const color = MEME_COLORS[Math.floor(Math.random() * MEME_COLORS.length)];
     const fontSize = (24 + Math.random() * 12) + 'px';
     const rotation = `translate(-50%, -50%) rotate(${(Math.random() - 0.5) * 10}deg)`;
@@ -342,28 +349,27 @@ function showMemeFun(text, duration = 1500) {
     showPopupInternal(text, duration, color, fontSize, top, left, rotation, MSG_PRIORITY.MEME);
 }
 
-// ⚡ POWER-UP - Pickup feedback (gold, below player, quick)
 function showPowerUp(text) {
+    if (!Balance.HUD_MESSAGES.POWERUP_POPUP) return;
     showPopupInternal(text, 800, '#FFD700', '24px', '75%', '50%', 'translate(-50%, -50%)', MSG_PRIORITY.POWERUP);
 }
 
-// 📊 GAME INFO - Progression messages (green, center)
 function showGameInfo(text) {
+    if (!Balance.HUD_MESSAGES.GAME_INFO) return;
     addText(text, gameWidth / 2, gameHeight / 2, '#00FF00', 40);
 }
 
-// ⚠️ DANGER - Boss/threat messages (red, center, large)
 function showDanger(text) {
+    if (!Balance.HUD_MESSAGES.DANGER) return;
     addText(text, gameWidth / 2, gameHeight / 2, '#FF4444', 50);
     shake = Math.max(shake, 20);
 }
 
-// 🏆 VICTORY - Celebration messages (gold, center, large)
 function showVictory(text) {
+    if (!Balance.HUD_MESSAGES.VICTORY) return;
     addText(text, gameWidth / 2, gameHeight / 2, '#FFD700', 50);
 }
 
-// Legacy wrapper for compatibility
 function showMemePopup(text, duration = 1500) {
     showMemeFun(text, duration);
 }
@@ -618,9 +624,11 @@ function animateIntroShip() {
     introShipTime += 0.05;
 
     const ctx = introShipCtx;
-    const w = 200, h = 200;
-    const cx = w / 2, cy = h / 2 + 10;
+    const w = introShipCanvas.width;
+    const h = introShipCanvas.height;
+    const cx = w / 2, cy = h / 2;
 
+    // Clear to transparent (sky shows through)
     ctx.clearRect(0, 0, w, h);
 
     // Get current ship data
@@ -1502,6 +1510,9 @@ function startGame() {
     killCount = 0;
     streak = 0;
     bestStreak = 0;
+    killStreak = 0;
+    killStreakMult = 1.0;
+    lastKillTime = 0;
     marketCycle = 1; // Reset cycle
     window.marketCycle = marketCycle;
     window.currentLevel = level; // Reset for WaveManager
@@ -1651,15 +1662,16 @@ function spawnBoss() {
 
     boss = new G.Boss(gameWidth, gameHeight, bossType);
 
-    // Scale boss HP using boss config + perk-aware scaling
-    // Boss HP scaling values
-    const baseHp = bossConfig.baseHp || 1800;
-    const hpPerLevel = bossConfig.hpPerLevel || 150;
-    const hpPerCycle = bossConfig.hpPerCycle || 300;
+    // Scale boss HP using Balance config
+    const Balance = G.Balance;
+    const hpConfig = Balance.BOSS.HP;
+    const baseHp = hpConfig.BASE;
+    const hpPerLevel = hpConfig.PER_LEVEL;
+    const hpPerCycle = hpConfig.PER_CYCLE;
 
     // Perk-aware scaling: boss gets stronger based on player's accumulated power
     const perkCount = (runState && runState.perks) ? runState.perks.length : 0;
-    const perkScaling = 1 + (perkCount * 0.12); // +12% HP per perk acquired
+    const perkScaling = 1 + (perkCount * hpConfig.PERK_SCALE);
 
     // Also scale based on player's damage multiplier (if player hits harder, boss has more HP)
     const playerDmgMult = (runState && runState.getMod) ? runState.getMod('damageMult', 1) : 1;
@@ -1669,7 +1681,7 @@ function spawnBoss() {
     const ngPlusMult = (campaignState && campaignState.isEnabled()) ? campaignState.getNGPlusMultiplier() : 1;
 
     const rawHp = baseHp + (level * hpPerLevel) + ((marketCycle - 1) * hpPerCycle);
-    boss.hp = Math.floor(rawHp * perkScaling * dmgCompensation * ngPlusMult);
+    boss.hp = Math.max(hpConfig.MIN_FLOOR, Math.floor(rawHp * perkScaling * dmgCompensation * ngPlusMult));
     boss.maxHp = boss.hp;
 
     // Reset boss drop tracking for new boss fight
@@ -1948,20 +1960,20 @@ function update(dt) {
     }
 
     // Graze meter decay: lose points if not actively grazing
-    if (grazeMeter > 0 && totalTime - lastGrazeTime > 0.5) {
+    if (grazeMeter > 0 && totalTime - lastGrazeTime > Balance.GRAZE.DECAY_DELAY) {
         grazeMeter = Math.max(0, grazeMeter - Balance.GRAZE.DECAY_RATE * dt);
-        grazeMultiplier = 1 + (grazeMeter / 200);
+        grazeMultiplier = 1 + (grazeMeter / Balance.GRAZE.MULT_DIVISOR) * (Balance.GRAZE.MULT_MAX - 1);
         updateGrazeUI();
     }
 
-    // Meme ticker: only visible during boss fight
+    // Meme ticker: only visible during boss fight (if enabled)
     if (ui.memeTicker) {
-        if (boss && boss.active) {
+        if (boss && boss.active && Balance.HUD_MESSAGES.MEME_TICKER) {
             ui.memeTicker.style.display = 'block';
             memeSwapTimer -= dt;
             if (memeSwapTimer <= 0) {
                 ui.memeTicker.innerText = getPowellMeme();
-                memeSwapTimer = 4.0; // Powell memes every 4s during boss
+                memeSwapTimer = 4.0;
             }
         } else {
             ui.memeTicker.style.display = 'none';
@@ -2130,7 +2142,9 @@ function updateBullets(dt) {
                     transitionDir = -1;
                     transitionColor = '#ffffff';
 
-                    score += 5000; boss.active = false; boss = null; shake = 60; audioSys.play('explosion');
+                    const bossBonus = Balance.SCORE.BOSS_DEFEAT_BASE + (marketCycle * Balance.SCORE.BOSS_DEFEAT_PER_CYCLE);
+                    score += bossBonus;
+                    boss.active = false; boss = null; shake = 60; audioSys.play('explosion');
                     audioSys.setBossPhase(0); // Reset boss music
                     updateScore(score);
                     showVictory("🏆 " + defeatedBossName + " DEFEATED!");
@@ -2231,6 +2245,8 @@ function updateBullets(dt) {
                         hitStopTimer = 0.3; // Normal Hit SlowMo
                     }
                     streak = 0;
+                    killStreak = 0;
+                    killStreakMult = 1.0;
                 }
             }
             // Check if within graze zone (but not core) - award graze points
@@ -2238,18 +2254,18 @@ function updateBullets(dt) {
                 eb.grazed = true; // Mark as grazed to prevent double-counting
                 lastGrazeTime = totalTime; // Reset decay timer
 
-                // Close graze bonus: 2x points if within Balance.GRAZE.CLOSE_RADIUS
+                // Close graze: tighter zone, higher reward
                 const closeGrazeR = coreR + Balance.GRAZE.CLOSE_RADIUS;
                 const isCloseGraze = dx < closeGrazeR && dy < closeGrazeR;
-                const grazeBonus = isCloseGraze ? 2 : 1;
+                const grazeBonus = isCloseGraze ? Balance.GRAZE.CLOSE_BONUS : 1;
 
                 grazeCount += grazeBonus;
-                const meterGain = isCloseGraze ? 12 : 6; // Close graze fills meter faster
+                const meterGain = isCloseGraze ? Balance.GRAZE.METER_GAIN_CLOSE : Balance.GRAZE.METER_GAIN;
                 grazeMeter = Math.min(100, grazeMeter + meterGain);
-                grazeMultiplier = 1 + (grazeMeter / 200); // Up to 1.5x at full meter
+                grazeMultiplier = 1 + (grazeMeter / Balance.GRAZE.MULT_DIVISOR) * (Balance.GRAZE.MULT_MAX - 1);
 
-                // Award graze points
-                const grazePoints = Math.floor(5 * grazeMultiplier * grazeBonus);
+                // Award graze points (primary score source)
+                const grazePoints = Math.floor(Balance.GRAZE.POINTS_BASE * grazeMultiplier * grazeBonus);
                 score += grazePoints;
                 updateScore(score);
 
@@ -2360,18 +2376,39 @@ function checkBulletCollisions(b, bIdx) {
             if (shouldDie) {
                 enemies.splice(j, 1);
                 audioSys.play('coinScore');
-                const mult = (runState && runState.getMod) ? runState.getMod('scoreMult', 1) : 1;
-                score += e.scoreVal * (isBearMarket ? 2 : 1) * mult;
+
+                // Update kill streak
+                const now = totalTime;
+                if (now - lastKillTime < Balance.SCORE.STREAK_TIMEOUT) {
+                    killStreak++;
+                    killStreakMult = Math.min(
+                        Balance.SCORE.STREAK_MULT_MAX,
+                        1 + killStreak * Balance.SCORE.STREAK_MULT_PER_KILL
+                    );
+                } else {
+                    killStreak = 1;
+                    killStreakMult = 1.0;
+                }
+                lastKillTime = now;
+
+                // Calculate score with all multipliers
+                const perkMult = (runState && runState.getMod) ? runState.getMod('scoreMult', 1) : 1;
+                const bearMult = isBearMarket ? Balance.SCORE.BEAR_MARKET_MULT : 1;
+                const grazeKillBonus = grazeMeter >= Balance.SCORE.GRAZE_KILL_THRESHOLD
+                    ? Balance.SCORE.GRAZE_KILL_BONUS : 1;
+
+                const killScore = Math.floor(e.scoreVal * bearMult * perkMult * killStreakMult * grazeKillBonus);
+                score += killScore;
                 updateScore(score);
+
                 createEnemyDeathExplosion(e.x, e.y, e.color, e.symbol || '$');
-                createScoreParticles(e.x, e.y, e.color); // JUICE: Fly to score
-                // Score ticker removed - particles provide enough feedback
+                createScoreParticles(e.x, e.y, e.color);
                 killCount++;
                 streak++;
                 if (streak > bestStreak) bestStreak = streak;
                 updateKillCounter();
                 checkStreakMeme();
-                emitEvent('enemy_killed', { score: e.scoreVal, x: e.x, y: e.y });
+                emitEvent('enemy_killed', { score: killScore, x: e.x, y: e.y });
 
                 // Track kills per fiat type for mini-boss trigger
                 if (e.symbol && fiatKillCounter[e.symbol] !== undefined && !miniBoss) {
@@ -2451,12 +2488,14 @@ function updateEnemies(dt) {
         // Fibonacci limit: only allow N enemies to fire per frame (based on ramp-up)
         if (enemiesFiredThisFrame >= enemiesAllowedToFire) continue;
 
-        // Unified difficulty scaling
-        const diff = getDifficulty();
-        const bearMult = isBearMarket ? 1.3 : 1.0;
-        const rateMult = (0.5 + diff * 0.5) * bearMult; // 0.5 → 1.0 based on difficulty
-        const bulletSpeed = 128 + diff * 68;
-        const aimSpreadMult = isBearMarket ? 0.85 : (1.2 - diff * 0.3); // Tighter aim with difficulty
+        // Difficulty scaling (Bear Market adds flat bonus)
+        const baseDiff = getDifficulty();
+        const effectiveDiff = isBearMarket
+            ? Math.min(Balance.DIFFICULTY.MAX, baseDiff + Balance.DIFFICULTY.BEAR_MARKET_BONUS)
+            : baseDiff;
+        const rateMult = 0.5 + effectiveDiff * 0.5;  // 0.5 → 1.0 based on effective difficulty
+        const bulletSpeed = Balance.calculateBulletSpeed(effectiveDiff);
+        const aimSpreadMult = 1.2 - effectiveDiff * 0.3;  // Tighter aim with higher difficulty
         const allowFire = (i % enemyFireStride) === enemyFirePhase;
         const bulletData = e.attemptFire(dt, player, rateMult, bulletSpeed, aimSpreadMult, allowFire);
         if (bulletData) {
@@ -3265,6 +3304,7 @@ function drawSky(ctx) {
 
 const MAX_FLOATING_TEXTS = 3; // Limit simultaneous floating texts
 function addText(text, x, y, c, size = 20) {
+    if (!Balance.HUD_MESSAGES.FLOATING_TEXT) return;
     // Remove oldest if at limit
     if (floatingTexts.length >= MAX_FLOATING_TEXTS) {
         floatingTexts.shift();
@@ -3288,6 +3328,7 @@ const RARITY_COLORS = {
 };
 
 function addPerkIcon(perk) {
+    if (!Balance.HUD_MESSAGES.PERK_NOTIFICATION) return;
     if (!player || !perk) return;
     perkIcons.push({
         icon: perk.icon || '?',
@@ -3296,10 +3337,10 @@ function addPerkIcon(perk) {
         rarity: perk.rarity || 'common',
         x: player.x,
         y: player.y - 60,
-        life: 2.5,        // Total duration
+        life: 2.5,
         maxLife: 2.5,
-        scale: 0,         // Start small, grow
-        glowPhase: 0      // For pulsing glow
+        scale: 0,
+        glowPhase: 0
     });
 }
 
