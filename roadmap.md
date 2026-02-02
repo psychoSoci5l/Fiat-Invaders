@@ -533,10 +533,252 @@
 
 ---
 
-## Phase 22: Technical Debt v2.12.0 🔧 (Next)
+## Phase 22: Ikeda Vision - Gameplay Redesign v2.12.0 🎮 (IN PROGRESS)
+*Goal: Transform the game into an adrenaline masterpiece with risk/reward depth.*
+
+> **Design Philosophy**: Tsuneki Ikeda (Ikaruga, Radiant Silvergun)
+> - Every movement must be intentional
+> - Risk = Reward (exponential, not linear)
+> - Readable patterns even in chaos
+> - The "trance state" - hypnotic bullet dance
+
+---
+
+### A) HYPER GRAZE System 🔥 (Sprint 1) ✅ COMPLETE
+*Goal: Transform grazing from passive to active risk/reward.*
+
+#### A1) HYPER Mode Mechanics
+- [x] **Activation Trigger**: When grazeMeter reaches 100%, player can activate HYPER
+- [x] **HYPER Button**: Press H key when meter is full (UI indicator shows)
+- [x] **Duration**: 5 seconds base, +0.3s per graze during HYPER
+- [x] **Score Multiplier**: 5x score during HYPER (stacks with existing multipliers)
+- [x] **Risk Factor**: Core hitbox +50% size during HYPER
+- [x] **Fail State**: Instant death if hit during HYPER (bypasses lives/shield)
+- [x] **Cooldown**: 8 seconds after HYPER ends before meter can fill again
+
+#### A2) HYPER Visual Effects
+- [x] **Screen Tint**: Golden/amber overlay during HYPER
+- [x] **Player Aura**: Intense pulsing golden glow (larger than HODL aura)
+- [ ] **Bullet Trails**: Enemy bullets leave longer trails (deferred to Sprint 2)
+- [x] **Time Dilation Effect**: Subtle slow-motion feel (0.92x game speed)
+- [x] **Graze Particles**: Massive golden particle bursts on each graze
+- [x] **Timer Display**: Countdown bar at top + ring around player
+
+#### A3) HYPER Audio
+- [x] **Activation Sound**: Epic power-up chord (`hyperActivate`)
+- [ ] **Loop During HYPER**: Intensified music layer (deferred)
+- [x] **Graze Sound (HYPER)**: Higher pitch, more satisfying (`hyperGraze`)
+- [x] **Warning Sound**: Tick-tick-tick in final 2 seconds (`hyperWarning`)
+- [x] **Deactivation Sound**: Power-down sound (`hyperDeactivate`)
+- [x] **Ready Sound**: Ascending chord when meter fills (`hyperReady`)
+
+#### A4) Balance Config ✅
+```javascript
+Balance.HYPER = {
+    METER_THRESHOLD: 100,      // Meter value to enable HYPER
+    BASE_DURATION: 5.0,        // Seconds
+    GRAZE_EXTENSION: 0.3,      // Seconds added per graze
+    MAX_DURATION: 12.0,        // Cap on extension
+    SCORE_MULT: 5.0,           // Score multiplier
+    HITBOX_PENALTY: 1.5,       // Core hitbox size multiplier
+    COOLDOWN: 8.0,             // Seconds before meter refills
+    TIME_SCALE: 0.92           // Game speed during HYPER (implemented)
+}
+```
+
+---
+
+### B) Hit Stop & Visual Juice 💥 (Sprint 2) ✅ COMPLETE
+*Goal: Every action feels impactful.*
+
+#### B1) Hit Stop System ✅
+- [x] **Enemy Kill Freeze**: 25ms on every kill
+- [x] **Streak Milestone Freeze**: 120/180/250ms on 10/25/50 kill streaks
+- [x] **Boss Phase Change**: 300ms dramatic pause
+- [x] **Boss Defeat**: 500ms epic slowmo
+- [x] **Close Graze Freeze**: 20ms micro-freeze on <12px graze
+- [x] **Player Hit Freeze**: 80ms slowmo on taking damage
+
+#### B2) Screen Flash System ✅
+- [x] **Close Graze Flash**: Quick white flash (40ms, 15% opacity)
+- [x] **HYPER Activation Flash**: Golden flash (120ms, 40% opacity)
+- [x] **Kill Streak Flash**: Color flash matching milestone (cyan/gold/purple)
+- [x] **Boss Phase Flash**: Orange flash (150ms, 50% opacity)
+- [x] **Boss Defeat Flash**: Massive white flash (250ms, 70% opacity)
+- [x] **Player Hit Flash**: Red flash (60ms, 30% opacity)
+
+#### B3) Score Pulse System ✅
+- [x] **10K Milestone**: Golden edge glow with radial gradient
+- [x] **Score Number Juice**: Large floating "+X" with velocity and fade
+- [ ] **Combo Counter**: Visual combo display that scales with streak (deferred)
+
+#### B4) Camera Shake Refinement (Deferred to Sprint 3)
+- [ ] **Directional Shake**: Shake direction matches impact direction
+- [ ] **Shake Decay Curve**: Exponential decay instead of linear
+- [ ] **Micro-Shake**: Subtle constant shake during HYPER mode
+
+#### B5) Balance Config
+```javascript
+Balance.JUICE = {
+    HIT_STOP: {
+        ENEMY_KILL: 0.02,
+        STREAK_10: 0.15,
+        STREAK_25: 0.20,
+        STREAK_50: 0.25,
+        BOSS_PHASE: 0.30,
+        CLOSE_GRAZE: 0.03,
+        PLAYER_HIT: 0.10
+    },
+    FLASH: {
+        CLOSE_GRAZE: { duration: 0.05, opacity: 0.2, color: '#FFFFFF' },
+        HYPER_ACTIVATE: { duration: 0.10, opacity: 0.4, color: '#FFD700' },
+        STREAK_10: { duration: 0.08, opacity: 0.3, color: '#00FFFF' },
+        STREAK_25: { duration: 0.10, opacity: 0.4, color: '#FFD700' },
+        STREAK_50: { duration: 0.12, opacity: 0.5, color: '#9B59B6' },
+        BOSS_DEFEAT: { duration: 0.30, opacity: 0.8, color: '#FFFFFF' }
+    },
+    SCORE_PULSE: {
+        THRESHOLD: 10000,
+        SCALE: 1.02,
+        DURATION: 0.20
+    }
+}
+```
+
+---
+
+### C) Wave Choreography 💃 (Sprint 3) ✅ COMPLETE
+*Goal: Transform random chaos into readable bullet ballet.*
+
+#### C1) Synchronized Row Firing (Existing in HarmonicConductor)
+- [x] **Row Commander**: CASCADE_DOWN/UP handles row-based firing
+- [x] **Fire Delay Per Row**: Configurable via ROW_FIRE_DELAY (0.4s)
+- [x] **Pattern Assignment**: PATTERNS array in config
+
+#### C2) Bullet Pattern Types (Existing + New Config)
+- [x] **ARC**: Defined in PATTERN_DEFS (7 bullets, 120° spread)
+- [x] **WALL**: Defined in PATTERN_DEFS (8 bullets, 2 gaps)
+- [x] **AIMED**: Defined in PATTERN_DEFS (5 bullets at player)
+- [x] **RAIN**: Defined in PATTERN_DEFS (12 drops, 3 safe lanes)
+
+#### C3) Wave Intensity Curve ✅
+- [x] **Setup Phase (0-30%)**: 1.0x fire rate, learning time
+- [x] **Build Phase (30-85%)**: 1.1x → 1.2x fire rate
+- [x] **Panic Phase (85%+)**: 1.4x fire rate, red vignette
+- [x] **Last Enemy Silence**: 0.8s pause, 2x score for final kill
+
+#### C4) Pattern Readability ✅
+- [x] **Telegraph Lines**: Configurable duration/opacity
+- [x] **Gap Highlighting**: Green safe corridor indicators
+- [x] **Pattern Preview**: Ring/aimed/pattern telegraph styles
+
+#### C5) Balance Config ✅
+```javascript
+Balance.CHOREOGRAPHY = {
+    ROW_FIRE_DELAY: 0.4,
+    PATTERNS: ['ARC', 'WALL', 'AIMED'],
+    INTENSITY: {
+        SETUP_END: 0.30, BUILD_END: 0.70, PANIC_START: 0.85,
+        PANIC_RATE_MULT: 1.4, LAST_ENEMY_PAUSE: 0.8, LAST_ENEMY_BONUS: 2.0
+    },
+    TELEGRAPH: {
+        ENABLED: true, DURATION: 0.25, OPACITY: 0.35,
+        COLOR: '#FF6600', GAP_GLOW: true, GAP_COLOR: '#00FF00'
+    },
+    PATTERN_DEFS: { ARC: {...}, WALL: {...}, AIMED: {...}, RAIN: {...} }
+}
+```
+
+---
+
+### D) Satoshi's Sacrifice 🔥 (Sprint 4) ✅ COMPLETE
+*Goal: The ultimate risk/reward moment.*
+
+#### D1) Activation Conditions ✅
+- [x] **Trigger**: Player at 1 life and takes fatal hit
+- [x] **Window**: 2-second decision window (0.25x slow-mo)
+- [x] **Visual Prompt**: Golden pulsing Bitcoin sacrifice button
+- [x] **Audio Cue**: Heartbeat + tension drone
+
+#### D2) Sacrifice Mechanics ✅
+- [x] **Cost**: ALL accumulated score reset to 0
+- [x] **Reward**: 10 seconds of TOTAL INVINCIBILITY
+- [x] **Scoring**: All kills during Sacrifice worth 10x points
+- [x] **No Graze**: Bullets pass through player completely
+- [x] **Timer Display**: Large "SATOSHI MODE" countdown
+
+#### D3) Outcome States ✅
+- [x] **Success**: Earn >= sacrificed score
+  - Display: "SATOSHI APPROVES 💎"
+  - Bonus: Extra life awarded
+- [x] **Failure**: Earn < sacrificed score
+  - Display: "NGMI 📉"
+  - Player survives anyway
+- [x] **Tracking**: Real-time progress display (earned / needed)
+
+#### D4) Visual Effects ✅
+- [x] **Activation**: Dark overlay + golden button
+- [x] **During**: Player white glow + ghost trail
+- [x] **Bullets**: Pass through (no collision)
+- [x] **Countdown**: 64px pulsing numbers
+- [x] **End Flash**: Gold (success) or red (fail)
+
+#### D5) Balance Config ✅
+```javascript
+Balance.SACRIFICE = {
+    TRIGGER_HP: 1, ENABLED: true,
+    DECISION_WINDOW: 2.0, DECISION_TIME_SCALE: 0.25,
+    INVINCIBILITY_DURATION: 10.0, SCORE_MULT: 10.0,
+    SUCCESS_THRESHOLD: 1.0, SUCCESS_BONUS_LIVES: 1,
+    BUTTON_SIZE: 100, COUNTDOWN_FONT_SIZE: 64,
+    GLOW_COLOR: '#FFFFFF', GHOST_TRAIL_COUNT: 5
+}
+```
+
+---
+
+### E) Graze Sound Design 🎵 (Sprint 1 - Quick Win) ✅ COMPLETE
+*Goal: Audio feedback that creates the "theremin of danger".*
+
+- [x] **Distance-Based Pitch**: Closer = higher pitch (config: SOUND_PITCH_BASE/CLOSE)
+- [x] **Throttle Reduction**: 150ms → 50ms between sounds (Balance.GRAZE.SOUND_THROTTLE)
+- [x] **Graze Chain Sound**: Consecutive grazes increase pitch progressively (grazeCombo in AudioSystem)
+- [x] **Near-Miss Whoosh**: Distinct sound for close graze (`grazeNearMiss`)
+
+---
+
+### Implementation Priority
+
+| Sprint | Focus | Complexity | Impact | Status |
+|--------|-------|------------|--------|--------|
+| **22.1** | HYPER GRAZE + Graze Sound | Medium | 🔴 HIGH | ✅ DONE |
+| **22.2** | Hit Stop + Visual Juice | Low | 🟡 MEDIUM | ✅ DONE |
+| **22.3** | Wave Choreography | High | 🔴 HIGH | ✅ DONE |
+| **22.4** | Satoshi's Sacrifice | Medium | 🟡 MEDIUM | ✅ DONE |
+
+### Files to Modify
+
+| File | Changes |
+|------|---------|
+| `BalanceConfig.js` | Add HYPER, JUICE, CHOREOGRAPHY, SACRIFICE configs |
+| `Player.js` | HYPER mode state, hitbox scaling, visual effects |
+| `main.js` | Hit stop system, flash system, sacrifice logic |
+| `WaveManager.js` | Intensity curve, row choreography |
+| `Enemy.js` | Synchronized firing, pattern execution |
+| `AudioSystem.js` | HYPER sounds, graze pitch system, sacrifice audio |
+| `InputSystem.js` | HYPER activation button, sacrifice button |
+
+---
+
+## Phase 23: Technical Debt v2.13.0 🔧 (Future)
 *Goal: Code quality, maintainability, and test coverage.*
 
 ### A) Code Refactoring
+- [ ] **Enemy Firing System Refactor** ⚠️ PRIORITY
+  - Current: Dual system (Fibonacci legacy + HarmonicConductor) causes confusion
+  - Problem: Fibonacci is "legacy" but still active when HarmonicConductor disabled
+  - Solution: Unify into single system, remove Fibonacci, let HarmonicConductor handle all firing
+  - Files: main.js (remove fibonacciTimer, fibonacciIndex, FIBONACCI_SEQ), HarmonicConductor.js
 - [ ] **main.js Decomposition**: Split 4000+ line file into logical modules
   - GameLoop.js (update/draw cycle)
   - CollisionSystem.js (all collision detection)
@@ -567,7 +809,7 @@
 
 ---
 
-## Phase 23: Leaderboards & Social 🏆 (Future)
+## Phase 24: Leaderboards & Social 🏆 (Future)
 *Goal: Competition and sharing.*
 - [ ] **Local Leaderboard**: Top 10 scores with date
 - [ ] **Share Score**: Screenshot + share button
@@ -575,3 +817,50 @@
 - [ ] **Achievements**: 20+ achievements with icons
 
 ---
+
+## 📋 Quick Reference: Phase 22 Sprints
+
+```
+Sprint 22.1: HYPER GRAZE + Graze Sound ✅ COMPLETE (v2.12.0)
+├── Balance.HYPER config
+├── Player.js: HYPER state machine
+├── main.js: HYPER activation logic
+├── AudioSystem.js: Pitch-based graze
+└── Visual: Golden aura, time dilation
+
+Sprint 22.2: Hit Stop + Visual Juice ✅ COMPLETE (v2.12.1)
+├── Balance.JUICE config
+├── main.js: applyHitStop(), triggerScreenFlash()
+├── Score pulse effects (edge glow)
+├── Floating score numbers
+└── Boss phase/defeat juice
+
+Sprint 22.3: Wave Choreography ✅ COMPLETE (v2.12.2)
+├── Balance.CHOREOGRAPHY config
+├── HarmonicConductor: Wave intensity tracking
+├── SETUP/BUILD/PANIC phase detection
+├── Last enemy pause + 2x bonus
+├── Gap telegraph visualization
+└── Panic phase red vignette
+
+Sprint 22.4: Satoshi's Sacrifice ✅ COMPLETE (v2.12.3)
+├── Balance.SACRIFICE config
+├── 2s decision window with 0.25x slowmo
+├── Golden Bitcoin sacrifice button
+├── 10s invincibility + 10x score
+├── Ghost trail + white glow effects
+├── Success/Fail outcome with extra life
+└── 4 new audio sounds
+├── Balance.CHOREOGRAPHY config
+├── WaveManager.js: Intensity curve
+├── Enemy.js: Row sync firing
+├── Pattern types (ARC, WALL, SPIRAL)
+└── Telegraph visualization
+
+Sprint 22.4: Satoshi's Sacrifice
+├── Balance.SACRIFICE config
+├── main.js: Sacrifice state machine
+├── Death intercept logic
+├── 10s invincibility mode
+└── Success/Failure outcomes
+```

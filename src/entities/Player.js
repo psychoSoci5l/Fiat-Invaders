@@ -27,10 +27,17 @@ class Player extends window.Game.Entity {
         this.hp = 3;
         this.invulnTimer = 0;
 
+        // HYPER GRAZE state
+        this.hyperActive = false;
+        this.hyperTimer = 0;
+        this.hyperCooldown = 0;
+        this.hyperAvailable = false; // True when meter is full and can activate
+
         // Visual effects
         this.animTime = 0;
         this.muzzleFlash = 0; // Timer for muzzle flash effect
         this.trail = []; // Position history for trail effect
+        this.hyperParticles = []; // Golden particles during HYPER
     }
 
     configure(type) {
@@ -56,6 +63,13 @@ class Player extends window.Game.Entity {
         this.shieldActive = false;
         this.shieldCooldown = 0;
         this.invulnTimer = 0;
+
+        // HYPER reset
+        this.hyperActive = false;
+        this.hyperTimer = 0;
+        this.hyperCooldown = 0;
+        this.hyperAvailable = false;
+        this.hyperParticles = [];
     }
 
     update(dt) {
@@ -137,6 +151,35 @@ class Player extends window.Game.Entity {
         if (this.invulnTimer > 0) this.invulnTimer -= dt;
         this.cooldown -= dt;
 
+        // HYPER mode timer
+        if (this.hyperActive) {
+            this.hyperTimer -= dt;
+
+            // Warning sound when about to end
+            const HYPER = Balance.HYPER;
+            if (this.hyperTimer <= HYPER.WARNING_TIME && this.hyperTimer + dt > HYPER.WARNING_TIME) {
+                if (window.Game.Audio) window.Game.Audio.play('hyperWarning');
+            }
+
+            // HYPER expired
+            if (this.hyperTimer <= 0) {
+                this.deactivateHyper();
+            }
+
+            // Update HYPER particles
+            for (let i = this.hyperParticles.length - 1; i >= 0; i--) {
+                const p = this.hyperParticles[i];
+                p.life -= dt;
+                p.x += p.vx * dt;
+                p.y += p.vy * dt;
+                p.vy += 200 * dt; // gravity
+                if (p.life <= 0) this.hyperParticles.splice(i, 1);
+            }
+        }
+
+        // HYPER cooldown
+        if (this.hyperCooldown > 0) this.hyperCooldown -= dt;
+
         // Action: Shield
         if ((input.isDown('ArrowDown') || input.isDown('KeyS') || input.touch.shield) && this.shieldCooldown <= 0 && !this.shieldActive) {
             this.activateShield();
@@ -156,6 +199,110 @@ class Player extends window.Game.Entity {
         this.shieldTimer = 2.0;
         this.shieldCooldown = 10.0 * this.getRunMod('shieldCooldownMult', 1);
         window.Game.Audio.play('shield');
+    }
+
+    // --- HYPER GRAZE SYSTEM ---
+
+    /**
+     * Check if HYPER can be activated (meter full, not on cooldown)
+     */
+    canActivateHyper(grazeMeter) {
+        const HYPER = window.Game.Balance.HYPER;
+        return grazeMeter >= HYPER.METER_THRESHOLD &&
+               !this.hyperActive &&
+               this.hyperCooldown <= 0;
+    }
+
+    /**
+     * Activate HYPER mode - extreme risk/reward
+     */
+    activateHyper() {
+        const HYPER = window.Game.Balance.HYPER;
+        this.hyperActive = true;
+        this.hyperTimer = HYPER.BASE_DURATION;
+        this.hyperAvailable = false;
+
+        // Play activation sound
+        if (window.Game.Audio) window.Game.Audio.play('hyperActivate');
+
+        // Heavy vibration
+        if (window.Game.Input) window.Game.Input.vibrate([100, 50, 100]);
+
+        // Emit event for main.js to handle (reset meter, etc.)
+        if (window.Game.Events) {
+            window.Game.Events.emit('HYPER_ACTIVATED');
+        }
+    }
+
+    /**
+     * Deactivate HYPER mode (timer expired or cancelled)
+     */
+    deactivateHyper() {
+        const HYPER = window.Game.Balance.HYPER;
+        this.hyperActive = false;
+        this.hyperTimer = 0;
+        this.hyperCooldown = HYPER.COOLDOWN;
+        this.hyperParticles = [];
+
+        // Play deactivation sound
+        if (window.Game.Audio) window.Game.Audio.play('hyperDeactivate');
+
+        // Emit event
+        if (window.Game.Events) {
+            window.Game.Events.emit('HYPER_DEACTIVATED');
+        }
+    }
+
+    /**
+     * Extend HYPER timer (called on graze during HYPER)
+     */
+    extendHyper() {
+        if (!this.hyperActive) return;
+
+        const HYPER = window.Game.Balance.HYPER;
+        this.hyperTimer = Math.min(
+            this.hyperTimer + HYPER.GRAZE_EXTENSION,
+            HYPER.MAX_DURATION
+        );
+
+        // Spawn golden particles
+        for (let i = 0; i < HYPER.PARTICLE_BURST; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 100 + Math.random() * 150;
+            this.hyperParticles.push({
+                x: this.x,
+                y: this.y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed - 100,
+                life: 0.5 + Math.random() * 0.3,
+                size: 3 + Math.random() * 4
+            });
+        }
+    }
+
+    /**
+     * Get effective core hitbox size (larger during HYPER)
+     */
+    getCoreHitboxSize() {
+        const baseSize = this.stats.coreHitboxSize || 6;
+        if (this.hyperActive) {
+            return baseSize * window.Game.Balance.HYPER.HITBOX_PENALTY;
+        }
+        return baseSize;
+    }
+
+    /**
+     * Check if currently in HYPER mode
+     */
+    isHyperActive() {
+        return this.hyperActive;
+    }
+
+    /**
+     * Get HYPER timer remaining (for UI)
+     */
+    getHyperTimeRemaining() {
+        return this.hyperTimer;
     }
 
     fire() {
@@ -250,9 +397,89 @@ class Player extends window.Game.Entity {
     draw(ctx) {
         if (this.invulnTimer > 0 && Math.floor(Date.now() / 100) % 2 === 0) return;
 
-        // HODL MODE AURA - Golden glow when stationary (2x damage!)
+        const Balance = window.Game.Balance;
+
+        // HYPER MODE AURA - Intense golden aura (overrides HODL visuals)
+        if (this.hyperActive) {
+            const HYPER = Balance.HYPER;
+            const hyperPulse = Math.sin(this.animTime * HYPER.AURA_PULSE_SPEED) * 0.2 + 0.8;
+            const hyperSize = HYPER.AURA_SIZE_BASE + Math.sin(this.animTime * 6) * HYPER.AURA_SIZE_PULSE;
+
+            // Outer intense golden glow
+            const hyperGradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, hyperSize);
+            hyperGradient.addColorStop(0, `rgba(255, 215, 0, ${hyperPulse * 0.9})`);
+            hyperGradient.addColorStop(0.3, `rgba(255, 180, 0, ${hyperPulse * 0.6})`);
+            hyperGradient.addColorStop(0.6, `rgba(255, 140, 0, ${hyperPulse * 0.3})`);
+            hyperGradient.addColorStop(1, 'transparent');
+            ctx.fillStyle = hyperGradient;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, hyperSize, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Inner blazing ring
+            ctx.strokeStyle = `rgba(255, 255, 150, ${hyperPulse})`;
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, 35 + Math.sin(this.animTime * 12) * 4, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Timer ring (shows remaining time)
+            const timeRatio = this.hyperTimer / HYPER.BASE_DURATION;
+            const ringAngle = Math.PI * 2 * Math.min(1, timeRatio);
+            ctx.strokeStyle = timeRatio < 0.3 ? '#ff4444' : '#FFD700';
+            ctx.lineWidth = 6;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, 50, -Math.PI / 2, -Math.PI / 2 + ringAngle);
+            ctx.stroke();
+
+            // Orbiting energy orbs (faster than HODL)
+            for (let i = 0; i < 6; i++) {
+                const angle = this.animTime * 5 + (Math.PI / 3) * i;
+                const dist = 45 + Math.sin(this.animTime * 8 + i) * 6;
+                const orbX = this.x + Math.cos(angle) * dist;
+                const orbY = this.y + Math.sin(angle) * dist;
+
+                ctx.fillStyle = `rgba(255, 255, 200, ${hyperPulse})`;
+                ctx.beginPath();
+                ctx.arc(orbX, orbY, 4 + Math.sin(this.animTime * 10 + i) * 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Draw HYPER particles
+            for (const p of this.hyperParticles) {
+                const alpha = p.life / 0.8;
+                ctx.fillStyle = `rgba(255, 215, 0, ${alpha})`;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size * alpha, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // HYPER core hitbox indicator (always visible, larger)
+            const coreR = this.getCoreHitboxSize();
+            const corePulse = Math.sin(this.animTime * 20) * 0.3 + 0.7;
+
+            ctx.save();
+            ctx.translate(this.x, this.y);
+
+            // Warning ring (larger hitbox!)
+            ctx.strokeStyle = `rgba(255, 100, 100, ${corePulse * 0.6})`;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(0, 0, coreR + 6, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Core hitbox (red tint to show danger)
+            ctx.fillStyle = `rgba(255, 200, 150, ${corePulse * 0.9})`;
+            ctx.beginPath();
+            ctx.arc(0, 0, coreR, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        // HODL MODE AURA - Golden glow when stationary (only if not in HYPER)
         const isHodl = Math.abs(this.vx) < 10;
-        if (isHodl) {
+        if (isHodl && !this.hyperActive) {
             const hodlPulse = Math.sin(this.animTime * 8) * 0.15 + 0.4;
             const hodlSize = 45 + Math.sin(this.animTime * 6) * 8;
 
@@ -534,8 +761,8 @@ class Player extends window.Game.Entity {
             }
         }
 
-        if (dangerNear) {
-            const coreR = this.stats.coreHitboxSize || 6;
+        if (dangerNear && !this.hyperActive) { // HYPER has its own indicator
+            const coreR = this.getCoreHitboxSize();
             const pulse = Math.sin(this.animTime * 15) * 0.3 + 0.7;
 
             // Outer glow ring

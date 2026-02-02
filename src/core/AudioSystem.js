@@ -839,6 +839,253 @@ class AudioSystem {
             // Perk coin - lower pitch, longer
             this._playCoinVariant(output, t, 0.8);
         }
+        // === HYPER GRAZE SOUNDS ===
+        else if (type === 'hyperReady') {
+            // Epic power-up ready sound - ascending chord with shimmer
+            const notes = [392, 523, 659, 784]; // G4-C5-E5-G5
+            notes.forEach((freq, i) => {
+                const osc = this.ctx.createOscillator();
+                const osc2 = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.connect(gain);
+                osc2.connect(gain);
+                gain.connect(output);
+
+                osc.type = 'square';
+                osc2.type = 'triangle';
+                osc.frequency.value = freq;
+                osc2.frequency.value = freq * 2;
+
+                const start = t + i * 0.06;
+                gain.gain.setValueAtTime(0.08, start);
+                gain.gain.exponentialRampToValueAtTime(0.03, start + 0.15);
+
+                osc.start(start);
+                osc.stop(start + 0.2);
+                osc2.start(start);
+                osc2.stop(start + 0.2);
+            });
+
+            // Add shimmer sweep
+            const sweep = this.ctx.createOscillator();
+            const sweepGain = this.ctx.createGain();
+            sweep.connect(sweepGain);
+            sweepGain.connect(output);
+            sweep.type = 'sawtooth';
+            sweep.frequency.setValueAtTime(500, t);
+            sweep.frequency.exponentialRampToValueAtTime(2000, t + 0.3);
+            sweepGain.gain.setValueAtTime(0.03, t);
+            sweepGain.gain.exponentialRampToValueAtTime(0.01, t + 0.3);
+            sweep.start(t);
+            sweep.stop(t + 0.3);
+        }
+        else if (type === 'hyperActivate') {
+            // Massive power chord - the ultimate activation
+            const chordFreqs = [130.81, 196.00, 261.63, 392.00]; // C3-G3-C4-G4 (power chord)
+            chordFreqs.forEach((freq) => {
+                const osc = this.ctx.createOscillator();
+                const osc2 = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.connect(gain);
+                osc2.connect(gain);
+                gain.connect(output);
+
+                osc.type = 'sawtooth';
+                osc2.type = 'square';
+                osc.frequency.value = freq;
+                osc2.frequency.value = freq * 1.01; // Slight detune for thickness
+
+                gain.gain.setValueAtTime(0.12, t);
+                gain.gain.linearRampToValueAtTime(0.15, t + 0.1);
+                gain.gain.exponentialRampToValueAtTime(0.01, t + 0.8);
+
+                osc.start(t);
+                osc.stop(t + 0.8);
+                osc2.start(t);
+                osc2.stop(t + 0.8);
+            });
+
+            // Rising sweep
+            const sweep = this.ctx.createOscillator();
+            const sweepGain = this.ctx.createGain();
+            sweep.connect(sweepGain);
+            sweepGain.connect(output);
+            sweep.type = 'sawtooth';
+            sweep.frequency.setValueAtTime(100, t);
+            sweep.frequency.exponentialRampToValueAtTime(3000, t + 0.5);
+            sweepGain.gain.setValueAtTime(0.08, t);
+            sweepGain.gain.exponentialRampToValueAtTime(0.01, t + 0.5);
+            sweep.start(t);
+            sweep.stop(t + 0.5);
+        }
+        else if (type === 'hyperDeactivate') {
+            // Descending power-down with relief tone
+            const osc = this.ctx.createOscillator();
+            const osc2 = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.connect(gain);
+            osc2.connect(gain);
+            gain.connect(output);
+
+            osc.type = 'sawtooth';
+            osc2.type = 'triangle';
+            osc.frequency.setValueAtTime(800, t);
+            osc.frequency.exponentialRampToValueAtTime(100, t + 0.5);
+            osc2.frequency.setValueAtTime(400, t);
+            osc2.frequency.exponentialRampToValueAtTime(50, t + 0.5);
+
+            gain.gain.setValueAtTime(0.1, t);
+            gain.gain.exponentialRampToValueAtTime(0.01, t + 0.5);
+
+            osc.start(t);
+            osc.stop(t + 0.5);
+            osc2.start(t);
+            osc2.stop(t + 0.5);
+        }
+        else if (type === 'hyperWarning') {
+            // Urgent tick-tick warning (2 seconds before end)
+            for (let i = 0; i < 3; i++) {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.connect(gain);
+                gain.connect(output);
+
+                osc.type = 'square';
+                osc.frequency.value = i === 2 ? 1200 : 900;
+
+                const start = t + i * 0.1;
+                gain.gain.setValueAtTime(0.1, start);
+                gain.gain.exponentialRampToValueAtTime(0.01, start + 0.05);
+
+                osc.start(start);
+                osc.stop(start + 0.05);
+            }
+        }
+        else if (type === 'hyperGraze') {
+            // Intense golden graze sound during HYPER - higher pitch, more satisfying
+            const osc = this.ctx.createOscillator();
+            const osc2 = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.connect(gain);
+            osc2.connect(gain);
+            gain.connect(output);
+
+            osc.type = 'square';
+            osc2.type = 'triangle';
+
+            // Very high pitch for HYPER graze
+            const baseFreq = 2400 + Math.random() * 200;
+            osc.frequency.setValueAtTime(baseFreq, t);
+            osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.3, t + 0.04);
+            osc2.frequency.setValueAtTime(baseFreq * 0.5, t);
+            osc2.frequency.exponentialRampToValueAtTime(baseFreq * 0.8, t + 0.04);
+
+            gain.gain.setValueAtTime(0.08, t);
+            gain.gain.exponentialRampToValueAtTime(0.01, t + 0.04);
+
+            osc.start(t);
+            osc.stop(t + 0.04);
+            osc2.start(t);
+            osc2.stop(t + 0.04);
+        }
+        // --- SATOSHI'S SACRIFICE SOUNDS ---
+        else if (type === 'sacrificeOffer') {
+            // Dramatic heartbeat + tension - time slows, fate awaits
+            // Low heartbeat
+            for (let i = 0; i < 3; i++) {
+                const beat = this.ctx.createOscillator();
+                const beatGain = this.ctx.createGain();
+                beat.connect(beatGain);
+                beatGain.connect(output);
+                beat.type = 'sine';
+                beat.frequency.value = 40;
+                const beatTime = t + i * 0.4;
+                beatGain.gain.setValueAtTime(0, beatTime);
+                beatGain.gain.linearRampToValueAtTime(0.3, beatTime + 0.05);
+                beatGain.gain.exponentialRampToValueAtTime(0.01, beatTime + 0.2);
+                beat.start(beatTime);
+                beat.stop(beatTime + 0.3);
+            }
+            // Tension drone
+            const drone = this.ctx.createOscillator();
+            const droneGain = this.ctx.createGain();
+            drone.connect(droneGain);
+            droneGain.connect(output);
+            drone.type = 'sawtooth';
+            drone.frequency.setValueAtTime(55, t);
+            drone.frequency.linearRampToValueAtTime(110, t + 1.5);
+            droneGain.gain.setValueAtTime(0.1, t);
+            droneGain.gain.linearRampToValueAtTime(0.15, t + 1);
+            droneGain.gain.exponentialRampToValueAtTime(0.01, t + 2);
+            drone.start(t);
+            drone.stop(t + 2);
+        }
+        else if (type === 'sacrificeActivate') {
+            // Epic activation - like hyperActivate but even more dramatic (white noise burst + chord)
+            // White noise burst
+            const bufferSize = this.ctx.sampleRate * 0.3;
+            const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+            const output_data = noiseBuffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                output_data[i] = Math.random() * 2 - 1;
+            }
+            const noise = this.ctx.createBufferSource();
+            noise.buffer = noiseBuffer;
+            const noiseGain = this.ctx.createGain();
+            noise.connect(noiseGain);
+            noiseGain.connect(output);
+            noiseGain.gain.setValueAtTime(0.4, t);
+            noiseGain.gain.exponentialRampToValueAtTime(0.01, t + 0.3);
+            noise.start(t);
+            noise.stop(t + 0.3);
+
+            // Massive chord (white/holy)
+            const chordFreqs = [261.63, 329.63, 392.00, 523.25]; // C major
+            chordFreqs.forEach((freq) => {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.connect(gain);
+                gain.connect(output);
+                osc.type = 'sine';
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.15, t + 0.1);
+                gain.gain.linearRampToValueAtTime(0.2, t + 0.3);
+                gain.gain.exponentialRampToValueAtTime(0.01, t + 1.5);
+                osc.start(t + 0.1);
+                osc.stop(t + 1.5);
+            });
+        }
+        else if (type === 'sacrificeSuccess') {
+            // Triumphant fanfare - angelic success
+            const notes = [523.25, 659.25, 783.99, 1046.50]; // C5 E5 G5 C6
+            notes.forEach((freq, i) => {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.connect(gain);
+                gain.connect(output);
+                osc.type = 'sine';
+                osc.frequency.value = freq;
+                const noteStart = t + i * 0.1;
+                gain.gain.setValueAtTime(0.15, noteStart);
+                gain.gain.exponentialRampToValueAtTime(0.01, noteStart + 0.6);
+                osc.start(noteStart);
+                osc.stop(noteStart + 0.6);
+            });
+        }
+        else if (type === 'sacrificeFail') {
+            // Sad descending tone - not quite enough
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.connect(gain);
+            gain.connect(output);
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(400, t);
+            osc.frequency.exponentialRampToValueAtTime(100, t + 0.8);
+            gain.gain.setValueAtTime(0.15, t);
+            gain.gain.exponentialRampToValueAtTime(0.01, t + 0.8);
+            osc.start(t);
+            osc.stop(t + 0.8);
+        }
     }
 
     // Hit sound variants helper

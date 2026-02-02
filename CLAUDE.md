@@ -328,6 +328,22 @@ All tuning parameters are in `src/config/BalanceConfig.js`. **Always modify Bala
 | `CHANCE_MEDIUM` | 0.04 | 4% for €, £, ₣, ₺ |
 | `CHANCE_WEAK` | 0.02 | 2% for ¥, ₽, ₹ |
 
+### Balance.JUICE (Hit Stop & Visual Feedback)
+Controls the "game feel" micro-effects that make impacts satisfying.
+
+| Type | Duration | Description |
+|------|----------|-------------|
+| `HIT_STOP.ENEMY_KILL` | 0.025s | Micro-freeze on every kill |
+| `HIT_STOP.STREAK_10/25/50` | 0.12/0.18/0.25s | Kill streak milestones |
+| `HIT_STOP.BOSS_PHASE` | 0.30s | Boss phase transition |
+| `HIT_STOP.BOSS_DEFEAT` | 0.50s | Epic boss death slowmo |
+| `HIT_STOP.CLOSE_GRAZE` | 0.02s | Near-miss micro-freeze |
+| `FLASH.*` | Various | Screen flash on events |
+| `SCORE_PULSE.THRESHOLD` | 10000 | Points between edge glow |
+| `FLOAT_SCORE.MIN_VALUE` | 100 | Min score for floating number |
+
+Global functions: `window.Game.applyHitStop(type, freeze)`, `window.Game.triggerScreenFlash(type)`
+
 ### Balance.PLAYER
 | Parameter | Value | Description |
 |-----------|-------|-------------|

@@ -106,6 +106,14 @@ class Boss extends window.Game.Entity {
 
         // Screen shake via global
         if (typeof shake !== 'undefined') shake = 30;
+
+        // Hit stop and screen flash (Ikeda juice)
+        if (window.Game.applyHitStop) {
+            window.Game.applyHitStop('BOSS_PHASE', false); // Slowmo for dramatic effect
+        }
+        if (window.Game.triggerScreenFlash) {
+            window.Game.triggerScreenFlash('BOSS_PHASE');
+        }
     }
 
     update(dt, player) {

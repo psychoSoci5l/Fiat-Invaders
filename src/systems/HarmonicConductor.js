@@ -34,6 +34,15 @@ window.Game.HarmonicConductor = {
     // Beat pulse visual
     beatPulseAlpha: 0,
 
+    // Wave Intensity System (Ikeda Choreography)
+    waveIntensity: {
+        initialCount: 0,          // Enemies at wave start
+        currentPhase: 'SETUP',    // SETUP, BUILD, PANIC
+        fireRateMult: 1.0,        // Fire rate multiplier for current phase
+        lastEnemyPaused: false,   // Has last enemy pause triggered?
+        lastEnemyPauseTimer: 0    // Countdown for last enemy pause
+    },
+
     init(enemies, player, gameWidth, gameHeight) {
         this.enemies = enemies;
         this.player = player;
@@ -52,6 +61,89 @@ window.Game.HarmonicConductor = {
         this.telegraphs = [];
         this.spiralAngle = 0;
         this.beatPulseAlpha = 0;
+        // Reset wave intensity
+        this.waveIntensity = {
+            initialCount: 0,
+            currentPhase: 'SETUP',
+            fireRateMult: 1.0,
+            lastEnemyPaused: false,
+            lastEnemyPauseTimer: 0
+        };
+    },
+
+    // Start a new wave with intensity tracking
+    startWave(enemyCount) {
+        this.waveIntensity.initialCount = enemyCount;
+        this.waveIntensity.currentPhase = 'SETUP';
+        this.waveIntensity.fireRateMult = 1.0;
+        this.waveIntensity.lastEnemyPaused = false;
+        this.waveIntensity.lastEnemyPauseTimer = 0;
+    },
+
+    // Get wave progress (0.0 to 1.0)
+    getWaveProgress() {
+        if (!this.enemies || this.waveIntensity.initialCount === 0) return 0;
+        const remaining = this.enemies.filter(e => e && e.active).length;
+        return 1 - (remaining / this.waveIntensity.initialCount);
+    },
+
+    // Update intensity phase based on wave progress
+    updateIntensityPhase() {
+        const Balance = window.Game.Balance;
+        const choreography = Balance?.CHOREOGRAPHY?.INTENSITY;
+        if (!choreography) return;
+
+        const progress = this.getWaveProgress();
+        const remaining = this.enemies ? this.enemies.filter(e => e && e.active).length : 0;
+
+        // Determine phase
+        let newPhase = 'SETUP';
+        let fireRateMult = 1.0;
+
+        if (progress >= choreography.PANIC_START) {
+            newPhase = 'PANIC';
+            fireRateMult = choreography.PANIC_RATE_MULT || 1.4;
+        } else if (progress >= choreography.BUILD_END) {
+            newPhase = 'BUILD_LATE';
+            fireRateMult = 1.2;
+        } else if (progress >= choreography.SETUP_END) {
+            newPhase = 'BUILD';
+            fireRateMult = 1.1;
+        }
+
+        // Log phase transitions (for debugging)
+        if (newPhase !== this.waveIntensity.currentPhase) {
+            this.waveIntensity.currentPhase = newPhase;
+            // Visual feedback for phase change
+            if (newPhase === 'PANIC') {
+                this.beatPulseAlpha = 0.3; // Strong pulse on panic
+            }
+        }
+
+        this.waveIntensity.fireRateMult = fireRateMult;
+
+        // Last enemy handling
+        if (remaining === 1 && !this.waveIntensity.lastEnemyPaused) {
+            this.waveIntensity.lastEnemyPaused = true;
+            this.waveIntensity.lastEnemyPauseTimer = choreography.LAST_ENEMY_PAUSE || 0.8;
+        }
+    },
+
+    // Check if in last enemy pause (should not fire)
+    isInLastEnemyPause() {
+        return this.waveIntensity.lastEnemyPauseTimer > 0;
+    },
+
+    // Get last enemy score bonus
+    getLastEnemyBonus() {
+        const Balance = window.Game.Balance;
+        const choreography = Balance?.CHOREOGRAPHY?.INTENSITY;
+        return choreography?.LAST_ENEMY_BONUS || 2.0;
+    },
+
+    // Get current fire rate multiplier
+    getFireRateMult() {
+        return this.waveIntensity.fireRateMult;
     },
 
     setDifficulty(level, marketCycle, isBearMarket) {
@@ -91,9 +183,20 @@ window.Game.HarmonicConductor = {
     update(dt) {
         this.updateTelegraphs(dt);
 
+        // Update wave intensity phase
+        this.updateIntensityPhase();
+
+        // Update last enemy pause timer
+        if (this.waveIntensity.lastEnemyPauseTimer > 0) {
+            this.waveIntensity.lastEnemyPauseTimer -= dt;
+        }
+
         // Don't process beats if not enabled or no sequence
         if (!this.enabled || !this.currentSequence) return;
         if (!this.enemies || this.enemies.length === 0) return;
+
+        // Skip firing during last enemy pause (dramatic silence)
+        if (this.isInLastEnemyPause()) return;
 
         // Sync tempo from AudioSystem
         const audio = window.Game.Audio;
@@ -101,12 +204,15 @@ window.Game.HarmonicConductor = {
             this.tempo = audio.tempo || 0.2;
         }
 
+        // Apply fire rate multiplier from intensity phase
+        const effectiveTempo = this.tempo / this.waveIntensity.fireRateMult;
+
         // Advance beat timer
         this.beatTimer += dt;
 
         // Check if we've reached the next beat
-        if (this.beatTimer >= this.tempo) {
-            this.beatTimer -= this.tempo;
+        if (this.beatTimer >= effectiveTempo) {
+            this.beatTimer -= effectiveTempo;
             this.processBeat(this.currentBeat);
             this.currentBeat = (this.currentBeat + 1) % this.sequenceLength;
         }
@@ -411,15 +517,33 @@ window.Game.HarmonicConductor = {
     },
 
     draw(ctx) {
+        // Get telegraph config from Balance
+        const Balance = window.Game.Balance;
+        const telegraphConfig = Balance?.CHOREOGRAPHY?.TELEGRAPH || {};
+        const baseOpacity = telegraphConfig.OPACITY || 0.35;
+
         // Beat pulse
         if (this.beatPulseAlpha > 0) {
             ctx.fillStyle = `rgba(255, 255, 255, ${this.beatPulseAlpha})`;
             ctx.fillRect(0, 0, this.gameWidth, this.gameHeight);
         }
 
+        // Wave intensity phase indicator
+        if (this.waveIntensity.currentPhase === 'PANIC') {
+            // Subtle red vignette during panic phase
+            const gradient = ctx.createRadialGradient(
+                this.gameWidth / 2, this.gameHeight / 2, this.gameHeight * 0.3,
+                this.gameWidth / 2, this.gameHeight / 2, this.gameHeight * 0.8
+            );
+            gradient.addColorStop(0, 'rgba(255, 0, 0, 0)');
+            gradient.addColorStop(1, 'rgba(255, 0, 0, 0.1)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, this.gameWidth, this.gameHeight);
+        }
+
         this.telegraphs.forEach(tel => {
             const progress = 1 - (tel.timer / tel.maxTimer);
-            const alpha = Math.min(1, tel.timer * 5);
+            const alpha = Math.min(baseOpacity, tel.timer * 5) * (baseOpacity / 0.35);
 
             ctx.save();
             ctx.globalAlpha = alpha;
@@ -467,8 +591,44 @@ window.Game.HarmonicConductor = {
                         ctx.stroke();
                     }
                     break;
+                case 'gap':
+                    // Safe corridor indicator (Ikeda choreography - readable gaps)
+                    const gapColor = telegraphConfig.GAP_COLOR || '#00FF00';
+                    ctx.strokeStyle = gapColor;
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([3, 3]);
+                    // Vertical safe zone lines
+                    const gapWidth = tel.gapWidth || 60;
+                    ctx.beginPath();
+                    ctx.moveTo(tel.x - gapWidth / 2, tel.y);
+                    ctx.lineTo(tel.x - gapWidth / 2, this.gameHeight);
+                    ctx.moveTo(tel.x + gapWidth / 2, tel.y);
+                    ctx.lineTo(tel.x + gapWidth / 2, this.gameHeight);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    // Subtle fill
+                    ctx.fillStyle = gapColor;
+                    ctx.globalAlpha = alpha * 0.1;
+                    ctx.fillRect(tel.x - gapWidth / 2, tel.y, gapWidth, this.gameHeight - tel.y);
+                    break;
             }
             ctx.restore();
+        });
+    },
+
+    // Add gap telegraph for wall patterns
+    addGapTelegraph(x, y, gapWidth, duration) {
+        const Balance = window.Game.Balance;
+        const telegraphConfig = Balance?.CHOREOGRAPHY?.TELEGRAPH || {};
+        if (!telegraphConfig.GAP_GLOW) return;
+
+        this.telegraphs.push({
+            x, y,
+            style: 'gap',
+            color: telegraphConfig.GAP_COLOR || '#00FF00',
+            gapWidth: gapWidth,
+            timer: duration,
+            maxTimer: duration
         });
     }
 };

@@ -107,6 +107,7 @@ function checkWeaponUnlocks(cycle) {
 
 let boss = null;
 let score = 0, level = 1, lives = 3;
+let lastScoreMilestone = 0; // Track score milestones for pulse effect
 let shake = 0, gridDir = 1, gridSpeed = 25, totalTime = 0, intermissionTimer = 0;
 // Screen transition system
 let transitionAlpha = 0;
@@ -121,6 +122,14 @@ let debugMode = false; // F3 toggle for performance stats
 let fpsHistory = []; // For smooth FPS display
 let perkOffers = [];
 let volatilityTimer = 0;
+
+// Satoshi's Sacrifice system
+let sacrificeState = 'NONE'; // NONE, DECISION, ACTIVE
+let sacrificeDecisionTimer = 0;
+let sacrificeActiveTimer = 0;
+let sacrificeScoreAtStart = 0; // Score when sacrifice activated
+let sacrificeScoreEarned = 0; // Score earned during sacrifice
+let sacrificeGhostTrail = []; // Ghost position history for trail effect
 let memeSwapTimer = 0;
 let killCount = 0;
 let streak = 0;
@@ -209,6 +218,7 @@ function t(key) { return Constants.TEXTS[currentLang][key] || key; }
 
 // Juicy score update with bump effect
 function updateScore(newScore) {
+    const oldScore = score;
     score = newScore;
     const el = document.getElementById('scoreVal');
     if (el) {
@@ -217,6 +227,21 @@ function updateScore(newScore) {
         void el.offsetWidth; // Force reflow
         el.classList.add('score-bump');
     }
+
+    // Score pulse on milestone crossing (Ikeda juice)
+    const threshold = Balance.JUICE?.SCORE_PULSE?.THRESHOLD || 10000;
+    const currentMilestone = Math.floor(score / threshold);
+    const previousMilestone = Math.floor(oldScore / threshold);
+    if (currentMilestone > previousMilestone && currentMilestone > lastScoreMilestone) {
+        lastScoreMilestone = currentMilestone;
+        triggerScorePulse();
+    }
+}
+
+// Trigger score pulse effect
+function triggerScorePulse() {
+    const duration = Balance.JUICE?.SCORE_PULSE?.DURATION || 0.25;
+    scorePulseTimer = duration;
 }
 function setStyle(id, prop, val) { const el = document.getElementById(id) || ui[id]; if (el) el.style[prop] = val; }
 function setUI(id, val) { const el = document.getElementById(id) || ui[id]; if (el) el.innerText = val; }
@@ -2056,7 +2081,7 @@ function spawnBoss() {
 // Mini-Boss System - Giant fiat currency after 100 kills of same type
 function spawnMiniBoss(symbol, color) {
     // Slow down time for dramatic effect
-    hitStopTimer = 1.0;
+    applyHitStop('BOSS_DEFEAT', false); // 500ms slowmo
 
     // Clear regular enemies and bullets for 1v1 fight
     enemyBullets.forEach(b => { b.markedForDeletion = true; G.Bullet.Pool.release(b); });
@@ -2297,6 +2322,12 @@ function checkMiniBossHit(b) {
 
 function update(dt) {
     if (gameState !== 'PLAY' && gameState !== 'INTERMISSION') return;
+
+    // HYPER MODE time dilation (slight slow-mo for better readability)
+    if (player && player.isHyperActive && player.isHyperActive()) {
+        dt *= Balance.HYPER.TIME_SCALE;
+    }
+
     totalTime += dt;
 
     // Perk pause disabled - perks now show only as floating icon above ship
@@ -2316,11 +2347,24 @@ function update(dt) {
         }
     }
 
-    // Graze meter decay: lose points if not actively grazing
-    if (grazeMeter > 0 && totalTime - lastGrazeTime > Balance.GRAZE.DECAY_DELAY) {
+    // Graze meter decay: lose points if not actively grazing (not during HYPER)
+    const isHyperActive = player && player.isHyperActive && player.isHyperActive();
+    if (!isHyperActive && grazeMeter > 0 && totalTime - lastGrazeTime > Balance.GRAZE.DECAY_DELAY) {
         grazeMeter = Math.max(0, grazeMeter - Balance.GRAZE.DECAY_RATE * dt);
         grazeMultiplier = 1 + (grazeMeter / Balance.GRAZE.MULT_DIVISOR) * (Balance.GRAZE.MULT_MAX - 1);
+
+        // Check if meter dropped below threshold, hide HYPER ready indicator
+        if (grazeMeter < Balance.HYPER.METER_THRESHOLD && player.hyperAvailable) {
+            player.hyperAvailable = false;
+        }
         updateGrazeUI();
+    }
+
+    // HYPER cooldown finished - can now rebuild meter
+    if (player && player.hyperCooldown <= 0 && grazeMeter >= Balance.HYPER.METER_THRESHOLD && !player.hyperAvailable && !isHyperActive) {
+        player.hyperAvailable = true;
+        showGameInfo("HYPER READY! [H]");
+        audioSys.play('hyperReady');
     }
 
     // Meme ticker: only visible during boss fight (if enabled)
@@ -2388,6 +2432,7 @@ function update(dt) {
                 G.HarmonicConductor.enemies = enemies;
                 G.HarmonicConductor.setDifficulty(level, marketCycle, isBearMarket);
                 G.HarmonicConductor.setSequence(lastWavePattern, audioSys.intensity, isBearMarket);
+                G.HarmonicConductor.startWave(enemies.length); // Track wave intensity
             }
 
             emitEvent('wave_start', { wave: waveNumber, level: level, pattern: lastWavePattern });
@@ -2399,6 +2444,15 @@ function update(dt) {
         if (newBullets && newBullets.length > 0) {
             bullets.push(...newBullets);
             createMuzzleFlashParticles(player.x, player.y - 25, player.stats.color);
+        }
+
+        // HYPER MODE activation (H key or touch button)
+        if (inputSys.isDown('KeyH') && player.canActivateHyper && player.canActivateHyper(grazeMeter)) {
+            player.activateHyper();
+            grazeMeter = 0; // Reset meter on activation
+            updateGrazeUI();
+            // HYPER activation juice
+            triggerScreenFlash('HYPER_ACTIVATE');
         }
 
         let sPct = player.shieldActive ? 100 : Math.max(0, 100 - (player.shieldCooldown / 8 * 100));
@@ -2500,6 +2554,10 @@ function updateBullets(dt) {
                     const bossY = boss.y + boss.height / 2;
                     createBossDeathExplosion(bossX, bossY);
 
+                    // Boss defeat juice (Ikeda philosophy - maximum impact)
+                    applyHitStop('BOSS_DEFEAT', false); // Long slowmo for epic death
+                    triggerScreenFlash('BOSS_DEFEAT');
+
                     // Victory flash!
                     transitionAlpha = 0.8;
                     transitionDir = -1;
@@ -2507,6 +2565,7 @@ function updateBullets(dt) {
 
                     const bossBonus = Balance.SCORE.BOSS_DEFEAT_BASE + (marketCycle * Balance.SCORE.BOSS_DEFEAT_PER_CYCLE);
                     score += bossBonus;
+                    createFloatingScore(bossBonus, bossX, bossY - 50); // Boss bonus floating score
                     boss.active = false; boss = null; shake = 60; audioSys.play('explosion');
                     audioSys.setBossPhase(0); // Reset boss music
                     updateScore(score);
@@ -2577,15 +2636,34 @@ function updateBullets(dt) {
             enemyBullets.splice(i, 1);
         } else {
             // Core hitbox for actual damage (tiny)
-            const coreR = player.stats.coreHitboxSize || 6;
+            // Use dynamic hitbox (larger during HYPER)
+            const coreR = player.getCoreHitboxSize ? player.getCoreHitboxSize() : (player.stats.coreHitboxSize || 6);
             // Graze radius - outer zone for grazing points
             const grazeR = coreR + Balance.GRAZE.RADIUS;
 
             const dx = Math.abs(eb.x - player.x);
             const dy = Math.abs(eb.y - player.y);
 
+            // SACRIFICE MODE: Bullets pass through (total invincibility)
+            if (sacrificeState === 'ACTIVE') {
+                // No collision, no graze - just walk through bullets
+                continue;
+            }
+
             // Check if within core hitbox (take damage)
             if (dx < coreR && dy < coreR) {
+                // HYPER MODE: Instant death if hit (bypass lives/shield)
+                if (player.isHyperActive && player.isHyperActive()) {
+                    player.deactivateHyper();
+                    player.hp = 0;
+                    G.Bullet.Pool.release(eb);
+                    enemyBullets.splice(i, 1);
+                    shake = 60;
+                    showDanger("HYPER FAILED!");
+                    startDeathSequence();
+                    return; // Exit collision check
+                }
+
                 if (player.takeDamage()) {
                     updateLivesUI(true); // Hit animation
                     G.Bullet.Pool.release(eb);
@@ -2600,7 +2678,8 @@ function updateBullets(dt) {
                     if (player.hp <= 0) {
                         startDeathSequence();
                     } else {
-                        hitStopTimer = 0.3; // Normal Hit SlowMo
+                        applyHitStop('PLAYER_HIT', false); // Slowmo on hit
+                        triggerScreenFlash('PLAYER_HIT');
                     }
                     streak = 0;
                     killStreak = 0;
@@ -2617,47 +2696,86 @@ function updateBullets(dt) {
                 const isCloseGraze = dx < closeGrazeR && dy < closeGrazeR;
                 const grazeBonus = isCloseGraze ? Balance.GRAZE.CLOSE_BONUS : 1;
 
-                grazeCount += grazeBonus;
-                const meterGain = isCloseGraze ? Balance.GRAZE.METER_GAIN_CLOSE : Balance.GRAZE.METER_GAIN;
-                grazeMeter = Math.min(100, grazeMeter + meterGain);
-                grazeMultiplier = 1 + (grazeMeter / Balance.GRAZE.MULT_DIVISOR) * (Balance.GRAZE.MULT_MAX - 1);
+                // Check if HYPER is active
+                const isHyperActive = player.isHyperActive && player.isHyperActive();
 
-                // Award graze points (primary score source)
-                const grazePoints = Math.floor(Balance.GRAZE.POINTS_BASE * grazeMultiplier * grazeBonus);
-                score += grazePoints;
-                updateScore(score);
+                if (isHyperActive) {
+                    // HYPER MODE: Extend timer instead of building meter
+                    player.extendHyper();
 
-                // Graze visual effect (bigger for close graze)
-                createGrazeSpark(eb.x, eb.y, player.x, player.y, isCloseGraze);
+                    // HYPER score multiplier (stacks with graze bonus)
+                    const hyperMult = Balance.HYPER.SCORE_MULT;
+                    const grazePoints = Math.floor(Balance.GRAZE.POINTS_BASE * hyperMult * grazeBonus);
+                    score += grazePoints;
+                    updateScore(score);
 
-                // Play graze sound (throttled to avoid spam)
-                const now = totalTime;
-                if (now - lastGrazeSoundTime > 0.1) {
-                    if (isCloseGraze) {
-                        audioSys.play('grazeNearMiss'); // Whoosh for close calls
-                    } else {
-                        audioSys.play('graze'); // Crystalline shimmer with pitch scaling
+                    // Intense visual effect during HYPER graze
+                    createGrazeSpark(eb.x, eb.y, player.x, player.y, true); // Always golden
+                    createGrazeSpark(eb.x, eb.y, player.x, player.y, true); // Double particles
+
+                    // HYPER graze sound (higher pitch)
+                    if (totalTime - lastGrazeSoundTime > Balance.GRAZE.SOUND_THROTTLE) {
+                        audioSys.play('hyperGraze');
+                        lastGrazeSoundTime = totalTime;
                     }
-                    lastGrazeSoundTime = now;
-                }
+                } else {
+                    // Normal graze mode
+                    grazeCount += grazeBonus;
+                    const meterGain = isCloseGraze ? Balance.GRAZE.METER_GAIN_CLOSE : Balance.GRAZE.METER_GAIN;
+                    grazeMeter = Math.min(100, grazeMeter + meterGain);
+                    grazeMultiplier = 1 + (grazeMeter / Balance.GRAZE.MULT_DIVISOR) * (Balance.GRAZE.MULT_MAX - 1);
 
-                // Graze streak every 10
-                if (grazeCount > 0 && grazeCount % 10 === 0) {
-                    audioSys.play('grazeStreak');
-                }
+                    // Award graze points (primary score source)
+                    const grazePoints = Math.floor(Balance.GRAZE.POINTS_BASE * grazeMultiplier * grazeBonus);
+                    score += grazePoints;
+                    updateScore(score);
 
-                // Perk bonus every Balance.GRAZE.PERK_THRESHOLD (capped per level)
-                if (grazeCount > 0 && grazeCount % Balance.GRAZE.PERK_THRESHOLD === 0) {
-                    if (grazePerksThisLevel < Balance.GRAZE.MAX_PERKS_PER_LEVEL) {
-                        applyRandomPerk();
-                        audioSys.play('grazePerk'); // Triumphant fanfare
-                        showMemePopup("GRAZE BONUS!", 1200);
-                        grazePerksThisLevel++;
-                    } else {
-                        // Max graze perks reached, give score instead
-                        score += 500;
-                        updateScore(score);
-                        showGameInfo("+500 GRAZE MASTER");
+                    // Graze visual effect (bigger for close graze)
+                    createGrazeSpark(eb.x, eb.y, player.x, player.y, isCloseGraze);
+
+                    // Close graze hit stop (Ikeda juice - micro-freeze on near miss)
+                    if (isCloseGraze) {
+                        applyHitStop('CLOSE_GRAZE', true);
+                    }
+
+                    // Play graze sound (throttled - using new config value)
+                    const soundThrottle = Balance.GRAZE.SOUND_THROTTLE || 0.1;
+                    if (totalTime - lastGrazeSoundTime > soundThrottle) {
+                        if (isCloseGraze) {
+                            audioSys.play('grazeNearMiss'); // Whoosh for close calls
+                        } else {
+                            audioSys.play('graze'); // Crystalline shimmer with pitch scaling
+                        }
+                        lastGrazeSoundTime = totalTime;
+                    }
+
+                    // Graze streak every 10
+                    if (grazeCount > 0 && grazeCount % 10 === 0) {
+                        audioSys.play('grazeStreak');
+                    }
+
+                    // Perk bonus every Balance.GRAZE.PERK_THRESHOLD (capped per level)
+                    if (grazeCount > 0 && grazeCount % Balance.GRAZE.PERK_THRESHOLD === 0) {
+                        if (grazePerksThisLevel < Balance.GRAZE.MAX_PERKS_PER_LEVEL) {
+                            applyRandomPerk();
+                            audioSys.play('grazePerk'); // Triumphant fanfare
+                            showMemePopup("GRAZE BONUS!", 1200);
+                            grazePerksThisLevel++;
+                        } else {
+                            // Max graze perks reached, give score instead
+                            score += 500;
+                            updateScore(score);
+                            showGameInfo("+500 GRAZE MASTER");
+                        }
+                    }
+
+                    // Check if meter is now full (can activate HYPER)
+                    if (grazeMeter >= Balance.HYPER.METER_THRESHOLD && player.hyperCooldown <= 0) {
+                        if (!player.hyperAvailable) {
+                            player.hyperAvailable = true;
+                            showGameInfo("HYPER READY! [H]");
+                            audioSys.play('hyperReady');
+                        }
                     }
                 }
 
@@ -2717,6 +2835,196 @@ function updateGrazeUI() {
     }
 }
 
+// Draw HYPER mode UI (timer and ready indicator)
+function drawHyperUI(ctx) {
+    if (!player) return;
+
+    const isHyperActive = player.isHyperActive && player.isHyperActive();
+    const centerX = gameWidth / 2;
+
+    // HYPER ACTIVE: Show countdown timer at top
+    if (isHyperActive) {
+        const timeLeft = player.getHyperTimeRemaining ? player.getHyperTimeRemaining() : 0;
+        const pulse = Math.sin(totalTime * 10) * 0.1 + 0.9;
+
+        ctx.save();
+
+        // Background bar
+        const barWidth = 200;
+        const barHeight = 30;
+        const barX = centerX - barWidth / 2;
+        const barY = 55;
+
+        // Bar background
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(barX - 2, barY - 2, barWidth + 4, barHeight + 4);
+
+        // Time fill (golden, depleting)
+        const fillRatio = timeLeft / Balance.HYPER.BASE_DURATION;
+        const fillColor = fillRatio < 0.3 ? '#ff4444' : '#FFD700';
+        ctx.fillStyle = fillColor;
+        ctx.fillRect(barX, barY, barWidth * Math.min(1, fillRatio), barHeight);
+
+        // Border
+        ctx.strokeStyle = fillRatio < 0.3 ? '#ff6666' : '#fff';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(barX, barY, barWidth, barHeight);
+
+        // HYPER text
+        ctx.font = `bold ${Math.floor(18 * pulse)}px "Courier New", monospace`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#fff';
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 3;
+        ctx.strokeText('HYPER x5', centerX, barY + barHeight / 2);
+        ctx.fillText('HYPER x5', centerX, barY + barHeight / 2);
+
+        // Time remaining number
+        ctx.font = 'bold 24px "Courier New", monospace';
+        ctx.fillStyle = fillColor;
+        ctx.strokeText(timeLeft.toFixed(1) + 's', centerX, barY + barHeight + 20);
+        ctx.fillText(timeLeft.toFixed(1) + 's', centerX, barY + barHeight + 20);
+
+        ctx.restore();
+    }
+    // HYPER READY: Show pulsing indicator
+    else if (player.hyperAvailable && grazeMeter >= Balance.HYPER.METER_THRESHOLD) {
+        const pulse = Math.sin(totalTime * 6) * 0.15 + 0.85;
+
+        ctx.save();
+        ctx.font = `bold ${Math.floor(20 * pulse)}px "Courier New", monospace`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        // Glow effect
+        ctx.shadowColor = '#FFD700';
+        ctx.shadowBlur = 15;
+
+        ctx.fillStyle = '#FFD700';
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 3;
+        ctx.strokeText('⚡ HYPER READY [H] ⚡', centerX, 70);
+        ctx.fillText('⚡ HYPER READY [H] ⚡', centerX, 70);
+
+        ctx.restore();
+    }
+    // HYPER COOLDOWN: Show cooldown timer
+    else if (player.hyperCooldown > 0) {
+        ctx.save();
+        ctx.font = '14px "Courier New", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = 'rgba(150, 150, 150, 0.7)';
+        ctx.fillText(`HYPER: ${player.hyperCooldown.toFixed(1)}s`, centerX, 70);
+        ctx.restore();
+    }
+}
+
+// Draw Satoshi's Sacrifice UI (decision button or active countdown)
+function drawSacrificeUI(ctx) {
+    const centerX = gameWidth / 2;
+    const centerY = gameHeight / 2;
+    const config = Balance.SACRIFICE;
+
+    // DECISION MODE: Show sacrifice button
+    if (sacrificeState === 'DECISION') {
+        ctx.save();
+
+        // Dark overlay
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(0, 0, gameWidth, gameHeight);
+
+        // Pulsing button
+        const pulse = Math.sin(totalTime * 8) * 0.1 + 1;
+        const btnSize = config.BUTTON_SIZE * pulse;
+
+        // Button glow
+        ctx.shadowColor = '#FFD700';
+        ctx.shadowBlur = 30;
+
+        // Button background
+        const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, btnSize);
+        gradient.addColorStop(0, '#FFD700');
+        gradient.addColorStop(0.7, '#F7931A');
+        gradient.addColorStop(1, '#996600');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, btnSize / 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Button border
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        // Bitcoin symbol
+        ctx.font = `bold ${Math.floor(btnSize * 0.5)}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#fff';
+        ctx.fillText('₿', centerX, centerY - 5);
+
+        // Text above button
+        ctx.font = 'bold 28px "Courier New", monospace';
+        ctx.fillStyle = '#fff';
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 4;
+        ctx.strokeText('SATOSHI\'S SACRIFICE', centerX, centerY - btnSize / 2 - 40);
+        ctx.fillText('SATOSHI\'S SACRIFICE', centerX, centerY - btnSize / 2 - 40);
+
+        // Instructions below button
+        ctx.font = 'bold 18px "Courier New", monospace';
+        ctx.fillStyle = '#FFD700';
+        ctx.strokeText('[SPACE] to SACRIFICE ALL ' + Math.floor(sacrificeScoreAtStart) + ' PTS', centerX, centerY + btnSize / 2 + 30);
+        ctx.fillText('[SPACE] to SACRIFICE ALL ' + Math.floor(sacrificeScoreAtStart) + ' PTS', centerX, centerY + btnSize / 2 + 30);
+
+        // Timer
+        ctx.font = 'bold 24px "Courier New", monospace';
+        const timerColor = sacrificeDecisionTimer < 1 ? '#ff4444' : '#fff';
+        ctx.fillStyle = timerColor;
+        ctx.fillText(sacrificeDecisionTimer.toFixed(1) + 's', centerX, centerY + btnSize / 2 + 60);
+
+        ctx.restore();
+    }
+    // ACTIVE MODE: Show countdown and score tracker
+    else if (sacrificeState === 'ACTIVE') {
+        ctx.save();
+
+        const timeLeft = sacrificeActiveTimer;
+        const pulse = Math.sin(totalTime * 6) * 0.1 + 1;
+
+        // Large countdown at top
+        ctx.font = `bold ${Math.floor(config.COUNTDOWN_FONT_SIZE * pulse)}px "Courier New", monospace`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        // Glow
+        ctx.shadowColor = '#fff';
+        ctx.shadowBlur = 20;
+
+        ctx.fillStyle = timeLeft < 3 ? '#ff4444' : '#fff';
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 5;
+        ctx.strokeText('SATOSHI MODE', centerX, 100);
+        ctx.fillText('SATOSHI MODE', centerX, 100);
+
+        ctx.font = 'bold 48px "Courier New", monospace';
+        ctx.strokeText(Math.ceil(timeLeft) + 's', centerX, 150);
+        ctx.fillText(Math.ceil(timeLeft) + 's', centerX, 150);
+
+        // Score tracker (bottom)
+        ctx.font = 'bold 20px "Courier New", monospace';
+        ctx.fillStyle = '#FFD700';
+        const needed = Math.floor(sacrificeScoreAtStart * config.SUCCESS_THRESHOLD);
+        const earned = Math.floor(sacrificeScoreEarned);
+        const progress = earned >= needed ? '✓ GOAL MET!' : earned + ' / ' + needed;
+        ctx.strokeText('x10 SCORE | ' + progress, centerX, gameHeight - 50);
+        ctx.fillText('x10 SCORE | ' + progress, centerX, gameHeight - 50);
+
+        ctx.restore();
+    }
+}
+
 function checkBulletCollisions(b, bIdx) {
     for (let j = enemies.length - 1; j >= 0; j--) {
         let e = enemies[j];
@@ -2735,6 +3043,7 @@ function checkBulletCollisions(b, bIdx) {
             if (shouldDie) {
                 enemies.splice(j, 1);
                 audioSys.play('coinScore');
+                applyHitStop('ENEMY_KILL', true); // Micro-freeze on kill
 
                 // Update kill streak
                 const now = totalTime;
@@ -2744,6 +3053,18 @@ function checkBulletCollisions(b, bIdx) {
                         Balance.SCORE.STREAK_MULT_MAX,
                         1 + killStreak * Balance.SCORE.STREAK_MULT_PER_KILL
                     );
+
+                    // Streak milestone effects (Ikeda juice)
+                    if (killStreak === 10) {
+                        applyHitStop('STREAK_10', false); // Slowmo for milestone
+                        triggerScreenFlash('STREAK_10');
+                    } else if (killStreak === 25) {
+                        applyHitStop('STREAK_25', false);
+                        triggerScreenFlash('STREAK_25');
+                    } else if (killStreak === 50) {
+                        applyHitStop('STREAK_50', false);
+                        triggerScreenFlash('STREAK_50');
+                    }
                 } else {
                     killStreak = 1;
                     killStreakMult = 1.0;
@@ -2755,10 +3076,33 @@ function checkBulletCollisions(b, bIdx) {
                 const bearMult = isBearMarket ? Balance.SCORE.BEAR_MARKET_MULT : 1;
                 const grazeKillBonus = grazeMeter >= Balance.SCORE.GRAZE_KILL_THRESHOLD
                     ? Balance.SCORE.GRAZE_KILL_BONUS : 1;
+                const hyperMult = (player.isHyperActive && player.isHyperActive()) ? Balance.HYPER.SCORE_MULT : 1;
 
-                const killScore = Math.floor(e.scoreVal * bearMult * perkMult * killStreakMult * grazeKillBonus);
+                // Last enemy bonus (Ikeda choreography - dramatic finale)
+                const isLastEnemy = enemies.length === 1; // This enemy is being removed, so if length is 1, it's the last
+                const lastEnemyMult = isLastEnemy && G.HarmonicConductor
+                    ? G.HarmonicConductor.getLastEnemyBonus() : 1;
+
+                // Satoshi's Sacrifice multiplier (10x during sacrifice mode)
+                const sacrificeMult = sacrificeState === 'ACTIVE' ? Balance.SACRIFICE.SCORE_MULT : 1;
+
+                const killScore = Math.floor(e.scoreVal * bearMult * perkMult * killStreakMult * grazeKillBonus * hyperMult * lastEnemyMult * sacrificeMult);
                 score += killScore;
                 updateScore(score);
+
+                // Track sacrifice earnings
+                if (sacrificeState === 'ACTIVE') {
+                    sacrificeScoreEarned += killScore;
+                }
+
+                createFloatingScore(killScore, e.x, e.y - 20);
+
+                // Last enemy special effects (Ikeda choreography finale)
+                if (isLastEnemy && lastEnemyMult > 1) {
+                    applyHitStop('STREAK_25', false); // Dramatic slowmo
+                    triggerScreenFlash('STREAK_25'); // Gold flash
+                    showGameInfo("💀 LAST FIAT! x" + lastEnemyMult.toFixed(0));
+                }
 
                 createEnemyDeathExplosion(e.x, e.y, e.color, e.symbol || '$');
                 createScoreParticles(e.x, e.y, e.color);
@@ -2881,7 +3225,8 @@ function updateEnemies(dt) {
             if (player.takeDamage()) {
                 updateLivesUI(true); // Hit animation
                 shake = 40; // Heavy shake
-                hitStopTimer = 0.5; // Contact hit slowmo
+                applyHitStop('PLAYER_HIT', false); // Contact hit slowmo
+                triggerScreenFlash('PLAYER_HIT');
                 emitEvent('player_hit', { hp: player.hp, maxHp: player.maxHp });
                 if (player.hp <= 0) {
                     startDeathSequence();
@@ -2893,6 +3238,20 @@ function updateEnemies(dt) {
 }
 
 function startDeathSequence() {
+    // Check if Satoshi's Sacrifice should be offered
+    const sacrificeConfig = Balance.SACRIFICE;
+    const canSacrifice = sacrificeConfig && sacrificeConfig.ENABLED &&
+                         lives === 1 && // Last life
+                         score > 0 && // Has score to sacrifice
+                         sacrificeState === 'NONE'; // Not already in sacrifice
+
+    if (canSacrifice) {
+        // Enter sacrifice decision state instead of death
+        enterSacrificeDecision();
+        return;
+    }
+
+    // Normal death sequence
     // 1. Trigger Bullet Time (Visuals)
     hitStopTimer = Balance.TIMING.HIT_STOP_DEATH;
     deathTimer = Balance.TIMING.DEATH_DURATION;
@@ -2903,6 +3262,106 @@ function startDeathSequence() {
     shake = Balance.EFFECTS.SHAKE.PLAYER_DEATH;
 
     // 3. Clear Bullets (Fairness) - Mark for deletion, let update loop release
+    enemyBullets.forEach(b => {
+        b.markedForDeletion = true;
+    });
+}
+
+// Enter Satoshi's Sacrifice decision window
+function enterSacrificeDecision() {
+    sacrificeState = 'DECISION';
+    sacrificeDecisionTimer = Balance.SACRIFICE.DECISION_WINDOW;
+    sacrificeScoreAtStart = score;
+
+    // Extreme slow-mo during decision
+    // (handled in game loop via sacrificeState check)
+
+    // Play dramatic sound
+    audioSys.play('sacrificeOffer');
+
+    // Screen effect
+    shake = 20;
+    triggerScreenFlash('PLAYER_HIT');
+}
+
+// Activate Satoshi's Sacrifice
+function activateSacrifice() {
+    sacrificeState = 'ACTIVE';
+    sacrificeActiveTimer = Balance.SACRIFICE.INVINCIBILITY_DURATION;
+    sacrificeScoreEarned = 0;
+
+    // Reset score to 0 (the sacrifice)
+    score = 0;
+    updateScore(0);
+
+    // Make player invincible
+    player.invulnTimer = Balance.SACRIFICE.INVINCIBILITY_DURATION + 1; // Slightly longer than mode
+
+    // Play activation sound
+    audioSys.play('sacrificeActivate');
+
+    // Epic visual feedback
+    applyHitStop('BOSS_DEFEAT', false); // Long slowmo
+    triggerScreenFlash('BOSS_DEFEAT'); // White flash
+    shake = 40;
+
+    showDanger("⚡ SATOSHI MODE ⚡");
+}
+
+// End Satoshi's Sacrifice and determine outcome
+function endSacrifice() {
+    const config = Balance.SACRIFICE;
+    const sacrificedAmount = sacrificeScoreAtStart;
+    const earnedAmount = sacrificeScoreEarned;
+    const success = earnedAmount >= (sacrificedAmount * config.SUCCESS_THRESHOLD);
+
+    sacrificeState = 'NONE';
+    sacrificeGhostTrail = [];
+
+    if (success) {
+        // SUCCESS - Satoshi approves!
+        lives += config.SUCCESS_BONUS_LIVES;
+        setUI('livesText', lives);
+        updateLivesUI();
+
+        showVictory("💎 SATOSHI APPROVES 💎");
+        audioSys.play('sacrificeSuccess');
+        applyHitStop('BOSS_DEFEAT', false);
+        triggerScreenFlash('HYPER_ACTIVATE'); // Gold flash
+
+        // Bonus message
+        const profit = earnedAmount - sacrificedAmount;
+        if (profit > 0) {
+            showGameInfo("+" + Math.floor(profit) + " PROFIT!");
+        }
+    } else {
+        // FAILURE - NGMI but survive
+        showDanger("📉 NGMI 📉");
+        audioSys.play('sacrificeFail');
+        applyHitStop('PLAYER_HIT', false);
+        triggerScreenFlash('PLAYER_HIT');
+
+        // Still survive (that's the point of sacrifice)
+        player.hp = player.maxHp;
+        player.invulnTimer = Balance.TIMING.INVULNERABILITY;
+    }
+
+    // Clear bullets for fairness
+    enemyBullets.forEach(b => {
+        b.markedForDeletion = true;
+    });
+}
+
+// Decline sacrifice (let death happen)
+function declineSacrifice() {
+    sacrificeState = 'NONE';
+
+    // Continue with normal death
+    hitStopTimer = Balance.TIMING.HIT_STOP_DEATH;
+    deathTimer = Balance.TIMING.DEATH_DURATION;
+    flashRed = Balance.EFFECTS.FLASH.DEATH_OPACITY;
+    audioSys.play('explosion');
+    shake = Balance.EFFECTS.SHAKE.PLAYER_DEATH;
     enemyBullets.forEach(b => {
         b.markedForDeletion = true;
     });
@@ -2947,8 +3406,52 @@ function draw() {
         ctx.fillStyle = `rgba(255, 0, 0, ${flashRed})`;
         ctx.fillRect(-20, -20, gameWidth + 40, gameHeight + 40); // Cover shaken area
     }
+
+    // HYPER MODE screen overlay (golden tint)
+    const isHyperActive = player && player.isHyperActive && player.isHyperActive();
+    if (isHyperActive) {
+        const hyperPulse = Math.sin(totalTime * 6) * 0.05 + 0.15;
+        ctx.fillStyle = `rgba(255, 200, 0, ${hyperPulse})`;
+        ctx.fillRect(-20, -20, gameWidth + 40, gameHeight + 40);
+    }
+
+    // SACRIFICE MODE screen overlay (white/ethereal)
+    if (sacrificeState === 'ACTIVE') {
+        const sacrificePulse = Math.sin(totalTime * 4) * 0.03 + 0.08;
+        ctx.fillStyle = `rgba(255, 255, 255, ${sacrificePulse})`;
+        ctx.fillRect(-20, -20, gameWidth + 40, gameHeight + 40);
+    }
+
     if (gameState === 'PLAY' || gameState === 'PAUSE' || gameState === 'GAMEOVER' || gameState === 'INTERMISSION') {
+        // Draw sacrifice ghost trail (before player)
+        if (sacrificeState === 'ACTIVE' && sacrificeGhostTrail.length > 0) {
+            ctx.save();
+            sacrificeGhostTrail.forEach((ghost, i) => {
+                ctx.globalAlpha = ghost.alpha * 0.4;
+                // Simple ghost silhouette
+                ctx.fillStyle = '#FFFFFF';
+                ctx.beginPath();
+                ctx.arc(ghost.x, ghost.y, 20 - i * 2, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.restore();
+        }
+
+        // Player glow during sacrifice
+        if (sacrificeState === 'ACTIVE' && player) {
+            ctx.save();
+            const glowPulse = 1 + Math.sin(totalTime * 8) * 0.3;
+            ctx.shadowColor = '#FFFFFF';
+            ctx.shadowBlur = 30 * glowPulse;
+            ctx.globalAlpha = 0.8;
+        }
+
         player.draw(ctx);
+
+        // End player glow
+        if (sacrificeState === 'ACTIVE') {
+            ctx.restore();
+        }
 
         // Enemies (for loop instead of forEach) with off-screen culling
         for (let i = 0; i < enemies.length; i++) {
@@ -3006,19 +3509,36 @@ function draw() {
 
         drawParticles(ctx);
 
-        // Floating texts
-        ctx.font = '20px Courier New';
+        // Floating texts (with fade and custom size)
         for (let i = 0; i < floatingTexts.length; i++) {
             const t = floatingTexts[i];
+            // Calculate alpha based on life (fade out at end)
+            const maxLife = t.maxLife || 1.0;
+            const fadeStart = maxLife * 0.3; // Start fading in last 30%
+            const alpha = t.life < fadeStart ? t.life / fadeStart : 1;
+
+            ctx.font = `bold ${t.size || 20}px Courier New`;
+            ctx.globalAlpha = alpha;
+            // Black outline for readability
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 3;
+            ctx.strokeText(t.text, t.x, t.y);
             ctx.fillStyle = t.c;
             ctx.fillText(t.text, t.x, t.y);
         }
+        ctx.globalAlpha = 1;
 
         // Perk icons (glow above player)
         drawPerkIcons(ctx);
 
         // Typed messages (GAME_INFO, DANGER, VICTORY) - distinct visual styles
         drawTypedMessages(ctx);
+
+        // HYPER MODE UI (timer when active, "READY" when available)
+        drawHyperUI(ctx);
+
+        // SACRIFICE UI (decision button or active countdown)
+        drawSacrificeUI(ctx);
 
         // Intermission countdown overlay
         if (gameState === 'INTERMISSION' && waveMgr.intermissionTimer > 0) {
@@ -3062,6 +3582,36 @@ function draw() {
     // Bear Market danger vignette overlay
     if (isBearMarket && gameState === 'PLAY') {
         drawBearMarketOverlay(ctx);
+    }
+
+    // Screen flash overlay (Ikeda juice - impacts feel weighty)
+    if (screenFlashOpacity > 0) {
+        ctx.fillStyle = screenFlashColor;
+        ctx.globalAlpha = screenFlashOpacity;
+        ctx.fillRect(-20, -20, gameWidth + 40, gameHeight + 40);
+        ctx.globalAlpha = 1;
+    }
+
+    // Score pulse edge glow (Ikeda juice - milestone celebration)
+    if (scorePulseTimer > 0) {
+        const pulseConfig = Balance.JUICE?.SCORE_PULSE || {};
+        const maxDuration = pulseConfig.DURATION || 0.25;
+        const progress = scorePulseTimer / maxDuration;
+        const glowSize = (pulseConfig.GLOW_SIZE || 30) * progress;
+        const glowColor = pulseConfig.GLOW_COLOR || '#FFD700';
+
+        // Create radial gradient for edge glow (vignette in reverse)
+        const gradient = ctx.createRadialGradient(
+            gameWidth / 2, gameHeight / 2, Math.min(gameWidth, gameHeight) * 0.4,
+            gameWidth / 2, gameHeight / 2, Math.max(gameWidth, gameHeight) * 0.8
+        );
+        gradient.addColorStop(0, 'rgba(0,0,0,0)');
+        gradient.addColorStop(1, glowColor);
+
+        ctx.globalAlpha = 0.4 * progress;
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, gameWidth, gameHeight);
+        ctx.globalAlpha = 1;
     }
 
     ctx.restore(); // Restore shake
@@ -3666,11 +4216,52 @@ function addText(text, x, y, c, size = 20) {
     }
     floatingTexts.push({ text, x, y, c, size, life: 1.0 });
 }
+
+// Floating score numbers (Ikeda juice - shows meaningful score gains)
+function createFloatingScore(scoreValue, x, y) {
+    const config = Balance.JUICE?.FLOAT_SCORE;
+    if (!config) return;
+
+    // Only show significant scores
+    if (scoreValue < (config.MIN_VALUE || 100)) return;
+
+    // Limit floating scores
+    if (floatingTexts.length >= 5) {
+        floatingTexts.shift();
+    }
+
+    // Scale based on score magnitude
+    let scale = 1;
+    if (scoreValue >= 2000) {
+        scale = config.SCALE_HUGE || 2.0;
+    } else if (scoreValue >= 500) {
+        scale = config.SCALE_LARGE || 1.5;
+    }
+
+    const baseSize = 18;
+    const size = Math.floor(baseSize * scale);
+    const duration = config.DURATION || 1.2;
+    const velocity = config.VELOCITY || -80;
+
+    floatingTexts.push({
+        text: '+' + Math.floor(scoreValue),
+        x: x + (Math.random() - 0.5) * 20, // Slight randomization
+        y: y,
+        c: '#FFD700', // Gold
+        size: size,
+        life: duration,
+        maxLife: duration,
+        vy: velocity
+    });
+}
 function updateFloatingTexts(dt) {
     for (let i = floatingTexts.length - 1; i >= 0; i--) {
-        floatingTexts[i].y -= 50 * dt;
-        floatingTexts[i].life -= dt;
-        if (floatingTexts[i].life <= 0) floatingTexts.splice(i, 1);
+        const ft = floatingTexts[i];
+        // Use custom velocity if set, otherwise default
+        const velocity = ft.vy ? Math.abs(ft.vy) : 50;
+        ft.y -= velocity * dt;
+        ft.life -= dt;
+        if (ft.life <= 0) floatingTexts.splice(i, 1);
     }
 }
 
@@ -4179,9 +4770,53 @@ function drawParticles(ctx) {
 
 let lastTime = 0;
 let hitStopTimer = 0;
+let hitStopFreeze = false; // True = complete freeze, false = slowmo
 let deathTimer = 0; // 💀 Sequence Timer
 let flashRed = 0;
 let gameOverPending = false;
+
+// Screen flash system (JUICE)
+let screenFlashTimer = 0;
+let screenFlashColor = '#FFFFFF';
+let screenFlashOpacity = 0;
+let screenFlashMaxOpacity = 0;
+let screenFlashDuration = 0;
+
+// Score pulse system (JUICE)
+let scorePulseTimer = 0;
+let lastScorePulseThreshold = 0;
+
+/**
+ * Apply hit stop effect (micro-freeze for impact)
+ * @param {string} type - Type from Balance.JUICE.HIT_STOP (ENEMY_KILL, STREAK_10, etc.)
+ * @param {boolean} freeze - True for complete freeze, false for slowmo
+ */
+function applyHitStop(type, freeze = true) {
+    const duration = Balance.JUICE?.HIT_STOP?.[type] || 0.02;
+    if (duration > hitStopTimer) {
+        hitStopTimer = duration;
+        hitStopFreeze = freeze;
+    }
+}
+
+/**
+ * Trigger screen flash effect
+ * @param {string} type - Type from Balance.JUICE.FLASH (CLOSE_GRAZE, STREAK_10, etc.)
+ */
+function triggerScreenFlash(type) {
+    const flash = Balance.JUICE?.FLASH?.[type];
+    if (!flash) return;
+
+    screenFlashColor = flash.color;
+    screenFlashMaxOpacity = flash.opacity;
+    screenFlashDuration = flash.duration;
+    screenFlashTimer = flash.duration;
+    screenFlashOpacity = flash.opacity;
+}
+
+// Expose juice functions globally for entity classes to use
+window.Game.applyHitStop = applyHitStop;
+window.Game.triggerScreenFlash = triggerScreenFlash;
 
 function loop(timestamp) {
     const realDt = (timestamp - lastTime) / 1000; // Save real delta before modifying lastTime
@@ -4201,11 +4836,76 @@ function loop(timestamp) {
         }
     }
 
-    // Bullet Time Logic
+    // Satoshi's Sacrifice System
+    if (sacrificeState === 'DECISION') {
+        // Extreme slow-mo during decision
+        dt *= Balance.SACRIFICE.DECISION_TIME_SCALE;
+
+        // Update decision timer
+        sacrificeDecisionTimer -= realDt;
+
+        // Check for activation input (Space or touch)
+        if (inputSys.isDown('Space') || inputSys.isDown('KeyS')) {
+            activateSacrifice();
+        }
+
+        // Timer expired - decline automatically
+        if (sacrificeDecisionTimer <= 0) {
+            declineSacrifice();
+        }
+    } else if (sacrificeState === 'ACTIVE') {
+        // Update sacrifice timer
+        sacrificeActiveTimer -= realDt;
+
+        // Update ghost trail for visual effect
+        if (player) {
+            sacrificeGhostTrail.unshift({ x: player.x, y: player.y, alpha: 1 });
+            if (sacrificeGhostTrail.length > Balance.SACRIFICE.GHOST_TRAIL_COUNT) {
+                sacrificeGhostTrail.pop();
+            }
+            // Fade ghost trail
+            sacrificeGhostTrail.forEach((g, i) => {
+                g.alpha = 1 - (i / sacrificeGhostTrail.length);
+            });
+        }
+
+        // Warning when time is running low
+        if (sacrificeActiveTimer <= Balance.SACRIFICE.WARNING_TIME && sacrificeActiveTimer > Balance.SACRIFICE.WARNING_TIME - 0.1) {
+            showDanger("⚠️ " + Math.ceil(sacrificeActiveTimer) + "s LEFT!");
+        }
+
+        // Sacrifice ended
+        if (sacrificeActiveTimer <= 0) {
+            endSacrifice();
+        }
+    }
+
+    // Hit Stop / Bullet Time Logic (JUICE system)
     if (hitStopTimer > 0) {
         hitStopTimer -= realDt; // Decrement by real time
-        dt *= 0.1; // Slow down game physics
+        if (hitStopFreeze) {
+            dt = 0; // Complete freeze for micro-pauses
+        } else {
+            dt *= 0.1; // Slow-mo for dramatic moments
+        }
         if (hitStopTimer < 0) hitStopTimer = 0;
+    }
+
+    // Screen flash decay
+    if (screenFlashTimer > 0) {
+        screenFlashTimer -= realDt;
+        // Fade out flash
+        screenFlashOpacity = screenFlashMaxOpacity * (screenFlashTimer / screenFlashDuration);
+        if (screenFlashTimer < 0) {
+            screenFlashTimer = 0;
+            screenFlashOpacity = 0;
+        }
+    }
+
+    // Score pulse decay
+    if (scorePulseTimer > 0) {
+        scorePulseTimer -= realDt;
+        if (scorePulseTimer < 0) scorePulseTimer = 0;
     }
 
     // Remove old "delayed game over" check since executeDeath handles it

@@ -68,7 +68,115 @@
 
             // Decay (use it or lose it)
             DECAY_RATE: 6,            // Meter decay per second when not grazing
-            DECAY_DELAY: 0.5          // Seconds before decay starts
+            DECAY_DELAY: 0.5,         // Seconds before decay starts
+
+            // Sound design (theremin of danger)
+            SOUND_THROTTLE: 0.05,     // Min seconds between graze sounds (was 0.15)
+            SOUND_PITCH_BASE: 200,    // Base frequency Hz
+            SOUND_PITCH_CLOSE: 600,   // Max frequency for close graze
+            SOUND_CHAIN_PITCH_STEP: 50 // Hz increase per consecutive graze
+        },
+
+        // --- HYPER GRAZE SYSTEM (Ultimate Risk/Reward) ---
+        // When meter is full, player can activate HYPER for massive rewards at extreme risk.
+        // Design: Ikeda Philosophy - the decision to risk everything for glory.
+        HYPER: {
+            METER_THRESHOLD: 100,     // Graze meter value to enable HYPER activation
+            BASE_DURATION: 5.0,       // Seconds of HYPER mode
+            GRAZE_EXTENSION: 0.3,     // Seconds added per graze during HYPER
+            MAX_DURATION: 12.0,       // Cap on total HYPER time (prevents infinite)
+            SCORE_MULT: 5.0,          // Score multiplier during HYPER (stacks with other mults)
+            HITBOX_PENALTY: 1.5,      // Core hitbox size multiplier (50% larger = more risk)
+            COOLDOWN: 8.0,            // Seconds after HYPER ends before meter can refill
+            TIME_SCALE: 0.92,         // Game speed during HYPER (slight slow-mo for readability)
+            INSTANT_DEATH: true,      // If hit during HYPER, instant game over (bypass lives)
+
+            // Visual settings
+            AURA_PULSE_SPEED: 8,      // Aura animation speed
+            AURA_SIZE_BASE: 55,       // Base aura radius
+            AURA_SIZE_PULSE: 10,      // Aura size oscillation
+            PARTICLE_BURST: 12,       // Particles per graze during HYPER
+
+            // Audio settings
+            WARNING_TIME: 2.0         // Seconds before HYPER ends to play warning
+        },
+
+        // --- SATOSHI'S SACRIFICE (Ultimate Last Stand) ---
+        // When about to die, player can sacrifice ALL score for a chance at redemption.
+        // Design: Ikeda Philosophy - the ultimate gamble, all or nothing.
+        SACRIFICE: {
+            // Trigger conditions
+            TRIGGER_HP: 1,                    // HP threshold to enable sacrifice option
+            ENABLED: true,                    // Can be disabled for easier modes
+
+            // Decision window
+            DECISION_WINDOW: 2.0,             // Seconds to decide (press SPACE/tap)
+            DECISION_TIME_SCALE: 0.25,        // Extreme slow-mo during decision
+
+            // Sacrifice mode
+            INVINCIBILITY_DURATION: 10.0,     // Seconds of total invincibility
+            SCORE_MULT: 10.0,                 // Kill multiplier during sacrifice
+            DISABLE_GRAZE: true,              // Walk through bullets (no graze)
+
+            // Outcome thresholds
+            SUCCESS_THRESHOLD: 1.0,           // Must earn >= 100% of sacrificed score
+            SUCCESS_BONUS_LIVES: 1,           // Extra life on success
+
+            // Visual settings
+            BUTTON_SIZE: 100,                 // Sacrifice button size in pixels
+            COUNTDOWN_FONT_SIZE: 64,          // Timer font size
+            GLOW_COLOR: '#FFFFFF',            // Player glow during sacrifice
+            GHOST_TRAIL_COUNT: 5,             // Number of ghost images
+
+            // Audio
+            HEARTBEAT_INTERVAL: 0.8,          // Seconds between heartbeats during decision
+            WARNING_TIME: 3.0                 // Seconds before sacrifice ends to warn
+        },
+
+        // --- JUICE SYSTEM (Hit Stop & Visual Feedback) ---
+        // Every action should feel impactful. Micro-freezes and flashes create "weight".
+        JUICE: {
+            // Hit stop durations (seconds) - game freezes briefly on impact
+            HIT_STOP: {
+                ENEMY_KILL: 0.025,        // 25ms freeze on every kill (2 frames at 60fps)
+                STREAK_10: 0.12,          // 120ms on 10-kill streak
+                STREAK_25: 0.18,          // 180ms on 25-kill streak
+                STREAK_50: 0.25,          // 250ms on 50-kill streak
+                BOSS_PHASE: 0.30,         // 300ms on boss phase transition
+                BOSS_DEFEAT: 0.50,        // 500ms on boss death
+                CLOSE_GRAZE: 0.02,        // 20ms micro-freeze on close graze
+                PLAYER_HIT: 0.08          // 80ms on player taking damage
+            },
+
+            // Screen flash effects
+            FLASH: {
+                CLOSE_GRAZE: { duration: 0.04, opacity: 0.15, color: '#FFFFFF' },
+                HYPER_ACTIVATE: { duration: 0.12, opacity: 0.4, color: '#FFD700' },
+                STREAK_10: { duration: 0.08, opacity: 0.25, color: '#00FFFF' },
+                STREAK_25: { duration: 0.10, opacity: 0.35, color: '#FFD700' },
+                STREAK_50: { duration: 0.12, opacity: 0.45, color: '#9B59B6' },
+                BOSS_PHASE: { duration: 0.15, opacity: 0.5, color: '#FF6600' },
+                BOSS_DEFEAT: { duration: 0.25, opacity: 0.7, color: '#FFFFFF' },
+                PLAYER_HIT: { duration: 0.06, opacity: 0.3, color: '#FF0000' }
+            },
+
+            // Score pulse effect (screen edge glow on milestones)
+            SCORE_PULSE: {
+                THRESHOLD: 10000,         // Points between pulses
+                SCALE: 1.015,             // Subtle zoom factor
+                DURATION: 0.25,           // Pulse duration
+                GLOW_COLOR: '#FFD700',    // Gold edge glow
+                GLOW_SIZE: 30             // Pixels of edge glow
+            },
+
+            // Floating score numbers
+            FLOAT_SCORE: {
+                MIN_VALUE: 100,           // Minimum score to show floating number
+                VELOCITY: -80,            // Upward speed (pixels/sec)
+                DURATION: 1.2,            // How long number stays visible
+                SCALE_LARGE: 1.5,         // Scale for scores > 500
+                SCALE_HUGE: 2.0           // Scale for scores > 2000
+            }
         },
 
         // --- ENEMY FIRING ---
@@ -78,6 +186,62 @@
             FIBONACCI_INTERVAL: 0.40, // Seconds between Fibonacci ramp-up steps
             BULLET_SPEED_BASE: 128,   // Base bullet speed
             BULLET_SPEED_SCALE: 68    // Additional speed at max difficulty
+        },
+
+        // --- WAVE CHOREOGRAPHY (Ikeda Philosophy: Readable Bullet Ballet) ---
+        // Transforms random chaos into synchronized, learnable patterns
+        CHOREOGRAPHY: {
+            // Row-based firing (rows fire in sequence, not simultaneously)
+            ROW_FIRE_DELAY: 0.4,                    // Seconds between row volleys
+            MAX_ROWS: 3,                            // Max rows that fire in sequence
+
+            // Pattern types per row (cycle through based on row index)
+            PATTERNS: ['ARC', 'WALL', 'AIMED'],     // Default pattern per row
+
+            // Wave intensity phases (% of enemies killed)
+            INTENSITY: {
+                SETUP_END: 0.30,                    // 0-30%: Learning phase
+                BUILD_END: 0.70,                    // 30-70%: Intensity builds
+                PANIC_START: 0.85,                  // 85%+: Panic phase
+                PANIC_RATE_MULT: 1.4,               // Fire rate multiplier in panic
+                LAST_ENEMY_PAUSE: 0.8,              // Silence before last kill
+                LAST_ENEMY_BONUS: 2.0               // Score multiplier for last enemy
+            },
+
+            // Telegraph (warning before pattern fires)
+            TELEGRAPH: {
+                ENABLED: true,                      // Show trajectory warnings
+                DURATION: 0.25,                     // How long warning shows
+                OPACITY: 0.35,                      // Warning line visibility
+                COLOR: '#FF6600',                   // Warning color (orange)
+                GAP_GLOW: true,                     // Highlight safe corridors
+                GAP_COLOR: '#00FF00'                // Safe zone color (green)
+            },
+
+            // Pattern definitions
+            PATTERN_DEFS: {
+                ARC: {
+                    BULLETS: 7,                     // Bullets in semicircle
+                    SPREAD: 120,                    // Degrees of spread
+                    SPEED: 140                      // Bullet speed
+                },
+                WALL: {
+                    BULLETS: 8,                     // Bullets in horizontal line
+                    GAP_COUNT: 2,                   // Number of gaps
+                    GAP_SIZE: 60,                   // Gap width in pixels
+                    SPEED: 120                      // Bullet speed
+                },
+                AIMED: {
+                    BULLETS: 5,                     // Bullets aimed at player
+                    SPREAD: 30,                     // Degrees of spread
+                    SPEED: 160                      // Bullet speed
+                },
+                RAIN: {
+                    BULLETS: 12,                    // Random drops
+                    SAFE_LANES: 3,                  // Guaranteed safe columns
+                    SPEED: 100                      // Bullet speed
+                }
+            }
         },
 
         // --- ENEMY HP SCALING ---

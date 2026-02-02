@@ -1,5 +1,167 @@
 # Changelog
 
+## v2.12.3 - 2026-02-02
+### Phase 22 Sprint 4: Satoshi's Sacrifice
+
+**New Feature: Satoshi's Sacrifice (Ultimate Last Stand)**
+- When at 1 life and about to die, player can sacrifice ALL score
+- 2-second decision window with 0.25x slow-mo
+- Golden pulsing sacrifice button with Bitcoin symbol
+- Press SPACE to accept sacrifice
+
+**Sacrifice Mode Mechanics**
+- 10 seconds of TOTAL INVINCIBILITY (walk through bullets)
+- 10x score multiplier on all kills
+- Grazing disabled (bullets pass through)
+- White ethereal glow and ghost trail on player
+- Large countdown timer "SATOSHI MODE"
+
+**Outcome System**
+- Success (earn >= sacrificed score): "SATOSHI APPROVES 💎" + extra life
+- Failure (earn < sacrificed score): "NGMI 📉" but player survives
+- Real-time progress tracker showing earned vs needed
+
+**Visual Effects**
+- Decision overlay with dark background
+- Glowing Bitcoin sacrifice button
+- Player white glow during sacrifice mode
+- Ghost trail following player
+- White screen tint during sacrifice
+
+**New Audio**
+- `sacrificeOffer` - Heartbeat + tension drone
+- `sacrificeActivate` - White noise burst + holy chord
+- `sacrificeSuccess` - Triumphant fanfare (C major arpeggio)
+- `sacrificeFail` - Sad descending tone
+
+**Balance Config**
+- New `Balance.SACRIFICE` section with all parameters
+- DECISION_WINDOW: 2.0s, INVINCIBILITY_DURATION: 10s
+- SCORE_MULT: 10x, SUCCESS_BONUS_LIVES: 1
+
+**Files Modified**
+- `BalanceConfig.js` - SACRIFICE config section
+- `main.js` - Sacrifice state machine, collision bypass, UI drawing
+- `AudioSystem.js` - 4 new sacrifice sounds
+
+---
+
+## v2.12.2 - 2026-02-02
+### Phase 22 Sprint 3: Wave Choreography
+
+**New Feature: Wave Intensity System**
+- Setup Phase (0-30%): Normal fire rate, learning time
+- Build Phase (30-70%): 1.1x fire rate, increasing pressure
+- Build Late Phase (70-85%): 1.2x fire rate
+- Panic Phase (85%+): 1.4x fire rate, red vignette overlay
+- Automatic phase detection based on enemies killed
+
+**Last Enemy Bonus**
+- 0.8s dramatic pause when one enemy remains
+- 2x score multiplier for final kill
+- Gold flash and hit stop on last enemy death
+- "LAST FIAT!" message with multiplier display
+
+**Telegraph Enhancements**
+- Configurable opacity via Balance.CHOREOGRAPHY.TELEGRAPH
+- Gap highlighting for safe corridors (green vertical lanes)
+- Panic phase red vignette indicator
+- All telegraph colors/timing now centralized
+
+**Balance Config**
+- New `Balance.CHOREOGRAPHY` section with:
+  - ROW_FIRE_DELAY, MAX_ROWS
+  - INTENSITY phases (SETUP_END, BUILD_END, PANIC_START, PANIC_RATE_MULT)
+  - TELEGRAPH settings (ENABLED, DURATION, OPACITY, COLOR, GAP_GLOW)
+  - PATTERN_DEFS for ARC, WALL, AIMED, RAIN
+
+**Files Modified**
+- `BalanceConfig.js` - CHOREOGRAPHY config section
+- `HarmonicConductor.js` - Wave intensity tracking, phase detection, gap telegraphs
+- `main.js` - startWave integration, last enemy bonus
+
+---
+
+## v2.12.1 - 2026-02-02
+### Phase 22 Sprint 2: Hit Stop + Visual Juice
+
+**New Feature: Hit Stop System (Ikeda Philosophy)**
+- Micro-freeze on every enemy kill (25ms) for impact weight
+- Longer hit stops on kill streaks (10/25/50 kills = 120/180/250ms)
+- Boss phase transition hit stop (300ms)
+- Boss defeat epic slowmo (500ms)
+- Close graze micro-freeze (20ms)
+- Player damage slowmo (80ms)
+
+**Screen Flash System**
+- Close graze white flash
+- HYPER activation gold flash
+- Streak milestones (cyan/gold/purple)
+- Boss phase orange flash
+- Boss defeat white flash
+- Player hit red flash
+
+**Score Pulse System**
+- Golden edge glow every 10,000 points
+- Radial gradient from center to edges
+- Fade animation over 0.25s
+
+**Floating Score Numbers**
+- Gold "+X" numbers float up on significant scores
+- Scale based on score magnitude (1x/1.5x/2x)
+- Fade out with outline for readability
+- Shows on enemy kills (>100) and boss defeat
+
+**Balance Config**
+- New `Balance.JUICE` section with HIT_STOP, FLASH, SCORE_PULSE, FLOAT_SCORE
+- Functions exposed globally: `window.Game.applyHitStop`, `window.Game.triggerScreenFlash`
+
+**Files Modified**
+- `BalanceConfig.js` - JUICE config section
+- `main.js` - Hit stop, flash, pulse, floating scores
+- `Boss.js` - Phase transition juice calls
+
+---
+
+## v2.12.0 - 2026-02-02
+### Phase 22 Sprint 1: HYPER GRAZE System
+
+**New Feature: HYPER Mode**
+- When graze meter reaches 100%, player can activate HYPER mode (press H key)
+- HYPER lasts 5 seconds base, extended by 0.3s per graze during HYPER
+- All scores multiplied by 5x during HYPER (kills and grazes)
+- Core hitbox 50% larger during HYPER (increased risk)
+- Instant death if hit during HYPER (bypasses lives/shield)
+- 8 second cooldown after HYPER ends before meter can refill
+- Slight time dilation (0.92x speed) for better bullet reading
+
+**HYPER Visual Effects**
+- Intense golden aura around player
+- Timer ring showing remaining HYPER time
+- Pulsing "HYPER READY [H]" indicator when available
+- Golden screen tint during HYPER
+- Enhanced particle bursts on HYPER grazes
+
+**New Audio**
+- `hyperReady` - Epic ascending chord when meter fills
+- `hyperActivate` - Massive power chord on activation
+- `hyperDeactivate` - Power-down sound when HYPER ends
+- `hyperWarning` - Urgent ticks in final 2 seconds
+- `hyperGraze` - Higher pitch satisfying graze during HYPER
+
+**Balance Config**
+- New `Balance.HYPER` section with all parameters
+- Updated `Balance.GRAZE` with sound throttle (50ms) and pitch settings
+- Dynamic hitbox via `player.getCoreHitboxSize()`
+
+**Files Modified**
+- `BalanceConfig.js` - HYPER config section
+- `Player.js` - HYPER state, visuals, methods
+- `main.js` - Activation logic, score multipliers, UI
+- `AudioSystem.js` - 5 new HYPER sounds
+
+---
+
 ## v2.11.1 - 2026-02-02
 ### Campaign Mode Fix
 
