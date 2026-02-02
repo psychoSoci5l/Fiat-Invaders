@@ -784,26 +784,31 @@ Balance.SACRIFICE = {
 
 ---
 
-### Sprint 23.1: Quick Wins (v2.14.0) 🆕
+### Sprint 23.1: Quick Wins ✅ COMPLETE (v2.14.0)
 *Goal: Zero-risk improvements with immediate benefit.*
 
-- [ ] **MathUtils.js**: Create new utility module
-  - `distanceBetween(x1, y1, x2, y2)` - eliminates 12 duplications
-  - `angleBetween(x1, y1, x2, y2)` - cleaner code
-  - `clamp(val, min, max)` - bounds checking
-  - File: `src/utils/MathUtils.js` (~50 lines)
+- [x] **MathUtils.js**: Create new utility module ✅
+  - `distance()`, `distanceSquared()`, `magnitude()`, `normalize()`
+  - `direction()`, `velocityTowards()`, `angleBetween()`, `angleToVelocity()`
+  - `clamp()`, `clampMagnitude()`, `clampToRadius()`, `isWithinDistance()`, `lerp()`
+  - Added `CircularBuffer` class
+  - File: `src/utils/MathUtils.js` (~200 lines)
 
-- [ ] **FloatingTexts Circular Buffer**: Replace array.shift() O(n) with O(1)
-  - Location: main.js floatingTexts array
-  - Impact: Better performance in game loop
+- [x] **FloatingTexts Slot Reuse**: Replace array.shift() O(n) with O(1) ✅
+  - `findFloatingTextSlot()` reuses expired/empty slots
+  - Unified MAX_FLOATING_TEXTS = 8
+  - No more array element shifting
 
-- [ ] **AudioSystem Guard Clauses**: Add null checks to init()
-  - Location: AudioSystem.js:36-56
-  - Impact: Prevents undefined errors
+- [x] **AudioSystem Guard Clauses**: Add null checks to init() ✅
+  - Check AudioContext support before instantiation
+  - Validate createGain/createDynamicsCompressor results
+  - Safe getOutput() handles null ctx
 
-- [ ] **ObjectPool Stack Pattern**: Replace filter() with stack pointer
-  - Location: ObjectPool.js:61
-  - Impact: O(n) → O(1) particle acquire
+- [x] **ParticlePool Stack Pattern**: Replace filter()/find() with stack pointer ✅
+  - `acquire()`: O(n) → O(1) stack increment
+  - `release()`: O(1) swap with last active
+  - `getActive()`: O(n) → O(1) slice
+  - `activeCount`: O(n) → O(1) direct read
 
 ---
 

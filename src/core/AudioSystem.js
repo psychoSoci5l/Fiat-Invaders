@@ -69,13 +69,25 @@ class AudioSystem {
         if (this.ctx) return;
         try {
             const AC = window.AudioContext || window.webkitAudioContext;
+            // Guard: AudioContext not supported
+            if (!AC) {
+                console.warn("AudioContext not supported in this browser");
+                return;
+            }
             this.ctx = new AC();
 
             // Master gain + compressor chain
             this.masterGain = this.ctx.createGain();
-            this.masterGain.gain.value = 0.7;
-
             this.compressor = this.ctx.createDynamicsCompressor();
+
+            // Guard: createGain/createDynamicsCompressor failed
+            if (!this.masterGain || !this.compressor) {
+                console.warn("Failed to create audio nodes");
+                this.ctx = null;
+                return;
+            }
+
+            this.masterGain.gain.value = 0.7;
             this.compressor.threshold.value = -24;
             this.compressor.knee.value = 30;
             this.compressor.ratio.value = 12;
@@ -92,12 +104,15 @@ class AudioSystem {
         }
         catch (e) {
             console.warn("Audio Context init failed:", e);
+            this.ctx = null;
         }
     }
 
     // Get the output node (master gain for compression)
     getOutput() {
-        return this.masterGain || this.ctx.destination;
+        if (this.masterGain) return this.masterGain;
+        if (this.ctx) return this.ctx.destination;
+        return null;
     }
 
     // Set boss phase for dynamic music

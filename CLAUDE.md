@@ -67,8 +67,10 @@ All modules attach to `window.Game`. Script load order in `index.html` matters:
 - `window.Game.Bullet.Pool` - Object pool for bullets
 - `window.Game.Balance` - Centralized balancing configuration
 - `window.Game.ColorUtils` - Color manipulation utilities
+- `window.Game.MathUtils` - Math utilities (distance, angles, vectors, clamp)
 - `window.Game.DropSystem` - Unified power-up drop management
 - `window.Game.MemeEngine` - Unified meme selection & display
+- `window.Game.ParticlePool` - Optimized particle pool with stack pattern
 - `window.isBearMarket` - Hard mode flag (checked by WaveManager)
 - `window.marketCycle` - Current difficulty cycle (increases after boss)
 - `window.currentLevel` - Current level (for WaveManager)

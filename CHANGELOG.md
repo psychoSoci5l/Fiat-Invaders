@@ -1,5 +1,43 @@
 # Changelog
 
+## v2.14.0 - 2026-02-02
+### Sprint 23.1: Quick Wins - Code Quality & Performance
+
+**New: MathUtils.js Module**
+- Centralized math utilities replacing 11+ duplicated distance calculations
+- `distance()`, `distanceSquared()`, `magnitude()`, `normalize()`
+- `direction()`, `velocityTowards()`, `angleBetween()`, `angleToVelocity()`
+- `clamp()`, `clampMagnitude()`, `clampToRadius()`, `isWithinDistance()`, `lerp()`
+- Added `CircularBuffer` class for fixed-size collections
+
+**Optimized: floatingTexts Array**
+- Replaced O(n) `shift()` with O(1) slot-based insertion
+- `findFloatingTextSlot()` reuses expired/empty slots
+- Unified limit to MAX_FLOATING_TEXTS = 8
+- No more array element shifting on every add
+
+**Improved: AudioSystem Guard Clauses**
+- Added null check for AudioContext support
+- Validates createGain/createDynamicsCompressor results
+- Safe getOutput() handles null ctx gracefully
+- Prevents undefined errors on unsupported browsers
+
+**Optimized: ParticlePool Stack Pointer Pattern**
+- `acquire()`: O(n) find → O(1) stack pointer increment
+- `release()`: O(1) swap with last active
+- `getActive()`: O(n) filter → O(1) slice
+- `activeCount`: O(n) filter → O(1) direct read
+- Added `clear()` method for game restart
+
+**Files Changed**
+- NEW: `src/utils/MathUtils.js`
+- `src/main.js`: floatingTexts optimization
+- `src/core/AudioSystem.js`: guard clauses
+- `src/core/ObjectPool.js`: ParticlePool stack pattern
+- `index.html`: Added MathUtils.js script
+
+---
+
 ## v2.13.2 - 2026-02-02
 ### Bug Fixes: iOS Button Overlap & HUD Message Box Rendering
 

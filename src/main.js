@@ -3442,6 +3442,7 @@ function draw() {
         // Floating texts (with fade and custom size)
         for (let i = 0; i < floatingTexts.length; i++) {
             const t = floatingTexts[i];
+            if (!t || t.life <= 0) continue; // Skip empty/expired slots
             // Calculate alpha based on life (fade out at end)
             const maxLife = t.maxLife || 1.0;
             const fadeStart = maxLife * 0.3; // Start fading in last 30%
@@ -4137,14 +4138,29 @@ function drawSky(ctx) {
     }
 }
 
-const MAX_FLOATING_TEXTS = 3; // Limit simultaneous floating texts
+const MAX_FLOATING_TEXTS = 8; // Limit simultaneous floating texts (unified limit)
+
+// Find an available slot or oldest entry to reuse (O(1) amortized vs O(n) shift)
+function findFloatingTextSlot() {
+    let oldestIdx = -1;
+    let oldestLife = Infinity;
+    for (let i = 0; i < floatingTexts.length; i++) {
+        const ft = floatingTexts[i];
+        if (!ft || ft.life <= 0) return i; // Empty/expired slot
+        if (ft.life < oldestLife) {
+            oldestLife = ft.life;
+            oldestIdx = i;
+        }
+    }
+    // No empty slot - grow array or overwrite oldest
+    if (floatingTexts.length < MAX_FLOATING_TEXTS) return floatingTexts.length;
+    return oldestIdx;
+}
+
 function addText(text, x, y, c, size = 20) {
     if (!Balance.HUD_MESSAGES.FLOATING_TEXT) return;
-    // Remove oldest if at limit
-    if (floatingTexts.length >= MAX_FLOATING_TEXTS) {
-        floatingTexts.shift();
-    }
-    floatingTexts.push({ text, x, y, c, size, life: 1.0 });
+    const slot = findFloatingTextSlot();
+    floatingTexts[slot] = { text, x, y, c, size, life: 1.0 };
 }
 
 // Floating score numbers (Ikeda juice - shows meaningful score gains)
@@ -4154,11 +4170,6 @@ function createFloatingScore(scoreValue, x, y) {
 
     // Only show significant scores
     if (scoreValue < (config.MIN_VALUE || 100)) return;
-
-    // Limit floating scores
-    if (floatingTexts.length >= 5) {
-        floatingTexts.shift();
-    }
 
     // Scale based on score magnitude
     let scale = 1;
@@ -4173,7 +4184,9 @@ function createFloatingScore(scoreValue, x, y) {
     const duration = config.DURATION || 1.2;
     const velocity = config.VELOCITY || -80;
 
-    floatingTexts.push({
+    // Use slot-based insertion (O(1) instead of shift O(n))
+    const slot = findFloatingTextSlot();
+    floatingTexts[slot] = {
         text: '+' + Math.floor(scoreValue),
         x: x + (Math.random() - 0.5) * 20, // Slight randomization
         y: y,
@@ -4182,16 +4195,18 @@ function createFloatingScore(scoreValue, x, y) {
         life: duration,
         maxLife: duration,
         vy: velocity
-    });
+    };
 }
+
 function updateFloatingTexts(dt) {
-    for (let i = floatingTexts.length - 1; i >= 0; i--) {
+    for (let i = 0; i < floatingTexts.length; i++) {
         const ft = floatingTexts[i];
+        if (!ft || ft.life <= 0) continue; // Skip empty/expired slots
         // Use custom velocity if set, otherwise default
         const velocity = ft.vy ? Math.abs(ft.vy) : 50;
         ft.y -= velocity * dt;
         ft.life -= dt;
-        if (ft.life <= 0) floatingTexts.splice(i, 1);
+        // No splice needed - slot will be reused by findFloatingTextSlot
     }
 }
 
