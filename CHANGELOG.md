@@ -1,5 +1,42 @@
 # Changelog
 
+## v2.14.2 - 2026-02-02
+### Sprint 23.3: System Extraction - EffectsRenderer
+
+**New: EffectsRenderer.js Module**
+- Extracted all screen effects from main.js into centralized module
+- Screen shake system with decay and transform application
+- Impact flash (red overlay) for damage feedback
+- Screen flash system with color, opacity, duration control
+- Score pulse edge glow effect for milestone feedback
+- Hit stop system (freeze/slowmo) for impact emphasis
+- HYPER and Sacrifice mode overlays
+- Vignette effect for atmosphere
+
+**Interface:**
+- Triggers: `applyShake()`, `applyImpactFlash()`, `applyHitStop()`, `setHitStop()`
+- Triggers: `triggerScreenFlash()`, `triggerScorePulse()`, `checkScorePulse()`
+- Drawing: `applyShakeTransform()`, `drawImpactFlash()`, `drawScreenFlash()`
+- Drawing: `drawScorePulse()`, `drawHyperOverlay()`, `drawSacrificeOverlay()`, `drawVignette()`
+- State: `getShake()`, `getHitStopTimer()`, `isHitStopActive()`
+
+**Refactored: main.js Effects Code**
+- All effect functions now delegate to `G.EffectsRenderer`
+- Removed local effect state variables (flashRed, screenFlash*, scorePulseTimer, hitStop*)
+- Game loop uses `EffectsRenderer.update()` for hit stop time modification
+- Death sequences use EffectsRenderer methods
+- Vibration fallback uses `applyImpactFlash()`
+
+**Global Compatibility:**
+- `G.applyHitStop` and `G.triggerScreenFlash` exposed for external callers
+
+**Files Changed**
+- NEW: `src/systems/EffectsRenderer.js` (~330 lines)
+- `src/main.js`: Effects code replaced with delegations
+- `index.html`: Added EffectsRenderer.js script
+
+---
+
 ## v2.14.1 - 2026-02-02
 ### Sprint 23.2: System Extraction - ParticleSystem
 

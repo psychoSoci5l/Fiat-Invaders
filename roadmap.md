@@ -850,13 +850,15 @@ Balance.SACRIFICE = {
     - `drawSacrificeUI(ctx, state)`
     - `drawHUDMessage(ctx, message, type)`
 
-- [ ] **EffectsRenderer.js**: New system module (~200 lines)
-  - Extract from: main.js (scattered)
+- [x] **EffectsRenderer.js**: New system module (~330 lines) ✅
+  - Extract from: main.js (scattered effect code)
   - File: `src/systems/EffectsRenderer.js`
   - Interface:
-    - `drawScreenFlash(ctx, flashState)`
-    - `drawVignette(ctx, intensity, color)`
-    - `drawHitStop(ctx, freezeState)`
+    - Triggers: `applyShake()`, `applyImpactFlash()`, `applyHitStop()`, `setHitStop()`
+    - Triggers: `triggerScreenFlash()`, `triggerScorePulse()`, `checkScorePulse()`
+    - Drawing: `applyShakeTransform()`, `drawImpactFlash()`, `drawScreenFlash()`
+    - Drawing: `drawScorePulse()`, `drawHyperOverlay()`, `drawSacrificeOverlay()`, `drawVignette()`
+    - State: `getShake()`, `getHitStopTimer()`, `isHitStopActive()`
 
 ---
 

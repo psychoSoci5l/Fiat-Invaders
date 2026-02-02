@@ -229,10 +229,9 @@ function updateScore(newScore) {
     }
 }
 
-// Trigger score pulse effect
+// Trigger score pulse effect (delegates to EffectsRenderer)
 function triggerScorePulse() {
-    const duration = Balance.JUICE?.SCORE_PULSE?.DURATION || 0.25;
-    scorePulseTimer = duration;
+    if (G.EffectsRenderer) G.EffectsRenderer.triggerScorePulse();
 }
 function setStyle(id, prop, val) { const el = document.getElementById(id) || ui[id]; if (el) el.style[prop] = val; }
 function setUI(id, val) { const el = document.getElementById(id) || ui[id]; if (el) el.innerText = val; }
@@ -1071,6 +1070,9 @@ function init() {
     // Initialize ParticleSystem with canvas dimensions
     if (G.ParticleSystem) G.ParticleSystem.init(gameWidth, gameHeight);
 
+    // Initialize EffectsRenderer
+    if (G.EffectsRenderer) G.EffectsRenderer.init(gameWidth, gameHeight);
+
     inputSys.init();
 
     // Vibration fallback: visual flash when vibration unavailable
@@ -1078,9 +1080,9 @@ function init() {
         // Convert pattern to intensity (longer = stronger flash)
         const duration = Array.isArray(pattern) ? pattern.reduce((a, b) => a + b, 0) : pattern;
         const intensity = Math.min(0.3, duration / 200);  // Cap at 0.3 alpha
-        // Trigger brief screen flash
-        if (gameState === 'PLAY' && ctx) {
-            flashRed = Math.max(flashRed || 0, intensity);
+        // Trigger brief screen flash via EffectsRenderer
+        if (gameState === 'PLAY' && G.EffectsRenderer) {
+            G.EffectsRenderer.applyImpactFlash(intensity);
         }
     });
 
@@ -1283,6 +1285,10 @@ function resize() {
     // Update ParticleSystem dimensions
     if (G.ParticleSystem) {
         G.ParticleSystem.setDimensions(gameWidth, gameHeight);
+    }
+    // Update EffectsRenderer dimensions
+    if (G.EffectsRenderer) {
+        G.EffectsRenderer.setDimensions(gameWidth, gameHeight);
     }
 }
 
@@ -3169,13 +3175,15 @@ function startDeathSequence() {
 
     // Normal death sequence
     // 1. Trigger Bullet Time (Visuals)
-    hitStopTimer = Balance.TIMING.HIT_STOP_DEATH;
+    if (G.EffectsRenderer) {
+        G.EffectsRenderer.setHitStop(Balance.TIMING.HIT_STOP_DEATH, true);
+        G.EffectsRenderer.applyImpactFlash(Balance.EFFECTS.FLASH.DEATH_OPACITY);
+        G.EffectsRenderer.applyShake(Balance.EFFECTS.SHAKE.PLAYER_DEATH);
+    }
     deathTimer = Balance.TIMING.DEATH_DURATION;
-    flashRed = Balance.EFFECTS.FLASH.DEATH_OPACITY;
 
     // 2. Play Sound
     audioSys.play('explosion');
-    shake = Balance.EFFECTS.SHAKE.PLAYER_DEATH;
 
     // 3. Clear Bullets (Fairness) - Mark for deletion, let update loop release
     enemyBullets.forEach(b => {
@@ -3273,11 +3281,13 @@ function declineSacrifice() {
     sacrificeState = 'NONE';
 
     // Continue with normal death
-    hitStopTimer = Balance.TIMING.HIT_STOP_DEATH;
+    if (G.EffectsRenderer) {
+        G.EffectsRenderer.setHitStop(Balance.TIMING.HIT_STOP_DEATH, true);
+        G.EffectsRenderer.applyImpactFlash(Balance.EFFECTS.FLASH.DEATH_OPACITY);
+        G.EffectsRenderer.applyShake(Balance.EFFECTS.SHAKE.PLAYER_DEATH);
+    }
     deathTimer = Balance.TIMING.DEATH_DURATION;
-    flashRed = Balance.EFFECTS.FLASH.DEATH_OPACITY;
     audioSys.play('explosion');
-    shake = Balance.EFFECTS.SHAKE.PLAYER_DEATH;
     enemyBullets.forEach(b => {
         b.markedForDeletion = true;
     });
@@ -3304,37 +3314,28 @@ function executeDeath() {
 function draw() {
     if (gameState === 'VIDEO') { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, gameWidth, gameHeight); return; }
 
-    // Decrease shake
-    if (shake > 0) shake -= 1;
-
     ctx.save();
-    if (shake > 0) {
-        const dx = (Math.random() - 0.5) * shake;
-        const dy = (Math.random() - 0.5) * shake;
-        ctx.translate(dx, dy);
+    // Apply screen shake via EffectsRenderer
+    if (G.EffectsRenderer) {
+        G.EffectsRenderer.applyShakeTransform(ctx);
     }
 
     drawSky(ctx);
 
-    // Impact Flash (Behind entities or on top? On top feels more intense)
-    if (flashRed > 0) {
-        flashRed -= 0.02; // Fade out
-        ctx.fillStyle = `rgba(255, 0, 0, ${flashRed})`;
-        ctx.fillRect(-20, -20, gameWidth + 40, gameHeight + 40); // Cover shaken area
+    // Impact Flash via EffectsRenderer
+    if (G.EffectsRenderer) {
+        G.EffectsRenderer.drawImpactFlash(ctx);
     }
 
     // HYPER MODE screen overlay (golden tint)
     const isHyperActive = player && player.isHyperActive && player.isHyperActive();
-    if (isHyperActive) {
-        const hyperPulse = Math.sin(totalTime * 6) * 0.05 + 0.15;
-        ctx.fillStyle = `rgba(255, 200, 0, ${hyperPulse})`;
-        ctx.fillRect(-20, -20, gameWidth + 40, gameHeight + 40);
+    if (isHyperActive && G.EffectsRenderer) {
+        G.EffectsRenderer.drawHyperOverlay(ctx, totalTime);
     }
 
     // SACRIFICE MODE screen overlay (white/ethereal)
-    if (sacrificeState === 'ACTIVE') {
-        const sacrificePulse = Math.sin(totalTime * 4) * 0.03 + 0.08;
-        ctx.fillStyle = `rgba(255, 255, 255, ${sacrificePulse})`;
+    if (sacrificeState === 'ACTIVE' && G.EffectsRenderer) {
+        G.EffectsRenderer.drawSacrificeOverlay(ctx, totalTime);
         ctx.fillRect(-20, -20, gameWidth + 40, gameHeight + 40);
     }
 
@@ -3501,34 +3502,10 @@ function draw() {
         drawBearMarketOverlay(ctx);
     }
 
-    // Screen flash overlay (Ikeda juice - impacts feel weighty)
-    if (screenFlashOpacity > 0) {
-        ctx.fillStyle = screenFlashColor;
-        ctx.globalAlpha = screenFlashOpacity;
-        ctx.fillRect(-20, -20, gameWidth + 40, gameHeight + 40);
-        ctx.globalAlpha = 1;
-    }
-
-    // Score pulse edge glow (Ikeda juice - milestone celebration)
-    if (scorePulseTimer > 0) {
-        const pulseConfig = Balance.JUICE?.SCORE_PULSE || {};
-        const maxDuration = pulseConfig.DURATION || 0.25;
-        const progress = scorePulseTimer / maxDuration;
-        const glowSize = (pulseConfig.GLOW_SIZE || 30) * progress;
-        const glowColor = pulseConfig.GLOW_COLOR || '#FFD700';
-
-        // Create radial gradient for edge glow (vignette in reverse)
-        const gradient = ctx.createRadialGradient(
-            gameWidth / 2, gameHeight / 2, Math.min(gameWidth, gameHeight) * 0.4,
-            gameWidth / 2, gameHeight / 2, Math.max(gameWidth, gameHeight) * 0.8
-        );
-        gradient.addColorStop(0, 'rgba(0,0,0,0)');
-        gradient.addColorStop(1, glowColor);
-
-        ctx.globalAlpha = 0.4 * progress;
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, gameWidth, gameHeight);
-        ctx.globalAlpha = 1;
+    // Screen flash overlay via EffectsRenderer
+    if (G.EffectsRenderer) {
+        G.EffectsRenderer.drawScreenFlash(ctx);
+        G.EffectsRenderer.drawScorePulse(ctx);
     }
 
     ctx.restore(); // Restore shake
@@ -4351,49 +4328,17 @@ function drawParticles(ctx) {
 }
 
 let lastTime = 0;
-let hitStopTimer = 0;
-let hitStopFreeze = false; // True = complete freeze, false = slowmo
 let deathTimer = 0; // 💀 Sequence Timer
-let flashRed = 0;
 let gameOverPending = false;
 
-// Screen flash system (JUICE)
-let screenFlashTimer = 0;
-let screenFlashColor = '#FFFFFF';
-let screenFlashOpacity = 0;
-let screenFlashMaxOpacity = 0;
-let screenFlashDuration = 0;
-
-// Score pulse system (JUICE)
-let scorePulseTimer = 0;
-let lastScorePulseThreshold = 0;
-
-/**
- * Apply hit stop effect (micro-freeze for impact)
- * @param {string} type - Type from Balance.JUICE.HIT_STOP (ENEMY_KILL, STREAK_10, etc.)
- * @param {boolean} freeze - True for complete freeze, false for slowmo
- */
+// --- EFFECTS (Delegated to EffectsRenderer) ---
+// Wrapper functions for backward compatibility
 function applyHitStop(type, freeze = true) {
-    const duration = Balance.JUICE?.HIT_STOP?.[type] || 0.02;
-    if (duration > hitStopTimer) {
-        hitStopTimer = duration;
-        hitStopFreeze = freeze;
-    }
+    if (G.EffectsRenderer) G.EffectsRenderer.applyHitStop(type, freeze);
 }
 
-/**
- * Trigger screen flash effect
- * @param {string} type - Type from Balance.JUICE.FLASH (CLOSE_GRAZE, STREAK_10, etc.)
- */
 function triggerScreenFlash(type) {
-    const flash = Balance.JUICE?.FLASH?.[type];
-    if (!flash) return;
-
-    screenFlashColor = flash.color;
-    screenFlashMaxOpacity = flash.opacity;
-    screenFlashDuration = flash.duration;
-    screenFlashTimer = flash.duration;
-    screenFlashOpacity = flash.opacity;
+    if (G.EffectsRenderer) G.EffectsRenderer.triggerScreenFlash(type);
 }
 
 // Expose juice functions globally for entity classes to use
@@ -4462,32 +4407,10 @@ function loop(timestamp) {
         }
     }
 
-    // Hit Stop / Bullet Time Logic (JUICE system)
-    if (hitStopTimer > 0) {
-        hitStopTimer -= realDt; // Decrement by real time
-        if (hitStopFreeze) {
-            dt = 0; // Complete freeze for micro-pauses
-        } else {
-            dt *= 0.1; // Slow-mo for dramatic moments
-        }
-        if (hitStopTimer < 0) hitStopTimer = 0;
-    }
-
-    // Screen flash decay
-    if (screenFlashTimer > 0) {
-        screenFlashTimer -= realDt;
-        // Fade out flash
-        screenFlashOpacity = screenFlashMaxOpacity * (screenFlashTimer / screenFlashDuration);
-        if (screenFlashTimer < 0) {
-            screenFlashTimer = 0;
-            screenFlashOpacity = 0;
-        }
-    }
-
-    // Score pulse decay
-    if (scorePulseTimer > 0) {
-        scorePulseTimer -= realDt;
-        if (scorePulseTimer < 0) scorePulseTimer = 0;
+    // Update effects via EffectsRenderer (hit stop, screen flash, score pulse)
+    if (G.EffectsRenderer) {
+        const effectResult = G.EffectsRenderer.update(realDt);
+        dt = effectResult.dt; // May be modified by hit stop
     }
 
     // Remove old "delayed game over" check since executeDeath handles it
