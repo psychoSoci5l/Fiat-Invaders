@@ -23,12 +23,7 @@ window.isBearMarket = isBearMarket; // Expose globally for WaveManager
 let player;
 let bullets = [], enemyBullets = [], enemies = [], powerUps = [], particles = [], floatingTexts = [], muzzleFlashes = [], perkIcons = [];
 window.enemyBullets = enemyBullets; // Expose for Player core hitbox indicator
-let clouds = []; // ☁️
-let hills = []; // Parallax background hills
-let floatingSymbols = []; // ₿ Floating crypto symbols in background
-let lightningTimer = 0; // ⚡ Bear Market lightning
-let lightningFlash = 0;
-let skyTime = 0; // ✨ Animation timer for sky effects
+// Sky state moved to SkyRenderer.js
 let images = {}; // 🖼️ Asset Cache
 
 // Load Assets
@@ -109,11 +104,7 @@ let boss = null;
 let score = 0, level = 1, lives = 3;
 let lastScoreMilestone = 0; // Track score milestones for pulse effect
 let shake = 0, gridDir = 1, gridSpeed = 25, totalTime = 0, intermissionTimer = 0;
-// Screen transition system
-let transitionAlpha = 0;
-let transitionDir = 0; // 0 = none, 1 = fading in (to black), -1 = fading out
-let transitionCallback = null;
-let transitionColor = '#000';
+// Screen transition moved to TransitionManager.js
 let currentShipIdx = 0;
 let lastWavePattern = 'RECT';
 let perkChoiceActive = false;
@@ -1409,7 +1400,7 @@ window.goToHangar = function () {
     setStyle('intro-screen', 'display', 'none');
     setStyle('hangar-screen', 'display', 'flex');
     gameState = 'HANGAR';
-    initSky(); // Start BG effect early
+    if (G.SkyRenderer) G.SkyRenderer.init(gameWidth, gameHeight); // Start BG effect early
 }
 
 // Ship launch animation - goes directly to game (skips hangar)
@@ -1622,7 +1613,7 @@ window.launchShipAndStart = function () {
         player.configure(selectedShipKey);
 
         audioSys.startMusic();
-        initSky();
+        if (G.SkyRenderer) G.SkyRenderer.init(gameWidth, gameHeight);
         startGame();
 
         setTimeout(() => {
@@ -1909,10 +1900,8 @@ function startGame() {
     // Reset visual effects
     shake = 0;
     totalTime = 0;
-    lightningTimer = 0;
-    lightningFlash = 0;
-    transitionAlpha = 0;
-    transitionDir = 0;
+    if (G.SkyRenderer) G.SkyRenderer.reset(); // Reset sky state (lightning, etc.)
+    if (G.TransitionManager) G.TransitionManager.reset();
 
     updateLivesUI();
 
@@ -2025,10 +2014,9 @@ function spawnBoss() {
 
     const bossConfig = G.BOSSES[bossType] || G.BOSSES.FEDERAL_RESERVE;
 
-    // Flash color based on boss
-    transitionAlpha = 0.6;
-    transitionDir = -1;
-    transitionColor = bossType === 'BCE' ? '#000033' : (bossType === 'BOJ' ? '#330000' : '#400000');
+    // Flash color based on boss via TransitionManager
+    const bossFlashColor = bossType === 'BCE' ? '#000033' : (bossType === 'BOJ' ? '#330000' : '#400000');
+    if (G.TransitionManager) G.TransitionManager.startFadeOut(0.6, bossFlashColor);
 
     boss = new G.Boss(gameWidth, gameHeight, bossType);
 
@@ -2508,7 +2496,7 @@ function update(dt) {
     updateTypedMessages(dt);
     updatePerkIcons(dt);
     updateParticles(dt);
-    updateTransition(dt);
+    if (G.TransitionManager) G.TransitionManager.update(dt);
 }
 
 function updateBullets(dt) {
@@ -2556,10 +2544,8 @@ function updateBullets(dt) {
                     applyHitStop('BOSS_DEFEAT', false); // Long slowmo for epic death
                     triggerScreenFlash('BOSS_DEFEAT');
 
-                    // Victory flash!
-                    transitionAlpha = 0.8;
-                    transitionDir = -1;
-                    transitionColor = '#ffffff';
+                    // Victory flash via TransitionManager
+                    if (G.TransitionManager) G.TransitionManager.startFadeOut(0.8, '#ffffff');
 
                     const bossBonus = Balance.SCORE.BOSS_DEFEAT_BASE + (marketCycle * Balance.SCORE.BOSS_DEFEAT_PER_CYCLE);
                     score += bossBonus;
@@ -3320,7 +3306,10 @@ function draw() {
         G.EffectsRenderer.applyShakeTransform(ctx);
     }
 
-    drawSky(ctx);
+    // Sky via SkyRenderer
+    if (G.SkyRenderer) {
+        G.SkyRenderer.draw(ctx, { level, isBearMarket, bossActive: boss && boss.active });
+    }
 
     // Impact Flash via EffectsRenderer
     if (G.EffectsRenderer) {
@@ -3497,9 +3486,9 @@ function draw() {
             drawBossWarningOverlay(ctx);
         }
     }
-    // Bear Market danger vignette overlay
-    if (isBearMarket && gameState === 'PLAY') {
-        drawBearMarketOverlay(ctx);
+    // Bear Market danger vignette overlay via SkyRenderer
+    if (isBearMarket && gameState === 'PLAY' && G.SkyRenderer) {
+        G.SkyRenderer.drawBearMarketOverlay(ctx, totalTime);
     }
 
     // Screen flash overlay via EffectsRenderer
@@ -3510,8 +3499,8 @@ function draw() {
 
     ctx.restore(); // Restore shake
 
-    // Screen transition overlay (on top of everything)
-    drawTransition(ctx);
+    // Screen transition overlay via TransitionManager
+    if (G.TransitionManager) G.TransitionManager.draw(ctx);
 
     // Debug overlay (F3 toggle)
     if (debugMode) drawDebug(ctx);
@@ -3683,423 +3672,10 @@ function drawDebug(ctx) {
     ctx.restore();
 }
 
-function initSky() {
-    clouds = [];
-    const count = 12; // Reduced from 20 for performance
-    for (let i = 0; i < count; i++) {
-        clouds.push({
-            x: Math.random() * gameWidth,
-            y: Math.random() * gameHeight * 0.5,
-            w: Math.random() * 100 + 50,
-            h: Math.random() * 40 + 20,
-            speed: Math.random() * 20 + 10,
-            layer: Math.floor(Math.random() * 3)
-        });
-    }
+// Sky functions moved to SkyRenderer.js
 
-    // Parallax hills (3 layers) (3 layers)
-    hills = [
-        { layer: 0, y: gameHeight * 0.75, height: 120, speed: 5, offset: 0 },
-        { layer: 1, y: gameHeight * 0.80, height: 100, speed: 12, offset: 50 },
-        { layer: 2, y: gameHeight * 0.85, height: 80, speed: 20, offset: 100 }
-    ];
-
-    // Floating crypto symbols (background decoration)
-    const symbols = ['₿', 'Ξ', '◎', '₮', '∞'];
-    floatingSymbols = [];
-    for (let i = 0; i < 8; i++) {
-        floatingSymbols.push({
-            symbol: symbols[i % symbols.length],
-            x: Math.random() * gameWidth,
-            y: Math.random() * gameHeight * 0.6 + gameHeight * 0.15,
-            speed: Math.random() * 15 + 8,
-            size: Math.random() * 12 + 14,
-            alpha: Math.random() * 0.15 + 0.08,
-            wobble: Math.random() * Math.PI * 2
-        });
-    }
-}
-
-function updateSky(dt) {
-    if (clouds.length === 0) initSky();
-    const speedMult = isBearMarket ? 5.0 : 1.0;
-    skyTime += dt; // Increment sky animation timer
-
-    // Update clouds (for loop)
-    for (let i = 0; i < clouds.length; i++) {
-        const c = clouds[i];
-        c.x -= c.speed * (c.layer + 1) * 0.5 * speedMult * dt;
-        if (c.x + c.w < 0) {
-            c.x = gameWidth + 50;
-            c.y = Math.random() * gameHeight * 0.5;
-        }
-    }
-
-    // Update parallax hills offset (for loop)
-    // Use 628 (≈ 2π/0.01) to avoid discontinuity in sine wave
-    for (let i = 0; i < hills.length; i++) {
-        const h = hills[i];
-        h.offset += h.speed * speedMult * dt;
-        if (h.offset > 628) h.offset -= 628;
-    }
-
-    // Update floating crypto symbols
-    for (let i = 0; i < floatingSymbols.length; i++) {
-        const s = floatingSymbols[i];
-        s.x -= s.speed * speedMult * dt;
-        s.wobble += dt * 2; // Gentle oscillation
-        if (s.x < -30) {
-            s.x = gameWidth + 30;
-            s.y = Math.random() * gameHeight * 0.5 + gameHeight * 0.15;
-        }
-    }
-
-    // ⚡ Bear Market Lightning
-    if (isBearMarket && gameState === 'PLAY') {
-        lightningTimer -= dt;
-        if (lightningTimer <= 0) {
-            lightningFlash = 0.4; // Flash intensity (increased)
-            lightningTimer = 1.5 + Math.random() * 3; // More frequent: 1.5-4.5 seconds
-            shake = Math.max(shake, 8); // Screen shake on lightning
-            audioSys.play('hit'); // Thunder sound
-        }
-    }
-    if (lightningFlash > 0) lightningFlash -= dt * 1.5; // Slightly slower fade
-}
-
-// Screen transition functions
-function startTransition(callback, color = '#000') {
-    transitionDir = 1; // Fade to black
-    transitionCallback = callback;
-    transitionColor = color;
-}
-
-function updateTransition(dt) {
-    if (transitionDir === 0) return;
-
-    const speed = 3; // Transition speed
-    transitionAlpha += transitionDir * speed * dt;
-
-    if (transitionDir === 1 && transitionAlpha >= 1) {
-        // Fully black - execute callback and start fade out
-        transitionAlpha = 1;
-        if (transitionCallback) {
-            transitionCallback();
-            transitionCallback = null;
-        }
-        transitionDir = -1; // Start fading out
-    } else if (transitionDir === -1 && transitionAlpha <= 0) {
-        // Fully transparent - done
-        transitionAlpha = 0;
-        transitionDir = 0;
-    }
-}
-
-function drawTransition(ctx) {
-    if (transitionAlpha <= 0) return;
-
-    ctx.fillStyle = transitionColor;
-    ctx.globalAlpha = transitionAlpha;
-    ctx.fillRect(0, 0, gameWidth, gameHeight);
-    ctx.globalAlpha = 1;
-
-    // Add some flair during transition
-    if (transitionAlpha > 0.3 && transitionAlpha < 0.95) {
-        // Wipe line effect
-        const wipePos = transitionDir === 1 ?
-            transitionAlpha * gameHeight :
-            (1 - transitionAlpha) * gameHeight;
-
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 4;
-        ctx.globalAlpha = 0.8;
-        ctx.beginPath();
-        ctx.moveTo(0, wipePos);
-        ctx.lineTo(gameWidth, wipePos);
-        ctx.stroke();
-        ctx.globalAlpha = 1;
-    }
-}
-
-// Bear Market danger overlay - red vignette + blood rain
-function drawBearMarketOverlay(ctx) {
-    // Pulsing red vignette
-    const pulse = Math.sin(totalTime * 2) * 0.1 + 0.25;
-    const gradient = ctx.createRadialGradient(
-        gameWidth / 2, gameHeight / 2, gameHeight * 0.3,
-        gameWidth / 2, gameHeight / 2, gameHeight * 0.8
-    );
-    gradient.addColorStop(0, 'transparent');
-    gradient.addColorStop(0.7, `rgba(80, 0, 0, ${pulse * 0.3})`);
-    gradient.addColorStop(1, `rgba(100, 0, 0, ${pulse * 0.6})`);
-
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, gameWidth, gameHeight);
-
-    // Blood rain effect (falling red streaks)
-    ctx.strokeStyle = 'rgba(150, 20, 20, 0.4)';
-    ctx.lineWidth = 2;
-    const rainCount = 15;
-    for (let i = 0; i < rainCount; i++) {
-        const seed = i * 137.5 + totalTime * 100;
-        const x = ((seed * 7) % gameWidth);
-        const y = ((seed * 3 + totalTime * 300) % (gameHeight + 50)) - 25;
-        const len = 15 + (i % 3) * 8;
-
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.lineTo(x - 2, y + len);
-        ctx.stroke();
-    }
-
-    // Edge danger indicators (flashing corners)
-    const dangerPulse = Math.sin(totalTime * 8) * 0.5 + 0.5;
-    ctx.fillStyle = `rgba(255, 0, 0, ${dangerPulse * 0.15})`;
-
-    // Top edge
-    ctx.fillRect(0, 0, gameWidth, 8);
-    // Bottom edge
-    ctx.fillRect(0, gameHeight - 8, gameWidth, 8);
-}
-
-function drawSky(ctx) {
-    // Cell-shaded sky - flat color bands
-    let bands = [];
-
-    if (isBearMarket) {
-        // Bear Market: Dark Storm - flat red bands
-        bands = [
-            { color: '#1a0000', height: 0.2 },
-            { color: '#2a0505', height: 0.25 },
-            { color: '#3a0a0a', height: 0.25 },
-            { color: '#2a0000', height: 0.3 }
-        ];
-    } else if (boss && boss.active) {
-        // Boss: Deep Space - flat dark bands
-        bands = [
-            { color: '#000008', height: 0.25 },
-            { color: '#05051a', height: 0.25 },
-            { color: '#0a0a20', height: 0.25 },
-            { color: '#0f0f28', height: 0.25 }
-        ];
-    } else {
-        // 5-Level progression with FLAT bands
-        const skyLevel = Math.min(5, level);
-
-        if (skyLevel === 1) { // Morning - bright blue bands
-            bands = [
-                { color: '#3a80c9', height: 0.2 },
-                { color: '#5a9fd9', height: 0.25 },
-                { color: '#7bbfeb', height: 0.25 },
-                { color: '#9dd5f5', height: 0.3 }
-            ];
-        } else if (skyLevel === 2) { // Afternoon - warm blue to yellow
-            bands = [
-                { color: '#2a6bb8', height: 0.2 },
-                { color: '#4a8bc8', height: 0.25 },
-                { color: '#7ab5d8', height: 0.25 },
-                { color: '#d4c87c', height: 0.3 }
-            ];
-        } else if (skyLevel === 3) { // Sunset - purple/orange bands
-            bands = [
-                { color: '#3a4558', height: 0.2 },
-                { color: '#8b49a6', height: 0.2 },
-                { color: '#d74c3c', height: 0.25 },
-                { color: '#e38c22', height: 0.35 }
-            ];
-        } else if (skyLevel === 4) { // Dusk - purple bands
-            bands = [
-                { color: '#15152e', height: 0.25 },
-                { color: '#2a2a4e', height: 0.25 },
-                { color: '#3a2f5b', height: 0.25 },
-                { color: '#2d1b4e', height: 0.25 }
-            ];
-        } else { // Night - dark blue bands
-            bands = [
-                { color: '#080812', height: 0.25 },
-                { color: '#101025', height: 0.25 },
-                { color: '#151535', height: 0.25 },
-                { color: '#1a1a40', height: 0.25 }
-            ];
-        }
-    }
-
-    // Draw flat color bands (cell-shaded style)
-    let yPos = 0;
-    for (const band of bands) {
-        const bandHeight = gameHeight * band.height;
-        ctx.fillStyle = band.color;
-        ctx.fillRect(0, yPos, gameWidth, bandHeight + 1); // +1 to avoid gaps
-        yPos += bandHeight;
-    }
-
-    // Floating crypto symbols (subtle background layer)
-    if (!isBearMarket && !(boss && boss.active)) {
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        for (let i = 0; i < floatingSymbols.length; i++) {
-            const s = floatingSymbols[i];
-            const wobbleY = Math.sin(s.wobble) * 5;
-            ctx.globalAlpha = s.alpha;
-            ctx.font = `bold ${s.size}px Arial`;
-            ctx.fillStyle = level >= 4 ? '#8888aa' : '#aabbcc';
-            ctx.fillText(s.symbol, s.x, s.y + wobbleY);
-        }
-        ctx.globalAlpha = 1;
-    }
-
-    // 2. Stars for night/boss - cell-shaded with twinkle
-    const isNight = level >= 5 || (boss && boss.active);
-
-    if (isNight && !isBearMarket) {
-        ctx.fillStyle = '#ffffcc';
-        ctx.lineWidth = 1;
-        for (let i = 0; i < 40; i++) {
-            const sx = (i * 137 + level * 50) % gameWidth;
-            const sy = (i * 89 + level * 30) % (gameHeight * 0.6);
-            const baseSize = (i % 3) + 2;
-            // Twinkle effect: each star has unique phase offset
-            const twinkle = Math.sin(skyTime * (2 + i * 0.3) + i * 1.7);
-            const alpha = 0.4 + (i % 4) * 0.1 + twinkle * 0.25;
-            const size = baseSize * (1 + twinkle * 0.15);
-            ctx.globalAlpha = Math.max(0.15, alpha);
-
-            // 4-point star shape (cell-shaded)
-            if (i % 3 === 0) {
-                ctx.beginPath();
-                ctx.moveTo(sx, sy - size);
-                ctx.lineTo(sx + size * 0.3, sy);
-                ctx.lineTo(sx + size, sy);
-                ctx.lineTo(sx + size * 0.3, sy);
-                ctx.lineTo(sx, sy + size);
-                ctx.lineTo(sx - size * 0.3, sy);
-                ctx.lineTo(sx - size, sy);
-                ctx.lineTo(sx - size * 0.3, sy);
-                ctx.closePath();
-                ctx.fill();
-            } else {
-                // Simple dot
-                ctx.beginPath();
-                ctx.arc(sx, sy, size * 0.6, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-        ctx.globalAlpha = 1;
-    }
-
-    // Parallax hills - flat silhouettes with outlines
-    if (!boss || !boss.active) { // No hills during boss (space)
-        const hillColors = isBearMarket
-            ? ['#1a0808', '#250c0c', '#301010'] // Dark red layers
-            : level >= 4
-                ? ['#151530', '#1a1a40', '#202050'] // Night purple
-                : level >= 3
-                    ? ['#4a3040', '#5a3848', '#6a4050'] // Sunset pink
-                    : ['#3a6080', '#4a7090', '#5a80a0']; // Day blue
-
-        ctx.strokeStyle = '#111';
-        ctx.lineWidth = 3;
-
-        for (let idx = 0; idx < hills.length; idx++) {
-            const h = hills[idx];
-            const color = hillColors[idx] || hillColors[0];
-            const y = h.y;
-
-            ctx.fillStyle = color;
-
-            // Draw wavy hill silhouette + outline in single pass
-            ctx.beginPath();
-            ctx.moveTo(-10, gameHeight + 10);
-
-            // Create rolling hills with sine wave (larger step = fewer calculations)
-            for (let x = -10; x <= gameWidth + 10; x += 30) {
-                const waveY = y + Math.sin((x + h.offset) * 0.02) * 25
-                            + Math.sin((x + h.offset) * 0.01 + idx) * 15;
-                ctx.lineTo(x, waveY);
-            }
-
-            ctx.lineTo(gameWidth + 10, gameHeight + 10);
-            ctx.closePath();
-            ctx.fill();
-            ctx.stroke(); // Stroke the entire shape (simpler than separate outline)
-        }
-    }
-
-    // 3. Clouds - cell-shaded FLAT with bold outlines
-    const showClouds = !(boss && boss.active) && level < 5;
-    if (showClouds) {
-        const cloudAlpha = level >= 4 ? 0.4 : 0.85;
-        ctx.globalAlpha = cloudAlpha;
-
-        const shadowColor = isBearMarket ? '#200808' : '#c8d8e8';
-        const mainColor = isBearMarket ? '#301010' : '#f0f8ff';
-        const strokeColor = isBearMarket ? '#401515' : '#8090a0';
-
-        for (let i = 0; i < clouds.length; i++) {
-            const c = clouds[i];
-
-            // Cloud shadow
-            ctx.fillStyle = shadowColor;
-            ctx.beginPath();
-            ctx.ellipse(c.x, c.y + 3, c.w / 2, c.h / 2, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Main cloud
-            ctx.fillStyle = mainColor;
-            ctx.beginPath();
-            ctx.ellipse(c.x, c.y, c.w / 2, c.h / 2.2, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Outline
-            ctx.strokeStyle = strokeColor;
-            ctx.lineWidth = 2;
-            ctx.stroke(); // Reuse last path
-        }
-        ctx.globalAlpha = 1;
-    }
-
-    // ⚡ Lightning Flash Overlay
-    if (lightningFlash > 0) {
-        // Screen flash
-        ctx.fillStyle = `rgba(200, 150, 255, ${lightningFlash * 0.6})`;
-        ctx.fillRect(0, 0, gameWidth, gameHeight);
-
-        // Draw actual lightning bolts
-        if (lightningFlash > 0.15) {
-            ctx.strokeStyle = `rgba(255, 255, 255, ${lightningFlash * 2})`;
-            ctx.lineWidth = 3;
-            ctx.shadowColor = '#fff';
-            ctx.shadowBlur = 15;
-
-            // Draw 2-3 lightning bolts
-            for (let bolt = 0; bolt < 2; bolt++) {
-                const startX = gameWidth * 0.2 + bolt * gameWidth * 0.5 + Math.random() * 50;
-                let x = startX;
-                let y = 0;
-
-                ctx.beginPath();
-                ctx.moveTo(x, y);
-
-                while (y < gameHeight * 0.4) {
-                    x += (Math.random() - 0.5) * 40;
-                    y += 20 + Math.random() * 30;
-                    ctx.lineTo(x, y);
-
-                    // Branch occasionally
-                    if (Math.random() < 0.3) {
-                        const branchX = x + (Math.random() - 0.5) * 60;
-                        const branchY = y + 30 + Math.random() * 20;
-                        ctx.moveTo(x, y);
-                        ctx.lineTo(branchX, branchY);
-                        ctx.moveTo(x, y);
-                    }
-                }
-                ctx.stroke();
-            }
-            ctx.shadowBlur = 0;
-        }
-    }
-}
+// Screen transition functions moved to TransitionManager.js
+// drawBearMarketOverlay and drawSky moved to SkyRenderer.js
 
 const MAX_FLOATING_TEXTS = 8; // Limit simultaneous floating texts (unified limit)
 
@@ -4418,7 +3994,12 @@ function loop(timestamp) {
 
     update(dt);
     updatePowerUps(dt);
-    updateSky(dt); // ☁️ Always update sky
+    // Sky update via SkyRenderer
+    if (G.SkyRenderer) {
+        const skyEffects = G.SkyRenderer.update(dt, { isBearMarket, gameState });
+        if (skyEffects.shake > 0) shake = Math.max(shake, skyEffects.shake);
+        if (skyEffects.playSound) audioSys.play(skyEffects.playSound);
+    }
     draw();
     requestAnimationFrame(loop);
 }
@@ -4437,8 +4018,7 @@ function showCampaignVictory() {
 
     // Dramatic screen effects
     shake = 30;
-    transitionAlpha = 1.0;
-    transitionColor = '#ffd700'; // Gold!
+    if (G.TransitionManager) G.TransitionManager.startFadeOut(1.0, '#ffd700'); // Gold!
 
     // Show campaign complete screen
     gameState = 'CAMPAIGN_VICTORY';
