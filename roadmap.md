@@ -770,15 +770,16 @@ Balance.SACRIFICE = {
 
 ---
 
-## Phase 23: Technical Debt v2.13.0 🔧 (Future)
+## Phase 23: Technical Debt v2.13.0 🔧 ✅
 *Goal: Code quality, maintainability, and test coverage.*
 
 ### A) Code Refactoring
-- [ ] **Enemy Firing System Refactor** ⚠️ PRIORITY
-  - Current: Dual system (Fibonacci legacy + HarmonicConductor) causes confusion
-  - Problem: Fibonacci is "legacy" but still active when HarmonicConductor disabled
-  - Solution: Unify into single system, remove Fibonacci, let HarmonicConductor handle all firing
-  - Files: main.js (remove fibonacciTimer, fibonacciIndex, FIBONACCI_SEQ), HarmonicConductor.js
+- [x] **Enemy Firing System Refactor** ✅ COMPLETE
+  - Removed Fibonacci system entirely
+  - HarmonicConductor now sole authority for enemy firing
+  - Added DEFAULT_BASIC fallback sequence
+  - Fixed BURST pattern handling
+  - Files modified: main.js, HarmonicConductor.js, HarmonicSequences.js, Enemy.js, BalanceConfig.js
 - [ ] **main.js Decomposition**: Split 4000+ line file into logical modules
   - GameLoop.js (update/draw cycle)
   - CollisionSystem.js (all collision detection)

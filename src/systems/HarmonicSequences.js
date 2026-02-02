@@ -14,6 +14,15 @@ window.Game.HarmonicSequences = {
         RANDOM_SINGLE: 'RANDOM_SINGLE' // Sparse random fire
     },
 
+    // Fallback sequence - guaranteed to always work
+    // Used when no specific sequence is set (ensures enemies always fire)
+    DEFAULT_BASIC: [
+        { beat: 0, type: 'RANDOM_SINGLE', tier: 'STRONG', chance: 0.5 },
+        { beat: 4, type: 'RANDOM_SINGLE', tier: 'MEDIUM', chance: 0.4 },
+        { beat: 8, type: 'RANDOM_SINGLE', tier: 'STRONG', chance: 0.5 },
+        { beat: 12, type: 'RANDOM_SINGLE', tier: 'WEAK', chance: 0.3 }
+    ],
+
     // Tier definitions for enemy targeting
     TIERS: {
         STRONG: [7, 8, 9],  // Dollar, Yuan, CBDC

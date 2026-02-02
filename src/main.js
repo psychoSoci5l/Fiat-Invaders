@@ -167,17 +167,8 @@ let killStreak = 0;           // Consecutive kills
 let killStreakMult = 1.0;     // Current streak multiplier
 let lastKillTime = 0;         // Time of last kill (for timeout)
 
-let enemyFirePhase = 0;
-let enemyFireTimer = 0;
-let enemyFireStride = Balance.ENEMY_FIRE.STRIDE;
-let enemyShotsThisTick = 0; // Rate limiter
-
-// Fibonacci firing ramp-up at wave start
+// Wave timing (waveStartTime kept for potential future use)
 let waveStartTime = 0;
-let fibonacciIndex = 0;
-let fibonacciTimer = 0;
-let enemiesAllowedToFire = 1; // Starts at 1, increases via Fibonacci
-const FIBONACCI_SEQ = [1, 1, 2, 3, 5, 8, 13, 21, 34, 55]; // Pre-computed
 
 // Fiat Kill Counter System - Mini Boss every N kills of same type
 let fiatKillCounter = { '¥': 0, '₽': 0, '₹': 0, '€': 0, '£': 0, '₣': 0, '₺': 0, '$': 0, '元': 0, 'Ⓒ': 0 };
@@ -1833,8 +1824,6 @@ function startGame() {
     bulletCancelStreak = 0;
     bulletCancelTimer = 0;
     perkCooldown = 0;
-    enemyFirePhase = 0;
-    enemyFireTimer = 0;
     memeSwapTimer = Balance.MEMES.TICKER_SWAP_INTERVAL;
     closePerkChoice();
     recentPerks = []; // Reset perk display
@@ -1895,11 +1884,8 @@ function startGame() {
     bossWarningTimer = 0; // Reset boss warning
     bossWarningType = null;
 
-    // Reset Fibonacci firing system
+    // Reset wave timing
     waveStartTime = 0;
-    fibonacciIndex = 0;
-    fibonacciTimer = 0;
-    enemiesAllowedToFire = 1;
 
     // Reset visual effects
     shake = 0;
@@ -2300,11 +2286,7 @@ function checkMiniBossHit(b) {
             // Restore enemies if any were saved
             if (miniBoss.savedEnemies && miniBoss.savedEnemies.length > 0) {
                 enemies = miniBoss.savedEnemies;
-                // Reset Fibonacci firing so restored enemies don't fire at full rate immediately
                 waveStartTime = totalTime;
-                fibonacciIndex = 0;
-                fibonacciTimer = 0;
-                enemiesAllowedToFire = 1;
             }
             // Update global references
             G.enemies = enemies;
@@ -2421,11 +2403,8 @@ function update(dt) {
             lastWavePattern = spawnData.pattern;
             gridDir = 1;
 
-            // Reset Fibonacci firing ramp-up for new wave
+            // Track wave start time
             waveStartTime = totalTime;
-            fibonacciIndex = 0;
-            fibonacciTimer = 0;
-            enemiesAllowedToFire = 1; // Start with 1 enemy allowed
 
             // Update Harmonic Conductor for new wave
             if (G.HarmonicConductor) {
@@ -3148,29 +3127,7 @@ function updateEnemies(dt) {
         G.HarmonicConductor.update(dt);
     }
 
-    // Check if Harmonic Conductor is handling firing (uses self-managed beat timing)
-    const conductorEnabled = G.HarmonicConductor && G.HarmonicConductor.enabled && G.HarmonicConductor.currentSequence;
-
-    // Reset rate limiter each frame (only used for legacy firing)
-    enemyShotsThisTick = 0;
-
-    // Fibonacci ramp-up: increase enemies allowed to fire every 0.33s (legacy system)
-    if (!conductorEnabled) {
-        fibonacciTimer += dt;
-        if (fibonacciTimer >= Balance.ENEMY_FIRE.FIBONACCI_INTERVAL && fibonacciIndex < FIBONACCI_SEQ.length - 1) {
-            fibonacciTimer = 0;
-            fibonacciIndex++;
-            enemiesAllowedToFire = FIBONACCI_SEQ[fibonacciIndex];
-        }
-
-        enemyFireTimer -= dt;
-        if (enemyFireTimer <= 0) {
-            enemyFireTimer = 0.5;
-            enemyFirePhase = (enemyFirePhase + 1) % enemyFireStride;
-        }
-    }
-
-    let enemiesFiredThisFrame = 0; // Track for Fibonacci limit
+    // HarmonicConductor is now the SOLE firing authority (Fibonacci removed in v2.13.0)
 
     for (let i = 0; i < enemies.length; i++) {
         const e = enemies[i];
@@ -3181,37 +3138,6 @@ function updateEnemies(dt) {
         // Kamikaze trigger - weak tier enemies occasionally dive at player
         if (e.isKamikaze && !e.kamikazeDiving && e.y > 250 && Math.random() < 0.0005) {
             e.triggerKamikaze();
-        }
-
-        // Skip legacy firing if Harmonic Conductor is active
-        if (conductorEnabled) continue;
-
-        // Rate limit check - skip if we've hit max shots this tick
-        if (enemyShotsThisTick >= Balance.ENEMY_FIRE.MAX_SHOTS_PER_TICK) continue;
-
-        // Fibonacci limit: only allow N enemies to fire per frame (based on ramp-up)
-        if (enemiesFiredThisFrame >= enemiesAllowedToFire) continue;
-
-        // Difficulty scaling (Bear Market adds flat bonus)
-        const baseDiff = getDifficulty();
-        const effectiveDiff = isBearMarket
-            ? Math.min(Balance.DIFFICULTY.MAX, baseDiff + Balance.DIFFICULTY.BEAR_MARKET_BONUS)
-            : baseDiff;
-        const rateMult = 0.5 + effectiveDiff * 0.5;  // 0.5 → 1.0 based on effective difficulty
-        const bulletSpeed = Balance.calculateBulletSpeed(effectiveDiff);
-        const aimSpreadMult = 1.2 - effectiveDiff * 0.3;  // Tighter aim with higher difficulty
-        const allowFire = (i % enemyFireStride) === enemyFirePhase;
-        const bulletData = e.attemptFire(dt, player, rateMult, bulletSpeed, aimSpreadMult, allowFire);
-        if (bulletData) {
-            enemiesFiredThisFrame++;
-            const bulletsToSpawn = Array.isArray(bulletData) ? bulletData : [bulletData];
-            audioSys.play('enemyShoot');
-            bulletsToSpawn.forEach(bd => {
-                if (enemyShotsThisTick < Balance.ENEMY_FIRE.MAX_SHOTS_PER_TICK) {
-                    enemyBullets.push(G.Bullet.Pool.acquire(bd.x, bd.y, bd.vx, bd.vy, bd.color, bd.w, bd.h, false));
-                    enemyShotsThisTick++;
-                }
-            });
         }
     }
 

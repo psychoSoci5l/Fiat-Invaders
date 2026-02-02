@@ -1,5 +1,42 @@
 # Changelog
 
+## v2.13.0 - 2026-02-02
+### Phase 23: Enemy Firing System Refactor
+
+**Breaking Change: Unified Firing Authority**
+- Removed legacy Fibonacci firing system entirely
+- HarmonicConductor is now the SOLE authority for enemy firing
+- All waves guaranteed to have beat-synced attack patterns
+
+**HarmonicSequences.js**
+- Added `DEFAULT_BASIC` fallback sequence (guarantees enemies always fire)
+
+**HarmonicConductor.js**
+- `setSequence()` now never leaves `currentSequence` null (triple fallback)
+- Fixed BURST pattern handling with direct setTimeout (no longer relies on attemptFire)
+
+**main.js**
+- Removed: `fibonacciIndex`, `fibonacciTimer`, `enemiesAllowedToFire`, `FIBONACCI_SEQ`
+- Removed: `enemyFirePhase`, `enemyFireTimer`, `enemyFireStride`, `enemyShotsThisTick`
+- Removed: Legacy firing loop in `updateEnemies()`
+- Cleaned up: Reset code in 3 locations (resetState, post-miniboss, wave spawn)
+
+**Enemy.js**
+- Removed: `attemptFire()` method (now dead code)
+- Kept: `buildBullet()` (used by HarmonicConductor)
+
+**BalanceConfig.js**
+- Removed: `ENEMY_FIRE.STRIDE`, `MAX_SHOTS_PER_TICK`, `FIBONACCI_INTERVAL`
+- Kept: `BULLET_SPEED_BASE`, `BULLET_SPEED_SCALE`
+
+**Benefits**
+- Simpler codebase (one firing system instead of two)
+- Consistent beat-synced enemy attacks
+- No more "conductorEnabled" branching logic
+- Easier to tune via HarmonicSequences
+
+---
+
 ## v2.12.3 - 2026-02-02
 ### Phase 22 Sprint 4: Satoshi's Sacrifice
 

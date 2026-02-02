@@ -302,11 +302,10 @@ HUD_MESSAGES: {
 All tuning parameters are in `src/config/BalanceConfig.js`. **Always modify Balance config, not individual files.**
 
 ### Balance.ENEMY_FIRE
+> Note: As of v2.13.0, all firing is handled by HarmonicConductor (Fibonacci system removed).
+
 | Parameter | Value | Description |
 |-----------|-------|-------------|
-| `STRIDE` | 8 | Every Nth enemy fires per group |
-| `MAX_SHOTS_PER_TICK` | 1 | Max bullets spawned per frame |
-| `FIBONACCI_INTERVAL` | 0.40 | Seconds between ramp-up steps |
 | `BULLET_SPEED_BASE` | 128 | Base bullet speed |
 | `BULLET_SPEED_SCALE` | 68 | Additional speed at max difficulty |
 

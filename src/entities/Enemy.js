@@ -50,43 +50,7 @@ class Enemy extends window.Game.Entity {
         this._colorLight50 = CU.lighten(this.color, 0.5);
     }
 
-    attemptFire(dt, target, rateMult = 1, bulletSpeed = 300, aimSpreadMult = 1, allowFire = true) {
-        this.fireTimer -= dt * rateMult;
-        this.burstTimer -= dt * rateMult;
-        if (this.telegraphTimer > 0) this.telegraphTimer -= dt;
-
-        if (!allowFire) return null;
-
-        // Handle queued burst shots
-        if (this.pattern === 'BURST' && this.burstCount > 0 && this.burstTimer <= 0) {
-            this.burstTimer = 0.12;
-            this.burstCount--;
-            return this.buildBullet(target, bulletSpeed, aimSpreadMult);
-        }
-
-        if (this.fireTimer <= 0) {
-            this.fireTimer = this.fireMin + Math.random() * (this.fireMax - this.fireMin);
-            if (this.pattern === 'BURST') this.telegraphLead = 0.16;
-            else if (this.pattern === 'DOUBLE') this.telegraphLead = 0.13;
-            else this.telegraphLead = 0.10;
-            const jitter = (Math.random() * 0.04) - 0.02;
-            this.telegraphTimer = Math.max(0.06, this.telegraphLead + jitter);
-            if (this.pattern === 'BURST') {
-                this.burstCount = 2;
-                this.burstTimer = Math.max(0.04, 0.06 + ((Math.random() * 0.02) - 0.01));
-            }
-            if (window.Game && window.Game.Audio) window.Game.Audio.play('enemyTelegraph');
-
-            if (this.pattern === 'DOUBLE') {
-                const b1 = this.buildBullet(target, bulletSpeed, aimSpreadMult, -0.08);
-                const b2 = this.buildBullet(target, bulletSpeed, aimSpreadMult, 0.08);
-                return [b1, b2];
-            }
-
-            return this.buildBullet(target, bulletSpeed, aimSpreadMult);
-        }
-        return null;
-    }
+    // Note: attemptFire() removed in v2.13.0 - all firing now handled by HarmonicConductor
 
     buildBullet(target, bulletSpeed, aimSpreadMult, extraAngle = 0) {
         // Aiming Logic

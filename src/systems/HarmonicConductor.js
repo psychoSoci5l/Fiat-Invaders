@@ -154,9 +154,12 @@ window.Game.HarmonicConductor = {
 
     setSequence(wavePattern, intensity, isBearMarket) {
         const Sequences = window.Game.HarmonicSequences;
-        if (!Sequences) return;
 
-        this.currentSequence = Sequences.getSequenceForPattern(wavePattern, intensity, isBearMarket);
+        // Always ensure we have a valid sequence (never leave currentSequence null)
+        this.currentSequence = Sequences?.getSequenceForPattern(wavePattern, intensity, isBearMarket)
+            || Sequences?.DEFAULT_BASIC
+            || [{ beat: 0, type: 'RANDOM_VOLLEY', count: 3 }]; // Hardcoded ultimate fallback
+
         this.sequenceLength = this.getSequenceMaxBeat() + 1;
         this.currentBeat = 0;
         this.beatTimer = 0;
@@ -469,9 +472,20 @@ window.Game.HarmonicConductor = {
             const b2 = enemy.buildBullet(this.player, bulletSpeed, 1, 0.08);
             bulletData = [b1, b2];
         } else if (pattern === 'BURST') {
-            enemy.burstCount = 2;
-            enemy.burstTimer = 0.12;
-            bulletData = enemy.buildBullet(this.player, bulletSpeed, 1);
+            // Fire 3 bullets with 120ms delay between each
+            // Handle directly with setTimeout since we removed attemptFire()
+            for (let i = 0; i < 3; i++) {
+                setTimeout(() => {
+                    if (enemy?.active) {
+                        const bd = enemy.buildBullet(this.player, bulletSpeed, 1);
+                        if (bd) {
+                            this.spawnBullets([bd]);
+                            if (window.Game.Audio) window.Game.Audio.play('enemyShoot');
+                        }
+                    }
+                }, i * 120);
+            }
+            return; // Early return - handled via setTimeout
         } else if (pattern === 'AIMED') {
             const oldSpread = enemy.aimSpread;
             enemy.aimSpread = spread || 0.1;

@@ -180,10 +180,9 @@
         },
 
         // --- ENEMY FIRING ---
+        // Note: STRIDE, MAX_SHOTS_PER_TICK, FIBONACCI_INTERVAL removed in v2.13.0
+        // All firing now handled by HarmonicConductor with beat-synced sequences
         ENEMY_FIRE: {
-            STRIDE: 8,                // Every Nth enemy fires per group
-            MAX_SHOTS_PER_TICK: 1,    // Max bullets spawned per frame
-            FIBONACCI_INTERVAL: 0.40, // Seconds between Fibonacci ramp-up steps
             BULLET_SPEED_BASE: 128,   // Base bullet speed
             BULLET_SPEED_SCALE: 68    // Additional speed at max difficulty
         },
