@@ -338,6 +338,12 @@ function showPopupInternal(text, duration, color, fontSize, top, left, rotation,
 }
 
 // Message display functions (check HUD_MESSAGES flags for clean testing)
+// Each type has distinct visual style and position for quick recognition
+
+// Separate message queues for each type (independent of FLOATING_TEXT)
+let gameInfoMessages = [];   // Green, top area
+let dangerMessages = [];     // Red, center, pulsing
+let victoryMessages = [];    // Gold, center, celebratory
 
 function showMemeFun(text, duration = 1500) {
     if (!Balance.HUD_MESSAGES.MEME_POPUP) return;
@@ -354,24 +360,126 @@ function showPowerUp(text) {
     showPopupInternal(text, 800, '#FFD700', '24px', '75%', '50%', 'translate(-50%, -50%)', MSG_PRIORITY.POWERUP);
 }
 
+// GAME_INFO: Green box at top - progression feedback (LEVEL, WAVE)
 function showGameInfo(text) {
     if (!Balance.HUD_MESSAGES.GAME_INFO) return;
-    addText(text, gameWidth / 2, gameHeight / 2, '#00FF00', 40);
+    gameInfoMessages = [{ text, life: 2.0, maxLife: 2.0 }]; // Replace, don't stack
 }
 
+// DANGER: Red pulsing at center - warnings require attention
 function showDanger(text) {
     if (!Balance.HUD_MESSAGES.DANGER) return;
-    addText(text, gameWidth / 2, gameHeight / 2, '#FF4444', 50);
+    dangerMessages = [{ text, life: 2.5, maxLife: 2.5 }];
     shake = Math.max(shake, 20);
 }
 
+// VICTORY: Gold celebratory at center - achievements
 function showVictory(text) {
     if (!Balance.HUD_MESSAGES.VICTORY) return;
-    addText(text, gameWidth / 2, gameHeight / 2, '#FFD700', 50);
+    victoryMessages = [{ text, life: 3.0, maxLife: 3.0 }];
 }
 
 function showMemePopup(text, duration = 1500) {
     showMemeFun(text, duration);
+}
+
+// Update typed messages (called in main loop)
+function updateTypedMessages(dt) {
+    for (let i = gameInfoMessages.length - 1; i >= 0; i--) {
+        gameInfoMessages[i].life -= dt;
+        if (gameInfoMessages[i].life <= 0) gameInfoMessages.splice(i, 1);
+    }
+    for (let i = dangerMessages.length - 1; i >= 0; i--) {
+        dangerMessages[i].life -= dt;
+        if (dangerMessages[i].life <= 0) dangerMessages.splice(i, 1);
+    }
+    for (let i = victoryMessages.length - 1; i >= 0; i--) {
+        victoryMessages[i].life -= dt;
+        if (victoryMessages[i].life <= 0) victoryMessages.splice(i, 1);
+    }
+}
+
+// Draw typed messages with distinct styles
+function drawTypedMessages(ctx) {
+    const cx = gameWidth / 2;
+
+    // GAME_INFO: Top area, green box, clean
+    gameInfoMessages.forEach(m => {
+        const alpha = Math.min(1, m.life * 2);
+        const y = 130 - (1 - m.life / m.maxLife) * 20; // Slide up
+
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = 'rgba(0, 50, 0, 0.8)';
+        ctx.strokeStyle = '#00FF00';
+        ctx.lineWidth = 2;
+        const textWidth = ctx.measureText(m.text).width || 200;
+        ctx.fillRect(cx - textWidth/2 - 20, y - 18, textWidth + 40, 36);
+        ctx.strokeRect(cx - textWidth/2 - 20, y - 18, textWidth + 40, 36);
+
+        ctx.fillStyle = '#00FF00';
+        ctx.font = 'bold 24px "Press Start 2P", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(m.text, cx, y);
+        ctx.restore();
+    });
+
+    // DANGER: Center, red pulsing border, attention-grabbing
+    dangerMessages.forEach(m => {
+        const alpha = Math.min(1, m.life);
+        const pulse = Math.sin(totalTime * 10) * 0.3 + 0.7;
+        const y = gameHeight / 2 - 30;
+
+        ctx.save();
+        ctx.globalAlpha = alpha;
+
+        // Pulsing red background
+        ctx.fillStyle = `rgba(80, 0, 0, ${0.9 * pulse})`;
+        ctx.strokeStyle = '#FF0000';
+        ctx.lineWidth = 4 + pulse * 2;
+        const textWidth = ctx.measureText(m.text).width || 300;
+        ctx.fillRect(cx - textWidth/2 - 30, y - 25, textWidth + 60, 50);
+        ctx.strokeRect(cx - textWidth/2 - 30, y - 25, textWidth + 60, 50);
+
+        ctx.fillStyle = '#FF4444';
+        ctx.shadowColor = '#FF0000';
+        ctx.shadowBlur = 15;
+        ctx.font = 'bold 28px "Press Start 2P", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(m.text, cx, y);
+        ctx.restore();
+    });
+
+    // VICTORY: Center, gold with glow, celebratory
+    victoryMessages.forEach(m => {
+        const alpha = Math.min(1, m.life);
+        const scale = 1 + Math.sin(totalTime * 5) * 0.05;
+        const y = gameHeight / 2;
+
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.translate(cx, y);
+        ctx.scale(scale, scale);
+
+        // Gold glow background
+        ctx.fillStyle = 'rgba(50, 40, 0, 0.9)';
+        ctx.strokeStyle = '#FFD700';
+        ctx.lineWidth = 3;
+        const textWidth = ctx.measureText(m.text).width || 300;
+        ctx.fillRect(-textWidth/2 - 30, -30, textWidth + 60, 60);
+        ctx.strokeRect(-textWidth/2 - 30, -30, textWidth + 60, 60);
+
+        ctx.fillStyle = '#FFD700';
+        ctx.shadowColor = '#FFD700';
+        ctx.shadowBlur = 20;
+        ctx.font = 'bold 32px "Press Start 2P", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(m.text, 0, 0);
+        ctx.restore();
+    });
 }
 function canOfferPerk(perk) {
     if (!runState || !runState.perkStacks) return true;
@@ -1489,6 +1597,7 @@ function startGame() {
     // Release pooled particles before clearing
     particles.forEach(p => releaseParticle(p));
     bullets = []; enemies = []; enemyBullets = []; powerUps = []; particles = []; floatingTexts = []; muzzleFlashes = []; perkIcons = []; boss = null;
+    gameInfoMessages = []; dangerMessages = []; victoryMessages = []; // Reset typed messages
     G.enemies = enemies; // Expose for Boss Spawning logic
     window.enemyBullets = enemyBullets; // Update for Player core hitbox indicator
     grazeCount = 0; grazeMeter = 0; grazeMultiplier = 1.0; updateGrazeUI(); // Reset grazing
@@ -2092,6 +2201,7 @@ function update(dt) {
         }
     }
     updateFloatingTexts(dt);
+    updateTypedMessages(dt);
     updatePerkIcons(dt);
     updateParticles(dt);
     updateTransition(dt);
@@ -2665,6 +2775,9 @@ function draw() {
 
         // Perk icons (glow above player)
         drawPerkIcons(ctx);
+
+        // Typed messages (GAME_INFO, DANGER, VICTORY) - distinct visual styles
+        drawTypedMessages(ctx);
 
         // Intermission countdown overlay
         if (gameState === 'INTERMISSION' && waveMgr.intermissionTimer > 0) {

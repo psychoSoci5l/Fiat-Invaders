@@ -296,16 +296,20 @@
         },
 
         // --- HUD MESSAGES (Toggle for clean testing) ---
-        // Set to false to disable message type, true to enable
+        // Each type has distinct visual style for quick recognition:
+        // - GAME_INFO: Green box at top (progression)
+        // - DANGER: Red pulsing center (warnings)
+        // - VICTORY: Gold glow center (achievements)
+        // - FLOATING_TEXT: Small numbers at position (score feedback)
         HUD_MESSAGES: {
-            MEME_POPUP: false,            // Meme popups (streaks, kills, etc.)
-            POWERUP_POPUP: false,         // Power-up acquired messages
-            GAME_INFO: false,             // Level up, respawn, general info
-            DANGER: false,                // Boss warnings, bear market, etc.
-            VICTORY: false,               // Boss defeated, victory messages
-            FLOATING_TEXT: false,         // Damage numbers, score particles
-            MEME_TICKER: false,           // Bottom ticker during boss fights
-            PERK_NOTIFICATION: false      // Perk acquired overlay
+            MEME_POPUP: false,            // Random meme popups (can distract)
+            POWERUP_POPUP: false,         // Power-up text (redundant, see effect)
+            GAME_INFO: true,              // LEVEL/WAVE info - essential feedback
+            DANGER: true,                 // Boss warnings - requires attention
+            VICTORY: true,                // Boss defeated - satisfying feedback
+            FLOATING_TEXT: false,         // Damage numbers (optional, can clutter)
+            MEME_TICKER: false,           // Boss fight ticker (distracting)
+            PERK_NOTIFICATION: true       // Perk icons - useful to know what you got
         },
 
         // --- UI LAYOUT ---
