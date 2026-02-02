@@ -1,30 +1,37 @@
 # Changelog
 
 ## v2.15.0 - 2026-02-03
-### Sprint 23.4: main.js Decomposition (Part 1)
+### Sprint 23.4: main.js Decomposition
 
 **New: SkyRenderer.js Module** (~400 lines)
 - Parallax clouds, hills, floating crypto symbols
 - Star field with twinkle animation
 - Bear Market lightning and blood rain effects
 - Level-based sky color progression (5 levels + boss)
-- `init()`, `update()`, `draw()`, `drawBearMarketOverlay()`
 
 **New: TransitionManager.js Module** (~140 lines)
 - Screen fade transitions with callback support
 - Wipe line visual effect during transitions
-- `start(callback, color)` for fade-to-black with callback
 - `startFadeOut(alpha, color)` for dramatic effects
 
+**New: MessageSystem.js Module** (~270 lines)
+- DOM popups: showMemeFun, showPowerUp, showMemePopup
+- Canvas typed messages: showGameInfo, showDanger, showVictory
+- Priority queue with cooldown for popup overlap prevention
+
 **Refactored: main.js**
-- Removed 420 lines of sky/transition code
-- All sky/transition calls delegate to new modules
-- main.js: 4630 → 4210 lines (-9%)
+- Extracted 3 modules totaling ~810 lines
+- main.js: 4630 → 4033 lines (-13%)
+
+**Deferred: PerkManager.js**
+- Tightly coupled to runState, player, UI elements
+- Will extract in Sprint 23.5 with better state management
 
 **Files Changed**
 - NEW: `src/systems/SkyRenderer.js`
 - NEW: `src/systems/TransitionManager.js`
-- `src/main.js`: Sky and transition code removed
+- NEW: `src/systems/MessageSystem.js`
+- `src/main.js`: Sky, transition, message code removed
 - `index.html`: Added new module scripts
 
 ---
