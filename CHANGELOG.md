@@ -1,5 +1,46 @@
 # Changelog
 
+## v2.9.0 - 2026-02-02
+### Phase 20: Gameplay Redesign (Complete)
+
+**Difficulty System**
+- Stepped difficulty progression per cycle (0.0 → 0.30 → 0.60)
+- Bear Market now additive bonus (+0.25) instead of multiplier
+- 5 waves per cycle, 3 cycles = complete run (~12 min)
+
+**Scoring System**
+- Kill streak multiplier (+10%/kill, max 2x, 2s timeout)
+- Graze-kill synergy (+50% bonus for kills during high graze)
+- Grazing as primary score source (25 base points, 3x close bonus)
+
+**Boss System (Centralized in Balance.BOSS)**
+- HP formula: 1000 + level*30 + cycle*400 (+12% per player perk)
+- Fire rates per phase per boss type
+- Movement speeds per phase per boss type
+- Minion spawn rates configurable
+
+**Power-Up System**
+- Differentiated durations: base 10s, advanced 8s, elite 6s
+- Drop rate scaling with cycle progression
+- Pity timer decreases with cycle
+
+**HUD Messages Redesign**
+- GAME_INFO: Green box at top (level/wave progression)
+- DANGER: Red pulsing center (boss warnings)
+- VICTORY: Gold glow center (boss defeated)
+- Each type independent, visually distinct at a glance
+
+**Level Progression**
+- WaveManager uses Balance.WAVES.PER_CYCLE
+- Added WAVE4 ("CORRECTION") and WAVE5 ("CLIMAX") messages
+- Perk system values centralized (CANCEL_WINDOW, PERK_ICON_LIFETIME)
+
+**UI Improvements**
+- Compact intro screen ship preview (canvas 200→140, container 290→190px)
+- Smaller ship selection arrows
+
+---
+
 ## v2.8.2 - 2026-02-02
 ### New Modules (System Consolidation)
 - **DropSystem.js**: Unified power-up drop management

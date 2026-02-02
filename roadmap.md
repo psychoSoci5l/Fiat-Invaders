@@ -426,7 +426,7 @@
 
 ---
 
-## Phase 20: Gameplay Redesign 🎮 (In Progress)
+## Phase 20: Gameplay Redesign 🎮 ✅ COMPLETE
 *Goal: Ridefinire il gameplay da zero sfruttando la centralizzazione dei parametri.*
 
 ### Completati:
@@ -437,11 +437,10 @@
 - [x] **Sistema di scoring** - Kill streak (+10%/kill, max 2x), graze-kill synergy (+50% bonus)
 - [x] **Power-up system** - Durate differenziate (base 10s, adv 8s, elite 6s), drop scaling con ciclo
 - [x] **Boss fights centralizzati** - HP/fire rates/speeds in Balance.BOSS. HP: 1000 + level*30 + cycle*400
-
-### Completati (cont. 2):
 - [x] **Level progression fix** - WaveManager usa Balance.WAVES.PER_CYCLE, aggiunti WAVE4/WAVE5 messages
 - [x] **Perk system centralizzato** - CANCEL_WINDOW, PERK_ICON_LIFETIME ora in Balance config
 - [x] **Intro screen compatta** - Canvas 200→140, container 290→190px, arrows ridimensionate
+- [x] **HUD Messages redesign** - Stili visivi distinti per tipo (verde/rosso/oro), indipendenti
 
 ### Principi guida (Ikeda Rules):
 1. **Core Hitbox** - Difficoltà da pattern, non hitbox sleali

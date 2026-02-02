@@ -254,6 +254,35 @@ Boss `targetY: 145` ensures no overlap with HUD.
 
 ---
 
+## HUD Messages System
+
+Messages have distinct visual styles for quick recognition during gameplay:
+
+| Type | Style | Position | Purpose |
+|------|-------|----------|---------|
+| `GAME_INFO` | Green box, border | Top (Y=130) | Level/Wave progression |
+| `DANGER` | Red pulsing, thick border | Center | Boss warnings, alerts |
+| `VICTORY` | Gold glow, scaling | Center | Boss defeated, achievements |
+| `PERK_NOTIFICATION` | Floating icon | Above player | Perk acquired |
+| `FLOATING_TEXT` | Small text | At position | Score numbers (optional) |
+| `MEME_POPUP` | Random color/position | Random | Meme text (optional) |
+
+### Balance.HUD_MESSAGES
+Toggle each type independently in BalanceConfig.js:
+```javascript
+HUD_MESSAGES: {
+    GAME_INFO: true,        // Essential progression feedback
+    DANGER: true,           // Warnings require attention
+    VICTORY: true,          // Satisfying boss kill feedback
+    PERK_NOTIFICATION: true,// Know what perk you got
+    FLOATING_TEXT: false,   // Can clutter screen
+    MEME_POPUP: false,      // Can distract
+    MEME_TICKER: false      // Boss fight ticker
+}
+```
+
+---
+
 ## Tuning Quick Reference
 
 All tuning parameters are in `src/config/BalanceConfig.js`. **Always modify Balance config, not individual files.**
