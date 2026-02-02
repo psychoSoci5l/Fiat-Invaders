@@ -771,43 +771,166 @@ Balance.SACRIFICE = {
 
 ---
 
-## Phase 23: Technical Debt v2.13.0 🔧 ✅
-*Goal: Code quality, maintainability, and test coverage.*
+## Phase 23: Technical Debt & Architecture (v2.14.x) 🔧
+*Goal: Code quality, maintainability, and test coverage through incremental sprints.*
 
-### A) Code Refactoring
+### Sprint 23.0: Enemy Firing Refactor ✅ COMPLETE (v2.13.0)
 - [x] **Enemy Firing System Refactor** ✅ COMPLETE
   - Removed Fibonacci system entirely
   - HarmonicConductor now sole authority for enemy firing
   - Added DEFAULT_BASIC fallback sequence
   - Fixed BURST pattern handling
   - Files modified: main.js, HarmonicConductor.js, HarmonicSequences.js, Enemy.js, BalanceConfig.js
+
+---
+
+### Sprint 23.1: Quick Wins (v2.14.0) 🆕
+*Goal: Zero-risk improvements with immediate benefit.*
+
+- [ ] **MathUtils.js**: Create new utility module
+  - `distanceBetween(x1, y1, x2, y2)` - eliminates 12 duplications
+  - `angleBetween(x1, y1, x2, y2)` - cleaner code
+  - `clamp(val, min, max)` - bounds checking
+  - File: `src/utils/MathUtils.js` (~50 lines)
+
+- [ ] **FloatingTexts Circular Buffer**: Replace array.shift() O(n) with O(1)
+  - Location: main.js floatingTexts array
+  - Impact: Better performance in game loop
+
+- [ ] **AudioSystem Guard Clauses**: Add null checks to init()
+  - Location: AudioSystem.js:36-56
+  - Impact: Prevents undefined errors
+
+- [ ] **ObjectPool Stack Pattern**: Replace filter() with stack pointer
+  - Location: ObjectPool.js:61
+  - Impact: O(n) → O(1) particle acquire
+
+---
+
+### Sprint 23.2: System Extraction - Core (v2.14.1) 🆕
+*Goal: Extract critical systems from main.js.*
+
+- [ ] **CollisionSystem.js**: New system module (~400 lines)
+  - Extract from: main.js:2500-3100
+  - File: `src/systems/CollisionSystem.js`
+  - Interface:
+    - `checkBulletEnemyCollisions(bullets, enemies, boss, callbacks)`
+    - `checkEnemyBulletPlayerCollision(enemyBullets, player, callbacks)`
+    - `checkPowerUpCollision(powerUps, player, callback)`
+    - `checkGrazeCollisions(enemyBullets, player, grazeRadius)`
+    - `aabbCollision(a, b)`
+
+- [ ] **ParticleSystem.js**: New system module (~250 lines)
+  - Extract from: main.js:4414-4600
+  - File: `src/systems/ParticleSystem.js`
+  - Interface:
+    - `createExplosion(x, y, color, count, options)`
+    - `createGrazeSpark(x, y, options)`
+    - `createBulletSpark(x, y, color)`
+    - `createScoreParticle(x, y, text, color)`
+    - `update(dt)`, `draw(ctx)`
+
+---
+
+### Sprint 23.3: System Extraction - Rendering (v2.14.2) 🆕
+*Goal: Separate rendering logic from main.js.*
+
+- [ ] **UIRenderer.js**: New system module (~300 lines)
+  - Extract from: main.js:3600-3900
+  - File: `src/systems/UIRenderer.js`
+  - Interface:
+    - `drawScore(ctx, score, x, y)`
+    - `drawLives(ctx, lives, x, y)`
+    - `drawLevelIndicator(ctx, level, wave)`
+    - `drawGrazeMeter(ctx, value, max, hyperReady)`
+    - `drawHyperUI(ctx, state)`
+    - `drawSacrificeUI(ctx, state)`
+    - `drawHUDMessage(ctx, message, type)`
+
+- [ ] **EffectsRenderer.js**: New system module (~200 lines)
+  - Extract from: main.js (scattered)
+  - File: `src/systems/EffectsRenderer.js`
+  - Interface:
+    - `drawScreenFlash(ctx, flashState)`
+    - `drawVignette(ctx, intensity, color)`
+    - `drawHitStop(ctx, freezeState)`
+
+---
+
+### Sprint 23.4: main.js Decomposition (v2.15.0)
+*Goal: Break down the monolithic main.js file.*
+
 - [ ] **main.js Decomposition**: Split 4000+ line file into logical modules
   - GameLoop.js (update/draw cycle)
-  - CollisionSystem.js (all collision detection)
-  - UIManager.js (HUD, messages, screens)
   - StateManager.js (game states, transitions)
 - [ ] **Global Variable Cleanup**: Move globals into RunState or dedicated managers
 - [ ] **Magic Numbers**: Extract remaining hardcoded values to BalanceConfig
 
-### B) Module Consolidation
+---
+
+### Sprint 23.5: Module Consolidation (v2.15.1)
+*Goal: Clean up and consolidate related modules.*
+
 - [ ] **Entity Factory**: Centralize entity creation (bullets, enemies, powerups)
 - [ ] **Event System Audit**: Document all events, remove unused ones
 - [ ] **Audio Presets**: Consolidate sound definitions into AudioConfig.js
 
-### C) Performance Optimization
+---
+
+### Sprint 23.6: Performance & Testing (v2.16.0)
+*Goal: Optimize performance and add test coverage.*
+
+#### Performance Optimization
 - [ ] **Spatial Partitioning**: Grid-based collision for O(n) instead of O(n²)
 - [ ] **Draw Call Batching**: Group similar entities for fewer ctx state changes
 - [ ] **Memory Profiling**: Identify and fix any memory leaks
 
-### D) Test Coverage
+#### Test Coverage
 - [ ] **Unit Tests**: Core systems (CampaignState, DropSystem, WaveManager)
 - [ ] **Integration Tests**: Game flow (start → wave → boss → cycle)
 - [ ] **Regression Tests**: Automated checks for fixed bugs
 
-### E) Documentation
+#### Documentation
 - [ ] **Code Comments**: JSDoc for all public methods
 - [ ] **Architecture Diagram**: Visual module dependency map
 - [ ] **API Reference**: Document window.Game namespace
+
+---
+
+### Sprint Dependencies
+
+```
+Sprint 23.0 ✅ ──> Sprint 23.1 Quick Wins
+                        │
+            ┌───────────┴───────────┐
+            v                       v
+    Sprint 23.2              Sprint 23.3
+    CollisionSystem          UIRenderer
+            │                       │
+            └───────────┬───────────┘
+                        v
+                Sprint 23.4
+              main.js Decomposition
+                        │
+                        v
+                Sprint 23.5
+              Module Consolidation
+                        │
+                        v
+                Sprint 23.6
+             Performance & Testing
+```
+
+### Expected Impact
+
+| Metric | Before | After 23.3 | After 23.6 |
+|--------|--------|------------|------------|
+| **main.js lines** | 5055 | ~3500 | ~2000 |
+| **Distance duplications** | 12 | 0 | 0 |
+| **floatingTexts shift** | O(n) | O(1) | O(1) |
+| **Collision complexity** | O(n²) | O(n²) | O(n) |
+| **Testability** | Low | Medium | High |
+| **New files** | 0 | 5 | 8+ |
 
 ---
 
