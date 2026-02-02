@@ -610,12 +610,12 @@ body {
 }
 
 .start-ship {
-    margin: 10px 0;
+    margin: 5px 0;
     display: flex;
     justify-content: center;
     align-items: flex-start;
     gap: 10px;
-    height: 290px;
+    height: 190px;
     flex-shrink: 0;
 }
 
@@ -623,7 +623,7 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    height: 280px;
+    height: 180px;
 }
 
 /* Force correct order: canvas (1) → name (2) → stats (3) */
@@ -655,9 +655,9 @@ body {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid #444;
     color: #888;
-    font-size: 48px;
-    width: 50px;
-    height: 80px;
+    font-size: 36px;
+    width: 40px;
+    height: 60px;
     cursor: pointer;
     border-radius: 8px;
     transition: all 0.2s;
@@ -665,7 +665,7 @@ body {
     align-items: center;
     justify-content: center;
     font-family: Arial, sans-serif;
-    margin-top: 60px;
+    margin-top: 35px;
 }
 
 .ship-arrow:hover {

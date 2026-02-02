@@ -441,9 +441,7 @@
 ### Completati (cont. 2):
 - [x] **Level progression fix** - WaveManager usa Balance.WAVES.PER_CYCLE, aggiunti WAVE4/WAVE5 messages
 - [x] **Perk system centralizzato** - CANCEL_WINDOW, PERK_ICON_LIFETIME ora in Balance config
-
-### Da completare:
-- [ ] **Intro screen redesign** - Ship preview compatta, sfondo trasparente, layout ottimizzato
+- [x] **Intro screen compatta** - Canvas 200→140, container 290→190px, arrows ridimensionate
 
 ### Principi guida (Ikeda Rules):
 1. **Core Hitbox** - Difficoltà da pattern, non hitbox sleali
