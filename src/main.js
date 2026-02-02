@@ -1296,6 +1296,9 @@ function updateUIText() {
         const langLabel = langBtn.parentElement.querySelector('.setting-label');
         if (langLabel) langLabel.innerText = t('LANG');
     }
+
+    // Manual (if open, update text)
+    updateManualText();
 }
 
 window.toggleLang = function () { currentLang = (currentLang === 'EN') ? 'IT' : 'EN'; updateUIText(); };
@@ -1304,6 +1307,44 @@ window.toggleHelpPanel = function () {
     const panel = document.getElementById('help-panel');
     if (panel) panel.style.display = (panel.style.display === 'flex') ? 'none' : 'flex';
 };
+
+// Manual modal functions
+window.toggleManual = function () {
+    const modal = document.getElementById('manual-modal');
+    if (!modal) return;
+    const isVisible = modal.style.display === 'flex';
+    modal.style.display = isVisible ? 'none' : 'flex';
+    if (!isVisible) {
+        updateManualText();
+        audioSys.play('coinUI');
+    }
+};
+
+window.selectManualTab = function (tabId) {
+    // Update tab buttons
+    document.querySelectorAll('.manual-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.tab === tabId);
+    });
+    // Update panels
+    document.querySelectorAll('.manual-panel').forEach(panel => {
+        panel.classList.toggle('active', panel.id === 'tab-' + tabId);
+    });
+    audioSys.play('click');
+};
+
+function updateManualText() {
+    const modal = document.getElementById('manual-modal');
+    if (!modal) return;
+
+    // Update all elements with data-i18n attribute
+    modal.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.dataset.i18n;
+        const text = t(key);
+        if (text && text !== key) {
+            el.textContent = text;
+        }
+    });
+}
 window.toggleControlMode = function () {
     const useJoystick = !(G.Input && G.Input.touch && G.Input.touch.useJoystick);
     if (G.Input && G.Input.setControlMode) G.Input.setControlMode(useJoystick ? 'JOYSTICK' : 'SWIPE');

@@ -154,6 +154,9 @@
             <button class="icon-btn-cell" onclick="toggleSettings()" id="intro-settings">
                 <svg viewBox="0 0 24 24" class="icon-svg"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
             </button>
+            <button class="icon-btn-cell" onclick="toggleManual()" id="intro-manual">
+                <svg viewBox="0 0 24 24" class="icon-svg"><path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/></svg>
+            </button>
         </div>
 
         <div class="intro-version" id="version-tag"></div>
@@ -256,6 +259,7 @@
         <h1 class="neon-title">MARKET HALTED</h1>
         <button class="btn-coin" onclick="togglePause()">> RESUME</button>
         <button class="btn-coin" onclick="toggleSettings()">> SETTINGS</button>
+        <button class="btn-coin" onclick="toggleManual()">> MANUAL</button>
         <button class="btn-coin" onclick="restartRun()">> RESTART RUN</button>
         <button class="btn-coin" onclick="backToIntro()" style="background: #e74c3c;">> EXIT</button>
         <div class="menu-row">
@@ -436,6 +440,225 @@
             </div>
 
             <button class="btn-cell" onclick="toggleHelpPanel()">CHIUDI</button>
+        </div>
+    </div>
+
+    <!-- MANUAL MODAL - Full player manual with tabs -->
+    <div id="manual-modal" style="display: none;">
+        <div class="manual-container">
+            <h2 class="manual-title" data-i18n="MANUAL_TITLE">PLAYER MANUAL</h2>
+
+            <div class="manual-tabs">
+                <button class="manual-tab active" data-tab="welcome" onclick="selectManualTab('welcome')">
+                    <span class="tab-icon">🎮</span>
+                    <span class="tab-label" data-i18n="TAB_WELCOME">WELCOME</span>
+                </button>
+                <button class="manual-tab" data-tab="controls" onclick="selectManualTab('controls')">
+                    <span class="tab-icon">⌨️</span>
+                    <span class="tab-label" data-i18n="TAB_CONTROLS">CONTROLS</span>
+                </button>
+                <button class="manual-tab" data-tab="powerups" onclick="selectManualTab('powerups')">
+                    <span class="tab-icon">⚡</span>
+                    <span class="tab-label" data-i18n="TAB_POWERUPS">POWER-UPS</span>
+                </button>
+                <button class="manual-tab" data-tab="enemies" onclick="selectManualTab('enemies')">
+                    <span class="tab-icon">💰</span>
+                    <span class="tab-label" data-i18n="TAB_ENEMIES">ENEMIES</span>
+                </button>
+                <button class="manual-tab" data-tab="bosses" onclick="selectManualTab('bosses')">
+                    <span class="tab-icon">🏛️</span>
+                    <span class="tab-label" data-i18n="TAB_BOSSES">BOSSES</span>
+                </button>
+                <button class="manual-tab" data-tab="tips" onclick="selectManualTab('tips')">
+                    <span class="tab-icon">💎</span>
+                    <span class="tab-label" data-i18n="TAB_TIPS">PRO TIPS</span>
+                </button>
+            </div>
+
+            <div class="manual-content">
+                <!-- WELCOME TAB -->
+                <div class="manual-panel active" id="tab-welcome">
+                    <h3 class="panel-title" data-i18n="WELCOME_TITLE">Welcome, Crypto Warrior!</h3>
+                    <p class="panel-intro" data-i18n="WELCOME_INTRO">FIAT money is attacking! Centralized currencies have declared war on financial freedom.</p>
+
+                    <div class="manual-section">
+                        <h4 data-i18n="WELCOME_LOOP_TITLE">The Game Loop</h4>
+                        <ol class="manual-list">
+                            <li data-i18n="WELCOME_LOOP_1">Destroy enemies - Waves of fiat currencies descend</li>
+                            <li data-i18n="WELCOME_LOOP_2">Collect power-ups - Upgrade weapons and ship</li>
+                            <li data-i18n="WELCOME_LOOP_3">Survive 5 waves - Each level has 5 waves</li>
+                            <li data-i18n="WELCOME_LOOP_4">Defeat the Boss - The Central Bank awaits!</li>
+                            <li data-i18n="WELCOME_LOOP_5">New cycle - Difficulty increases, better rewards</li>
+                        </ol>
+                    </div>
+
+                    <div class="manual-section">
+                        <h4>🏆 <span data-i18n="CTRL_FIRE">How to Win</span></h4>
+                        <p data-i18n="WELCOME_WIN">Achieve the highest score possible! Each completed cycle increases the multiplier.</p>
+                    </div>
+
+                    <div class="manual-section">
+                        <h4>💀 Game Over</h4>
+                        <p data-i18n="WELCOME_LOSE">Lose all your lives (hearts in top left). Don't worry: BUY THE DIP and try again!</p>
+                    </div>
+
+                    <div class="manual-section bear-section">
+                        <h4>🐻 Bear Market</h4>
+                        <p data-i18n="WELCOME_BEAR">Want a challenge? Activate Bear Market for increased difficulty and double scores!</p>
+                    </div>
+                </div>
+
+                <!-- CONTROLS TAB -->
+                <div class="manual-panel" id="tab-controls">
+                    <div class="manual-section">
+                        <h4 data-i18n="CONTROLS_PC">Keyboard (PC)</h4>
+                        <table class="manual-table">
+                            <tr><th data-i18n="CTRL_MOVE">Move</th><td data-i18n="CTRL_ARROWS">A/D or Arrow Keys</td></tr>
+                            <tr><th data-i18n="CTRL_FIRE">Fire</th><td data-i18n="CTRL_SPACE">Space or Up Arrow</td></tr>
+                            <tr><th data-i18n="CTRL_SHIELD">Shield</th><td data-i18n="CTRL_DOWN">S or Down Arrow</td></tr>
+                            <tr><th data-i18n="CTRL_PAUSE">Pause</th><td data-i18n="CTRL_ESC">ESC</td></tr>
+                        </table>
+                    </div>
+
+                    <div class="manual-section">
+                        <h4 data-i18n="CONTROLS_MOBILE">Touch (Mobile)</h4>
+                        <table class="manual-table">
+                            <tr><th data-i18n="CTRL_MOVE">Move</th><td data-i18n="CTRL_TAP_SIDES">Tap screen sides or joystick</td></tr>
+                            <tr><th data-i18n="CTRL_FIRE">Fire</th><td data-i18n="CTRL_AUTO">Automatic while touching</td></tr>
+                            <tr><th data-i18n="CTRL_SHIELD">Shield</th><td data-i18n="CTRL_TAP_ICON">Tap shield icon</td></tr>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- POWER-UPS TAB -->
+                <div class="manual-panel" id="tab-powerups">
+                    <div class="manual-section">
+                        <h4 data-i18n="POWERUPS_WEAPON">Weapon Power-Ups</h4>
+                        <p class="section-note" data-i18n="POWERUPS_WEAPON_NOTE">Replace each other when collected</p>
+                        <table class="manual-table powerup-table">
+                            <tr><td class="pu-icon">🔱</td><td class="pu-name">WIDE</td><td data-i18n="PU_WIDE">Triple shot, wide spread</td></tr>
+                            <tr><td class="pu-icon">🎯</td><td class="pu-name">NARROW</td><td data-i18n="PU_NARROW">Triple shot, focused</td></tr>
+                            <tr><td class="pu-icon">🔥</td><td class="pu-name">FIRE</td><td data-i18n="PU_FIRE">Triple parallel, penetrating</td></tr>
+                            <tr><td class="pu-icon">🌟</td><td class="pu-name">SPREAD</td><td data-i18n="PU_SPREAD">5-shot wide fan</td></tr>
+                            <tr><td class="pu-icon">🎯</td><td class="pu-name">HOMING</td><td data-i18n="PU_HOMING">Auto-tracking missiles</td></tr>
+                            <tr><td class="pu-icon">⚡</td><td class="pu-name">LASER</td><td data-i18n="PU_LASER">Rapid penetrating beam</td></tr>
+                        </table>
+                    </div>
+
+                    <div class="manual-section">
+                        <h4 data-i18n="POWERUPS_SHIP">Ship Power-Ups</h4>
+                        <p class="section-note" data-i18n="POWERUPS_SHIP_NOTE">Temporary boosts, replace each other</p>
+                        <table class="manual-table powerup-table">
+                            <tr><td class="pu-icon">⚡</td><td class="pu-name">SPEED</td><td data-i18n="PU_SPEED">Movement +25%</td></tr>
+                            <tr><td class="pu-icon">🚀</td><td class="pu-name">RAPID</td><td data-i18n="PU_RAPID">Fire rate +20%</td></tr>
+                            <tr><td class="pu-icon">🛡️</td><td class="pu-name">SHIELD</td><td data-i18n="PU_SHIELD">Instant shield activation</td></tr>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ENEMIES TAB -->
+                <div class="manual-panel" id="tab-enemies">
+                    <div class="manual-section">
+                        <h4 class="tier-weak" data-i18n="ENEMIES_WEAK">Weak Tier</h4>
+                        <table class="manual-table enemy-table">
+                            <tr><td class="enemy-symbol">¥</td><td data-i18n="ENEMY_YEN">Yen</td><td data-i18n="SHAPE_COIN">Coin</td></tr>
+                            <tr><td class="enemy-symbol">₽</td><td data-i18n="ENEMY_RUBLE">Ruble</td><td data-i18n="SHAPE_BILL">Bill</td></tr>
+                            <tr><td class="enemy-symbol">₹</td><td data-i18n="ENEMY_RUPEE">Rupee</td><td data-i18n="SHAPE_COIN">Coin</td></tr>
+                        </table>
+                    </div>
+
+                    <div class="manual-section">
+                        <h4 class="tier-medium" data-i18n="ENEMIES_MEDIUM">Medium Tier</h4>
+                        <table class="manual-table enemy-table">
+                            <tr><td class="enemy-symbol">€</td><td data-i18n="ENEMY_EURO">Euro</td><td data-i18n="SHAPE_BILL">Bill</td></tr>
+                            <tr><td class="enemy-symbol">£</td><td data-i18n="ENEMY_POUND">Pound</td><td data-i18n="SHAPE_COIN">Coin</td></tr>
+                            <tr><td class="enemy-symbol">₣</td><td data-i18n="ENEMY_FRANC">Franc</td><td data-i18n="SHAPE_BAR">Gold Bar</td></tr>
+                            <tr><td class="enemy-symbol">₺</td><td data-i18n="ENEMY_LIRA">Turkish Lira</td><td data-i18n="SHAPE_BILL">Bill</td></tr>
+                        </table>
+                    </div>
+
+                    <div class="manual-section">
+                        <h4 class="tier-strong" data-i18n="ENEMIES_STRONG">Strong Tier (Dangerous!)</h4>
+                        <table class="manual-table enemy-table">
+                            <tr><td class="enemy-symbol">$</td><td data-i18n="ENEMY_DOLLAR">Dollar</td><td data-i18n="SHAPE_BILL">Bill</td></tr>
+                            <tr><td class="enemy-symbol">元</td><td data-i18n="ENEMY_YUAN">Yuan</td><td data-i18n="SHAPE_BAR">Gold Bar</td></tr>
+                            <tr><td class="enemy-symbol">Ⓒ</td><td data-i18n="ENEMY_CBDC">CBDC</td><td data-i18n="SHAPE_CARD">Credit Card</td></tr>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- BOSSES TAB -->
+                <div class="manual-panel" id="tab-bosses">
+                    <p class="panel-intro" data-i18n="BOSSES_INTRO">Every 5 levels you face a boss. Rotation: FED > ECB > BOJ</p>
+
+                    <div class="boss-cards">
+                        <div class="boss-card fed">
+                            <div class="boss-symbol">$</div>
+                            <div class="boss-name" data-i18n="BOSS_FED">THE FED</div>
+                            <div class="boss-style" data-i18n="BOSS_FED_STYLE">Aggressive, rapid attacks</div>
+                        </div>
+                        <div class="boss-card bce">
+                            <div class="boss-symbol">€</div>
+                            <div class="boss-name" data-i18n="BOSS_BCE">ECB</div>
+                            <div class="boss-style" data-i18n="BOSS_BCE_STYLE">Bureaucratic, bullet walls</div>
+                        </div>
+                        <div class="boss-card boj">
+                            <div class="boss-symbol">¥</div>
+                            <div class="boss-name" data-i18n="BOSS_BOJ">BOJ</div>
+                            <div class="boss-style" data-i18n="BOSS_BOJ_STYLE">Zen, lethal precision</div>
+                        </div>
+                    </div>
+
+                    <div class="manual-section">
+                        <h4 data-i18n="BOSS_PHASES">3 Phases per Boss:</h4>
+                        <ul class="phase-list">
+                            <li class="phase-1" data-i18n="BOSS_PHASE1">Phase 1 (100%-66% HP): Slow, simple patterns</li>
+                            <li class="phase-2" data-i18n="BOSS_PHASE2">Phase 2 (66%-33% HP): Fast, complex patterns</li>
+                            <li class="phase-3" data-i18n="BOSS_PHASE3">Phase 3 (33%-0% HP): Erratic, spawns minions!</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- PRO TIPS TAB -->
+                <div class="manual-panel" id="tab-tips">
+                    <div class="tip-card hodl">
+                        <h4>💎 <span data-i18n="TIP_HODL_TITLE">HODL MODE - The Champion's Secret</span></h4>
+                        <p data-i18n="TIP_HODL_1">Stop moving and your ship enters HODL mode:</p>
+                        <ul>
+                            <li data-i18n="TIP_HODL_2">2x damage against all enemies</li>
+                            <li data-i18n="TIP_HODL_3">Golden aura visible around ship</li>
+                        </ul>
+                        <p class="tip-highlight" data-i18n="TIP_HODL_4">Use HODL when enemies are lined up above you!</p>
+                    </div>
+
+                    <div class="tip-card graze">
+                        <h4>🔥 <span data-i18n="TIP_GRAZE_TITLE">GRAZE - Dance with Danger</span></h4>
+                        <p data-i18n="TIP_GRAZE_1">Pass close to enemy bullets without getting hit:</p>
+                        <ul>
+                            <li data-i18n="TIP_GRAZE_2">Build up the Graze Meter (bottom bar)</li>
+                            <li data-i18n="TIP_GRAZE_3">Higher meter = higher score multiplier</li>
+                        </ul>
+                        <p class="tip-highlight" data-i18n="TIP_GRAZE_4">Full meter = up to 2.5x points!</p>
+                    </div>
+
+                    <div class="tip-card shield">
+                        <h4>🛡️ <span data-i18n="TIP_SHIELD_TITLE">Tactical Shield</span></h4>
+                        <p data-i18n="TIP_SHIELD_1">Shield has a 10-second cooldown. Use it to:</p>
+                        <ul>
+                            <li data-i18n="TIP_SHIELD_2">Pass through bullet walls</li>
+                            <li data-i18n="TIP_SHIELD_3">Survive Boss Phase 3 attacks</li>
+                            <li data-i18n="TIP_SHIELD_4">Emergency escape when grazing goes wrong</li>
+                        </ul>
+                    </div>
+
+                    <div class="tip-card boss-tip">
+                        <h4>⚡ <span data-i18n="TIP_BOSS_TITLE">Boss Power-Ups</span></h4>
+                        <p data-i18n="TIP_BOSS_1">During boss fights, every 25 hits drops a power-up. Keep shooting!</p>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-cell manual-close" onclick="toggleManual()" data-i18n="CLOSE">CLOSE</button>
         </div>
     </div>
 

@@ -1,5 +1,30 @@
 # Changelog
 
+## v2.10.0 - 2026-02-02
+### Interactive Player Manual
+
+**New Feature: In-Game Manual**
+- Full player manual accessible from intro screen and pause menu
+- 6 tabs: Welcome, Controls, Power-Ups, Enemies, Bosses, Pro Tips
+- Arcade/crypto visual style with Bitcoin gold accents
+- Bilingual support (EN/IT) with real-time language switching
+- Responsive design for mobile screens
+
+**Manual Content**
+- Welcome: Game loop, win/lose conditions, Bear Market mode
+- Controls: PC keyboard + Mobile touch tables
+- Power-Ups: 7 weapon types + 3 ship boosts with icons
+- Enemies: 10 fiat currencies organized by tier (Weak/Medium/Strong)
+- Bosses: FED, ECB, BOJ with 3-phase system explained
+- Pro Tips: HODL mode, Grazing, Shield tactics, Boss drops
+
+**UI Changes**
+- New book icon button in intro screen (alongside mute/settings)
+- New MANUAL button in pause menu
+- ~80 new localization keys for EN and IT
+
+---
+
 ## v2.9.2 - 2026-02-02
 ### Bug Fixes & Game Cycle Rationalization
 

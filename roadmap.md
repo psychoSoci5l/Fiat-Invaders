@@ -492,11 +492,14 @@
 
 ---
 
-## Phase 21: Tutorial & Instructions 📖 (Planned)
-*Goal: Onboarding per nuovi giocatori.*
-- [ ] **Tutorial Flow**: TBD - awaiting instructions
-- [ ] **Controls Guide**: TBD
-- [ ] **Game Mechanics**: TBD
+## Phase 21: Interactive Player Manual 📖 ✅
+*Goal: In-game documentation for player onboarding.*
+- [x] **Manual Modal**: New `#manual-modal` with 6 tabs
+- [x] **Tab Navigation**: Welcome, Controls, Power-Ups, Enemies, Bosses, Pro Tips
+- [x] **Bilingual Content**: ~80 new text keys for EN and IT
+- [x] **Access Points**: Book icon in intro screen + MANUAL button in pause menu
+- [x] **Arcade Styling**: Bitcoin gold theme, dark background, custom scrollbar
+- [x] **Responsive Design**: Mobile-friendly tab layout and content
 
 ---
 
