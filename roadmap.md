@@ -440,9 +440,9 @@
 
 ### Completati (cont. 2):
 - [x] **Level progression fix** - WaveManager usa Balance.WAVES.PER_CYCLE, aggiunti WAVE4/WAVE5 messages
+- [x] **Perk system centralizzato** - CANCEL_WINDOW, PERK_ICON_LIFETIME ora in Balance config
 
 ### Da completare:
-- [ ] **Perk system** ottimizzato (trigger, cooldown, effetti)
 - [ ] **Intro screen redesign** - Ship preview compatta, sfondo trasparente, layout ottimizzato
 
 ### Principi guida (Ikeda Rules):

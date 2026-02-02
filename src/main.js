@@ -3331,6 +3331,7 @@ const RARITY_COLORS = {
 function addPerkIcon(perk) {
     if (!Balance.HUD_MESSAGES.PERK_NOTIFICATION) return;
     if (!player || !perk) return;
+    const lifetime = Balance.TIMING.PERK_ICON_LIFETIME;
     perkIcons.push({
         icon: perk.icon || '?',
         name: perk.name || 'Perk',
@@ -3338,8 +3339,8 @@ function addPerkIcon(perk) {
         rarity: perk.rarity || 'common',
         x: player.x,
         y: player.y - 60,
-        life: 2.5,
-        maxLife: 2.5,
+        life: lifetime,
+        maxLife: lifetime,
         scale: 0,
         glowPhase: 0
     });
@@ -4048,7 +4049,7 @@ function updatePowerUps(dt) {
                     enemyBullets.splice(j, 1);
 
                     bulletCancelStreak += 1;
-                    bulletCancelTimer = 1.5; // Wider window for aggressive play
+                    bulletCancelTimer = Balance.PERK.CANCEL_WINDOW;
                     if (bulletCancelStreak >= Balance.PERK.BULLET_CANCEL_COUNT) {
                         bulletCancelStreak = 0;
                         applyRandomPerk();
