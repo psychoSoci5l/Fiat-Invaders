@@ -1,5 +1,28 @@
 # Changelog
 
+## v2.14.1 - 2026-02-02
+### Sprint 23.2: System Extraction - ParticleSystem
+
+**New: ParticleSystem.js Module**
+- Extracted all particle logic from main.js into centralized module
+- Manages internal particle array with proper lifecycle
+- 12 particle creation functions: `createExplosion`, `createGrazeSpark`, `createBulletSpark`, etc.
+- `update()` and `draw()` methods for game loop integration
+- `init()`, `setDimensions()`, `clear()` for lifecycle management
+
+**Refactored: main.js Particle Code**
+- All particle functions now delegate to `G.ParticleSystem`
+- Reduced main.js by ~350 lines of particle code
+- Debug display uses ParticleSystem.getCount()
+- Game reset uses ParticleSystem.clear()
+
+**Files Changed**
+- NEW: `src/systems/ParticleSystem.js` (~450 lines)
+- `src/main.js`: Particle functions replaced with delegations
+- `index.html`: Added ParticleSystem.js script
+
+---
+
 ## v2.14.0 - 2026-02-02
 ### Sprint 23.1: Quick Wins - Code Quality & Performance
 

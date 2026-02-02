@@ -71,6 +71,7 @@ All modules attach to `window.Game`. Script load order in `index.html` matters:
 - `window.Game.DropSystem` - Unified power-up drop management
 - `window.Game.MemeEngine` - Unified meme selection & display
 - `window.Game.ParticlePool` - Optimized particle pool with stack pattern
+- `window.Game.ParticleSystem` - Centralized particle management (create, update, draw)
 - `window.isBearMarket` - Hard mode flag (checked by WaveManager)
 - `window.marketCycle` - Current difficulty cycle (increases after boss)
 - `window.currentLevel` - Current level (for WaveManager)

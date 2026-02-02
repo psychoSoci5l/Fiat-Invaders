@@ -812,7 +812,7 @@ Balance.SACRIFICE = {
 
 ---
 
-### Sprint 23.2: System Extraction - Core (v2.14.1) 🆕
+### Sprint 23.2: System Extraction - Core (v2.14.1) 🚧 IN PROGRESS
 *Goal: Extract critical systems from main.js.*
 
 - [ ] **CollisionSystem.js**: New system module (~400 lines)
@@ -824,16 +824,14 @@ Balance.SACRIFICE = {
     - `checkPowerUpCollision(powerUps, player, callback)`
     - `checkGrazeCollisions(enemyBullets, player, grazeRadius)`
     - `aabbCollision(a, b)`
+  - Note: Tightly coupled with game logic - needs callback pattern
 
-- [ ] **ParticleSystem.js**: New system module (~250 lines)
-  - Extract from: main.js:4414-4600
-  - File: `src/systems/ParticleSystem.js`
-  - Interface:
-    - `createExplosion(x, y, color, count, options)`
-    - `createGrazeSpark(x, y, options)`
-    - `createBulletSpark(x, y, color)`
-    - `createScoreParticle(x, y, text, color)`
-    - `update(dt)`, `draw(ctx)`
+- [x] **ParticleSystem.js**: New system module ✅ COMPLETE
+  - File: `src/systems/ParticleSystem.js` (~450 lines)
+  - 12 particle creation functions extracted
+  - `init()`, `setDimensions()`, `clear()` lifecycle
+  - `update(dt)`, `draw(ctx)` for game loop
+  - main.js functions delegate to G.ParticleSystem
 
 ---
 
