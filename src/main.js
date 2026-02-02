@@ -617,6 +617,7 @@ let introShipCanvas = null;
 let introShipCtx = null;
 let introShipTime = 0;
 let selectedShipIndex = 0;
+let introState = 'SPLASH'; // 'SPLASH' or 'SELECTION'
 const SHIP_KEYS = ['BTC', 'ETH', 'SOL'];
 const SHIP_DISPLAY = {
     BTC: { name: 'BTC STRIKER', color: '#F7931A', symbol: 'B', spd: 6, pwr: 7, hp: 3 },
@@ -630,6 +631,41 @@ function initIntroShip() {
     introShipCtx = introShipCanvas.getContext('2d');
     updateShipUI();
     animateIntroShip();
+}
+
+// --- INTRO SHIP INIT (unified) ---
+function initSplashShip() {
+    // Now uses the same canvas as selection
+    initIntroShip();
+}
+
+// --- STATE TRANSITIONS ---
+window.enterSelectionState = function() {
+    if (introState === 'SELECTION') return;
+    introState = 'SELECTION';
+    audioSys.play('coinUI');
+
+    // Hide splash elements
+    const title = document.getElementById('intro-title');
+    const tapBtn = document.getElementById('btn-tap-start');
+    if (title) title.classList.add('hidden');
+    if (tapBtn) tapBtn.classList.add('hidden');
+
+    // Show selection elements
+    const header = document.getElementById('selection-header');
+    const info = document.getElementById('selection-info');
+    const controls = document.getElementById('selection-controls');
+    const arrowLeft = document.getElementById('arrow-left');
+    const arrowRight = document.getElementById('arrow-right');
+
+    if (header) header.style.display = 'block';
+    if (info) info.style.display = 'block';
+    if (controls) controls.style.display = 'flex';
+    if (arrowLeft) arrowLeft.classList.add('visible');
+    if (arrowRight) arrowRight.classList.add('visible');
+
+    // Update ship display
+    updateShipUI();
 }
 
 window.cycleShip = function(dir) {
@@ -734,88 +770,165 @@ function animateIntroShip() {
     const ctx = introShipCtx;
     const w = introShipCanvas.width;
     const h = introShipCanvas.height;
-    const cx = w / 2, cy = h / 2;
+    const cx = w / 2, cy = h / 2 + 10;
 
-    // Clear to transparent (sky shows through)
     ctx.clearRect(0, 0, w, h);
 
-    // Get current ship data
-    const key = SHIP_KEYS[selectedShipIndex];
+    // In SPLASH always show BTC, in SELECTION show selected ship
+    const key = (introState === 'SPLASH') ? 'BTC' : SHIP_KEYS[selectedShipIndex];
     const ship = SHIP_DISPLAY[key];
+    const scale = 1.6;
 
     // Hover animation
-    const hover = Math.sin(introShipTime) * 8;
+    const hover = Math.sin(introShipTime * 2) * 6;
 
     ctx.save();
     ctx.translate(cx, cy + hover);
+    ctx.scale(scale, scale);
 
-    // Reactor flame (animated)
-    const flameHeight = 25 + Math.sin(introShipTime * 8) * 8;
-    const flameWidth = 12 + Math.sin(introShipTime * 6) * 4;
-    const gradient = ctx.createLinearGradient(0, 20, 0, 20 + flameHeight);
-    gradient.addColorStop(0, '#fff');
-    gradient.addColorStop(0.3, '#ffaa00');
-    gradient.addColorStop(0.7, '#ff4400');
-    gradient.addColorStop(1, 'transparent');
-    ctx.fillStyle = gradient;
+    // === REACTOR FLAMES (4-layer cell-shaded) ===
+    const flameHeight = 25 + Math.sin(introShipTime * 12) * 10;
+    const flameWidth = 12 + Math.sin(introShipTime * 10) * 4;
+    const pulse = 1 + Math.sin(introShipTime * 8) * 0.15;
+
+    // Outer glow (red)
+    ctx.fillStyle = '#cc3300';
+    ctx.globalAlpha = 0.6;
     ctx.beginPath();
-    ctx.moveTo(-flameWidth, 20);
-    ctx.quadraticCurveTo(0, 20 + flameHeight * 1.2, flameWidth, 20);
+    ctx.moveTo(-flameWidth * 1.4 * pulse, 14);
+    ctx.lineTo(0, 14 + flameHeight * 1.2);
+    ctx.lineTo(flameWidth * 1.4 * pulse, 14);
+    ctx.closePath();
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // Main flame (orange)
+    ctx.fillStyle = '#ff6600';
+    ctx.beginPath();
+    ctx.moveTo(-flameWidth, 14);
+    ctx.lineTo(0, 14 + flameHeight);
+    ctx.lineTo(flameWidth, 14);
     ctx.closePath();
     ctx.fill();
 
-    // Ship body - use selected ship color
-    ctx.fillStyle = ship.color;
+    // Inner flame (yellow)
+    ctx.fillStyle = '#ffcc00';
+    ctx.beginPath();
+    ctx.moveTo(-flameWidth * 0.5, 14);
+    ctx.lineTo(0, 14 + flameHeight * 0.65);
+    ctx.lineTo(flameWidth * 0.5, 14);
+    ctx.closePath();
+    ctx.fill();
+
+    // Hot core (white)
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.moveTo(-flameWidth * 0.2, 14);
+    ctx.lineTo(0, 14 + flameHeight * 0.35);
+    ctx.lineTo(flameWidth * 0.2, 14);
+    ctx.closePath();
+    ctx.fill();
+
+    // === SHIP BODY (cell-shaded two-tone) ===
+    ctx.lineWidth = 4;
     ctx.strokeStyle = '#111';
-    ctx.lineWidth = 3;
+
+    const darkColor = G.ColorUtils ? G.ColorUtils.darken(ship.color, 0.3) : '#c47000';
+
+    // Body - shadow side (left)
+    ctx.fillStyle = darkColor;
     ctx.beginPath();
-    ctx.moveTo(0, -40);
-    ctx.lineTo(-30, 20);
-    ctx.lineTo(30, 20);
+    ctx.moveTo(0, -26);
+    ctx.lineTo(-22, 12);
+    ctx.lineTo(0, 12);
+    ctx.closePath();
+    ctx.fill();
+
+    // Body - light side (right)
+    ctx.fillStyle = ship.color;
+    ctx.beginPath();
+    ctx.moveTo(0, -26);
+    ctx.lineTo(0, 12);
+    ctx.lineTo(22, 12);
+    ctx.closePath();
+    ctx.fill();
+
+    // Body outline
+    ctx.beginPath();
+    ctx.moveTo(0, -26);
+    ctx.lineTo(-22, 12);
+    ctx.lineTo(22, 12);
+    ctx.closePath();
+    ctx.stroke();
+
+    // === NOSE CONE (two-tone) ===
+    ctx.fillStyle = '#c47d3a';
+    ctx.beginPath();
+    ctx.moveTo(0, -28);
+    ctx.lineTo(-10, -6);
+    ctx.lineTo(0, -6);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = '#f6b26b';
+    ctx.beginPath();
+    ctx.moveTo(0, -28);
+    ctx.lineTo(0, -6);
+    ctx.lineTo(10, -6);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(0, -28);
+    ctx.lineTo(-10, -6);
+    ctx.lineTo(10, -6);
+    ctx.closePath();
+    ctx.stroke();
+
+    // === FINS ===
+    ctx.fillStyle = '#2d8a91';
+    ctx.beginPath();
+    ctx.moveTo(-22, 8);
+    ctx.lineTo(-34, 16);
+    ctx.lineTo(-16, 18);
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
 
-    // Nose cone
-    ctx.fillStyle = lightenColor(ship.color, 30);
+    ctx.fillStyle = '#45b7c5';
     ctx.beginPath();
-    ctx.moveTo(0, -42);
-    ctx.lineTo(-14, -5);
-    ctx.lineTo(14, -5);
+    ctx.moveTo(22, 8);
+    ctx.lineTo(34, 16);
+    ctx.lineTo(16, 18);
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
 
-    // Fins
-    ctx.fillStyle = '#4bc0c8';
+    // === COCKPIT ===
+    ctx.fillStyle = '#1a1a2e';
     ctx.beginPath();
-    ctx.moveTo(-30, 15);
-    ctx.lineTo(-48, 28);
-    ctx.lineTo(-22, 25);
-    ctx.closePath();
+    ctx.ellipse(0, -2, 6, 10, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(30, 15);
-    ctx.lineTo(48, 28);
-    ctx.lineTo(22, 25);
-    ctx.closePath();
-    ctx.fill();
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 2;
     ctx.stroke();
 
-    // Window
-    ctx.fillStyle = '#9fe8ff';
+    // Cockpit highlight
+    ctx.fillStyle = 'rgba(100, 200, 255, 0.4)';
     ctx.beginPath();
-    ctx.arc(0, -12, 9, 0, Math.PI * 2);
+    ctx.ellipse(-2, -5, 2, 4, -0.3, 0, Math.PI * 2);
     ctx.fill();
-    ctx.stroke();
 
-    // Ship symbol
-    ctx.fillStyle = '#111';
-    ctx.font = 'bold 18px Courier New';
+    // === SHIP SYMBOL ===
+    const symbols = { BTC: '₿', ETH: 'Ξ', SOL: '◎' };
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 14px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(ship.symbol, 0, 6);
+    ctx.shadowColor = ship.color;
+    ctx.shadowBlur = 8;
+    ctx.fillText(symbols[key] || ship.symbol, 0, 5);
+    ctx.shadowBlur = 0;
 
     ctx.restore();
 
@@ -952,13 +1065,28 @@ function init() {
         if (!splash || splash.style.opacity === '0') return;
         console.log("Starting App...");
         gameState = 'INTRO';
+        introState = 'SPLASH';
         splash.style.opacity = '0';
         audioSys.init();
         setTimeout(() => {
             if (splash) splash.remove();
             setStyle('intro-screen', 'display', 'flex');
+
+            // Init unified intro - show splash elements, hide selection elements
+            const title = document.getElementById('intro-title');
+            const tapBtn = document.getElementById('btn-tap-start');
+            const header = document.getElementById('selection-header');
+            const info = document.getElementById('selection-info');
+            const controls = document.getElementById('selection-controls');
+
+            if (title) title.classList.remove('hidden');
+            if (tapBtn) tapBtn.classList.remove('hidden');
+            if (header) header.style.display = 'none';
+            if (info) info.style.display = 'none';
+            if (controls) controls.style.display = 'none';
+
             try { updateUIText(); } catch (e) { }
-            initIntroShip(); // Start animated ship on intro screen
+            initIntroShip();
 
             // Restore campaign mode UI state
             if (G.CampaignState && G.CampaignState.isEnabled()) {
@@ -981,12 +1109,20 @@ function init() {
 
     inputSys.on('start', () => {
         if (gameState === 'VIDEO') startApp();
-        else if (gameState === 'INTRO') launchShipAndStart();
+        else if (gameState === 'INTRO') {
+            // Two-phase intro: SPLASH -> SELECTION -> PLAY
+            if (introState === 'SPLASH') {
+                enterSelectionState();
+            } else {
+                launchShipAndStart();
+            }
+        }
         else if (gameState === 'GAMEOVER') backToIntro();
     });
 
     inputSys.on('navigate', (code) => {
-        if (gameState === 'INTRO') {
+        // Ship selection only available in SELECTION state
+        if (gameState === 'INTRO' && introState === 'SELECTION') {
             if (code === 'ArrowRight' || code === 'KeyD') {
                 cycleShip(1);
             }
@@ -1007,7 +1143,27 @@ function init() {
         vid.play().then(() => { vid.onended = startApp; }).catch(() => { });
         setTimeout(startApp, 4000); splash.addEventListener('click', startApp); splash.addEventListener('touchstart', startApp);
     } else {
-        if (splash) splash.style.display = 'none'; setStyle('intro-screen', 'display', 'flex'); updateUIText(); gameState = 'INTRO';
+        // No video - go directly to intro with splash state
+        if (splash) splash.style.display = 'none';
+        setStyle('intro-screen', 'display', 'flex');
+
+        // Init unified intro
+        const title = document.getElementById('intro-title');
+        const tapBtn = document.getElementById('btn-tap-start');
+        const header = document.getElementById('selection-header');
+        const info = document.getElementById('selection-info');
+        const controls = document.getElementById('selection-controls');
+
+        if (title) title.classList.remove('hidden');
+        if (tapBtn) tapBtn.classList.remove('hidden');
+        if (header) header.style.display = 'none';
+        if (info) info.style.display = 'none';
+        if (controls) controls.style.display = 'none';
+
+        updateUIText();
+        gameState = 'INTRO';
+        introState = 'SPLASH';
+        initIntroShip();
     }
 
     if (ui.highScore) ui.highScore.innerText = highScore;
@@ -1426,11 +1582,32 @@ window.backToIntro = function () {
         closePerkChoice();
         setStyle('intro-screen', 'display', 'flex');
         gameState = 'INTRO';
-        audioSys.resetState(); // Reset audio state
+        introState = 'SPLASH';
+
+        // Reset to splash state (unified intro)
+        const title = document.getElementById('intro-title');
+        const tapBtn = document.getElementById('btn-tap-start');
+        const header = document.getElementById('selection-header');
+        const info = document.getElementById('selection-info');
+        const controls = document.getElementById('selection-controls');
+        const arrowLeft = document.getElementById('arrow-left');
+        const arrowRight = document.getElementById('arrow-right');
+
+        // Show splash elements
+        if (title) title.classList.remove('hidden');
+        if (tapBtn) tapBtn.classList.remove('hidden');
+
+        // Hide selection elements
+        if (header) header.style.display = 'none';
+        if (info) info.style.display = 'none';
+        if (controls) controls.style.display = 'none';
+        if (arrowLeft) arrowLeft.classList.remove('visible');
+        if (arrowRight) arrowRight.classList.remove('visible');
+
+        audioSys.resetState();
         audioSys.init();
-        // Reset Harmonic Conductor
         if (G.HarmonicConductor) G.HarmonicConductor.reset();
-        initIntroShip(); // Restart animated ship
+        initIntroShip();
 
         // Reopen curtain
         setTimeout(() => {

@@ -80,18 +80,74 @@
     </div>
 
     <div id="intro-screen" style="display: none;">
-        <!-- Clean Modern Start Screen -->
-        <div class="start-header">
-            <h1 class="game-title">
-                <span class="title-fiat">FIAT</span>
-                <span class="title-vs">vs</span>
-                <span class="title-crypto">CRYPTO</span>
-            </h1>
-            <div class="title-tagline">DEFEND THE BLOCKCHAIN</div>
+        <!-- UNIFIED INTRO - Single screen with transition -->
+
+        <!-- TITLE (visible in splash, hidden in selection) -->
+        <h1 class="game-title intro-title" id="intro-title">
+            <span class="title-fiat">FIAT</span>
+            <span class="title-vs">vs</span>
+            <span class="title-crypto">CRYPTO</span>
+        </h1>
+
+        <!-- HEADER (hidden in splash, visible in selection) -->
+        <div class="selection-header" id="selection-header" style="display: none;">CHOOSE YOUR SHIP</div>
+
+        <!-- SHIP AREA (always visible, arrows appear in selection) -->
+        <div class="ship-area">
+            <button class="ship-arrow ship-arrow-left" id="arrow-left" onclick="cycleShip(-1)" style="visibility: hidden;">‹</button>
+            <div class="ship-preview-center">
+                <canvas id="intro-ship-canvas" width="160" height="180"></canvas>
+            </div>
+            <button class="ship-arrow ship-arrow-right" id="arrow-right" onclick="cycleShip(1)" style="visibility: hidden;">›</button>
         </div>
 
-        <!-- Quick Settings Row -->
-        <div class="quick-settings-row">
+        <!-- SHIP INFO (hidden in splash, visible in selection) -->
+        <div class="selection-info" id="selection-info" style="display: none;">
+            <div id="ship-name" class="ship-name-large">BTC STRIKER</div>
+            <div id="ship-stats" class="ship-stats-large">
+                <span class="stat-item">SPD █████░░░</span>
+                <span class="stat-item">PWR ██████░░</span>
+                <span class="stat-item">HP ❤️❤️❤️</span>
+            </div>
+        </div>
+
+        <!-- TAP TO START (visible in splash, hidden in selection) -->
+        <button class="btn-tap-start" id="btn-tap-start" onclick="enterSelectionState()">
+            TAP TO START
+        </button>
+
+        <!-- SELECTION CONTROLS (hidden in splash, visible in selection) -->
+        <div class="selection-controls" id="selection-controls" style="display: none;">
+            <!-- Score/Progress Row -->
+            <div class="selection-score">
+                <div id="arcade-score-display">
+                    <span class="score-label">HIGH SCORE</span>
+                    <span id="highScoreVal" class="score-value">0</span>
+                </div>
+                <div id="campaign-progress" style="display: none;">
+                    <span class="score-label">CAMPAIGN</span>
+                    <div class="boss-slots-mini">
+                        <span class="boss-mini" id="slot-fed">$</span>
+                        <span class="boss-mini locked" id="slot-bce">€</span>
+                        <span class="boss-mini locked" id="slot-boj">¥</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mode toggle -->
+            <div class="selection-mode">
+                <button class="mode-pill active" id="mode-arcade" onclick="setGameMode('arcade')">ARCADE</button>
+                <button class="mode-pill" id="mode-campaign" onclick="setGameMode('campaign')">CAMPAIGN</button>
+            </div>
+
+            <!-- Launch button -->
+            <button class="btn-launch" onclick="launchShipAndStart()">
+                🚀 LAUNCH
+            </button>
+        </div>
+
+        <!-- BOTTOM ICONS (always visible) -->
+        <div class="intro-icons">
             <button class="icon-btn-cell mute-toggle" id="intro-mute">
                 <svg viewBox="0 0 24 24" class="icon-svg"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
             </button>
@@ -100,67 +156,7 @@
             </button>
         </div>
 
-        <div class="start-ship">
-            <button class="ship-arrow ship-arrow-left" onclick="cycleShip(-1)">‹</button>
-            <div class="ship-preview">
-                <canvas id="intro-ship-canvas" width="140" height="140"></canvas>
-                <div id="ship-name" class="ship-name">BTC STRIKER</div>
-                <div id="ship-stats" class="ship-stats">
-                    <span class="stat-item">SPD █████░░░</span>
-                    <span class="stat-item">PWR ██████░░</span>
-                    <span class="stat-item">HP ❤️❤️❤️</span>
-                </div>
-            </div>
-            <button class="ship-arrow ship-arrow-right" onclick="cycleShip(1)">›</button>
-        </div>
-
-        <!-- Score/Progress Row - Switches based on mode -->
-        <div class="start-score">
-            <!-- Arcade: High Score -->
-            <div id="arcade-score-display">
-                <span class="score-label">HIGH SCORE</span>
-                <span id="highScoreVal" class="score-value">0</span>
-            </div>
-            <!-- Campaign: Boss Progress -->
-            <div id="campaign-progress" style="display: none;">
-                <span class="score-label">CAMPAIGN PROGRESS</span>
-                <div class="boss-slots">
-                    <div class="boss-slot" id="slot-fed">
-                        <span class="boss-icon">$</span>
-                        <span class="boss-label">FED</span>
-                    </div>
-                    <div class="boss-arrow">→</div>
-                    <div class="boss-slot locked" id="slot-bce">
-                        <span class="boss-icon">€</span>
-                        <span class="boss-label">BCE</span>
-                    </div>
-                    <div class="boss-arrow">→</div>
-                    <div class="boss-slot locked" id="slot-boj">
-                        <span class="boss-icon">¥</span>
-                        <span class="boss-label">BOJ</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Game Mode Selector -->
-        <div class="game-mode-selector">
-            <button class="mode-btn active" id="mode-arcade" onclick="setGameMode('arcade')">
-                <span class="mode-icon">🎮</span>
-                <span class="mode-name">ARCADE</span>
-            </button>
-            <button class="mode-btn" id="mode-campaign" onclick="setGameMode('campaign')">
-                <span class="mode-icon">📖</span>
-                <span class="mode-name">CAMPAIGN</span>
-            </button>
-        </div>
-
-        <div class="start-actions">
-            <button class="btn-play" onclick="launchShipAndStart()">
-                DESTROY THE SYSTEM
-                <span id="version-tag" class="version-text"></span>
-            </button>
-        </div>
+        <div class="intro-version" id="version-tag"></div>
     </div>
 
     <!-- HANGAR SCREEN -->
