@@ -139,7 +139,7 @@
 *Goal: Smoother difficulty curve and balanced combat.*
 - [x] **Fibonacci Enemy Firing**: Enemies fire in Fibonacci sequence (1→1→2→3→5→8...) with 0.40s intervals
 - [x] **Enemy Tier Distribution**: 1:2:3 ratio (Strong:Medium:Weak) by rows
-- [x] **Power-Up Nerfs**: Triple weapons ~1.5-1.8x DPS (was 2.5x), ship bonuses reduced
+- [x] **Power-Up Nerfs**: Triple weapons ~1.5-1.8x DPS, ship bonuses reduced
 - [x] **FIRE Weapon Penetration**: Bullets pierce through enemies
 - [x] **First Shot Immediate**: First enemy fires instantly, others staggered
 
@@ -201,10 +201,10 @@
    - main.js drawParticles: 3 ink shapes (blob, star, splat) con bold outlines
    - main.js createBulletSpark: Star/blob ink per bullet cancel
    - Ring flash con doppio outline
-6. **Pass 6**: Paper Mario style background ✅
-   - Cielo a bande piatte (no gradienti) per tutti i 5 livelli + boss + bear market
+6. **Pass 6**: Cell-shaded background ✅
+   - Cielo a bande piatte per tutti i 5 livelli + boss + bear market
    - Nuvole flat con two-tone e bold outline
-   - Stelle stile Paper Mario (4-point star shape)
+   - Stelle a 4 punte con twinkle effect
    - 3 layer di colline parallax con silhouette ondulate e outline
    - Colori adattivi per giorno/tramonto/notte/bear market
 
@@ -407,7 +407,45 @@
 
 ---
 
-## Phase 20: Leaderboards & Social 🏆 (Future)
+## Phase 19.6: Code Consolidation ✅
+*Goal: Centralize all gameplay parameters for future redesign.*
+
+### System Modules Created:
+- [x] **BalanceConfig.js** (extended): Single source of truth for ALL balance parameters
+  - DIFFICULTY, PLAYER, PERK, GRAZE, ENEMY_FIRE, ENEMY_HP, GRID, DROPS, BOSS, SCORE, MEMES, TIMING, EFFECTS, UI, HITBOX, POWERUPS, WAVES
+  - Helper functions for calculations (difficulty, HP, drop chance, shake, etc.)
+- [x] **DropSystem.js**: Unified power-up drop management (enemy/boss drops, pity timer)
+- [x] **MemeEngine.js**: Unified meme selection & display (ticker, popups, priorities)
+- [x] **ColorUtils.js**: Consolidated color utilities (darken, lighten, hexToRgb, etc.)
+
+### Code Cleanup:
+- [x] Removed all external style references from comments
+- [x] Standardized visual terminology to "cell-shaded"
+- [x] Removed historical "was X" value comments
+- [x] Fixed touch controls flash bug (opacity transition)
+
+---
+
+## Phase 20: Gameplay Redesign 🎮 (Next)
+*Goal: Ridefinire il gameplay da zero sfruttando la centralizzazione dei parametri.*
+
+### Obiettivi:
+- [ ] **Revisione completa del bilanciamento** via BalanceConfig.js
+- [ ] **Curva di difficoltà** ripensata (livelli, cicli, bear market)
+- [ ] **Sistema di scoring** ridefinito (multiplier, bonus, combo)
+- [ ] **Power-up system** rivisto (drop rate, durate, effetti)
+- [ ] **Boss fights** ribilanciati (fasi, HP, pattern)
+- [ ] **Perk system** ottimizzato (trigger, cooldown, effetti)
+
+### Vantaggi della centralizzazione:
+- Tutti i parametri in un unico file (BalanceConfig.js)
+- Test rapido di configurazioni alternative
+- Nessun rischio di formule duplicate
+- Documentazione implicita dei valori
+
+---
+
+## Phase 21: Leaderboards & Social 🏆 (Future)
 *Goal: Competition and sharing.*
 - [ ] **Local Leaderboard**: Top 10 scores with date
 - [ ] **Share Score**: Screenshot + share button

@@ -48,7 +48,7 @@ class PowerUp extends window.Game.Entity {
         // Outer animated glow
         const gradient = ctx.createRadialGradient(x, y, 0, x, y, 28 * pulse);
         gradient.addColorStop(0, cfg.color);
-        gradient.addColorStop(0.5, this.alphaColor(cfg.color, 0.3));
+        gradient.addColorStop(0.5, window.Game.ColorUtils.withAlpha(cfg.color, 0.3));
         gradient.addColorStop(1, 'transparent');
         ctx.fillStyle = gradient;
         ctx.globalAlpha = glowPulse;
@@ -76,7 +76,7 @@ class PowerUp extends window.Game.Entity {
         ctx.rotate(this.rotation * 0.5);
 
         // Outer hexagon - shadow side
-        ctx.fillStyle = this.darkenColor(cfg.color, 0.3);
+        ctx.fillStyle = window.Game.ColorUtils.darken(cfg.color, 0.3);
         ctx.beginPath();
         for (let i = 0; i < 6; i++) {
             const angle = (Math.PI / 3) * i - Math.PI / 2;
@@ -115,7 +115,7 @@ class PowerUp extends window.Game.Entity {
         ctx.stroke();
 
         // Inner crystal facets
-        ctx.strokeStyle = this.lightenColor(cfg.color, 0.4);
+        ctx.strokeStyle = window.Game.ColorUtils.lighten(cfg.color, 0.4);
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(0, -size * 0.6);
@@ -246,7 +246,7 @@ class PowerUp extends window.Game.Entity {
         ctx.stroke();
 
         // Inner rotating segments
-        ctx.strokeStyle = this.lightenColor(cfg.color, 0.3);
+        ctx.strokeStyle = window.Game.ColorUtils.lighten(cfg.color, 0.3);
         ctx.lineWidth = 2;
         for (let i = 0; i < 4; i++) {
             const angle = this.rotation + (Math.PI / 2) * i;
@@ -256,7 +256,7 @@ class PowerUp extends window.Game.Entity {
         }
 
         // Main body - shadow
-        ctx.fillStyle = this.darkenColor(cfg.color, 0.35);
+        ctx.fillStyle = window.Game.ColorUtils.darken(cfg.color, 0.35);
         ctx.beginPath();
         ctx.arc(0, 0, size, Math.PI * 0.5, Math.PI * 1.5);
         ctx.fill();
@@ -275,7 +275,7 @@ class PowerUp extends window.Game.Entity {
         ctx.stroke();
 
         // Rim light
-        ctx.strokeStyle = this.lightenColor(cfg.color, 0.5);
+        ctx.strokeStyle = window.Game.ColorUtils.lighten(cfg.color, 0.5);
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.arc(0, 0, size - 2, -Math.PI * 0.7, Math.PI * 0.1);
@@ -335,29 +335,6 @@ class PowerUp extends window.Game.Entity {
         ctx.restore();
     }
 
-    alphaColor(hex, alpha) {
-        const num = parseInt(hex.slice(1), 16);
-        const r = (num >> 16);
-        const g = ((num >> 8) & 0xFF);
-        const b = (num & 0xFF);
-        return `rgba(${r},${g},${b},${alpha})`;
-    }
-
-    darkenColor(hex, amount) {
-        const num = parseInt(hex.slice(1), 16);
-        const r = Math.max(0, (num >> 16) - Math.floor(255 * amount));
-        const g = Math.max(0, ((num >> 8) & 0xFF) - Math.floor(255 * amount));
-        const b = Math.max(0, (num & 0xFF) - Math.floor(255 * amount));
-        return `rgb(${r},${g},${b})`;
-    }
-
-    lightenColor(hex, amount) {
-        const num = parseInt(hex.slice(1), 16);
-        const r = Math.min(255, (num >> 16) + Math.floor(255 * amount));
-        const g = Math.min(255, ((num >> 8) & 0xFF) + Math.floor(255 * amount));
-        const b = Math.min(255, (num & 0xFF) + Math.floor(255 * amount));
-        return `rgb(${r},${g},${b})`;
-    }
 }
 
 window.Game.PowerUp = PowerUp;

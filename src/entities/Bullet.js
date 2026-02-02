@@ -12,7 +12,7 @@ class Bullet extends window.Game.Entity {
         this.height = h;
         this.weaponType = 'NORMAL'; // Default weapon type
         this.age = 0; // Animation timer
-        this.grazed = false; // Graze tracking (Ikeda Rule 3)
+        this.grazed = false; // Graze tracking
     }
 
     reset(x, y, vx, vy, color, w, h, isHodl) {
@@ -28,7 +28,7 @@ class Bullet extends window.Game.Entity {
         this.penetration = false;
         this.weaponType = 'NORMAL'; // Default, set by Player.fire()
         this.age = 0; // For animations
-        this.grazed = false; // Graze tracking (Ikeda Rule 3)
+        this.grazed = false; // Graze tracking
         this.beatSynced = false; // Harmonic Conductor beat-synced bullet
         this.homing = false; // Homing missile tracking
         this.homingSpeed = 0; // Turn rate for homing
@@ -620,14 +620,13 @@ class Bullet extends window.Game.Entity {
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    // ENEMY: Aggressive Energy Bolt - Bullet Hell Style (Ikeda Rule 4)
-    // High contrast, readable even with screen full of projectiles
+    // ENEMY: High-contrast energy bolt
+    // Readable even with many projectiles on screen
     // Beat-synced bullets from Harmonic Conductor have enhanced trails
     // ═══════════════════════════════════════════════════════════════════
     drawEnemyBolt(ctx) {
-        // Beat-synced bullets are 1.5x brighter
         const beatBoost = this.beatSynced ? 1.5 : 1.0;
-        const r = (this.width || 5) * 1.8;  // Larger for bullet hell visibility
+        const r = (this.width || 5) * 1.8;
         const pulse = Math.sin(this.age * 25) * 0.15 + 1;
 
         // Calculate direction for oriented drawing
@@ -666,7 +665,7 @@ class Bullet extends window.Game.Entity {
         }
         ctx.globalAlpha = 1;
 
-        // Outer danger glow - LARGER (Ikeda Rule 4: bigger glow)
+        // Outer danger glow
         // Beat-synced bullets have enhanced glow
         ctx.fillStyle = this.color;
         ctx.globalAlpha = 0.3 * pulse * beatBoost;
@@ -675,31 +674,31 @@ class Bullet extends window.Game.Entity {
         ctx.fill();
         ctx.globalAlpha = 1;
 
-        // Secondary white ring (Ikeda Rule 4: white secondary ring)
+        // Secondary white ring for visibility
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.arc(this.x, this.y, r + 3, 0, Math.PI * 2);
         ctx.stroke();
 
-        // Main bolt body - circular for bullet hell style
+        // Main bolt body
         ctx.fillStyle = this.color;
         ctx.beginPath();
         ctx.arc(this.x, this.y, r * pulse, 0, Math.PI * 2);
         ctx.fill();
 
-        // White contour on bullet (Ikeda Rule 4)
+        // White contour
         ctx.strokeStyle = '#fff';
         ctx.lineWidth = 2;
         ctx.stroke();
 
         // Inner colored ring
-        ctx.fillStyle = this.lightenColorSimple(this.color, 0.3);
+        ctx.fillStyle = window.Game.ColorUtils.lighten(this.color, 0.3);
         ctx.beginPath();
         ctx.arc(this.x, this.y, r * 0.65, 0, Math.PI * 2);
         ctx.fill();
 
-        // Bright white core center (Ikeda Rule 4)
+        // Bright white core center
         ctx.fillStyle = '#fff';
         ctx.beginPath();
         ctx.arc(this.x, this.y, r * 0.35, 0, Math.PI * 2);
@@ -712,18 +711,6 @@ class Bullet extends window.Game.Entity {
         ctx.fill();
     }
 
-    // Simple color lightening for enemy bullets (no hex parsing)
-    lightenColorSimple(color, amount) {
-        // Handle hex colors
-        if (color.startsWith('#')) {
-            const num = parseInt(color.slice(1), 16);
-            const r = Math.min(255, (num >> 16) + Math.floor(255 * amount));
-            const g = Math.min(255, ((num >> 8) & 0xFF) + Math.floor(255 * amount));
-            const b = Math.min(255, (num & 0xFF) + Math.floor(255 * amount));
-            return `rgb(${r},${g},${b})`;
-        }
-        return '#fff'; // Fallback
-    }
 }
 
 // Attach to namespace

@@ -95,13 +95,12 @@ window.Game.WaveManager = {
                         typeIdx = 0 + ((r - strongRows - mediumRows + waveOffset) % 3);
                     }
 
-                    // Scale HP based on unified difficulty
+                    // Scale HP based on unified difficulty (via Balance config)
                     const cycle = window.marketCycle || 1;
                     const level = window.currentLevel || 1;
-                    const base = (level - 1) * 0.08;
-                    const cycleBonus = (cycle - 1) * 0.20;
-                    const diff = Math.min(0.85, base + cycleBonus);
-                    const scaledHP = 10 + Math.floor(diff * 15);
+                    const Balance = window.Game.Balance;
+                    const diff = Balance.calculateDifficulty(level, cycle);
+                    const scaledHP = Balance.calculateEnemyHP(diff);
                     const baseType = G.FIAT_TYPES[typeIdx];
                     const scaledType = Object.assign({}, baseType, {
                         hp: baseType.hp * scaledHP

@@ -322,7 +322,7 @@ class Boss extends window.Game.Entity {
         const cx = this.x + this.width / 2;
         const cy = this.y + this.height;
         const Patterns = window.Game.BulletPatterns;
-        const Colors = window.Game.BULLET_HELL_COLORS || {};
+        const Colors = window.Game.PROJECTILE_COLORS || window.Game.BULLET_HELL_COLORS || {};
 
         if (!Patterns) {
             this.fireTimer = 1.0;
@@ -353,7 +353,7 @@ class Boss extends window.Game.Entity {
                 bullets.push(...waveBullets);
             }
         } else if (this.phase === 2) {
-            this.fireTimer = 0.35; // Balanced: was 0.18 (too fast)
+            this.fireTimer = 0.35;
             this.angle += 0.3;
             const spiralBullets = Patterns.spiral(cx, cy - 20, this.angle, {
                 arms: 2, speed: 200, color: Colors.ORANGE || '#ff8c00', size: 10
@@ -374,7 +374,7 @@ class Boss extends window.Game.Entity {
                 bullets.push(...aimedBullets);
             }
         } else {
-            this.fireTimer = 0.2; // Balanced: was 0.1 (too fast)
+            this.fireTimer = 0.2;
             this.angle += 0.22;
             this.laserAngle += 0.06;
 
@@ -544,7 +544,7 @@ class Boss extends window.Game.Entity {
                 bullets.push(...waveBullets);
             } else {
                 // INTERVENTION! Fast aimed burst
-                this.fireTimer = 0.25; // Balanced: was 0.15
+                this.fireTimer = 0.25;
                 if (player) {
                     const burstBullets = Patterns.aimedBurst(cx, cy - 20, player.x, player.y, {
                         count: 5, speed: 280, spread: 0.4, color: '#ffffff', size: 11
@@ -563,7 +563,7 @@ class Boss extends window.Game.Entity {
 
         } else {
             // FULL INTERVENTION: Bouncing bullets, chaos
-            this.fireTimer = 0.2; // Balanced: was 0.12
+            this.fireTimer = 0.2;
             this.wavePhase += 0.25;
             this.angle += 0.18;
 
@@ -632,7 +632,7 @@ class Boss extends window.Game.Entity {
         // Main body
         ctx.strokeStyle = '#111';
         ctx.lineWidth = 4;
-        ctx.fillStyle = isHit ? '#ffffff' : this.darkenColor(baseColor, 0.25);
+        ctx.fillStyle = isHit ? '#ffffff' : window.Game.ColorUtils.darken(baseColor, 0.25);
         ctx.beginPath();
         ctx.roundRect(x + 10, y + 30, (w - 20) / 2, h - 40, 8);
         ctx.fill();
@@ -844,7 +844,7 @@ class Boss extends window.Game.Entity {
         ctx.stroke();
 
         // Tower top (narrower)
-        ctx.fillStyle = isHit ? '#ffffff' : this.lightenColor(baseColor, 0.1);
+        ctx.fillStyle = isHit ? '#ffffff' : window.Game.ColorUtils.lighten(baseColor, 0.1);
         ctx.beginPath();
         ctx.roundRect(x + 40, y + 10, w - 80, 40, 4);
         ctx.fill();
@@ -1118,39 +1118,6 @@ class Boss extends window.Game.Entity {
         ctx.fillText(name, cx, barY - 22);
     }
 
-    darkenColor(hex, amount) {
-        if (hex.startsWith('rgb')) {
-            const match = hex.match(/(\d+),\s*(\d+),\s*(\d+)/);
-            if (match) {
-                const r = Math.max(0, parseInt(match[1]) - Math.floor(255 * amount));
-                const g = Math.max(0, parseInt(match[2]) - Math.floor(255 * amount));
-                const b = Math.max(0, parseInt(match[3]) - Math.floor(255 * amount));
-                return `rgb(${r},${g},${b})`;
-            }
-        }
-        const num = parseInt(hex.slice(1), 16);
-        const r = Math.max(0, (num >> 16) - Math.floor(255 * amount));
-        const g = Math.max(0, ((num >> 8) & 0x00FF) - Math.floor(255 * amount));
-        const b = Math.max(0, (num & 0x0000FF) - Math.floor(255 * amount));
-        return `rgb(${r},${g},${b})`;
-    }
-
-    lightenColor(hex, amount) {
-        if (hex.startsWith('rgb')) {
-            const match = hex.match(/(\d+),\s*(\d+),\s*(\d+)/);
-            if (match) {
-                const r = Math.min(255, parseInt(match[1]) + Math.floor(255 * amount));
-                const g = Math.min(255, parseInt(match[2]) + Math.floor(255 * amount));
-                const b = Math.min(255, parseInt(match[3]) + Math.floor(255 * amount));
-                return `rgb(${r},${g},${b})`;
-            }
-        }
-        const num = parseInt(hex.slice(1), 16);
-        const r = Math.min(255, (num >> 16) + Math.floor(255 * amount));
-        const g = Math.min(255, ((num >> 8) & 0x00FF) + Math.floor(255 * amount));
-        const b = Math.min(255, (num & 0x0000FF) + Math.floor(255 * amount));
-        return `rgb(${r},${g},${b})`;
-    }
 }
 
 window.Game.Boss = Boss;

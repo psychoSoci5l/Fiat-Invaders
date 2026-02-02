@@ -29,14 +29,19 @@ npx serve .
 All modules attach to `window.Game`. Script load order in `index.html` matters:
 
 1. `Constants.js` - Configuration, texts, ship/weapon/enemy definitions
-2. `EventBus.js` - Pub/sub event system
-3. `RunState.js` / `Upgrades.js` - Runtime state and perk system
-4. `AudioSystem.js` - Procedural Web Audio synth (no audio files)
-5. `InputSystem.js` - Keyboard + touch/joystick input
-6. `ObjectPool.js` - GC prevention for bullets
-7. Entity classes: `Entity.js` → `Bullet.js` → `Player.js` → `Enemy.js` → `Boss.js` → `PowerUp.js`
-8. `WaveManager.js` - Wave spawning and progression
-9. `main.js` - Game loop, state machine, collision, rendering
+2. `ColorUtils.js` - Consolidated color manipulation utilities
+3. `BalanceConfig.js` - **Single source of truth for all balancing parameters**
+4. `BulletPatterns.js` - Bullet pattern definitions
+5. `DropSystem.js` - **Unified power-up drop management**
+6. `MemeEngine.js` - **Unified meme selection & display**
+7. `EventBus.js` - Pub/sub event system
+8. `RunState.js` / `Upgrades.js` - Runtime state and perk system
+9. `AudioSystem.js` - Procedural Web Audio synth (no audio files)
+10. `InputSystem.js` - Keyboard + touch/joystick input
+11. `ObjectPool.js` - GC prevention for bullets
+12. Entity classes: `Entity.js` → `Bullet.js` → `Player.js` → `Enemy.js` → `Boss.js` → `PowerUp.js`
+13. `WaveManager.js` - Wave spawning and progression
+14. `main.js` - Game loop, state machine, collision, rendering
 
 ### Key Globals
 
@@ -46,6 +51,10 @@ All modules attach to `window.Game`. Script load order in `index.html` matters:
 - `window.Game.Events` - EventBus singleton
 - `window.Game.RunState` - Per-run state (perks, modifiers)
 - `window.Game.Bullet.Pool` - Object pool for bullets
+- `window.Game.Balance` - Centralized balancing configuration
+- `window.Game.ColorUtils` - Color manipulation utilities
+- `window.Game.DropSystem` - Unified power-up drop management
+- `window.Game.MemeEngine` - Unified meme selection & display
 - `window.isBearMarket` - Hard mode flag (checked by WaveManager)
 - `window.marketCycle` - Current difficulty cycle (increases after boss)
 - `window.currentLevel` - Current level (for WaveManager)
@@ -62,15 +71,16 @@ All game objects extend `window.Game.Entity` (base class with x, y, vx, vy, upda
 
 ## Difficulty System
 
-Unified linear scaling via `getDifficulty()` in `main.js`:
+All balancing is centralized in `src/config/BalanceConfig.js` via `window.Game.Balance`.
 
-```javascript
-function getDifficulty() {
-    const base = (level - 1) * 0.08;      // +8% per level
-    const cycleBonus = (marketCycle - 1) * 0.20; // +20% per cycle
-    return Math.min(0.85, base + cycleBonus);    // Cap at 0.85
-}
-```
+### Difficulty Scaling (Balance.DIFFICULTY)
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| `LEVEL_SCALE` | 0.08 | +8% per level |
+| `CYCLE_SCALE` | 0.20 | +20% per boss cycle |
+| `MAX_DIFFICULTY` | 0.85 | Cap at 85% |
+| `BEAR_MARKET_MULT` | 1.3 | Bear Market multiplier |
 
 ### Applied Parameters
 
@@ -205,10 +215,11 @@ During boss fight, meme ticker shows Fed/Powell quotes (faster rotation: 2.5s).
 
 ## Perk System
 
-- **Trigger**: Cancel 3 enemy bullets within 1.5s window
+- **Trigger**: Cancel 5 enemy bullets within 1.5s window (Balance.PERK.BULLET_CANCEL_COUNT)
 - **Pool**: `Upgrades.js` with rarity/weight
 - **Display**: Horizontal scrolling ticker at `top: 100px`
 - **Selection**: Random perk auto-applied (no modal)
+- **Cooldown**: 4s between perks (Balance.PERK.COOLDOWN_TIME)
 
 ---
 
@@ -226,10 +237,40 @@ Boss `targetY: 145` ensures no overlap with HUD.
 
 ## Tuning Quick Reference
 
-### Enemy Fire Pacing (main.js)
-- `enemyFireTimer` - 0.35s between fire groups
-- `enemyFireStride` - 4 (every 4th enemy fires)
-- `MAX_ENEMY_SHOTS_PER_TICK` - 2
+All tuning parameters are in `src/config/BalanceConfig.js`. **Always modify Balance config, not individual files.**
+
+### Balance.ENEMY_FIRE
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| `STRIDE` | 8 | Every Nth enemy fires per group |
+| `MAX_SHOTS_PER_TICK` | 1 | Max bullets spawned per frame |
+| `FIBONACCI_INTERVAL` | 0.40 | Seconds between ramp-up steps |
+| `BULLET_SPEED_BASE` | 128 | Base bullet speed |
+| `BULLET_SPEED_SCALE` | 68 | Additional speed at max difficulty |
+
+### Balance.GRAZE
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| `RADIUS` | 25 | Pixels for graze detection |
+| `CLOSE_RADIUS` | 15 | Close graze for 2x bonus |
+| `PERK_THRESHOLD` | 60 | Graze count for bonus perk |
+| `DECAY_RATE` | 5 | Meter decay per second |
+| `MAX_PERKS_PER_LEVEL` | 2 | Cap graze perks per level |
+
+### Balance.DROPS
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| `WEAPON_COOLDOWN` | 5.0 | Min seconds between weapon drops |
+| `PITY_TIMER_KILLS` | 30 | Guaranteed drop after N kills |
+| `CHANCE_STRONG` | 0.06 | 6% for $, 元, Ⓒ |
+| `CHANCE_MEDIUM` | 0.04 | 4% for €, £, ₣, ₺ |
+| `CHANCE_WEAK` | 0.02 | 2% for ¥, ₽, ₹ |
+
+### Balance.PLAYER
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| `ACCELERATION` | 2500 | Keyboard acceleration |
+| `FRICTION` | 0.92 | Velocity decay |
 
 ### Wave Patterns (WaveManager.js)
 - Cycle: RECT → V_SHAPE → COLUMNS → SINE_WAVE → RECT → Boss
@@ -240,3 +281,18 @@ Boss `targetY: 145` ensures no overlap with HUD.
 - `MEMES.SAYLOR` - Michael Saylor quotes
 - `MEMES.POWELL` - Fed/Powell quotes (boss fight)
 - `MEMES.FIAT_DEATH` - Enemy kill taunts
+
+---
+
+## ColorUtils Module
+
+Consolidated color manipulation in `src/utils/ColorUtils.js` via `window.Game.ColorUtils`:
+
+| Function | Description |
+|----------|-------------|
+| `darken(color, amount)` | Darken color by 0-1 |
+| `lighten(color, amount)` | Lighten color by 0-1 |
+| `lightenPercent(hex, percent)` | Lighten hex by 0-100% (returns hex) |
+| `hexToRgb(hex)` | Convert hex to "r,g,b" string |
+| `hexToRgba(hex, alpha)` | Convert hex to rgba() string |
+| `withAlpha(color, alpha)` | Add alpha to any color format |

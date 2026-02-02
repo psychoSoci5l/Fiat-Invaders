@@ -41,8 +41,9 @@ class Player extends window.Game.Entity {
         this.resetState();
 
         // Pre-cache colors for performance
-        this._colorDark30 = this.darkenColor(this.stats.color, 0.3);
-        this._colorLight50 = this.lightenColor(this.stats.color, 0.5);
+        const CU = window.Game.ColorUtils;
+        this._colorDark30 = CU.darken(this.stats.color, 0.3);
+        this._colorLight50 = CU.lighten(this.stats.color, 0.5);
     }
 
     resetState() {
@@ -76,9 +77,10 @@ class Player extends window.Game.Entity {
         this.trail.forEach(t => t.age += dt);
         this.trail = this.trail.filter(t => t.age < 0.12);
 
-        // Movement Physics (Inertia)
-        const accel = 2500;
-        const friction = 0.92;
+        // Movement Physics (Inertia) - values from Balance config
+        const Balance = window.Game.Balance;
+        const accel = Balance.PLAYER.ACCELERATION;
+        const friction = Balance.PLAYER.FRICTION;
 
         if (input.touch.joystickActive) {
             this.vx = input.touch.axisX * speed;
@@ -178,7 +180,7 @@ class Player extends window.Game.Entity {
         const color = conf.color;
         const bulletW = 5;
         const bulletH = 20;
-        const bulletSpeed = 765; // Reduced 15% (was 900)
+        const bulletSpeed = 765;
         const weaponType = this.weapon;
         const spawnBullet = (x, y, vx, vy) => {
             const b = window.Game.Bullet.Pool.acquire(x, y, vx, vy, color, bulletW, bulletH, isHodl);
@@ -519,7 +521,7 @@ class Player extends window.Game.Entity {
             ctx.stroke();
         }
 
-        // Core Hitbox Indicator (Ikeda Rule 1 - visible when danger near)
+        // Core Hitbox Indicator - visible when projectiles are near
         // Check if any enemy bullets are within 60px
         const enemyBullets = window.enemyBullets || [];
         let dangerNear = false;
@@ -564,7 +566,7 @@ class Player extends window.Game.Entity {
         if (this.invulnTimer > 0 || this.shieldActive) return false;
 
         this.hp--;
-        this.invulnTimer = 1.4; // Reduced 30% (was 2.0)
+        this.invulnTimer = 1.4;
         window.Game.Audio.play('hitPlayer');
         window.Game.Input.vibrate([50, 50, 50]); // heavy shake
         return true;
@@ -603,21 +605,6 @@ class Player extends window.Game.Entity {
         }
     }
 
-    darkenColor(hex, amount) {
-        const num = parseInt(hex.slice(1), 16);
-        const r = Math.max(0, (num >> 16) - Math.floor(255 * amount));
-        const g = Math.max(0, ((num >> 8) & 0x00FF) - Math.floor(255 * amount));
-        const b = Math.max(0, (num & 0x0000FF) - Math.floor(255 * amount));
-        return `rgb(${r},${g},${b})`;
-    }
-
-    lightenColor(hex, amount) {
-        const num = parseInt(hex.slice(1), 16);
-        const r = Math.min(255, (num >> 16) + Math.floor(255 * amount));
-        const g = Math.min(255, ((num >> 8) & 0x00FF) + Math.floor(255 * amount));
-        const b = Math.min(255, (num & 0x0000FF) + Math.floor(255 * amount));
-        return `rgb(${r},${g},${b})`;
-    }
 }
 
 window.Game.Player = Player;

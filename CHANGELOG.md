@@ -1,5 +1,79 @@
 # Changelog
 
+## v2.8.2 - 2026-02-02
+### New Modules (System Consolidation)
+- **DropSystem.js**: Unified power-up drop management
+  - Enemy kill drops (tier-based chances)
+  - Boss hit drops (periodic power-ups)
+  - Pity timer system (guaranteed drop after N kills)
+  - Weapon vs Ship selection logic
+  - Singleton: `window.Game.DropSystem`
+
+- **MemeEngine.js**: Unified meme selection & display
+  - Random meme selection (general, Saylor, boss-specific)
+  - Enemy death memes, streak milestone memes
+  - Power-up feedback memes (all weapon/ship types)
+  - Popup queue management with priority system
+  - Singleton: `window.Game.MemeEngine`
+
+### BalanceConfig Extensions
+- **Extended sections**: DROPS (ship types), BOSS (phases), SCORE, MEMES, TIMING, EFFECTS, UI, HITBOX, POWERUPS, WAVES
+- **New helper functions**:
+  - `getShakeIntensity(event)` - Screen shake values
+  - `getGrazeMultiplier(grazeMeter)` - Score multiplier
+  - `getStreakMilestone(streak)` - Kill streak rewards
+  - `getRandomLightningInterval()` - Ambient effect timing
+  - `getBossPhase(hpPercent)` - Phase detection
+  - `getBossPhaseSpeed(bossType, phase)` - Movement speeds
+
+### main.js Migration
+- Meme functions now delegate to MemeEngine
+- Drop logic now delegates to DropSystem
+- All timing values now use Balance.TIMING.*
+- All effect intensities now use Balance.EFFECTS.*
+- HODL damage multipliers now use Balance.SCORE.HODL_MULT_*
+- Removed all redundant drop/meme variables
+
+### Code Cleanup
+- Removed all external style references from comments (replaced with technical terms)
+- Removed historical "was X" value comments from code
+- Standardized visual style terminology to "cell-shaded"
+- Renamed `BULLET_HELL_COLORS` to `PROJECTILE_COLORS` (with backwards-compatible alias)
+- Cleaned up commented-out code and obsolete notes
+- Fixed touch controls flash bug with opacity-based transition
+
+---
+
+## v2.8.1 - 2026-02-02
+### Code Maintenance & Refactoring
+- **BalanceConfig.js**: New centralized balance configuration module
+  - Single source of truth for all gameplay tuning parameters
+  - Eliminates duplicate formulas across files (prevents regression bugs)
+  - Helper functions: `calculateDifficulty()`, `calculateGridSpeed()`, `calculateEnemyHP()`, `calculateBulletSpeed()`
+  - All constants now accessible via `window.Game.Balance.*`
+
+- **ColorUtils.js**: New consolidated color utilities module
+  - Replaced 6 duplicate implementations across entity files
+  - Functions: `darken()`, `lighten()`, `lightenPercent()`, `hexToRgb()`, `hexToRgba()`, `withAlpha()`
+  - Accessible via `window.Game.ColorUtils.*`
+
+### Dead Code Removal
+- Removed unused variables: `displayScore`, `timeScale`, `currentMeme`
+- Removed 25 lines of unreachable code in `renderPerkBar()`
+
+### Files Refactored
+- `main.js` - All balance constants now reference Balance.*
+- `WaveManager.js` - Uses Balance.calculateEnemyHP()
+- `Player.js` - Physics uses Balance.PLAYER.*
+- `Enemy.js` - Kamikaze speed uses Balance.ENEMY_BEHAVIOR.*
+- Entity files (Enemy, Boss, Player, PowerUp, Bullet) - Color methods use ColorUtils
+
+### Documentation
+- Updated CLAUDE.md with Balance and ColorUtils references
+- Added complete parameter tables for all Balance sections
+
+---
+
 ## v2.8.0 - 2026-02-01
 ### Balance Overhaul
 - **Boss HP drastically reduced**: 5500 → 2000 base HP (-64%)

@@ -57,7 +57,7 @@ window.Game.HarmonicSequences = {
         { beat: 14, type: 'RANDOM_SINGLE', tier: 'WEAK', chance: 0.3 }
     ],
 
-    // V_SHAPE formation - Cascading (simplified, no bullet hell patterns)
+    // V_SHAPE formation - Cascading (cascading)
     VERSE_V_SHAPE: [
         { beat: 0, type: 'CASCADE_DOWN', delay: 0.15 },
         { beat: 4, type: 'SYNC_FIRE', tier: 'STRONG', target: 'tip' },
@@ -77,7 +77,7 @@ window.Game.HarmonicSequences = {
         { beat: 10, type: 'RANDOM_SINGLE', tier: 'WEAK', chance: 0.25 }
     ],
 
-    // SINE_WAVE formation - Intense but enemy-based (no bullet hell patterns)
+    // SINE_WAVE formation - Intense but enemy-based (enemy-based)
     VERSE_SINE_WAVE: [
         { beat: 0, type: 'SWEEP_LEFT', tier: 'ALL', delay: 0.1 },
         { beat: 4, type: 'SYNC_FIRE', tier: 'STRONG' },
@@ -93,7 +93,7 @@ window.Game.HarmonicSequences = {
     // CHORUS SEQUENCES (High intensity > 80%)
     // ===========================================
 
-    // 32-beat intense assault (enemy-based, no bullet hell patterns)
+    // 32-beat intense assault (enemy-based)
     CHORUS_ASSAULT: [
         { beat: 0, type: 'CASCADE_DOWN', delay: 0.12 },
         { beat: 4, type: 'SYNC_FIRE', tier: 'ALL' },
@@ -118,7 +118,7 @@ window.Game.HarmonicSequences = {
     // BEAR MARKET CHAOS (Hard mode)
     // ===========================================
 
-    // Bear Market - Fast and intense but enemy-based (no bullet hell patterns)
+    // Bear Market - Fast and intense but enemy-based (enemy-based)
     BEAR_MARKET_CHAOS: [
         { beat: 0, type: 'SYNC_FIRE', tier: 'ALL' },
         { beat: 2, type: 'SWEEP_LEFT', tier: 'ALL', delay: 0.05 },

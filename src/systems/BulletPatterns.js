@@ -1,5 +1,5 @@
-// Bullet Hell Pattern System (Ikeda Style)
-// Geometric, hypnotic patterns for boss attacks
+// Projectile Pattern System
+// Geometric patterns for boss attacks
 window.Game = window.Game || {};
 
 window.Game.BulletPatterns = {

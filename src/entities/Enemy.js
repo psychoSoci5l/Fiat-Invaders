@@ -27,7 +27,7 @@ class Enemy extends window.Game.Entity {
         // Special behaviors (set by spawner based on tier)
         this.isKamikaze = false;      // Weak tier: can dive at player
         this.kamikazeDiving = false;  // Currently diving
-        this.kamikazeSpeed = 400;     // Dive speed
+        this.kamikazeSpeed = window.Game.Balance.ENEMY_BEHAVIOR.KAMIKAZE_SPEED;
 
         this.hasShield = false;       // Medium tier: absorbs first hit
         this.shieldActive = false;    // Shield currently up
@@ -40,13 +40,14 @@ class Enemy extends window.Game.Entity {
         this.isMinion = false;        // Boss minion type
 
         // Pre-cache colors for performance (avoid recalculating every frame)
-        this._colorDark30 = this.darkenColor(this.color, 0.3);
-        this._colorDark35 = this.darkenColor(this.color, 0.35);
-        this._colorDark40 = this.darkenColor(this.color, 0.4);
-        this._colorDark50 = this.darkenColor(this.color, 0.5);
-        this._colorLight35 = this.lightenColor(this.color, 0.35);
-        this._colorLight40 = this.lightenColor(this.color, 0.4);
-        this._colorLight50 = this.lightenColor(this.color, 0.5);
+        const CU = window.Game.ColorUtils;
+        this._colorDark30 = CU.darken(this.color, 0.3);
+        this._colorDark35 = CU.darken(this.color, 0.35);
+        this._colorDark40 = CU.darken(this.color, 0.4);
+        this._colorDark50 = CU.darken(this.color, 0.5);
+        this._colorLight35 = CU.lighten(this.color, 0.35);
+        this._colorLight40 = CU.lighten(this.color, 0.4);
+        this._colorLight50 = CU.lighten(this.color, 0.5);
     }
 
     attemptFire(dt, target, rateMult = 1, bulletSpeed = 300, aimSpreadMult = 1, allowFire = true) {
@@ -636,21 +637,6 @@ class Enemy extends window.Game.Entity {
         ctx.closePath();
     }
 
-    darkenColor(hex, amount) {
-        const num = parseInt(hex.slice(1), 16);
-        const r = Math.max(0, (num >> 16) - Math.floor(255 * amount));
-        const g = Math.max(0, ((num >> 8) & 0x00FF) - Math.floor(255 * amount));
-        const b = Math.max(0, (num & 0x0000FF) - Math.floor(255 * amount));
-        return `rgb(${r},${g},${b})`;
-    }
-
-    lightenColor(hex, amount) {
-        const num = parseInt(hex.slice(1), 16);
-        const r = Math.min(255, (num >> 16) + Math.floor(255 * amount));
-        const g = Math.min(255, ((num >> 8) & 0x00FF) + Math.floor(255 * amount));
-        const b = Math.min(255, (num & 0x0000FF) + Math.floor(255 * amount));
-        return `rgb(${r},${g},${b})`;
-    }
 }
 
 window.Game.Enemy = Enemy;

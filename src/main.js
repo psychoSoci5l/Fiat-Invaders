@@ -24,7 +24,7 @@ let player;
 let bullets = [], enemyBullets = [], enemies = [], powerUps = [], particles = [], floatingTexts = [], muzzleFlashes = [], perkIcons = [];
 window.enemyBullets = enemyBullets; // Expose for Player core hitbox indicator
 let clouds = []; // ☁️
-let hills = []; // 🏔️ Paper Mario parallax hills
+let hills = []; // Parallax background hills
 let floatingSymbols = []; // ₿ Floating crypto symbols in background
 let lightningTimer = 0; // ⚡ Bear Market lightning
 let lightningFlash = 0;
@@ -106,8 +106,8 @@ function checkWeaponUnlocks(cycle) {
 }
 
 let boss = null;
-let score = 0, displayScore = 0, level = 1, lives = 3;
-let shake = 0, gridDir = 1, gridSpeed = 25, timeScale = 1.0, totalTime = 0, intermissionTimer = 0, currentMeme = "";
+let score = 0, level = 1, lives = 3;
+let shake = 0, gridDir = 1, gridSpeed = 25, totalTime = 0, intermissionTimer = 0;
 // Screen transition system
 let transitionAlpha = 0;
 let transitionDir = 0; // 0 = none, 1 = fading in (to black), -1 = fading out
@@ -128,76 +128,52 @@ let bestStreak = 0;
 let marketCycle = 1; // Track completed boss cycles for difficulty scaling
 window.marketCycle = marketCycle; // Expose for WaveManager
 window.currentLevel = level; // Expose for WaveManager difficulty calculation
+// --- BALANCE CONFIG ALIASES (for cleaner code) ---
+const Balance = window.Game.Balance;
+
 let bulletCancelStreak = 0;
 let bulletCancelTimer = 0;
-const BULLET_CANCEL_FOR_PERK = 5; // Bullets to cancel for perk (was 3)
 
 // --- PERK COOLDOWN ---
 let perkCooldown = 0;         // Cooldown timer between perks
-const PERK_COOLDOWN_TIME = 4; // Seconds between perk rewards (was 8)
 
 // --- PERK PAUSE SYSTEM ---
 let perkPauseTimer = 0;       // When > 0, game is paused for perk display
 let perkPauseData = null;     // Data about the perk being displayed
-const PERK_PAUSE_DURATION = 1.2; // Seconds to pause for perk notification
 
 // --- BOSS WARNING SYSTEM ---
 let bossWarningTimer = 0;     // When > 0, showing boss warning
 let bossWarningType = null;   // Boss type to spawn after warning
-const BOSS_WARNING_DURATION = 2.0; // Seconds of warning before boss spawns
 
-// --- GRAZING SYSTEM (Ikeda Rule 3) ---
+// --- GRAZING SYSTEM ---
 let grazeCount = 0;           // Total graze count this run
 let grazeMeter = 0;           // 0-100 meter fill
 let grazeMultiplier = 1.0;    // Score multiplier from grazing (up to 1.5x)
-const GRAZE_RADIUS = 25;      // Pixels outside core hitbox for graze detection
-const GRAZE_CLOSE_RADIUS = 15; // Close graze radius for 2x bonus
-const GRAZE_PERK_THRESHOLD = 60; // Graze count to trigger bonus perk (was 120)
-const GRAZE_DECAY_RATE = 5;   // Meter decay per second when not grazing
-const MAX_GRAZE_PERKS_PER_LEVEL = 2; // Cap graze perks per level
 let grazePerksThisLevel = 0;  // Track graze perks awarded this level
 let lastGrazeSoundTime = 0;   // Throttle graze sound
 let lastGrazeTime = 0;        // For decay calculation
 
 let enemyFirePhase = 0;
 let enemyFireTimer = 0;
-let enemyFireStride = 8; // Increased: fewer enemies per group (was 6) - 20% reduction
+let enemyFireStride = Balance.ENEMY_FIRE.STRIDE;
 let enemyShotsThisTick = 0; // Rate limiter
-const MAX_ENEMY_SHOTS_PER_TICK = 1; // Reduced: max bullets spawned per frame (was 2)
 
 // Fibonacci firing ramp-up at wave start
 let waveStartTime = 0;
 let fibonacciIndex = 0;
 let fibonacciTimer = 0;
 let enemiesAllowedToFire = 1; // Starts at 1, increases via Fibonacci
-const FIBONACCI_INTERVAL = 0.40; // Seconds between Fibonacci steps
 const FIBONACCI_SEQ = [1, 1, 2, 3, 5, 8, 13, 21, 34, 55]; // Pre-computed
 
-// Fiat Kill Counter System - Mini Boss every 100 kills of same type
+// Fiat Kill Counter System - Mini Boss every N kills of same type
 let fiatKillCounter = { '¥': 0, '₽': 0, '₹': 0, '€': 0, '£': 0, '₣': 0, '₺': 0, '$': 0, '元': 0, 'Ⓒ': 0 };
-const MINI_BOSS_THRESHOLD = 30; // Kills of same currency to spawn mini-boss (was 100)
 let miniBoss = null; // Special boss spawned from kill counter
 
-// Drop system: tier-based with cooldown and pity timer
-let lastWeaponDropTime = 0;
-const WEAPON_DROP_COOLDOWN = 5.0; // Minimum seconds between weapon drops (was 8)
-let killsSinceLastDrop = 0;
-const PITY_TIMER_KILLS = 30; // Guaranteed drop after this many kills without one
-
-// Tier-based drop chances (replaces time-based system)
-const DROP_CHANCE_STRONG = 0.06;  // 6% for strong enemies ($, 元, Ⓒ)
-const DROP_CHANCE_MEDIUM = 0.04;  // 4% for medium enemies (€, £, ₣, ₺)
-const DROP_CHANCE_WEAK = 0.02;    // 2% for weak enemies (¥, ₽, ₹)
-const STRONG_TIERS = ['$', '元', 'Ⓒ'];
-const MEDIUM_TIERS = ['€', '£', '₣', '₺'];
-
-// Boss fight drops: power-ups every N hits to help player survive
-let bossHitCount = 0;
-const BOSS_DROP_INTERVAL = 25; // Drop power-up every 25 hits on boss
-let bossDropCooldown = 0; // Prevent multiple drops in quick succession
+// Drop system now managed by G.DropSystem singleton
+// Boss fight drops also managed by G.DropSystem
 
 // --- DIFFICULTY SYSTEM ---
-// Single unified difficulty multiplier (0.0 = Level 1, capped at 0.85)
+// Single unified difficulty multiplier (0.0 = Level 1, capped at MAX_DIFFICULTY)
 // Cached per-frame for performance (avoid recalculating in enemy loops)
 let cachedDifficulty = 0;
 let cachedGridSpeed = 0;
@@ -207,16 +183,13 @@ function getDifficulty() {
 }
 
 function _calculateDifficulty() {
-    const base = (level - 1) * 0.08;  // +8% per level (0-4 = 0-0.32)
-    const cycleBonus = (marketCycle - 1) * 0.20; // +20% per cycle
-    return Math.min(0.85, base + cycleBonus); // Cap at 0.85 = "hard but fair"
+    return Balance.calculateDifficulty(level, marketCycle);
 }
 
 // Call once per frame to update cached values
 function updateDifficultyCache() {
     cachedDifficulty = _calculateDifficulty();
-    const base = 12 + cachedDifficulty * 20; // 12 → 32
-    cachedGridSpeed = isBearMarket ? base * 1.3 : base;
+    cachedGridSpeed = Balance.calculateGridSpeed(cachedDifficulty, isBearMarket);
 }
 
 // Dynamic grid speed based on difficulty (uses cache)
@@ -243,37 +216,11 @@ function updateScore(newScore) {
 function setStyle(id, prop, val) { const el = document.getElementById(id) || ui[id]; if (el) el.style[prop] = val; }
 function setUI(id, val) { const el = document.getElementById(id) || ui[id]; if (el) el.innerText = val; }
 function emitEvent(name, payload) { if (events && events.emit) events.emit(name, payload); }
-function getRandomMeme() {
-    // 40% chance for Saylor quote, 60% for general memes
-    const useSaylor = Math.random() < 0.4 && Constants.MEMES.SAYLOR && Constants.MEMES.SAYLOR.length > 0;
-    if (useSaylor) {
-        return Constants.MEMES.SAYLOR[Math.floor(Math.random() * Constants.MEMES.SAYLOR.length)];
-    }
-    const pool = (Constants.MEMES.LOW || []).concat(Constants.MEMES.HIGH || []);
-    return pool[Math.floor(Math.random() * pool.length)] || "HODL";
-}
-
-function getFiatDeathMeme() {
-    const pool = Constants.MEMES.FIAT_DEATH || Constants.MEMES.LOW;
-    return pool[Math.floor(Math.random() * pool.length)] || "FIAT DESTROYED";
-}
-
-function getPowellMeme() {
-    const pool = Constants.MEMES.POWELL || Constants.MEMES.BOSS || [];
-    return pool[Math.floor(Math.random() * pool.length)] || "PRINTER GO BRRR";
-}
-
-function getBossMeme(bossType) {
-    let pool;
-    if (bossType === 'BCE') {
-        pool = Constants.MEMES.BCE || Constants.MEMES.BOSS || [];
-    } else if (bossType === 'BOJ') {
-        pool = Constants.MEMES.BOJ || Constants.MEMES.BOSS || [];
-    } else {
-        pool = Constants.MEMES.POWELL || Constants.MEMES.BOSS || [];
-    }
-    return pool[Math.floor(Math.random() * pool.length)] || "CENTRAL BANK ALERT";
-}
+// Meme functions delegate to MemeEngine singleton
+function getRandomMeme() { return G.MemeEngine.getRandomMeme(); }
+function getFiatDeathMeme() { return G.MemeEngine.getEnemyDeathMeme(); }
+function getPowellMeme() { return G.MemeEngine.getPowellMeme(); }
+function getBossMeme(bossType) { return G.MemeEngine.getBossMeme(bossType); }
 
 function pushScoreTicker(text) {
     if (!ui.scoreTicker) return;
@@ -467,32 +414,6 @@ let recentPerks = []; // Track last 3 perks acquired
 function renderPerkBar(highlightId) {
     // Perk bar disabled - cleaner UI
     if (ui.perkBar) ui.perkBar.style.display = 'none';
-    return;
-
-    if (recentPerks.length === 0) return;
-
-    const upgradesById = {};
-    (G.UPGRADES || []).forEach(p => upgradesById[p.id] = p);
-
-    // Create inner container for scrolling
-    const inner = document.createElement('div');
-    inner.id = 'perk-bar-inner';
-
-    // Show all perks in a horizontal ticker
-    recentPerks.forEach((entry) => {
-        const perk = upgradesById[entry.id];
-        if (!perk) return;
-        const chip = document.createElement('div');
-        chip.className = 'perk-chip';
-        if (highlightId && entry.id === highlightId) {
-            chip.classList.add('new');
-        }
-        const stackText = entry.stacks > 1 ? ` x${entry.stacks}` : '';
-        chip.innerHTML = `<span>${perk.icon || '•'}</span><span>${perk.name}${stackText}</span>`;
-        inner.appendChild(chip);
-    });
-
-    ui.perkBar.appendChild(inner);
 }
 
 function openPerkChoice() {
@@ -572,7 +493,7 @@ function applyRandomPerk() {
 
     const perk = offers[0];
     applyPerk(perk);
-    perkCooldown = PERK_COOLDOWN_TIME; // Start cooldown
+    perkCooldown = Balance.PERK.COOLDOWN_TIME; // Start cooldown
     audioSys.play('perk'); // Play perk sound
     // Perk icon appears above ship via addPerkIcon() called in applyPerk()
 }
@@ -785,14 +706,9 @@ function animateIntroShip() {
     requestAnimationFrame(animateIntroShip);
 }
 
-// Helper to lighten a hex color
+// Helper to lighten a hex color (uses ColorUtils)
 function lightenColor(hex, percent) {
-    const num = parseInt(hex.replace('#', ''), 16);
-    const amt = Math.round(2.55 * percent);
-    const R = Math.min(255, (num >> 16) + amt);
-    const G = Math.min(255, ((num >> 8) & 0x00FF) + amt);
-    const B = Math.min(255, (num & 0x0000FF) + amt);
-    return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+    return window.Game.ColorUtils.lightenPercent(hex, percent);
 }
 
 // --- INITIALIZATION ---
@@ -812,7 +728,10 @@ function init() {
 
     // Hide HUD initially
     if (ui.uiLayer) ui.uiLayer.style.display = 'none';
-    if (ui.touchControls) ui.touchControls.style.display = 'none';
+    if (ui.touchControls) {
+        ui.touchControls.classList.remove('visible');
+        ui.touchControls.style.display = 'none';
+    }
 
     const startBtn = document.querySelector('.btn-coin');
     if (startBtn) {
@@ -1384,7 +1303,10 @@ window.backToIntro = function () {
         setStyle('gameover-screen', 'display', 'none');
         setStyle('hangar-screen', 'display', 'none');
         if (ui.uiLayer) ui.uiLayer.style.display = 'none'; // HIDE HUD
-        if (ui.touchControls) ui.touchControls.style.display = 'none';
+        if (ui.touchControls) {
+            ui.touchControls.classList.remove('visible');
+            ui.touchControls.style.display = 'none';
+        }
         closePerkChoice();
         setStyle('intro-screen', 'display', 'flex');
         gameState = 'INTRO';
@@ -1525,7 +1447,17 @@ function startGame() {
     audioSys.init();
     setStyle('intro-screen', 'display', 'none'); setStyle('gameover-screen', 'display', 'none'); setStyle('pause-screen', 'display', 'none'); setStyle('pause-btn', 'display', 'block');
     if (ui.uiLayer) ui.uiLayer.style.display = 'flex'; // SHOW HUD
-    if (ui.touchControls) ui.touchControls.style.display = 'block';
+    // Show touch controls with opacity fade-in to avoid visual flash
+    if (ui.touchControls) {
+        ui.touchControls.classList.remove('visible'); // Ensure clean state
+        ui.touchControls.style.display = 'block';
+        // Delay adding visible class to trigger CSS transition after display change
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                ui.touchControls.classList.add('visible');
+            });
+        });
+    }
 
     if (runState && runState.reset) runState.reset();
     if (runState && runState.getMod) {
@@ -1538,12 +1470,12 @@ function startGame() {
     perkCooldown = 0;
     enemyFirePhase = 0;
     enemyFireTimer = 0;
-    memeSwapTimer = 2.0;
+    memeSwapTimer = Balance.MEMES.TICKER_SWAP_INTERVAL;
     closePerkChoice();
     recentPerks = []; // Reset perk display
     renderPerkBar();
 
-    score = 0; displayScore = 0; level = 1; lives = 3; setUI('scoreVal', '0'); setUI('lvlVal', '1'); setUI('livesText', lives);
+    score = 0; level = 1; lives = 3; setUI('scoreVal', '0'); setUI('lvlVal', '1'); setUI('livesText', lives);
     updateDifficultyCache(); // Initialize difficulty cache for level 1
     audioSys.setLevel(1, true); // Set music theme for level 1 (instant, no crossfade)
     // Release pooled particles before clearing
@@ -1578,8 +1510,8 @@ function startGame() {
     // Reset fiat kill counter and mini-boss
     fiatKillCounter = { '¥': 0, '₽': 0, '₹': 0, '€': 0, '£': 0, '₣': 0, '₺': 0, '$': 0, '元': 0, 'Ⓒ': 0 };
     miniBoss = null;
-    killsSinceLastDrop = 0; // Reset pity timer
-    lastWeaponDropTime = 0; // Reset weapon cooldown
+    G.DropSystem.reset(); // Reset drop system (pity timer, weapon cooldown, boss drops)
+    G.MemeEngine.reset(); // Reset meme engine (ticker timer, popup cooldown)
     grazePerksThisLevel = 0; // Reset graze perk cap
     lastGrazeTime = 0; // Reset graze decay
     perkPauseTimer = 0; // Reset perk pause
@@ -1592,10 +1524,6 @@ function startGame() {
     fibonacciIndex = 0;
     fibonacciTimer = 0;
     enemiesAllowedToFire = 1;
-
-    // Reset boss drop system
-    bossHitCount = 0;
-    bossDropCooldown = 0;
 
     // Reset visual effects
     shake = 0;
@@ -1631,7 +1559,7 @@ function highlightShip(idx) {
 
 function startIntermission(msgOverride) {
     gameState = 'INTERMISSION';
-    waveMgr.intermissionTimer = 1.9; // 25% shorter pause (was 2.5)
+    waveMgr.intermissionTimer = Balance.TIMING.INTERMISSION_DURATION;
     waveMgr.waveInProgress = false; // Safety reset
 
     // Convert all remaining enemy bullets to bonus points with explosion effect
@@ -1684,7 +1612,7 @@ function startBossWarning() {
     }
 
     // Start warning timer
-    bossWarningTimer = BOSS_WARNING_DURATION;
+    bossWarningTimer = Balance.BOSS.WARNING_DURATION;
 
     // Clear remaining enemies and bullets for clean boss entrance
     enemies = [];
@@ -1724,7 +1652,7 @@ function spawnBoss() {
     boss = new G.Boss(gameWidth, gameHeight, bossType);
 
     // Scale boss HP using boss config + perk-aware scaling
-    // Reduced significantly for better pacing (was 4500/600/800)
+    // Boss HP scaling values
     const baseHp = bossConfig.baseHp || 1800;
     const hpPerLevel = bossConfig.hpPerLevel || 150;
     const hpPerCycle = bossConfig.hpPerCycle || 300;
@@ -1744,9 +1672,8 @@ function spawnBoss() {
     boss.hp = Math.floor(rawHp * perkScaling * dmgCompensation * ngPlusMult);
     boss.maxHp = boss.hp;
 
-    // Reset boss hit counter and cooldown for power-up drops
-    bossHitCount = 0;
-    bossDropCooldown = 0;
+    // Reset boss drop tracking for new boss fight
+    G.DropSystem.resetBossDrops();
 
     enemies = [];
     if (window.Game) window.Game.enemies = enemies;
@@ -1766,7 +1693,7 @@ function spawnBoss() {
 
     // Start with boss-specific meme in the ticker
     if (ui.memeTicker) ui.memeTicker.innerText = getBossMeme(bossType);
-    memeSwapTimer = 2.0;
+    memeSwapTimer = Balance.MEMES.BOSS_TICKER_INTERVAL;
 
     // Story: Boss intro dialogue
     if (G.Story) {
@@ -1958,11 +1885,7 @@ function drawMiniBoss(ctx) {
 }
 
 function hexToRgb(hex) {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    if (result) {
-        return parseInt(result[1], 16) + ',' + parseInt(result[2], 16) + ',' + parseInt(result[3], 16);
-    }
-    return '255,255,255';
+    return window.Game.ColorUtils.hexToRgb(hex);
 }
 
 function checkMiniBossHit(b) {
@@ -1972,7 +1895,7 @@ function checkMiniBossHit(b) {
         const baseDmg = player.stats.baseDamage || 14;
         const dmgMult = (runState && runState.getMod) ? runState.getMod('damageMult', 1) : 1;
         let dmg = baseDmg * dmgMult;
-        if (b.isHodl) dmg *= 1.25; // HODL: +25% damage
+        if (b.isHodl) dmg *= Balance.SCORE.HODL_MULT_ENEMY; // HODL bonus vs enemies
         miniBoss.hp -= dmg;
         audioSys.play('hitEnemy');
 
@@ -2026,7 +1949,7 @@ function update(dt) {
 
     // Graze meter decay: lose points if not actively grazing
     if (grazeMeter > 0 && totalTime - lastGrazeTime > 0.5) {
-        grazeMeter = Math.max(0, grazeMeter - GRAZE_DECAY_RATE * dt);
+        grazeMeter = Math.max(0, grazeMeter - Balance.GRAZE.DECAY_RATE * dt);
         grazeMultiplier = 1 + (grazeMeter / 200);
         updateGrazeUI();
     }
@@ -2067,7 +1990,6 @@ function update(dt) {
                 audioSys.setLevel(level); // Change music theme for new level
                 audioSys.play('levelUp'); // Triumphant jingle
                 updateLevelUI(); // With animation
-                killsSinceLastDrop = 0; // Reset pity timer for new level
                 grazePerksThisLevel = 0; // Reset graze perk cap for new level
                 showGameInfo("📈 LEVEL " + level);
                 // gridSpeed now computed dynamically via getGridSpeed()
@@ -2119,8 +2041,8 @@ function update(dt) {
                     enemyBullets.push(G.Bullet.Pool.acquire(bd.x, bd.y, bd.vx, bd.vy, bd.color, bd.w, bd.h, false));
                 });
             }
-            // Decrement boss drop cooldown
-            if (bossDropCooldown > 0) bossDropCooldown -= dt;
+            // Update drop system cooldowns
+            G.DropSystem.update(dt);
         }
 
         // Mini-boss update (fiat revenge boss)
@@ -2176,28 +2098,15 @@ function updateBullets(dt) {
                 const baseBossDmg = Math.ceil((player.stats.baseDamage || 14) / 4);
                 const dmgMult = (runState && runState.getMod) ? runState.getMod('damageMult', 1) : 1;
                 let dmg = baseBossDmg * dmgMult;
-                if (b.isHodl) dmg = Math.ceil(dmg * 1.5); // HODL: +50% vs boss
+                if (b.isHodl) dmg = Math.ceil(dmg * Balance.SCORE.HODL_MULT_BOSS); // HODL bonus vs boss
                 if (runState && runState.flags && runState.flags.hodlBonus && b.isHodl) dmg = Math.ceil(dmg * 1.15);
                 boss.damage(dmg);
                 audioSys.play('hitEnemy');
 
-                // Boss drops power-ups every N hits to help player (with cooldown to prevent clustering)
-                bossHitCount++;
-                if (bossHitCount >= BOSS_DROP_INTERVAL && bossDropCooldown <= 0) {
-                    bossHitCount = 0;
-                    bossDropCooldown = 1.5; // 1.5 second cooldown between drops
-                    const weaponTypes = getUnlockedWeapons();
-                    const shipTypes = ['SPEED', 'RAPID', 'SHIELD'];
-                    const dropWeapon = Math.random() < 0.5;
-                    const dropX = boss.x + boss.width / 2 + (Math.random() - 0.5) * 80;
-                    const dropY = boss.y + boss.height + 20;
-                    if (dropWeapon) {
-                        const type = weaponTypes[Math.floor(Math.random() * weaponTypes.length)];
-                        powerUps.push(new G.PowerUp(dropX, dropY, type));
-                    } else {
-                        const type = shipTypes[Math.floor(Math.random() * shipTypes.length)];
-                        powerUps.push(new G.PowerUp(dropX, dropY, type));
-                    }
+                // Boss drops power-ups every N hits - delegated to DropSystem
+                const bossDropInfo = G.DropSystem.tryBossDrop(boss.x + boss.width / 2, boss.y + boss.height, totalTime, getUnlockedWeapons);
+                if (bossDropInfo) {
+                    powerUps.push(new G.PowerUp(bossDropInfo.x, bossDropInfo.y, bossDropInfo.type));
                     audioSys.play('coinPerk');
                 }
 
@@ -2286,20 +2195,19 @@ function updateBullets(dt) {
         }
     }
 
-    // Enemy Bullets (Now using Bullet class instances from Pool)
-    // Ikeda Rule 1: Core Hitbox - tiny hitbox for damage, larger graze zone
+    // Enemy Bullets - dual hitbox system: tiny core for damage, larger zone for grazing
     for (let i = enemyBullets.length - 1; i >= 0; i--) {
         let eb = enemyBullets[i];
-        if (!eb) { enemyBullets.splice(i, 1); continue; } // Safety check
+        if (!eb) { enemyBullets.splice(i, 1); continue; }
         eb.update(dt);
         if (eb.markedForDeletion) {
             G.Bullet.Pool.release(eb);
             enemyBullets.splice(i, 1);
         } else {
-            // Core hitbox for actual damage (tiny - Ikeda Rule 1)
+            // Core hitbox for actual damage (tiny)
             const coreR = player.stats.coreHitboxSize || 6;
-            // Graze radius - outer zone for grazing points (Ikeda Rule 3)
-            const grazeR = coreR + GRAZE_RADIUS;
+            // Graze radius - outer zone for grazing points
+            const grazeR = coreR + Balance.GRAZE.RADIUS;
 
             const dx = Math.abs(eb.x - player.x);
             const dy = Math.abs(eb.y - player.y);
@@ -2330,8 +2238,8 @@ function updateBullets(dt) {
                 eb.grazed = true; // Mark as grazed to prevent double-counting
                 lastGrazeTime = totalTime; // Reset decay timer
 
-                // Close graze bonus: 2x points if within GRAZE_CLOSE_RADIUS
-                const closeGrazeR = coreR + GRAZE_CLOSE_RADIUS;
+                // Close graze bonus: 2x points if within Balance.GRAZE.CLOSE_RADIUS
+                const closeGrazeR = coreR + Balance.GRAZE.CLOSE_RADIUS;
                 const isCloseGraze = dx < closeGrazeR && dy < closeGrazeR;
                 const grazeBonus = isCloseGraze ? 2 : 1;
 
@@ -2364,9 +2272,9 @@ function updateBullets(dt) {
                     audioSys.play('grazeStreak');
                 }
 
-                // Perk bonus every GRAZE_PERK_THRESHOLD (capped per level)
-                if (grazeCount > 0 && grazeCount % GRAZE_PERK_THRESHOLD === 0) {
-                    if (grazePerksThisLevel < MAX_GRAZE_PERKS_PER_LEVEL) {
+                // Perk bonus every Balance.GRAZE.PERK_THRESHOLD (capped per level)
+                if (grazeCount > 0 && grazeCount % Balance.GRAZE.PERK_THRESHOLD === 0) {
+                    if (grazePerksThisLevel < Balance.GRAZE.MAX_PERKS_PER_LEVEL) {
                         applyRandomPerk();
                         audioSys.play('grazePerk'); // Triumphant fanfare
                         showMemePopup("GRAZE BONUS!", 1200);
@@ -2442,7 +2350,7 @@ function checkBulletCollisions(b, bIdx) {
             const baseDmg = player.stats.baseDamage || 14;
             const dmgMult = (runState && runState.getMod) ? runState.getMod('damageMult', 1) : 1;
             let dmg = baseDmg * dmgMult;
-            if (b.isHodl) dmg *= 1.25; // HODL: +25% damage
+            if (b.isHodl) dmg *= Balance.SCORE.HODL_MULT_ENEMY; // HODL bonus vs enemies
             if (runState && runState.flags && runState.flags.hodlBonus && b.isHodl) dmg *= 1.15; // Stacks with perk
 
             // Use takeDamage which handles shields
@@ -2468,45 +2376,16 @@ function checkBulletCollisions(b, bIdx) {
                 // Track kills per fiat type for mini-boss trigger
                 if (e.symbol && fiatKillCounter[e.symbol] !== undefined && !miniBoss) {
                     fiatKillCounter[e.symbol]++;
-                    if (fiatKillCounter[e.symbol] >= MINI_BOSS_THRESHOLD) {
+                    if (fiatKillCounter[e.symbol] >= Balance.MINI_BOSS.KILL_THRESHOLD) {
                         spawnMiniBoss(e.symbol, e.color);
                         fiatKillCounter[e.symbol] = 0;
                     }
                 }
 
-                // DROP LOGIC - Tier-based with cooldown and pity timer
-                killsSinceLastDrop++;
-                const weaponTypes = getUnlockedWeapons();
-                const shipTypes = ['SPEED', 'RAPID', 'SHIELD'];
-
-                // Determine drop chance based on enemy tier
-                let dropChance = DROP_CHANCE_WEAK; // Default for weak tier
-                if (e.symbol && STRONG_TIERS.includes(e.symbol)) {
-                    dropChance = DROP_CHANCE_STRONG;
-                } else if (e.symbol && MEDIUM_TIERS.includes(e.symbol)) {
-                    dropChance = DROP_CHANCE_MEDIUM;
-                }
-
-                // Pity timer: guaranteed drop after PITY_TIMER_KILLS without any drop
-                const pityDrop = killsSinceLastDrop >= PITY_TIMER_KILLS;
-
-                // Check if drop should occur
-                if (pityDrop || Math.random() < dropChance) {
-                    // Decide weapon vs ship (50/50), but weapon has cooldown
-                    const timeSinceWeaponDrop = totalTime - lastWeaponDropTime;
-                    const canDropWeapon = timeSinceWeaponDrop >= WEAPON_DROP_COOLDOWN;
-
-                    // 50% weapon / 50% ship, but fall back to ship if weapon on cooldown
-                    const wantsWeapon = Math.random() < 0.5;
-                    if (wantsWeapon && canDropWeapon) {
-                        const type = weaponTypes[Math.floor(Math.random() * weaponTypes.length)];
-                        powerUps.push(new G.PowerUp(e.x, e.y, type));
-                        lastWeaponDropTime = totalTime;
-                    } else {
-                        const type = shipTypes[Math.floor(Math.random() * shipTypes.length)];
-                        powerUps.push(new G.PowerUp(e.x, e.y, type));
-                    }
-                    killsSinceLastDrop = 0; // Reset pity counter
+                // DROP LOGIC - Delegated to DropSystem
+                const dropInfo = G.DropSystem.tryEnemyDrop(e.symbol, e.x, e.y, totalTime, getUnlockedWeapons);
+                if (dropInfo) {
+                    powerUps.push(new G.PowerUp(dropInfo.x, dropInfo.y, dropInfo.type));
                 }
             }
             if (!b.penetration) {
@@ -2538,7 +2417,7 @@ function updateEnemies(dt) {
     // Fibonacci ramp-up: increase enemies allowed to fire every 0.33s (legacy system)
     if (!conductorEnabled) {
         fibonacciTimer += dt;
-        if (fibonacciTimer >= FIBONACCI_INTERVAL && fibonacciIndex < FIBONACCI_SEQ.length - 1) {
+        if (fibonacciTimer >= Balance.ENEMY_FIRE.FIBONACCI_INTERVAL && fibonacciIndex < FIBONACCI_SEQ.length - 1) {
             fibonacciTimer = 0;
             fibonacciIndex++;
             enemiesAllowedToFire = FIBONACCI_SEQ[fibonacciIndex];
@@ -2546,7 +2425,7 @@ function updateEnemies(dt) {
 
         enemyFireTimer -= dt;
         if (enemyFireTimer <= 0) {
-            enemyFireTimer = 0.5; // Slower phase rotation (was 0.35)
+            enemyFireTimer = 0.5;
             enemyFirePhase = (enemyFirePhase + 1) % enemyFireStride;
         }
     }
@@ -2567,7 +2446,7 @@ function updateEnemies(dt) {
         if (conductorEnabled) continue;
 
         // Rate limit check - skip if we've hit max shots this tick
-        if (enemyShotsThisTick >= MAX_ENEMY_SHOTS_PER_TICK) continue;
+        if (enemyShotsThisTick >= Balance.ENEMY_FIRE.MAX_SHOTS_PER_TICK) continue;
 
         // Fibonacci limit: only allow N enemies to fire per frame (based on ramp-up)
         if (enemiesFiredThisFrame >= enemiesAllowedToFire) continue;
@@ -2576,7 +2455,7 @@ function updateEnemies(dt) {
         const diff = getDifficulty();
         const bearMult = isBearMarket ? 1.3 : 1.0;
         const rateMult = (0.5 + diff * 0.5) * bearMult; // 0.5 → 1.0 based on difficulty
-        const bulletSpeed = 128 + diff * 68; // Reduced 15% (was 150 + diff * 80)
+        const bulletSpeed = 128 + diff * 68;
         const aimSpreadMult = isBearMarket ? 0.85 : (1.2 - diff * 0.3); // Tighter aim with difficulty
         const allowFire = (i % enemyFireStride) === enemyFirePhase;
         const bulletData = e.attemptFire(dt, player, rateMult, bulletSpeed, aimSpreadMult, allowFire);
@@ -2585,7 +2464,7 @@ function updateEnemies(dt) {
             const bulletsToSpawn = Array.isArray(bulletData) ? bulletData : [bulletData];
             audioSys.play('enemyShoot');
             bulletsToSpawn.forEach(bd => {
-                if (enemyShotsThisTick < MAX_ENEMY_SHOTS_PER_TICK) {
+                if (enemyShotsThisTick < Balance.ENEMY_FIRE.MAX_SHOTS_PER_TICK) {
                     enemyBullets.push(G.Bullet.Pool.acquire(bd.x, bd.y, bd.vx, bd.vy, bd.color, bd.w, bd.h, false));
                     enemyShotsThisTick++;
                 }
@@ -2616,13 +2495,13 @@ function updateEnemies(dt) {
 
 function startDeathSequence() {
     // 1. Trigger Bullet Time (Visuals)
-    hitStopTimer = 2.0;
-    deathTimer = 2.0; // Wait 2s before logic
-    flashRed = 0.8;
+    hitStopTimer = Balance.TIMING.HIT_STOP_DEATH;
+    deathTimer = Balance.TIMING.DEATH_DURATION;
+    flashRed = Balance.EFFECTS.FLASH.DEATH_OPACITY;
 
     // 2. Play Sound
     audioSys.play('explosion');
-    shake = 50;
+    shake = Balance.EFFECTS.SHAKE.PLAYER_DEATH;
 
     // 3. Clear Bullets (Fairness)
     // 3. Clear Bullets (Fairness) - Mark for deletion to avoid loop crashes
@@ -2648,7 +2527,7 @@ function executeDeath() {
     if (lives > 0) {
         // RESPAWN
         player.hp = player.maxHp;
-        player.invulnTimer = 2.1; // Reduced 30% (was 3.0)
+        player.invulnTimer = Balance.TIMING.INVULNERABILITY;
         updateLivesUI();
         showGameInfo("💚 RESPAWN!");
         // Maybe move player to center?
@@ -2706,7 +2585,7 @@ function draw() {
             if (b.x > -20 && b.x < gameWidth + 20 && b.y > -20 && b.y < gameHeight + 20) b.draw(ctx);
         }
 
-        // Screen dimming when many enemy bullets (Ikeda Rule 4 - Climax Visual)
+        // Screen dimming when many enemy bullets for dramatic effect
         if (enemyBullets.length > 15) {
             const dimAlpha = Math.min(0.35, (enemyBullets.length - 15) * 0.015);
             ctx.fillStyle = `rgba(0, 0, 0, ${dimAlpha})`;
@@ -2980,7 +2859,7 @@ function initSky() {
         });
     }
 
-    // Paper Mario style parallax hills (3 layers)
+    // Parallax hills (3 layers) (3 layers)
     hills = [
         { layer: 0, y: gameHeight * 0.75, height: 120, speed: 5, offset: 0 },
         { layer: 1, y: gameHeight * 0.80, height: 100, speed: 12, offset: 50 },
@@ -3146,7 +3025,7 @@ function drawBearMarketOverlay(ctx) {
 }
 
 function drawSky(ctx) {
-    // PAPER MARIO STYLE - Flat color bands, no gradients!
+    // Cell-shaded sky - flat color bands
     let bands = [];
 
     if (isBearMarket) {
@@ -3207,7 +3086,7 @@ function drawSky(ctx) {
         }
     }
 
-    // Draw flat color bands (Paper Mario style - NO gradients!)
+    // Draw flat color bands (cell-shaded style)
     let yPos = 0;
     for (const band of bands) {
         const bandHeight = gameHeight * band.height;
@@ -3231,7 +3110,7 @@ function drawSky(ctx) {
         ctx.globalAlpha = 1;
     }
 
-    // 2. Stars for night/boss - Paper Mario style with twinkle
+    // 2. Stars for night/boss - cell-shaded with twinkle
     const isNight = level >= 5 || (boss && boss.active);
 
     if (isNight && !isBearMarket) {
@@ -3247,7 +3126,7 @@ function drawSky(ctx) {
             const size = baseSize * (1 + twinkle * 0.15);
             ctx.globalAlpha = Math.max(0.15, alpha);
 
-            // 4-point star shape (Paper Mario style)
+            // 4-point star shape (cell-shaded)
             if (i % 3 === 0) {
                 ctx.beginPath();
                 ctx.moveTo(sx, sy - size);
@@ -3270,7 +3149,7 @@ function drawSky(ctx) {
         ctx.globalAlpha = 1;
     }
 
-    // 2.5 Paper Mario PARALLAX HILLS - flat silhouettes with outlines
+    // Parallax hills - flat silhouettes with outlines
     if (!boss || !boss.active) { // No hills during boss (space)
         const hillColors = isBearMarket
             ? ['#1a0808', '#250c0c', '#301010'] // Dark red layers
@@ -3308,7 +3187,7 @@ function drawSky(ctx) {
         }
     }
 
-    // 3. Clouds - Paper Mario style FLAT with bold outlines
+    // 3. Clouds - cell-shaded FLAT with bold outlines
     const showClouds = !(boss && boss.active) && level < 5;
     if (showClouds) {
         const cloudAlpha = level >= 4 ? 0.4 : 0.85;
@@ -3445,12 +3324,9 @@ function updatePerkIcons(dt) {
     }
 }
 
-// Helper to convert hex color to rgba
+// Helper to convert hex color to rgba (uses ColorUtils)
 function hexToRgba(hex, alpha) {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    return `rgba(${r},${g},${b},${alpha})`;
+    return window.Game.ColorUtils.hexToRgba(hex, alpha);
 }
 
 function drawPerkIcons(ctx) {
@@ -4131,7 +4007,7 @@ function updatePowerUps(dt) {
 
                     bulletCancelStreak += 1;
                     bulletCancelTimer = 1.5; // Wider window for aggressive play
-                    if (bulletCancelStreak >= BULLET_CANCEL_FOR_PERK) {
+                    if (bulletCancelStreak >= Balance.PERK.BULLET_CANCEL_COUNT) {
                         bulletCancelStreak = 0;
                         applyRandomPerk();
                     }
