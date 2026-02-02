@@ -8,17 +8,22 @@
     --terminal-glow: rgba(106, 169, 255, 0.25);
 }
 
+/* iframe embedding support */
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
 body {
     margin: 0;
     padding: 0;
-    overflow: hidden;
     background: var(--bg-color);
     font-family: Consolas, "Courier New", monospace;
     touch-action: none;
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
     color: white;
     user-select: none;
     -webkit-user-select: none;
