@@ -1,5 +1,30 @@
 # Changelog
 
+## v2.9.2 - 2026-02-02
+### Bug Fixes & Game Cycle Rationalization
+
+**Crash Fixes**
+- Added null safety checks to all entity iteration loops (enemies, bullets, powerUps)
+- Prevents crashes when arrays are modified during iteration (e.g., post-boss transition)
+
+**Mini-Boss System Fix**
+- Mini-boss now properly freezes wave spawning (`miniBossActive` flag)
+- Enemies saved before mini-boss, restored after defeat
+- Fibonacci firing reset when enemies restored (prevents instant full-rate fire)
+- Global references (`G.enemies`, `window.Game.enemies`) updated correctly
+
+**Game Cycle Rationalization**
+- Level increments once per wave completed (removed duplicate increment on boss defeat)
+- `window.currentLevel` updated before `spawnWave()` for correct enemy HP scaling
+- Clear progression: 5 waves → boss → cycle++ → repeat
+
+**Story System Verified**
+- All dialogue triggers working (ship select, level complete, boss intro/phase/defeat, game over)
+- DialogueUI with typewriter effect and speaker colors
+- Full dialogue data for 3 ships, 5 levels, 3 bosses
+
+---
+
 ## v2.9.1 - 2026-02-02
 ### Intro Screen Redesign
 

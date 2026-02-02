@@ -473,9 +473,38 @@
 
 ---
 
-## Phase 21: Leaderboards & Social 🏆 (Future)
+## Phase 20.6: Bug Fixes & Game Cycle ✅
+*Goal: Stabilità e razionalizzazione del ciclo di gioco.*
+
+### Crash Fixes
+- [x] **Null Safety**: Added checks to all entity loops (enemies, bullets, powerUps)
+- [x] **Post-Boss Crash**: Fixed undefined entity access during transitions
+
+### Mini-Boss System
+- [x] **Wave Freeze**: `miniBossActive` flag pauses wave spawning
+- [x] **Enemy Restore**: Saved enemies properly restored after mini-boss defeat
+- [x] **Fibonacci Reset**: Firing ramp-up reset when enemies restored
+
+### Game Cycle
+- [x] **Level Increment**: Fixed double-increment (now once per wave only)
+- [x] **currentLevel Timing**: Updated before spawnWave() for correct HP scaling
+- [x] **Story System**: Verified all dialogue triggers working
+
+---
+
+## Phase 21: Tutorial & Instructions 📖 (Planned)
+*Goal: Onboarding per nuovi giocatori.*
+- [ ] **Tutorial Flow**: TBD - awaiting instructions
+- [ ] **Controls Guide**: TBD
+- [ ] **Game Mechanics**: TBD
+
+---
+
+## Phase 22: Leaderboards & Social 🏆 (Future)
 *Goal: Competition and sharing.*
 - [ ] **Local Leaderboard**: Top 10 scores with date
 - [ ] **Share Score**: Screenshot + share button
 - [ ] **Daily Challenge**: Seeded run with global ranking
 - [ ] **Achievements**: 20+ achievements with icons
+
+---
