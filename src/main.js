@@ -1073,6 +1073,10 @@ function resize() {
             gameContainer.style.height = gameHeight + 'px';
             gameContainer.style.width = gameWidth + 'px';
         }
+        // PWA mode: Force minimum top inset for status bar (env() may return 0)
+        // iOS status bar is ~47px on notch devices, ~20px on older devices
+        const pwaTopInset = Math.max(insets.top, 47);
+        document.documentElement.style.setProperty('--pwa-top-inset', pwaTopInset + 'px');
     } else {
         // Safari/Browser mode: account for notch and home bar
         const safeTop = insets.top;

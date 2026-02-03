@@ -104,7 +104,8 @@ body {
     top: 0;
     left: 0;
     width: 100%;
-    padding: calc(10px + env(safe-area-inset-top, 0px)) 20px 10px 20px;
+    /* PWA mode: use --pwa-top-inset (set by JS), fallback to env() for Safari browser */
+    padding: calc(10px + var(--pwa-top-inset, env(safe-area-inset-top, 0px))) 20px 10px 20px;
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
@@ -283,7 +284,7 @@ body {
 
 #perk-bar {
     position: absolute;
-    top: calc(100px + env(safe-area-inset-top, 0px));
+    top: calc(100px + var(--pwa-top-inset, env(safe-area-inset-top, 0px)));
     left: 0;
     right: 0;
     height: 18px;
