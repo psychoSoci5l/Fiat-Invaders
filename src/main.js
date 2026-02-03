@@ -1509,7 +1509,15 @@ window.backToIntro = function () {
             ui.touchControls.style.display = 'none';
         }
         closePerkChoice();
-        setStyle('intro-screen', 'display', 'flex');
+
+        // Show intro screen and reset styles from launch animation
+        const introScreen = document.getElementById('intro-screen');
+        if (introScreen) {
+            introScreen.style.display = 'flex';
+            introScreen.style.opacity = '1';
+            introScreen.style.pointerEvents = 'auto';
+        }
+
         gameState = 'INTRO';
         introState = 'SPLASH';
 
@@ -1522,9 +1530,18 @@ window.backToIntro = function () {
         const arrowLeft = document.getElementById('arrow-left');
         const arrowRight = document.getElementById('arrow-right');
 
-        // Show splash elements
-        if (title) title.classList.remove('hidden');
-        if (tapBtn) tapBtn.classList.remove('hidden');
+        // Show splash elements and reset styles from destroy animation
+        if (title) {
+            title.classList.remove('hidden');
+            title.style.opacity = '1';
+            title.style.transform = '';
+        }
+        if (tapBtn) {
+            tapBtn.classList.remove('hidden');
+            tapBtn.style.display = 'block';
+            tapBtn.style.opacity = '1';
+            tapBtn.style.transform = '';
+        }
 
         // Hide selection elements
         if (header) header.style.display = 'none';
@@ -1532,6 +1549,18 @@ window.backToIntro = function () {
         if (controls) controls.style.display = 'none';
         if (arrowLeft) arrowLeft.classList.remove('visible');
         if (arrowRight) arrowRight.classList.remove('visible');
+
+        // Reset other elements that were exploded during launch
+        const introIcons = document.querySelector('.intro-icons');
+        const introVersion = document.querySelector('.intro-version');
+        if (introIcons) {
+            introIcons.style.opacity = '1';
+            introIcons.style.transform = '';
+        }
+        if (introVersion) {
+            introVersion.style.opacity = '1';
+            introVersion.style.transform = '';
+        }
 
         audioSys.resetState();
         audioSys.init();
