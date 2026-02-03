@@ -349,6 +349,24 @@ Controls the "game feel" micro-effects that make impacts satisfying.
 
 Global functions: `window.Game.applyHitStop(type, freeze)`, `window.Game.triggerScreenFlash(type)`
 
+### Balance.JUICE.SCREEN_EFFECTS (Modular Toggles)
+Master switches for all screen-wide visual effects. Allows easy enable/disable without code changes.
+
+| Toggle | Default | Description |
+|--------|---------|-------------|
+| `PLAYER_HIT_FLASH` | true | Red flash when player takes damage |
+| `BOSS_DEFEAT_FLASH` | true | White flash on boss kill |
+| `BOSS_PHASE_FLASH` | true | Orange flash on phase change |
+| `HYPER_ACTIVATE_FLASH` | true | Gold flash when HYPER activates |
+| `STREAK_FLASH` | false | Flash on kill streaks (10/25/50) |
+| `GRAZE_FLASH` | false | Flash on close graze |
+| `SCORE_PULSE` | false | Edge glow every 10k points |
+| `SCREEN_DIMMING` | false | Darken screen with many bullets |
+| `HYPER_OVERLAY` | true | Golden tint during HYPER mode |
+| `SACRIFICE_OVERLAY` | true | White tint during sacrifice |
+| `LIGHTNING` | true | Purple lightning (Bear Market) |
+| `BEAR_VIGNETTE` | true | Red vignette (Bear Market) |
+
 ### Balance.PLAYER
 | Parameter | Value | Description |
 |-----------|-------|-------------|
