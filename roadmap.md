@@ -1104,3 +1104,106 @@ Sprint 22.4: Satoshi's Sacrifice
 ├── 10s invincibility mode
 └── Success/Failure outcomes
 ```
+
+
+---
+
+## Phase 23: Boss Redesign v2.18.0 🎨 ✅
+*Goal: Radical boss redesign with visual coherence, exclusive patterns, and currency-based triggers.*
+
+### A) Visual Redesign ✅
+Bosses transformed into MEGA versions of existing enemy shapes:
+
+| Boss | Shape | Dimensions | Key Elements |
+|------|-------|------------|--------------|
+| **FED** | MEGA-BILL | 160x100 | Banknote with $ eyes in seal, "FEDERAL RESERVE NOTE" |
+| **BCE** | MEGA-COIN | 140 diameter | 3D coin edge, 12 orbiting EU stars, "1 EURO" face |
+| **BOJ** | MEGA-BAR | 160x100 | Gold ingot with ¥ engraving, rising sun aura |
+
+#### Phase Visuals:
+**FED (MEGA-BILL)**
+- Phase 1: Green dollar, luminous seal
+- Phase 2: Edge cracks, "OVERPRINTED" watermark
+- Phase 3: Burning edges, red inflation tint
+
+**BCE (MEGA-COIN)**
+- Phase 1: Blue/gold EU colors, slow star orbit
+- Phase 2: Stars pulse, coin tilts showing thickness
+- Phase 3: Fragmented coin, stars attack independently
+
+**BOJ (MEGA-BAR)**
+- Phase 1: Bright gold, zen aura
+- Phase 2: Yield curve overlay, "INTERVENTION" flash
+- Phase 3: Incandescent bar, rising sun rays = lasers
+
+### B) New Exclusive Patterns ✅
+6 new patterns in BulletPatterns.js:
+
+```javascript
+// FED Signature
+laserBeam(cx, cy, targetX, targetY, config)      // Horizontal continuous beam
+homingMissiles(cx, cy, playerX, playerY, config) // 3-5 tracking missiles
+
+// BCE Signature
+rotatingBarrier(cx, cy, time, config)            // Orbiting shield with gap
+delayedExplosion(positions, delay, config)       // Timed bombs
+
+// BOJ Signature
+screenWipe(direction, cy, config)                // Full-screen wall with gap
+zenGarden(cx, cy, time, config)                  // Intertwined hypnotic spirals
+```
+
+#### Pattern Assignment by Phase:
+| Boss | Phase 1 | Phase 2 | Phase 3 |
+|------|---------|---------|---------|
+| **FED** | sineWave + ring | spiral + **homingMissiles** | **laserBeam** + curtain + homing |
+| **BCE** | curtain + **rotatingBarrier** | spiral + **delayedExplosion** | **rotatingBarrier** x2 + star attacks |
+| **BOJ** | sineWave + **zenGarden** | **screenWipe** + aimedBurst | **zenGarden** x4 + rapid screenWipe |
+
+### C) Currency-Based Trigger System ✅
+CURRENCY_BOSS_MAP in BalanceConfig.js:
+
+| Currency | Boss | Threshold |
+|----------|------|-----------|
+| $ | FEDERAL_RESERVE | 30 |
+| €, ₣, £ | BCE | 40-45 |
+| ¥, 元 | BOJ | 25-35 |
+| ₽, ₹, ₺ | RANDOM | 50 |
+| Ⓒ | CYCLE_BOSS | 20 |
+
+### D) Balance Updates ✅
+**HP Scaling**
+- Base: 1000 → 1200
+- Per Level: 30 → 25
+- Per Cycle: 400 → 500
+- Perk Scale: 12% → 10%
+- Min Floor: 800 → 1000
+
+**Fire Rates (seconds)**
+| Boss | Phase 1 | Phase 2 | Phase 3 |
+|------|---------|---------|---------|
+| FED | 0.85 | 0.38 | 0.20 |
+| BCE | 1.40 | 0.70 | 0.35 |
+| BOJ | 0.75 | 0.45 | 0.18 |
+
+**Movement Speeds**
+| Boss | Phase 1 | Phase 2 | Phase 3 |
+|------|---------|---------|---------|
+| FED | 55 | 130 | 200 |
+| BCE | 35 | 55 | 90 |
+| BOJ | 45 | 75 | 160 |
+
+### E) Signature Memes ✅
+BOSS_SIGNATURE_MEMES in Constants.js:
+- FED: "MONEY PRINTER GO BRRRRR"
+- BCE: "WHATEVER IT TAKES... AGAIN"
+- BOJ: "YIELD CURVE: CONTROLLED"
+
+### Files Modified:
+- [x] `src/systems/BulletPatterns.js` - 6 new patterns
+- [x] `src/entities/Boss.js` - Visual redesign + new attacks
+- [x] `src/config/BalanceConfig.js` - CURRENCY_BOSS_MAP + balance updates
+- [x] `src/utils/Constants.js` - BOSS_SIGNATURE_MEMES
+- [x] `src/main.js` - Kill counter logic + mini-boss spawning
+
+---

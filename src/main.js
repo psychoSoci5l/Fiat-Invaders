@@ -1956,8 +1956,10 @@ function spawnBoss() {
     }
 }
 
-// Mini-Boss System - Giant fiat currency after 100 kills of same type
-function spawnMiniBoss(symbol, color) {
+// Mini-Boss System - v2.18.0: Spawns actual boss types based on currency mapping
+// bossTypeOrSymbol: Either a boss type ('FEDERAL_RESERVE', 'BCE', 'BOJ') or currency symbol for legacy
+// triggerColor: Color of the triggering currency (for visual theming)
+function spawnMiniBoss(bossTypeOrSymbol, triggerColor) {
     // Slow down time for dramatic effect
     applyHitStop('BOSS_DEFEAT', false); // 500ms slowmo
 
@@ -1976,46 +1978,104 @@ function spawnMiniBoss(symbol, color) {
     // Pause wave spawning during mini-boss
     if (waveMgr) waveMgr.miniBossActive = true;
 
-    // Create mini-boss object with perk-aware scaling
-    const fiatNames = { '¥': 'YEN', '€': 'EURO', '£': 'POUND', '$': 'DOLLAR', '₽': 'RUBLE', '₹': 'RUPEE', '₣': 'FRANC', '₺': 'LIRA', '元': 'YUAN', 'Ⓒ': 'CBDC' };
+    // Determine if this is a boss type or legacy symbol
+    const validBossTypes = ['FEDERAL_RESERVE', 'BCE', 'BOJ'];
+    const isBossType = validBossTypes.includes(bossTypeOrSymbol);
 
-    // Mini-boss HP formula: significantly buffed + perk scaling
-    const baseHp = 400;
-    const hpPerLevel = 100;
-    const hpPerCycle = 150;
-    const perkCount = (runState && runState.perks) ? runState.perks.length : 0;
-    const perkScaling = 1 + (perkCount * 0.10); // +10% HP per perk
-    const rawHp = baseHp + (level * hpPerLevel) + (marketCycle * hpPerCycle);
-    const scaledHp = Math.floor(rawHp * perkScaling);
+    if (isBossType) {
+        // v2.18.0: Spawn actual boss as mini-boss
+        const bossType = bossTypeOrSymbol;
+        const bossConfig = G.BOSSES[bossType] || G.BOSSES.FEDERAL_RESERVE;
 
-    miniBoss = {
-        x: gameWidth / 2,
-        y: 150,
-        targetY: 180,
-        width: 120,
-        height: 120,
-        hp: scaledHp,
-        maxHp: scaledHp,
-        symbol: symbol,
-        color: color,
-        name: fiatNames[symbol] || 'FIAT',
-        fireTimer: 0,
-        fireRate: 0.8,
-        phase: 0,
-        phaseTimer: 0,
-        savedEnemies: savedEnemies, // Restore after defeat
-        animTime: 0,
-        active: true
-    };
+        // Create actual Boss instance (scaled down HP for mini-boss encounter)
+        miniBoss = new G.Boss(gameWidth, gameHeight, bossType);
+        miniBoss.isMiniBoss = true;
+        miniBoss.savedEnemies = savedEnemies;
+        miniBoss.triggerColor = triggerColor;
 
-    showDanger(`${miniBoss.name} REVENGE!`);
-    showMemeFun(getFiatDeathMeme(), 1500);
+        // Scale HP for mini-boss (40% of normal boss HP)
+        const perkCount = (runState && runState.perks) ? runState.perks.length : 0;
+        const perkScaling = 1 + (perkCount * Balance.BOSS.HP.PERK_SCALE);
+        const fullBossHp = Balance.calculateBossHP(level, marketCycle);
+        const miniBossHp = Math.floor(fullBossHp * 0.4 * perkScaling);
+        miniBoss.hp = miniBossHp;
+        miniBoss.maxHp = miniBossHp;
+
+        // Display signature meme
+        const signatureMeme = G.BOSS_SIGNATURE_MEMES?.[bossType];
+        showDanger(`${bossConfig.name} APPEARS!`);
+        if (signatureMeme) {
+            showMemeFun(signatureMeme, 2500);
+        }
+    } else {
+        // Legacy: Spawn giant fiat currency mini-boss
+        const symbol = bossTypeOrSymbol;
+        const color = triggerColor;
+        const fiatNames = { '¥': 'YEN', '€': 'EURO', '£': 'POUND', '$': 'DOLLAR', '₽': 'RUBLE', '₹': 'RUPEE', '₣': 'FRANC', '₺': 'LIRA', '元': 'YUAN', 'Ⓒ': 'CBDC' };
+
+        // Mini-boss HP formula: significantly buffed + perk scaling
+        const baseHp = 400;
+        const hpPerLevel = 100;
+        const hpPerCycle = 150;
+        const perkCount = (runState && runState.perks) ? runState.perks.length : 0;
+        const perkScaling = 1 + (perkCount * 0.10); // +10% HP per perk
+        const rawHp = baseHp + (level * hpPerLevel) + (marketCycle * hpPerCycle);
+        const scaledHp = Math.floor(rawHp * perkScaling);
+
+        miniBoss = {
+            x: gameWidth / 2,
+            y: 150,
+            targetY: 180,
+            width: 120,
+            height: 120,
+            hp: scaledHp,
+            maxHp: scaledHp,
+            symbol: symbol,
+            color: color,
+            name: fiatNames[symbol] || 'FIAT',
+            fireTimer: 0,
+            fireRate: 0.8,
+            phase: 0,
+            phaseTimer: 0,
+            savedEnemies: savedEnemies, // Restore after defeat
+            animTime: 0,
+            active: true
+        };
+
+        showDanger(`${miniBoss.name} REVENGE!`);
+        showMemeFun(getFiatDeathMeme(), 1500);
+    }
+
     audioSys.play('bossSpawn');
 }
 
 function updateMiniBoss(dt) {
     if (!miniBoss || !miniBoss.active) return;
 
+    // v2.18.0: Check if this is a Boss instance (isMiniBoss flag)
+    if (miniBoss instanceof G.Boss) {
+        // Use Boss's own update method
+        const attackBullets = miniBoss.update(dt, player);
+        if (attackBullets && attackBullets.length > 0) {
+            for (const bd of attackBullets) {
+                const bullet = G.Bullet.Pool.acquire(
+                    bd.x, bd.y, bd.vx, bd.vy, bd.color, bd.w, bd.h, false
+                );
+                // Copy special properties (homing, etc.)
+                if (bd.isHoming) {
+                    bullet.isHoming = true;
+                    bullet.homingStrength = bd.homingStrength || 2.5;
+                    bullet.targetX = player.x;
+                    bullet.targetY = player.y;
+                    bullet.maxSpeed = bd.maxSpeed || 200;
+                }
+                enemyBullets.push(bullet);
+            }
+        }
+        return;
+    }
+
+    // Legacy mini-boss update
     miniBoss.animTime += dt;
 
     // Move to target position
@@ -2084,6 +2144,13 @@ function fireMiniBossBullets() {
 function drawMiniBoss(ctx) {
     if (!miniBoss || !miniBoss.active) return;
 
+    // v2.18.0: Check if this is a Boss instance
+    if (miniBoss instanceof G.Boss) {
+        miniBoss.draw(ctx);
+        return;
+    }
+
+    // Legacy mini-boss drawing
     ctx.save();
     ctx.translate(miniBoss.x, miniBoss.y);
 
@@ -2152,28 +2219,56 @@ function hexToRgb(hex) {
 function checkMiniBossHit(b) {
     if (!miniBoss || !miniBoss.active) return false;
 
-    if (Math.abs(b.x - miniBoss.x) < 60 && Math.abs(b.y - miniBoss.y) < 60) {
+    // v2.18.0: Handle Boss instance mini-boss
+    const isBossInstance = miniBoss instanceof G.Boss;
+    const hitboxW = isBossInstance ? miniBoss.width / 2 : 60;
+    const hitboxH = isBossInstance ? miniBoss.height / 2 : 60;
+    const bossX = isBossInstance ? (miniBoss.x + miniBoss.width / 2) : miniBoss.x;
+    const bossY = isBossInstance ? (miniBoss.y + miniBoss.height / 2) : miniBoss.y;
+
+    if (Math.abs(b.x - bossX) < hitboxW && Math.abs(b.y - bossY) < hitboxH) {
         const baseDmg = player.stats.baseDamage || 14;
         const dmgMult = (runState && runState.getMod) ? runState.getMod('damageMult', 1) : 1;
         let dmg = baseDmg * dmgMult;
-        if (b.isHodl) dmg *= Balance.SCORE.HODL_MULT_ENEMY; // HODL bonus vs enemies
-        miniBoss.hp -= dmg;
+        if (b.isHodl) dmg *= Balance.SCORE.HODL_MULT_BOSS; // HODL bonus vs boss
+
+        if (isBossInstance) {
+            miniBoss.damage(dmg);
+        } else {
+            miniBoss.hp -= dmg;
+        }
         audioSys.play('hitEnemy');
 
         if (miniBoss.hp <= 0) {
             // Mini-boss defeated!
-            score += 2000 * marketCycle;
+            const bonusScore = isBossInstance ? 3000 * marketCycle : 2000 * marketCycle;
+            score += bonusScore;
             updateScore(score);
-            // Epic mini-boss death
-            createEnemyDeathExplosion(miniBoss.x, miniBoss.y, miniBoss.color, miniBoss.symbol);
-            createExplosion(miniBoss.x - 40, miniBoss.y - 30, miniBoss.color, 15);
-            createExplosion(miniBoss.x + 40, miniBoss.y + 30, miniBoss.color, 15);
-            createExplosion(miniBoss.x, miniBoss.y, '#fff', 20);
 
-            showVictory(miniBoss.name + " DESTROYED!");
-            showMemeFun("💀 FIAT IS DEAD!", 1500);
+            // Epic mini-boss death
+            const deathX = isBossInstance ? (miniBoss.x + miniBoss.width / 2) : miniBoss.x;
+            const deathY = isBossInstance ? (miniBoss.y + miniBoss.height / 2) : miniBoss.y;
+            const deathColor = isBossInstance ? (miniBoss.color || '#ffffff') : miniBoss.color;
+            const deathSymbol = isBossInstance ? (miniBoss.symbol || '$') : miniBoss.symbol;
+            const deathName = isBossInstance ? (miniBoss.name || 'BOSS') : miniBoss.name;
+
+            createEnemyDeathExplosion(deathX, deathY, deathColor, deathSymbol);
+            createExplosion(deathX - 40, deathY - 30, deathColor, 15);
+            createExplosion(deathX + 40, deathY + 30, deathColor, 15);
+            createExplosion(deathX, deathY, '#fff', 20);
+
+            showVictory(deathName + " DESTROYED!");
+            showMemeFun(isBossInstance ? "CENTRAL BANK REKT!" : "💀 FIAT IS DEAD!", 1500);
             shake = 40;
             audioSys.play('explosion');
+
+            // Hit stop for epic moment
+            if (window.Game.applyHitStop) {
+                window.Game.applyHitStop('BOSS_DEFEAT', false);
+            }
+            if (window.Game.triggerScreenFlash) {
+                window.Game.triggerScreenFlash('BOSS_DEFEAT');
+            }
 
             // Restore enemies if any were saved
             if (miniBoss.savedEnemies && miniBoss.savedEnemies.length > 0) {
@@ -2959,11 +3054,29 @@ function checkBulletCollisions(b, bIdx) {
                 checkStreakMeme();
                 emitEvent('enemy_killed', { score: killScore, x: e.x, y: e.y });
 
-                // Track kills per fiat type for mini-boss trigger
+                // Track kills per fiat type for mini-boss trigger (v2.18.0: Currency-specific boss mapping)
                 if (e.symbol && fiatKillCounter[e.symbol] !== undefined && !miniBoss) {
                     fiatKillCounter[e.symbol]++;
-                    if (fiatKillCounter[e.symbol] >= Balance.MINI_BOSS.KILL_THRESHOLD) {
-                        spawnMiniBoss(e.symbol, e.color);
+
+                    // Look up currency-specific boss mapping
+                    const mapping = Balance.MINI_BOSS.CURRENCY_BOSS_MAP?.[e.symbol];
+                    const threshold = mapping?.threshold || Balance.MINI_BOSS.KILL_THRESHOLD;
+
+                    if (fiatKillCounter[e.symbol] >= threshold) {
+                        // Determine boss type based on mapping
+                        let bossType = mapping?.boss || 'FEDERAL_RESERVE';
+
+                        if (bossType === 'RANDOM') {
+                            // Random boss from rotation
+                            const rotation = G.BOSS_ROTATION || ['FEDERAL_RESERVE', 'BCE', 'BOJ'];
+                            bossType = rotation[Math.floor(Math.random() * rotation.length)];
+                        } else if (bossType === 'CYCLE_BOSS') {
+                            // Boss of current cycle
+                            const rotation = G.BOSS_ROTATION || ['FEDERAL_RESERVE', 'BCE', 'BOJ'];
+                            bossType = rotation[(marketCycle - 1) % rotation.length];
+                        }
+
+                        spawnMiniBoss(bossType, e.color);
                         fiatKillCounter[e.symbol] = 0;
                     }
                 }

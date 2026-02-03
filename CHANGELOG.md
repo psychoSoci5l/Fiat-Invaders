@@ -1,5 +1,83 @@
 # Changelog
 
+## v2.18.0 - 2026-02-03
+### Boss Redesign: Exclusive Patterns & Currency Triggers
+
+**New: 6 Boss-Exclusive Bullet Patterns**
+```javascript
+// FED Signature Patterns
+laserBeam(cx, cy, targetX, targetY, config)      // Horizontal continuous beam
+homingMissiles(cx, cy, playerX, playerY, config) // 3-5 tracking missiles
+
+// BCE Signature Patterns
+rotatingBarrier(cx, cy, time, config)            // Orbiting shield with gap
+delayedExplosion(positions, delay, config)       // Timed bombs
+
+// BOJ Signature Patterns
+screenWipe(direction, cy, config)                // Full-screen wall with gap
+zenGarden(cx, cy, time, config)                  // Intertwined hypnotic spirals
+```
+
+**New: Boss Visual Redesign**
+- **FED → MEGA-BILL**: Giant banknote with $ eyes in seal, "FEDERAL RESERVE NOTE" text
+  - Phase 1: Green dollar, luminous seal
+  - Phase 2: Edge cracks, "OVERPRINTED" watermark
+  - Phase 3: Burning edges, red inflation tint
+- **BCE → MEGA-COIN**: Giant Euro coin with 3D edge and 12 orbiting stars
+  - Phase 1: Blue/gold EU colors, slow star orbit
+  - Phase 2: Stars pulse, coin tilts showing thickness
+  - Phase 3: Fragmented coin, stars attack independently
+- **BOJ → MEGA-BAR**: Gold ingot with engraved ¥ and rising sun aura
+  - Phase 1: Bright gold, zen aura
+  - Phase 2: Yield curve overlay, "INTERVENTION" flash
+  - Phase 3: Incandescent bar, rays become lasers
+
+**New: Currency-Based Mini-Boss Triggers**
+```javascript
+CURRENCY_BOSS_MAP: {
+    '$': { boss: 'FEDERAL_RESERVE', threshold: 30 },
+    '€': { boss: 'BCE', threshold: 40 },
+    '₣': { boss: 'BCE', threshold: 45 },
+    '£': { boss: 'BCE', threshold: 45 },
+    '¥': { boss: 'BOJ', threshold: 25 },
+    '元': { boss: 'BOJ', threshold: 35 },
+    '₽': { boss: 'RANDOM', threshold: 50 },
+    '₹': { boss: 'RANDOM', threshold: 50 },
+    '₺': { boss: 'RANDOM', threshold: 50 },
+    'Ⓒ': { boss: 'CYCLE_BOSS', threshold: 20 }
+}
+```
+
+**New: Boss Signature Memes**
+- FED: "MONEY PRINTER GO BRRRRR"
+- BCE: "WHATEVER IT TAKES... AGAIN"
+- BOJ: "YIELD CURVE: CONTROLLED"
+
+**Rebalanced: Boss Stats**
+| Parameter | Old | New |
+|-----------|-----|-----|
+| Base HP | 1000 | 1200 |
+| HP/Level | 30 | 25 |
+| HP/Cycle | 400 | 500 |
+| Perk Scale | 12% | 10% |
+| Min HP | 800 | 1000 |
+
+**Updated: Boss Fire Rates (seconds)**
+| Boss | Phase 1 | Phase 2 | Phase 3 |
+|------|---------|---------|---------|
+| FED | 0.85 | 0.38 | 0.20 |
+| BCE | 1.40 | 0.70 | 0.35 |
+| BOJ | 0.75 | 0.45 | 0.18 |
+
+**Updated: Boss Movement Speeds**
+| Boss | Phase 1 | Phase 2 | Phase 3 |
+|------|---------|---------|---------|
+| FED | 55 | 130 | 200 |
+| BCE | 35 | 55 | 90 |
+| BOJ | 45 | 75 | 160 |
+
+---
+
 ## v2.17.0 - 2026-02-03
 ### Screen Effects Modularization
 

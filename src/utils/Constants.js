@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v2.17.0 FIAT vs CRYPTO";
+window.Game.VERSION = "v2.18.0 FIAT vs CRYPTO";
 
 window.Game.TEXTS = {
     EN: {
@@ -441,6 +441,13 @@ window.Game.BOSSES = {
 
 // Boss rotation order
 window.Game.BOSS_ROTATION = ['FEDERAL_RESERVE', 'BCE', 'BOJ'];
+
+// Boss signature memes - displayed during entrance with typewriter effect
+window.Game.BOSS_SIGNATURE_MEMES = {
+    FEDERAL_RESERVE: "MONEY PRINTER GO BRRRRR",
+    BCE: "WHATEVER IT TAKES... AGAIN",
+    BOJ: "YIELD CURVE: CONTROLLED"
+};
 
 // Boss-specific memes
 window.Game.MEMES.BCE = [

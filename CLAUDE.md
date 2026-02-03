@@ -180,12 +180,29 @@ Each row gets ONE currency type (organized, not random).
 
 All boss parameters are in `Balance.BOSS`. Size: 160x140.
 
-### Boss Types
-| Type | Symbol | Movement Style | Theme |
-|------|--------|----------------|-------|
-| FEDERAL_RESERVE | $ | Aggressive | Money printer |
-| BCE | € | Bureaucratic | EU tower |
-| BOJ | ¥ | Zen precision | Rising sun |
+### Boss Types & Visuals (v2.18.0)
+| Type | Symbol | Shape | Theme |
+|------|--------|-------|-------|
+| FEDERAL_RESERVE | $ | MEGA-BILL | Banknote with $ eyes in seal |
+| BCE | € | MEGA-COIN | 3D coin with 12 orbiting EU stars |
+| BOJ | ¥ | MEGA-BAR | Gold ingot with rising sun aura |
+
+### Boss-Exclusive Patterns (BulletPatterns.js)
+| Pattern | Boss | Description |
+|---------|------|-------------|
+| `laserBeam` | FED | Horizontal continuous beam |
+| `homingMissiles` | FED | 3-5 tracking missiles |
+| `rotatingBarrier` | BCE | Orbiting shield with gap |
+| `delayedExplosion` | BCE | Timed bombs that expand |
+| `screenWipe` | BOJ | Full-screen wall with gap |
+| `zenGarden` | BOJ | Intertwined hypnotic spirals |
+
+### Pattern Assignment by Phase
+| Boss | Phase 1 | Phase 2 | Phase 3 |
+|------|---------|---------|---------|
+| FED | sineWave + ring | spiral + homing | laserBeam + curtain + homing |
+| BCE | curtain + rotatingBarrier | spiral + delayedExplosion | rotatingBarrier x2 + stars |
+| BOJ | sineWave + zenGarden | screenWipe + aimedBurst | zenGarden x4 + rapid screenWipe |
 
 ### 3 Phases (All Bosses)
 
@@ -197,24 +214,45 @@ All boss parameters are in `Balance.BOSS`. Size: 160x140.
 
 ### HP Scaling (Balance.BOSS.HP)
 ```javascript
-baseHP = 1000 + (level * 30) + ((cycle - 1) * 400)
-// Cycle 1: ~1150 HP, Cycle 2: ~1700 HP, Cycle 3: ~2250 HP
-// + 12% per player perk
+baseHP = 1200 + (level * 25) + ((cycle - 1) * 500)
+// Cycle 1: ~1350 HP, Cycle 2: ~1850 HP, Cycle 3: ~2350 HP
+// + 10% per player perk
 ```
 
 ### Fire Rates per Phase (seconds)
 | Boss | Phase 1 | Phase 2 | Phase 3 |
 |------|---------|---------|---------|
-| FED | 0.9 | 0.4 | 0.22 |
-| BCE | 1.3 | 0.65 | 0.3 |
-| BOJ | 0.8 | 0.5 | 0.22 |
+| FED | 0.85 | 0.38 | 0.20 |
+| BCE | 1.40 | 0.70 | 0.35 |
+| BOJ | 0.75 | 0.45 | 0.18 |
 
 ### Movement Speeds per Phase
 | Boss | Phase 1 | Phase 2 | Phase 3 |
 |------|---------|---------|---------|
-| FED | 60 | 120 | 180 |
-| BCE | 40 | 60 | 100 |
-| BOJ | 50 | 80 | 150 |
+| FED | 55 | 130 | 200 |
+| BCE | 35 | 55 | 90 |
+| BOJ | 45 | 75 | 160 |
+
+### Currency-Based Mini-Boss Triggers (v2.18.0)
+```javascript
+Balance.MINI_BOSS.CURRENCY_BOSS_MAP = {
+    '$': { boss: 'FEDERAL_RESERVE', threshold: 30 },
+    '€': { boss: 'BCE', threshold: 40 },
+    '₣': { boss: 'BCE', threshold: 45 },
+    '£': { boss: 'BCE', threshold: 45 },
+    '¥': { boss: 'BOJ', threshold: 25 },
+    '元': { boss: 'BOJ', threshold: 35 },
+    '₽': { boss: 'RANDOM', threshold: 50 },
+    '₹': { boss: 'RANDOM', threshold: 50 },
+    '₺': { boss: 'RANDOM', threshold: 50 },
+    'Ⓒ': { boss: 'CYCLE_BOSS', threshold: 20 }
+}
+```
+
+### Boss Signature Memes
+- FED: "MONEY PRINTER GO BRRRRR"
+- BCE: "WHATEVER IT TAKES... AGAIN"
+- BOJ: "YIELD CURVE: CONTROLLED"
 
 ### Visual Features
 - Phase-specific colors and effects

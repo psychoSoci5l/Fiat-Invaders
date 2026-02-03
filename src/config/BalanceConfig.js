@@ -325,9 +325,34 @@
             WEAK: ['¥', '₽', '₹']
         },
 
-        // --- MINI BOSS ---
+        // --- MINI BOSS (Currency-Based Trigger System) ---
         MINI_BOSS: {
-            KILL_THRESHOLD: 30        // Kills of same currency to spawn mini-boss
+            KILL_THRESHOLD: 30,       // Default kills for mini-boss (used as fallback)
+            COOLDOWN: 15.0,           // Seconds between mini-boss spawns
+
+            // Currency → Boss mapping with individual thresholds
+            // Each currency triggers a specific boss type based on economic region
+            CURRENCY_BOSS_MAP: {
+                // Dollar → FED (US hegemony)
+                '$': { boss: 'FEDERAL_RESERVE', threshold: 30 },
+
+                // Euro/Europe → BCE
+                '€': { boss: 'BCE', threshold: 40 },
+                '₣': { boss: 'BCE', threshold: 45 },
+                '£': { boss: 'BCE', threshold: 45 },
+
+                // Asia → BOJ
+                '¥': { boss: 'BOJ', threshold: 25 },
+                '元': { boss: 'BOJ', threshold: 35 },
+
+                // Emerging markets → Random boss
+                '₽': { boss: 'RANDOM', threshold: 50 },
+                '₹': { boss: 'RANDOM', threshold: 50 },
+                '₺': { boss: 'RANDOM', threshold: 50 },
+
+                // CBDC → Boss of current cycle
+                'Ⓒ': { boss: 'CYCLE_BOSS', threshold: 20 }
+            }
         },
 
         // --- BOSS FIGHTS ---
@@ -340,26 +365,29 @@
             PHASE_TRANSITION_TIME: 1.5,    // Seconds for phase transition
 
             // HP scaling (applied before perk/damage modifiers)
+            // Updated v2.18.0: Higher base, smoother curve, bigger cycle jumps
             HP: {
-                BASE: 1000,           // Base HP for all bosses
-                PER_LEVEL: 30,        // +30 HP per level
-                PER_CYCLE: 400,       // +400 HP per cycle (significant jump)
-                PERK_SCALE: 0.12,     // +12% per player perk
-                MIN_FLOOR: 800        // Minimum HP regardless of modifiers
+                BASE: 1200,           // Base HP for all bosses (+200)
+                PER_LEVEL: 25,        // +25 HP per level (smoother curve)
+                PER_CYCLE: 500,       // +500 HP per cycle (significant jump)
+                PERK_SCALE: 0.10,     // +10% per player perk
+                MIN_FLOOR: 1000       // Minimum HP regardless of modifiers
             },
 
             // Movement speed per phase per boss type
+            // Updated v2.18.0: Distinct movement personalities
             PHASE_SPEEDS: {
-                FEDERAL_RESERVE: [60, 120, 180],
-                BCE: [40, 60, 100],
-                BOJ: [50, 80, 150]
+                FEDERAL_RESERVE: [55, 130, 200],  // Aggressive, fast in later phases
+                BCE: [35, 55, 90],                // Bureaucratic, always slow
+                BOJ: [45, 75, 160]                // Zen to sudden intervention
             },
 
             // Fire rate per phase (seconds between attacks, lower = faster)
+            // Updated v2.18.0: Rebalanced for new patterns
             FIRE_RATES: {
-                FEDERAL_RESERVE: [0.9, 0.4, 0.22],   // Aggressive in all phases
-                BCE: [1.3, 0.65, 0.3],               // Slower, wall-based
-                BOJ: [0.8, 0.5, 0.22]                // Precision bursts
+                FEDERAL_RESERVE: [0.85, 0.38, 0.20],  // Aggressive printer
+                BCE: [1.40, 0.70, 0.35],              // Bureaucratic delays
+                BOJ: [0.75, 0.45, 0.18]               // Precise intervention
             },
 
             // Minion spawn rate (seconds between spawns in Phase 3)
