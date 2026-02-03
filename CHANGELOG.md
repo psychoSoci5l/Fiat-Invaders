@@ -1,5 +1,38 @@
 # Changelog
 
+## v2.18.4 - 2026-02-03
+### Fix: Stale Array Reference Bugs (Comprehensive)
+
+**Bugs Fixed:**
+- Enemies continued firing bullets during mini-boss fight even though not visible
+- HarmonicConductor kept stale reference to old enemies array in multiple scenarios
+- Boss minion spawning could push to wrong array reference
+- Global enemies reference became desynced after wave spawn
+
+**Root Cause:**
+JavaScript arrays are reference types. When reassigning `enemies = []` or `enemies = newArray`,
+any system holding the OLD reference (like HarmonicConductor) continues using stale data.
+
+**Affected Locations & Fixes:**
+
+| Location | Line | Fix Applied |
+|----------|------|-------------|
+| `resetState()` | 1736 | Added `HarmonicConductor.enemies` sync |
+| Boss entrance | 1879 | Added `G.enemies` + `HarmonicConductor.enemies` sync |
+| `spawnMiniBoss()` | 1982 | Added `HarmonicConductor.enemies` sync |
+| `checkMiniBossHit()` | 2284 | Added `HarmonicConductor.enemies` sync on restore |
+| Wave spawn | 2408 | Added `G.enemies` sync (for Boss minion spawning) |
+
+**Technical Pattern:**
+All array reassignments now follow this sync pattern:
+```javascript
+enemies = newValue;
+G.enemies = enemies;                           // For Boss.js minion spawning
+if (G.HarmonicConductor) G.HarmonicConductor.enemies = enemies; // For firing orchestration
+```
+
+---
+
 ## v2.18.2 - 2026-02-03
 ### Fix: Text Overflow & Bounds Clamping
 

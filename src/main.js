@@ -1735,8 +1735,10 @@ function startGame() {
     if (G.ParticleSystem) G.ParticleSystem.clear();
     bullets = []; enemies = []; enemyBullets = []; powerUps = []; particles = []; floatingTexts = []; muzzleFlashes = []; perkIcons = []; boss = null;
     if (G.MessageSystem) G.MessageSystem.reset(); // Reset typed messages
-    G.enemies = enemies; // Expose for Boss Spawning logic
-    window.enemyBullets = enemyBullets; // Update for Player core hitbox indicator
+    // Sync all array references after reset
+    G.enemies = enemies;
+    window.enemyBullets = enemyBullets;
+    if (G.HarmonicConductor) G.HarmonicConductor.enemies = enemies;
     grazeCount = 0; grazeMeter = 0; grazeMultiplier = 1.0; updateGrazeUI(); // Reset grazing
 
     waveMgr.reset();
@@ -1878,7 +1880,10 @@ function startBossWarning() {
     bullets = [];
     enemyBullets.forEach(b => { b.markedForDeletion = true; G.Bullet.Pool.release(b); });
     enemyBullets = [];
+    // Sync all array references
+    G.enemies = enemies;
     window.enemyBullets = enemyBullets;
+    if (G.HarmonicConductor) G.HarmonicConductor.enemies = enemies;
 
     // Play warning sound (use explosion for dramatic effect)
     audioSys.play('explosion');
@@ -1981,6 +1986,11 @@ function spawnMiniBoss(bossTypeOrSymbol, triggerColor) {
 
     // Pause wave spawning during mini-boss
     if (waveMgr) waveMgr.miniBossActive = true;
+
+    // Stop HarmonicConductor from firing (it has its own enemies reference)
+    if (G.HarmonicConductor) {
+        G.HarmonicConductor.enemies = enemies; // Now empty
+    }
 
     // Determine if this is a boss type or legacy symbol
     const validBossTypes = ['FEDERAL_RESERVE', 'BCE', 'BOJ'];
@@ -2283,6 +2293,11 @@ function checkMiniBossHit(b) {
             G.enemies = enemies;
             if (window.Game) window.Game.enemies = enemies;
 
+            // Update HarmonicConductor with restored enemies
+            if (G.HarmonicConductor) {
+                G.HarmonicConductor.enemies = enemies;
+            }
+
             // Resume wave spawning
             if (waveMgr) waveMgr.miniBossActive = false;
 
@@ -2393,6 +2408,9 @@ function update(dt) {
             enemies = spawnData.enemies;
             lastWavePattern = spawnData.pattern;
             gridDir = 1;
+
+            // Sync global enemies reference (used by Boss.js for minion spawning)
+            G.enemies = enemies;
 
             // Track wave start time
             waveStartTime = totalTime;
