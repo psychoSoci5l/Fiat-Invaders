@@ -1,5 +1,55 @@
 # Changelog
 
+## v2.15.9 - 2026-02-03
+### Hotfix: Back to Intro Screen
+
+**Fixed: Blank screen when exiting to title**
+- intro-screen had `opacity: 0` from launch animation, never reset
+- Now resets opacity, pointerEvents, transform for all intro elements
+- Fixes title, tapBtn, intro-icons, intro-version visibility
+
+---
+
+## v2.15.8 - 2026-02-03
+### Hotfix: HUD Score & EXIT Button
+
+**Fixed: SALDO CONTO not aligned with VITE/LIVELLO**
+- `.hud-score` had `top: 5px` absolute positioning ignoring safe-area
+- Now uses `var(--pwa-top-inset)` like other HUD elements
+
+**Fixed: EXIT button selector**
+- Added `id="btn-exit-title"` for reliable selection
+- Fixed updateUIText to preserve ">" prefix
+
+---
+
+## v2.15.7 - 2026-02-03
+### Hotfix: Dynamic Island Safe Area
+
+- Increased PWA top inset from 47px to 59px
+- 47px was not enough for iPhone 14 Pro Dynamic Island
+
+---
+
+## v2.15.6 - 2026-02-03
+### Hotfix: PWA Notch Safe Area
+
+**Fixed: HUD covered by iOS status bar in PWA mode**
+- Added `--pwa-top-inset` CSS variable set by JS
+- Forces minimum 47px padding for iOS status bar
+- `env(safe-area-inset-top)` returns 0 in PWA standalone mode
+
+---
+
+## v2.15.5 - 2026-02-03
+### Hotfix: Launch Animation Crash
+
+**Fixed: ReferenceError destroyTargets is not defined**
+- `destroyTargets` array was used but never declared
+- Added declaration and population during element explosion
+
+---
+
 ## v2.15.4 - 2026-02-03
 ### Sprint 24 Phase D: I18N & Assets
 

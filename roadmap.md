@@ -876,10 +876,11 @@ Balance.SACRIFICE = {
 
 ---
 
-### Sprint 24: Code Quality & App Store Prep (v2.16.0) 🚧 CURRENT
+### Sprint 24: Code Quality & App Store Prep ✅ COMPLETE (v2.15.9)
 *Goal: Fix memory leaks, clean up code, prepare for future App Store submission.*
 
 > **Context**: Audit del 2026-02-03 ha identificato 22 criticità. Analisi approfondita ha ridotto a 2 fix reali necessari.
+> **Hotfixes v2.15.5-v2.15.9**: Risolti crash launch animation, PWA notch/Dynamic Island, backToIntro blank screen.
 
 #### Phase A: Memory Leak Fixes 🧠 ✅ COMPLETE (v2.15.2)
 *Priority: HIGH - Causa instabilità su sessioni lunghe*
@@ -949,6 +950,15 @@ Balance.SACRIFICE = {
   - ✅ Aggiunte 10 chiavi mancanti (EN + IT)
   - ✅ Aggiornato index.html con ID per elementi traducibili
   - ✅ Esteso updateUIText() per tradurre intro screen e HUD
+
+#### iOS PWA Hotfixes 📱 ✅ COMPLETE (v2.15.5-v2.15.9)
+*Priority: CRITICAL - Testati su iPhone 14 Pro*
+
+- [x] **v2.15.5** - destroyTargets ReferenceError fix
+- [x] **v2.15.6** - PWA notch safe area (--pwa-top-inset CSS variable)
+- [x] **v2.15.7** - Dynamic Island support (59px minimum inset)
+- [x] **v2.15.8** - HUD score positioning + EXIT button selector
+- [x] **v2.15.9** - backToIntro() reset opacity/transform for all elements
 
 #### Phase E: Future App Store Prep (Deferred) 📱
 *Priority: LOW - Da fare quando decidiamo di pubblicare*
