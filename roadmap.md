@@ -1049,7 +1049,217 @@ Sprint 23.4 ✅ ──> Hotfix 23.4.1 ✅
 
 ---
 
-## Phase 24: Leaderboards & Social 🏆 (Future)
+## Phase 24: Visual Identity - Enemy Attacks & Deaths v2.19.0 🎨
+*Goal: Differenziare visivamente proiettili nemici e animazioni di morte per ogni forma.*
+
+> **Design Philosophy**: Ogni valuta deve avere personalità visiva anche nei suoi attacchi.
+> Le 4 forme esistenti (coin/bill/bar/card) definiscono lo stile dei proiettili.
+
+---
+
+### Sprint A: Proiettili Nemici Differenziati 🔫 (PRIORITÀ 1) ✅ COMPLETE
+*Goal: Ogni forma spara un proiettile unico e riconoscibile.*
+
+#### A1) Architettura
+- [x] **Shape-Based Dispatch**: `drawEnemyBullet()` che switcha su `this.shape`
+- [x] **Bullet Shape Property**: Proiettili ereditano `shape` dal nemico che li spara
+- [x] **4 Metodi Draw**: `drawCoinBullet()`, `drawBillBullet()`, `drawBarBullet()`, `drawCardBullet()`
+
+#### A2) Design Proiettili per Forma
+
+| Forma | Valute | Design Proiettile | Trail | Feeling |
+|-------|--------|-------------------|-------|---------|
+| **COIN** | ¥ ₹ £ | Moneta rotante (ellisse 3D) | Scintille dorate | Leggero, rimbalzante |
+| **BILL** | ₽ € ₺ $ | Banconota piegata a V | Scia ondulata carta | Fluttuante, aereo |
+| **BAR** | ₣ 元 | Lingotto rettangolare 3D | Pesante, scintille metallo | Solido, inarrestabile |
+| **CARD** | Ⓒ | Chip digitale con circuiti | Pixel/glitch dissolve | Tech, preciso |
+
+#### A3) Specifiche Visive Dettagliate
+
+**🪙 COIN Bullet (¥ ₹ £)**
+```
+- Forma: Ellisse che ruota (simula moneta 3D)
+- Dimensione: 8x12px (varia con rotazione)
+- Animazione: Rotazione continua (360°/0.5s)
+- Bordo: 2px outline scuro
+- Riflesso: Highlight bianco che si muove con rotazione
+- Trail: 3 scintille dorate che rimbalzano
+- Suono idea: *tink metallico*
+```
+
+**💵 BILL Bullet (₽ € ₺ $)**
+```
+- Forma: Rettangolo piegato a V (aeroplanino carta)
+- Dimensione: 14x8px
+- Animazione: Oscillazione sinusoidale leggera (±5px, 2Hz)
+- Bordo: 2px outline, angoli smussati
+- Texture: Linee orizzontali (come filigrana)
+- Trail: Scia ondulata che sfuma (4 segmenti)
+- Suono idea: *fruscio carta*
+```
+
+**🧱 BAR Bullet (₣ 元)**
+```
+- Forma: Rettangolo 3D con prospettiva (lingotto)
+- Dimensione: 12x8px + faccia superiore
+- Animazione: Leggera rotazione asse Y (effetto peso)
+- Bordo: 3px outline bold
+- Shading: Due toni (luce/ombra) come nemico bar
+- Trail: Scintille pesanti che cadono con gravità
+- Suono idea: *thud metallico*
+```
+
+**💳 CARD Bullet (Ⓒ)**
+```
+- Forma: Rettangolo con chip dorato + circuiti
+- Dimensione: 10x7px
+- Animazione: Glitch occasionale (shift RGB)
+- Bordo: 1px outline preciso
+- Dettagli: Linee circuito che pulsano
+- Trail: Pixel che si dissolvono + scan lines
+- Suono idea: *beep digitale*
+```
+
+#### A4) Implementazione Tecnica
+- [x] Aggiungere `shape` property a Bullet quando creato da Enemy
+- [x] Creare 4 metodi draw in Bullet.js (~80 linee ciascuno)
+- [x] Trail specifici per forma (già supportato da trail system)
+- [x] Mantenere retrocompatibilità (fallback a `drawEnemyBolt()` se shape undefined)
+
+#### A5) Balance Config
+```javascript
+Balance.BULLET_VISUALS = {
+    COIN: { rotationSpeed: 12, trailCount: 3, sparkleChance: 0.3 },
+    BILL: { waveAmplitude: 5, waveFrequency: 2, trailSegments: 4 },
+    BAR: { perspectiveAngle: 15, gravityTrail: true, trailFallSpeed: 80 },
+    CARD: { glitchChance: 0.1, circuitPulseSpeed: 8, pixelTrailCount: 6 }
+}
+```
+
+---
+
+### Sprint B: Animazioni Morte Differenziate 💀 (PRIORITÀ 2) ✅ COMPLETE
+*Goal: Ogni forma muore in modo unico e soddisfacente.*
+
+#### B1) Architettura
+- [x] **Shape-Based Death**: `createEnemyDeathExplosion()` riceve `shape` oltre a `symbol`
+- [x] **4 Effetti Morte**: Funzioni specifiche per forma
+- [x] **Particelle Tematiche**: Debris coerente con la forma
+
+#### B2) Design Morte per Forma
+
+| Forma | Effetto Principale | Particelle | Flash | Feeling |
+|-------|-------------------|------------|-------|---------|
+| **COIN** | Monete che rimbalzano | Scintille oro + confetti | Giallo brillante | Jackpot/slot |
+| **BILL** | Banconote che bruciano | Cenere + carta strappata | Arancione/rosso | Inflazione |
+| **BAR** | Frantumazione pesante | Pezzi d'oro + polvere | Giallo intenso | Peso/solidità |
+| **CARD** | Glitch/corruzione | Pixel + numeri | Bianco/cyan | Hack/crash |
+
+#### B3) Specifiche Visive Dettagliate
+
+**🪙 COIN Death (¥ ₹ £)**
+```
+- Esplosione: 5-7 monete che rimbalzano con fisica
+- Bounce: Monete rimbalzano 2-3 volte prima di svanire
+- Scintille: Spray dorato radiale (8 particelle)
+- Flash: Giallo brillante, 0.1s
+- Suono: *cascata monete* (già esiste coinScore)
+- Durata: 0.9s (più lunga per bounce)
+```
+
+**💵 BILL Death (₽ € ₺ $)**
+```
+- Esplosione: 4-6 banconote che volano/bruciano
+- Fuoco: Bordi delle banconote con fiamma arancione
+- Cenere: Particelle grigie che salgono
+- Flash: Arancione → rosso fade
+- Suono: *carta che brucia* (nuovo)
+- Durata: 0.8s
+```
+
+**🧱 BAR Death (₣ 元)**
+```
+- Esplosione: Frattura in 6-8 pezzi d'oro
+- Gravità: Pezzi cadono con peso reale
+- Polvere: Cloud dorata che si espande
+- Flash: Giallo intenso + shake leggero
+- Suono: *metallo che si frantuma* (nuovo)
+- Durata: 0.7s (veloce, pesante)
+```
+
+**💳 CARD Death (Ⓒ)**
+```
+- Esplosione: Glitch effect → dissolve
+- Pixel: 15-20 quadratini che volano
+- Numeri: "01100101" che fluttuano
+- Flash: Bianco/cyan con scan lines
+- Suono: *error digitale* (nuovo)
+- Durata: 0.6s (rapido, tech)
+```
+
+#### B4) Implementazione Tecnica
+- [x] Modificare `createEnemyDeathExplosion(x, y, color, symbol, shape)`
+- [x] 4 funzioni specializzate in ParticleSystem.js
+- [x] Nuovi tipi particella: `bouncingCoin`, `burningBill`, `goldChunk`, `pixel`, `data`, `ash`, `scanLine`
+- [x] Flash colors per forma in Balance config
+
+#### B5) Balance Config
+```javascript
+Balance.DEATH_EFFECTS = {
+    COIN: { bounceCount: 3, coinCount: 6, sparkleCount: 8, flashColor: '#FFD700' },
+    BILL: { billCount: 5, ashCount: 10, burnDuration: 0.4, flashColor: '#FF6600' },
+    BAR: { chunkCount: 7, dustParticles: 12, shakeAmount: 3, flashColor: '#FFC107' },
+    CARD: { pixelCount: 18, numberCount: 5, glitchFrames: 3, flashColor: '#00FFFF' }
+}
+```
+
+---
+
+### Sprint C: Audio Differenziato 🔊 ✅
+*Goal: Feedback audio che rinforza l'identità visiva.*
+
+- [x] **Death Sounds**: 4 suoni morte tematici (coinJackpot, paperBurn, metalShatter, digitalError)
+- [ ] **Bullet Sounds**: Suono distinto per ogni tipo di proiettile (ambient, non ogni bullet) - FUTURE
+- [ ] **Hit Sounds**: Varianti per forma quando colpiti - FUTURE
+
+---
+
+### File da Modificare
+
+| File | Sprint A | Sprint B | Sprint C |
+|------|----------|----------|----------|
+| `Bullet.js` | ✅ Major (4 nuovi metodi draw) | | |
+| `Enemy.js` | ✅ Minor (passa shape a bullet) | | |
+| `ParticleSystem.js` | | ✅ Major (4 effetti morte + 7 tipi particella) | ✅ Minor (chiama suoni) |
+| `main.js` | ✅ Minor (passa shape a bullet) | ✅ Minor (passa shape a death) | |
+| `BalanceConfig.js` | ✅ Config (BULLET_VISUALS) | ✅ Config (DEATH_EFFECTS) | |
+| `AudioSystem.js` | | | ✅ Major (4 suoni morte) |
+
+---
+
+### Metriche Successo
+
+| Metrica | Prima | Dopo |
+|---------|-------|------|
+| Tipi proiettile visivi | 1 | 4 |
+| Tipi morte visivi | 1 | 4 |
+| Riconoscibilità attacco | Bassa | Alta |
+| Soddisfazione kill | Media | Alta |
+| FPS impact stimato | 0 | -5~10 max |
+
+---
+
+### Priority Order
+
+| Sprint | Focus | Complessità | Impatto | Status |
+|--------|-------|-------------|---------|--------|
+| **A** | Proiettili | Media | 🔴 ALTO | ✅ DONE |
+| **B** | Morti | Media | 🔴 ALTO | ✅ DONE |
+| **C** | Audio | Bassa | 🟡 MEDIO | ✅ DONE |
+
+---
+
+## Phase 25: Leaderboards & Social 🏆 (Future)
 *Goal: Competition and sharing.*
 - [ ] **Local Leaderboard**: Top 10 scores with date
 - [ ] **Share Score**: Screenshot + share button
@@ -1205,5 +1415,24 @@ BOSS_SIGNATURE_MEMES in Constants.js:
 - [x] `src/config/BalanceConfig.js` - CURRENCY_BOSS_MAP + balance updates
 - [x] `src/utils/Constants.js` - BOSS_SIGNATURE_MEMES
 - [x] `src/main.js` - Kill counter logic + mini-boss spawning
+
+---
+
+## Phase 21: UI Polish & Cleanup 🎨
+*Goal: Consistent visual language and better UX for controls.*
+
+### A) In-Game Button Rationalization 🔘
+- [ ] **Shield Button Redesign**: Current shield button is aesthetically inconsistent with the game's visual style
+  - Needs to match the cell-shaded/bold outline style of the rest of the game
+  - Position needs re-evaluation (currently awkward placement)
+  - Consider: larger touch target, better visual feedback on activation
+- [ ] **Settings Button Redesign**: Same issue - doesn't match game style
+  - Should be visually consistent with shield button
+  - Position: corner placement to avoid accidental touches during gameplay
+- [ ] **Button Style Guide**: Define consistent style for all in-game UI buttons
+  - Bold outlines (2-3px)
+  - Two-tone shading
+  - Clear active/inactive states
+  - Touch-friendly size (min 44px)
 
 ---
