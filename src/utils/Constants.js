@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v2.15.3 FIAT vs CRYPTO";
+window.Game.VERSION = "v2.15.4 FIAT vs CRYPTO";
 
 window.Game.TEXTS = {
     EN: {
@@ -90,7 +90,17 @@ window.Game.TEXTS = {
         TIP_SHIELD_3: "Survive Boss Phase 3 attacks",
         TIP_SHIELD_4: "Emergency escape when grazing goes wrong",
         TIP_BOSS_TITLE: "Boss Power-Ups",
-        TIP_BOSS_1: "During boss fights, every 25 hits drops a power-up. Keep shooting!"
+        TIP_BOSS_1: "During boss fights, every 25 hits drops a power-up. Keep shooting!",
+        // UI Elements (intro/HUD)
+        ACCOUNT_BALANCE: "ACCOUNT BALANCE",
+        KILLS: "KILLS",
+        GRAZE: "GRAZE",
+        CHOOSE_SHIP: "CHOOSE YOUR SHIP",
+        TAP_START: "TAP TO START",
+        HIGH_SCORE: "HIGH SCORE",
+        ARCADE: "ARCADE",
+        CAMPAIGN: "CAMPAIGN",
+        LAUNCH: "LAUNCH"
     },
     IT: {
         SCORE: "PUNTI", LEVEL: "LIVELLO", LIVES: "VITE", NORMAL: "NORMALE",
@@ -177,7 +187,17 @@ window.Game.TEXTS = {
         TIP_SHIELD_3: "Sopravvivere agli attacchi Boss Fase 3",
         TIP_SHIELD_4: "Fuga d'emergenza quando il grazing va male",
         TIP_BOSS_TITLE: "Power-Up Boss",
-        TIP_BOSS_1: "Durante i boss fight, ogni 25 colpi rilascia un power-up. Continua a sparare!"
+        TIP_BOSS_1: "Durante i boss fight, ogni 25 colpi rilascia un power-up. Continua a sparare!",
+        // UI Elements (intro/HUD)
+        ACCOUNT_BALANCE: "SALDO CONTO",
+        KILLS: "UCCISIONI",
+        GRAZE: "GRAZE",
+        CHOOSE_SHIP: "SCEGLI LA NAVE",
+        TAP_START: "TOCCA PER INIZIARE",
+        HIGH_SCORE: "RECORD",
+        ARCADE: "ARCADE",
+        CAMPAIGN: "CAMPAGNA",
+        LAUNCH: "LANCIA"
     }
 };
 

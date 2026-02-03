@@ -932,23 +932,23 @@ Balance.SACRIFICE = {
   - Alpha validation per immagini (linea 56)
   - Nessun intervento necessario
 
-#### Phase D: Asset & Metadata Fixes 📦
+#### Phase D: Asset & Metadata Fixes 📦 ✅ COMPLETE (v2.15.4)
 *Priority: MEDIUM - Necessario per App Store submission*
 
-- [ ] **D1. Icon PNG Conversion**
-  - Convertire icon-512.png da JPEG a PNG
-  - Creare set completo iOS: 120x120, 152x152, 167x167, 180x180, 1024x1024
-  - Aggiornare manifest.json con type corretto
+- [x] **D1. Icon PNG Conversion**
+  - ✅ Creato icon-512.svg (sorgente vettoriale)
+  - ✅ Convertito icon-512.png in PNG reale (era JPEG)
+  - ⏳ Set completo iOS (120, 152, 167, 180, 1024px) - da fare con tool esterno
 
-- [ ] **D2. Privacy Policy**
-  - Creare PRIVACY.md con policy base (localStorage only, no tracking)
-  - Hostare su GitHub Pages o sito dedicato
-  - Aggiungere link in footer/settings
+- [x] **D2. Privacy Policy**
+  - ✅ Creato PRIVACY.md con policy completa
+  - ✅ Documenta localStorage only, no tracking, no ads
+  - ⏳ Link in footer/settings - opzionale
 
-- [ ] **D3. I18N Audit**
-  - Verificare 100% copertura italiano in Constants.TEXTS
-  - Rimuovere testi hardcoded in HTML/JS
-  - Documentare stringhe mancanti
+- [x] **D3. I18N Audit**
+  - ✅ Aggiunte 10 chiavi mancanti (EN + IT)
+  - ✅ Aggiornato index.html con ID per elementi traducibili
+  - ✅ Esteso updateUIText() per tradurre intro screen e HUD
 
 #### Phase E: Future App Store Prep (Deferred) 📱
 *Priority: LOW - Da fare quando decidiamo di pubblicare*

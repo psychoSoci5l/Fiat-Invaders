@@ -42,7 +42,7 @@
         <!-- TOP BAR: Lives/Health | SCORE | Level/Shield -->
         <div class="hud-top-bar">
             <div class="hud-stat left">
-                <span class="label">LIVES</span>
+                <span class="label" id="lives-label">LIVES</span>
                 <span id="livesText" class="value">3</span>
                 <div class="bar-container health-container">
                     <div id="healthBar"></div>
@@ -50,14 +50,14 @@
             </div>
 
             <div class="hud-score terminal-score">
-                <span class="label">ACCOUNT BALANCE</span>
+                <span class="label" id="score-label">ACCOUNT BALANCE</span>
                 <span id="scoreVal" class="value">0</span>
                 <div id="score-ticker"></div>
                 <div id="meme-ticker"></div>
             </div>
 
             <div class="hud-stat right">
-                <span class="label">LEVEL</span>
+                <span class="label" id="level-label">LEVEL</span>
                 <span id="lvlVal" class="value">1</span>
                 <div class="bar-container shield-container">
                     <div id="shieldBar"></div>
@@ -121,11 +121,11 @@
             <!-- Score/Progress Row -->
             <div class="selection-score">
                 <div id="arcade-score-display">
-                    <span class="score-label">HIGH SCORE</span>
+                    <span class="score-label" id="high-score-label">HIGH SCORE</span>
                     <span id="highScoreVal" class="score-value">0</span>
                 </div>
                 <div id="campaign-progress" style="display: none;">
-                    <span class="score-label">CAMPAIGN</span>
+                    <span class="score-label" id="campaign-label">CAMPAIGN</span>
                     <div class="boss-slots-mini">
                         <span class="boss-mini" id="slot-fed">$</span>
                         <span class="boss-mini locked" id="slot-bce">€</span>
@@ -141,7 +141,7 @@
             </div>
 
             <!-- Launch button -->
-            <button class="btn-launch" onclick="launchShipAndStart()">
+            <button class="btn-launch" id="btn-launch" onclick="launchShipAndStart()">
                 🚀 LAUNCH
             </button>
         </div>

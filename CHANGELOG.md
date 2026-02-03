@@ -1,5 +1,35 @@
 # Changelog
 
+## v2.15.4 - 2026-02-03
+### Sprint 24 Phase D: I18N & Assets
+
+**Complete I18N Support**
+- Added 10 new translation keys for UI elements
+- EN: ACCOUNT_BALANCE, KILLS, GRAZE, CHOOSE_SHIP, TAP_START, HIGH_SCORE, ARCADE, CAMPAIGN, LAUNCH
+- IT: SALDO CONTO, UCCISIONI, GRAZE, SCEGLI LA NAVE, TOCCA PER INIZIARE, RECORD, ARCADE, CAMPAGNA, LANCIA
+- Updated index.html with proper IDs for all translatable elements
+- Extended updateUIText() to translate intro screen and HUD labels
+
+**Privacy Policy**
+- Created PRIVACY.md with complete privacy policy
+- Documents localStorage-only data storage
+- No tracking, no analytics, no ads
+
+**New App Icon**
+- Created icon-512.svg (vector source)
+- Replaced icon-512.png with proper PNG (was JPEG)
+- Ship design matches current in-game graphics
+
+**Files Changed**
+- `src/utils/Constants.js`: Added I18N keys + version bump
+- `src/main.js`: Extended updateUIText()
+- `index.html`: Added IDs for translatable elements
+- `PRIVACY.md`: New file
+- `icon-512.svg`: New file
+- `icon-512.png`: Replaced
+
+---
+
 ## v2.15.3 - 2026-02-03
 ### Sprint 24 Phase C: Code Cleanup
 

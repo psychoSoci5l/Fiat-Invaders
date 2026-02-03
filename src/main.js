@@ -1115,16 +1115,35 @@ function updateUIText() {
     if (ui.introMeme) ui.introMeme.innerText = getRandomMeme();
     if (ui.memeTicker && !ui.memeTicker.innerText) ui.memeTicker.innerText = getRandomMeme();
 
-    // Intro
+    // Intro screen
     const btnInsert = document.querySelector('#intro-screen .btn-coin');
     if (btnInsert) btnInsert.innerText = t('INSERT_COIN');
-    const startHint = document.querySelector('#intro-screen .subtitle');
-    // if (startHint) startHint.innerText = t('START_HINT'); // Or keep "PANIC SELLING UPDATE"? Let's keep specific title.
+    const selectionHeader = document.getElementById('selection-header');
+    if (selectionHeader) selectionHeader.innerText = t('CHOOSE_SHIP');
+    const btnTapStart = document.getElementById('btn-tap-start');
+    if (btnTapStart) btnTapStart.innerText = t('TAP_START');
+    const highScoreLabel = document.getElementById('high-score-label');
+    if (highScoreLabel) highScoreLabel.innerText = t('HIGH_SCORE');
+    const campaignLabel = document.getElementById('campaign-label');
+    if (campaignLabel) campaignLabel.innerText = t('CAMPAIGN');
+    const modeArcade = document.getElementById('mode-arcade');
+    if (modeArcade) modeArcade.innerText = t('ARCADE');
+    const modeCampaign = document.getElementById('mode-campaign');
+    if (modeCampaign) modeCampaign.innerText = t('CAMPAIGN');
+    const btnLaunch = document.getElementById('btn-launch');
+    if (btnLaunch) btnLaunch.innerText = '🚀 ' + t('LAUNCH');
 
-    // HUD
-    if (document.querySelector('.hud-score .label')) document.querySelector('.hud-score .label').innerText = t('SCORE');
-    if (document.querySelector('.hud-stat.right .label')) document.querySelector('.hud-stat.right .label').innerText = t('LEVEL');
-    if (document.querySelector('.hud-stat.left .label')) document.querySelector('.hud-stat.left .label').innerText = t('LIVES');
+    // HUD labels
+    const scoreLabel = document.getElementById('score-label');
+    if (scoreLabel) scoreLabel.innerText = t('ACCOUNT_BALANCE');
+    const levelLabel = document.getElementById('level-label');
+    if (levelLabel) levelLabel.innerText = t('LEVEL');
+    const livesLabel = document.getElementById('lives-label');
+    if (livesLabel) livesLabel.innerText = t('LIVES');
+    const killLabel = document.getElementById('killLabel');
+    if (killLabel) killLabel.innerText = t('KILLS');
+    const grazeLabel = document.getElementById('graze-label');
+    if (grazeLabel) grazeLabel.innerText = t('GRAZE');
 
     // Pause
     const pauseTitle = document.querySelector('#pause-screen .neon-title');
