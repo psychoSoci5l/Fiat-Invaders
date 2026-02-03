@@ -1,5 +1,25 @@
 # Changelog
 
+## v2.20.4 - 2026-02-03
+### Feature: Wave Countdown Enhancement
+
+**Changes:**
+- Redesigned intermission countdown with cell-shaded visual style
+  - Dark semi-transparent box with rounded corners
+  - Wave info displayed at top in green (e.g., "WAVE 2: BULL RUN")
+  - Large gold countdown number with scale-in animation
+- Added ascending audio tick feedback (3=low, 2=mid, 1=high pitch)
+- Brief white flash when wave starts
+- Removed meme text for cleaner, minimal look
+
+**Technical:**
+- `AudioSystem.play()` now accepts optional `opts` parameter for pitch control
+- New `countdownTick` sound with adjustable pitch
+- Added `WAVE_START` flash config to Balance.JUICE.FLASH
+- Cleaned up roadmap.md (removed duplicate boss warning task)
+
+---
+
 ## v2.20.3 - 2026-02-03
 ### Fix: UI Readability & Layout
 

@@ -250,8 +250,7 @@
 
 #### C2) Wave Countdown Visual ✅
 - [x] **Already Implemented**: Intermission countdown with meme display
-- [ ] **Wave Countdown**: Visual 3-2-1 countdown before next wave (uses intermission)
-- [ ] **Boss Warning**: 2-second "BOSS INCOMING" warning before spawn
+- [x] **Wave Countdown**: Cell-shaded countdown box with wave info and audio ticks
 
 #### C3) Boss Warning System ✅
 - [x] **Warning Timer**: 2-second dramatic warning before boss spawn
@@ -275,7 +274,6 @@
 - [x] **Comprehensive Reset**: Added missing resets (Fibonacci, boss drops, effects)
 - [x] **Visual State Reset**: shake, totalTime, lightning, transition vars
 - [x] **Firing System Reset**: waveStartTime, fibonacciIndex, enemiesAllowedToFire
-- [ ] **Centralized Globals**: Move globals into RunState (future refactor)
 
 ### D) Mobile Experience 📱 ✅
 
@@ -338,9 +336,6 @@
   - Bullets: ±20px bounds check (X and Y)
   - PowerUps: ±40px bounds check
   - Particles: Already had culling
-- [ ] **Dirty Rectangles**: Skipped (complex, minimal benefit for this game)
-- [ ] **Batch Similar Draws**: Skipped (requires canvas layer restructure)
-
 #### G3) GC Churn Elimination (v2.16.0) ✅
 - [x] **Player Trail Buffer**: Pre-allocated circular buffer, no .filter()/.shift()/.forEach()
 - [x] **Homing Bullets**: Distance squared comparison, single sqrt per bullet per frame
@@ -419,10 +414,6 @@
 > ⚠️ The initial audit incorrectly flagged HarmonicConductor as "dead code" because
 > roadmap/comments were outdated. It was actually ACTIVE and managing enemy firing.
 > Always verify code behavior before removing systems marked as "unused".
-
-### Known Issues (Non-Critical):
-- [ ] **DialogueData.js**: Empty file, story dialogues not fully implemented
-- [ ] **Perk Bar Hidden**: `renderPerkBar()` disabled intentionally for cleaner UI
 
 ---
 
@@ -578,14 +569,12 @@
 #### A2) HYPER Visual Effects
 - [x] **Screen Tint**: Golden/amber overlay during HYPER
 - [x] **Player Aura**: Intense pulsing golden glow (larger than HODL aura)
-- [ ] **Bullet Trails**: Enemy bullets leave longer trails (deferred to Sprint 2)
 - [x] **Time Dilation Effect**: Subtle slow-motion feel (0.92x game speed)
 - [x] **Graze Particles**: Massive golden particle bursts on each graze
 - [x] **Timer Display**: Countdown bar at top + ring around player
 
 #### A3) HYPER Audio
 - [x] **Activation Sound**: Epic power-up chord (`hyperActivate`)
-- [ ] **Loop During HYPER**: Intensified music layer (deferred)
 - [x] **Graze Sound (HYPER)**: Higher pitch, more satisfying (`hyperGraze`)
 - [x] **Warning Sound**: Tick-tick-tick in final 2 seconds (`hyperWarning`)
 - [x] **Deactivation Sound**: Power-down sound (`hyperDeactivate`)
@@ -629,12 +618,6 @@ Balance.HYPER = {
 #### B3) Score Pulse System ✅
 - [x] **10K Milestone**: Golden edge glow with radial gradient
 - [x] **Score Number Juice**: Large floating "+X" with velocity and fade
-- [ ] **Combo Counter**: Visual combo display that scales with streak (deferred)
-
-#### B4) Camera Shake Refinement (Deferred to Sprint 3)
-- [ ] **Directional Shake**: Shake direction matches impact direction
-- [ ] **Shake Decay Curve**: Exponential decay instead of linear
-- [ ] **Micro-Shake**: Subtle constant shake during HYPER mode
 
 #### B5) Balance Config
 ```javascript
@@ -978,16 +961,6 @@ Balance.SACRIFICE = {
 - [x] **v2.15.8** - HUD score positioning + EXIT button selector
 - [x] **v2.15.9** - backToIntro() reset opacity/transform for all elements
 
-#### Phase E: Future App Store Prep (Deferred) 📱
-*Priority: LOW - Da fare quando decidiamo di pubblicare*
-
-- [ ] **E1. Capacitor Setup** - iOS native wrapper
-- [ ] **E2. Game Center Integration** - Leaderboard reali
-- [ ] **E3. App Store Screenshots** - Marketing assets
-- [ ] **E4. TestFlight Beta** - Testing pre-release
-
----
-
 ### Sprint 25: Performance & Architecture (v2.17.0)
 *Goal: Ottimizzare performance e consolidare architettura.*
 
@@ -1219,8 +1192,6 @@ Balance.DEATH_EFFECTS = {
 *Goal: Feedback audio che rinforza l'identità visiva.*
 
 - [x] **Death Sounds**: 4 suoni morte tematici (coinJackpot, paperBurn, metalShatter, digitalError)
-- [ ] **Bullet Sounds**: Suono distinto per ogni tipo di proiettile (ambient, non ogni bullet) - FUTURE
-- [ ] **Hit Sounds**: Varianti per forma quando colpiti - FUTURE
 
 ---
 
@@ -1258,13 +1229,6 @@ Balance.DEATH_EFFECTS = {
 | **C** | Audio | Bassa | 🟡 MEDIO | ✅ DONE |
 
 ---
-
-## Phase 25: Leaderboards & Social 🏆 (Future)
-*Goal: Competition and sharing.*
-- [ ] **Local Leaderboard**: Top 10 scores with date
-- [ ] **Share Score**: Screenshot + share button
-- [ ] **Daily Challenge**: Seeded run with global ranking
-- [ ] **Achievements**: 20+ achievements with icons
 
 ---
 
@@ -1428,13 +1392,14 @@ BOSS_SIGNATURE_MEMES in Constants.js:
   - SVG radial cooldown indicator
   - Three visual states: READY (cyan pulsing), ACTIVE (white glow), COOLDOWN (grey + fill progress)
   - Bold 3px black outline matching game style
-- [ ] **Settings Button Redesign**: Same issue - doesn't match game style
-  - Should be visually consistent with shield button
-  - Position: corner placement to avoid accidental touches during gameplay
-- [ ] **Button Style Guide**: Define consistent style for all in-game UI buttons
+- [x] **Pause Button Redesign (v2.20.0)**: Cell-shaded style matching shield button
+  - Orange gradient theme (#f39c12 → #d35400)
+  - 64x64px touch target with 3px black border
+  - Pulse animation, positioned bottom-right
+- [x] **Button Style Guide**: Consistent style defined for all in-game UI buttons
   - Bold outlines (2-3px)
-  - Two-tone shading
+  - Two-tone shading with gradients
   - Clear active/inactive states
-  - Touch-friendly size (min 44px)
+  - Touch-friendly size (min 44-64px)
 
 ---

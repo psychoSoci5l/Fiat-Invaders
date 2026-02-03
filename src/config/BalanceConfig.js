@@ -157,7 +157,8 @@
                 STREAK_50: { duration: 0.10, opacity: 0.25, color: '#9B59B6' },
                 BOSS_PHASE: { duration: 0.12, opacity: 0.25, color: '#FF6600' },
                 BOSS_DEFEAT: { duration: 0.20, opacity: 0.50, color: '#FFFFFF' },
-                PLAYER_HIT: { duration: 0.04, opacity: 0.15, color: '#FF0000' }
+                PLAYER_HIT: { duration: 0.04, opacity: 0.15, color: '#FF0000' },
+                WAVE_START: { duration: 0.05, opacity: 0.25, color: '#FFFFFF' }
             },
 
             // Master toggles for screen effects (modularity)

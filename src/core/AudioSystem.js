@@ -210,7 +210,7 @@ class AudioSystem {
         this.lastGrazeTime = now;
     }
 
-    play(type) {
+    play(type, opts) {
         // Only play sounds if audio is unmuted (context running)
         if (!this.ctx || this.ctx.state !== 'running') return;
 
@@ -218,7 +218,7 @@ class AudioSystem {
         if (this.disabledSounds.has(type)) return;
 
         try {
-            this._playSfx(type);
+            this._playSfx(type, opts);
         } catch (e) {
             this._handlePlayError(type, e);
         }
@@ -237,12 +237,32 @@ class AudioSystem {
         }
     }
 
-    _playSfx(type) {
+    _playSfx(type, opts) {
         const t = this.ctx.currentTime;
         const output = this.getOutput();
 
+        // === COUNTDOWN TICK (Wave intermission) ===
+        if (type === 'countdownTick') {
+            // Clean tick with ascending pitch (3=low, 2=mid, 1=high)
+            const basePitch = opts?.pitch || 1.0;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+
+            osc.type = 'triangle';
+            osc.frequency.value = 440 * basePitch; // A4 scaled by pitch
+
+            osc.connect(gain);
+            gain.connect(output);
+
+            gain.gain.setValueAtTime(0.15, t);
+            gain.gain.exponentialRampToValueAtTime(0.01, t + 0.12);
+
+            osc.start(t);
+            osc.stop(t + 0.15);
+        }
+
         // === GRAZE SOUNDS ===
-        if (type === 'graze') {
+        else if (type === 'graze') {
             this.addGraze();
             // Crystalline chiptune shimmer - pitch increases with combo
             const osc = this.ctx.createOscillator();

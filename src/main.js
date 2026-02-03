@@ -109,6 +109,7 @@ let currentShipIdx = 0;
 let lastWavePattern = 'RECT';
 let perkChoiceActive = false;
 let intermissionMeme = ""; // Meme shown during countdown
+let lastCountdownNumber = 0; // Track countdown to trigger audio once per number
 let debugMode = false; // F3 toggle for performance stats
 let fpsHistory = []; // For smooth FPS display
 let perkOffers = [];
@@ -2416,6 +2417,7 @@ function update(dt) {
             startBossWarning(); // Start warning instead of immediate spawn
         } else if (waveAction.action === 'START_WAVE') {
             gameState = 'PLAY';
+            triggerScreenFlash('WAVE_START'); // Brief white flash at wave start
             // Increment level for every wave EXCEPT the very first one (level=1, wave=1)
             const isFirstWaveEver = (level === 1 && waveMgr.wave === 1);
             if (!isFirstWaveEver) {
@@ -3515,36 +3517,74 @@ function draw() {
         // SACRIFICE UI (decision button or active countdown)
         drawSacrificeUI(ctx);
 
-        // Intermission countdown overlay
+        // Intermission countdown overlay (cell-shaded with audio feedback)
         if (gameState === 'INTERMISSION' && waveMgr.intermissionTimer > 0) {
-            const countdown = Math.ceil(waveMgr.intermissionTimer);
+            const timer = waveMgr.intermissionTimer;
+            const countdown = Math.ceil(timer);
             const centerX = gameWidth / 2;
             const centerY = gameHeight / 2;
+            const progress = timer % 1; // 0→1 within each second
 
-            // Pulse effect based on timer
-            const pulse = 1 + Math.sin(waveMgr.intermissionTimer * 8) * 0.1;
+            // Trigger audio on number change (ascending pitch: 3=low, 2=mid, 1=high)
+            if (countdown !== lastCountdownNumber && countdown >= 1 && countdown <= 3) {
+                lastCountdownNumber = countdown;
+                const pitch = countdown === 3 ? 0.7 : countdown === 2 ? 0.85 : 1.0;
+                audioSys.play('countdownTick', { pitch });
+            }
 
-            // Countdown number (big, bold, cell-shaded)
+            // Scale-in animation: number appears large and shrinks
+            const scale = 1 + (1 - progress) * 0.25;
+            const alpha = Math.min(1, progress * 4);
+
             ctx.save();
-            ctx.font = `bold ${Math.floor(80 * pulse)}px "Courier New", monospace`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            // Black outline
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 6;
-            ctx.strokeText(countdown, centerX, centerY - 20);
-            // Gold fill
-            ctx.fillStyle = '#F7931A';
-            ctx.fillText(countdown, centerX, centerY - 20);
+            ctx.translate(centerX, centerY);
+            ctx.scale(scale, scale);
+            ctx.globalAlpha = alpha;
 
-            // Meme text below (smaller, white with outline)
-            ctx.font = 'bold 22px "Courier New", monospace';
+            // Background box (cell-shaded dark)
+            const boxW = 300, boxH = 140;
+            ctx.fillStyle = 'rgba(15, 15, 25, 0.92)';
             ctx.strokeStyle = '#000';
             ctx.lineWidth = 4;
-            ctx.strokeText(intermissionMeme, centerX, centerY + 50);
-            ctx.fillStyle = '#fff';
-            ctx.fillText(intermissionMeme, centerX, centerY + 50);
+            ctx.beginPath();
+            ctx.roundRect(-boxW/2, -boxH/2, boxW, boxH, 10);
+            ctx.fill();
+            ctx.stroke();
+
+            // Inner highlight (two-tone)
+            ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(-boxW/2 + 4, -boxH/2 + 4, boxW - 8, boxH - 8, 8);
+            ctx.stroke();
+
+            // Wave info (top, green)
+            const waveNum = waveMgr.wave;
+            const waveKey = 'WAVE' + waveNum;
+            const waveText = t(waveKey) || ('WAVE ' + waveNum);
+            ctx.font = 'bold 16px "Press Start 2P", monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#00FF00';
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 3;
+            ctx.strokeText(waveText, 0, -35);
+            ctx.fillText(waveText, 0, -35);
+
+            // Countdown number (center, gold with bold outline)
+            ctx.font = 'bold 64px "Press Start 2P", monospace';
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 8;
+            ctx.fillStyle = '#F7931A';
+            ctx.strokeText(countdown.toString(), 0, 20);
+            ctx.fillText(countdown.toString(), 0, 20);
+
             ctx.restore();
+        }
+
+        // Reset countdown tracker when leaving intermission
+        if (gameState !== 'INTERMISSION') {
+            lastCountdownNumber = 0;
         }
 
         // Perk pause overlay disabled - using floating icon above ship instead
