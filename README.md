@@ -101,5 +101,4 @@ manifest.json    # PWA Configuration
 
 ## 📜 Credits
 
-Created by **Antigravity** (Google DeepMind) & **Tsune**.
-*Panic Selling Update v2.1.0*
+Created by **psychoSocial** with **Claude**, **Antigravity**, **ChatGPT**, **Gemini**.
