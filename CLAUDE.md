@@ -280,8 +280,23 @@ Balance.MINI_BOSS.CURRENCY_BOSS_MAP = {
 - Bump effect on increase
 
 ### Bullet Visuals
-- **Player**: Colored bullet with upward trail
-- **Enemy**: Energy orb with glow + fading trail (inherits enemy color)
+
+#### Player Bullets
+Weapon-specific visuals via `switch(weaponType)` in Bullet.js:
+- NORMAL, WIDE, NARROW, FIRE, SPREAD, HOMING, LASER
+
+#### Enemy Bullets (Shape-Based v2.19.0)
+Enemy bullets inherit `shape` from the enemy that fires them. Dispatcher in `drawEnemyBullet()`:
+
+| Shape | Enemies | Visual Style | Animation |
+|-------|---------|--------------|-----------|
+| **coin** | ¥ ₹ £ | Spinning 3D ellipse | Rotation + metallic shine |
+| **bill** | ₽ € ₺ $ | Folded paper V-shape | Flutter oscillation |
+| **bar** | ₣ 元 | 3D trapezoid ingot | Tumble rotation |
+| **card** | Ⓒ | Digital chip rectangle | Glitch + scanlines |
+| *(default)* | Boss/other | Energy orb | Pulse + glow |
+
+All shapes maintain identical visibility (glow, trail, white ring) - only internal core differs.
 
 ### Particle Effects
 - `createExplosion()` - Enemy death

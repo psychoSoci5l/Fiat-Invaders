@@ -13,6 +13,7 @@ class Bullet extends window.Game.Entity {
         this.weaponType = 'NORMAL'; // Default weapon type
         this.age = 0; // Animation timer
         this.grazed = false; // Graze tracking
+        this.shape = null; // Enemy shape for visual differentiation (coin/bill/bar/card)
     }
 
     reset(x, y, vx, vy, color, w, h, isHodl) {
@@ -32,6 +33,7 @@ class Bullet extends window.Game.Entity {
         this.beatSynced = false; // Harmonic Conductor beat-synced bullet
         this.homing = false; // Homing missile tracking
         this.homingSpeed = 0; // Turn rate for homing
+        this.shape = null; // Enemy shape for visual differentiation
     }
 
     update(dt, enemies, boss) {
@@ -113,8 +115,8 @@ class Bullet extends window.Game.Entity {
         const isEnemy = this.vy > 0; // Enemy bullets go down
 
         if (isEnemy) {
-            // Enemy bullet: Aggressive Energy Bolt
-            this.drawEnemyBolt(ctx);
+            // Enemy bullet: dispatch to shape-specific or default
+            this.drawEnemyBullet(ctx);
         } else {
             // Player bullet - distinct style per weapon type
             ctx.strokeStyle = '#111';
@@ -629,7 +631,463 @@ class Bullet extends window.Game.Entity {
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    // ENEMY: High-contrast energy bolt
+    // ENEMY BULLET DISPATCHER
+    // Routes to shape-specific method or default energy bolt
+    // ═══════════════════════════════════════════════════════════════════
+    drawEnemyBullet(ctx) {
+        switch (this.shape) {
+            case 'coin':
+                this.drawCoinBullet(ctx);
+                break;
+            case 'bill':
+                this.drawBillBullet(ctx);
+                break;
+            case 'bar':
+                this.drawBarBullet(ctx);
+                break;
+            case 'card':
+                this.drawCardBullet(ctx);
+                break;
+            default:
+                this.drawEnemyBolt(ctx);
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // COIN BULLET (¥ ₹ £): Spinning ellipse core, same glow as energy bolt
+    // Keeps the same visibility, only changes the internal shape
+    // ═══════════════════════════════════════════════════════════════════
+    drawCoinBullet(ctx) {
+        const beatBoost = this.beatSynced ? 1.5 : 1.0;
+        const r = (this.width || 5) * 1.8;
+        const pulse = Math.sin(this.age * 25) * 0.15 + 1;
+
+        // Calculate direction for trail
+        const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy) || 1;
+        const dirX = this.vx / speed;
+        const dirY = this.vy / speed;
+        const perpX = -dirY;
+        const perpY = dirX;
+        const trailLen = Math.min(28, speed * 0.12);
+
+        // === SAME AS ENERGY BOLT: Trail ===
+        for (let i = 4; i > 0; i--) {
+            const segDist = (i / 4) * trailLen;
+            const segAlpha = 0.12 * (5 - i);
+            const segWidth = r * (0.25 + (i * 0.12));
+            ctx.fillStyle = this.color;
+            ctx.globalAlpha = segAlpha;
+            ctx.beginPath();
+            ctx.moveTo(this.x - dirX * segDist - perpX * segWidth, this.y - dirY * segDist - perpY * segWidth);
+            ctx.lineTo(this.x - dirX * (segDist + 8), this.y - dirY * (segDist + 8));
+            ctx.lineTo(this.x - dirX * segDist + perpX * segWidth, this.y - dirY * segDist + perpY * segWidth);
+            ctx.closePath();
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+
+        // === SAME AS ENERGY BOLT: Outer glow ===
+        ctx.fillStyle = this.color;
+        ctx.globalAlpha = 0.3 * pulse * beatBoost;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, r + 8 + (this.beatSynced ? 4 : 0), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        // === SAME AS ENERGY BOLT: White ring ===
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, r + 3, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // === DIFFERENT: Spinning ellipse core instead of circle ===
+        const rotation = this.age * 12; // Spin speed
+        const ellipseWidth = Math.abs(Math.cos(rotation)) * r * 0.8 + r * 0.4;
+
+        // Main coin body (ellipse)
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.ellipse(this.x, this.y, ellipseWidth * pulse, r * pulse, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // White contour
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Inner ring (coin groove)
+        ctx.strokeStyle = window.Game.ColorUtils.darken(this.color, 0.3);
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.ellipse(this.x, this.y, ellipseWidth * 0.6, r * 0.6, 0, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Edge shine (metallic highlight)
+        if (Math.cos(rotation) > 0.2) {
+            ctx.fillStyle = '#fff';
+            ctx.globalAlpha = Math.cos(rotation) * 0.6;
+            ctx.beginPath();
+            ctx.ellipse(this.x - ellipseWidth * 0.3, this.y - r * 0.2, ellipseWidth * 0.2, r * 0.3, -0.3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+        }
+
+        // Center bright spot
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, r * 0.2, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // BILL BULLET (₽ € ₺ $): Folded paper V-shape, same glow as energy bolt
+    // Keeps the same visibility, only changes the internal shape
+    // ═══════════════════════════════════════════════════════════════════
+    drawBillBullet(ctx) {
+        const beatBoost = this.beatSynced ? 1.5 : 1.0;
+        const r = (this.width || 5) * 1.8;
+        const pulse = Math.sin(this.age * 25) * 0.15 + 1;
+
+        // Calculate direction for trail
+        const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy) || 1;
+        const dirX = this.vx / speed;
+        const dirY = this.vy / speed;
+        const perpX = -dirY;
+        const perpY = dirX;
+        const trailLen = Math.min(28, speed * 0.12);
+
+        // === SAME AS ENERGY BOLT: Trail ===
+        for (let i = 4; i > 0; i--) {
+            const segDist = (i / 4) * trailLen;
+            const segAlpha = 0.12 * (5 - i);
+            const segWidth = r * (0.25 + (i * 0.12));
+            ctx.fillStyle = this.color;
+            ctx.globalAlpha = segAlpha;
+            ctx.beginPath();
+            ctx.moveTo(this.x - dirX * segDist - perpX * segWidth, this.y - dirY * segDist - perpY * segWidth);
+            ctx.lineTo(this.x - dirX * (segDist + 8), this.y - dirY * (segDist + 8));
+            ctx.lineTo(this.x - dirX * segDist + perpX * segWidth, this.y - dirY * segDist + perpY * segWidth);
+            ctx.closePath();
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+
+        // === SAME AS ENERGY BOLT: Outer glow ===
+        ctx.fillStyle = this.color;
+        ctx.globalAlpha = 0.3 * pulse * beatBoost;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, r + 8 + (this.beatSynced ? 4 : 0), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        // === SAME AS ENERGY BOLT: White ring ===
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, r + 3, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // === DIFFERENT: Folded paper airplane V-shape ===
+        const flutter = Math.sin(this.age * 18) * 0.15; // Subtle flutter
+        const angle = Math.atan2(this.vy, this.vx); // Direction of travel
+
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(angle + Math.PI / 2); // Point in direction of travel
+
+        // Main paper body (V-shape / folded bill)
+        const w = r * 1.2 * pulse;
+        const h = r * 1.4;
+
+        // Paper body
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.moveTo(0, -h * 0.6);                          // Nose tip
+        ctx.lineTo(w * (1 + flutter), h * 0.3);           // Right wing
+        ctx.lineTo(0, h * 0.1);                           // Center notch
+        ctx.lineTo(-w * (1 - flutter), h * 0.3);          // Left wing
+        ctx.closePath();
+        ctx.fill();
+
+        // White contour
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Center fold line (paper crease)
+        ctx.strokeStyle = window.Game.ColorUtils.darken(this.color, 0.3);
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(0, -h * 0.5);
+        ctx.lineTo(0, h * 0.2);
+        ctx.stroke();
+
+        // Highlight on one wing (3D paper effect)
+        ctx.fillStyle = window.Game.ColorUtils.lighten(this.color, 0.4);
+        ctx.globalAlpha = 0.6;
+        ctx.beginPath();
+        ctx.moveTo(0, -h * 0.5);
+        ctx.lineTo(w * 0.5 * (1 + flutter), h * 0.1);
+        ctx.lineTo(0, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        ctx.restore();
+
+        // Center bright spot
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, r * 0.15, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // BAR BULLET (₣ 元): 3D gold ingot/trapezoid, same glow as energy bolt
+    // Keeps the same visibility, only changes the internal shape
+    // ═══════════════════════════════════════════════════════════════════
+    drawBarBullet(ctx) {
+        const beatBoost = this.beatSynced ? 1.5 : 1.0;
+        const r = (this.width || 5) * 1.8;
+        const pulse = Math.sin(this.age * 25) * 0.15 + 1;
+
+        // Calculate direction for trail
+        const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy) || 1;
+        const dirX = this.vx / speed;
+        const dirY = this.vy / speed;
+        const perpX = -dirY;
+        const perpY = dirX;
+        const trailLen = Math.min(28, speed * 0.12);
+
+        // === SAME AS ENERGY BOLT: Trail ===
+        for (let i = 4; i > 0; i--) {
+            const segDist = (i / 4) * trailLen;
+            const segAlpha = 0.12 * (5 - i);
+            const segWidth = r * (0.25 + (i * 0.12));
+            ctx.fillStyle = this.color;
+            ctx.globalAlpha = segAlpha;
+            ctx.beginPath();
+            ctx.moveTo(this.x - dirX * segDist - perpX * segWidth, this.y - dirY * segDist - perpY * segWidth);
+            ctx.lineTo(this.x - dirX * (segDist + 8), this.y - dirY * (segDist + 8));
+            ctx.lineTo(this.x - dirX * segDist + perpX * segWidth, this.y - dirY * segDist + perpY * segWidth);
+            ctx.closePath();
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+
+        // === SAME AS ENERGY BOLT: Outer glow ===
+        ctx.fillStyle = this.color;
+        ctx.globalAlpha = 0.3 * pulse * beatBoost;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, r + 8 + (this.beatSynced ? 4 : 0), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        // === SAME AS ENERGY BOLT: White ring ===
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, r + 3, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // === DIFFERENT: 3D gold ingot (trapezoid) that tumbles ===
+        const tumble = this.age * 8; // Tumble rotation
+        const tiltX = Math.sin(tumble) * 0.3; // Side tilt
+        const tiltY = Math.cos(tumble * 0.7) * 0.2; // Forward tilt
+
+        ctx.save();
+        ctx.translate(this.x, this.y);
+
+        // Ingot dimensions
+        const w = r * 1.3 * pulse;
+        const h = r * 0.8;
+        const topW = w * 0.6; // Top face is narrower (trapezoid)
+
+        // Calculate 3D offset based on tumble
+        const depthOffset = Math.sin(tumble) * 3;
+
+        // Bottom face (darker, back)
+        ctx.fillStyle = window.Game.ColorUtils.darken(this.color, 0.4);
+        ctx.beginPath();
+        ctx.moveTo(-w + depthOffset, h * 0.3);
+        ctx.lineTo(w + depthOffset, h * 0.3);
+        ctx.lineTo(topW + depthOffset, -h * 0.5);
+        ctx.lineTo(-topW + depthOffset, -h * 0.5);
+        ctx.closePath();
+        ctx.fill();
+
+        // Main face (front)
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.moveTo(-w, h * 0.4);           // Bottom left
+        ctx.lineTo(w, h * 0.4);            // Bottom right
+        ctx.lineTo(topW, -h * 0.4);        // Top right
+        ctx.lineTo(-topW, -h * 0.4);       // Top left
+        ctx.closePath();
+        ctx.fill();
+
+        // White contour
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Top face (lighter, shows during tumble)
+        if (Math.cos(tumble) > 0) {
+            ctx.fillStyle = window.Game.ColorUtils.lighten(this.color, 0.3);
+            ctx.globalAlpha = Math.cos(tumble) * 0.8;
+            ctx.beginPath();
+            ctx.moveTo(-topW, -h * 0.4);
+            ctx.lineTo(topW, -h * 0.4);
+            ctx.lineTo(topW * 0.8, -h * 0.6);
+            ctx.lineTo(-topW * 0.8, -h * 0.6);
+            ctx.closePath();
+            ctx.fill();
+            ctx.globalAlpha = 1;
+        }
+
+        // Metallic shine line
+        ctx.strokeStyle = '#fff';
+        ctx.globalAlpha = 0.7;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(-topW * 0.5, -h * 0.3);
+        ctx.lineTo(topW * 0.3, -h * 0.3);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+
+        ctx.restore();
+
+        // Center bright spot
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, r * 0.15, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // CARD BULLET (Ⓒ CBDC): Digital chip/card, same glow as energy bolt
+    // Keeps the same visibility, only changes the internal shape
+    // ═══════════════════════════════════════════════════════════════════
+    drawCardBullet(ctx) {
+        const beatBoost = this.beatSynced ? 1.5 : 1.0;
+        const r = (this.width || 5) * 1.8;
+        const pulse = Math.sin(this.age * 25) * 0.15 + 1;
+
+        // Calculate direction for trail
+        const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy) || 1;
+        const dirX = this.vx / speed;
+        const dirY = this.vy / speed;
+        const perpX = -dirY;
+        const perpY = dirX;
+        const trailLen = Math.min(28, speed * 0.12);
+
+        // === SAME AS ENERGY BOLT: Trail ===
+        for (let i = 4; i > 0; i--) {
+            const segDist = (i / 4) * trailLen;
+            const segAlpha = 0.12 * (5 - i);
+            const segWidth = r * (0.25 + (i * 0.12));
+            ctx.fillStyle = this.color;
+            ctx.globalAlpha = segAlpha;
+            ctx.beginPath();
+            ctx.moveTo(this.x - dirX * segDist - perpX * segWidth, this.y - dirY * segDist - perpY * segWidth);
+            ctx.lineTo(this.x - dirX * (segDist + 8), this.y - dirY * (segDist + 8));
+            ctx.lineTo(this.x - dirX * segDist + perpX * segWidth, this.y - dirY * segDist + perpY * segWidth);
+            ctx.closePath();
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+
+        // === SAME AS ENERGY BOLT: Outer glow ===
+        ctx.fillStyle = this.color;
+        ctx.globalAlpha = 0.3 * pulse * beatBoost;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, r + 8 + (this.beatSynced ? 4 : 0), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        // === SAME AS ENERGY BOLT: White ring ===
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, r + 3, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // === DIFFERENT: Digital card/chip rectangle ===
+        const glitch = Math.random() < 0.08 ? (Math.random() - 0.5) * 4 : 0; // Occasional glitch offset
+
+        ctx.save();
+        ctx.translate(this.x + glitch, this.y);
+
+        // Card dimensions (rectangle)
+        const w = r * 1.1 * pulse;
+        const h = r * 0.8 * pulse;
+
+        // Main card body (rounded rectangle)
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        const cornerR = 2;
+        ctx.moveTo(-w + cornerR, -h);
+        ctx.lineTo(w - cornerR, -h);
+        ctx.quadraticCurveTo(w, -h, w, -h + cornerR);
+        ctx.lineTo(w, h - cornerR);
+        ctx.quadraticCurveTo(w, h, w - cornerR, h);
+        ctx.lineTo(-w + cornerR, h);
+        ctx.quadraticCurveTo(-w, h, -w, h - cornerR);
+        ctx.lineTo(-w, -h + cornerR);
+        ctx.quadraticCurveTo(-w, -h, -w + cornerR, -h);
+        ctx.closePath();
+        ctx.fill();
+
+        // White contour
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Chip square (top-left corner)
+        ctx.fillStyle = window.Game.ColorUtils.lighten(this.color, 0.4);
+        ctx.fillRect(-w * 0.7, -h * 0.6, w * 0.5, h * 0.7);
+        ctx.strokeStyle = window.Game.ColorUtils.darken(this.color, 0.3);
+        ctx.lineWidth = 1;
+        ctx.strokeRect(-w * 0.7, -h * 0.6, w * 0.5, h * 0.7);
+
+        // Chip circuit lines
+        ctx.strokeStyle = window.Game.ColorUtils.darken(this.color, 0.2);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        // Horizontal lines from chip
+        ctx.moveTo(-w * 0.2, -h * 0.4);
+        ctx.lineTo(w * 0.7, -h * 0.4);
+        ctx.moveTo(-w * 0.2, -h * 0.1);
+        ctx.lineTo(w * 0.5, -h * 0.1);
+        ctx.moveTo(-w * 0.2, h * 0.2);
+        ctx.lineTo(w * 0.6, h * 0.2);
+        ctx.stroke();
+
+        // Scanline effect (subtle horizontal lines)
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+        ctx.lineWidth = 1;
+        for (let i = -3; i <= 3; i++) {
+            const lineY = i * h * 0.25;
+            ctx.beginPath();
+            ctx.moveTo(-w * 0.9, lineY);
+            ctx.lineTo(w * 0.9, lineY);
+            ctx.stroke();
+        }
+
+        ctx.restore();
+
+        // Digital pulse at center
+        ctx.fillStyle = '#fff';
+        ctx.globalAlpha = 0.5 + Math.sin(this.age * 40) * 0.3;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, r * 0.12, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // ENEMY: High-contrast energy bolt (DEFAULT FALLBACK)
     // Readable even with many projectiles on screen
     // Beat-synced bullets from Harmonic Conductor have enhanced trails
     // ═══════════════════════════════════════════════════════════════════

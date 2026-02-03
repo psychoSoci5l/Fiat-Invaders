@@ -1,5 +1,29 @@
 # Changelog
 
+## v2.19.0 - 2026-02-03
+### Feature: Shape-Specific Enemy Bullets
+
+**Visual Overhaul:**
+Enemy bullets now have distinct shapes based on the enemy type that fired them, making gameplay more readable and visually interesting.
+
+| Shape | Enemies | Bullet Visual |
+|-------|---------|---------------|
+| **COIN** | ¥ ₹ £ | Spinning ellipse (3D coin rotation) |
+| **BILL** | ₽ € ₺ $ | V-shape paper airplane with flutter |
+| **BAR** | ₣ 元 | 3D trapezoid/ingot that tumbles |
+| **CARD** | Ⓒ | Digital chip with circuits & scanlines |
+
+**Technical Approach:**
+- All shapes maintain identical visibility (same glow, trail, white ring)
+- Only the internal core shape changes per type
+- Incremental implementation with user validation at each step
+- Dispatcher pattern in `drawEnemyBullet()` routes to shape-specific methods
+
+**Files Modified:**
+- `src/entities/Bullet.js`: Added `drawCoinBullet()`, `drawBillBullet()`, `drawBarBullet()`, `drawCardBullet()`
+
+---
+
 ## v2.18.4 - 2026-02-03
 ### Fix: Stale Array Reference Bugs (Comprehensive)
 
