@@ -227,6 +227,31 @@ function triggerScorePulse() {
 function setStyle(id, prop, val) { const el = document.getElementById(id) || ui[id]; if (el) el.style[prop] = val; }
 function setUI(id, val) { const el = document.getElementById(id) || ui[id]; if (el) el.innerText = val; }
 function emitEvent(name, payload) { if (events && events.emit) events.emit(name, payload); }
+
+// Shield button radial indicator update
+function updateShieldButton(player) {
+    const btn = document.getElementById('t-shield');
+    if (!btn) return;
+
+    const progressCircle = btn.querySelector('.shield-radial-progress');
+    const COOLDOWN_MAX = 10.0;
+    const CIRCUMFERENCE = 188.5; // 2 * PI * 30
+
+    btn.classList.remove('ready', 'active', 'cooldown');
+
+    if (player.shieldActive) {
+        btn.classList.add('active');
+        if (progressCircle) progressCircle.style.strokeDashoffset = '0';
+    } else if (player.shieldCooldown > 0) {
+        btn.classList.add('cooldown');
+        const progress = 1 - (player.shieldCooldown / COOLDOWN_MAX);
+        const offset = CIRCUMFERENCE * (1 - progress);
+        if (progressCircle) progressCircle.style.strokeDashoffset = String(offset);
+    } else {
+        btn.classList.add('ready');
+        if (progressCircle) progressCircle.style.strokeDashoffset = '0';
+    }
+}
 // Meme functions delegate to MemeEngine singleton
 function getRandomMeme() { return G.MemeEngine.getRandomMeme(); }
 function getFiatDeathMeme() { return G.MemeEngine.getEnemyDeathMeme(); }
@@ -478,8 +503,10 @@ window.enterSelectionState = function() {
     // Hide splash elements
     const title = document.getElementById('intro-title');
     const tapBtn = document.getElementById('btn-tap-start');
+    const introVersion = document.querySelector('.intro-version');
     if (title) title.classList.add('hidden');
     if (tapBtn) tapBtn.classList.add('hidden');
+    if (introVersion) introVersion.style.display = 'none';
 
     // Show selection elements
     const header = document.getElementById('selection-header');
@@ -854,6 +881,8 @@ function init() {
                 const bullet = G.Bullet.Pool.acquire(bd.x, bd.y, bd.vx, bd.vy, bd.color, bd.w || 8, bd.h || 8, false);
                 // Enhanced trail for beat-synced bullets
                 bullet.beatSynced = true;
+                // Shape-based visual differentiation (coin/bill/bar/card)
+                bullet.shape = bd.shape || null;
                 enemyBullets.push(bullet);
             });
         });
@@ -1537,13 +1566,13 @@ window.backToIntro = function () {
         // Show splash elements and reset styles from destroy animation
         if (title) {
             title.classList.remove('hidden');
-            title.style.opacity = '1';
+            title.style.opacity = '';
             title.style.transform = '';
         }
         if (tapBtn) {
             tapBtn.classList.remove('hidden');
-            tapBtn.style.display = 'block';
-            tapBtn.style.opacity = '1';
+            tapBtn.style.display = '';
+            tapBtn.style.opacity = '';
             tapBtn.style.transform = '';
         }
 
@@ -1562,8 +1591,9 @@ window.backToIntro = function () {
             introIcons.style.transform = '';
         }
         if (introVersion) {
-            introVersion.style.opacity = '1';
+            introVersion.style.opacity = '';
             introVersion.style.transform = '';
+            introVersion.style.display = '';
         }
 
         audioSys.resetState();
@@ -2446,6 +2476,7 @@ function update(dt) {
         let sPct = player.shieldActive ? 100 : Math.max(0, 100 - (player.shieldCooldown / 8 * 100));
         setStyle('shieldBar', 'width', sPct + "%");
         setStyle('shieldBar', 'backgroundColor', player.shieldActive ? '#fff' : (player.shieldCooldown <= 0 ? player.stats.color : '#555'));
+        updateShieldButton(player);
 
         updateBullets(dt);
         updateEnemies(dt);
@@ -3067,7 +3098,7 @@ function checkBulletCollisions(b, bIdx) {
                     showGameInfo("💀 LAST FIAT! x" + lastEnemyMult.toFixed(0));
                 }
 
-                createEnemyDeathExplosion(e.x, e.y, e.color, e.symbol || '$');
+                createEnemyDeathExplosion(e.x, e.y, e.color, e.symbol || '$', e.shape);
                 createScoreParticles(e.x, e.y, e.color);
                 killCount++;
                 streak++;
@@ -3923,8 +3954,8 @@ function createExplosion(x, y, color, count = 12) {
     if (G.ParticleSystem) G.ParticleSystem.createExplosion(x, y, color, count);
 }
 
-function createEnemyDeathExplosion(x, y, color, symbol) {
-    if (G.ParticleSystem) G.ParticleSystem.createEnemyDeathExplosion(x, y, color, symbol);
+function createEnemyDeathExplosion(x, y, color, symbol, shape) {
+    if (G.ParticleSystem) G.ParticleSystem.createEnemyDeathExplosion(x, y, color, symbol, shape);
 }
 
 function createBossDeathExplosion(x, y) {

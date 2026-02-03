@@ -301,7 +301,15 @@
             <div id="joystick-stick"></div>
         </div>
         <button id="pause-btn" onclick="togglePause()">⏸</button>
-        <div class="touch-shield-btn" id="t-shield">🛡️</div>
+        <div class="shield-btn-wrapper" id="t-shield">
+            <svg class="shield-radial" viewBox="0 0 68 68">
+                <circle class="shield-radial-bg" cx="34" cy="34" r="30" />
+                <circle class="shield-radial-progress" cx="34" cy="34" r="30" />
+            </svg>
+            <div class="shield-btn-face">
+                <span class="shield-icon">🛡️</span>
+            </div>
+        </div>
     </div>
 
         <div id="control-toast">CONTROLS: SWIPE</div>

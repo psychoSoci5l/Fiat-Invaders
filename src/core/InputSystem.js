@@ -47,8 +47,24 @@ class InputSystem {
             tShield = this._createShieldButton();
         }
         if (tShield) {
-            tShield.addEventListener('touchstart', (e) => { e.preventDefault(); this.touch.shield = true; }, { passive: false });
-            tShield.addEventListener('touchend', (e) => { e.preventDefault(); this.touch.shield = false; }, { passive: false });
+            tShield.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); this.touch.shield = true; }, { passive: false });
+            tShield.addEventListener('touchend', (e) => { e.preventDefault(); e.stopPropagation(); this.touch.shield = false; }, { passive: false });
+        }
+
+        // Pause button - explicit touch handler for iOS
+        const pauseBtn = document.getElementById('pause-btn');
+        if (pauseBtn) {
+            pauseBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, { passive: false });
+            pauseBtn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (typeof window.togglePause === 'function') {
+                    window.togglePause();
+                }
+            }, { passive: false });
         }
 
         const joy = document.getElementById('joystick');
@@ -193,28 +209,17 @@ class InputSystem {
         const container = document.getElementById('game-container') || document.body;
         const btn = document.createElement('div');
         btn.id = 't-shield';
-        btn.className = 'touch-shield-btn';
-        btn.textContent = '🛡️';
-        btn.style.cssText = `
-            position: absolute;
-            bottom: 200px;
-            right: 20px;
-            width: 40px;
-            height: 40px;
-            background: rgba(52, 152, 219, 0.2);
-            border: 2px solid rgba(52, 152, 219, 0.5);
-            border-radius: 50%;
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 100;
-            touch-action: none;
-            user-select: none;
+        btn.className = 'shield-btn-wrapper ready';
+        btn.innerHTML = `
+            <svg class="shield-radial" viewBox="0 0 68 68">
+                <circle class="shield-radial-bg" cx="34" cy="34" r="30" />
+                <circle class="shield-radial-progress" cx="34" cy="34" r="30" />
+            </svg>
+            <div class="shield-btn-face">
+                <span class="shield-icon">🛡️</span>
+            </div>
         `;
         container.appendChild(btn);
-        // Shield button created dynamically (log removed for production)
         return btn;
     }
 

@@ -1101,6 +1101,201 @@ class AudioSystem {
             osc.start(t);
             osc.stop(t + 0.8);
         }
+        // === SHAPE-SPECIFIC DEATH SOUNDS (v2.19.2) ===
+        else if (type === 'coinJackpot') {
+            // Jackpot celebration - rapid ascending chimes like slot machine win
+            const notes = [1200, 1400, 1600, 1800, 2000, 2200]; // Ascending bright scale
+            const noteDuration = 0.04;
+
+            notes.forEach((freq, i) => {
+                const osc = this.ctx.createOscillator();
+                const osc2 = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.connect(gain);
+                osc2.connect(gain);
+                gain.connect(output);
+
+                osc.type = 'square';
+                osc2.type = 'triangle';
+                osc.frequency.value = freq;
+                osc2.frequency.value = freq * 1.5; // Harmonic
+
+                const noteStart = t + i * noteDuration;
+                gain.gain.setValueAtTime(0, noteStart);
+                gain.gain.linearRampToValueAtTime(0.08, noteStart + 0.008);
+                gain.gain.exponentialRampToValueAtTime(0.01, noteStart + noteDuration + 0.02);
+
+                osc.start(noteStart);
+                osc.stop(noteStart + noteDuration + 0.03);
+                osc2.start(noteStart);
+                osc2.stop(noteStart + noteDuration + 0.03);
+            });
+
+            // Final shimmer chord
+            const chordFreqs = [1600, 2000, 2400];
+            chordFreqs.forEach((freq) => {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.connect(gain);
+                gain.connect(output);
+                osc.type = 'triangle';
+                osc.frequency.value = freq;
+                const chordStart = t + notes.length * noteDuration;
+                gain.gain.setValueAtTime(0.06, chordStart);
+                gain.gain.exponentialRampToValueAtTime(0.01, chordStart + 0.15);
+                osc.start(chordStart);
+                osc.stop(chordStart + 0.15);
+            });
+        }
+        else if (type === 'paperBurn') {
+            // Fire crackle - filtered noise burst with descending pitch
+            const noise = this.createNoiseOsc(0.25);
+            if (noise) {
+                const filter = this.ctx.createBiquadFilter();
+                const gain = this.ctx.createGain();
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(output);
+
+                filter.type = 'bandpass';
+                filter.frequency.setValueAtTime(3000, t);
+                filter.frequency.exponentialRampToValueAtTime(800, t + 0.2);
+                filter.Q.value = 3;
+
+                gain.gain.setValueAtTime(0.12, t);
+                gain.gain.linearRampToValueAtTime(0.08, t + 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.01, t + 0.25);
+
+                noise.start(t);
+                noise.stop(t + 0.25);
+            }
+
+            // Fire woosh (low sweep)
+            const woosh = this.ctx.createOscillator();
+            const wooshGain = this.ctx.createGain();
+            woosh.connect(wooshGain);
+            wooshGain.connect(output);
+            woosh.type = 'sawtooth';
+            woosh.frequency.setValueAtTime(150, t);
+            woosh.frequency.exponentialRampToValueAtTime(50, t + 0.2);
+            wooshGain.gain.setValueAtTime(0.08, t);
+            wooshGain.gain.exponentialRampToValueAtTime(0.01, t + 0.2);
+            woosh.start(t);
+            woosh.stop(t + 0.2);
+
+            // Crackle pops (random timing)
+            for (let i = 0; i < 3; i++) {
+                const pop = this.ctx.createOscillator();
+                const popGain = this.ctx.createGain();
+                pop.connect(popGain);
+                popGain.connect(output);
+                pop.type = 'square';
+                pop.frequency.value = 400 + Math.random() * 300;
+                const popTime = t + 0.03 + i * 0.05 + Math.random() * 0.02;
+                popGain.gain.setValueAtTime(0.04, popTime);
+                popGain.gain.exponentialRampToValueAtTime(0.01, popTime + 0.02);
+                pop.start(popTime);
+                pop.stop(popTime + 0.02);
+            }
+        }
+        else if (type === 'metalShatter') {
+            // Heavy metallic impact - low thud + metallic resonance
+            // Sub bass impact
+            const sub = this.ctx.createOscillator();
+            const subGain = this.ctx.createGain();
+            sub.connect(subGain);
+            subGain.connect(output);
+            sub.type = 'sine';
+            sub.frequency.setValueAtTime(100, t);
+            sub.frequency.exponentialRampToValueAtTime(30, t + 0.15);
+            subGain.gain.setValueAtTime(0.25, t);
+            subGain.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
+            sub.start(t);
+            sub.stop(t + 0.15);
+
+            // Metallic clang (multiple detuned oscillators for "bell" effect)
+            const clangFreqs = [440, 587, 698, 880]; // Metallic harmonics
+            clangFreqs.forEach((freq, i) => {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.connect(gain);
+                gain.connect(output);
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(freq, t);
+                osc.frequency.exponentialRampToValueAtTime(freq * 0.7, t + 0.3);
+                gain.gain.setValueAtTime(0.06 - i * 0.01, t);
+                gain.gain.exponentialRampToValueAtTime(0.01, t + 0.25 - i * 0.03);
+                osc.start(t);
+                osc.stop(t + 0.3);
+            });
+
+            // Noise burst for shatter texture
+            const noise = this.createNoiseOsc(0.08);
+            if (noise) {
+                const filter = this.ctx.createBiquadFilter();
+                const noiseGain = this.ctx.createGain();
+                noise.connect(filter);
+                filter.connect(noiseGain);
+                noiseGain.connect(output);
+                filter.type = 'highpass';
+                filter.frequency.value = 2500;
+                noiseGain.gain.setValueAtTime(0.1, t);
+                noiseGain.gain.exponentialRampToValueAtTime(0.01, t + 0.08);
+                noise.start(t);
+                noise.stop(t + 0.08);
+            }
+        }
+        else if (type === 'digitalError') {
+            // Glitchy electronic error - beeps + static bursts
+            // Rapid glitch beeps (random pitches)
+            const beepCount = 4;
+            for (let i = 0; i < beepCount; i++) {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.connect(gain);
+                gain.connect(output);
+                osc.type = 'square';
+                // Random digital frequencies
+                const freq = [800, 1200, 1600, 2000][Math.floor(Math.random() * 4)];
+                osc.frequency.value = freq;
+                const beepTime = t + i * 0.035;
+                gain.gain.setValueAtTime(0.06, beepTime);
+                gain.gain.setValueAtTime(0, beepTime + 0.02);
+                osc.start(beepTime);
+                osc.stop(beepTime + 0.025);
+            }
+
+            // Digital static burst
+            const noise = this.createNoiseOsc(0.12);
+            if (noise) {
+                const filter = this.ctx.createBiquadFilter();
+                const noiseGain = this.ctx.createGain();
+                noise.connect(filter);
+                filter.connect(noiseGain);
+                noiseGain.connect(output);
+                filter.type = 'bandpass';
+                filter.frequency.setValueAtTime(4000, t);
+                filter.frequency.exponentialRampToValueAtTime(1000, t + 0.1);
+                filter.Q.value = 5;
+                noiseGain.gain.setValueAtTime(0.08, t);
+                noiseGain.gain.exponentialRampToValueAtTime(0.01, t + 0.12);
+                noise.start(t);
+                noise.stop(t + 0.12);
+            }
+
+            // Descending "error" tone
+            const error = this.ctx.createOscillator();
+            const errorGain = this.ctx.createGain();
+            error.connect(errorGain);
+            errorGain.connect(output);
+            error.type = 'sawtooth';
+            error.frequency.setValueAtTime(600, t + 0.05);
+            error.frequency.exponentialRampToValueAtTime(200, t + 0.2);
+            errorGain.gain.setValueAtTime(0.07, t + 0.05);
+            errorGain.gain.exponentialRampToValueAtTime(0.01, t + 0.2);
+            error.start(t + 0.05);
+            error.stop(t + 0.2);
+        }
     }
 
     // Hit sound variants helper

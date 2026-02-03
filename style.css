@@ -805,7 +805,7 @@ body {
 /* Bottom icons */
 .intro-icons {
     position: absolute;
-    bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(50px + env(safe-area-inset-bottom, 0px));
     display: flex;
     gap: 20px;
 }
@@ -814,8 +814,9 @@ body {
     position: absolute;
     bottom: calc(20px + env(safe-area-inset-bottom, 0px));
     font-size: 14px;
-    color: rgba(255, 255, 255, 0.4);
+    color: rgba(255, 255, 255, 0.6);
     letter-spacing: 3px;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
 .selection-header {
@@ -929,10 +930,11 @@ body {
 
 .selection-score .score-label {
     font-size: 13px;
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(255, 255, 255, 0.7);
     letter-spacing: 3px;
     display: block;
     margin-bottom: 5px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 .selection-score .score-value {
@@ -1529,29 +1531,171 @@ body {
     right: 0;
 }
 
-/* Touch control buttons - Minimal transparent style */
-.touch-shield-btn {
+/* Shield Button - Cell-shaded style with radial cooldown indicator */
+.shield-btn-wrapper {
     position: absolute;
-    bottom: calc(200px + env(safe-area-inset-bottom, 0px));
-    right: 20px;
-    width: 40px;
-    height: 40px;
-    background: rgba(52, 152, 219, 0.2);
-    border: 2px solid rgba(52, 152, 219, 0.5);
+    left: 20px;
+    bottom: calc(75px + env(safe-area-inset-bottom, 0px));
+    width: 64px;
+    height: 64px;
+    pointer-events: auto;
+    touch-action: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    z-index: 150;
+}
+
+.shield-radial {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+    pointer-events: none;
+}
+
+.shield-radial-bg {
+    fill: none;
+    stroke: rgba(0, 0, 0, 0.3);
+    stroke-width: 4;
+}
+
+.shield-radial-progress {
+    fill: none;
+    stroke: #0ff;
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-dasharray: 188.5;
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 0.1s linear, stroke 0.2s ease;
+}
+
+.shield-btn-face {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: 56px;
+    height: 56px;
     border-radius: 50%;
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 18px;
+    background: linear-gradient(135deg, #0ff 0%, #088 100%);
+    border: 3px solid #000;
     display: flex;
     justify-content: center;
     align-items: center;
-    pointer-events: auto;
-    backdrop-filter: blur(2px);
-    transition: background 0.1s, border-color 0.1s;
+    box-shadow:
+        inset 2px 2px 4px rgba(255, 255, 255, 0.3),
+        inset -2px -2px 4px rgba(0, 0, 0, 0.2),
+        0 4px 8px rgba(0, 0, 0, 0.4);
+    transition: transform 0.1s ease, box-shadow 0.2s ease, background 0.2s ease;
+    pointer-events: none;
 }
 
-.touch-shield-btn:active {
-    background: rgba(52, 152, 219, 0.4);
-    border-color: rgba(52, 152, 219, 0.8);
+.shield-icon {
+    font-size: 24px;
+    filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.5));
+    pointer-events: none;
+}
+
+/* READY state - Cyan with pulsing glow */
+.shield-btn-wrapper.ready .shield-btn-face {
+    background: linear-gradient(135deg, #0ff 0%, #088 100%);
+    box-shadow:
+        inset 2px 2px 4px rgba(255, 255, 255, 0.3),
+        inset -2px -2px 4px rgba(0, 0, 0, 0.2),
+        0 4px 8px rgba(0, 0, 0, 0.4),
+        0 0 15px rgba(0, 255, 255, 0.6);
+    animation: shield-pulse 1.5s ease-in-out infinite;
+}
+
+.shield-btn-wrapper.ready .shield-radial-progress {
+    stroke: #0ff;
+    stroke-dashoffset: 0;
+}
+
+/* ACTIVE state - Bright white with intense glow */
+.shield-btn-wrapper.active .shield-btn-face {
+    background: linear-gradient(135deg, #fff 0%, #aff 100%);
+    border-color: #000;
+    box-shadow:
+        inset 2px 2px 4px rgba(255, 255, 255, 0.5),
+        inset -2px -2px 4px rgba(0, 0, 0, 0.1),
+        0 4px 8px rgba(0, 0, 0, 0.4),
+        0 0 25px rgba(255, 255, 255, 0.8),
+        0 0 40px rgba(0, 255, 255, 0.5);
+    animation: shield-active-pulse 0.3s ease-in-out infinite;
+}
+
+.shield-btn-wrapper.active .shield-radial-progress {
+    stroke: #fff;
+    stroke-dashoffset: 0;
+    animation: shield-radial-pulse 0.5s ease-in-out infinite;
+}
+
+/* COOLDOWN state - Grey, no glow, radial fills up */
+.shield-btn-wrapper.cooldown .shield-btn-face {
+    background: linear-gradient(135deg, #666 0%, #333 100%);
+    border-color: #333;
+    box-shadow:
+        inset 2px 2px 4px rgba(255, 255, 255, 0.1),
+        inset -2px -2px 4px rgba(0, 0, 0, 0.3),
+        0 4px 8px rgba(0, 0, 0, 0.4);
+    animation: none;
+}
+
+.shield-btn-wrapper.cooldown .shield-radial-progress {
+    stroke: #0aa;
+}
+
+/* Press feedback */
+.shield-btn-wrapper:active .shield-btn-face {
+    transform: translateY(2px) scale(0.95);
+    box-shadow:
+        inset 2px 2px 4px rgba(255, 255, 255, 0.2),
+        inset -2px -2px 4px rgba(0, 0, 0, 0.3),
+        0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+/* Animations */
+@keyframes shield-pulse {
+    0%, 100% {
+        box-shadow:
+            inset 2px 2px 4px rgba(255, 255, 255, 0.3),
+            inset -2px -2px 4px rgba(0, 0, 0, 0.2),
+            0 4px 8px rgba(0, 0, 0, 0.4),
+            0 0 10px rgba(0, 255, 255, 0.4);
+    }
+    50% {
+        box-shadow:
+            inset 2px 2px 4px rgba(255, 255, 255, 0.3),
+            inset -2px -2px 4px rgba(0, 0, 0, 0.2),
+            0 4px 8px rgba(0, 0, 0, 0.4),
+            0 0 20px rgba(0, 255, 255, 0.7);
+    }
+}
+
+@keyframes shield-active-pulse {
+    0%, 100% {
+        box-shadow:
+            inset 2px 2px 4px rgba(255, 255, 255, 0.5),
+            inset -2px -2px 4px rgba(0, 0, 0, 0.1),
+            0 4px 8px rgba(0, 0, 0, 0.4),
+            0 0 20px rgba(255, 255, 255, 0.7),
+            0 0 35px rgba(0, 255, 255, 0.4);
+    }
+    50% {
+        box-shadow:
+            inset 2px 2px 4px rgba(255, 255, 255, 0.5),
+            inset -2px -2px 4px rgba(0, 0, 0, 0.1),
+            0 4px 8px rgba(0, 0, 0, 0.4),
+            0 0 30px rgba(255, 255, 255, 0.9),
+            0 0 50px rgba(0, 255, 255, 0.6);
+    }
+}
+
+@keyframes shield-radial-pulse {
+    0%, 100% { stroke-width: 4; }
+    50% { stroke-width: 6; }
 }
 
 @keyframes pulse {
@@ -2033,28 +2177,56 @@ body.bear-mode .neon-title {
 .perk-card.rarity-rare .perk-name { color: #6aa9ff; }
 .perk-card.rarity-epic .perk-name { color: #f3a4ff; }
 
-/* Pause button - Minimal transparent style, above shield */
+/* Pause Button - Cell-shaded style matching shield button */
 #pause-btn {
     position: absolute;
     right: 20px;
-    bottom: calc(250px + env(safe-area-inset-bottom, 0px));
-    width: 40px;
-    height: 40px;
+    bottom: calc(75px + env(safe-area-inset-bottom, 0px));
+    width: 64px;
+    height: 64px;
     border-radius: 50%;
-    border: 2px solid rgba(243, 156, 18, 0.5);
-    background: rgba(243, 156, 18, 0.2);
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 16px;
+    border: 3px solid #000;
+    background: linear-gradient(135deg, #f39c12 0%, #d35400 100%);
+    color: #000;
+    font-size: 24px;
     pointer-events: auto;
-    backdrop-filter: blur(2px);
-    z-index: 140;
+    z-index: 150;
     display: none;
-    transition: background 0.1s, border-color 0.1s;
+    transition: transform 0.1s ease, box-shadow 0.2s ease;
+    box-shadow:
+        inset 2px 2px 4px rgba(255, 255, 255, 0.3),
+        inset -2px -2px 4px rgba(0, 0, 0, 0.2),
+        0 4px 8px rgba(0, 0, 0, 0.4),
+        0 0 15px rgba(243, 156, 18, 0.5);
+    animation: pause-pulse 1.5s ease-in-out infinite;
+    touch-action: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
 #pause-btn:active {
-    background: rgba(243, 156, 18, 0.4);
-    border-color: rgba(243, 156, 18, 0.8);
+    transform: translateY(2px) scale(0.95);
+    box-shadow:
+        inset 2px 2px 4px rgba(255, 255, 255, 0.2),
+        inset -2px -2px 4px rgba(0, 0, 0, 0.3),
+        0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+@keyframes pause-pulse {
+    0%, 100% {
+        box-shadow:
+            inset 2px 2px 4px rgba(255, 255, 255, 0.3),
+            inset -2px -2px 4px rgba(0, 0, 0, 0.2),
+            0 4px 8px rgba(0, 0, 0, 0.4),
+            0 0 10px rgba(243, 156, 18, 0.3);
+    }
+    50% {
+        box-shadow:
+            inset 2px 2px 4px rgba(255, 255, 255, 0.3),
+            inset -2px -2px 4px rgba(0, 0, 0, 0.2),
+            0 4px 8px rgba(0, 0, 0, 0.4),
+            0 0 20px rgba(243, 156, 18, 0.6);
+    }
 }
 
 @media (min-width: 520px) {

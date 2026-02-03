@@ -68,14 +68,20 @@ class Enemy extends window.Game.Entity {
             vy = Math.sin(angle) * bulletSpeed;
         }
 
+        // Get bullet size from Balance config based on shape
+        const Balance = window.Game.Balance;
+        const visualConfig = Balance?.BULLET_VISUALS?.[this.shape] || Balance?.BULLET_VISUALS?.DEFAULT || {};
+        const size = visualConfig.size || { w: 6, h: 6 };
+
         return {
             x: this.x,
             y: this.y + 32, // Adjusted for larger enemy size
             vx: vx,
             vy: vy,
             color: this.color, // Match enemy color
-            w: 6, // Slightly larger bullet
-            h: 6
+            w: size.w,
+            h: size.h,
+            shape: this.shape  // Pass enemy shape for visual differentiation
         };
     }
 

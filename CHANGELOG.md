@@ -1,5 +1,78 @@
 # Changelog
 
+## v2.20.3 - 2026-02-03
+### Fix: UI Readability & Layout
+
+**Fixes:**
+- Version text now more readable (opacity 40% → 60% + text-shadow)
+- "RECORD" label more readable (opacity 50% → 70% + text-shadow)
+- Version hidden in SELECTION state (less clutter)
+- Fixed UI overlap bug when returning from game via settings
+  - Cleared inline styles instead of setting `opacity: '1'` which overrode CSS `.hidden`
+- Icons positioned lower (70px → 50px) for better LAUNCH button spacing
+
+---
+
+## v2.20.2 - 2026-02-03
+### Fix: iOS Touch Handling for Buttons
+
+**Fixes:**
+- Added `pointer-events: none` to shield button child elements (SVG, face, icon)
+- Touch events now properly pass through to the wrapper element
+- Added explicit touch handlers for pause button in InputSystem.js
+- Pause button now uses `touchend` → `togglePause()` instead of relying on `onclick`
+
+---
+
+## v2.20.1 - 2026-02-03
+### Fix: Button Positioning & Pause Button Redesign
+
+**Changes:**
+- Shield button lowered to GRAZE meter height (`bottom: 60px`)
+- Pause button completely redesigned with cell-shaded style
+  - Same 64x64px size as shield button
+  - Orange/gold gradient (#f39c12 → #d35400)
+  - Bold 3px black border
+  - Pulsing glow animation
+  - Press feedback with scale transform
+- Both buttons now symmetrically positioned (left/right at same height)
+
+---
+
+## v2.20.0 - 2026-02-03
+### Feature: Shield Button Redesign (Phase 21)
+
+**UI Overhaul:**
+Redesigned shield button for better mobile ergonomics and visual feedback.
+
+| Change | Before | After |
+|--------|--------|-------|
+| **Position** | Right side | Left side (thumb-friendly) |
+| **Size** | 40x40px | 64x64px |
+| **Style** | Semi-transparent | Cell-shaded with bold border |
+| **Feedback** | Color change only | SVG radial cooldown indicator |
+
+**Three Visual States:**
+| State | Appearance | Indicator |
+|-------|------------|-----------|
+| **READY** | Cyan gradient + pulsing glow | Full circle |
+| **ACTIVE** | Bright white + intense glow | Pulsing |
+| **COOLDOWN** | Grey, no glow | Circle fills 0→100% |
+
+**Technical Details:**
+- SVG radial progress indicator (circumference math: 2πr = 188.5)
+- CSS transitions for smooth state changes
+- Press feedback with scale transform
+- `stopPropagation()` prevents touch conflicts
+
+**Files Modified:**
+- `index.html`: New shield button structure with SVG
+- `style.css`: Complete cell-shaded button styles
+- `src/main.js`: Added `updateShieldButton()` function
+- `src/core/InputSystem.js`: Updated handlers and fallback creation
+
+---
+
 ## v2.19.0 - 2026-02-03
 ### Feature: Shape-Specific Enemy Bullets
 
