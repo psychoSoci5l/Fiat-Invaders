@@ -1108,6 +1108,10 @@ function resize() {
     if (G.EffectsRenderer) {
         G.EffectsRenderer.setDimensions(gameWidth, gameHeight);
     }
+    // Update MessageSystem dimensions (fixes text box positioning after resize)
+    if (G.MessageSystem) {
+        G.MessageSystem.setDimensions(gameWidth, gameHeight);
+    }
 }
 
 function updateUIText() {
@@ -3432,15 +3436,23 @@ function draw() {
             const alpha = t.life < fadeStart ? t.life / fadeStart : 1;
 
             ctx.font = `bold ${t.size || 20}px Courier New`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
             ctx.globalAlpha = alpha;
+
+            // Clamp X to screen bounds (with padding for text width)
+            const padding = 80;
+            const clampedX = Math.max(padding, Math.min(gameWidth - padding, t.x));
+
             // Black outline for readability
             ctx.strokeStyle = '#000';
             ctx.lineWidth = 3;
-            ctx.strokeText(t.text, t.x, t.y);
+            ctx.strokeText(t.text, clampedX, t.y);
             ctx.fillStyle = t.c;
-            ctx.fillText(t.text, t.x, t.y);
+            ctx.fillText(t.text, clampedX, t.y);
         }
         ctx.globalAlpha = 1;
+        ctx.textAlign = 'left'; // Reset to default
 
         // Perk icons (glow above player)
         drawPerkIcons(ctx);
@@ -3856,11 +3868,14 @@ function drawPerkIcons(ctx) {
             const nameAlpha = (p.scale - 0.5) * 2 * alpha;
             ctx.globalAlpha = nameAlpha;
             ctx.font = 'bold 14px "Courier New", monospace';
+            // Clamp X to prevent name overflow at screen edges
+            const namePadding = 60;
+            const nameX = Math.max(namePadding, Math.min(gameWidth - namePadding, p.x));
             ctx.strokeStyle = '#000';
             ctx.lineWidth = 3;
-            ctx.strokeText(p.name, p.x, p.y + size * 0.8);
+            ctx.strokeText(p.name, nameX, p.y + size * 0.8);
             ctx.fillStyle = p.color;
-            ctx.fillText(p.name, p.x, p.y + size * 0.8);
+            ctx.fillText(p.name, nameX, p.y + size * 0.8);
         }
 
         ctx.restore();

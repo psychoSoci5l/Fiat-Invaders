@@ -202,7 +202,10 @@
      * @param {number} totalTime - For animations
      */
     function draw(ctx, totalTime = 0) {
-        const cx = gameWidth / 2;
+        // Defensive fallback if dimensions not set (prevents left-edge rendering)
+        const w = gameWidth || 600;
+        const h = gameHeight || 800;
+        const cx = w / 2;
 
         // GAME_INFO: Top area, green box
         gameInfoMessages.forEach(m => {
@@ -211,16 +214,32 @@
 
             ctx.save();
             ctx.globalAlpha = alpha;
-            ctx.font = 'bold 24px "Press Start 2P", monospace';
+
+            // Dynamic font size: shrink for long texts to fit screen
+            const maxBoxWidth = w - 40; // 20px padding each side
+            let fontSize = 24;
+            ctx.font = `bold ${fontSize}px "Press Start 2P", monospace`;
+            let textWidth = ctx.measureText(m.text).width || 200;
+
+            // Shrink font if text too wide
+            while (textWidth + 40 > maxBoxWidth && fontSize > 12) {
+                fontSize -= 2;
+                ctx.font = `bold ${fontSize}px "Press Start 2P", monospace`;
+                textWidth = ctx.measureText(m.text).width;
+            }
+
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
 
-            const textWidth = ctx.measureText(m.text).width || 200;
+            // Clamp box width to screen bounds
+            const boxWidth = Math.min(textWidth + 40, maxBoxWidth);
+            const boxHeight = fontSize + 12;
+
             ctx.fillStyle = 'rgba(0, 50, 0, 0.8)';
             ctx.strokeStyle = '#00FF00';
             ctx.lineWidth = 2;
-            ctx.fillRect(cx - textWidth/2 - 20, y - 18, textWidth + 40, 36);
-            ctx.strokeRect(cx - textWidth/2 - 20, y - 18, textWidth + 40, 36);
+            ctx.fillRect(cx - boxWidth/2, y - boxHeight/2, boxWidth, boxHeight);
+            ctx.strokeRect(cx - boxWidth/2, y - boxHeight/2, boxWidth, boxHeight);
 
             ctx.fillStyle = '#00FF00';
             ctx.fillText(m.text, cx, y);
@@ -231,20 +250,34 @@
         dangerMessages.forEach(m => {
             const alpha = Math.min(1, m.life);
             const pulse = Math.sin(totalTime * 10) * 0.3 + 0.7;
-            const y = gameHeight / 2 - 30;
+            const y = h / 2 - 30;
 
             ctx.save();
             ctx.globalAlpha = alpha;
-            ctx.font = 'bold 28px "Press Start 2P", monospace';
+
+            // Dynamic font size for long texts
+            const maxBoxWidth = w - 40;
+            let fontSize = 28;
+            ctx.font = `bold ${fontSize}px "Press Start 2P", monospace`;
+            let textWidth = ctx.measureText(m.text).width || 300;
+
+            while (textWidth + 60 > maxBoxWidth && fontSize > 14) {
+                fontSize -= 2;
+                ctx.font = `bold ${fontSize}px "Press Start 2P", monospace`;
+                textWidth = ctx.measureText(m.text).width;
+            }
+
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
 
-            const textWidth = ctx.measureText(m.text).width || 300;
+            const boxWidth = Math.min(textWidth + 60, maxBoxWidth);
+            const boxHeight = fontSize + 22;
+
             ctx.fillStyle = `rgba(80, 0, 0, ${0.9 * pulse})`;
             ctx.strokeStyle = '#FF0000';
             ctx.lineWidth = 4 + pulse * 2;
-            ctx.fillRect(cx - textWidth/2 - 30, y - 25, textWidth + 60, 50);
-            ctx.strokeRect(cx - textWidth/2 - 30, y - 25, textWidth + 60, 50);
+            ctx.fillRect(cx - boxWidth/2, y - boxHeight/2, boxWidth, boxHeight);
+            ctx.strokeRect(cx - boxWidth/2, y - boxHeight/2, boxWidth, boxHeight);
 
             ctx.fillStyle = '#FF4444';
             ctx.shadowColor = '#FF0000';
@@ -257,23 +290,37 @@
         victoryMessages.forEach(m => {
             const alpha = Math.min(1, m.life);
             const scale = 1 + Math.sin(totalTime * 5) * 0.05;
-            const y = gameHeight / 2;
+            const y = h / 2;
 
             ctx.save();
             ctx.globalAlpha = alpha;
-            ctx.font = 'bold 32px "Press Start 2P", monospace';
+
+            // Dynamic font size for long texts
+            const maxBoxWidth = w - 40;
+            let fontSize = 32;
+            ctx.font = `bold ${fontSize}px "Press Start 2P", monospace`;
+            let textWidth = ctx.measureText(m.text).width || 300;
+
+            while (textWidth + 60 > maxBoxWidth && fontSize > 16) {
+                fontSize -= 2;
+                ctx.font = `bold ${fontSize}px "Press Start 2P", monospace`;
+                textWidth = ctx.measureText(m.text).width;
+            }
+
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
 
-            const textWidth = ctx.measureText(m.text).width || 300;
+            const boxWidth = Math.min(textWidth + 60, maxBoxWidth);
+            const boxHeight = fontSize + 28;
+
             ctx.translate(cx, y);
             ctx.scale(scale, scale);
 
             ctx.fillStyle = 'rgba(50, 40, 0, 0.9)';
             ctx.strokeStyle = '#FFD700';
             ctx.lineWidth = 3;
-            ctx.fillRect(-textWidth/2 - 30, -30, textWidth + 60, 60);
-            ctx.strokeRect(-textWidth/2 - 30, -30, textWidth + 60, 60);
+            ctx.fillRect(-boxWidth/2, -boxHeight/2, boxWidth, boxHeight);
+            ctx.strokeRect(-boxWidth/2, -boxHeight/2, boxWidth, boxHeight);
 
             ctx.fillStyle = '#FFD700';
             ctx.shadowColor = '#FFD700';

@@ -1,5 +1,38 @@
 # Changelog
 
+## v2.18.2 - 2026-02-03
+### Fix: Text Overflow & Bounds Clamping
+
+**Improvements:**
+- Long text messages now auto-shrink font size to fit screen width
+- All text boxes clamped to screen bounds (no more overflow)
+- Floating texts and perk names now centered and clamped at screen edges
+
+**Changes:**
+- `MessageSystem.js`: Dynamic font sizing (24→12px) for GAME_INFO, DANGER, VICTORY
+- `MessageSystem.js`: Box width clamped to `screenWidth - 40px`
+- `main.js`: floatingTexts now use `textAlign: center` + X clamping
+- `main.js`: perkIcons name text clamped to prevent edge overflow
+
+---
+
+## v2.18.1 - 2026-02-03
+### Fix: Text Box Positioning After Resize
+
+**Bug Fixed:**
+- Text boxes (GAME_INFO, DANGER, VICTORY messages) were appearing at wrong positions after screen resize or orientation change
+- Messages like "VOLATILITÀ", "CLIMAX", "LAST FIAT! x2" were rendering at left edge instead of centered
+
+**Root Cause:**
+- `MessageSystem.setDimensions()` was not called in the resize handler
+- After resize, MessageSystem kept using stale `gameWidth/gameHeight` values
+
+**Changes:**
+- `main.js`: Added `MessageSystem.setDimensions()` call to resize handler
+- `MessageSystem.js`: Added defensive fallbacks (`w || 600`, `h || 800`) to prevent left-edge rendering if dimensions are uninitialized
+
+---
+
 ## v2.18.0 - 2026-02-03
 ### Boss Redesign: Exclusive Patterns & Currency Triggers
 
