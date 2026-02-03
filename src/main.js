@@ -1873,13 +1873,14 @@ function startIntermission(msgOverride) {
     // Play wave complete jingle (unless boss defeat which has its own sound)
     if (!msgOverride) {
         audioSys.play('waveComplete');
+        // Note: No showVictory() here - the countdown overlay provides visual feedback
     }
 
     // Pick a random meme for the countdown
     const memePool = [...(Constants.MEMES.LOW || []), ...(Constants.MEMES.SAYLOR || [])];
     intermissionMeme = memePool[Math.floor(Math.random() * memePool.length)] || "HODL";
 
-    // Only show text if explicitly provided (boss defeat, etc.)
+    // Show override text if provided (boss defeat, etc.)
     if (msgOverride) {
         addText(msgOverride, gameWidth / 2, gameHeight / 2 - 80, '#00ff00', 30);
     }
@@ -1889,6 +1890,72 @@ function startIntermission(msgOverride) {
     if (G.Story) {
         G.Story.onLevelComplete(level);
     }
+}
+
+function startHordeTransition() {
+    // Horde 1 cleared, brief pause before horde 2
+    // This is a quick transition - NOT a full level complete celebration
+    waveMgr.startHordeTransition();
+    waveMgr.waveInProgress = false;
+
+    // Convert enemy bullets to half bonus (less reward between hordes)
+    const bulletBonus = Math.floor(enemyBullets.length * 5); // Half value compared to intermission
+    if (enemyBullets.length > 0) {
+        enemyBullets.forEach(eb => {
+            createExplosion(eb.x, eb.y, eb.color || '#ff0', 4);
+        });
+        if (bulletBonus > 0) {
+            score += bulletBonus;
+            updateScore(score);
+        }
+    }
+
+    // Clear bullets but keep player state (graze meter, etc.)
+    bullets = [];
+    enemyBullets = [];
+    window.enemyBullets = enemyBullets;
+
+    // Softer sound for horde transition (not full waveComplete celebration)
+    audioSys.play('coinScore');
+
+    // No message here - wait for "HORDE 2!" in startHorde2()
+    // This keeps the transition clean and quick
+
+    emitEvent('horde_transition', { wave: waveMgr.wave, fromHorde: 1, toHorde: 2 });
+}
+
+function startHorde2() {
+    // Spawn horde 2 for current wave
+    gameState = 'PLAY';
+    waveMgr.waveInProgress = false;
+
+    // Show "HORDE 2!" announcement
+    showGameInfo(t('HORDE_2_INCOMING'));
+
+    // Brief screen flash
+    triggerScreenFlash('WAVE_START');
+
+    // Spawn horde 2 with pattern variant
+    const spawnData = waveMgr.spawnWave(gameWidth, 2);
+    enemies = spawnData.enemies;
+    lastWavePattern = spawnData.pattern;
+    gridDir = 1;
+
+    // Sync global enemies reference
+    G.enemies = enemies;
+
+    // Track wave start time for this horde
+    waveStartTime = totalTime;
+
+    // Update Harmonic Conductor for horde 2
+    if (G.HarmonicConductor) {
+        G.HarmonicConductor.enemies = enemies;
+        G.HarmonicConductor.setDifficulty(level, marketCycle, isBearMarket);
+        G.HarmonicConductor.setSequence(lastWavePattern, audioSys.intensity, isBearMarket);
+        G.HarmonicConductor.startWave(enemies.length);
+    }
+
+    emitEvent('horde_start', { wave: waveMgr.wave, horde: 2, pattern: lastWavePattern });
 }
 
 function startBossWarning() {
@@ -2411,7 +2478,11 @@ function update(dt) {
     }
 
     if (waveAction) {
-        if (waveAction.action === 'START_INTERMISSION') {
+        if (waveAction.action === 'START_HORDE_TRANSITION') {
+            startHordeTransition();
+        } else if (waveAction.action === 'START_HORDE_2') {
+            startHorde2();
+        } else if (waveAction.action === 'START_INTERMISSION') {
             startIntermission();
         } else if (waveAction.action === 'SPAWN_BOSS') {
             startBossWarning(); // Start warning instead of immediate spawn
@@ -2436,7 +2507,10 @@ function update(dt) {
             // Update global level BEFORE spawnWave so enemy HP scaling is correct
             window.currentLevel = level;
 
-            const spawnData = waveMgr.spawnWave(gameWidth);
+            // Reset horde state for new wave
+            waveMgr.currentHorde = 1;
+
+            const spawnData = waveMgr.spawnWave(gameWidth, 1); // Start with horde 1
             enemies = spawnData.enemies;
             lastWavePattern = spawnData.pattern;
             gridDir = 1;
@@ -2455,12 +2529,14 @@ function update(dt) {
                 G.HarmonicConductor.startWave(enemies.length); // Track wave intensity
             }
 
-            emitEvent('wave_start', { wave: waveNumber, level: level, pattern: lastWavePattern });
+            emitEvent('wave_start', { wave: waveNumber, level: level, pattern: lastWavePattern, horde: 1 });
         }
     }
 
     if (gameState === 'PLAY') {
-        const newBullets = player.update(dt);
+        // Always update player for movement, but block firing while enemies enter formation
+        const enemiesEntering = G.HarmonicConductor && G.HarmonicConductor.areEnemiesEntering();
+        const newBullets = player.update(dt, enemiesEntering);
         if (newBullets && newBullets.length > 0) {
             bullets.push(...newBullets);
             createMuzzleFlashParticles(player.x, player.y - 25, player.stats.color);
@@ -3520,7 +3596,7 @@ function draw() {
         // Intermission countdown overlay (cell-shaded with audio feedback)
         if (gameState === 'INTERMISSION' && waveMgr.intermissionTimer > 0) {
             const timer = waveMgr.intermissionTimer;
-            const countdown = Math.ceil(timer);
+            const countdown = Math.min(3, Math.ceil(timer)); // Cap at 3 for clean 3-2-1 countdown
             const centerX = gameWidth / 2;
             const centerY = gameHeight / 2;
             const progress = timer % 1; // 0→1 within each second
@@ -3541,8 +3617,8 @@ function draw() {
             ctx.scale(scale, scale);
             ctx.globalAlpha = alpha;
 
-            // Background box (cell-shaded dark)
-            const boxW = 300, boxH = 140;
+            // Background box (cell-shaded dark) - taller to fit meme
+            const boxW = 320, boxH = 180;
             ctx.fillStyle = 'rgba(15, 15, 25, 0.92)';
             ctx.strokeStyle = '#000';
             ctx.lineWidth = 4;
@@ -3558,26 +3634,36 @@ function draw() {
             ctx.roundRect(-boxW/2 + 4, -boxH/2 + 4, boxW - 8, boxH - 8, 8);
             ctx.stroke();
 
-            // Wave info (top, green)
-            const waveNum = waveMgr.wave;
-            const waveKey = 'WAVE' + waveNum;
-            const waveText = t(waveKey) || ('WAVE ' + waveNum);
+            // "GET READY" text (top, green) - neutral message during countdown
+            const readyText = t('GET_READY') || 'GET READY';
             ctx.font = 'bold 16px "Press Start 2P", monospace';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillStyle = '#00FF00';
             ctx.strokeStyle = '#000';
             ctx.lineWidth = 3;
-            ctx.strokeText(waveText, 0, -35);
-            ctx.fillText(waveText, 0, -35);
+            ctx.strokeText(readyText, 0, -55);
+            ctx.fillText(readyText, 0, -55);
 
             // Countdown number (center, gold with bold outline)
             ctx.font = 'bold 64px "Press Start 2P", monospace';
             ctx.strokeStyle = '#000';
             ctx.lineWidth = 8;
             ctx.fillStyle = '#F7931A';
-            ctx.strokeText(countdown.toString(), 0, 20);
-            ctx.fillText(countdown.toString(), 0, 20);
+            ctx.strokeText(countdown.toString(), 0, 0);
+            ctx.fillText(countdown.toString(), 0, 0);
+
+            // Meme text (bottom, cyan)
+            if (intermissionMeme) {
+                ctx.font = 'bold 11px "Press Start 2P", monospace';
+                ctx.fillStyle = '#00FFFF';
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+                // Truncate if too long
+                const memeDisplay = intermissionMeme.length > 22 ? intermissionMeme.substring(0, 20) + '...' : intermissionMeme;
+                ctx.strokeText(memeDisplay, 0, 55);
+                ctx.fillText(memeDisplay, 0, 55);
+            }
 
             ctx.restore();
         }

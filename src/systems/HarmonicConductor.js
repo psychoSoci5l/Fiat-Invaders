@@ -111,6 +111,10 @@ window.Game.HarmonicConductor = {
             fireRateMult = 1.1;
         }
 
+        // Apply global fire rate reduction (15% less bullets from normal enemies)
+        const globalMult = choreography.FIRE_RATE_GLOBAL_MULT || 1.0;
+        fireRateMult *= globalMult;
+
         // Log phase transitions (for debugging)
         if (newPhase !== this.waveIntensity.currentPhase) {
             this.waveIntensity.currentPhase = newPhase;
@@ -132,6 +136,12 @@ window.Game.HarmonicConductor = {
     // Check if in last enemy pause (should not fire)
     isInLastEnemyPause() {
         return this.waveIntensity.lastEnemyPauseTimer > 0;
+    },
+
+    // Check if any enemies are still entering formation (should not fire)
+    areEnemiesEntering() {
+        if (!this.enemies || this.enemies.length === 0) return false;
+        return this.enemies.some(e => e && e.active && e.isEntering);
     },
 
     // Get last enemy score bonus
@@ -200,6 +210,9 @@ window.Game.HarmonicConductor = {
 
         // Skip firing during last enemy pause (dramatic silence)
         if (this.isInLastEnemyPause()) return;
+
+        // Skip firing while enemies are still entering formation
+        if (this.areEnemiesEntering()) return;
 
         // Sync tempo from AudioSystem
         const audio = window.Game.Audio;
@@ -274,7 +287,8 @@ window.Game.HarmonicConductor = {
         const Sequences = window.Game.HarmonicSequences;
         if (!Sequences || !this.enemies) return [];
 
-        const activeEnemies = this.enemies.filter(e => e && e.active);
+        // Only include enemies that have settled (not still entering formation)
+        const activeEnemies = this.enemies.filter(e => e && e.active && e.hasSettled !== false);
         if (tierName === 'ALL') return activeEnemies;
 
         const tierIndices = Sequences.TIERS[tierName];

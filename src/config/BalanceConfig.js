@@ -228,7 +228,8 @@
                 PANIC_START: 0.85,                  // 85%+: Panic phase
                 PANIC_RATE_MULT: 1.4,               // Fire rate multiplier in panic
                 LAST_ENEMY_PAUSE: 0.8,              // Silence before last kill
-                LAST_ENEMY_BONUS: 2.0               // Score multiplier for last enemy
+                LAST_ENEMY_BONUS: 2.0,              // Score multiplier for last enemy
+                FIRE_RATE_GLOBAL_MULT: 0.85         // Global 15% reduction in enemy fire rate
             },
 
             // Telegraph (warning before pattern fires)
@@ -450,7 +451,7 @@
         TIMING: {
             // State transitions
             SPLASH_TIMEOUT: 4.0,           // Video splash screen max duration
-            INTERMISSION_DURATION: 1.9,    // Between waves
+            INTERMISSION_DURATION: 3.2,    // Between waves (3-2-1 countdown, ceil(3.2)=4 but we cap at 3)
             DEATH_DURATION: 2.0,           // Death sequence length
             INVULNERABILITY: 2.1,          // Post-hit protection
 
@@ -613,7 +614,20 @@
         // --- WAVES ---
         WAVES: {
             PER_CYCLE: 5,                 // Waves before boss appears
-            ENEMY_FIRE_TIMER: 0.5         // Base timer for enemy fire phase
+            ENEMY_FIRE_TIMER: 0.5,        // Base timer for enemy fire phase
+            HORDES_PER_WAVE: 2,           // Number of hordes per wave
+            HORDE_TRANSITION_DURATION: 0.8, // Seconds between hordes
+            HORDE_2_PATTERN_VARIANT: true // Use different pattern for horde 2
+        },
+
+        // --- ENEMY FORMATION ENTRY ---
+        FORMATION_ENTRY: {
+            ENABLED: true,                // Enable formation entry animation
+            ENTRY_SPEED: 420,             // Pixels per second during entry (+20% from 350)
+            STAGGER_DELAY: 0.08,          // Seconds between each enemy starting entry
+            SPAWN_Y_OFFSET: -80,          // Y offset above screen for spawning
+            SETTLE_TIME: 0.3,             // Seconds to settle after reaching position
+            CURVE_INTENSITY: 0.4          // How much enemies curve during entry (0-1)
         },
 
         // --- HELPER FUNCTIONS ---

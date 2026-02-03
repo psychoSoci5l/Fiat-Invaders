@@ -1,7 +1,7 @@
-# Roadmap: FIAT vs CRYPTO -> iOS App Store Ready 📱
+# Roadmap: FIAT vs CRYPTO 📱
 
 > [!IMPORTANT]
-> **PIVOT**: As of Phase 3, development is exclusively focused on **Mobile/iOS**. Desktop support is deprecated.
+> **FOCUS**: Mobile-first PWA experience. Desktop fully supported.
 
 ## Phase 1: The Great Refactor (Foundation) ✅
 *Goal: Transform the prototype code into a professional, maintainable architecture.*
@@ -26,7 +26,7 @@
 - [x] **Haptics**: Add vibration feedback (Navigator.vibrate for now, Capacitor Haptics later).
 
 ## Phase 4: Next-Gen Visuals & Gameplay 🎨
-*Goal: Graphics and mechanics worthy of the App Store.*
+*Goal: Premium graphics and mechanics.*
 - [x] **Visual Identity**: Neon Geometry & Particles.
 - [x] **Juice**: Screen Shake, SlowMo, Red Flash.
 - [x] **Gameplay Depth**: Smart AI, Snake Patterns, Power-Ups (Satoshi Drops).
@@ -89,7 +89,7 @@
 *Goal: Premium look & feel.*
 - [x] **Start Screen Redesign**: Modern, clean, impactful. Animated ship with reactor flame.
 - [x] **Player Ship Effects**: Reactor flame, muzzle flash, trail, side thrusters.
-- [ ] **Difficulty Tuning**: Final balance pass (pending testing).
+- [→] **Difficulty Tuning**: See Phase 25 for comprehensive balance pass.
 
 ## Phase 13: Mini-Boss & Meme System ✅
 *Goal: More variety and personality.*
@@ -877,8 +877,8 @@ Balance.SACRIFICE = {
 
 ---
 
-### Sprint 24: Code Quality & App Store Prep ✅ COMPLETE (v2.15.9)
-*Goal: Fix memory leaks, clean up code, prepare for future App Store submission.*
+### Sprint 24: Code Quality ✅ COMPLETE (v2.15.9)
+*Goal: Fix memory leaks, clean up code.*
 
 > **Context**: Audit del 2026-02-03 ha identificato 22 criticità. Analisi approfondita ha ridotto a 2 fix reali necessari.
 > **Hotfixes v2.15.5-v2.15.9**: Risolti crash launch animation, PWA notch/Dynamic Island, backToIntro blank screen.
@@ -935,7 +935,7 @@ Balance.SACRIFICE = {
   - Nessun intervento necessario
 
 #### Phase D: Asset & Metadata Fixes 📦 ✅ COMPLETE (v2.15.4)
-*Priority: MEDIUM - Necessario per App Store submission*
+*Priority: MEDIUM - Asset professionalizzazione*
 
 - [x] **D1. Icon PNG Conversion**
   - ✅ Creato icon-512.svg (sorgente vettoriale)
@@ -985,7 +985,7 @@ Sprint 23.4 ✅ ──> Hotfix 23.4.1 ✅
               ┌─────────────────┐
               │   Sprint 24     │ ◄── CURRENT
               │ Code Quality &  │
-              │ App Store Prep  │
+              │   Code Quality  │
               └────────┬────────┘
                        │
           ┌────────────┼────────────┐
@@ -1382,6 +1382,215 @@ BOSS_SIGNATURE_MEMES in Constants.js:
 
 ---
 
+## Phase 25: Final Balance Pass 🎯 (NEXT)
+*Goal: Verifica approfondita di tutti i parametri di gioco attraverso testing strutturato.*
+
+> **Filosofia**: Non "sembra ok" ma "ho i dati che confermano che funziona".
+> Ogni parametro deve essere testato con scenari specifici e metriche misurabili.
+
+---
+
+### A) Curva di Difficoltà 📈
+
+#### A1) Progressione Base
+| Parametro | Valore Attuale | Da Testare |
+|-----------|----------------|------------|
+| `CYCLE_BASE` | [0.0, 0.30, 0.60] | Il salto tra cicli è percepibile ma non frustrante? |
+| `WAVE_SCALE` | +3% per wave | 5 waves = +12% - sentito? |
+| `BEAR_MARKET_BONUS` | +0.25 | Equivale a Cycle 2 start - giusto per "hard mode"? |
+
+**Test Scenarios:**
+- [ ] Ciclo 1 Wave 1: Deve essere accessibile a principianti
+- [ ] Ciclo 1 Wave 5: Difficoltà percepibile ma gestibile
+- [ ] Ciclo 2 Wave 1: Salto evidente ma non punitivo
+- [ ] Ciclo 3 Wave 5: Massima sfida, still fair
+- [ ] Bear Market Ciclo 1: Come Ciclo 2 normal - verificare
+
+#### A2) Enemy HP Scaling
+| Formula | `10 + floor(diff * 15)` |
+|---------|------------------------|
+| Cycle 1 W1 | 10 HP |
+| Cycle 1 W5 | ~12 HP |
+| Cycle 2 W1 | ~14 HP |
+| Cycle 3 W5 | ~19 HP |
+
+**Test**: Tempo per uccidere nemico con BTC base vs SOL vs ETH a ogni ciclo.
+
+---
+
+### B) Combat Feel ⚔️
+
+#### B1) Player Fire Rates
+| Ship | Fire Rate | DPS Relativo |
+|------|-----------|--------------|
+| BTC | 0.26s | Baseline |
+| ETH | 0.57s | ~45% DPS |
+| SOL | 0.20s | ~130% DPS |
+
+**Test**: ETH si sente "pesante ma potente"? SOL si sente "glass cannon"?
+
+#### B2) Graze System
+| Parametro | Valore | Domanda |
+|-----------|--------|---------|
+| `RADIUS` | 25px | Abbastanza generoso? |
+| `CLOSE_RADIUS` | 12px | Skill ceiling ragionevole? |
+| `POINTS_BASE` | 25 | Score significativo? |
+| `CLOSE_BONUS` | 3x (75pts) | Risk/reward giusto? |
+| `DECAY_RATE` | 6/s | Pressione giusta? |
+| `PERK_THRESHOLD` | 50 grazes | Raggiungibile in 1 wave? |
+
+**Test Scenarios:**
+- [ ] Graze meter da 0 a 100: Quanti secondi servono con graze attivo?
+- [ ] Graze meter decay: Da 100 a 0 senza grazing = ~17s - troppo lento?
+- [ ] Close graze: Quante close grazes per wave tipica?
+
+#### B3) HYPER Mode
+| Parametro | Valore | Domanda |
+|-----------|--------|---------|
+| `BASE_DURATION` | 5.0s | Abbastanza per sfruttarlo? |
+| `GRAZE_EXTENSION` | +0.3s/graze | Extension significativa? |
+| `SCORE_MULT` | 5x | Reward sufficiente per rischio? |
+| `HITBOX_PENALTY` | 1.5x | Rischio percepibile? |
+| `COOLDOWN` | 8.0s | Troppo punitivo? |
+
+**Test**: In 5s di HYPER, quanti punti si guadagnano tipicamente? Vale il rischio?
+
+---
+
+### C) Boss Encounters 👹
+
+#### C1) Boss HP
+| Formula | `1200 + level*25 + cycle*500 + perks*10%` |
+|---------|-------------------------------------------|
+| Boss 1 (L5, C1) | ~1325 HP |
+| Boss 2 (L10, C2) | ~1950 HP |
+| Boss 3 (L15, C3) | ~2575 HP |
+
+**Test**: Tempo kill per boss (target: 45-90 secondi)
+
+#### C2) Boss Fire Rates (Phase 3 = più aggressivo)
+| Boss | Phase 1 | Phase 2 | Phase 3 |
+|------|---------|---------|---------|
+| FED | 0.85s | 0.38s | 0.20s |
+| BCE | 1.40s | 0.70s | 0.35s |
+| BOJ | 0.75s | 0.45s | 0.18s |
+
+**Test**: BOJ Phase 3 (0.18s) è fair? Pattern leggibili?
+
+#### C3) Boss Movement Speeds
+| Boss | Phase 1 | Phase 2 | Phase 3 |
+|------|---------|---------|---------|
+| FED | 55 | 130 | 200 |
+| BCE | 35 | 55 | 90 |
+| BOJ | 45 | 75 | 160 |
+
+**Test**: FED Phase 3 (200 speed) + 0.20s fire = overwhelming?
+
+---
+
+### D) Power-Up Economy 💎
+
+#### D1) Drop Rates
+| Tier | Chance | Enemies |
+|------|--------|---------|
+| Strong | 6% | $, 元, Ⓒ |
+| Medium | 4% | €, £, ₣, ₺ |
+| Weak | 2% | ¥, ₽, ₹ |
+
+**Test**: Con 15-20 nemici per wave, quanti drop per wave tipici?
+
+#### D2) Pity Timer
+| Parametro | Valore |
+|-----------|--------|
+| Base kills | 30 |
+| Per-cycle reduction | -5 |
+| Minimum | 15 |
+
+**Test**: Pity timer scatta mai? O drop rate è già sufficiente?
+
+#### D3) Durate Power-Up
+| Categoria | Durata | Esempi |
+|-----------|--------|--------|
+| Base | 10s | WIDE, NARROW, FIRE |
+| Advanced | 8s | SPREAD, HOMING |
+| Elite | 6s | LASER |
+
+**Test**: 6s per LASER è troppo breve per sentirsi potente?
+
+---
+
+### E) Sacrifice System 🔥
+
+| Parametro | Valore | Domanda |
+|-----------|--------|---------|
+| `DECISION_WINDOW` | 2.0s | Tempo sufficiente? |
+| `INVINCIBILITY_DURATION` | 10s | Abbastanza per recuperare? |
+| `SCORE_MULT` | 10x | Reward adeguato al rischio totale? |
+| `SUCCESS_THRESHOLD` | 100% score perso | Obiettivo realistico? |
+
+**Test Scenario:**
+- Player muore con 50,000 punti
+- In 10s deve fare 50,000 con 10x mult = 5,000 punti normali
+- Quanti nemici/boss = 5,000 punti?
+
+---
+
+### F) Wave Choreography 💃
+
+#### F1) Intensity Phases
+| Phase | % Enemies Killed | Fire Rate Mult |
+|-------|-----------------|----------------|
+| Setup | 0-30% | 1.0x |
+| Build | 30-70% | 1.1x |
+| Build Late | 70-85% | 1.2x |
+| Panic | 85%+ | 1.4x |
+
+**Test**: Transizione in Panic Phase è percepibile? Red vignette visible?
+
+#### F2) Last Enemy Bonus
+| Parametro | Valore |
+|-----------|--------|
+| Pause | 0.8s |
+| Score mult | 2x |
+
+**Test**: "LAST FIAT!" moment feels dramatic?
+
+---
+
+### G) Mini-Boss System 🎪
+
+#### G1) Trigger Thresholds
+| Currency | Boss | Threshold |
+|----------|------|-----------|
+| $ | FED | 30 kills |
+| ¥ | BOJ | 25 kills |
+| Ⓒ | CYCLE | 20 kills |
+
+**Test**: Mini-boss spawna durante gameplay normale? O mai raggiunto?
+
+---
+
+### Testing Protocol
+
+1. **Fresh Playthrough** - No power-ups, baseline ship (BTC)
+2. **Speedrun Attempt** - Minimize time, test optimal play
+3. **Survival Mode** - Maximize graze, test risk/reward
+4. **Bear Market Run** - Full hard mode verification
+
+### Metriche da Raccogliere
+
+| Metrica | Target |
+|---------|--------|
+| Time to complete Cycle 1 | 4-5 min |
+| Time to complete Cycle 2 | 5-6 min |
+| Time to complete Cycle 3 | 6-7 min |
+| Deaths per cycle (average) | 1-2 |
+| HYPER activations per run | 3-5 |
+| Sacrifice opportunities | 0-2 |
+| Mini-boss spawns | 1-3 |
+
+---
+
 ## Phase 21: UI Polish & Cleanup 🎨 ✅
 *Goal: Consistent visual language and better UX for controls.*
 
@@ -1401,5 +1610,67 @@ BOSS_SIGNATURE_MEMES in Constants.js:
   - Two-tone shading with gradients
   - Clear active/inactive states
   - Touch-friendly size (min 44-64px)
+
+---
+
+## Phase 22: 2-Horde Wave System 🎮 ✅
+*Goal: Extend gameplay duration with 2 hordes per wave and reduce bullet spam.*
+
+### A) Horde System (v2.21.0)
+- [x] **2 Hordes per Wave**: Each wave spawns enemies twice
+  - Horde 1 cleared → 0.8s transition → Horde 2 spawns
+  - Wave counter only increments after horde 2
+- [x] **Pattern Variants**: Horde 2 uses different formation
+  - RECT → V_SHAPE, V_SHAPE → COLUMNS, COLUMNS → RECT
+- [x] **State Persistence**: Graze meter and pity timer NOT reset between hordes
+- [x] **Transition Effects**: "HORDE 2!" message, bullet conversion (half bonus)
+
+### B) Enemy Fire Rate Reduction
+- [x] **Global 15% Reduction**: `FIRE_RATE_GLOBAL_MULT: 0.85` in BalanceConfig
+- [x] **Applied to HarmonicConductor**: Multiplies with phase-based fire rate
+
+### C) Files Modified
+- [x] `BalanceConfig.js`: WAVES.HORDES_PER_WAVE, HORDE_TRANSITION_DURATION, HORDE_2_PATTERN_VARIANT
+- [x] `Constants.js`: i18n HORDE_2_INCOMING (EN/IT)
+- [x] `HarmonicConductor.js`: Apply FIRE_RATE_GLOBAL_MULT
+- [x] `WaveManager.js`: currentHorde, isHordeTransition, startHordeTransition(), completeHordeTransition()
+- [x] `main.js`: startHordeTransition(), startHorde2(), action handlers
+
+### D) Gameplay Impact
+| Metric | Before | After |
+|--------|--------|-------|
+| Enemies/wave | ~20 | ~40 |
+| Wave duration | ~30s | ~60-70s |
+| Cycle duration | ~4 min | ~7-8 min |
+| Full run | ~12 min | ~22-25 min |
+| Enemy bullets | 100% | 85% |
+
+### E) Transition Polish (v2.21.2 → v2.21.3)
+- [x] **Horde Tracking Fix**: Added `hordeSpawned` flag to distinguish game start from horde completion
+- [x] **Message Cleanup**: Removed overlapping showVictory(), removed redundant "HORDE 1 CLEAR"
+- [x] **Countdown Simplification**: Shows "GET READY" / "PREPARATI" instead of next wave name
+- [x] **Horde Transition**: Silent 0.8s pause → "HORDE 2!" when spawning
+- [x] **Meme Display**: Re-added to countdown overlay (cyan text, truncated if >22 chars)
+- [x] **Countdown Duration Fix (v2.21.3)**: 1.9s → 3.2s, capped display at 3 for proper 3-2-1
+
+### F) Formation Entry Animation (v2.22.0)
+- [x] **Entry Animation**: Enemies enter one-by-one from above screen
+  - Spawn at Y=-80, fly to assigned grid position
+  - Staggered delay (0.08s between each enemy)
+  - Slight curve during entry for visual interest
+- [x] **Settle Phase**: Brief 0.3s settle after reaching position
+- [x] **No Fire Until Settled**: HarmonicConductor blocks firing while `isEntering`
+- [x] **Player Fire Block**: Player cannot shoot while enemies are entering
+- [x] **Configuration**: `Balance.FORMATION_ENTRY` with ENTRY_SPEED, STAGGER_DELAY, etc.
+
+### G) Future: Geometric Formation Patterns (TODO)
+> **Design Idea**: Valorizzare l'entry animation con formazioni geometriche
+- [ ] **Shape Formations**: Enemies form recognizable shapes during entry
+  - Currency symbols (€, $, ¥)
+  - Geometric patterns (diamond, arrow, spiral)
+  - Wave-specific formations (V for wave 2, columns for wave 3)
+- [ ] **Synchronized Entry**: Groups enter together, not just staggered
+- [ ] **Entry Paths**: Curved paths, loop-de-loops, split formations
+- [ ] **Visual Flair**: Trail effects during entry, formation "snap" when complete
 
 ---

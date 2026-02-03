@@ -1,5 +1,107 @@
 # Changelog
 
+## v2.22.0 - 2026-02-03
+### Feature: Enemy Formation Entry Animation
+
+**New Visual Feature:**
+- Enemies now enter the screen one-by-one and fly to their assigned positions
+- Staggered entry creates a wave-like formation animation
+- Enemies cannot fire until they have settled into position
+- Slight curve and rotation during entry for visual interest
+
+**Gameplay Impact:**
+- Players get a brief moment to prepare as enemies form up
+- Formation entry happens at start of each wave/horde
+- Creates more dramatic wave starts without artificial delay
+
+**Configuration (Balance.FORMATION_ENTRY):**
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| `ENTRY_SPEED` | 350 | Pixels per second during entry |
+| `STAGGER_DELAY` | 0.08 | Seconds between each enemy starting |
+| `SPAWN_Y_OFFSET` | -80 | Y position above screen for spawn |
+| `SETTLE_TIME` | 0.3 | Seconds to settle after reaching position |
+| `CURVE_INTENSITY` | 0.4 | How much enemies curve during entry |
+
+**Technical:**
+- New Enemy properties: `isEntering`, `targetX`, `targetY`, `entryDelay`, `hasSettled`
+- WaveManager sets enemies off-screen with staggered `entryDelay`
+- HarmonicConductor checks `areEnemiesEntering()` before allowing fire
+- Player.update() accepts `blockFiring` parameter to prevent shooting during entry
+- Entry animation includes sine-wave curve and rotation
+
+---
+
+## v2.21.3 - 2026-02-03
+### Fix: Countdown Timer Duration
+
+**Changes:**
+- Increased `INTERMISSION_DURATION` from 1.9s to 3.2s for proper 3-2-1 countdown
+- Capped countdown display at 3 (prevents showing "4" with longer timer)
+- Now shows full "3" → "2" → "1" sequence with ~1 second per number
+
+---
+
+## v2.21.2 - 2026-02-03
+### Fix: Horde System Critical Bugs
+
+**Bug Fixes:**
+- Fixed game start showing horde transition instead of intermission
+  - Added `hordeSpawned` flag to track if horde was actually spawned
+  - Only triggers horde transition when horde 1 was cleared, not at game start
+- Removed overlapping messages that caused visual clutter
+  - Removed `showVictory()` from `startIntermission()` (overlapped with countdown overlay)
+  - Removed "HORDE 1 CLEAR" message from `startHordeTransition()` (redundant)
+- Fixed countdown overlay showing wrong wave info
+  - Now shows "GET READY" / "PREPARATI" instead of next wave name
+
+**Simplified Flow:**
+- Horde transition: silent 0.8s pause → "HORDE 2!" message when horde 2 spawns
+- Level complete: countdown overlay with "GET READY" + meme
+
+**Technical:**
+- Added `WaveManager.hordeSpawned` flag to distinguish game start from horde completion
+- Cleaned up i18n: removed unused `HORDE_COMPLETE`, `WAVE_COMPLETE`, added `GET_READY`
+
+---
+
+## v2.21.1 - 2026-02-03
+### Feature: Horde/Level Transition Polish (superseded by v2.21.2)
+
+---
+
+## v2.21.0 - 2026-02-03
+### Feature: 2-Horde Wave System & Enemy Fire Rate Reduction
+
+**New Gameplay Features:**
+- Each wave now has 2 distinct hordes (double the enemies per wave)
+- "HORDE 2!" message appears between hordes with brief transition
+- Graze meter and pity timer persist between hordes (no reset)
+- Horde 2 uses pattern variant for gameplay variety
+
+**Balance Changes:**
+- 15% global reduction in enemy fire rate (FIRE_RATE_GLOBAL_MULT: 0.85)
+- Bullet conversion between hordes gives half bonus (5 points vs 10)
+
+**Gameplay Impact:**
+| Metric | Before | After |
+|--------|--------|-------|
+| Enemies per wave | ~20 | ~40 (2×20) |
+| Wave duration | ~30s | ~60-70s |
+| Enemy bullets | 100% | 85% |
+| Run duration | ~12 min | ~22-25 min |
+
+**Technical:**
+- New `Balance.WAVES.HORDES_PER_WAVE` configuration
+- New `Balance.WAVES.HORDE_TRANSITION_DURATION` (0.8s)
+- New `Balance.CHOREOGRAPHY.INTENSITY.FIRE_RATE_GLOBAL_MULT`
+- WaveManager tracks `currentHorde`, `isHordeTransition`, `hordeTransitionTimer`
+- New actions: `START_HORDE_TRANSITION`, `START_HORDE_2`
+- New functions: `startHordeTransition()`, `startHorde2()` in main.js
+- i18n: Added `HORDE_2_INCOMING` (EN/IT)
+
+---
+
 ## v2.20.4 - 2026-02-03
 ### Feature: Wave Countdown Enhancement
 

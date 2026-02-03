@@ -429,6 +429,16 @@ Master switches for all screen-wide visual effects. Allows easy enable/disable w
 | `ACCELERATION` | 2500 | Keyboard acceleration |
 | `FRICTION` | 0.92 | Velocity decay |
 
+### Balance.FORMATION_ENTRY
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| `ENABLED` | true | Enable formation entry animation |
+| `ENTRY_SPEED` | 350 | Pixels per second during entry |
+| `STAGGER_DELAY` | 0.08 | Seconds between each enemy starting |
+| `SPAWN_Y_OFFSET` | -80 | Y position above screen for spawn |
+| `SETTLE_TIME` | 0.3 | Seconds to settle after reaching position |
+| `CURVE_INTENSITY` | 0.4 | How much enemies curve during entry |
+
 ### Wave Patterns (WaveManager.js)
 - Cycle: RECT → V_SHAPE → COLUMNS → SINE_WAVE → RECT → Boss
 - Bear Market: Forces SINE_WAVE from wave 2

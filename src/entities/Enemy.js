@@ -39,6 +39,15 @@ class Enemy extends window.Game.Entity {
 
         this.isMinion = false;        // Boss minion type
 
+        // Formation entry system
+        this.isEntering = false;      // True while flying to position
+        this.targetX = x;             // Final X position
+        this.targetY = y;             // Final Y position
+        this.entryDelay = 0;          // Staggered delay before starting entry
+        this.entryProgress = 0;       // 0-1 progress of entry animation
+        this.settleTimer = 0;         // Time to settle after reaching position
+        this.hasSettled = false;      // True after settling complete (can fire)
+
         // Pre-cache colors for performance (avoid recalculating every frame)
         const CU = window.Game.ColorUtils;
         this._colorDark30 = CU.darken(this.color, 0.3);
@@ -91,6 +100,65 @@ class Enemy extends window.Game.Entity {
         if (this.shieldFlash > 0) this.shieldFlash -= dt * 5;
         if (this.teleportFlash > 0) this.teleportFlash -= dt * 4;
         if (this.teleportCooldown > 0) this.teleportCooldown -= dt;
+
+        // FORMATION ENTRY - Handle entry animation before normal movement
+        if (this.isEntering) {
+            // Wait for entry delay
+            if (this.entryDelay > 0) {
+                this.entryDelay -= dt;
+                return; // Don't move yet
+            }
+
+            const Balance = window.Game.Balance;
+            const entryConfig = Balance?.FORMATION_ENTRY || {};
+            const entrySpeed = entryConfig.ENTRY_SPEED || 350;
+            const curveIntensity = entryConfig.CURVE_INTENSITY || 0.4;
+            const settleTime = entryConfig.SETTLE_TIME || 0.3;
+
+            // Calculate distance to target
+            const dx = this.targetX - this.x;
+            const dy = this.targetY - this.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist > 5) {
+                // Move towards target with slight curve
+                const moveAmount = entrySpeed * dt;
+                const t = 1 - (dist / 400); // Progress factor
+
+                // Add horizontal curve for visual interest (sine wave entry)
+                const curveOffset = Math.sin(t * Math.PI) * curveIntensity * 50;
+                const adjustedDx = dx + curveOffset * (this.targetX > 300 ? -1 : 1);
+
+                const angle = Math.atan2(dy, adjustedDx);
+                this.x += Math.cos(angle) * moveAmount;
+                this.y += Math.sin(angle) * moveAmount;
+
+                // Update entry progress for visual feedback
+                this.entryProgress = Math.min(1, t);
+
+                // Slight rotation during entry
+                this.rotation = Math.sin(t * Math.PI * 2) * 0.15;
+            } else {
+                // Snap to target position
+                this.x = this.targetX;
+                this.y = this.targetY;
+                this.baseY = this.targetY;
+                this.rotation = 0;
+
+                // Start settle timer
+                if (this.settleTimer === 0) {
+                    this.settleTimer = settleTime;
+                }
+
+                this.settleTimer -= dt;
+                if (this.settleTimer <= 0) {
+                    this.isEntering = false;
+                    this.hasSettled = true;
+                    this.entryProgress = 1;
+                }
+            }
+            return; // Skip normal movement during entry
+        }
 
         // KAMIKAZE DIVE - When diving, ignore normal movement
         if (this.kamikazeDiving && playerY !== undefined) {

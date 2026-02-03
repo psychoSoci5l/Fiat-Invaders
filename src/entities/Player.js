@@ -89,7 +89,7 @@ class Player extends window.Game.Entity {
         this.hyperParticles = [];
     }
 
-    update(dt) {
+    update(dt, blockFiring = false) {
         const input = window.Game.Input;
         const Balance = window.Game.Balance;
         const speedMult = (this.shipPowerUp === 'SPEED') ? Balance.POWERUPS.SPEED_MULTIPLIER : 1;
@@ -218,10 +218,10 @@ class Player extends window.Game.Entity {
             this.activateShield();
         }
 
-        // Action: Fire
+        // Action: Fire (blocked while enemies entering formation)
         // Check input for fire (Space, Touch, Up)
         const isShooting = input.isDown('Space') || input.touch.active || input.isDown('ArrowUp');
-        if (isShooting && this.cooldown <= 0) {
+        if (isShooting && this.cooldown <= 0 && !blockFiring) {
             return this.fire(); // Returns array of bullets to spawn
         }
         return null; // No bullets 

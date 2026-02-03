@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v2.20.4 FIAT vs CRYPTO";
+window.Game.VERSION = "v2.22.0 FIAT vs CRYPTO";
 
 window.Game.TEXTS = {
     EN: {
@@ -100,7 +100,9 @@ window.Game.TEXTS = {
         HIGH_SCORE: "HIGH SCORE",
         ARCADE: "ARCADE",
         CAMPAIGN: "CAMPAIGN",
-        LAUNCH: "LAUNCH"
+        LAUNCH: "LAUNCH",
+        HORDE_2_INCOMING: "HORDE 2!",
+        GET_READY: "GET READY"
     },
     IT: {
         SCORE: "PUNTI", LEVEL: "LIVELLO", LIVES: "VITE", NORMAL: "NORMALE",
@@ -197,7 +199,9 @@ window.Game.TEXTS = {
         HIGH_SCORE: "RECORD",
         ARCADE: "ARCADE",
         CAMPAIGN: "CAMPAGNA",
-        LAUNCH: "LANCIA"
+        LAUNCH: "LANCIA",
+        HORDE_2_INCOMING: "ORDA 2!",
+        GET_READY: "PREPARATI"
     }
 };
 
