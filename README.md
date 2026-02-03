@@ -1,6 +1,6 @@
-# Fiat Invaders: Panic Selling Update (v2.1)
+# FIAT vs CRYPTO
 
-**Fiat Invaders** is a retro-arcade space shooter built with modern Web Technologies (HTML5 Canvas, ES6 Modules). Defend the blockchain from the infinite printing of Fiat Currencies!
+**FIAT vs CRYPTO** is a retro-arcade space shooter built with modern Web Technologies (HTML5 Canvas, ES6 Modules). Defend the blockchain from the infinite printing of Fiat Currencies!
 
 ## 🚀 Features
 

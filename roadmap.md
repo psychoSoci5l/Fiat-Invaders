@@ -1,4 +1,4 @@
-# Roadmap: Fiat Invaders -> iOS App Store Ready 📱
+# Roadmap: FIAT vs CRYPTO -> iOS App Store Ready 📱
 
 > [!IMPORTANT]
 > **PIVOT**: As of Phase 3, development is exclusively focused on **Mobile/iOS**. Desktop support is deprecated.

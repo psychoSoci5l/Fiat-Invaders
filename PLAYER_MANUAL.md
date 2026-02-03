@@ -1,4 +1,4 @@
-# FIAT INVADERS - Player Manual
+# FIAT vs CRYPTO - Player Manual
 
 ## 1. Welcome, Crypto Warrior!
 

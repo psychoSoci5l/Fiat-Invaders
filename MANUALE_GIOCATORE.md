@@ -1,4 +1,4 @@
-# FIAT INVADERS - Manuale del Giocatore
+# FIAT vs CRYPTO - Manuale del Giocatore
 
 ## 1. Benvenuto, Cripto-Guerriero!
 
