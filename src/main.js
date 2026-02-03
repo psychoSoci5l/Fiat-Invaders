@@ -1153,9 +1153,9 @@ function updateUIText() {
     const pauseTitle = document.querySelector('#pause-screen .neon-title');
     if (pauseTitle) pauseTitle.innerText = t('PAUSED');
     const resumeBtn = document.querySelector('#pause-screen .btn-coin:first-of-type');
-    if (resumeBtn) resumeBtn.innerText = t('RESUME');
-    const exitBtn = document.querySelector('#pause-screen .btn-coin:last-of-type');
-    if (exitBtn) exitBtn.innerText = t('EXIT_TITLE');
+    if (resumeBtn) resumeBtn.innerText = '> ' + t('RESUME');
+    const exitBtn = document.getElementById('btn-exit-title');
+    if (exitBtn) exitBtn.innerText = '> ' + t('EXIT_TITLE');
 
     // Game Over
     const goTitle = document.querySelector('#gameover-screen h1');

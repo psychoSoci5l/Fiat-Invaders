@@ -148,7 +148,8 @@ body {
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
-    top: 5px;
+    /* Use same safe-area offset as hud-top-bar padding */
+    top: calc(5px + var(--pwa-top-inset, env(safe-area-inset-top, 0px)));
 }
 
 .hud-score .value {
