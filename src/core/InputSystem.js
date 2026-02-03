@@ -198,7 +198,7 @@ class InputSystem {
             user-select: none;
         `;
         container.appendChild(btn);
-        console.log('[InputSystem] Shield button created dynamically');
+        // Shield button created dynamically (log removed for production)
         return btn;
     }
 

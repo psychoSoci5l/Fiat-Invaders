@@ -9,8 +9,11 @@ When completing a feature or ending a session, **always update these files witho
 
 1. **CHANGELOG.md** - Add new version entry with feature summary
 2. **roadmap.md** - Mark completed tasks, add new phases if needed
-3. **Constants.js** - Bump `VERSION` string
-4. **CLAUDE.md** - Update if new systems/patterns were added
+3. **Constants.js** - Bump `VERSION` string (e.g., "v2.15.3 FIAT vs CRYPTO")
+4. **sw.js** - Bump `SW_VERSION` to match (e.g., '2.15.3')
+5. **CLAUDE.md** - Update if new systems/patterns were added
+
+**Version Sync**: Constants.js and sw.js versions MUST match for PWA cache updates to work correctly.
 
 This is a **priority rule** - documentation updates are part of the work, not an afterthought.
 

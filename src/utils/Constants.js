@@ -1,7 +1,8 @@
 // Game Constants & Configuration (Namespace Pattern)
 window.Game = window.Game || {};
 
-window.Game.VERSION = "v2.15.2 FIAT vs CRYPTO";
+// ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
+window.Game.VERSION = "v2.15.3 FIAT vs CRYPTO";
 
 window.Game.TEXTS = {
     EN: {

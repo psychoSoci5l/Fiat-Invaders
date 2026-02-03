@@ -1,6 +1,7 @@
 // Service Worker for FIAT vs CRYPTO
-// VERSION MUST MATCH Constants.js - bump this to force cache update!
-const SW_VERSION = '2.15.2';
+// ⚠️ VERSION SYNC: Must match src/utils/Constants.js window.Game.VERSION
+// When updating version: 1) Constants.js  2) sw.js  3) CHANGELOG.md
+const SW_VERSION = '2.15.3';
 const CACHE_NAME = `fiat-vs-crypto-v${SW_VERSION}`;
 
 // All assets to cache

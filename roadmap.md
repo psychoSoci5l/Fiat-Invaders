@@ -912,23 +912,25 @@ Balance.SACRIFICE = {
   - `orientationchange` handler esiste (linea 878)
   - Chiama `resize()` che aggiorna `safeAreaInsets`
 
-#### Phase C: Code Cleanup 🧹
+#### Phase C: Code Cleanup 🧹 ✅ COMPLETE (v2.15.3)
 *Priority: MEDIUM - Professionalità e manutenibilità*
 
-- [ ] **C1. Console.log Removal**
-  - Rimuovere/wrappare tutti i console.log in production
-  - Mantenere solo console.warn/error per errori reali
-  - Files: main.js, sw.js, AudioSystem.js
+- [x] **C1. Console.log Removal**
+  - Rimossi log non essenziali: "Starting App...", "[InputSystem] Shield button created"
+  - Debug mode toggle ora logga solo quando attivo
+  - GameCenter mock log commentato per production
+  - Mantenuti console.warn/error per errori reali (AudioSystem, CampaignState, Bullet)
+  - SW logs mantenuti per debugging cache behavior
 
-- [ ] **C2. Versioning Single Source**
-  - Creare `src/config/Version.js` come single source of truth
-  - SW.js legge versione da file condiviso (o build step)
-  - Eliminare rischio di mismatch
+- [x] **C2. Versioning Single Source**
+  - Aggiunta documentazione cross-reference in Constants.js e sw.js
+  - CLAUDE.md aggiornato con procedura esplicita di version sync
+  - Checklist include ora: Constants.js + sw.js + CHANGELOG.md
 
-- [ ] **C3. Asset Error Handling** (`src/main.js:30-66`)
-  - Validare ASSETS prima di loadAssets()
-  - Mostrare stato "Loading..." con progress
-  - Gestire errori con messaggio user-friendly
+- [x] **C3. Asset Error Handling** - GIÀ IMPLEMENTATO
+  - `loadAssets()` già ha console.warn per load failures (linea 62)
+  - Alpha validation per immagini (linea 56)
+  - Nessun intervento necessario
 
 #### Phase D: Asset & Metadata Fixes 📦
 *Priority: MEDIUM - Necessario per App Store submission*

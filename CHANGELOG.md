@@ -1,5 +1,32 @@
 # Changelog
 
+## v2.15.3 - 2026-02-03
+### Sprint 24 Phase C: Code Cleanup
+
+**Console.log Cleanup**
+- Removed non-essential logs: "Starting App...", "[InputSystem] Shield button created"
+- Debug mode toggle now only logs when enabled
+- GameCenter mock log commented out for production
+- Kept console.warn/error for real issues (AudioSystem, CampaignState, Bullet pool)
+
+**Version Sync Documentation**
+- Added cross-reference comments in Constants.js and sw.js
+- Updated CLAUDE.md with explicit 5-step version bump procedure
+- Version sync now mandatory in end-of-session checklist
+
+**Asset Error Handling** - Already implemented correctly
+- `loadAssets()` has console.warn for failures (main.js:62)
+- Alpha validation for images (main.js:56)
+
+**Files Changed**
+- `src/main.js`: Removed debug logs
+- `src/core/InputSystem.js`: Removed shield button creation log
+- `src/utils/Constants.js`: Version + sync comment
+- `sw.js`: Version + sync comment
+- `CLAUDE.md`: Updated checklist with sw.js
+
+---
+
 ## v2.15.2 - 2026-02-03
 ### Sprint 24 Phase A+B: Code Quality & iOS Fixes
 

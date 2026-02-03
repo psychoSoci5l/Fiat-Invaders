@@ -905,7 +905,7 @@ function init() {
     const startApp = () => {
         const splash = document.getElementById('splash-layer');
         if (!splash || splash.style.opacity === '0') return;
-        console.log("Starting App...");
+        // App startup (log removed for production)
         gameState = 'INTRO';
         introState = 'SPLASH';
         splash.style.opacity = '0';
@@ -979,7 +979,8 @@ function init() {
 
     inputSys.on('toggleDebug', () => {
         debugMode = !debugMode;
-        console.log('Debug mode:', debugMode ? 'ON' : 'OFF');
+        // Debug toggle feedback only shown in debug mode
+        if (debugMode) console.log('Debug mode: ON');
     });
 
     const vid = document.getElementById('intro-video');
@@ -3834,9 +3835,9 @@ function loop(timestamp) {
 
 // Game Center Mock (replace with Capacitor plugin for iOS)
 function submitToGameCenter(scoreValue) {
-    // Mock: In production, use Capacitor GameCenter plugin
+    // TODO: In production, use Capacitor GameCenter plugin
     // e.g., GameCenter.submitScore({ leaderboardId: 'fiat_invaders_highscore', score: scoreValue });
-    console.log('[GameCenter] Score submitted:', scoreValue);
+    // console.log('[GameCenter] Score submitted:', scoreValue);  // Removed for production
     emitEvent('gamecenter_submit', { score: scoreValue });
 }
 
