@@ -1,5 +1,35 @@
 # Changelog
 
+## v2.15.1 - 2026-02-03
+### Hotfix: Post-Refactor Bug Fixes
+
+**Fixed: Game Crash on Start**
+- `gameInfoMessages is not defined` error in startGame()
+- MessageSystem.reset() now called instead of direct variable access
+
+**Fixed: Black Background in INTRO**
+- SkyRenderer.init() now called in startApp() for INTRO state
+- Sky renders correctly during SPLASH and SELECTION screens
+
+**Fixed: Launch Animation Glitch**
+- UI elements now explode immediately on LAUNCH tap (staggered)
+- intro-screen hidden after explosions to prevent visual artifacts
+- Removed collision-based destruction that caused overlay issues
+
+**Improved: Service Worker Updates**
+- Rewrote sw.js with proper versioning (synced with Constants.js)
+- Network-first strategy for HTML/JS/CSS ensures fresh content
+- skipWaiting() + clients.claim() for immediate activation
+- Complete asset list (was missing 20+ module files)
+- Old caches properly deleted on version change
+
+**Files Changed**
+- `src/main.js`: Fixed MessageSystem integration, SkyRenderer init, launch animation
+- `src/utils/Constants.js`: Version bump to 2.15.1
+- `sw.js`: Complete rewrite with network-first strategy
+
+---
+
 ## v2.15.0 - 2026-02-03
 ### Sprint 23.4: main.js Decomposition
 

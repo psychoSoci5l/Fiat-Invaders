@@ -866,7 +866,17 @@ Balance.SACRIFICE = {
 
 ---
 
-### Sprint 23.5: Module Consolidation (v2.15.1)
+### Hotfix 23.4.1: Post-Refactor Fixes (v2.15.1) ✅ COMPLETE
+*Goal: Fix bugs introduced by Sprint 23.4 module extraction.*
+
+- [x] **Critical Fix**: `gameInfoMessages is not defined` crash on game start
+- [x] **Visual Fix**: Black background during INTRO (SkyRenderer not initialized)
+- [x] **Animation Fix**: Launch glitch - UI overlapping during ship takeoff
+- [x] **Service Worker Rewrite**: Network-first strategy, proper versioning, complete asset list
+
+---
+
+### Sprint 23.5: Module Consolidation (v2.16.0)
 *Goal: Clean up and consolidate related modules.*
 
 - [ ] **Entity Factory**: Centralize entity creation (bullets, enemies, powerups)

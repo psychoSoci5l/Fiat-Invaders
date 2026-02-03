@@ -930,6 +930,9 @@ function init() {
             try { updateUIText(); } catch (e) { }
             initIntroShip();
 
+            // Initialize sky background for INTRO state
+            if (G.SkyRenderer) G.SkyRenderer.init(gameWidth, gameHeight);
+
             // Restore campaign mode UI state
             if (G.CampaignState && G.CampaignState.isEnabled()) {
                 setGameMode('campaign');
@@ -1265,75 +1268,90 @@ window.launchShipAndStart = function () {
     shipCanvas.style.width = '100%';
     shipCanvas.style.height = '100%';
 
-    // Elements to destroy (in order from bottom to top)
-    const destroyTargets = [
-        { el: document.querySelector('.start-actions'), y: null },
-        { el: document.querySelector('.start-score'), y: null },
-        { el: document.querySelector('.start-ship'), y: null },
-        { el: document.querySelector('.quick-settings-row'), y: null },
-        { el: document.querySelector('.title-tagline'), y: null },
-        { el: document.querySelector('.title-crypto'), y: null },
-        { el: document.querySelector('.title-vs'), y: null },
-        { el: document.querySelector('.title-fiat'), y: null }
-    ].filter(t => t.el);
-
-    // Get Y positions of targets
-    destroyTargets.forEach(t => {
-        const rect = t.el.getBoundingClientRect();
-        t.y = rect.top + rect.height / 2;
-        t.destroyed = false;
-    });
-
-    // Animation variables - SLOW rocket launch
-    let currentY = shipStartY;
-    let velocity = 0;
-    const maxVelocity = 500;
-    const acceleration = 350;
-    let lastTime = performance.now();
-    let launchTime = 0;
-    const shipCenterY = shipStartY + shipRect.height / 2;
+    // Helper: check if element is visible
+    const isVisible = (el) => {
+        if (!el) return false;
+        if (el.closest('.hidden')) return false;
+        const style = getComputedStyle(el);
+        if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return false;
+        return true;
+    };
 
     // Destroy element with explosion effect
-    function destroyElement(el) {
-        audioSys.play('shoot');
+    function destroyElement(el, delay = 0) {
+        setTimeout(() => {
+            audioSys.play('shoot');
 
-        // Create explosion particles from text
-        const rect = el.getBoundingClientRect();
-        const text = el.innerText || el.textContent || '';
-        const chars = text.split('');
+            const rect = el.getBoundingClientRect();
+            const text = el.innerText || el.textContent || '';
+            const chars = text.split('');
 
-        // Create flying letter particles
-        chars.forEach((char, i) => {
-            if (char.trim() === '') return;
-            const particle = document.createElement('span');
-            particle.className = 'text-particle';
-            particle.innerText = char;
-            particle.style.left = (rect.left + (i / chars.length) * rect.width) + 'px';
-            particle.style.top = rect.top + 'px';
-            particle.style.color = getComputedStyle(el).color;
-            particle.style.fontSize = getComputedStyle(el).fontSize;
-            particle.style.fontWeight = getComputedStyle(el).fontWeight;
+            // Create flying letter particles
+            chars.forEach((char, i) => {
+                if (char.trim() === '') return;
+                const particle = document.createElement('span');
+                particle.className = 'text-particle';
+                particle.innerText = char;
+                particle.style.left = (rect.left + (i / chars.length) * rect.width) + 'px';
+                particle.style.top = rect.top + 'px';
+                particle.style.color = getComputedStyle(el).color;
+                particle.style.fontSize = getComputedStyle(el).fontSize;
+                particle.style.fontWeight = getComputedStyle(el).fontWeight;
 
-            // Random velocity - slower for visibility
-            const vx = (Math.random() - 0.5) * 400;
-            const vy = (Math.random() - 0.6) * 300;
-            const rotation = (Math.random() - 0.5) * 540;
+                const vx = (Math.random() - 0.5) * 500;
+                const vy = (Math.random() - 0.5) * 400;
+                const rotation = (Math.random() - 0.5) * 720;
 
-            particle.style.setProperty('--vx', vx + 'px');
-            particle.style.setProperty('--vy', vy + 'px');
-            particle.style.setProperty('--rot', rotation + 'deg');
+                particle.style.setProperty('--vx', vx + 'px');
+                particle.style.setProperty('--vy', vy + 'px');
+                particle.style.setProperty('--rot', rotation + 'deg');
 
-            document.body.appendChild(particle);
+                document.body.appendChild(particle);
+                setTimeout(() => particle.remove(), 1200);
+            });
 
-            // Remove after animation completes
-            setTimeout(() => particle.remove(), 1500);
-        });
-
-        // Hide original element with flash
-        el.style.opacity = '0';
-        el.style.transform = 'scale(1.2)';
-        el.style.transition = 'all 0.1s';
+            // Hide original element
+            el.style.opacity = '0';
+            el.style.transform = 'scale(1.3)';
+            el.style.transition = 'all 0.15s';
+        }, delay);
     }
+
+    // IMMEDIATELY explode all visible UI elements (staggered for effect)
+    const elementsToExplode = [
+        '.intro-icons',
+        '.intro-version',
+        '.selection-controls',
+        '.selection-info',
+        '.selection-header',
+        '.intro-title',
+        '.btn-tap-start'
+    ];
+
+    let explodeDelay = 0;
+    elementsToExplode.forEach(selector => {
+        const el = document.querySelector(selector);
+        if (el && isVisible(el)) {
+            destroyElement(el, explodeDelay);
+            explodeDelay += 40; // Stagger explosions
+        }
+    });
+
+    // Hide intro-screen container after explosions start (keeps canvas visible via launchShip)
+    setTimeout(() => {
+        if (introScreen) {
+            introScreen.style.opacity = '0';
+            introScreen.style.pointerEvents = 'none';
+        }
+    }, 150);
+
+    // Animation variables
+    let currentY = shipStartY;
+    let velocity = 0;
+    const maxVelocity = 600;
+    const acceleration = 400;
+    let lastTime = performance.now();
+    let launchTime = 0;
 
     // Animation loop
     function animateLaunch(currentTime) {
@@ -1341,60 +1359,47 @@ window.launchShipAndStart = function () {
         lastTime = currentTime;
         launchTime += dt;
 
-        // Phase 1: Charge up (shake and glow) for 0.6s
-        if (launchTime < 0.6) {
-            const intensity = launchTime / 0.6;
-            const shake = Math.sin(launchTime * 50) * (2 + intensity * 4);
-            const glow = 15 + intensity * 35;
-            launchShip.style.transform = `translateX(${shake}px) scale(${1 + intensity * 0.15})`;
+        // Phase 1: Charge up (shake and glow) for 0.4s
+        if (launchTime < 0.4) {
+            const intensity = launchTime / 0.4;
+            const shake = Math.sin(launchTime * 60) * (2 + intensity * 5);
+            const glow = 20 + intensity * 40;
+            launchShip.style.transform = `translateX(${shake}px) scale(${1 + intensity * 0.1})`;
             launchShip.style.filter = `drop-shadow(0 0 ${glow}px rgba(247, 147, 26, 0.9))`;
-
-            // Play rumble sounds
-            if (launchTime > 0.2 && launchTime < 0.25) audioSys.play('shoot');
-            if (launchTime > 0.4 && launchTime < 0.45) audioSys.play('shoot');
 
             requestAnimationFrame(animateLaunch);
             return;
         }
 
         // Phase 2: LIFTOFF!
-        const flightTime = launchTime - 0.6;
+        const flightTime = launchTime - 0.4;
 
-        // Gradually increase velocity (rocket launch feel)
-        const accelMult = Math.min(1, flightTime * 1.5);
+        // Accelerate
+        const accelMult = Math.min(1, flightTime * 2);
         velocity += acceleration * accelMult * dt;
         if (velocity > maxVelocity) velocity = maxVelocity;
 
         // Move ship UP
         currentY -= velocity * dt;
 
-        // Apply position directly via top - ship flies UP visibly!
-        const scale = 1.15 + Math.min(0.2, (shipStartY - currentY) * 0.0003);
-        const glowSize = 50 + (shipStartY - currentY) * 0.05;
-        const trailLength = Math.min(60, (shipStartY - currentY) * 0.1);
+        // Visual effects
+        const scale = 1.1 + Math.min(0.25, (shipStartY - currentY) * 0.0004);
+        const glowSize = 40 + (shipStartY - currentY) * 0.06;
+        const trailLength = Math.min(80, (shipStartY - currentY) * 0.15);
 
         launchShip.style.top = currentY + 'px';
         launchShip.style.transform = `scale(${scale})`;
         launchShip.style.filter = `drop-shadow(0 ${trailLength}px ${glowSize}px rgba(255, 150, 0, 0.9))`;
 
-        // Check collisions with text elements
-        const shipCurrentCenter = currentY + shipRect.height / 2;
-        destroyTargets.forEach(target => {
-            if (!target.destroyed && shipCurrentCenter < target.y + 40) {
-                target.destroyed = true;
-                destroyElement(target.el);
-            }
-        });
-
-        // Continue until well off screen
+        // Continue until off screen
         if (currentY > -shipRect.height - 100) {
             requestAnimationFrame(animateLaunch);
         } else {
             finishLaunch();
         }
 
-        // Close curtain when ship passes halfway up
-        if (currentY < window.innerHeight * 0.3 && curtain && curtain.classList.contains('open')) {
+        // Close curtain when ship is halfway up
+        if (currentY < window.innerHeight * 0.4 && curtain && curtain.classList.contains('open')) {
             curtain.classList.remove('open');
         }
     }
@@ -1668,7 +1673,7 @@ function startGame() {
     // Clear particles via ParticleSystem
     if (G.ParticleSystem) G.ParticleSystem.clear();
     bullets = []; enemies = []; enemyBullets = []; powerUps = []; particles = []; floatingTexts = []; muzzleFlashes = []; perkIcons = []; boss = null;
-    gameInfoMessages = []; dangerMessages = []; victoryMessages = []; // Reset typed messages
+    if (G.MessageSystem) G.MessageSystem.reset(); // Reset typed messages
     G.enemies = enemies; // Expose for Boss Spawning logic
     window.enemyBullets = enemyBullets; // Update for Player core hitbox indicator
     grazeCount = 0; grazeMeter = 0; grazeMultiplier = 1.0; updateGrazeUI(); // Reset grazing
