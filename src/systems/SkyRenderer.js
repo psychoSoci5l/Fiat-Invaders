@@ -24,6 +24,7 @@
     // Lightning state (Bear Market)
     let lightningTimer = 0;
     let lightningFlash = 0;
+    let lightningTarget = 0; // Target intensity for smooth ramp-up
 
     /**
      * Initialize sky system with canvas dimensions
@@ -37,6 +38,7 @@
         skyTime = 0;
         lightningTimer = 0;
         lightningFlash = 0;
+        lightningTarget = 0;
     }
 
     /**
@@ -107,6 +109,7 @@
         skyTime = 0;
         lightningTimer = 0;
         lightningFlash = 0;
+        lightningTarget = 0;
     }
 
     /**
@@ -150,17 +153,27 @@
             }
         }
 
-        // Bear Market Lightning
+        // Bear Market Lightning (smooth ramp-up, then decay)
         if (isBearMarket && gameState === 'PLAY') {
             lightningTimer -= dt;
             if (lightningTimer <= 0) {
-                lightningFlash = 0.4;
+                lightningTarget = 0.4; // Set target, don't jump
                 lightningTimer = 1.5 + Math.random() * 3;
                 effects.shake = 8;
                 effects.playSound = 'hit';
             }
         }
-        if (lightningFlash > 0) lightningFlash -= dt * 1.5;
+        // Smooth ramp-up to target (fast but not instant)
+        if (lightningTarget > 0) {
+            lightningFlash += (lightningTarget - lightningFlash) * dt * 30; // ~0.03s ramp
+            if (lightningFlash >= lightningTarget * 0.95) {
+                lightningFlash = lightningTarget;
+                lightningTarget = 0; // Start decay phase
+            }
+        } else if (lightningFlash > 0) {
+            lightningFlash -= dt * 1.5;
+            if (lightningFlash < 0) lightningFlash = 0;
+        }
 
         return effects;
     }
@@ -390,6 +403,7 @@
      * Draw lightning flash and bolts
      */
     function drawLightning(ctx) {
+        if (!G.Balance?.JUICE?.SCREEN_EFFECTS?.LIGHTNING) return;
         if (lightningFlash <= 0) return;
 
         // Screen flash
@@ -436,6 +450,7 @@
      * @param {number} totalTime - Total elapsed time for animation
      */
     function drawBearMarketOverlay(ctx, totalTime) {
+        if (!G.Balance?.JUICE?.SCREEN_EFFECTS?.BEAR_VIGNETTE) return;
         // Pulsing red vignette
         const pulse = Math.sin(totalTime * 2) * 0.1 + 0.25;
         const gradient = ctx.createRadialGradient(

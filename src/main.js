@@ -2996,25 +2996,24 @@ function updateEnemies(dt) {
 
     // HarmonicConductor is now the SOLE firing authority (Fibonacci removed in v2.13.0)
 
+    // Cache player hitbox size once (avoid repeated property access per enemy)
+    const hitR = (player.stats.hitboxSize || 30) + 15;
+    const playerX = player.x;
+    const playerY = player.y;
+
     for (let i = 0; i < enemies.length; i++) {
         const e = enemies[i];
         if (!e) continue; // Safety check
-        e.update(dt, totalTime, lastWavePattern, currentGridSpeed, gridDir, player.x, player.y);
+        e.update(dt, totalTime, lastWavePattern, currentGridSpeed, gridDir, playerX, playerY);
         if ((gridDir === 1 && e.x > gameWidth - 20) || (gridDir === -1 && e.x < 20)) hitEdge = true;
 
         // Kamikaze trigger - weak tier enemies occasionally dive at player
         if (e.isKamikaze && !e.kamikazeDiving && e.y > 250 && Math.random() < 0.0005) {
             e.triggerKamikaze();
         }
-    }
 
-    // Bear Market: enemies drop faster (Panic Selling)
-    const dropAmount = isBearMarket ? 35 : 20;
-    if (hitEdge) { gridDir *= -1; enemies.forEach(e => e.baseY += dropAmount); }
-
-    enemies.forEach(e => {
-        const hitR = (player.stats.hitboxSize || 30) + 15; // Adjusted for larger enemies
-        if (Math.abs(e.x - player.x) < hitR && Math.abs(e.y - player.y) < hitR) {
+        // Collision check with player (consolidated from forEach)
+        if (Math.abs(e.x - playerX) < hitR && Math.abs(e.y - playerY) < hitR) {
             if (player.takeDamage()) {
                 updateLivesUI(true); // Hit animation
                 shake = 40; // Heavy shake
@@ -3027,7 +3026,17 @@ function updateEnemies(dt) {
             }
             if (player.hp > 0) streak = 0;
         }
-    });
+    }
+
+    // Bear Market: enemies drop faster (Panic Selling)
+    // Note: This runs only when hitEdge is true, so separate loop is acceptable
+    if (hitEdge) {
+        gridDir *= -1;
+        const dropAmount = isBearMarket ? 35 : 20;
+        for (let i = 0, len = enemies.length; i < len; i++) {
+            enemies[i].baseY += dropAmount;
+        }
+    }
 }
 
 function startDeathSequence() {
@@ -3268,9 +3277,9 @@ function draw() {
             if (b.x > -20 && b.x < gameWidth + 20 && b.y > -20 && b.y < gameHeight + 20) b.draw(ctx);
         }
 
-        // Screen dimming when many enemy bullets for dramatic effect
-        if (enemyBullets.length > 15) {
-            const dimAlpha = Math.min(0.35, (enemyBullets.length - 15) * 0.015);
+        // Screen dimming when many enemy bullets (configurable)
+        if (Balance?.JUICE?.SCREEN_EFFECTS?.SCREEN_DIMMING && enemyBullets.length > 15) {
+            const dimAlpha = Math.min(0.25, (enemyBullets.length - 15) * 0.01);
             ctx.fillStyle = `rgba(0, 0, 0, ${dimAlpha})`;
             ctx.fillRect(0, 0, gameWidth, gameHeight);
         }

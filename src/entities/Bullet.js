@@ -35,64 +35,69 @@ class Bullet extends window.Game.Entity {
     }
 
     update(dt, enemies, boss) {
-        // Homing tracking logic
+        // Homing tracking logic (optimized: distanceSquared, no object allocation)
         if (this.homing) {
-            // Find nearest target (enemy or boss)
-            let nearestTarget = null;
-            let nearestDist = Infinity;
+            // Find nearest target using distance squared (no sqrt per enemy)
+            let nearestDistSq = Infinity;
+            let targetX = 0;
+            let targetY = 0;
+            let hasTarget = false;
 
-            // Check enemies
+            // Check enemies (use distanceSquared for comparison)
             if (enemies && enemies.length > 0) {
-                for (const enemy of enemies) {
+                for (let i = 0, len = enemies.length; i < len; i++) {
+                    const enemy = enemies[i];
                     if (enemy.markedForDeletion) continue;
                     const dx = enemy.x - this.x;
                     const dy = enemy.y - this.y;
                     // Only track targets ahead (above the bullet)
                     if (dy > 0) continue;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-                    if (dist < nearestDist) {
-                        nearestDist = dist;
-                        nearestTarget = { x: enemy.x, y: enemy.y };
+                    const distSq = dx * dx + dy * dy;
+                    if (distSq < nearestDistSq) {
+                        nearestDistSq = distSq;
+                        targetX = enemy.x;
+                        targetY = enemy.y;
+                        hasTarget = true;
                     }
                 }
             }
 
             // Check boss (prioritize if closer)
             if (boss && boss.active) {
-                const bossCenter = { x: boss.x + boss.width / 2, y: boss.y + boss.height / 2 };
-                const dx = bossCenter.x - this.x;
-                const dy = bossCenter.y - this.y;
+                const bossCenterX = boss.x + boss.width * 0.5;
+                const bossCenterY = boss.y + boss.height * 0.5;
+                const dx = bossCenterX - this.x;
+                const dy = bossCenterY - this.y;
                 if (dy < 0) { // Boss is above
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-                    if (dist < nearestDist) {
-                        nearestDist = dist;
-                        nearestTarget = bossCenter;
+                    const distSq = dx * dx + dy * dy;
+                    if (distSq < nearestDistSq) {
+                        nearestDistSq = distSq;
+                        targetX = bossCenterX;
+                        targetY = bossCenterY;
+                        hasTarget = true;
                     }
                 }
             }
 
-            if (nearestTarget) {
-                // Calculate direction to target
-                const dx = nearestTarget.x - this.x;
-                const dy = nearestTarget.y - this.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist < 1) {
-                    // Skip homing if too close (prevents NaN from division by zero)
-                } else {
-                    const targetVx = (dx / dist) * Math.abs(this.vy || 200);
-                    const targetVy = (dy / dist) * Math.abs(this.vy || 200);
+            if (hasTarget && nearestDistSq > 1) {
+                // Only one sqrt call total (for actual direction)
+                const dist = Math.sqrt(nearestDistSq);
+                const dx = targetX - this.x;
+                const dy = targetY - this.y;
+                const baseSpeed = Math.abs(this.vy) || 200;
+                const targetVx = (dx / dist) * baseSpeed;
+                const targetVy = (dy / dist) * baseSpeed;
 
-                    // Gradual turn towards target
-                    const turnRate = this.homingSpeed * dt;
-                    this.vx += (targetVx - this.vx) * turnRate;
-                    this.vy += (targetVy - this.vy) * turnRate;
+                // Gradual turn towards target
+                const turnRate = this.homingSpeed * dt;
+                this.vx += (targetVx - this.vx) * turnRate;
+                this.vy += (targetVy - this.vy) * turnRate;
 
-                    // Normalize speed (|| 1 prevents division by zero if bullet is stationary)
-                    const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy) || 1;
-                    const targetSpeed = 200; // Base homing speed
-                    this.vx = (this.vx / speed) * targetSpeed;
-                    this.vy = (this.vy / speed) * targetSpeed;
-                }
+                // Normalize speed
+                const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy) || 1;
+                const targetSpeed = 200; // Base homing speed
+                this.vx = (this.vx / speed) * targetSpeed;
+                this.vy = (this.vy / speed) * targetSpeed;
             }
         }
 

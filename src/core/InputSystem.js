@@ -96,7 +96,15 @@ class InputSystem {
 
             const onJoyMove = (e) => {
                 if (!this.touch.joystickActive) return;
-                const t = Array.from(e.changedTouches).find(tt => tt.identifier === this.touch.joystickId);
+                // Direct iteration (no Array.from allocation)
+                let t = null;
+                const touches = e.changedTouches;
+                for (let i = 0, len = touches.length; i < len; i++) {
+                    if (touches[i].identifier === this.touch.joystickId) {
+                        t = touches[i];
+                        break;
+                    }
+                }
                 if (!t) return;
                 const rect = joy.getBoundingClientRect();
                 const dx = t.clientX - (rect.left + center.x);
@@ -105,7 +113,15 @@ class InputSystem {
             };
 
             const onJoyEnd = (e) => {
-                const t = Array.from(e.changedTouches).find(tt => tt.identifier === this.touch.joystickId);
+                // Direct iteration (no Array.from allocation)
+                let t = null;
+                const touches = e.changedTouches;
+                for (let i = 0, len = touches.length; i < len; i++) {
+                    if (touches[i].identifier === this.touch.joystickId) {
+                        t = touches[i];
+                        break;
+                    }
+                }
                 if (!t) return;
                 this.touch.joystickActive = false;
                 this.touch.joystickId = null;

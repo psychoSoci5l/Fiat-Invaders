@@ -102,6 +102,18 @@
      */
     function triggerScreenFlash(type) {
         const Balance = G.Balance;
+        const effects = Balance?.JUICE?.SCREEN_EFFECTS;
+
+        // Check if this flash type is enabled
+        if (effects) {
+            if (type === 'PLAYER_HIT' && !effects.PLAYER_HIT_FLASH) return;
+            if (type === 'BOSS_DEFEAT' && !effects.BOSS_DEFEAT_FLASH) return;
+            if (type === 'BOSS_PHASE' && !effects.BOSS_PHASE_FLASH) return;
+            if (type === 'HYPER_ACTIVATE' && !effects.HYPER_ACTIVATE_FLASH) return;
+            if (type === 'CLOSE_GRAZE' && !effects.GRAZE_FLASH) return;
+            if ((type === 'STREAK_10' || type === 'STREAK_25' || type === 'STREAK_50') && !effects.STREAK_FLASH) return;
+        }
+
         const flash = Balance?.JUICE?.FLASH?.[type];
         if (!flash) return;
 
@@ -151,19 +163,29 @@
      * @returns {Object} Modified dt values for hit stop
      */
     function update(dt) {
-        // Screen shake decay
-        if (shake > 0) shake -= 1;
+        // Screen shake decay (frame-rate independent: ~60 units/sec)
+        if (shake > 0) {
+            shake -= dt * 60;
+            if (shake < 0) shake = 0;
+        }
 
-        // Impact flash decay
-        if (flashRed > 0) flashRed -= 0.02;
+        // Impact flash decay (frame-rate independent: ~1.2 units/sec)
+        if (flashRed > 0) {
+            flashRed -= dt * 1.2;
+            if (flashRed < 0) flashRed = 0;
+        }
 
-        // Screen flash decay
+        // Screen flash decay with ease-out curve for smoother fade
         if (screenFlashTimer > 0) {
             screenFlashTimer -= dt;
-            screenFlashOpacity = screenFlashMaxOpacity * (screenFlashTimer / screenFlashDuration);
             if (screenFlashTimer < 0) {
                 screenFlashTimer = 0;
                 screenFlashOpacity = 0;
+            } else {
+                // Ease-out cubic: starts fast, ends slow (more natural)
+                const progress = screenFlashTimer / screenFlashDuration;
+                const eased = progress * progress; // Quadratic ease-out
+                screenFlashOpacity = screenFlashMaxOpacity * eased;
             }
         }
 
@@ -201,10 +223,11 @@
     }
 
     /**
-     * Draw impact flash overlay
+     * Draw impact flash overlay (player hit)
      * @param {CanvasRenderingContext2D} ctx
      */
     function drawImpactFlash(ctx) {
+        if (!G.Balance?.JUICE?.SCREEN_EFFECTS?.PLAYER_HIT_FLASH) return;
         if (flashRed > 0) {
             ctx.fillStyle = `rgba(255, 0, 0, ${flashRed})`;
             ctx.fillRect(-20, -20, gameWidth + 40, gameHeight + 40);
@@ -229,6 +252,7 @@
      * @param {CanvasRenderingContext2D} ctx
      */
     function drawScorePulse(ctx) {
+        if (!G.Balance?.JUICE?.SCREEN_EFFECTS?.SCORE_PULSE) return;
         if (scorePulseTimer <= 0) return;
 
         const Balance = G.Balance;
@@ -257,6 +281,7 @@
      * @param {number} totalTime - Total elapsed time for animation
      */
     function drawHyperOverlay(ctx, totalTime) {
+        if (!G.Balance?.JUICE?.SCREEN_EFFECTS?.HYPER_OVERLAY) return;
         const hyperPulse = Math.sin(totalTime * 6) * 0.05 + 0.15;
         ctx.fillStyle = `rgba(255, 200, 0, ${hyperPulse})`;
         ctx.fillRect(-20, -20, gameWidth + 40, gameHeight + 40);
@@ -268,6 +293,7 @@
      * @param {number} totalTime - Total elapsed time for animation
      */
     function drawSacrificeOverlay(ctx, totalTime) {
+        if (!G.Balance?.JUICE?.SCREEN_EFFECTS?.SACRIFICE_OVERLAY) return;
         const sacrificePulse = Math.sin(totalTime * 4) * 0.03 + 0.08;
         ctx.fillStyle = `rgba(255, 255, 255, ${sacrificePulse})`;
         ctx.fillRect(-20, -20, gameWidth + 40, gameHeight + 40);

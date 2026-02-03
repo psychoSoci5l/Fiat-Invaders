@@ -148,16 +148,39 @@
                 PLAYER_HIT: 0.08          // 80ms on player taking damage
             },
 
-            // Screen flash effects
+            // Screen flash effects (values used when enabled)
             FLASH: {
-                CLOSE_GRAZE: { duration: 0.04, opacity: 0.15, color: '#FFFFFF' },
-                HYPER_ACTIVATE: { duration: 0.12, opacity: 0.4, color: '#FFD700' },
-                STREAK_10: { duration: 0.08, opacity: 0.25, color: '#00FFFF' },
-                STREAK_25: { duration: 0.10, opacity: 0.35, color: '#FFD700' },
-                STREAK_50: { duration: 0.12, opacity: 0.45, color: '#9B59B6' },
-                BOSS_PHASE: { duration: 0.15, opacity: 0.5, color: '#FF6600' },
-                BOSS_DEFEAT: { duration: 0.25, opacity: 0.7, color: '#FFFFFF' },
-                PLAYER_HIT: { duration: 0.06, opacity: 0.3, color: '#FF0000' }
+                CLOSE_GRAZE: { duration: 0.03, opacity: 0.10, color: '#FFFFFF' },
+                HYPER_ACTIVATE: { duration: 0.10, opacity: 0.20, color: '#FFD700' },
+                STREAK_10: { duration: 0.06, opacity: 0.15, color: '#00FFFF' },
+                STREAK_25: { duration: 0.08, opacity: 0.20, color: '#FFD700' },
+                STREAK_50: { duration: 0.10, opacity: 0.25, color: '#9B59B6' },
+                BOSS_PHASE: { duration: 0.12, opacity: 0.25, color: '#FF6600' },
+                BOSS_DEFEAT: { duration: 0.20, opacity: 0.50, color: '#FFFFFF' },
+                PLAYER_HIT: { duration: 0.04, opacity: 0.15, color: '#FF0000' }
+            },
+
+            // Master toggles for screen effects (modularity)
+            SCREEN_EFFECTS: {
+                // Critical feedback (recommended ON)
+                PLAYER_HIT_FLASH: true,       // Red flash when hit
+                BOSS_DEFEAT_FLASH: true,      // White flash on boss kill
+                BOSS_PHASE_FLASH: true,       // Orange flash on phase change
+
+                // Optional feedback (default OFF - can feel like lag)
+                STREAK_FLASH: false,          // Flash on kill streaks
+                GRAZE_FLASH: false,           // Flash on close graze
+                SCORE_PULSE: false,           // Edge glow every 10k points
+                SCREEN_DIMMING: false,        // Darken screen with many bullets
+
+                // Mode-specific overlays
+                HYPER_OVERLAY: true,          // Golden tint during HYPER
+                SACRIFICE_OVERLAY: true,      // White tint during sacrifice
+                HYPER_ACTIVATE_FLASH: true,   // Flash when HYPER activates
+
+                // Bear Market atmosphere
+                LIGHTNING: true,              // Purple lightning flashes
+                BEAR_VIGNETTE: true           // Pulsing red vignette
             },
 
             // Score pulse effect (screen edge glow on milestones)

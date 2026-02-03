@@ -36,7 +36,16 @@ class Player extends window.Game.Entity {
         // Visual effects
         this.animTime = 0;
         this.muzzleFlash = 0; // Timer for muzzle flash effect
-        this.trail = []; // Position history for trail effect
+
+        // Pre-allocated trail buffer (circular, no GC churn)
+        this._trailBuffer = [];
+        this._trailHead = 0;
+        this._trailCount = 0;
+        for (let i = 0; i < 6; i++) {
+            this._trailBuffer.push({ x: 0, y: 0, age: 999 }); // Pre-allocate
+        }
+        this.trail = []; // Kept for compatibility with draw()
+
         this.hyperParticles = []; // Golden particles during HYPER
     }
 
@@ -64,6 +73,14 @@ class Player extends window.Game.Entity {
         this.shieldCooldown = 0;
         this.invulnTimer = 0;
 
+        // Reset trail buffer (reuse pre-allocated objects)
+        this._trailHead = 0;
+        this._trailCount = 0;
+        for (let i = 0; i < 6; i++) {
+            this._trailBuffer[i].age = 999; // Mark as expired
+        }
+        this.trail.length = 0;
+
         // HYPER reset
         this.hyperActive = false;
         this.hyperTimer = 0;
@@ -82,14 +99,30 @@ class Player extends window.Game.Entity {
         this.animTime += dt;
         if (this.muzzleFlash > 0) this.muzzleFlash -= dt;
 
-        // Trail effect - store position history
-        // Store position for trail when moving
-        if (this.trail.length === 0 || Math.abs(this.x - this.trail[this.trail.length - 1].x) > 4) {
-            this.trail.push({ x: this.x, y: this.y, age: 0 });
-            if (this.trail.length > 6) this.trail.shift();
+        // Trail effect - pre-allocated circular buffer (no GC)
+        // Check if we need a new trail point (use last written slot)
+        const lastTrailIdx = (this._trailHead + 5) % 6;
+        const lastTrail = this._trailBuffer[lastTrailIdx];
+        if (this._trailCount === 0 || Math.abs(this.x - lastTrail.x) > 4) {
+            // Reuse pre-allocated slot (circular overwrite)
+            const slot = this._trailBuffer[this._trailHead];
+            slot.x = this.x;
+            slot.y = this.y;
+            slot.age = 0;
+            this._trailHead = (this._trailHead + 1) % 6;
+            if (this._trailCount < 6) this._trailCount++;
         }
-        this.trail.forEach(t => t.age += dt);
-        this.trail = this.trail.filter(t => t.age < 0.12);
+
+        // Age trail points in-place (no forEach closure)
+        // Build trail array for draw() without .filter() allocation
+        this.trail.length = 0; // Reuse existing array
+        for (let i = 0; i < 6; i++) {
+            const t = this._trailBuffer[i];
+            t.age += dt;
+            if (t.age < 0.12) {
+                this.trail.push(t); // Push reference, not new object
+            }
+        }
 
         // Movement Physics (Inertia) - values from Balance config
         const accel = Balance.PLAYER.ACCELERATION;

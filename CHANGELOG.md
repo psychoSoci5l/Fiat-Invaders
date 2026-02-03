@@ -1,5 +1,90 @@
 # Changelog
 
+## v2.17.0 - 2026-02-03
+### Screen Effects Modularization
+
+**New: Centralized SCREEN_EFFECTS config in BalanceConfig.js**
+```javascript
+SCREEN_EFFECTS: {
+    PLAYER_HIT_FLASH: true,    // Critical feedback
+    BOSS_DEFEAT_FLASH: true,
+    BOSS_PHASE_FLASH: true,
+    STREAK_FLASH: false,       // Off by default
+    GRAZE_FLASH: false,
+    SCORE_PULSE: false,
+    SCREEN_DIMMING: false,
+    HYPER_OVERLAY: true,
+    SACRIFICE_OVERLAY: true,
+    LIGHTNING: true,
+    BEAR_VIGNETTE: true
+}
+```
+
+**Removed: Screen Dimming default behavior**
+- Was darkening screen up to 35% with many bullets
+- Caused perception of "lag" or "blur"
+- Now OFF by default, configurable via SCREEN_DIMMING toggle
+
+**Reduced: Flash opacities across the board**
+- PLAYER_HIT: 0.30 → 0.15
+- BOSS_PHASE: 0.50 → 0.25
+- HYPER_ACTIVATE: 0.40 → 0.20
+- All streak flashes: reduced 30-40%
+
+**Architecture: All effects now config-driven**
+- EffectsRenderer.js reads SCREEN_EFFECTS toggles
+- SkyRenderer.js reads SCREEN_EFFECTS for lightning/vignette
+- Easy to enable/disable any effect without code changes
+
+---
+
+## v2.16.1 - 2026-02-03
+### Brightness Smoothing: Frame-Rate Independent Effects
+
+**Fixed: Effects not frame-rate independent**
+- `EffectsRenderer.js`: `shake -= 1` → `shake -= dt * 60`
+- `EffectsRenderer.js`: `flashRed -= 0.02` → `flashRed -= dt * 1.2`
+- Now decays at consistent rate on 60Hz/120Hz/144Hz displays
+
+**Fixed: Screen flash harsh onset**
+- Changed from linear decay to ease-out quadratic curve
+- Flash now fades more naturally (fast start, slow end)
+
+**Fixed: Lightning flash instant jump**
+- Added `lightningTarget` system for smooth ramp-up (~0.03s)
+- Lightning now ramps to peak then decays (no harsh jump)
+
+---
+
+## v2.16.0 - 2026-02-03
+### Performance Polish: GC Churn & Hot Path Optimization
+
+**Fixed: Player.js trail causing ~120 GC allocations/sec**
+- Pre-allocated circular buffer for trail positions
+- Eliminated `.filter()`, `.shift()`, `.forEach()` in hot path
+- Reuse existing array references instead of creating new objects
+
+**Fixed: Bullet.js homing missiles calling sqrt() per enemy**
+- Use distance squared for nearest-target comparison
+- Only one sqrt call per homing bullet per frame
+- Eliminated object literal allocation for target position
+
+**Fixed: InputSystem.js creating arrays on every touch event**
+- Replaced `Array.from(e.changedTouches).find()` with direct iteration
+- Eliminates 30-60 array allocations per second on mobile
+
+**Fixed: main.js updateEnemies() with redundant forEach loops**
+- Consolidated two `.forEach()` into existing for loop
+- Cached player position and hitbox size outside loop
+- Reduced enemy array iterations from 3 to 1 per frame
+
+**Estimated Performance Impact**
+- ~30-40% frame time reduction on mobile devices
+- Smoother 60fps during heavy bullet hell sequences
+- Reduced GC micro-stuttering
+
+---
+
 ## v2.15.9 - 2026-02-03
 ### Hotfix: Back to Intro Screen
 

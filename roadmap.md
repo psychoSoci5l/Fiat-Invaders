@@ -341,6 +341,24 @@
 - [ ] **Dirty Rectangles**: Skipped (complex, minimal benefit for this game)
 - [ ] **Batch Similar Draws**: Skipped (requires canvas layer restructure)
 
+#### G3) GC Churn Elimination (v2.16.0) ✅
+- [x] **Player Trail Buffer**: Pre-allocated circular buffer, no .filter()/.shift()/.forEach()
+- [x] **Homing Bullets**: Distance squared comparison, single sqrt per bullet per frame
+- [x] **Touch Input**: Direct iteration instead of Array.from().find()
+- [x] **Enemy Update Loop**: Consolidated 3 loops into 1, cached player position/hitbox
+
+#### G4) Frame-Rate Independent Effects (v2.16.1) ✅
+- [x] **Shake Decay**: `dt * 60` instead of fixed `-= 1`
+- [x] **Impact Flash Decay**: `dt * 1.2` instead of fixed `-= 0.02`
+- [x] **Screen Flash Easing**: Quadratic ease-out instead of linear decay
+- [x] **Lightning Ramp-Up**: Smooth ~0.03s ramp instead of instant jump
+
+#### G5) Screen Effects Modularization (v2.17.0) ✅
+- [x] **SCREEN_EFFECTS Config**: Master toggles in BalanceConfig.js
+- [x] **Removed Screen Dimming**: Was causing "lag" perception (off by default)
+- [x] **Reduced Flash Opacities**: All flashes reduced 30-50%
+- [x] **Config-Driven Effects**: All overlays check Balance toggles before rendering
+
 ---
 
 ### Phase 18 Priority Order:
