@@ -12,8 +12,11 @@ When completing a feature or ending a session, **always update these files witho
 3. **Constants.js** - Bump `VERSION` string (e.g., "v2.15.3 FIAT vs CRYPTO")
 4. **sw.js** - Bump `SW_VERSION` to match (e.g., '2.15.3')
 5. **CLAUDE.md** - Update if new systems/patterns were added
+6. **README.md** - Update if major features added (shown on GitHub homepage)
 
 **Version Sync**: Constants.js and sw.js versions MUST match for PWA cache updates to work correctly.
+
+**Credits**: README.md credits line: "Created by **psychoSocial** with **Claude**, **Antigravity**, **ChatGPT**, **Gemini**."
 
 This is a **priority rule** - documentation updates are part of the work, not an afterthought.
 
