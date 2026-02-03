@@ -1348,10 +1348,14 @@ window.launchShipAndStart = function () {
         '.btn-tap-start'
     ];
 
+    // Track destroyed elements for reset in finishLaunch
+    const destroyTargets = [];
+
     let explodeDelay = 0;
     elementsToExplode.forEach(selector => {
         const el = document.querySelector(selector);
         if (el && isVisible(el)) {
+            destroyTargets.push({ el });
             destroyElement(el, explodeDelay);
             explodeDelay += 40; // Stagger explosions
         }
