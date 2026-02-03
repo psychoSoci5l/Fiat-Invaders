@@ -1,6 +1,6 @@
 // Service Worker for FIAT vs CRYPTO
 // VERSION MUST MATCH Constants.js - bump this to force cache update!
-const SW_VERSION = '2.15.1';
+const SW_VERSION = '2.15.2';
 const CACHE_NAME = `fiat-vs-crypto-v${SW_VERSION}`;
 
 // All assets to cache

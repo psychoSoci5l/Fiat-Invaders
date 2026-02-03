@@ -876,52 +876,129 @@ Balance.SACRIFICE = {
 
 ---
 
-### Sprint 23.5: Module Consolidation (v2.16.0)
-*Goal: Clean up and consolidate related modules.*
+### Sprint 24: Code Quality & App Store Prep (v2.16.0) 🚧 CURRENT
+*Goal: Fix memory leaks, clean up code, prepare for future App Store submission.*
 
-- [ ] **Entity Factory**: Centralize entity creation (bullets, enemies, powerups)
-- [ ] **Event System Audit**: Document all events, remove unused ones
-- [ ] **Audio Presets**: Consolidate sound definitions into AudioConfig.js
+> **Context**: Audit del 2026-02-03 ha identificato 22 criticità. Analisi approfondita ha ridotto a 2 fix reali necessari.
+
+#### Phase A: Memory Leak Fixes 🧠 ✅ COMPLETE (v2.15.2)
+*Priority: HIGH - Causa instabilità su sessioni lunghe*
+
+- [x] **A1. DialogueUI Event Listeners** (`src/story/DialogueUI.js`)
+  - Aggiunto `_listenersAttached` flag per prevenire duplicati
+  - Salvati handler come proprietà per cleanup
+  - Aggiunto metodo `destroy()` per cleanup completo
+
+- [x] **A2. InputSystem Debug Handler** - GIÀ IMPLEMENTATO CORRETTAMENTE
+  - `_hideDebugOverlay()` già rimuove i listener (linee 309-313)
+  - Nessuna fix necessaria
+
+- [x] **A3. Timer Cleanup** - NON NECESSARIO
+  - Tutti i setTimeout sono one-shot per animazioni brevi
+  - Nessun memory leak reale identificato
+
+#### Phase B: iOS Audio & Input Fixes 🎵 ✅ COMPLETE (v2.15.2)
+*Priority: HIGH - Critico per esperienza mobile*
+
+- [x] **B1. AudioContext Resume** - GIÀ IMPLEMENTATO CORRETTAMENTE
+  - `toggleMute()` già fa `ctx.resume()` e `unlockWebAudio()`
+  - Design corretto: unmute esplicito rispetta autoplay policy
+
+- [x] **B2. Passive Event Listeners** (`src/core/InputSystem.js`)
+  - Shield button: aggiunto `{ passive: false }` a touchstart/touchend
+  - General touchend: aggiunto `{ passive: true }` per coerenza
+
+- [x] **B3. Safe Area Orientation** - GIÀ IMPLEMENTATO
+  - `orientationchange` handler esiste (linea 878)
+  - Chiama `resize()` che aggiorna `safeAreaInsets`
+
+#### Phase C: Code Cleanup 🧹
+*Priority: MEDIUM - Professionalità e manutenibilità*
+
+- [ ] **C1. Console.log Removal**
+  - Rimuovere/wrappare tutti i console.log in production
+  - Mantenere solo console.warn/error per errori reali
+  - Files: main.js, sw.js, AudioSystem.js
+
+- [ ] **C2. Versioning Single Source**
+  - Creare `src/config/Version.js` come single source of truth
+  - SW.js legge versione da file condiviso (o build step)
+  - Eliminare rischio di mismatch
+
+- [ ] **C3. Asset Error Handling** (`src/main.js:30-66`)
+  - Validare ASSETS prima di loadAssets()
+  - Mostrare stato "Loading..." con progress
+  - Gestire errori con messaggio user-friendly
+
+#### Phase D: Asset & Metadata Fixes 📦
+*Priority: MEDIUM - Necessario per App Store submission*
+
+- [ ] **D1. Icon PNG Conversion**
+  - Convertire icon-512.png da JPEG a PNG
+  - Creare set completo iOS: 120x120, 152x152, 167x167, 180x180, 1024x1024
+  - Aggiornare manifest.json con type corretto
+
+- [ ] **D2. Privacy Policy**
+  - Creare PRIVACY.md con policy base (localStorage only, no tracking)
+  - Hostare su GitHub Pages o sito dedicato
+  - Aggiungere link in footer/settings
+
+- [ ] **D3. I18N Audit**
+  - Verificare 100% copertura italiano in Constants.TEXTS
+  - Rimuovere testi hardcoded in HTML/JS
+  - Documentare stringhe mancanti
+
+#### Phase E: Future App Store Prep (Deferred) 📱
+*Priority: LOW - Da fare quando decidiamo di pubblicare*
+
+- [ ] **E1. Capacitor Setup** - iOS native wrapper
+- [ ] **E2. Game Center Integration** - Leaderboard reali
+- [ ] **E3. App Store Screenshots** - Marketing assets
+- [ ] **E4. TestFlight Beta** - Testing pre-release
 
 ---
 
-### Sprint 23.6: Performance & Testing (v2.16.0)
-*Goal: Optimize performance and add test coverage.*
+### Sprint 25: Performance & Architecture (v2.17.0)
+*Goal: Ottimizzare performance e consolidare architettura.*
 
-#### Performance Optimization
-- [ ] **Spatial Partitioning**: Grid-based collision for O(n) instead of O(n²)
-- [ ] **Draw Call Batching**: Group similar entities for fewer ctx state changes
-- [ ] **Memory Profiling**: Identify and fix any memory leaks
+#### Performance
+- [ ] **Spatial Partitioning**: Grid-based collision O(n) instead of O(n²)
+- [ ] **Draw Call Batching**: Group similar entities
+- [ ] **Object Pool Audit**: Verificare tutti gli oggetti sono pooled
 
-#### Test Coverage
-- [ ] **Unit Tests**: Core systems (CampaignState, DropSystem, WaveManager)
-- [ ] **Integration Tests**: Game flow (start → wave → boss → cycle)
-- [ ] **Regression Tests**: Automated checks for fixed bugs
-
-#### Documentation
-- [ ] **Code Comments**: JSDoc for all public methods
-- [ ] **Architecture Diagram**: Visual module dependency map
-- [ ] **API Reference**: Document window.Game namespace
+#### Architecture
+- [ ] **Entity Factory**: Centralize entity creation
+- [ ] **Event System Audit**: Document all events, remove unused
+- [ ] **State Machine**: Formalizzare game states
 
 ---
 
-### Sprint Dependencies
+### Sprint Dependencies (Updated)
 
 ```
-Sprint 23.0 ✅ ──> Sprint 23.1 Quick Wins
-                        │
-            ┌───────────┴───────────┐
-            v                       v
-    Sprint 23.2              Sprint 23.3
-    CollisionSystem          UIRenderer
-            │                       │
-            └───────────┬───────────┘
-                        v
-                Sprint 23.4
-              main.js Decomposition
+Sprint 23.4 ✅ ──> Hotfix 23.4.1 ✅
                         │
                         v
-                Sprint 23.5
+              ┌─────────────────┐
+              │   Sprint 24     │ ◄── CURRENT
+              │ Code Quality &  │
+              │ App Store Prep  │
+              └────────┬────────┘
+                       │
+          ┌────────────┼────────────┐
+          v            v            v
+      Phase A      Phase B      Phase C
+      Memory       iOS Audio    Code
+      Leaks        & Input      Cleanup
+          │            │            │
+          └────────────┼────────────┘
+                       v
+              ┌─────────────────┐
+              │   Sprint 25     │
+              │  Performance &  │
+              │  Architecture   │
+              └─────────────────┘
+```
               Module Consolidation
                         │
                         v

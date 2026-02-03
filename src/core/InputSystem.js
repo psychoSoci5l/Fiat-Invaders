@@ -39,7 +39,7 @@ class InputSystem {
 
         window.addEventListener('touchstart', handleTouch, { passive: false });
         window.addEventListener('touchmove', handleTouch, { passive: false });
-        window.addEventListener('touchend', () => { if (!this.touch.joystickActive) this.touch.active = false; });
+        window.addEventListener('touchend', () => { if (!this.touch.joystickActive) this.touch.active = false; }, { passive: true });
 
         // Shield button - with dynamic fallback creation
         let tShield = document.getElementById('t-shield');
@@ -47,8 +47,8 @@ class InputSystem {
             tShield = this._createShieldButton();
         }
         if (tShield) {
-            tShield.addEventListener('touchstart', (e) => { e.preventDefault(); this.touch.shield = true; });
-            tShield.addEventListener('touchend', (e) => { e.preventDefault(); this.touch.shield = false; });
+            tShield.addEventListener('touchstart', (e) => { e.preventDefault(); this.touch.shield = true; }, { passive: false });
+            tShield.addEventListener('touchend', (e) => { e.preventDefault(); this.touch.shield = false; }, { passive: false });
         }
 
         const joy = document.getElementById('joystick');

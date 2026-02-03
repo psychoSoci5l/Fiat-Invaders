@@ -1,5 +1,32 @@
 # Changelog
 
+## v2.15.2 - 2026-02-03
+### Sprint 24 Phase A+B: Code Quality & iOS Fixes
+
+**Fixed: DialogueUI Memory Leak Prevention**
+- Added `_listenersAttached` flag to prevent duplicate event listeners
+- Stored handler references (`_onClickHandler`, `_onTouchHandler`) for cleanup
+- Added `destroy()` method for complete cleanup
+- Added `{ passive: false }` to touchstart listener
+
+**Fixed: InputSystem Passive Listeners**
+- Shield button touchstart/touchend now have `{ passive: false }` (required for preventDefault)
+- General touchend now explicitly has `{ passive: true }` for consistency
+
+**Audit Results**
+- Memory leak A2 (InputSystem debug handler): Already correctly implemented
+- Timer cleanup A3: All timers are one-shot, no cleanup needed
+- AudioContext B1: Design is correct (explicit unmute required)
+- Safe area B3: Already implemented via orientationchange handler
+
+**Files Changed**
+- `src/story/DialogueUI.js`: Listener protection + destroy method
+- `src/core/InputSystem.js`: Passive listener compliance
+- `src/utils/Constants.js`: Version bump
+- `sw.js`: Version sync
+
+---
+
 ## v2.15.1 - 2026-02-03
 ### Hotfix: Post-Refactor Bug Fixes
 

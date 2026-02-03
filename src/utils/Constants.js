@@ -1,7 +1,7 @@
 // Game Constants & Configuration (Namespace Pattern)
 window.Game = window.Game || {};
 
-window.Game.VERSION = "v2.15.1 FIAT vs CRYPTO";
+window.Game.VERSION = "v2.15.2 FIAT vs CRYPTO";
 
 window.Game.TEXTS = {
     EN: {
