@@ -1074,8 +1074,8 @@ function resize() {
             gameContainer.style.width = gameWidth + 'px';
         }
         // PWA mode: Force minimum top inset for status bar (env() may return 0)
-        // iOS status bar is ~47px on notch devices, ~20px on older devices
-        const pwaTopInset = Math.max(insets.top, 47);
+        // iPhone 14 Pro Dynamic Island needs ~59px, older notch devices ~47px
+        const pwaTopInset = Math.max(insets.top, 59);
         document.documentElement.style.setProperty('--pwa-top-inset', pwaTopInset + 'px');
     } else {
         // Safari/Browser mode: account for notch and home bar
