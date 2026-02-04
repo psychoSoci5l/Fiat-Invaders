@@ -529,7 +529,19 @@
             VICTORY: true,                // Boss defeated - satisfying feedback
             FLOATING_TEXT: false,         // Damage numbers (optional, can clutter)
             MEME_TICKER: false,           // Boss fight ticker (distracting)
-            PERK_NOTIFICATION: true       // Perk icons - useful to know what you got
+            PERK_NOTIFICATION: true,      // Perk icons - useful to know what you got
+
+            // Compact wave info box (v3.0.7)
+            GAME_INFO_BOX: {
+                FIXED_WIDTH: 280,         // Larghezza fissa in pixel
+                FIXED_Y: 110,             // Y fisso, sotto punteggio con margine
+                PRIMARY_FONT_SIZE: 18,    // "CYCLE X • WAVE Y/5"
+                SUBTITLE_FONT_SIZE: 11,   // Flavor text
+                SHOW_FLAVOR_TEXT: true,   // Toggle subtitle
+                DURATION: 2.5,            // Durata display
+                LINE_SPACING: 8,          // Spazio tra le righe
+                PADDING_V: 12             // Padding verticale
+            }
         },
 
         // --- UI LAYOUT ---

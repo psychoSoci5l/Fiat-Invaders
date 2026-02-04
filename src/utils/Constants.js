@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v3.0.6 FIAT vs CRYPTO";
+window.Game.VERSION = "v3.0.8 FIAT vs CRYPTO";
 
 window.Game.TEXTS = {
     EN: {
@@ -13,6 +13,9 @@ window.Game.TEXTS = {
         PRO_TIP: "💎 PRO TIP: STOP MOVING TO HODL (2x SCORE)",
         WAVE1: "WAVE 1: ACCUMULATION", WAVE2: "WAVE 2: BULL RUN", WAVE3: "WAVE 3: VOLATILITY",
         WAVE4: "WAVE 4: CORRECTION", WAVE5: "WAVE 5: CLIMAX",
+        CYCLE: "CYCLE", WAVE_OF: "WAVE",
+        WAVE_FLAVOR_1: "Accumulation", WAVE_FLAVOR_2: "Bull Run", WAVE_FLAVOR_3: "Volatility",
+        WAVE_FLAVOR_4: "Correction", WAVE_FLAVOR_5: "Climax",
         BOSS_ENTER: "GOLD RESERVES", BOSS_DEATH: "RESERVES LIQUIDATED",
         GAME_OVER: "REKT", RESTART: "BUY THE DIP",
         COMBO_LOST: "COMBO LOST", COMBO_BREAK: "COMBO BREAK",
@@ -120,6 +123,9 @@ window.Game.TEXTS = {
         PRO_TIP: "💎 PRO TIP: FERMATI PER HODL (Punti Doppi)",
         WAVE1: "ONDATA 1: ACCUMULO", WAVE2: "ONDATA 2: BULL RUN", WAVE3: "ONDATA 3: VOLATILITÀ",
         WAVE4: "ONDATA 4: CORREZIONE", WAVE5: "ONDATA 5: CLIMAX",
+        CYCLE: "CICLO", WAVE_OF: "ONDATA",
+        WAVE_FLAVOR_1: "Accumulo", WAVE_FLAVOR_2: "Bull Run", WAVE_FLAVOR_3: "Volatilita",
+        WAVE_FLAVOR_4: "Correzione", WAVE_FLAVOR_5: "Climax",
         BOSS_ENTER: "RISERVE AUREE", BOSS_DEATH: "RISERVE LIQUIDATE",
         GAME_OVER: "REKT", RESTART: "COMPRA IL DIP",
         COMBO_LOST: "COMBO PERSA", COMBO_BREAK: "COMBO ROTTA",

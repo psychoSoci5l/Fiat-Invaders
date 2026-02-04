@@ -1032,6 +1032,7 @@ body {
 
 .selection-score {
     text-align: center;
+    order: 1; /* Keep at top */
 }
 
 .selection-score .score-label {
@@ -1077,6 +1078,7 @@ body {
 .selection-mode {
     display: flex;
     gap: 15px;
+    order: 3; /* Move below launch button */
 }
 
 .mode-pill {
@@ -1117,6 +1119,7 @@ body {
     cursor: pointer;
     box-shadow: 0 5px 0 #8a5a0a, 0 0 30px rgba(247, 147, 26, 0.5);
     transition: all 0.15s;
+    order: 2; /* Same position as TAP TO START */
 }
 
 .btn-launch:hover {

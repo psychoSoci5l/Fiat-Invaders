@@ -153,6 +153,29 @@
     }
 
     /**
+     * Show wave info message (compact format)
+     * @param {string} cycleText - Localized cycle text (e.g., "CYCLE 1" or "CICLO 1")
+     * @param {string} waveText - Localized wave text (e.g., "WAVE 3/5" or "ONDATA 3/5")
+     * @param {number} totalWaves - Waves per cycle (for reference)
+     * @param {string} flavorText - Optional flavor text (e.g., "Volatility")
+     */
+    function showWaveInfo(cycleText, waveText, totalWaves, flavorText = '') {
+        const Balance = G.Balance;
+        if (!Balance?.HUD_MESSAGES?.GAME_INFO) return;
+
+        const config = Balance.HUD_MESSAGES.GAME_INFO_BOX || {};
+        const duration = config.DURATION || 2.5;
+
+        gameInfoMessages = [{
+            primaryText: cycleText + ' \u2022 ' + waveText,  // Unicode bullet •
+            flavorText: flavorText,
+            isWaveInfo: true,
+            life: duration,
+            maxLife: duration
+        }];
+    }
+
+    /**
      * Show danger message (red, center, pulsing)
      */
     function showDanger(text, shakeIntensity = 20) {
@@ -210,39 +233,86 @@
         // GAME_INFO: Top area, green box
         gameInfoMessages.forEach(m => {
             const alpha = Math.min(1, m.life * 2);
-            const y = 130 - (1 - m.life / m.maxLife) * 20;
+            const Balance = G.Balance;
 
             ctx.save();
             ctx.globalAlpha = alpha;
 
-            // Dynamic font size: shrink for long texts to fit screen
-            const maxBoxWidth = w - 40; // 20px padding each side
-            let fontSize = 24;
-            ctx.font = `bold ${fontSize}px "Press Start 2P", monospace`;
-            let textWidth = ctx.measureText(m.text).width || 200;
+            if (m.isWaveInfo) {
+                // NEW: Compact wave info (fixed position, no slide)
+                const config = Balance?.HUD_MESSAGES?.GAME_INFO_BOX || {};
+                const fixedY = config.FIXED_Y || 130;
+                const fixedWidth = config.FIXED_WIDTH || 280;
+                const primarySize = config.PRIMARY_FONT_SIZE || 18;
+                const subtitleSize = config.SUBTITLE_FONT_SIZE || 11;
+                const showFlavor = config.SHOW_FLAVOR_TEXT !== false;
+                const lineSpacing = config.LINE_SPACING || 8;
+                const padV = config.PADDING_V || 12;
 
-            // Shrink font if text too wide
-            while (textWidth + 40 > maxBoxWidth && fontSize > 12) {
-                fontSize -= 2;
+                // Calculate box height
+                let boxHeight = primarySize + (padV * 2);
+                if (showFlavor && m.flavorText) {
+                    boxHeight += lineSpacing + subtitleSize;
+                }
+
+                // Draw box (azzurro background, yellow border)
+                ctx.fillStyle = 'rgba(0, 120, 180, 0.85)';
+                ctx.strokeStyle = '#FFD700';
+                ctx.lineWidth = 2;
+                ctx.fillRect(cx - fixedWidth/2, fixedY - boxHeight/2, fixedWidth, boxHeight);
+                ctx.strokeRect(cx - fixedWidth/2, fixedY - boxHeight/2, fixedWidth, boxHeight);
+
+                // Draw primary text (yellow)
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.font = `bold ${primarySize}px "Press Start 2P", monospace`;
+                ctx.fillStyle = '#FFD700';
+
+                let textY = fixedY;
+                if (showFlavor && m.flavorText) {
+                    textY = fixedY - (lineSpacing + subtitleSize) / 2;
+                }
+                ctx.fillText(m.primaryText, cx, textY);
+
+                // Draw flavor text (lighter yellow)
+                if (showFlavor && m.flavorText) {
+                    ctx.font = `${subtitleSize}px "Press Start 2P", monospace`;
+                    ctx.fillStyle = '#FFEC8B';
+                    ctx.fillText(m.flavorText, cx, textY + primarySize/2 + lineSpacing + subtitleSize/2);
+                }
+            } else {
+                // LEGACY: Original dynamic rendering with slide animation
+                const y = 130 - (1 - m.life / m.maxLife) * 20;
+
+                // Dynamic font size: shrink for long texts to fit screen
+                const maxBoxWidth = w - 40; // 20px padding each side
+                let fontSize = 24;
                 ctx.font = `bold ${fontSize}px "Press Start 2P", monospace`;
-                textWidth = ctx.measureText(m.text).width;
+                let textWidth = ctx.measureText(m.text).width || 200;
+
+                // Shrink font if text too wide
+                while (textWidth + 40 > maxBoxWidth && fontSize > 12) {
+                    fontSize -= 2;
+                    ctx.font = `bold ${fontSize}px "Press Start 2P", monospace`;
+                    textWidth = ctx.measureText(m.text).width;
+                }
+
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                // Clamp box width to screen bounds
+                const boxWidth = Math.min(textWidth + 40, maxBoxWidth);
+                const boxHeight = fontSize + 12;
+
+                ctx.fillStyle = 'rgba(0, 50, 0, 0.8)';
+                ctx.strokeStyle = '#00FF00';
+                ctx.lineWidth = 2;
+                ctx.fillRect(cx - boxWidth/2, y - boxHeight/2, boxWidth, boxHeight);
+                ctx.strokeRect(cx - boxWidth/2, y - boxHeight/2, boxWidth, boxHeight);
+
+                ctx.fillStyle = '#00FF00';
+                ctx.fillText(m.text, cx, y);
             }
-
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-
-            // Clamp box width to screen bounds
-            const boxWidth = Math.min(textWidth + 40, maxBoxWidth);
-            const boxHeight = fontSize + 12;
-
-            ctx.fillStyle = 'rgba(0, 50, 0, 0.8)';
-            ctx.strokeStyle = '#00FF00';
-            ctx.lineWidth = 2;
-            ctx.fillRect(cx - boxWidth/2, y - boxHeight/2, boxWidth, boxHeight);
-            ctx.strokeRect(cx - boxWidth/2, y - boxHeight/2, boxWidth, boxHeight);
-
-            ctx.fillStyle = '#00FF00';
-            ctx.fillText(m.text, cx, y);
             ctx.restore();
         });
 
@@ -350,6 +420,7 @@
         showMemePopup,
         // Typed message functions
         showGameInfo,
+        showWaveInfo,
         showDanger,
         showVictory,
         // State

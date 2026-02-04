@@ -1,5 +1,60 @@
 # Changelog
 
+## v3.0.8 - 2026-02-04
+### UI Polish: Wave Info, Countdown & Start Screen
+
+Multiple UI/UX improvements for better visual consistency and faster game entry.
+
+#### Wave Info Box
+- **New colors**: Azzurro background, yellow borders and text (was green)
+- **Position adjusted**: Y=110 for better spacing below score
+
+#### Countdown Overlay
+- **Removed background box**: No more gray bordered rectangle
+- **Added blur effect**: 4px blur on entire game canvas during countdown
+- **Dark overlay**: 30% opacity for contrast
+- **Larger text**: Increased font sizes for better visibility
+
+#### Start Screen Flow
+- **Button position swap**: LAUNCH button now at same Y position as TAP TO START
+- **Allows double-tap**: Expert players can tap twice in same spot to start quickly
+- **New order**: Score → Launch → Mode toggle (was Score → Mode → Launch)
+
+---
+
+## v3.0.7 - 2026-02-04
+### HUD: Compact Wave Info Box
+
+Redesigned wave/level notification with fixed-position compact format and localization support.
+
+#### Changes
+- **Compact format**: "CYCLE 1 • WAVE 3/5" with optional flavor text subtitle
+- **Fixed position**: No slide animation, consistent Y=130px position
+- **Fixed width**: 280px constant width for visual consistency
+- **Localization**: Full EN/IT support for CYCLE, WAVE_OF, and flavor texts
+- **Flavor texts**: "Accumulation", "Bull Run", "Volatility", "Correction", "Climax"
+- **Configurable**: `Balance.HUD_MESSAGES.GAME_INFO_BOX` controls all parameters
+- **Legacy support**: Old `showGameInfo()` still works for boss/respawn messages
+
+#### New Constants (EN/IT)
+- `CYCLE` / `CICLO`
+- `WAVE_OF` / `ONDATA`
+- `WAVE_FLAVOR_1-5` with thematic names
+
+#### Config Options
+```javascript
+GAME_INFO_BOX: {
+    FIXED_WIDTH: 280,
+    FIXED_Y: 130,
+    PRIMARY_FONT_SIZE: 18,
+    SUBTITLE_FONT_SIZE: 11,
+    SHOW_FLAVOR_TEXT: true,
+    DURATION: 2.5
+}
+```
+
+---
+
 ## v3.0.6 - 2026-02-04
 ### UI Final: Gold HUD Buttons
 

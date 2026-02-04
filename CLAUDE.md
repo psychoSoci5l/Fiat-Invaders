@@ -491,11 +491,23 @@ Messages have distinct visual styles for quick recognition during gameplay:
 | Type | Style | Position | Purpose |
 |------|-------|----------|---------|
 | `GAME_INFO` | Green box, border | Top (Y=130) | Level/Wave progression |
+| `WAVE_INFO` | Green box, fixed | Top (Y=130) | Compact cycle/wave display (v3.0.7) |
 | `DANGER` | Red pulsing, thick border | Center | Boss warnings, alerts |
 | `VICTORY` | Gold glow, scaling | Center | Boss defeated, achievements |
 | `PERK_NOTIFICATION` | Floating icon | Above player | Perk acquired |
 | `FLOATING_TEXT` | Small text | At position | Score numbers (optional) |
 | `MEME_POPUP` | Random color/position | Random | Meme text (optional) |
+
+### Compact Wave Info (v3.0.7)
+New unified wave notification with format: `CYCLE X • WAVE Y/5` + optional flavor text.
+
+```javascript
+// Usage in main.js
+G.MessageSystem.showWaveInfo(cycleText, waveText, totalWaves, flavorText);
+// Example: "CYCLE 1 • WAVE 3/5" with "Volatility" subtitle
+```
+
+**Localization keys**: `CYCLE`, `WAVE_OF`, `WAVE_FLAVOR_1-5`
 
 ### Balance.HUD_MESSAGES
 Toggle each type independently in BalanceConfig.js:
@@ -507,7 +519,17 @@ HUD_MESSAGES: {
     PERK_NOTIFICATION: true,// Know what perk you got
     FLOATING_TEXT: false,   // Can clutter screen
     MEME_POPUP: false,      // Can distract
-    MEME_TICKER: false      // Boss fight ticker
+    MEME_TICKER: false,     // Boss fight ticker
+
+    // Compact wave info box config (v3.0.7)
+    GAME_INFO_BOX: {
+        FIXED_WIDTH: 280,         // Fixed width in pixels
+        FIXED_Y: 130,             // Fixed Y position (no slide)
+        PRIMARY_FONT_SIZE: 18,    // "CYCLE X • WAVE Y/5"
+        SUBTITLE_FONT_SIZE: 11,   // Flavor text
+        SHOW_FLAVOR_TEXT: true,   // Toggle subtitle
+        DURATION: 2.5             // Display duration
+    }
 }
 ```
 

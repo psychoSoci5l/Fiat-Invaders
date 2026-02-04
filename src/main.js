@@ -2684,12 +2684,20 @@ function update(dt) {
                 audioSys.play('levelUp'); // Triumphant jingle
                 updateLevelUI(); // With animation
                 grazePerksThisLevel = 0; // Reset graze perk cap for new level
-                showGameInfo("📈 LEVEL " + level);
+                // NOTE: Removed showGameInfo("📈 LEVEL " + level) - unified in wave info below
             }
+
+            // v3.0.7: Unified compact wave info message
             const waveNumber = waveMgr.wave;
-            const waveMessages = ['WAVE1', 'WAVE2', 'WAVE3', 'WAVE4', 'WAVE5'];
-            const msgKey = waveMessages[Math.min(waveNumber - 1, waveMessages.length - 1)];
-            showGameInfo(t(msgKey));
+            const wavesPerCycle = G.Balance.WAVES.PER_CYCLE;
+            const flavorKeys = ['WAVE_FLAVOR_1', 'WAVE_FLAVOR_2', 'WAVE_FLAVOR_3', 'WAVE_FLAVOR_4', 'WAVE_FLAVOR_5'];
+            const flavorKey = flavorKeys[Math.min(waveNumber - 1, flavorKeys.length - 1)];
+            const flavorText = t(flavorKey);
+
+            // Format: "CYCLE X" + " • " + "WAVE Y/5" (localized)
+            const cycleText = t('CYCLE') + ' ' + marketCycle;
+            const waveText = t('WAVE_OF') + ' ' + waveNumber + '/' + wavesPerCycle;
+            G.MessageSystem.showWaveInfo(cycleText, waveText, wavesPerCycle, flavorText);
 
             // Update global level BEFORE spawnWave so enemy HP scaling is correct
             window.currentLevel = level;
@@ -3900,7 +3908,7 @@ function draw() {
         // SACRIFICE UI (decision button or active countdown)
         drawSacrificeUI(ctx);
 
-        // Intermission countdown overlay (cell-shaded with audio feedback)
+        // Intermission countdown overlay (blur effect + transparent text)
         if (gameState === 'INTERMISSION' && waveMgr.intermissionTimer > 0) {
             const timer = waveMgr.intermissionTimer;
             const countdown = Math.min(3, Math.ceil(timer)); // Cap at 3 for clean 3-2-1 countdown
@@ -3915,6 +3923,19 @@ function draw() {
                 audioSys.play('countdownTick', { pitch });
             }
 
+            // Apply blur effect to entire canvas
+            ctx.save();
+            ctx.filter = 'blur(4px)';
+            ctx.drawImage(ctx.canvas, 0, 0);
+            ctx.filter = 'none';
+            ctx.restore();
+
+            // Dark overlay for contrast
+            ctx.save();
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.fillRect(0, 0, gameWidth, gameHeight);
+            ctx.restore();
+
             // Scale-in animation: number appears large and shrinks
             const scale = 1 + (1 - progress) * 0.25;
             const alpha = Math.min(1, progress * 4);
@@ -3924,48 +3945,31 @@ function draw() {
             ctx.scale(scale, scale);
             ctx.globalAlpha = alpha;
 
-            // Background box (cell-shaded dark) - taller to fit meme
-            const boxW = 320, boxH = 180;
-            ctx.fillStyle = 'rgba(15, 15, 25, 0.92)';
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 4;
-            ctx.beginPath();
-            ctx.roundRect(-boxW/2, -boxH/2, boxW, boxH, 10);
-            ctx.fill();
-            ctx.stroke();
-
-            // Inner highlight (two-tone)
-            ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.roundRect(-boxW/2 + 4, -boxH/2 + 4, boxW - 8, boxH - 8, 8);
-            ctx.stroke();
-
-            // "GET READY" text (top, green) - neutral message during countdown
+            // "GET READY" text (top, green) - no background, just text with outline
             const readyText = t('GET_READY') || 'GET READY';
-            ctx.font = 'bold 16px "Press Start 2P", monospace';
+            ctx.font = 'bold 18px "Press Start 2P", monospace';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillStyle = '#00FF00';
             ctx.strokeStyle = '#000';
-            ctx.lineWidth = 3;
+            ctx.lineWidth = 4;
             ctx.strokeText(readyText, 0, -55);
             ctx.fillText(readyText, 0, -55);
 
             // Countdown number (center, gold with bold outline)
-            ctx.font = 'bold 64px "Press Start 2P", monospace';
+            ctx.font = 'bold 72px "Press Start 2P", monospace';
             ctx.strokeStyle = '#000';
-            ctx.lineWidth = 8;
+            ctx.lineWidth = 10;
             ctx.fillStyle = '#F7931A';
             ctx.strokeText(countdown.toString(), 0, 0);
             ctx.fillText(countdown.toString(), 0, 0);
 
             // Meme text (bottom, cyan)
             if (intermissionMeme) {
-                ctx.font = 'bold 11px "Press Start 2P", monospace';
+                ctx.font = 'bold 12px "Press Start 2P", monospace';
                 ctx.fillStyle = '#00FFFF';
                 ctx.strokeStyle = '#000';
-                ctx.lineWidth = 2;
+                ctx.lineWidth = 3;
                 // Truncate if too long
                 const memeDisplay = intermissionMeme.length > 22 ? intermissionMeme.substring(0, 20) + '...' : intermissionMeme;
                 ctx.strokeText(memeDisplay, 0, 55);

@@ -1735,3 +1735,40 @@ BOSS_SIGNATURE_MEMES in Constants.js:
 | Health bar relevance | Yes | No (hidden) |
 
 ---
+
+## Phase 27: Compact Wave Info HUD (v3.0.7) ✅
+*Goal: Cleaner, localized wave notifications with fixed-position display.*
+
+### System Change
+- **Old**: Two separate messages: "📈 LEVEL X" + "WAVE Y: FLAVOR_TEXT"
+- **New**: Single compact message: "CYCLE X • WAVE Y/5" with optional subtitle
+
+### Features
+- [x] **Fixed Position**: No slide animation, consistent Y=130px
+- [x] **Fixed Width**: 280px constant for visual stability
+- [x] **Dual-Line Format**: Primary text + optional flavor subtitle
+- [x] **Full Localization**: EN/IT support for CYCLE, WAVE_OF, WAVE_FLAVOR_1-5
+- [x] **Configurable**: All parameters in `Balance.HUD_MESSAGES.GAME_INFO_BOX`
+- [x] **Legacy Support**: Original `showGameInfo()` still works for boss/respawn messages
+
+### Files Modified
+| File | Changes |
+|------|---------|
+| `BalanceConfig.js` | Added `GAME_INFO_BOX` config object |
+| `Constants.js` | Added `CYCLE`, `WAVE_OF`, `WAVE_FLAVOR_1-5` for EN/IT |
+| `MessageSystem.js` | Added `showWaveInfo()`, refactored draw() for dual-path |
+| `main.js` | START_WAVE handler uses new unified format |
+
+### Configuration
+```javascript
+GAME_INFO_BOX: {
+    FIXED_WIDTH: 280,         // Fixed width in pixels
+    FIXED_Y: 130,             // Fixed Y position
+    PRIMARY_FONT_SIZE: 18,    // "CYCLE X • WAVE Y/5"
+    SUBTITLE_FONT_SIZE: 11,   // Flavor text
+    SHOW_FLAVOR_TEXT: true,   // Toggle subtitle
+    DURATION: 2.5             // Display duration (seconds)
+}
+```
+
+---
