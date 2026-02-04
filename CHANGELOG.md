@@ -1,5 +1,58 @@
 # Changelog
 
+## v4.0.0 - 2026-02-04
+### Wave/Horde System Redesign - Complete Overhaul
+
+Major redesign of the enemy wave spawning system for maximum variety and thematic gameplay.
+
+#### 15 Unique Waves (5 per cycle × 3 cycles)
+- **Cycle 1 "Awakening"**: Tutorial-friendly with 8-16 enemies per horde
+  - Wave 1: First Contact (DIAMOND, weak currencies only)
+  - Wave 2: European Dawn (ARROW, intro to Euro bloc)
+  - Wave 3: Old World (PINCER, European mix)
+  - Wave 4: Dollar Emerges (CHEVRON, intro to Dollar)
+  - Wave 5: Global Alliance (FORTRESS, all major currencies)
+
+- **Cycle 2 "Conflict"**: Learning difficulty with 14-20 enemies
+  - Wave 1: Eastern Front (SCATTER, Asian currencies)
+  - Wave 2: Brussels Burns (SPIRAL, Euro bloc)
+  - Wave 3: Reserve War (CROSS, Dollar vs majors)
+  - Wave 4: BRICS Rising (WALL, emerging markets)
+  - Wave 5: Final Stand (GAUNTLET, strong currencies)
+
+- **Cycle 3 "Reckoning"**: Skilled difficulty with 18-24 enemies
+  - Wave 1: Digital Doom (VORTEX, CBDC focus)
+  - Wave 2: Pincer Attack (FLANKING, mixed assault)
+  - Wave 3: Escalation (STAIRCASE, weak→strong progression)
+  - Wave 4: Eye of Storm (HURRICANE, chaotic all-mix)
+  - Wave 5: Endgame (FINAL_FORM, ultimate challenge)
+
+#### 16 Formation Patterns
+New formations: DIAMOND, ARROW, PINCER, CHEVRON, FORTRESS, SCATTER, SPIRAL, CROSS, WALL, GAUNTLET, VORTEX, FLANKING, STAIRCASE, HURRICANE, FINAL_FORM (plus legacy: RECT, V_SHAPE, COLUMNS)
+
+#### Horde Differentiation
+- **Horde 1**: Standard behavior, normal entry, 1.0x fire rate
+- **Horde 2**: +20% shield/teleport chance, rapid entry, 1.15x fire rate, different currencies
+
+#### Thematic Currency Groups
+- ASIAN_BLOC: ¥, 元, ₹
+- EURO_BLOC: €, £, ₣
+- EMERGING: ₽, ₹, ₺
+- DOLLAR_ALLIES: $, €, £
+- BRICS: ₽, ₹, 元
+- DIGITAL_THREAT: Ⓒ, $, 元
+
+#### Bear Market Scaling
+- +25% enemy count in all waves
+- Forces strong currencies ($ 元) in weak waves
+
+#### Technical
+- All wave config in `Balance.WAVE_DEFINITIONS`
+- Helper functions: `getWaveDefinition()`, `getCurrencyBySymbol()`, `getHordeModifiers()`
+- Full backward compatibility with legacy spawn system for cycles 4+
+
+---
+
 ## v3.0.8 - 2026-02-04
 ### UI Polish: Wave Info, Countdown & Start Screen
 

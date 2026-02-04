@@ -328,8 +328,92 @@ New weapon-status bar shows:
 - `bar` - 3D gold ingot
 - `card` - Credit card with chip
 
-### Row Assignment (WaveManager.js)
-Each row gets ONE currency type (organized, not random).
+---
+
+## Wave System v4.0 (WaveManager.js)
+
+15 unique waves (5 per cycle × 3 cycles) with thematic currency assignments and unique formations.
+
+### Wave Definitions (Balance.WAVE_DEFINITIONS)
+
+#### Cycle 1: "Awakening" (Tutorial)
+| Wave | Horde 1 | Horde 2 | Formation | Theme |
+|------|---------|---------|-----------|-------|
+| 1 | 8 ¥₽₹ | 6 ¥₽₹ | DIAMOND | First Contact |
+| 2 | 10 ¥₽€ | 8 ₹£ | ARROW | European Dawn |
+| 3 | 12 €£₣ | 10 ₺€£ | PINCER | Old World |
+| 4 | 14 €₣$ | 10 £₺元 | CHEVRON | Dollar Emerges |
+| 5 | 16 ¥€$元 | 12 ₽£₣Ⓒ | FORTRESS | Global Alliance |
+
+#### Cycle 2: "Conflict" (Learning)
+| Wave | Horde 1 | Horde 2 | Formation | Theme |
+|------|---------|---------|-----------|-------|
+| 1 | 14 ¥元₹ | 12 ¥元₽ | SCATTER | Eastern Front |
+| 2 | 16 €₣£ | 14 €₣₺ | SPIRAL | Brussels Burns |
+| 3 | 18 $€£ | 14 $元Ⓒ | CROSS | Reserve War |
+| 4 | 18 ₽₹₺$ | 16 元Ⓒ$ | WALL | BRICS Rising |
+| 5 | 20 $元Ⓒ€ | 16 $元Ⓒ₣ | GAUNTLET | Final Stand |
+
+#### Cycle 3: "Reckoning" (Skilled)
+| Wave | Horde 1 | Horde 2 | Formation | Theme |
+|------|---------|---------|-----------|-------|
+| 1 | 18 Ⓒ€$ | 16 Ⓒ元£ | VORTEX | Digital Doom |
+| 2 | 20 $元Ⓒ | 18 €£₣$ | FLANKING | Pincer Attack |
+| 3 | 22 all | 18 all-rev | STAIRCASE | Escalation |
+| 4 | 22 all | 20 $元Ⓒ | HURRICANE | Eye of Storm |
+| 5 | 24 mix | 20 Ⓒ-swarm | FINAL_FORM | Endgame |
+
+### 16 Formations
+```
+DIAMOND    ARROW     PINCER    CHEVRON    FORTRESS
+    *         *      * * * *   *     *    * * * * *
+   * *       * *       * *      *   *     *       *
+  *   *     * * *       *        * *      *   *   *
+   * *     *     *      *         *       *       *
+    *                                     * * * * *
+
+SCATTER    SPIRAL    CROSS     WALL       GAUNTLET
+ *   *   *    * *       *      * * * * *   * *   * *
+*       *   *   *       *      * * * * *   * *   * *
+    *   *   * * *   * * * * *  * * * * *   * *   * *
+*     *     * * *       *
+  *       *             *
+
+VORTEX     FLANKING  STAIRCASE HURRICANE  FINAL_FORM
+   * *     * *   * *  *         *   *   *   * * * * *
+ *     *     *   *    * *         *   *     *   *   *
+*       *            * * *      *   *   *   * * * * *
+ *     *             * * * *      *   *     *   *   *
+   * *               * * * * *  *   *   *   * * * * *
+```
+
+### Horde Modifiers
+| Aspect | Horde 1 | Horde 2 |
+|--------|---------|---------|
+| Behavior bonus | 0% | +20% shield/teleport |
+| Fire rate mult | 1.0x | 1.15x |
+| Entry style | stagger | rapid (0.5x delay) |
+
+### Currency Themes
+```javascript
+ASIAN_BLOC: ['¥', '元', '₹']
+EURO_BLOC: ['€', '£', '₣']
+EMERGING: ['₽', '₹', '₺']
+DOLLAR_ALLIES: ['$', '€', '£']
+BRICS: ['₽', '₹', '元']
+DIGITAL_THREAT: ['Ⓒ', '$', '元']
+```
+
+### Bear Market
+- `+25%` enemy count in all waves
+- Forces `$` and `元` into weak-only waves
+
+### Helper Functions
+```javascript
+Balance.getWaveDefinition(cycle, waveInCycle)  // Get wave config
+Balance.getCurrencyBySymbol(symbol)            // Get FIAT_TYPE by symbol
+Balance.getHordeModifiers(hordeNumber)         // Get horde 1/2 modifiers
+```
 
 ---
 

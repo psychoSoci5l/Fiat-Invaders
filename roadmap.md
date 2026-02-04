@@ -1772,3 +1772,102 @@ GAME_INFO_BOX: {
 ```
 
 ---
+
+## Phase 28: Wave/Horde System Redesign v4.0.0 ✅
+*Goal: Complete overhaul of enemy spawning for maximum variety and thematic gameplay.*
+
+### Design Objectives
+1. **Variable Enemy Counts**: 8-24 enemies per horde (vs. fixed 12-16)
+2. **Thematic Currency Waves**: Each wave presents currencies from specific themes
+3. **Unique Formations**: 16 formations instead of 4 patterns
+4. **Horde Differentiation**: Horde 2 has different enemies, not just different pattern
+5. **Break Monotony**: No two waves feel the same
+
+### 15 Unique Waves (5 per cycle × 3 cycles)
+
+#### Cycle 1: "Awakening" (Tutorial)
+| Wave | H1 | H2 | Formation | Currencies H1 | Theme |
+|------|----|----|-----------|---------------|-------|
+| 1 | 8 | 6 | DIAMOND | ¥ ₽ ₹ | First Contact |
+| 2 | 10 | 8 | ARROW | ¥ ₽ € | European Dawn |
+| 3 | 12 | 10 | PINCER | € £ ₣ | Old World |
+| 4 | 14 | 10 | CHEVRON | € ₣ $ | Dollar Emerges |
+| 5 | 16 | 12 | FORTRESS | ¥ € $ 元 | Global Alliance |
+
+#### Cycle 2: "Conflict" (Learning)
+| Wave | H1 | H2 | Formation | Currencies H1 | Theme |
+|------|----|----|-----------|---------------|-------|
+| 1 | 14 | 12 | SCATTER | ¥ 元 ₹ | Eastern Front |
+| 2 | 16 | 14 | SPIRAL | € ₣ £ | Brussels Burns |
+| 3 | 18 | 14 | CROSS | $ € £ | Reserve War |
+| 4 | 18 | 16 | WALL | ₽ ₹ ₺ $ | BRICS Rising |
+| 5 | 20 | 16 | GAUNTLET | $ 元 Ⓒ € | Final Stand |
+
+#### Cycle 3: "Reckoning" (Skilled)
+| Wave | H1 | H2 | Formation | Currencies H1 | Theme |
+|------|----|----|-----------|---------------|-------|
+| 1 | 18 | 16 | VORTEX | Ⓒ € $ | Digital Doom |
+| 2 | 20 | 18 | FLANKING | $ 元 Ⓒ | Pincer Attack |
+| 3 | 22 | 18 | STAIRCASE | Weak→Strong | Escalation |
+| 4 | 22 | 20 | HURRICANE | All mix | Eye of Storm |
+| 5 | 24 | 20 | FINAL_FORM | Ultimate | Endgame |
+
+### 16 Formation Patterns
+| Formation | Shape | Cycle |
+|-----------|-------|-------|
+| DIAMOND | Central diamond | 1 |
+| ARROW | Downward pointing | 1 |
+| PINCER | Two wings | 1 |
+| CHEVRON | V-shape down | 1 |
+| FORTRESS | Square outline | 1 |
+| SCATTER | Random controlled | 2 |
+| SPIRAL | Swirl pattern | 2 |
+| CROSS | Plus sign | 2 |
+| WALL | Dense lines | 2 |
+| GAUNTLET | Two columns | 2 |
+| VORTEX | Concentric rings | 3 |
+| FLANKING | Dual attack | 3 |
+| STAIRCASE | Diagonal | 3 |
+| HURRICANE | Chaotic spiral | 3 |
+| FINAL_FORM | Dense core + ring | 3 |
+
+### Horde Differentiation
+| Aspect | Horde 1 | Horde 2 |
+|--------|---------|---------|
+| Behavior bonus | 0% | +20% shield/teleport |
+| Fire rate | 1.0x | 1.15x |
+| Entry style | Staggered | Rapid (0.5x delay) |
+| Currencies | Theme A | Theme B (complementary) |
+
+### Currency Theme Groups
+```javascript
+ASIAN_BLOC: ['¥', '元', '₹']      // Yen, Yuan, Rupee
+EURO_BLOC: ['€', '£', '₣']        // Euro, Pound, Franc
+EMERGING: ['₽', '₹', '₺']         // Ruble, Rupee, Lira
+DOLLAR_ALLIES: ['$', '€', '£']    // Dollar + Western
+BRICS: ['₽', '₹', '元']           // BRICS nations
+DIGITAL_THREAT: ['Ⓒ', '$', '元']  // CBDCs + majors
+```
+
+### Bear Market Scaling
+- **Count multiplier**: +25% enemies in all waves
+- **Force strong**: Adds $ and 元 to weak-only waves
+
+### Files Modified
+| File | Changes |
+|------|---------|
+| `BalanceConfig.js` | +WAVE_DEFINITIONS (waves, formations, currency themes, horde modifiers) |
+| `BalanceConfig.js` | +getWaveDefinition(), +getCurrencyBySymbol(), +getHordeModifiers() |
+| `WaveManager.js` | Complete rewrite with 16 formation generators |
+| `WaveManager.js` | New spawnWave() using definition system |
+| `WaveManager.js` | Legacy fallback for cycles 4+ |
+| `Constants.js` | VERSION → v4.0.0 |
+| `sw.js` | SW_VERSION → 4.0.0 |
+
+### Technical Details
+- All wave config in `Balance.WAVE_DEFINITIONS`
+- Formation generators create position arrays
+- Currency assignment with 20% randomization
+- Full backward compatibility via `spawnWaveLegacy()`
+
+---
