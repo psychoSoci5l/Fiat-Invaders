@@ -172,6 +172,7 @@ let waveStartTime = 0;
 let fiatKillCounter = { '¥': 0, '₽': 0, '₹': 0, '€': 0, '£': 0, '₣': 0, '₺': 0, '$': 0, '元': 0, 'Ⓒ': 0 };
 window.fiatKillCounter = fiatKillCounter; // Expose for debug
 let miniBoss = null; // Special boss spawned from kill counter
+let lastMiniBossSpawnTime = 0; // v2.24.4: Cooldown tracking for mini-boss spawns
 
 // Drop system now managed by G.DropSystem singleton
 // Boss fight drops also managed by G.DropSystem
@@ -205,6 +206,12 @@ const ui = {};
 
 // --- HELPER FUNCTIONS ---
 function t(key) { return Constants.TEXTS[currentLang][key] || key; }
+
+// v2.24.6: Global bullet cap check (prevents runaway patterns like BOJ mini-boss)
+function canSpawnEnemyBullet() {
+    const cap = Balance.ENEMY_FIRE?.PATTERNS?.GLOBAL_BULLET_CAP || 150;
+    return enemyBullets.length < cap;
+}
 
 // Juicy score update with bump effect
 function updateScore(newScore) {
@@ -884,6 +891,7 @@ function init() {
         events.on('harmonic_bullets', (data) => {
             if (!data || !data.bullets) return;
             data.bullets.forEach(bd => {
+                if (!canSpawnEnemyBullet()) return; // v2.24.6: Global cap
                 const bullet = G.Bullet.Pool.acquire(bd.x, bd.y, bd.vx, bd.vy, bd.color, bd.w || 8, bd.h || 8, false);
                 // Enhanced trail for beat-synced bullets
                 bullet.beatSynced = true;
@@ -1804,6 +1812,7 @@ function startGame() {
     // Reset fiat kill counter and mini-boss
     fiatKillCounter = { '¥': 0, '₽': 0, '₹': 0, '€': 0, '£': 0, '₣': 0, '₺': 0, '$': 0, '元': 0, 'Ⓒ': 0 };
     miniBoss = null;
+    lastMiniBossSpawnTime = 0; // v2.24.4: Reset cooldown
     G.DropSystem.reset(); // Reset drop system (pity timer, weapon cooldown, boss drops)
     G.MemeEngine.reset(); // Reset meme engine (ticker timer, popup cooldown)
     grazePerksThisLevel = 0; // Reset graze perk cap
@@ -2143,11 +2152,11 @@ function spawnMiniBoss(bossTypeOrSymbol, triggerColor) {
         miniBoss.savedEnemies = savedEnemies;
         miniBoss.triggerColor = triggerColor;
 
-        // Scale HP for mini-boss (40% of normal boss HP)
+        // Scale HP for mini-boss (50% of normal boss HP) v2.24.9: 0.4→0.5
         const perkCount = (runState && runState.perks) ? runState.perks.length : 0;
         const perkScaling = 1 + (perkCount * Balance.BOSS.HP.PERK_SCALE);
         const fullBossHp = Balance.calculateBossHP(level, marketCycle);
-        const miniBossHp = Math.floor(fullBossHp * 0.4 * perkScaling);
+        const miniBossHp = Math.floor(fullBossHp * 0.5 * perkScaling);
         miniBoss.hp = miniBossHp;
         miniBoss.maxHp = miniBossHp;
 
@@ -2209,6 +2218,7 @@ function updateMiniBoss(dt) {
         const attackBullets = miniBoss.update(dt, player);
         if (attackBullets && attackBullets.length > 0) {
             for (const bd of attackBullets) {
+                if (!canSpawnEnemyBullet()) break; // v2.24.6: Global cap
                 const bullet = G.Bullet.Pool.acquire(
                     bd.x, bd.y, bd.vx, bd.vy, bd.color, bd.w, bd.h, false
                 );
@@ -2258,6 +2268,7 @@ function updateMiniBoss(dt) {
 
 function fireMiniBossBullets() {
     if (!miniBoss) return;
+    if (!canSpawnEnemyBullet()) return; // v2.24.6: Global cap
     const bulletSpeed = 170 + (miniBoss.phase * 42); // Reduced 15%
 
     // Different patterns per phase
@@ -2272,6 +2283,7 @@ function fireMiniBossBullets() {
     } else if (miniBoss.phase === 1) {
         // Triple spread
         for (let angle = -0.3; angle <= 0.3; angle += 0.3) {
+            if (!canSpawnEnemyBullet()) break; // v2.24.6: Global cap
             const dx = player.x - miniBoss.x;
             const dy = player.y - miniBoss.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
@@ -2283,6 +2295,7 @@ function fireMiniBossBullets() {
     } else {
         // Circle burst
         for (let i = 0; i < 8; i++) {
+            if (!canSpawnEnemyBullet()) break; // v2.24.6: Global cap
             const angle = (Math.PI * 2 / 8) * i + miniBoss.animTime;
             const vx = Math.cos(angle) * bulletSpeed * 0.8;
             const vy = Math.sin(angle) * bulletSpeed * 0.8;
@@ -2394,6 +2407,14 @@ function checkMiniBossHit(b) {
             // Mini-boss defeated!
             // v2.22.5: Track mini-boss defeat
             G.Debug.trackMiniBossDefeat(isBossInstance ? miniBoss.bossType : miniBoss.name);
+
+            // v2.24.3: Track mini-boss fight duration for analytics
+            if (G.Debug._miniBossStartInfo) {
+                const info = G.Debug._miniBossStartInfo;
+                const duration = Date.now() - info.startTime;
+                G.Debug.trackMiniBossFight(info.type, info.trigger, info.killCount, duration);
+                G.Debug._miniBossStartInfo = null;
+            }
 
             // === GHOST BULLET FIX v2.23.0 ===
             // Clear all mini-boss bullets (same as main boss cleanup at line ~2735)
@@ -2643,6 +2664,7 @@ function update(dt) {
             const bossBullets = boss.update(dt, player);
             if (bossBullets && bossBullets.length > 0) {
                 bossBullets.forEach(bd => {
+                    if (!canSpawnEnemyBullet()) return; // v2.24.6: Global cap
                     enemyBullets.push(G.Bullet.Pool.acquire(bd.x, bd.y, bd.vx, bd.vy, bd.color, bd.w, bd.h, false));
                 });
             }
@@ -3319,7 +3341,9 @@ function checkBulletCollisions(b, bIdx) {
 
                 // Track kills per fiat type for mini-boss trigger (v2.18.0: Currency-specific boss mapping)
                 // v2.22.1: Fixed - don't trigger mini-boss during boss fight, boss warning, or from boss minions
-                if (e.symbol && fiatKillCounter[e.symbol] !== undefined && !miniBoss && !boss && !e.isMinion && bossWarningTimer <= 0) {
+                // v2.24.4: Added cooldown check using Balance.MINI_BOSS.COOLDOWN
+                const miniBossCooldownElapsed = (totalTime - lastMiniBossSpawnTime) >= Balance.MINI_BOSS.COOLDOWN;
+                if (e.symbol && fiatKillCounter[e.symbol] !== undefined && !miniBoss && !boss && !e.isMinion && bossWarningTimer <= 0 && miniBossCooldownElapsed) {
                     fiatKillCounter[e.symbol]++;
 
                     // Look up currency-specific boss mapping
@@ -3345,9 +3369,18 @@ function checkBulletCollisions(b, bIdx) {
 
                         // v2.22.5: Track mini-boss spawn
                         G.Debug.trackMiniBossSpawn(bossType, e.symbol, fiatKillCounter[e.symbol]);
+                        // Store spawn info for duration tracking
+                        G.Debug._miniBossStartInfo = {
+                            type: bossType,
+                            trigger: e.symbol,
+                            killCount: fiatKillCounter[e.symbol],
+                            startTime: Date.now()
+                        };
 
+                        lastMiniBossSpawnTime = totalTime; // v2.24.4: Track spawn time for cooldown
                         spawnMiniBoss(bossType, e.color);
-                        fiatKillCounter[e.symbol] = 0;
+                        // v2.24.4: Reset ALL counters to prevent cascade spawns (was only resetting triggered symbol)
+                        Object.keys(fiatKillCounter).forEach(k => fiatKillCounter[k] = 0);
                     }
                 }
 

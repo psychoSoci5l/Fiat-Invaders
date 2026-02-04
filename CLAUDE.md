@@ -111,6 +111,22 @@ dbg.toggleOverlay()       // Toggle overlay
 dbg.debugBoss()           // Enable boss debugging + overlay
 dbg.debugWaves()          // Enable wave debugging + overlay
 dbg.setProduction()       // Disable all (for release)
+
+// Balance Testing (v2.24.8)
+dbg.balanceTest()         // Start balance test run (enables analytics)
+dbg.report()              // Show full analytics report after game over
+```
+
+**Balance Testing Workflow:**
+```javascript
+// 1. Open DevTools Console (F12)
+dbg.balanceTest()         // Start tracking
+
+// 2. Play the game normally
+
+// 3. After game over:
+dbg.report()              // Shows: cycle times, boss fights, deaths,
+                          // grazes, HYPER, power-ups, mini-bosses
 ```
 
 **Categories:**

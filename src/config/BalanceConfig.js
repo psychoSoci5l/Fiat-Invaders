@@ -50,13 +50,13 @@
         // Grazing is the primary skill expression. Close to danger = maximum reward.
         GRAZE: {
             RADIUS: 25,               // Pixels outside core hitbox for graze
-            CLOSE_RADIUS: 12,         // Close graze radius for 3x bonus (tighter = more skill)
+            CLOSE_RADIUS: 18,         // Close graze radius for 3x bonus (v2.24.7: 12→18 for more close grazes)
 
             // Scoring (grazing = primary score source)
             POINTS_BASE: 25,          // Base points per graze
             CLOSE_BONUS: 3,           // Close graze multiplier (3x)
-            METER_GAIN: 8,            // Normal graze meter gain
-            METER_GAIN_CLOSE: 20,     // Close graze meter gain
+            METER_GAIN: 12,           // Normal graze meter gain (v2.24.7: 8→12 for faster fill)
+            METER_GAIN_CLOSE: 25,     // Close graze meter gain (v2.24.7: 20→25)
 
             // Multiplier system
             MULT_MAX: 2.5,            // Maximum score multiplier from full meter
@@ -67,7 +67,7 @@
             MAX_PERKS_PER_LEVEL: 2,   // Cap graze perks per level
 
             // Decay (use it or lose it)
-            DECAY_RATE: 6,            // Meter decay per second when not grazing
+            DECAY_RATE: 4,            // Meter decay per second (v2.24.7: 6→4 for slower drain)
             DECAY_DELAY: 0.5,         // Seconds before decay starts
 
             // Sound design (theremin of danger)
@@ -282,6 +282,9 @@
         // --- PATTERN DENSITY (Per Cycle) ---
         // Patterns follow Ikeda Rule 2: geometric, readable corridors
         PATTERNS: {
+            // v2.24.6: Global hard cap on enemy bullets (prevents runaway patterns)
+            GLOBAL_BULLET_CAP: 150,        // Absolute max enemy bullets on screen
+
             // Gap size = width of safe corridor in pixels (smaller = harder)
             GAP_SIZE: [100, 75, 55],       // Per cycle: [Tutorial, Learning, Skilled]
             GAP_SIZE_BEAR_BONUS: -15,      // Bear Market reduces gap
@@ -333,28 +336,28 @@
             COOLDOWN: 15.0,           // Seconds between mini-boss spawns
 
             // Currency → Boss mapping with individual thresholds
-            // v2.22.9: Thresholds lowered based on actual kill rates (~60% of spawned enemies)
-            // Each 5-wave cycle spawns ~120 WEAK, ~60 MEDIUM, ~36 STRONG enemies
+            // v2.24.5: Balanced thresholds (~1.5x original) with 15s cooldown + global reset
+            // Target: 1-2 mini-bosses per boss cycle (5 waves = ~200 enemies, ~20 per currency)
             CURRENCY_BOSS_MAP: {
                 // Dollar → FED (US hegemony) - spawns waves 1,3,5
-                '$': { boss: 'FEDERAL_RESERVE', threshold: 15 },
+                '$': { boss: 'FEDERAL_RESERVE', threshold: 22 },
 
                 // Euro/Europe → BCE
-                '€': { boss: 'BCE', threshold: 18 },
-                '₣': { boss: 'BCE', threshold: 18 },
-                '£': { boss: 'BCE', threshold: 18 },
+                '€': { boss: 'BCE', threshold: 22 },
+                '₣': { boss: 'BCE', threshold: 22 },
+                '£': { boss: 'BCE', threshold: 22 },
 
-                // Asia → BOJ
-                '¥': { boss: 'BOJ', threshold: 12 },
-                '元': { boss: 'BOJ', threshold: 12 },
+                // Asia → BOJ (appear frequently in weak tier waves)
+                '¥': { boss: 'BOJ', threshold: 18 },
+                '元': { boss: 'BOJ', threshold: 18 },
 
-                // Emerging markets → Random boss (most common, higher threshold)
-                '₽': { boss: 'RANDOM', threshold: 25 },
-                '₹': { boss: 'RANDOM', threshold: 25 },
-                '₺': { boss: 'RANDOM', threshold: 25 },
+                // Emerging markets → Random boss (most common, reach 40+ per cycle)
+                '₽': { boss: 'RANDOM', threshold: 35 },
+                '₹': { boss: 'RANDOM', threshold: 35 },
+                '₺': { boss: 'RANDOM', threshold: 35 },
 
                 // CBDC → Boss of current cycle (rare spawn)
-                'Ⓒ': { boss: 'CYCLE_BOSS', threshold: 10 }
+                'Ⓒ': { boss: 'CYCLE_BOSS', threshold: 12 }
             }
         },
 
@@ -368,13 +371,13 @@
             PHASE_TRANSITION_TIME: 1.5,    // Seconds for phase transition
 
             // HP scaling (applied before perk/damage modifiers)
-            // Updated v2.18.0: Higher base, smoother curve, bigger cycle jumps
+            // v2.24.9: 2x HP (was 3x, too tanky). Target: 45-75s fights
             HP: {
-                BASE: 1200,           // Base HP for all bosses (+200)
-                PER_LEVEL: 25,        // +25 HP per level (smoother curve)
-                PER_CYCLE: 500,       // +500 HP per cycle (significant jump)
+                BASE: 2400,           // Base HP for all bosses (v2.24.9: 3600→2400)
+                PER_LEVEL: 50,        // +50 HP per level (v2.24.9: 75→50)
+                PER_CYCLE: 1000,      // +1000 HP per cycle (v2.24.9: 1500→1000)
                 PERK_SCALE: 0.10,     // +10% per player perk
-                MIN_FLOOR: 1000       // Minimum HP regardless of modifiers
+                MIN_FLOOR: 2000       // Minimum HP (v2.24.9: 3000→2000)
             },
 
             // Movement speed per phase per boss type

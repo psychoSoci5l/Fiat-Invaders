@@ -1,5 +1,128 @@
 # Changelog
 
+## v2.24.9 - 2026-02-04
+### Balance: Boss HP Retuned (3x→2x)
+
+**Problem**: v2.24.8 (3x HP) was too tanky - FED 16110 HP took 106s+ and player died before finishing.
+
+**Changes**:
+| Parameter | v2.24.8 | v2.24.9 |
+|-----------|---------|---------|
+| `BASE` | 3600 | 2400 |
+| `PER_LEVEL` | 75 | 50 |
+| `PER_CYCLE` | 1500 | 1000 |
+| `MIN_FLOOR` | 3000 | 2000 |
+| Mini-boss % | 40% | **50%** |
+
+**Expected**:
+- Boss fights: 45-75s (was 106s+)
+- Mini-boss: 8-12s (was 1.2s)
+
+---
+
+## v2.24.8 - 2026-02-04
+### Balance: Boss HP Tripled (Longer Fights)
+
+**Problem**: Boss fights too short - FED 17.6s, BCE 28.3s (target 60-90s).
+
+**Analysis**: Player DPS ~330. Current HP produced fights 3-4x shorter than intended.
+
+**Changes**:
+| Parameter | Old | New | Effect |
+|-----------|-----|-----|--------|
+| `BASE` | 1200 | 3600 | 3x base HP |
+| `PER_LEVEL` | 25 | 75 | 3x level scaling |
+| `PER_CYCLE` | 500 | 1500 | 3x cycle scaling |
+| `MIN_FLOOR` | 1000 | 3000 | 3x minimum |
+
+**Expected Results**:
+- FED (Cycle 1): ~50-60s fight
+- BCE (Cycle 2): ~80-90s fight
+- BOJ (Cycle 3): ~100-120s fight
+
+---
+
+## v2.24.7 - 2026-02-04
+### Balance: Graze Meter Tuning (HYPER Reachable)
+
+**Problem**: 102 grazes in 8+ minutes, 0 HYPER activations. Meter never filled.
+
+**Math Analysis**:
+- Old: +8/graze, -6/sec decay = needs 13 consecutive grazes to reach 100
+- With 1 graze every ~5 sec: +8 gain, -30 decay = impossible to fill
+- Close graze radius (12px) too tight → 0% close grazes
+
+**Rebalanced Values**:
+| Parameter | Old | New | Effect |
+|-----------|-----|-----|--------|
+| `METER_GAIN` | 8 | 12 | +50% per graze |
+| `METER_GAIN_CLOSE` | 20 | 25 | +25% for close |
+| `DECAY_RATE` | 6/s | 4/s | -33% drain |
+| `CLOSE_RADIUS` | 12px | 18px | +50% close zone |
+
+**New Math**: +12/graze, -4/sec = ~9 grazes to fill (achievable in 15-20 sec burst)
+
+---
+
+## v2.24.6 - 2026-02-04
+### Safety: Global Enemy Bullet Cap
+
+**Problem**: BOJ mini-boss spawned 624 bullets, flooding the screen.
+
+**Solution**: Added `GLOBAL_BULLET_CAP: 150` in BalanceConfig.
+
+**Implementation**:
+- `canSpawnEnemyBullet()` helper function checks cap before every bullet spawn
+- Applied to: HarmonicConductor, Boss patterns, Mini-boss patterns
+- Bullets stop spawning when cap reached, resume when bullets leave screen
+
+**Result**: Screen never exceeds 150 enemy bullets regardless of pattern bugs.
+
+---
+
+## v2.24.5 - 2026-02-04
+### Balance: Mini-Boss Spawn Rate Tuning
+
+**Problem**: v2.24.4 thresholds were too high - 0 mini-bosses in 14 levels!
+
+**Analysis from debug log**:
+- ~200 enemies per boss cycle, split among 10 currencies
+- Average ~20 kills per currency before boss spawns
+- Old thresholds (30-50) were mathematically unreachable
+
+**Rebalanced Thresholds** (~1.5x original, achievable):
+| Currency | v2.24.4 | v2.24.5 | Rationale |
+|----------|---------|---------|-----------|
+| $ | 35 | 22 | Reaches ~25/cycle |
+| € ₣ £ | 40 | 22 | Reaches ~24/cycle |
+| ¥ 元 | 30 | 18 | Reaches ~24/cycle |
+| ₽ ₹ ₺ | 50 | 35 | Reaches ~43/cycle |
+| Ⓒ | 25 | 12 | Rare spawn |
+
+**Protection still in place**:
+- 15s cooldown between mini-boss spawns
+- Global counter reset prevents cascade
+
+**Target**: 1-2 mini-bosses per boss cycle (was 0, originally 5).
+
+---
+
+## v2.24.3 - 2026-02-04
+### Fix: Complete Debug Analytics Tracking
+
+**Problem**: Two tracking methods were defined but never called:
+- `trackBossPhase()` - Boss phase transitions not recorded
+- `trackMiniBossFight()` - Mini-boss fight duration not tracked
+
+**Solution**:
+- Added `trackBossPhase()` call in `Boss.js:triggerPhaseTransition()`
+- Added `trackMiniBossFight()` call in mini-boss defeat handler
+- Added `_miniBossStartInfo` temp storage for duration calculation
+
+**Result**: `dbg.report()` now shows complete data for balance testing checklist.
+
+---
+
 ## v2.24.2 - 2026-02-04
 ### Balance: Sacrifice Limit
 
