@@ -24,7 +24,7 @@ class Player extends window.Game.Entity {
         this.shieldCooldown = 0;
 
         this.beastMode = 0;
-        this.hp = 3;
+        this.hp = 1;  // 1-hit = 1-life system
         this.invulnTimer = 0;
 
         // HYPER GRAZE state
@@ -52,8 +52,9 @@ class Player extends window.Game.Entity {
     configure(type) {
         this.type = type;
         this.stats = window.Game.SHIPS[type];
-        this.maxHp = (this.stats.hp || 3) + this.getRunMod('maxHpBonus', 0);
-        this.hp = this.maxHp;
+        // 1-hit = 1-life system: ignore stats.hp and bonuses
+        this.maxHp = 1;
+        this.hp = 1;
         this.resetState();
 
         // Pre-cache colors for performance
@@ -265,6 +266,9 @@ class Player extends window.Game.Entity {
         if (window.Game.Events) {
             window.Game.Events.emit('HYPER_ACTIVATED');
         }
+
+        // Analytics: Track HYPER activation
+        if (window.Game.Debug) window.Game.Debug.trackHyperActivate();
     }
 
     /**
@@ -284,6 +288,9 @@ class Player extends window.Game.Entity {
         if (window.Game.Events) {
             window.Game.Events.emit('HYPER_DEACTIVATED');
         }
+
+        // Analytics: Track HYPER end
+        if (window.Game.Debug) window.Game.Debug.trackHyperEnd();
     }
 
     /**

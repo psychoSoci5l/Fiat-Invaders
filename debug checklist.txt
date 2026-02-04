@@ -1,9 +1,9 @@
-# Debug Checklist - v2.23.0
+# Debug Checklist - v2.24.2
 > Aggiornato: 2026-02-04
 
 ---
 
-## Bug Risolti (v2.22.4 - v2.23.0)
+## Bug Risolti (v2.22.4 - v2.24.2)
 
 - [x] Boss invisibile (BCE) - RISOLTO v2.22.5
 - [x] Boss distrutto subito senza colpirlo - RISOLTO v2.22.5
@@ -13,13 +13,16 @@
 - [x] HarmonicConductor setTimeout stale - RISOLTO v2.22.4 (generation system)
 - [x] Mini-boss threshold troppo alti - RISOLTO v2.22.9 (soglie dimezzate)
 - [x] Ghost bullets dopo morte MINI-boss - RISOLTO v2.23.0 (cleanup + HC reset + flag)
+- [x] Death tracking non funzionante (Deaths: 0) - RISOLTO v2.24.1 (aggiunto trackPlayerDeath)
+- [x] Double tracking HYPER deaths - RISOLTO v2.24.2 (deathAlreadyTracked flag)
+- [x] Satoshi Sacrifice loop infinito - RISOLTO v2.24.2 (limite 1 per run)
 
 ---
 
-## Test Session - v2.22.6
+## Test Session - v2.23.0 COMPLETATA
 
 ### Run Info
-- **Data**: _______________
+- **Data**: 2026-02-04
 - **Ship**: BTC / ETH / SOL
 - **Mode**: Normal / Bear Market
 
@@ -27,36 +30,36 @@
 
 | Level | Wave 1-5 | Boss | Note |
 |-------|----------|------|------|
-| 1 | [ ] OK | [ ] FED | |
-| 2 | [ ] OK | [ ] BCE | |
-| 3 | [ ] OK | [ ] BOJ | |
-| 4 | [ ] OK | [ ] FED | |
-| 5 | [ ] OK | [ ] BCE | |
+| 1 | [x] OK | [x] FED | |
+| 2 | [x] OK | [x] BCE | |
+| 3 | [x] OK | [x] BOJ | |
+| 4 | [x] OK | [x] FED | |
+| 5 | [x] OK | [x] BCE | |
 
 ### Boss Checklist
 
 | Boss | Visibile | 3 Fasi | Pattern OK | Morte Clean |
 |------|----------|--------|------------|-------------|
-| FED | [ ] | [ ] | [ ] | [ ] |
-| BCE | [ ] | [ ] | [ ] | [ ] |
-| BOJ | [ ] | [ ] | [ ] | [ ] |
+| FED | [x] | [x] | [x] | [x] |
+| BCE | [x] | [x] | [x] | [x] |
+| BOJ | [x] | [x] | [x] | [x] |
 
 ### Post-Boss Cleanup (usa dbg.showOverlay())
 
 | Check | Esito |
 |-------|-------|
-| enemies = 0 dopo boss | [ ] OK |
-| enemyBullets = 0 dopo boss | [ ] OK |
-| miniBoss = null dopo boss | [ ] OK |
-| Nessun ghost bullet | [ ] OK |
+| enemies = 0 dopo boss | [x] OK |
+| enemyBullets = 0 dopo boss | [x] OK |
+| miniBoss = null dopo boss | [x] OK |
+| Nessun ghost bullet | [x] OK |
 
 ### Mini-Boss
 
 | Check | Esito |
 |-------|-------|
 | Spawn dopo kill threshold | [x] OK (v2.22.9 - soglie ridotte) |
-| Non spawna durante main boss | [ ] OK |
-| Counter reset dopo cycle | [ ] OK |
+| Non spawna durante main boss | [x] OK |
+| Counter reset dopo cycle | [x] OK |
 | Ghost bullets cleanup | [x] OK (v2.23.0 - testato) |
 
 ---
@@ -72,8 +75,46 @@ dbg.enable('BULLET')  // Log bullets
 
 ---
 
+## Test Session - v2.24.2 (1-Hit = 1-Life)
+
+### Modifiche Sistema
+- **Prima**: 3 HP × 3 vite = 9 colpi totali
+- **Dopo**: 1 HP × 3 vite = 3 colpi totali
+
+### Death System Checklist
+
+| Check | Esito |
+|-------|-------|
+| 1 hit = 1 vita persa | [x] OK |
+| Proiettili esplodono alla morte | [x] OK |
+| Bullet time 2s alla morte | [x] OK |
+| Health bar nascosta | [x] OK |
+| Death tracking funzionante | [x] OK (v2.24.1) |
+| Analytics mostrano Deaths correttamente | [x] OK |
+
+### Satoshi's Sacrifice Checklist
+
+| Check | Esito |
+|-------|-------|
+| Appare solo all'ultima vita | [x] OK |
+| Limite 1 sacrificio per run | [x] OK (v2.24.2) |
+| Nessun loop infinito | [x] OK |
+| Score dimezzato dopo sacrificio | [x] OK |
+
+### Playtest Results (v2.24.2)
+
+```
+Run Duration: 1:28
+Final Score: 13306
+Deaths: 3 (tracked correctly)
+Sacrifices: 1 opportunity, 0 accepted
+Game Over: Clean exit
+```
+
+---
+
 ## Note Sessione
 
-_________________________________
-_________________________________
-_________________________________
+v2.23.0 - Tutti i test superati. Game stabile.
+v2.24.2 - Sistema 1-Hit=1-Life implementato e testato. Sacrifice limit funziona.
+

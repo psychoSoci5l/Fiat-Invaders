@@ -120,6 +120,7 @@ let sacrificeState = 'NONE'; // NONE, DECISION, ACTIVE
 let sacrificeDecisionTimer = 0;
 let sacrificeActiveTimer = 0;
 let sacrificeScoreAtStart = 0; // Score when sacrifice activated
+let sacrificesUsedThisRun = 0; // Limit: 1 sacrifice per run
 let sacrificeScoreEarned = 0; // Score earned during sacrifice
 let sacrificeGhostTrail = []; // Ghost position history for trail effect
 let memeSwapTimer = 0;
@@ -443,12 +444,8 @@ function applyPerk(perk) {
         recentPerks.push({ id: perk.id, stacks: stacks });
     }
 
-    const newMax = (player.stats.hp || 3) + (runState && runState.getMod ? runState.getMod('maxHpBonus', 0) : 0);
-    if (newMax !== prevMax) {
-        const delta = newMax - prevMax;
-        player.maxHp = newMax;
-        if (delta > 0) player.hp = Math.min(player.maxHp, player.hp + delta);
-    }
+    // 1-hit = 1-life system: HP bonuses no longer affect gameplay
+    // player.maxHp and player.hp remain at 1
     audioSys.play('perk');
     addPerkIcon(perk); // Visual glow effect above player
     updateLivesUI();
@@ -482,9 +479,10 @@ let selectedShipIndex = 0;
 let introState = 'SPLASH'; // 'SPLASH' or 'SELECTION'
 const SHIP_KEYS = ['BTC', 'ETH', 'SOL'];
 const SHIP_DISPLAY = {
-    BTC: { name: 'BTC STRIKER', color: '#F7931A', symbol: 'B', spd: 6, pwr: 7, hp: 3 },
-    ETH: { name: 'ETH HEAVY', color: '#8c7ae6', symbol: 'E', spd: 4, pwr: 8, hp: 4 },
-    SOL: { name: 'SOL SPEEDSTER', color: '#00d2d3', symbol: 'S', spd: 9, pwr: 5, hp: 2 }
+    // hit = hitbox rating (higher = smaller hitbox = easier to dodge)
+    BTC: { name: 'BTC STRIKER', color: '#F7931A', symbol: 'B', spd: 6, pwr: 7, hit: 5 },
+    ETH: { name: 'ETH HEAVY', color: '#8c7ae6', symbol: 'E', spd: 4, pwr: 8, hit: 3 },
+    SOL: { name: 'SOL SPEEDSTER', color: '#00d2d3', symbol: 'S', spd: 9, pwr: 5, hit: 8 }
 };
 
 function initIntroShip() {
@@ -618,16 +616,17 @@ function updateShipUI() {
     }
 
     if (statsEl) {
-        // Scale stats to 8-bar display (original values: spd 4-9, pwr 5-8, hp 2-4)
+        // Scale stats to 8-bar display (spd 4-9, pwr 5-8, hit 3-8)
         const spdScaled = Math.round(ship.spd * 0.8);
         const pwrScaled = Math.round(ship.pwr * 0.8);
+        const hitScaled = Math.round(ship.hit * 0.8);  // Hitbox: higher = smaller = better
         const spdBar = '█'.repeat(spdScaled) + '░'.repeat(8 - spdScaled);
         const pwrBar = '█'.repeat(pwrScaled) + '░'.repeat(8 - pwrScaled);
-        const hpHearts = '❤️'.repeat(ship.hp);
+        const hitBar = '█'.repeat(hitScaled) + '░'.repeat(8 - hitScaled);
         statsEl.innerHTML = `
             <span class="stat-item">SPD ${spdBar}</span>
             <span class="stat-item">PWR ${pwrBar}</span>
-            <span class="stat-item">HP ${hpHearts}</span>
+            <span class="stat-item">HIT ${hitBar}</span>
         `;
     }
 }
@@ -1707,24 +1706,11 @@ function updateLevelUI() {
 }
 
 function updateLivesUI(wasHit = false) {
-    if (!ui.healthBar) return;
-    const pct = Math.max(0, (player.hp / player.maxHp) * 100);
-    ui.healthBar.style.width = pct + "%";
-
-    // Color Logic
-    if (player.hp <= 1 || pct <= 34) {
-        ui.healthBar.style.backgroundColor = '#ff0000'; // RED (Critical)
-        ui.healthBar.style.boxShadow = '0 0 15px #ff0000';
-        // Add critical pulse
-        ui.healthBar.classList.add('health-critical');
-    } else if (pct <= 67) {
-        ui.healthBar.style.backgroundColor = '#F7931A'; // ORANGE (Warn)
-        ui.healthBar.style.boxShadow = '0 0 10px #F7931A';
-        ui.healthBar.classList.remove('health-critical');
-    } else {
-        ui.healthBar.style.backgroundColor = '#2ecc71'; // GREEN (Safe)
-        ui.healthBar.style.boxShadow = '0 0 10px #2ecc71';
-        ui.healthBar.classList.remove('health-critical');
+    // 1-hit = 1-life system: Hide health bar entirely (not needed with 1 HP)
+    // Find and hide the health container
+    const healthContainer = document.querySelector('.health-container');
+    if (healthContainer) {
+        healthContainer.style.display = 'none';
     }
 
     // Shake animation when hit
@@ -1752,10 +1738,9 @@ function startGame() {
     }
 
     if (runState && runState.reset) runState.reset();
-    if (runState && runState.getMod) {
-        player.maxHp = (player.stats.hp || 3) + runState.getMod('maxHpBonus', 0);
-        player.hp = player.maxHp;
-    }
+    // 1-hit = 1-life system: ignore stats.hp and bonuses
+    player.maxHp = 1;
+    player.hp = 1;
     volatilityTimer = 0;
     bulletCancelStreak = 0;
     bulletCancelTimer = 0;
@@ -1767,6 +1752,12 @@ function startGame() {
 
     score = 0; level = 1; lives = 3; setUI('scoreVal', '0'); setUI('lvlVal', '1'); setUI('livesText', lives);
     updateDifficultyCache(); // Initialize difficulty cache for level 1
+
+    // Analytics: Start tracking run
+    if (G.Debug) {
+        G.Debug.startAnalyticsRun(player.stats?.name || 'BTC', window.isBearMarket ? 'Bear Market' : 'Normal');
+        G.Debug.trackCycleStart(1);
+    }
     audioSys.setLevel(1, true); // Set music theme for level 1 (instant, no crossfade)
     // Clear particles via ParticleSystem
     if (G.ParticleSystem) G.ParticleSystem.clear();
@@ -1794,8 +1785,7 @@ function startGame() {
     }
 
     if (isBearMarket) {
-        player.hp = 1; // ONE HIT KILL
-        player.maxHp = 1; // Full bar but Red (logic handled in updateLivesUI)
+        // 1-hit = 1-life is now default for all modes
         // Bear Market speed handled in getGridSpeed() via 1.3x multiplier
         showDanger("🩸 SURVIVE THE CRASH 🩸");
     }
@@ -1822,6 +1812,7 @@ function startGame() {
     perkPauseData = null;
     bossWarningTimer = 0; // Reset boss warning
     bossWarningType = null;
+    sacrificesUsedThisRun = 0; // Reset sacrifice limit (max 1 per run)
 
     // Reset wave timing
     waveStartTime = 0;
@@ -1829,6 +1820,7 @@ function startGame() {
     // Reset visual effects
     shake = 0;
     totalTime = 0;
+    deathAlreadyTracked = false; // Reset death tracking flag
     if (G.SkyRenderer) G.SkyRenderer.reset(); // Reset sky state (lightning, etc.)
     if (G.TransitionManager) G.TransitionManager.reset();
 
@@ -2057,6 +2049,9 @@ function spawnBoss() {
     boss.hp = Math.max(hpConfig.MIN_FLOOR, Math.floor(rawHp * perkScaling * dmgCompensation * ngPlusMult));
     boss.maxHp = boss.hp;
     console.log(`[SPAWN BOSS] Type=${bossType}, HP=${boss.hp}, position=(${boss.x}, ${boss.y})`);
+
+    // Analytics: Track boss fight start
+    if (G.Debug) G.Debug.trackBossFightStart(bossType, marketCycle);
 
     // v2.22.5: Track boss spawn event
     G.Debug.trackBossSpawn(bossType, boss.hp, level, marketCycle);
@@ -2665,12 +2660,12 @@ function update(dt) {
         intensity += enemyBullets.length * 2;        // +2 per enemy bullet on screen
         intensity += (100 - grazeMeter);             // Less graze = more tension
         intensity += boss ? 30 : 0;                  // Boss present
-        intensity += player.hp === 1 ? 20 : 0;       // Near death
+        intensity += lives === 1 ? 20 : 0;           // Last life (1-hit = 1-life system)
         intensity += enemies.length;                 // More enemies = more intense
         audioSys.setIntensity(intensity);
 
-        // Near-death heartbeat (HP = 1)
-        if (player.hp === 1) {
+        // Near-death heartbeat (last life in 1-hit = 1-life system)
+        if (lives === 1) {
             if (!audioSys.isNearDeath) {
                 audioSys.setNearDeath(true);
             }
@@ -2786,12 +2781,21 @@ function updateBullets(dt) {
                     // v2.22.5: Track boss defeat event
                     G.Debug.trackBossDefeat(defeatedBossType, level, marketCycle);
 
+                    // Analytics: Track boss fight end and cycle end
+                    if (G.Debug) {
+                        G.Debug.trackBossFightEnd(defeatedBossType, marketCycle);
+                        G.Debug.trackCycleEnd(marketCycle, Math.floor(score));
+                    }
+
                     marketCycle++;
                     window.marketCycle = marketCycle; // Update global
                     console.log(`[BOSS DEFEATED] Cycle incremented to ${marketCycle}, calling waveMgr.reset()`);
 
                     // v2.22.5: Track cycle up event
                     G.Debug.trackCycleUp(marketCycle);
+
+                    // Analytics: Track new cycle start
+                    if (G.Debug) G.Debug.trackCycleStart(marketCycle);
                     checkWeaponUnlocks(marketCycle); // Check for new weapon unlocks
                     waveMgr.reset();
 
@@ -2869,6 +2873,9 @@ function updateBullets(dt) {
                 if (player.isHyperActive && player.isHyperActive()) {
                     player.deactivateHyper();
                     player.hp = 0;
+                    // Track HYPER death specially (set flag to prevent double tracking)
+                    if (G.Debug) G.Debug.trackPlayerDeath(lives, level, 'hyper');
+                    deathAlreadyTracked = true;
                     G.Bullet.Pool.release(eb);
                     enemyBullets.splice(i, 1);
                     shake = 60;
@@ -2908,6 +2915,9 @@ function updateBullets(dt) {
                 const closeGrazeR = coreR + Balance.GRAZE.CLOSE_RADIUS;
                 const isCloseGraze = dx < closeGrazeR && dy < closeGrazeR;
                 const grazeBonus = isCloseGraze ? Balance.GRAZE.CLOSE_BONUS : 1;
+
+                // Analytics: Track graze
+                if (G.Debug) G.Debug.trackGraze(isCloseGraze);
 
                 // Check if HYPER is active
                 const isHyperActive = player.isHyperActive && player.isHyperActive();
@@ -3301,6 +3311,8 @@ function checkBulletCollisions(b, bIdx) {
                 killCount++;
                 streak++;
                 if (streak > bestStreak) bestStreak = streak;
+                // Analytics: Track kill streak
+                if (G.Debug) G.Debug.trackKillStreak(streak);
                 updateKillCounter();
                 checkStreakMeme();
                 emitEvent('enemy_killed', { score: killScore, x: e.x, y: e.y });
@@ -3416,7 +3428,8 @@ function startDeathSequence() {
     const canSacrifice = sacrificeConfig && sacrificeConfig.ENABLED &&
                          lives === 1 && // Last life
                          score > 0 && // Has score to sacrifice
-                         sacrificeState === 'NONE'; // Not already in sacrifice
+                         sacrificeState === 'NONE' && // Not already in sacrifice
+                         sacrificesUsedThisRun < 1; // Max 1 sacrifice per run
 
     if (canSacrifice) {
         // Enter sacrifice decision state instead of death
@@ -3424,22 +3437,26 @@ function startDeathSequence() {
         return;
     }
 
-    // Normal death sequence
-    // 1. Trigger Bullet Time (Visuals)
+    // Normal death sequence (1-hit = 1-life system)
+    // 1. Explode ALL enemy bullets visually (not just clear them)
+    enemyBullets.forEach(b => {
+        if (b && !b.markedForDeletion) {
+            // Create explosion effect for each bullet
+            createBulletExplosion(b.x, b.y, b.color || '#ff0000');
+        }
+        b.markedForDeletion = true;
+    });
+
+    // 2. Bullet time 2 seconds (slowmo, not freeze - no countdown visuals)
     if (G.EffectsRenderer) {
-        G.EffectsRenderer.setHitStop(Balance.TIMING.HIT_STOP_DEATH, true);
+        G.EffectsRenderer.setHitStop(Balance.TIMING.HIT_STOP_DEATH, false); // false = slowmo
         G.EffectsRenderer.applyImpactFlash(Balance.EFFECTS.FLASH.DEATH_OPACITY);
         G.EffectsRenderer.applyShake(Balance.EFFECTS.SHAKE.PLAYER_DEATH);
     }
     deathTimer = Balance.TIMING.DEATH_DURATION;
 
-    // 2. Play Sound
+    // 3. Play Sound
     audioSys.play('explosion');
-
-    // 3. Clear Bullets (Fairness) - Mark for deletion, let update loop release
-    enemyBullets.forEach(b => {
-        b.markedForDeletion = true;
-    });
 }
 
 // Enter Satoshi's Sacrifice decision window
@@ -3447,6 +3464,9 @@ function enterSacrificeDecision() {
     sacrificeState = 'DECISION';
     sacrificeDecisionTimer = Balance.SACRIFICE.DECISION_WINDOW;
     sacrificeScoreAtStart = score;
+
+    // Analytics: Track sacrifice opportunity
+    if (G.Debug) G.Debug.trackSacrificeOpportunity();
 
     // Extreme slow-mo during decision
     // (handled in game loop via sacrificeState check)
@@ -3464,6 +3484,10 @@ function activateSacrifice() {
     sacrificeState = 'ACTIVE';
     sacrificeActiveTimer = Balance.SACRIFICE.INVINCIBILITY_DURATION;
     sacrificeScoreEarned = 0;
+    sacrificesUsedThisRun++; // Increment sacrifice counter (max 1 per run)
+
+    // Analytics: Track sacrifice accepted
+    if (G.Debug) G.Debug.trackSacrificeAccepted();
 
     // Reset score to 0 (the sacrifice)
     score = 0;
@@ -3493,6 +3517,9 @@ function endSacrifice() {
     sacrificeState = 'NONE';
     sacrificeGhostTrail = [];
 
+    // Analytics: Track sacrifice result
+    if (G.Debug) G.Debug.trackSacrificeResult(success);
+
     if (success) {
         // SUCCESS - Satoshi approves!
         lives += config.SUCCESS_BONUS_LIVES;
@@ -3517,7 +3544,7 @@ function endSacrifice() {
         triggerScreenFlash('PLAYER_HIT');
 
         // Still survive (that's the point of sacrifice)
-        player.hp = player.maxHp;
+        player.hp = 1;  // 1-hit = 1-life system
         player.invulnTimer = Balance.TIMING.INVULNERABILITY;
     }
 
@@ -3548,9 +3575,15 @@ function executeDeath() {
     lives--;
     setUI('livesText', lives);
 
+    // Track death in analytics (skip if already tracked, e.g., HYPER death)
+    if (G.Debug && !deathAlreadyTracked) {
+        G.Debug.trackPlayerDeath(lives, level, 'bullet');
+    }
+    deathAlreadyTracked = false; // Reset for next death
+
     if (lives > 0) {
-        // RESPAWN
-        player.hp = player.maxHp;
+        // RESPAWN - 1-hit = 1-life system
+        player.hp = 1;
         player.invulnTimer = Balance.TIMING.INVULNERABILITY;
         updateLivesUI();
         showGameInfo("💚 RESPAWN!");
@@ -4212,6 +4245,17 @@ function createExplosion(x, y, color, count = 12) {
     if (G.ParticleSystem) G.ParticleSystem.createExplosion(x, y, color, count);
 }
 
+// Bullet explosion effect for 1-hit = 1-life death sequence
+function createBulletExplosion(x, y, color) {
+    if (G.ParticleSystem) {
+        // Double spark burst for more visible effect
+        G.ParticleSystem.createBulletSpark(x, y, color);
+        G.ParticleSystem.createBulletSpark(x, y, color);
+    }
+    // Play bullet cancel sound for each explosion
+    if (audioSys) audioSys.play('bulletCancel');
+}
+
 function createEnemyDeathExplosion(x, y, color, symbol, shape) {
     if (G.ParticleSystem) G.ParticleSystem.createEnemyDeathExplosion(x, y, color, symbol, shape);
 }
@@ -4234,6 +4278,7 @@ function drawParticles(ctx) {
 
 let lastTime = 0;
 let deathTimer = 0; // 💀 Sequence Timer
+let deathAlreadyTracked = false; // Flag to prevent double tracking (HYPER deaths)
 let gameOverPending = false;
 
 // --- EFFECTS (Delegated to EffectsRenderer) ---
@@ -4453,6 +4498,11 @@ window.backToIntroFromVictory = function() {
 }
 
 function triggerGameOver() {
+    // Analytics: End run tracking
+    if (G.Debug) {
+        G.Debug.endAnalyticsRun(Math.floor(score));
+    }
+
     if (score > highScore) {
         highScore = Math.floor(score);
         localStorage.setItem('fiat_highscore', highScore);
@@ -4489,6 +4539,8 @@ function updatePowerUps(dt) {
                 // Crypto-themed powerup feedback (gold, fixed position)
                 const meme = POWERUP_MEMES[p.type] || p.type;
                 showPowerUp(meme);
+                // Analytics: Track power-up
+                if (G.Debug) G.Debug.trackPowerUpCollected(p.type, p.isPityDrop || false);
                 powerUps.splice(i, 1);
                 emitEvent('powerup_pickup', { type: p.type });
             }

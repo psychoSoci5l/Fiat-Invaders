@@ -79,6 +79,56 @@ window.Game.Debug = {
     // Session start time
     sessionStart: Date.now(),
 
+    // ========== BALANCE ANALYTICS ==========
+    // Automatic tracking for Phase 25 balance testing
+
+    analytics: {
+        // Run info
+        runStart: 0,
+        ship: '',
+        mode: '',
+
+        // Timing (milliseconds)
+        cycleStartTimes: {},      // { 1: 0, 2: 45000, 3: 95000 }
+        cycleDurations: {},       // { 1: 45000, 2: 50000, 3: 55000 }
+        bossStartTimes: {},       // { 'FED_1': 40000, 'BCE_2': 90000 }
+        bossDurations: {},        // { 'FED_1': 5000, 'BCE_2': 7000 }
+        waveStartTimes: [],       // timestamps per wave start
+
+        // Combat
+        deaths: [],               // [{ time, cycle, wave, horde, cause, x, y }]
+        grazeCount: 0,
+        closeGrazeCount: 0,
+        maxKillStreak: 0,
+        currentStreak: 0,
+
+        // HYPER
+        hyperActivations: 0,
+        hyperTotalDuration: 0,
+        hyperDeaths: 0,
+        hyperScoreGained: 0,
+
+        // Power-ups
+        powerUpsCollected: [],    // [{ time, type, wave, cycle }]
+        pityTimerTriggers: 0,
+
+        // Sacrifice
+        sacrificeOpportunities: 0,
+        sacrificeAccepted: 0,
+        sacrificeSuccess: 0,
+        sacrificeFail: 0,
+
+        // Boss
+        bossData: [],             // [{ type, cycle, duration, damageToPlayer, phases }]
+
+        // Mini-boss
+        miniBossData: [],         // [{ type, trigger, killCount, duration }]
+
+        // Score checkpoints
+        scoreAtCycleEnd: {},      // { 1: 50000, 2: 120000 }
+        finalScore: 0,
+    },
+
     // ========== LOGGING ==========
 
     /**
@@ -247,9 +297,342 @@ window.Game.Debug = {
     /**
      * Track player death
      */
-    trackPlayerDeath(lives, level) {
+    trackPlayerDeath(lives, level, cause = 'bullet') {
         this.counters.playerDeaths++;
         this.log('STATE', `💔 PLAYER DEATH #${this.counters.playerDeaths}: ${lives} lives left, L${level}`);
+
+        // Analytics
+        const a = this.analytics;
+        const G = window.Game;
+        a.deaths.push({
+            time: Date.now() - a.runStart,
+            cycle: window.marketCycle || 1,
+            wave: G.WaveManager?.wave || 0,
+            horde: G.WaveManager?.currentHorde || 1,
+            cause: cause,
+            duringHyper: window.hyperActive || false,
+            duringBoss: !!window.boss
+        });
+        if (window.hyperActive) {
+            a.hyperDeaths++;
+        }
+    },
+
+    // ========== BALANCE ANALYTICS TRACKING ==========
+
+    /**
+     * Start a new analytics run
+     */
+    startAnalyticsRun(ship, mode) {
+        this.analytics = {
+            runStart: Date.now(),
+            ship: ship || 'BTC',
+            mode: mode || 'Normal',
+            cycleStartTimes: { 1: 0 },
+            cycleDurations: {},
+            bossStartTimes: {},
+            bossDurations: {},
+            waveStartTimes: [],
+            deaths: [],
+            grazeCount: 0,
+            closeGrazeCount: 0,
+            maxKillStreak: 0,
+            currentStreak: 0,
+            hyperActivations: 0,
+            hyperTotalDuration: 0,
+            hyperDeaths: 0,
+            hyperScoreGained: 0,
+            powerUpsCollected: [],
+            pityTimerTriggers: 0,
+            sacrificeOpportunities: 0,
+            sacrificeAccepted: 0,
+            sacrificeSuccess: 0,
+            sacrificeFail: 0,
+            bossData: [],
+            miniBossData: [],
+            scoreAtCycleEnd: {},
+            finalScore: 0,
+        };
+        console.log(`[ANALYTICS] Run started: ${ship} / ${mode}`);
+    },
+
+    /**
+     * Track cycle start
+     */
+    trackCycleStart(cycle) {
+        const a = this.analytics;
+        a.cycleStartTimes[cycle] = Date.now() - a.runStart;
+    },
+
+    /**
+     * Track cycle end
+     */
+    trackCycleEnd(cycle, score) {
+        const a = this.analytics;
+        const startTime = a.cycleStartTimes[cycle] || 0;
+        a.cycleDurations[cycle] = (Date.now() - a.runStart) - startTime;
+        a.scoreAtCycleEnd[cycle] = score;
+    },
+
+    /**
+     * Track boss fight start
+     */
+    trackBossFightStart(bossType, cycle) {
+        const a = this.analytics;
+        const key = `${bossType}_${cycle}`;
+        a.bossStartTimes[key] = Date.now() - a.runStart;
+    },
+
+    /**
+     * Track boss fight end
+     */
+    trackBossFightEnd(bossType, cycle, damageToPlayer = 0) {
+        const a = this.analytics;
+        const key = `${bossType}_${cycle}`;
+        const startTime = a.bossStartTimes[key] || (Date.now() - a.runStart);
+        const duration = (Date.now() - a.runStart) - startTime;
+        a.bossDurations[key] = duration;
+        a.bossData.push({
+            type: bossType,
+            cycle: cycle,
+            duration: duration,
+            damageToPlayer: damageToPlayer
+        });
+    },
+
+    /**
+     * Track graze
+     */
+    trackGraze(isClose = false) {
+        const a = this.analytics;
+        a.grazeCount++;
+        if (isClose) {
+            a.closeGrazeCount++;
+        }
+    },
+
+    /**
+     * Track kill streak
+     */
+    trackKillStreak(streak) {
+        const a = this.analytics;
+        a.currentStreak = streak;
+        if (streak > a.maxKillStreak) {
+            a.maxKillStreak = streak;
+        }
+    },
+
+    /**
+     * Track HYPER activation
+     */
+    trackHyperActivate() {
+        this.analytics.hyperActivations++;
+        this.analytics._hyperStart = Date.now();
+        this.analytics._hyperScoreStart = window.score || 0;
+    },
+
+    /**
+     * Track HYPER end
+     */
+    trackHyperEnd() {
+        const a = this.analytics;
+        if (a._hyperStart) {
+            a.hyperTotalDuration += (Date.now() - a._hyperStart);
+            a.hyperScoreGained += (window.score || 0) - (a._hyperScoreStart || 0);
+            a._hyperStart = null;
+        }
+    },
+
+    /**
+     * Track power-up collected
+     */
+    trackPowerUpCollected(type, isPityTimer = false) {
+        const a = this.analytics;
+        const G = window.Game;
+        a.powerUpsCollected.push({
+            time: Date.now() - a.runStart,
+            type: type,
+            wave: G.WaveManager?.wave || 0,
+            cycle: window.marketCycle || 1
+        });
+        if (isPityTimer) {
+            a.pityTimerTriggers++;
+        }
+    },
+
+    /**
+     * Track sacrifice opportunity
+     */
+    trackSacrificeOpportunity() {
+        this.analytics.sacrificeOpportunities++;
+    },
+
+    /**
+     * Track sacrifice accepted
+     */
+    trackSacrificeAccepted() {
+        this.analytics.sacrificeAccepted++;
+    },
+
+    /**
+     * Track sacrifice result
+     */
+    trackSacrificeResult(success) {
+        if (success) {
+            this.analytics.sacrificeSuccess++;
+        } else {
+            this.analytics.sacrificeFail++;
+        }
+    },
+
+    /**
+     * Track mini-boss fight
+     */
+    trackMiniBossFight(type, trigger, killCount, duration) {
+        this.analytics.miniBossData.push({
+            type: type,
+            trigger: trigger,
+            killCount: killCount,
+            duration: duration
+        });
+    },
+
+    /**
+     * End run and store final score
+     */
+    endAnalyticsRun(score) {
+        this.analytics.finalScore = score;
+        this.analytics.runEnd = Date.now();
+        console.log('[ANALYTICS] Run ended. Use dbg.report() to see results.');
+    },
+
+    /**
+     * Generate balance report
+     */
+    report() {
+        const a = this.analytics;
+        const runTime = (a.runEnd || Date.now()) - a.runStart;
+
+        const formatTime = (ms) => {
+            const sec = Math.floor(ms / 1000);
+            const min = Math.floor(sec / 60);
+            return `${min}:${(sec % 60).toString().padStart(2, '0')}`;
+        };
+
+        console.log('');
+        console.log('╔════════════════════════════════════════════════════════════╗');
+        console.log('║             BALANCE ANALYTICS REPORT v2.23.0               ║');
+        console.log('╠════════════════════════════════════════════════════════════╣');
+        console.log(`║ Ship: ${a.ship.padEnd(10)} Mode: ${a.mode.padEnd(15)} ║`);
+        console.log(`║ Total Run Time: ${formatTime(runTime).padEnd(10)} Final Score: ${(a.finalScore || 0).toString().padStart(8)} ║`);
+        console.log('╠════════════════════════════════════════════════════════════╣');
+
+        // Cycle Timings
+        console.log('║ CYCLE TIMINGS                                              ║');
+        console.log('║ ──────────────────────────────────────────────────────────║');
+        for (let c = 1; c <= 3; c++) {
+            const dur = a.cycleDurations[c];
+            const score = a.scoreAtCycleEnd[c];
+            if (dur !== undefined) {
+                const target = c === 1 ? '4-5m' : c === 2 ? '5-6m' : '6-7m';
+                const status = dur < 240000 ? '⚡FAST' : dur > 420000 ? '🐢SLOW' : '✅OK';
+                console.log(`║   Cycle ${c}: ${formatTime(dur).padEnd(6)} (target ${target}) ${status.padEnd(8)} Score: ${score || '?'}`);
+            }
+        }
+
+        // Boss Fights
+        console.log('║                                                            ║');
+        console.log('║ BOSS FIGHTS                                                ║');
+        console.log('║ ──────────────────────────────────────────────────────────║');
+        if (a.bossData.length === 0) {
+            console.log('║   No bosses defeated                                       ║');
+        }
+        for (const boss of a.bossData) {
+            const durSec = (boss.duration / 1000).toFixed(1);
+            const status = boss.duration < 45000 ? '⚡FAST' : boss.duration > 90000 ? '🐢SLOW' : '✅OK';
+            console.log(`║   ${boss.type.padEnd(15)} C${boss.cycle}: ${durSec.padStart(5)}s ${status}`);
+        }
+
+        // Deaths
+        console.log('║                                                            ║');
+        console.log('║ DEATHS                                                     ║');
+        console.log('║ ──────────────────────────────────────────────────────────║');
+        console.log(`║   Total: ${a.deaths.length}  (During HYPER: ${a.hyperDeaths})                     ║`);
+        for (const d of a.deaths) {
+            const when = formatTime(d.time);
+            const where = d.duringBoss ? 'BOSS' : `W${d.wave}H${d.horde}`;
+            console.log(`║     @${when} C${d.cycle} ${where.padEnd(8)} ${d.cause}`);
+        }
+
+        // Graze & HYPER
+        console.log('║                                                            ║');
+        console.log('║ GRAZE & HYPER                                              ║');
+        console.log('║ ──────────────────────────────────────────────────────────║');
+        console.log(`║   Grazes: ${a.grazeCount.toString().padEnd(6)} Close: ${a.closeGrazeCount.toString().padEnd(6)} (${a.grazeCount > 0 ? Math.round(a.closeGrazeCount/a.grazeCount*100) : 0}%)`);
+        console.log(`║   HYPER Activations: ${a.hyperActivations}`);
+        console.log(`║   HYPER Total Time: ${formatTime(a.hyperTotalDuration)}`);
+        console.log(`║   HYPER Score Gained: ${a.hyperScoreGained}`);
+        console.log(`║   Max Kill Streak: ${a.maxKillStreak}`);
+
+        // Power-ups
+        console.log('║                                                            ║');
+        console.log('║ POWER-UPS                                                  ║');
+        console.log('║ ──────────────────────────────────────────────────────────║');
+        console.log(`║   Collected: ${a.powerUpsCollected.length}  Pity Timer: ${a.pityTimerTriggers}`);
+        // Group by type
+        const byType = {};
+        for (const p of a.powerUpsCollected) {
+            byType[p.type] = (byType[p.type] || 0) + 1;
+        }
+        const typeStr = Object.entries(byType).map(([t, c]) => `${t}:${c}`).join(' ');
+        if (typeStr) {
+            console.log(`║   Types: ${typeStr}`);
+        }
+
+        // Sacrifice
+        console.log('║                                                            ║');
+        console.log('║ SACRIFICE                                                  ║');
+        console.log('║ ──────────────────────────────────────────────────────────║');
+        console.log(`║   Opportunities: ${a.sacrificeOpportunities}  Accepted: ${a.sacrificeAccepted}`);
+        console.log(`║   Success: ${a.sacrificeSuccess}  Fail: ${a.sacrificeFail}`);
+
+        // Mini-boss
+        console.log('║                                                            ║');
+        console.log('║ MINI-BOSS                                                  ║');
+        console.log('║ ──────────────────────────────────────────────────────────║');
+        if (a.miniBossData.length === 0) {
+            console.log('║   No mini-bosses spawned                                   ║');
+        }
+        for (const mb of a.miniBossData) {
+            console.log(`║   ${mb.type} (${mb.trigger} x${mb.killCount}) - ${(mb.duration/1000).toFixed(1)}s`);
+        }
+
+        console.log('╚════════════════════════════════════════════════════════════╝');
+        console.log('');
+
+        // Return data for screenshot/export
+        return this.getAnalyticsData();
+    },
+
+    /**
+     * Get raw analytics data for export
+     */
+    getAnalyticsData() {
+        return JSON.parse(JSON.stringify(this.analytics));
+    },
+
+    /**
+     * Quick balance test preset
+     */
+    balanceTest() {
+        this.ENABLED = true;
+        this.OVERLAY_ENABLED = true;
+        this.categories.WAVE = true;
+        this.categories.BOSS = true;
+        this.categories.HORDE = true;
+        this.categories.STATE = true;
+        console.log('[DEBUG] Balance testing mode enabled');
+        console.log('[DEBUG] Use dbg.report() after game over to see analytics');
     },
 
     // ========== CATEGORY CONTROLS ==========
@@ -434,7 +817,7 @@ window.Game.Debug = {
         // Title
         ctx.fillStyle = '#00ff00';
         ctx.font = 'bold 12px monospace';
-        ctx.fillText('═══ DEBUG v2.22.5 ═══', 12, 115);
+        ctx.fillText('═══ DEBUG v2.23.0 ═══', 12, 115);
 
         ctx.font = '10px monospace';
         let y = 132;

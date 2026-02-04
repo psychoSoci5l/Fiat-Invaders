@@ -1699,3 +1699,38 @@ BOSS_SIGNATURE_MEMES in Constants.js:
 | BCE defeat → Cycle 3 | Clean transition, no ghost bullets |
 
 ---
+
+## Phase 26: 1-Hit = 1-Life System (v2.24.0) ✅
+*Goal: Simplified arcade-style damage system for faster, more intense gameplay.*
+
+### System Change
+- **Old**: `player.hp = 3`, `maxHp = 3` → 3 hits per life × 3 lives = 9 total hits
+- **New**: `player.hp = 1`, `maxHp = 1` → 1 hit = 1 life → 3 total hits before game over
+
+### Death Sequence Improvements
+- [x] **Bullet Explosions**: All enemy bullets explode visually (not just clear)
+- [x] **Bullet Time**: 2-second slowmo (not freeze) during death
+- [x] **Same Position Resume**: Enemies remain where they were after respawn
+
+### UI Changes
+- [x] **Health Bar Hidden**: Unnecessary with 1 HP (`.health-container` display: none)
+- [x] **Lives Display**: Still shows 3-2-1 countdown
+
+### Files Modified
+| File | Changes |
+|------|---------|
+| `Player.js` | `hp = 1`, `maxHp = 1` in constructor and configure() |
+| `main.js` | startGame(), executeDeath(), startDeathSequence(), updateLivesUI() |
+| `main.js` | New `createBulletExplosion()` function |
+| `main.js` | Sacrifice fail now sets `hp = 1` |
+| `BalanceConfig.js` | HIT_STOP_DEATH already 2.0s |
+
+### Gameplay Impact
+| Metric | Before | After |
+|--------|--------|-------|
+| Hits before game over | 9 | 3 |
+| Difficulty | Medium | Hard |
+| Player decision importance | Lower | Higher |
+| Health bar relevance | Yes | No (hidden) |
+
+---

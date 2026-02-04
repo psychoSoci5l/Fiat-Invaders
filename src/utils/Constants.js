@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v2.23.0 FIAT vs CRYPTO";
+window.Game.VERSION = "v2.24.2 FIAT vs CRYPTO";
 
 window.Game.TEXTS = {
     EN: {
@@ -33,7 +33,7 @@ window.Game.TEXTS = {
         WELCOME_LOOP_4: "Defeat the Boss - The Central Bank awaits!",
         WELCOME_LOOP_5: "New cycle - Difficulty increases, better rewards",
         WELCOME_WIN: "Achieve the highest score possible! Each completed cycle increases the multiplier.",
-        WELCOME_LOSE: "Lose all your lives (hearts in top left). Don't worry: BUY THE DIP and try again!",
+        WELCOME_LOSE: "One hit = one life lost! You have 3 lives total. When hit, all bullets explode and time slows down. BUY THE DIP and try again!",
         WELCOME_BEAR: "Want a challenge? Activate Bear Market for increased difficulty and double scores!",
         // Controls tab
         CONTROLS_PC: "Keyboard (PC)",
@@ -84,9 +84,9 @@ window.Game.TEXTS = {
         TIP_GRAZE_2: "Build up the Graze Meter (bottom bar)",
         TIP_GRAZE_3: "Higher meter = higher score multiplier",
         TIP_GRAZE_4: "Full meter = up to 2.5x points!",
-        TIP_SHIELD_TITLE: "Tactical Shield",
-        TIP_SHIELD_1: "Shield has a 10-second cooldown. Use it to:",
-        TIP_SHIELD_2: "Pass through bullet walls",
+        TIP_SHIELD_TITLE: "Tactical Shield (CRITICAL!)",
+        TIP_SHIELD_1: "One hit = one life! Shield has 10s cooldown. Use it to:",
+        TIP_SHIELD_2: "Block a fatal hit (your only defense!)",
         TIP_SHIELD_3: "Survive Boss Phase 3 attacks",
         TIP_SHIELD_4: "Emergency escape when grazing goes wrong",
         TIP_BOSS_TITLE: "Boss Power-Ups",
@@ -132,7 +132,7 @@ window.Game.TEXTS = {
         WELCOME_LOOP_4: "Sconfiggi il Boss - La Banca Centrale ti aspetta!",
         WELCOME_LOOP_5: "Nuovo ciclo - Difficoltà aumenta, ricompense migliori",
         WELCOME_WIN: "Ottieni il punteggio più alto possibile! Ogni ciclo completato aumenta il moltiplicatore.",
-        WELCOME_LOSE: "Perdi tutte le vite (cuori in alto a sinistra). Non preoccuparti: COMPRA IL DIP e riprova!",
+        WELCOME_LOSE: "Un colpo = una vita persa! Hai 3 vite totali. Quando vieni colpito, tutti i proiettili esplodono e il tempo rallenta. COMPRA IL DIP e riprova!",
         WELCOME_BEAR: "Vuoi una sfida? Attiva Bear Market per difficoltà aumentata e punteggi doppi!",
         // Controls tab
         CONTROLS_PC: "Tastiera (PC)",
@@ -183,9 +183,9 @@ window.Game.TEXTS = {
         TIP_GRAZE_2: "Riempi il Graze Meter (barra in basso)",
         TIP_GRAZE_3: "Meter più alto = moltiplicatore punti più alto",
         TIP_GRAZE_4: "Meter pieno = fino a 2.5x punti!",
-        TIP_SHIELD_TITLE: "Scudo Tattico",
-        TIP_SHIELD_1: "Lo scudo ha un cooldown di 10 secondi. Usalo per:",
-        TIP_SHIELD_2: "Passare attraverso muri di proiettili",
+        TIP_SHIELD_TITLE: "Scudo Tattico (CRITICO!)",
+        TIP_SHIELD_1: "Un colpo = una vita! Scudo ha cooldown 10s. Usalo per:",
+        TIP_SHIELD_2: "Bloccare un colpo fatale (unica difesa!)",
         TIP_SHIELD_3: "Sopravvivere agli attacchi Boss Fase 3",
         TIP_SHIELD_4: "Fuga d'emergenza quando il grazing va male",
         TIP_BOSS_TITLE: "Power-Up Boss",

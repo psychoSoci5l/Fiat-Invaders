@@ -1,5 +1,95 @@
 # Changelog
 
+## v2.24.2 - 2026-02-04
+### Balance: Sacrifice Limit
+
+**Problem**: Failed sacrifices let player survive indefinitely on last life (infinite loop).
+
+**Solution**: Limit to **1 sacrifice per run**.
+- Added `sacrificesUsedThisRun` counter
+- Check in `canSacrifice` condition
+- Reset in `startGame()`
+
+Now after using your one sacrifice (success or fail), the next hit on last life = game over.
+
+---
+
+## v2.24.1 - 2026-02-04
+### Fix: Death Analytics Tracking
+
+**Bug**: Player deaths were not being tracked in analytics (`Deaths: 0` even after game over).
+
+**Root Cause**: The `trackPlayerDeath()` function in DebugSystem.js was never called from main.js.
+
+**Solution**:
+- Added `G.Debug.trackPlayerDeath()` call in `executeDeath()`
+- Added special tracking for HYPER deaths with cause='hyper'
+- Added `deathAlreadyTracked` flag to prevent double-tracking HYPER deaths
+- Reset flag in `startGame()` for clean state
+
+**Files Modified**:
+- `main.js`: Added death tracking calls and flag
+
+---
+
+## v2.24.0 - 2026-02-04
+### Feature: 1-Hit = 1-Life System
+
+**Change**: Simplified the life/HP system for more arcade-style gameplay.
+
+**Old System**:
+- `player.hp = 3`, `player.maxHp = 3`
+- 3 hits per life × 3 lives = 9 total hits before game over
+
+**New System**:
+- `player.hp = 1`, `player.maxHp = 1`
+- 1 hit = 1 life lost
+- 3 lives total = 3 hits before game over
+
+**Death Sequence Changes**:
+1. **Bullet Explosions**: All enemy bullets explode visually when player dies (not just clear)
+2. **Bullet Time**: 2-second slowmo (not freeze) during death sequence
+3. **Resume**: Game resumes with same enemy positions (no reset)
+
+**UI Changes**:
+- Health bar hidden (unnecessary with 1 HP)
+- Lives display remains (shows 3-2-1)
+
+**Files Modified**:
+- `Player.js`: Default HP changed to 1
+- `main.js`: startGame(), startDeathSequence(), executeDeath(), updateLivesUI()
+- `BalanceConfig.js`: HIT_STOP_DEATH already 2.0s
+
+---
+
+## v2.23.1 - 2026-02-04
+### Feature: Balance Analytics System
+
+**Purpose**: Automatic tracking for Phase 25 balance testing.
+
+**New Console Commands**:
+```javascript
+dbg.balanceTest()   // Enable analytics + overlay
+dbg.report()        // Show full analytics report after game over
+```
+
+**Metrics Tracked Automatically**:
+- **Timing**: Run duration, cycle times, boss fight times
+- **Combat**: Deaths (when/where/cause), grazes, close grazes, kill streaks
+- **HYPER**: Activations, total duration, deaths during HYPER, score gained
+- **Power-ups**: Types collected, pity timer triggers
+- **Sacrifice**: Opportunities, accepted, success/fail rate
+- **Bosses**: Kill time per boss, damage taken
+- **Mini-bosses**: Spawn count, triggers, kill time
+
+**Usage**:
+1. Open console, run `dbg.balanceTest()`
+2. Play the game
+3. After game over, run `dbg.report()` to see full analytics
+4. Screenshot the report for analysis
+
+---
+
 ## v2.23.0 - 2026-02-04
 ### Fix: Mini-Boss Ghost Bullets
 

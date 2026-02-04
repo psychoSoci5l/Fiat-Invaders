@@ -60,8 +60,11 @@
 
     /**
      * Create bullet collision spark
+     * @param {number} x - X position
+     * @param {number} y - Y position
+     * @param {string} [color='#fff'] - Particle color (optional)
      */
-    function createBulletSpark(x, y) {
+    function createBulletSpark(x, y, color = '#fff') {
         const count = Math.min(4, MAX_PARTICLES - particles.length);
         for (let i = 0; i < count; i++) {
             const angle = Math.random() * Math.PI * 2;
@@ -71,7 +74,7 @@
                 vx: Math.cos(angle) * speed,
                 vy: Math.sin(angle) * speed,
                 life: 0.2, maxLife: 0.2,
-                color: '#fff',
+                color: color,
                 size: Math.random() * 3 + 2
             });
         }
