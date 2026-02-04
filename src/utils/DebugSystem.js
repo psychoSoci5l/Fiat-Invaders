@@ -521,7 +521,7 @@ window.Game.Debug = {
 
         console.log('');
         console.log('╔════════════════════════════════════════════════════════════╗');
-        console.log('║             BALANCE ANALYTICS REPORT v2.23.0               ║');
+        console.log('║             BALANCE ANALYTICS REPORT v2.24.3               ║');
         console.log('╠════════════════════════════════════════════════════════════╣');
         console.log(`║ Ship: ${a.ship.padEnd(10)} Mode: ${a.mode.padEnd(15)} ║`);
         console.log(`║ Total Run Time: ${formatTime(runTime).padEnd(10)} Final Score: ${(a.finalScore || 0).toString().padStart(8)} ║`);
@@ -817,7 +817,7 @@ window.Game.Debug = {
         // Title
         ctx.fillStyle = '#00ff00';
         ctx.font = 'bold 12px monospace';
-        ctx.fillText('═══ DEBUG v2.23.0 ═══', 12, 115);
+        ctx.fillText('═══ DEBUG v2.24.3 ═══', 12, 115);
 
         ctx.font = '10px monospace';
         let y = 132;

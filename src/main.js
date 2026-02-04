@@ -2152,11 +2152,11 @@ function spawnMiniBoss(bossTypeOrSymbol, triggerColor) {
         miniBoss.savedEnemies = savedEnemies;
         miniBoss.triggerColor = triggerColor;
 
-        // Scale HP for mini-boss (50% of normal boss HP) v2.24.9: 0.4→0.5
+        // Scale HP for mini-boss (60% of normal boss HP) v2.24.10: 0.5→0.6 (+20%)
         const perkCount = (runState && runState.perks) ? runState.perks.length : 0;
         const perkScaling = 1 + (perkCount * Balance.BOSS.HP.PERK_SCALE);
         const fullBossHp = Balance.calculateBossHP(level, marketCycle);
-        const miniBossHp = Math.floor(fullBossHp * 0.5 * perkScaling);
+        const miniBossHp = Math.floor(fullBossHp * 0.6 * perkScaling);
         miniBoss.hp = miniBossHp;
         miniBoss.maxHp = miniBossHp;
 
@@ -4551,8 +4551,8 @@ function triggerGameOver() {
     if (G.Story) {
         G.Story.onGameOver();
     }
-    if (ui.killsVal) ui.killsVal.innerText = killCount;
-    if (ui.streakVal) ui.streakVal.innerText = bestStreak;
+    if (ui.kills) ui.kills.innerText = killCount;
+    if (ui.streak) ui.streak.innerText = bestStreak;
     setStyle('pause-btn', 'display', 'none');
     audioSys.play('explosion');
 }

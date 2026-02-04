@@ -1,5 +1,38 @@
 # Changelog
 
+## v2.24.11 - 2026-02-04
+### Balance: Graze Decay Slowdown
+
+**Problem**: Graze meter decayed too fast between grazes, making HYPER unreachable.
+
+**Changes**:
+| Parameter | Old | New | Effect |
+|-----------|-----|-----|--------|
+| `DECAY_RATE` | 4/s | 2/s | 50s to empty (was 25s) |
+| `DECAY_DELAY` | 0.5s | 1.0s | More grace period |
+
+**Result**: Meter maintains better between graze opportunities.
+
+---
+
+## v2.24.10 - 2026-02-04
+### Bug Fixes & Mini-Boss Balance
+
+**Fixes**:
+1. **Game Over UI**: KILLS and BEST STREAK now display correctly (was showing 0/0)
+   - Bug: `ui.killsVal` → should be `ui.kills` (key transform removed "Val")
+2. **Mini-Boss HP +20%**: Increased from 50% to 60% of main boss HP
+   - Fight duration: ~31s (was ~26s)
+3. **Close Graze Detection**: Radius 18→23px for better AABB detection
+   - Now registers 1%+ close grazes (was 0%)
+
+**Verified by Analytics**:
+- Mini-boss BOJ: 31.0s fight ✅
+- Boss FED: 61.2s fight ✅
+- Kills/Streak tracking: Working ✅
+
+---
+
 ## v2.24.9 - 2026-02-04
 ### Balance: Boss HP Retuned (3x→2x)
 

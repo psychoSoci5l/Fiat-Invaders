@@ -75,6 +75,11 @@ class Boss extends window.Game.Entity {
     triggerPhaseTransition(newPhase) {
         this.phase = newPhase;
         this.phaseTransitioning = true;
+
+        // Track phase change for analytics
+        if (window.Game.Debug) {
+            window.Game.Debug.trackBossPhase(this.bossType, newPhase);
+        }
         this.phaseTransitionTimer = 1.5;
         this.shakeIntensity = 15;
         this.eyeGlow = 1;

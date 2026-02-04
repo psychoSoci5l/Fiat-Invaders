@@ -465,9 +465,10 @@ All tuning parameters are in `src/config/BalanceConfig.js`. **Always modify Bala
 | Parameter | Value | Description |
 |-----------|-------|-------------|
 | `RADIUS` | 25 | Pixels for graze detection |
-| `CLOSE_RADIUS` | 15 | Close graze for 2x bonus |
-| `PERK_THRESHOLD` | 60 | Graze count for bonus perk |
-| `DECAY_RATE` | 5 | Meter decay per second |
+| `CLOSE_RADIUS` | 23 | Close graze for 3x bonus |
+| `PERK_THRESHOLD` | 50 | Graze count for bonus perk |
+| `DECAY_RATE` | 2 | Meter decay per second (v2.24.11) |
+| `DECAY_DELAY` | 1.0 | Seconds before decay starts |
 | `MAX_PERKS_PER_LEVEL` | 2 | Cap graze perks per level |
 
 ### Balance.DROPS

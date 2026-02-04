@@ -50,7 +50,7 @@
         // Grazing is the primary skill expression. Close to danger = maximum reward.
         GRAZE: {
             RADIUS: 25,               // Pixels outside core hitbox for graze
-            CLOSE_RADIUS: 18,         // Close graze radius for 3x bonus (v2.24.7: 12→18 for more close grazes)
+            CLOSE_RADIUS: 23,         // Close graze radius for 3x bonus (v2.24.10: 18→23 for AABB detection)
 
             // Scoring (grazing = primary score source)
             POINTS_BASE: 25,          // Base points per graze
@@ -67,8 +67,8 @@
             MAX_PERKS_PER_LEVEL: 2,   // Cap graze perks per level
 
             // Decay (use it or lose it)
-            DECAY_RATE: 4,            // Meter decay per second (v2.24.7: 6→4 for slower drain)
-            DECAY_DELAY: 0.5,         // Seconds before decay starts
+            DECAY_RATE: 2,            // Meter decay per second (v2.24.11: 4→2 for slower drain)
+            DECAY_DELAY: 1.0,         // Seconds before decay starts (v2.24.11: 0.5→1.0)
 
             // Sound design (theremin of danger)
             SOUND_THROTTLE: 0.05,     // Min seconds between graze sounds (was 0.15)
