@@ -1,0 +1,79 @@
+# Debug Checklist - v2.23.0
+> Aggiornato: 2026-02-04
+
+---
+
+## Bug Risolti (v2.22.4 - v2.23.0)
+
+- [x] Boss invisibile (BCE) - RISOLTO v2.22.5
+- [x] Boss distrutto subito senza colpirlo - RISOLTO v2.22.5
+- [x] Nemici rimasti a schermo dopo boss - RISOLTO v2.22.5 (minions cleanup)
+- [x] Ghost bullets dopo morte boss - RISOLTO v2.22.4 + v2.22.6
+- [x] Mini-boss cascade troppo frequente - RISOLTO v2.22.4 (fiatKillCounter reset)
+- [x] HarmonicConductor setTimeout stale - RISOLTO v2.22.4 (generation system)
+- [x] Mini-boss threshold troppo alti - RISOLTO v2.22.9 (soglie dimezzate)
+- [x] Ghost bullets dopo morte MINI-boss - RISOLTO v2.23.0 (cleanup + HC reset + flag)
+
+---
+
+## Test Session - v2.22.6
+
+### Run Info
+- **Data**: _______________
+- **Ship**: BTC / ETH / SOL
+- **Mode**: Normal / Bear Market
+
+### Ciclo Base (5 Wave + Boss)
+
+| Level | Wave 1-5 | Boss | Note |
+|-------|----------|------|------|
+| 1 | [ ] OK | [ ] FED | |
+| 2 | [ ] OK | [ ] BCE | |
+| 3 | [ ] OK | [ ] BOJ | |
+| 4 | [ ] OK | [ ] FED | |
+| 5 | [ ] OK | [ ] BCE | |
+
+### Boss Checklist
+
+| Boss | Visibile | 3 Fasi | Pattern OK | Morte Clean |
+|------|----------|--------|------------|-------------|
+| FED | [ ] | [ ] | [ ] | [ ] |
+| BCE | [ ] | [ ] | [ ] | [ ] |
+| BOJ | [ ] | [ ] | [ ] | [ ] |
+
+### Post-Boss Cleanup (usa dbg.showOverlay())
+
+| Check | Esito |
+|-------|-------|
+| enemies = 0 dopo boss | [ ] OK |
+| enemyBullets = 0 dopo boss | [ ] OK |
+| miniBoss = null dopo boss | [ ] OK |
+| Nessun ghost bullet | [ ] OK |
+
+### Mini-Boss
+
+| Check | Esito |
+|-------|-------|
+| Spawn dopo kill threshold | [x] OK (v2.22.9 - soglie ridotte) |
+| Non spawna durante main boss | [ ] OK |
+| Counter reset dopo cycle | [ ] OK |
+| Ghost bullets cleanup | [x] OK (v2.23.0 - testato) |
+
+---
+
+## Debug Commands
+
+```javascript
+dbg.showOverlay()     // Pannello visivo
+dbg.stats()           // Statistiche eventi
+dbg.debugBoss()       // Setup debug boss
+dbg.enable('BULLET')  // Log bullets
+```
+
+---
+
+## Note Sessione
+
+_________________________________
+_________________________________
+_________________________________

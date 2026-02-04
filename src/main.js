@@ -169,6 +169,7 @@ let waveStartTime = 0;
 
 // Fiat Kill Counter System - Mini Boss every N kills of same type
 let fiatKillCounter = { '¥': 0, '₽': 0, '₹': 0, '€': 0, '£': 0, '₣': 0, '₺': 0, '$': 0, '元': 0, 'Ⓒ': 0 };
+window.fiatKillCounter = fiatKillCounter; // Expose for debug
 let miniBoss = null; // Special boss spawned from kill counter
 
 // Drop system now managed by G.DropSystem singleton
@@ -1948,11 +1949,8 @@ function startHorde2() {
     gameState = 'PLAY';
     waveMgr.waveInProgress = false;
 
-    // Show "HORDE 2!" announcement
-    showGameInfo(t('HORDE_2_INCOMING'));
-
-    // Brief screen flash
-    triggerScreenFlash('WAVE_START');
+    // No message or flash - clean transition within same level
+    // Let player enjoy empty screen -> enemies arrive -> action resumes
 
     // Spawn horde 2 with pattern variant
     const spawnData = waveMgr.spawnWave(gameWidth, 2);
@@ -2401,6 +2399,23 @@ function checkMiniBossHit(b) {
             // Mini-boss defeated!
             // v2.22.5: Track mini-boss defeat
             G.Debug.trackMiniBossDefeat(isBossInstance ? miniBoss.bossType : miniBoss.name);
+
+            // === GHOST BULLET FIX v2.23.0 ===
+            // Clear all mini-boss bullets (same as main boss cleanup at line ~2735)
+            if (enemyBullets.length > 0) {
+                G.Debug.log('BULLET', `[MINIBOSS] Cleared ${enemyBullets.length} ghost bullets on mini-boss defeat`);
+                enemyBullets.forEach(b => G.Bullet.Pool.release(b));
+                enemyBullets.length = 0;
+                window.enemyBullets = enemyBullets;
+            }
+
+            // Reset HarmonicConductor to invalidate pending setTimeout callbacks (same as main boss)
+            if (G.HarmonicConductor) {
+                G.HarmonicConductor.reset();
+            }
+
+            // Set defensive flag for next frame cleanup (same as main boss)
+            bossJustDefeated = true;
 
             const bonusScore = isBossInstance ? 3000 * marketCycle : 2000 * marketCycle;
             score += bonusScore;
@@ -3204,6 +3219,8 @@ function checkBulletCollisions(b, bIdx) {
     for (let j = enemies.length - 1; j >= 0; j--) {
         let e = enemies[j];
         if (!e) continue; // Safety check: enemy may have been removed during iteration
+        // Skip enemies still entering formation (invulnerable until settled)
+        if (e.isEntering || !e.hasSettled) continue;
         if (Math.abs(b.x - e.x) < 40 && Math.abs(b.y - e.y) < 40) { // Adjusted for larger enemies
             const baseDmg = player.stats.baseDamage || 14;
             const dmgMult = (runState && runState.getMod) ? runState.getMod('damageMult', 1) : 1;
@@ -3296,6 +3313,9 @@ function checkBulletCollisions(b, bIdx) {
                     // Look up currency-specific boss mapping
                     const mapping = Balance.MINI_BOSS.CURRENCY_BOSS_MAP?.[e.symbol];
                     const threshold = mapping?.threshold || Balance.MINI_BOSS.KILL_THRESHOLD;
+
+                    // Debug: Log counter progress for MINIBOSS category
+                    G.Debug.log('MINIBOSS', `Kill ${e.symbol}: ${fiatKillCounter[e.symbol]}/${threshold}`);
 
                     if (fiatKillCounter[e.symbol] >= threshold) {
                         // Determine boss type based on mapping

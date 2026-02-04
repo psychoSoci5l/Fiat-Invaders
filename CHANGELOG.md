@@ -1,5 +1,103 @@
 # Changelog
 
+## v2.23.0 - 2026-02-04
+### Fix: Mini-Boss Ghost Bullets
+
+**Problem**: When mini-boss was defeated, its bullets continued to exist and new bullets could appear from pending HarmonicConductor setTimeout callbacks.
+
+**Root Cause**: Mini-boss cleanup was missing three critical steps that main boss cleanup had:
+1. Clear `enemyBullets` array
+2. Reset `HarmonicConductor` to invalidate pending fire callbacks
+3. Set `bossJustDefeated` flag for next-frame defensive cleanup
+
+**Solution** (in `checkMiniBossHit()`):
+```javascript
+// Clear all mini-boss bullets
+enemyBullets.forEach(b => G.Bullet.Pool.release(b));
+enemyBullets.length = 0;
+
+// Reset HarmonicConductor to cancel pending setTimeout
+G.HarmonicConductor.reset();
+
+// Set defensive flag for next frame
+bossJustDefeated = true;
+```
+
+**Verification**:
+```javascript
+dbg.showOverlay()  // Watch enemyBullets count
+// Kill mini-boss → count should drop to 0 immediately
+```
+
+---
+
+## v2.22.9 - 2026-02-04
+### Fix: Mini-Boss Thresholds Too High
+
+**Problem**: Mini-boss never spawned in 20 levels because kill thresholds were unreachable.
+
+**Analysis from debug logs**:
+- ₽ (RUBLE) reached 38 kills but threshold was 50
+- 元 (YUAN) reached 19 kills but threshold was 35
+- Player kills ~60% of spawned enemies (not 100%)
+
+**Threshold Changes** (approximately halved):
+| Currency | Old | New | Boss |
+|----------|-----|-----|------|
+| ¥ YEN | 25 | 12 | BOJ |
+| $ DOLLAR | 30 | 15 | FED |
+| 元 YUAN | 35 | 12 | BOJ |
+| € EURO | 40 | 18 | BCE |
+| £ ₣ | 45 | 18 | BCE |
+| ₽ ₹ ₺ | 50 | 25 | RANDOM |
+| Ⓒ CBDC | 20 | 10 | CYCLE |
+
+**Expected Result**: Mini-boss should spawn ~1-2 times per 5-wave cycle.
+
+---
+
+## v2.22.8 - 2026-02-04
+### Debug: Mini-Boss Kill Counter Visibility
+
+**Investigation**: Player reached level 20 without mini-boss spawn. Added debugging tools.
+
+**Debug Enhancements:**
+- Added `fiatKillCounter` to debug overlay (shows top 3 currencies by kill count)
+- Added logging: `[MINIBOSS] Kill $: 15/30` tracks progress toward threshold
+- Exposed `window.fiatKillCounter` for console inspection
+- Expanded debug overlay height to fit new info
+
+**How to Debug:**
+```javascript
+dbg.showOverlay()           // See kill counter in overlay
+dbg.enable('MINIBOSS')      // Enable kill counter logging
+window.fiatKillCounter      // Check counter values directly
+```
+
+**Files Changed:**
+- `src/main.js` - Added logging and window exposure
+- `src/utils/DebugSystem.js` - Kill counter in overlay
+
+---
+
+## v2.22.7 - 2026-02-04
+### Enhancement: Clean Horde Transitions
+
+**1. Enemies Invulnerable During Formation Entry**
+- Enemies cannot be damaged while flying into position (`isEntering`) or settling (`!hasSettled`)
+- Player bullets pass through enemies until they're in formation
+- Prevents "cheap kills" during entry animation
+
+**2. Silent Horde 2 Transitions**
+- Removed "HORDE 2!" message and screen flash between hordes within same level
+- Clean flow: screen clears → enemies arrive → action resumes
+- Less visual noise, more focus on gameplay
+
+**Files Changed:**
+- `src/main.js` - Added invulnerability check in `checkBulletCollisions()`, removed messages in `startHorde2()`
+
+---
+
 ## v2.22.6 - 2026-02-04
 ### Fix: Defensive Ghost Bullet Cleanup
 

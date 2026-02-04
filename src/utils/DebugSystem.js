@@ -424,12 +424,12 @@ window.Game.Debug = {
 
         // Semi-transparent background
         ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
-        ctx.fillRect(5, 100, 180, 320);
+        ctx.fillRect(5, 100, 180, 380);
 
         // Border
         ctx.strokeStyle = '#00ff00';
         ctx.lineWidth = 2;
-        ctx.strokeRect(5, 100, 180, 320);
+        ctx.strokeRect(5, 100, 180, 380);
 
         // Title
         ctx.fillStyle = '#00ff00';
@@ -477,6 +477,23 @@ window.Game.Debug = {
             ctx.fillText(`MINIBOSS: ${miniBoss.bossType || 'legacy'}`, 12, y); y += lineHeight;
         }
 
+        // Fiat Kill Counter (for mini-boss trigger debugging)
+        const fkc = window.fiatKillCounter;
+        if (fkc) {
+            y += 5;
+            ctx.fillStyle = '#ffcc00';
+            ctx.fillText('─── KILL COUNTER ───', 12, y); y += lineHeight;
+            ctx.fillStyle = '#ffffff';
+            // Show top 3 currencies by kill count
+            const sorted = Object.entries(fkc).sort((a, b) => b[1] - a[1]).slice(0, 3);
+            for (const [sym, count] of sorted) {
+                if (count > 0) {
+                    const threshold = G.Balance?.MINI_BOSS?.CURRENCY_BOSS_MAP?.[sym]?.threshold || 30;
+                    ctx.fillText(`${sym}: ${count}/${threshold}`, 12, y); y += lineHeight;
+                }
+            }
+        }
+
         // Counters
         y += 5;
         ctx.fillStyle = '#00ff00';
@@ -501,7 +518,7 @@ window.Game.Debug = {
         // Session time
         const sessionTime = ((Date.now() - this.sessionStart) / 1000).toFixed(0);
         ctx.fillStyle = '#888888';
-        ctx.fillText(`Session: ${sessionTime}s`, 12, 415);
+        ctx.fillText(`Session: ${sessionTime}s`, 12, 475);
 
         ctx.restore();
     },

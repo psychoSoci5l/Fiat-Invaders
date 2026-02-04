@@ -329,31 +329,32 @@
 
         // --- MINI BOSS (Currency-Based Trigger System) ---
         MINI_BOSS: {
-            KILL_THRESHOLD: 30,       // Default kills for mini-boss (used as fallback)
+            KILL_THRESHOLD: 15,       // Default kills for mini-boss (used as fallback)
             COOLDOWN: 15.0,           // Seconds between mini-boss spawns
 
             // Currency → Boss mapping with individual thresholds
-            // Each currency triggers a specific boss type based on economic region
+            // v2.22.9: Thresholds lowered based on actual kill rates (~60% of spawned enemies)
+            // Each 5-wave cycle spawns ~120 WEAK, ~60 MEDIUM, ~36 STRONG enemies
             CURRENCY_BOSS_MAP: {
-                // Dollar → FED (US hegemony)
-                '$': { boss: 'FEDERAL_RESERVE', threshold: 30 },
+                // Dollar → FED (US hegemony) - spawns waves 1,3,5
+                '$': { boss: 'FEDERAL_RESERVE', threshold: 15 },
 
                 // Euro/Europe → BCE
-                '€': { boss: 'BCE', threshold: 40 },
-                '₣': { boss: 'BCE', threshold: 45 },
-                '£': { boss: 'BCE', threshold: 45 },
+                '€': { boss: 'BCE', threshold: 18 },
+                '₣': { boss: 'BCE', threshold: 18 },
+                '£': { boss: 'BCE', threshold: 18 },
 
                 // Asia → BOJ
-                '¥': { boss: 'BOJ', threshold: 25 },
-                '元': { boss: 'BOJ', threshold: 35 },
+                '¥': { boss: 'BOJ', threshold: 12 },
+                '元': { boss: 'BOJ', threshold: 12 },
 
-                // Emerging markets → Random boss
-                '₽': { boss: 'RANDOM', threshold: 50 },
-                '₹': { boss: 'RANDOM', threshold: 50 },
-                '₺': { boss: 'RANDOM', threshold: 50 },
+                // Emerging markets → Random boss (most common, higher threshold)
+                '₽': { boss: 'RANDOM', threshold: 25 },
+                '₹': { boss: 'RANDOM', threshold: 25 },
+                '₺': { boss: 'RANDOM', threshold: 25 },
 
-                // CBDC → Boss of current cycle
-                'Ⓒ': { boss: 'CYCLE_BOSS', threshold: 20 }
+                // CBDC → Boss of current cycle (rare spawn)
+                'Ⓒ': { boss: 'CYCLE_BOSS', threshold: 10 }
             }
         },
 
