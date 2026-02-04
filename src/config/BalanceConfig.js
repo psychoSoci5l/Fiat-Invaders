@@ -588,21 +588,54 @@
             FALL_SPEED: 100,              // Pixels per second
             WOBBLE_AMPLITUDE: 35,         // Horizontal wobble range
             WOBBLE_SPEED: 3,              // Wobble oscillation speed
-            AUTO_DELETE_Y: 1000,          // Y position to auto-remove
+            AUTO_DELETE_Y: 1000           // Y position to auto-remove
+        },
 
-            // Weapon durations (stronger = shorter)
-            DURATION_WEAPON_BASE: 10.0,   // WIDE, NARROW, FIRE
-            DURATION_WEAPON_ADV: 8.0,     // SPREAD, HOMING
-            DURATION_WEAPON_ELITE: 6.0,   // LASER
+        // --- WEAPON EVOLUTION SYSTEM (v3.0) ---
+        // Progressive weapon upgrade system:
+        // - Shot level (1-3): permanent, lost on death (-1)
+        // - Modifiers (RATE/POWER/SPREAD): stackable, temp timer, lost on death (-1)
+        // - Specials (HOMING/PIERCE/LASER/MISSILE/SHIELD/SPEED): exclusive, temp, lost completely on death
+        WEAPON_EVOLUTION: {
+            // Shot levels (permanent until death)
+            MAX_SHOT_LEVEL: 3,
+            KILLS_FOR_UPGRADE: 30,        // Guaranteed UPGRADE drop every N kills
 
-            // Ship power-up durations
-            DURATION_SPEED: 10.0,
-            DURATION_RAPID: 8.0,
-            DURATION_SHIELD: 3.0,
+            // Modifier durations (seconds)
+            MODIFIER_DURATION: 12,
 
-            // Ship power-up effects
-            SPEED_MULTIPLIER: 1.5,        // Movement speed boost
-            RAPID_MULTIPLIER: 0.5         // Fire rate multiplier (lower = faster)
+            // Modifier effects per level (index = level - 1)
+            RATE: {
+                MAX_LEVEL: 3,
+                COOLDOWN_REDUCTION: [0.15, 0.30, 0.45]  // -15%, -30%, -45%
+            },
+            POWER: {
+                MAX_LEVEL: 3,
+                DAMAGE_BONUS: [0.25, 0.50, 0.75]        // +25%, +50%, +75%
+            },
+            SPREAD: {
+                MAX_LEVEL: 2,
+                ANGLE_BONUS: [12, 24]                    // +12°, +24° in degrees
+            },
+
+            // Special duration
+            SPECIAL_DURATION: 12,
+
+            // Death penalty
+            DEATH_PENALTY: 1,             // Levels lost per category on death
+
+            // Speed special effect
+            SPEED_MULTIPLIER: 1.4,        // Movement speed during SPEED special
+
+            // Drop weights for specials (higher = more common)
+            SPECIAL_WEIGHTS: {
+                HOMING: 20,
+                PIERCE: 20,
+                SPEED: 20,
+                MISSILE: 15,
+                LASER: 15,
+                SHIELD: 10                // Rarest
+            }
         },
 
         // --- DROP SCALING ---

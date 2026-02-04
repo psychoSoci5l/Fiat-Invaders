@@ -66,6 +66,14 @@
         </div>
 
         <div id="perk-bar"></div>
+
+        <!-- WEAPON EVOLUTION v3.0: Compact Weapon Icon (HUD top-right, pill design) -->
+        <div id="weapon-icon">
+            <div id="weapon-icon-inner">
+                <span id="weapon-icon-symbol">▸</span>
+            </div>
+        </div>
+
         <div id="kill-counter">
             <span id="killNum">0</span>
             <span id="killLabel">KILLS</span>
@@ -556,29 +564,45 @@
                     </div>
                 </div>
 
-                <!-- POWER-UPS TAB -->
+                <!-- POWER-UPS TAB - Weapon Evolution System v3.0 -->
                 <div class="manual-panel" id="tab-powerups">
+                    <!-- UPGRADE (Permanent) -->
                     <div class="manual-section">
-                        <h4 data-i18n="POWERUPS_WEAPON">Weapon Power-Ups</h4>
-                        <p class="section-note" data-i18n="POWERUPS_WEAPON_NOTE">Replace each other when collected</p>
+                        <h4 data-i18n="POWERUPS_UPGRADE">Weapon Upgrade</h4>
+                        <p class="section-note" data-i18n="POWERUPS_UPGRADE_NOTE">Permanent! Evolves shots: 1→2→3 bullets. Death: -1 level</p>
                         <table class="manual-table powerup-table">
-                            <tr><td class="pu-icon">🔱</td><td class="pu-name">WIDE</td><td data-i18n="PU_WIDE">Triple shot, wide spread</td></tr>
-                            <tr><td class="pu-icon">🎯</td><td class="pu-name">NARROW</td><td data-i18n="PU_NARROW">Triple shot, focused</td></tr>
-                            <tr><td class="pu-icon">🔥</td><td class="pu-name">FIRE</td><td data-i18n="PU_FIRE">Triple parallel, penetrating</td></tr>
-                            <tr><td class="pu-icon">🌟</td><td class="pu-name">SPREAD</td><td data-i18n="PU_SPREAD">5-shot wide fan</td></tr>
-                            <tr><td class="pu-icon">🎯</td><td class="pu-name">HOMING</td><td data-i18n="PU_HOMING">Auto-tracking missiles</td></tr>
-                            <tr><td class="pu-icon">⚡</td><td class="pu-name">LASER</td><td data-i18n="PU_LASER">Rapid penetrating beam</td></tr>
+                            <tr><td class="pu-icon">⬆️</td><td class="pu-name">UPGRADE</td><td data-i18n="PU_UPGRADE">⬆️ UPGRADE - Permanent shot level +1</td></tr>
                         </table>
                     </div>
 
+                    <!-- MODIFIERS (Stackable + Temporary) -->
                     <div class="manual-section">
-                        <h4 data-i18n="POWERUPS_SHIP">Ship Power-Ups</h4>
-                        <p class="section-note" data-i18n="POWERUPS_SHIP_NOTE">Temporary boosts, replace each other</p>
+                        <h4 data-i18n="POWERUPS_MODIFIERS">Modifiers</h4>
+                        <p class="section-note" data-i18n="POWERUPS_MODIFIERS_NOTE">Stackable + temporary (12s). Same pickup = +1 level &amp; refresh timer</p>
                         <table class="manual-table powerup-table">
-                            <tr><td class="pu-icon">⚡</td><td class="pu-name">SPEED</td><td data-i18n="PU_SPEED">Movement +25%</td></tr>
-                            <tr><td class="pu-icon">🚀</td><td class="pu-name">RAPID</td><td data-i18n="PU_RAPID">Fire rate +20%</td></tr>
-                            <tr><td class="pu-icon">🛡️</td><td class="pu-name">SHIELD</td><td data-i18n="PU_SHIELD">Instant shield activation</td></tr>
+                            <tr><td class="pu-icon">⚡</td><td class="pu-name">RATE</td><td data-i18n="PU_RATE">⚡ RATE - Fire rate -15%/-30%/-45%</td></tr>
+                            <tr><td class="pu-icon">💥</td><td class="pu-name">POWER</td><td data-i18n="PU_POWER">💥 POWER - Damage +25%/+50%/+75%</td></tr>
+                            <tr><td class="pu-icon">🔱</td><td class="pu-name">SPREAD</td><td data-i18n="PU_SPREAD">🔱 SPREAD - Shot angle +12°/+24°</td></tr>
                         </table>
+                    </div>
+
+                    <!-- SPECIALS (Exclusive + Temporary) -->
+                    <div class="manual-section">
+                        <h4 data-i18n="POWERUPS_SPECIALS">Specials</h4>
+                        <p class="section-note" data-i18n="POWERUPS_SPECIALS_NOTE">Exclusive + temporary (12s). New special replaces current</p>
+                        <table class="manual-table powerup-table">
+                            <tr><td class="pu-icon">🎯</td><td class="pu-name">HOMING</td><td data-i18n="PU_HOMING">🎯 HOMING - Bullets track enemies</td></tr>
+                            <tr><td class="pu-icon">🔥</td><td class="pu-name">PIERCE</td><td data-i18n="PU_PIERCE">🔥 PIERCE - Bullets penetrate</td></tr>
+                            <tr><td class="pu-icon">⚡</td><td class="pu-name">LASER</td><td data-i18n="PU_LASER">⚡ LASER - Continuous beam</td></tr>
+                            <tr><td class="pu-icon">🚀</td><td class="pu-name">MISSILE</td><td data-i18n="PU_MISSILE">🚀 MISSILE - AoE explosions</td></tr>
+                            <tr><td class="pu-icon">🛡️</td><td class="pu-name">SHIELD</td><td data-i18n="PU_SHIELD">🛡️ SHIELD - Instant activation</td></tr>
+                            <tr><td class="pu-icon">💨</td><td class="pu-name">SPEED</td><td data-i18n="PU_SPEED">💨 SPEED - Movement +50%</td></tr>
+                        </table>
+                    </div>
+
+                    <!-- Death Penalty -->
+                    <div class="manual-section death-penalty">
+                        <p class="section-note warning" data-i18n="POWERUPS_DEATH">On Death: -1 level per category (min 0), specials lost</p>
                     </div>
                 </div>
 

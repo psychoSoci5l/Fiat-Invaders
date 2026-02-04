@@ -1,5 +1,136 @@
 # Changelog
 
+## v3.0.6 - 2026-02-04
+### UI Final: Gold HUD Buttons
+
+Finalized the HUD button design with gold/yellow background matching game aesthetic.
+
+#### Changes
+- **Gold background**: Both pause and weapon icons now have gold gradient background (#FFD700 → #D4A500)
+- **Weapon icon wider**: 70px width to match "LIVELLO" label above
+- **Black text**: High contrast black text/icons on gold background
+- **Special colors**: During specials, weapon icon background changes to special color (orange, red, cyan, etc.)
+- **Timer display**: Shows "🎯 12s" format during specials
+
+#### Final Layout
+| Element | Position | Size | Style |
+|---------|----------|------|-------|
+| Pause | Top-left under VITE | 50x26px | Gold pill |
+| Weapon | Top-right under LIVELLO | 70x26px | Gold pill |
+
+---
+
+## v3.0.5 - 2026-02-04
+### UI Polish: Pill-Shaped HUD Buttons (superseded by v3.0.6)
+
+---
+
+## v3.0.4 - 2026-02-04
+### HUD Reorganization: Status Icons in Top Bar
+
+Moved pause and weapon icons from bottom (where they overlapped with player ship) to the HUD top bar.
+
+#### Changes
+- **Pause button**: Moved to top-left HUD, under VITE (40x40px, compact)
+- **Weapon icon**: Moved to top-right HUD, under LIVELLO (40x40px, compact)
+- **Shield bar**: Hidden (no longer needed under level)
+- **Bottom controls**: Unchanged (shield btn, joystick remain at original positions)
+
+This eliminates overlap between player ship and UI elements during gameplay.
+
+---
+
+## v3.0.2 - 2026-02-04
+### Layout: Control Safe Zone
+
+Raised all touch controls to create a safe zone at the bottom, away from GRAZE meter.
+
+#### Changes
+- **Joystick**: bottom 30px → 70px (+40px)
+- **Shield button**: bottom 75px → 115px (+40px)
+- **Pause button**: bottom 75px → 115px (+40px)
+- **Weapon icon**: Aligned exactly above pause button (centers matched)
+  - right: 24px (aligned with pause center)
+  - bottom: 189px (above pause with 10px gap)
+
+This creates clear visual separation between gameplay controls and the GRAZE meter.
+
+---
+
+## v3.0.1 - 2026-02-04
+### UI Refinement: Compact Weapon Icon
+
+Replaced the weapon status bar (which overlapped boss labels) with a compact dynamic icon.
+
+#### Changes
+- **New compact weapon icon** positioned above pause button
+- Shows shot level (▸/▸▸/▸▸▸) by default
+- During specials: shows special icon + circular timer ring
+- Small indicator dots show active modifiers (RATE=cyan, POWER=red, SPREAD=purple)
+- Cell-shaded style matching game aesthetic
+- Removed the wide horizontal status bar
+
+---
+
+## v3.0.0 - 2026-02-04
+### MAJOR FEATURE: Weapon Evolution System
+
+Complete overhaul of the power-up system with progressive weapon upgrades.
+
+#### New Progression System
+- **Shot Level (1→3)**: Permanent upgrade, increases bullets per shot
+  - Level 1: Single center shot
+  - Level 2: Double shot
+  - Level 3: Triple shot with spread
+- **Modifiers (RATE/POWER/SPREAD)**: Stackable temporary buffs with timer
+  - Stack up to 3 levels each
+  - Timer refreshes on pickup
+- **Specials (HOMING/PIERCE/LASER/MISSILE/SHIELD/SPEED)**: Exclusive temporary effects
+  - Replace each other on pickup
+  - 12 second duration
+
+#### Death Penalty (Soft Reset)
+- Shot level: -1 (min 1)
+- Modifiers: -1 per category (min 0)
+- Special: Lost completely
+
+#### New Power-Up Drops
+| Type | Category | Effect |
+|------|----------|--------|
+| UPGRADE | Permanent | +1 shot level |
+| RATE | Modifier | Fire rate -15/30/45% |
+| POWER | Modifier | Damage +25/50/75% |
+| SPREAD | Modifier | Angle +12/24° |
+| HOMING | Special | Auto-tracking bullets |
+| PIERCE | Special | Penetrating shots |
+| LASER | Special | Rapid beam |
+| MISSILE | Special | AoE on impact |
+| SHIELD | Special | Instant shield |
+| SPEED | Special | 1.4x movement |
+
+#### New HUD
+- Shot level indicator (▸▸▸)
+- Modifier bars with timers
+- Special icon with countdown
+
+#### Technical Changes
+- `Player.js`: New state machine (shotLevel, modifiers, special)
+- `Bullet.js`: Added damageMult and special properties
+- `PowerUp.js`: New visual categories
+- `DropSystem.js`: Evolution-aware drop selection
+- `BalanceConfig.js`: WEAPON_EVOLUTION config section
+
+#### Debug Commands
+```javascript
+dbg.setShot(3)        // Set shot level
+dbg.setMod('rate', 2) // Set modifier
+dbg.setSpecial('HOMING') // Set special
+dbg.maxWeapon()       // Max all
+dbg.weaponStatus()    // Show state
+```
+
+---
+
 ## v2.24.11 - 2026-02-04
 ### Balance: Graze Decay Slowdown
 

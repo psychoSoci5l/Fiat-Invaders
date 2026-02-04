@@ -14,6 +14,12 @@ class Bullet extends window.Game.Entity {
         this.age = 0; // Animation timer
         this.grazed = false; // Graze tracking
         this.shape = null; // Enemy shape for visual differentiation (coin/bill/bar/card)
+
+        // === WEAPON EVOLUTION v3.0 properties ===
+        this.damageMult = 1;      // From POWER modifier
+        this.special = null;      // 'HOMING'|'PIERCE'|'LASER'|'MISSILE'|null
+        this.isMissile = false;   // MISSILE special flag
+        this.aoeRadius = 0;       // MISSILE explosion radius
     }
 
     reset(x, y, vx, vy, color, w, h, isHodl) {
@@ -34,6 +40,12 @@ class Bullet extends window.Game.Entity {
         this.homing = false; // Homing missile tracking
         this.homingSpeed = 0; // Turn rate for homing
         this.shape = null; // Enemy shape for visual differentiation
+
+        // === WEAPON EVOLUTION v3.0 reset ===
+        this.damageMult = 1;
+        this.special = null;
+        this.isMissile = false;
+        this.aoeRadius = 0;
     }
 
     update(dt, enemies, boss) {
@@ -142,27 +154,52 @@ class Bullet extends window.Game.Entity {
                 }
             }
 
-            switch (this.weaponType) {
-                case 'WIDE':
-                    this.drawWideBullet(ctx, pulse);
-                    break;
-                case 'NARROW':
-                    this.drawNarrowBullet(ctx, pulse);
-                    break;
-                case 'FIRE':
-                    this.drawFireBullet(ctx, pulse);
-                    break;
-                case 'SPREAD':
-                    this.drawSpreadBullet(ctx, pulse);
-                    break;
-                case 'HOMING':
-                    this.drawHomingBullet(ctx, pulse);
-                    break;
-                case 'LASER':
-                    this.drawLaserBullet(ctx, pulse);
-                    break;
-                default: // NORMAL
-                    this.drawNormalBullet(ctx, pulse);
+            // Check for WEAPON EVOLUTION special first (overrides weaponType)
+            if (this.special) {
+                switch (this.special) {
+                    case 'HOMING':
+                        this.drawHomingBullet(ctx, pulse);
+                        break;
+                    case 'PIERCE':
+                        this.drawPierceBullet(ctx, pulse);
+                        break;
+                    case 'LASER':
+                        this.drawLaserBullet(ctx, pulse);
+                        break;
+                    case 'MISSILE':
+                        this.drawMissileBullet(ctx, pulse);
+                        break;
+                    default:
+                        // Unknown special, use evolution default
+                        this.drawEvolutionBullet(ctx, pulse);
+                }
+            } else {
+                // Legacy weapon type system
+                switch (this.weaponType) {
+                    case 'WIDE':
+                        this.drawWideBullet(ctx, pulse);
+                        break;
+                    case 'NARROW':
+                        this.drawNarrowBullet(ctx, pulse);
+                        break;
+                    case 'FIRE':
+                        this.drawFireBullet(ctx, pulse);
+                        break;
+                    case 'SPREAD':
+                        this.drawSpreadBullet(ctx, pulse);
+                        break;
+                    case 'HOMING':
+                        this.drawHomingBullet(ctx, pulse);
+                        break;
+                    case 'LASER':
+                        this.drawLaserBullet(ctx, pulse);
+                        break;
+                    case 'EVOLUTION':
+                        this.drawEvolutionBullet(ctx, pulse);
+                        break;
+                    default: // NORMAL
+                        this.drawNormalBullet(ctx, pulse);
+                }
             }
         }
     }
@@ -628,6 +665,246 @@ class Bullet extends window.Game.Entity {
         ctx.beginPath();
         ctx.arc(this.x, this.y - h * 0.6, 2 * pulse, 0, Math.PI * 2);
         ctx.fill();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // PIERCE: Flaming Red Arrow - Penetrating flame projectile
+    // (WEAPON EVOLUTION v3.0 Special)
+    // ═══════════════════════════════════════════════════════════════════
+    drawPierceBullet(ctx, pulse) {
+        const w = this.width * 2.0;
+        const h = this.height * 1.4;
+        const flicker = Math.sin(this.age * 30) * 2;
+
+        // Intense flame trail (longer than FIRE)
+        ctx.globalAlpha = 0.7;
+        for (let i = 0; i < 5; i++) {
+            const offset = Math.sin(this.age * 25 + i * 1.5) * 2;
+            const trailH = 16 + i * 6 + flicker;
+            const trailW = 3 - i * 0.4;
+
+            // Outer red to yellow gradient
+            const colors = ['#8B0000', '#c0392b', '#e67e22', '#f39c12', '#f9e79f'];
+            ctx.fillStyle = colors[i];
+            ctx.beginPath();
+            ctx.moveTo(this.x - trailW + offset, this.y + 4);
+            ctx.quadraticCurveTo(
+                this.x + offset, this.y + trailH + 10,
+                this.x + trailW + offset, this.y + 4
+            );
+            ctx.closePath();
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+
+        // Outer glow
+        ctx.fillStyle = '#e74c3c';
+        ctx.globalAlpha = 0.3;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, w + 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        // Main arrow body (elongated diamond)
+        ctx.fillStyle = '#e74c3c';
+        ctx.beginPath();
+        ctx.moveTo(this.x, this.y - h * 0.6);           // Sharp tip
+        ctx.lineTo(this.x + w * 0.5, this.y - h * 0.1);
+        ctx.lineTo(this.x + w * 0.3, this.y + h * 0.4);
+        ctx.lineTo(this.x, this.y + h * 0.2);
+        ctx.lineTo(this.x - w * 0.3, this.y + h * 0.4);
+        ctx.lineTo(this.x - w * 0.5, this.y - h * 0.1);
+        ctx.closePath();
+        ctx.fill();
+
+        // Bold outline
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Inner hot core
+        ctx.fillStyle = '#f39c12';
+        ctx.beginPath();
+        ctx.moveTo(this.x, this.y - h * 0.4);
+        ctx.lineTo(this.x + w * 0.2, this.y);
+        ctx.lineTo(this.x, this.y + h * 0.15);
+        ctx.lineTo(this.x - w * 0.2, this.y);
+        ctx.closePath();
+        ctx.fill();
+
+        // White hot tip
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.moveTo(this.x, this.y - h * 0.55);
+        ctx.lineTo(this.x + 3, this.y - h * 0.3);
+        ctx.lineTo(this.x - 3, this.y - h * 0.3);
+        ctx.closePath();
+        ctx.fill();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // MISSILE: Blue Warhead - AoE explosion on impact
+    // (WEAPON EVOLUTION v3.0 Special)
+    // ═══════════════════════════════════════════════════════════════════
+    drawMissileBullet(ctx, pulse) {
+        const w = this.width * 2.2;
+        const h = this.height * 1.6;
+
+        // Calculate missile rotation based on velocity
+        const angle = Math.atan2(this.vy, this.vx) + Math.PI / 2;
+
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(angle);
+
+        // Exhaust trail (blue-white)
+        const flicker = Math.sin(this.age * 40) * 3;
+        ctx.globalAlpha = 0.8;
+        for (let i = 3; i > 0; i--) {
+            const trailLen = 10 + i * 6 + flicker;
+            const trailWidth = w * (0.25 + i * 0.08);
+            const colors = ['#1a5276', '#3498db', '#85c1e9'];
+            ctx.fillStyle = colors[i - 1];
+            ctx.beginPath();
+            ctx.moveTo(-trailWidth, h * 0.4);
+            ctx.quadraticCurveTo(0, h * 0.4 + trailLen, trailWidth, h * 0.4);
+            ctx.closePath();
+            ctx.fill();
+        }
+        // White core of exhaust
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.moveTo(-w * 0.1, h * 0.4);
+        ctx.quadraticCurveTo(0, h * 0.4 + 8, w * 0.1, h * 0.4);
+        ctx.closePath();
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        // Missile body (chunky warhead)
+        ctx.fillStyle = '#3498db';
+        ctx.beginPath();
+        ctx.moveTo(0, -h * 0.55);          // Nose
+        ctx.lineTo(w * 0.5, -h * 0.15);    // Right shoulder
+        ctx.lineTo(w * 0.5, h * 0.3);      // Right side
+        ctx.lineTo(w * 0.3, h * 0.4);      // Right rear
+        ctx.lineTo(-w * 0.3, h * 0.4);     // Left rear
+        ctx.lineTo(-w * 0.5, h * 0.3);     // Left side
+        ctx.lineTo(-w * 0.5, -h * 0.15);   // Left shoulder
+        ctx.closePath();
+        ctx.fill();
+
+        // Bold outline
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Large fins (bigger than homing)
+        ctx.fillStyle = '#1a5276';
+        // Left fin
+        ctx.beginPath();
+        ctx.moveTo(-w * 0.5, h * 0.15);
+        ctx.lineTo(-w * 0.9, h * 0.5);
+        ctx.lineTo(-w * 0.5, h * 0.35);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        // Right fin
+        ctx.beginPath();
+        ctx.moveTo(w * 0.5, h * 0.15);
+        ctx.lineTo(w * 0.9, h * 0.5);
+        ctx.lineTo(w * 0.5, h * 0.35);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Warhead tip (brighter blue)
+        ctx.fillStyle = '#5dade2';
+        ctx.beginPath();
+        ctx.moveTo(0, -h * 0.55);
+        ctx.lineTo(w * 0.3, -h * 0.2);
+        ctx.lineTo(-w * 0.3, -h * 0.2);
+        ctx.closePath();
+        ctx.fill();
+
+        // White tip
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.moveTo(0, -h * 0.5);
+        ctx.lineTo(w * 0.12, -h * 0.3);
+        ctx.lineTo(-w * 0.12, -h * 0.3);
+        ctx.closePath();
+        ctx.fill();
+
+        // Explosive indicator (red band)
+        ctx.fillStyle = '#e74c3c';
+        ctx.fillRect(-w * 0.45, h * 0.05, w * 0.9, h * 0.12);
+        ctx.strokeRect(-w * 0.45, h * 0.05, w * 0.9, h * 0.12);
+
+        ctx.restore();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // EVOLUTION: Default Orange Bolt for Weapon Evolution system
+    // Clean BTC-themed projectile with power indicator
+    // ═══════════════════════════════════════════════════════════════════
+    drawEvolutionBullet(ctx, pulse) {
+        const w = this.width * 2.0;
+        const h = this.height * 1.3;
+
+        // Power indicator glow (based on damageMult)
+        if (this.damageMult > 1) {
+            const powerGlow = (this.damageMult - 1) * 0.5; // 0 to 0.375 for max power
+            ctx.fillStyle = '#FFD700';
+            ctx.globalAlpha = 0.2 + powerGlow;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, w + 8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+        }
+
+        // Outer glow trail
+        ctx.fillStyle = this.color;
+        ctx.globalAlpha = 0.3;
+        ctx.beginPath();
+        ctx.moveTo(this.x - w, this.y + 2);
+        ctx.lineTo(this.x, this.y + h + 8);
+        ctx.lineTo(this.x + w, this.y + 2);
+        ctx.closePath();
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        // Main bolt body (elongated hexagon)
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.moveTo(this.x, this.y - 8);           // Top point
+        ctx.lineTo(this.x + w, this.y - 2);       // Upper right
+        ctx.lineTo(this.x + w * 0.7, this.y + 6); // Lower right
+        ctx.lineTo(this.x, this.y + h);           // Bottom point
+        ctx.lineTo(this.x - w * 0.7, this.y + 6); // Lower left
+        ctx.lineTo(this.x - w, this.y - 2);       // Upper left
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Inner bright core (larger if powered up)
+        const coreSize = this.damageMult > 1 ? 1.2 : 1;
+        ctx.fillStyle = '#FFD700';
+        ctx.beginPath();
+        ctx.moveTo(this.x, this.y - 4 * coreSize);
+        ctx.lineTo(this.x + w * 0.4 * coreSize, this.y);
+        ctx.lineTo(this.x, this.y + 8 * coreSize);
+        ctx.lineTo(this.x - w * 0.4 * coreSize, this.y);
+        ctx.closePath();
+        ctx.fill();
+
+        // BTC symbol (small)
+        ctx.fillStyle = '#111';
+        ctx.font = 'bold 8px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('₿', this.x, this.y + 1);
     }
 
     // ═══════════════════════════════════════════════════════════════════

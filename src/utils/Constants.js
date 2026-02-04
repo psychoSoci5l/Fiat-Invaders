@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v2.24.11 FIAT vs CRYPTO";
+window.Game.VERSION = "v3.0.6 FIAT vs CRYPTO";
 
 window.Game.TEXTS = {
     EN: {
@@ -41,20 +41,28 @@ window.Game.TEXTS = {
         CTRL_MOVE: "Move", CTRL_FIRE: "Fire", CTRL_SHIELD: "Shield", CTRL_PAUSE: "Pause",
         CTRL_ARROWS: "A/D or Arrow Keys", CTRL_SPACE: "Space or Up Arrow", CTRL_DOWN: "S or Down Arrow", CTRL_ESC: "ESC",
         CTRL_TAP_SIDES: "Tap screen sides or joystick", CTRL_AUTO: "Automatic while touching", CTRL_TAP_ICON: "Tap shield icon",
-        // Power-ups tab
-        POWERUPS_WEAPON: "Weapon Power-Ups",
-        POWERUPS_WEAPON_NOTE: "Replace each other when collected",
-        POWERUPS_SHIP: "Ship Power-Ups",
-        POWERUPS_SHIP_NOTE: "Temporary boosts, replace each other",
-        PU_WIDE: "Triple shot, wide spread",
-        PU_NARROW: "Triple shot, focused",
-        PU_FIRE: "Triple parallel, penetrating",
-        PU_SPREAD: "5-shot wide fan",
-        PU_HOMING: "Auto-tracking missiles",
-        PU_LASER: "Rapid penetrating beam",
-        PU_SPEED: "Movement +25%",
-        PU_RAPID: "Fire rate +20%",
-        PU_SHIELD: "Instant shield activation",
+        // Power-ups tab - Weapon Evolution System v3.0
+        POWERUPS_UPGRADE: "Weapon Upgrade",
+        POWERUPS_UPGRADE_NOTE: "Permanent! Evolves shots: 1→2→3 bullets. Death: -1 level",
+        POWERUPS_MODIFIERS: "Modifiers",
+        POWERUPS_MODIFIERS_NOTE: "Stackable + temporary (12s). Same pickup = +1 level & refresh timer",
+        POWERUPS_SPECIALS: "Specials",
+        POWERUPS_SPECIALS_NOTE: "Exclusive + temporary (12s). New special replaces current",
+        // Upgrade
+        PU_UPGRADE: "⬆️ UPGRADE - Permanent shot level +1",
+        // Modifiers
+        PU_RATE: "⚡ RATE - Fire rate -15%/-30%/-45%",
+        PU_POWER: "💥 POWER - Damage +25%/+50%/+75%",
+        PU_SPREAD: "🔱 SPREAD - Shot angle +12°/+24°",
+        // Specials
+        PU_HOMING: "🎯 HOMING - Bullets track enemies",
+        PU_PIERCE: "🔥 PIERCE - Bullets penetrate",
+        PU_LASER: "⚡ LASER - Continuous beam",
+        PU_MISSILE: "🚀 MISSILE - AoE explosions",
+        PU_SHIELD: "🛡️ SHIELD - Instant activation",
+        PU_SPEED: "💨 SPEED - Movement +50%",
+        // Death penalty
+        POWERUPS_DEATH: "On Death: -1 level per category (min 0), specials lost",
         // Enemies tab
         ENEMIES_WEAK: "Weak Tier",
         ENEMIES_MEDIUM: "Medium Tier",
@@ -140,20 +148,28 @@ window.Game.TEXTS = {
         CTRL_MOVE: "Muovi", CTRL_FIRE: "Spara", CTRL_SHIELD: "Scudo", CTRL_PAUSE: "Pausa",
         CTRL_ARROWS: "A/D o Frecce", CTRL_SPACE: "Spazio o Freccia Su", CTRL_DOWN: "S o Freccia Giù", CTRL_ESC: "ESC",
         CTRL_TAP_SIDES: "Tocca i lati o joystick", CTRL_AUTO: "Automatico mentre tocchi", CTRL_TAP_ICON: "Tocca icona scudo",
-        // Power-ups tab
-        POWERUPS_WEAPON: "Power-Up Armi",
-        POWERUPS_WEAPON_NOTE: "Si sostituiscono quando raccolti",
-        POWERUPS_SHIP: "Power-Up Nave",
-        POWERUPS_SHIP_NOTE: "Boost temporanei, si sostituiscono",
-        PU_WIDE: "Triplo colpo, ampio",
-        PU_NARROW: "Triplo colpo, concentrato",
-        PU_FIRE: "Triplo parallelo, penetrante",
-        PU_SPREAD: "Ventaglio a 5 colpi",
-        PU_HOMING: "Missili auto-guidati",
-        PU_LASER: "Raggio rapido penetrante",
-        PU_SPEED: "Movimento +25%",
-        PU_RAPID: "Cadenza +20%",
-        PU_SHIELD: "Attivazione scudo istantanea",
+        // Power-ups tab - Weapon Evolution System v3.0
+        POWERUPS_UPGRADE: "Potenziamento Arma",
+        POWERUPS_UPGRADE_NOTE: "Permanente! Evolve colpi: 1→2→3 proiettili. Morte: -1 livello",
+        POWERUPS_MODIFIERS: "Modificatori",
+        POWERUPS_MODIFIERS_NOTE: "Cumulabili + temporanei (12s). Stesso pickup = +1 livello & refresh timer",
+        POWERUPS_SPECIALS: "Speciali",
+        POWERUPS_SPECIALS_NOTE: "Esclusivi + temporanei (12s). Nuovo speciale sostituisce attuale",
+        // Upgrade
+        PU_UPGRADE: "⬆️ UPGRADE - Livello colpi permanente +1",
+        // Modifiers
+        PU_RATE: "⚡ RATE - Cadenza -15%/-30%/-45%",
+        PU_POWER: "💥 POWER - Danno +25%/+50%/+75%",
+        PU_SPREAD: "🔱 SPREAD - Angolo colpi +12°/+24°",
+        // Specials
+        PU_HOMING: "🎯 HOMING - Proiettili auto-guidati",
+        PU_PIERCE: "🔥 PIERCE - Proiettili penetranti",
+        PU_LASER: "⚡ LASER - Raggio continuo",
+        PU_MISSILE: "🚀 MISSILE - Esplosioni ad area",
+        PU_SHIELD: "🛡️ SHIELD - Attivazione istantanea",
+        PU_SPEED: "💨 SPEED - Movimento +50%",
+        // Death penalty
+        POWERUPS_DEATH: "Alla Morte: -1 livello per categoria (min 0), speciali persi",
         // Enemies tab
         ENEMIES_WEAK: "Tier Debole",
         ENEMIES_MEDIUM: "Tier Medio",
@@ -330,8 +346,32 @@ window.Game.MEMES = {
     ]
 };
 
-// Weapon types (mutually exclusive - picking one replaces previous)
-// Rebalanced: Base twin-shot is strong, power-ups are utility (spread/penetration) not DPS multipliers
+// === WEAPON EVOLUTION SYSTEM v3.0 ===
+// New progressive power-up system:
+// - UPGRADE: permanent shot level (1→2→3), death = -1 level
+// - Modifiers: stackable temp buffs (RATE/POWER/SPREAD), death = -1 level
+// - Specials: exclusive temp effects (HOMING/PIERCE/LASER/MISSILE/SHIELD/SPEED), death = lost
+
+window.Game.POWERUP_TYPES = {
+    // Upgrade (permanent shot level)
+    UPGRADE: { icon: '⬆️', color: '#FFD700', category: 'upgrade', name: 'UPGRADE', symbol: '↑' },
+
+    // Modifiers (stackable, temporary with timer)
+    RATE:   { icon: '⚡', color: '#00FFFF', category: 'modifier', name: 'RATE', symbol: 'R' },
+    POWER:  { icon: '💥', color: '#FF4444', category: 'modifier', name: 'POWER', symbol: 'P' },
+    SPREAD: { icon: '🔱', color: '#9B59B6', category: 'modifier', name: 'SPREAD', symbol: 'S' },
+
+    // Specials (exclusive, temporary - replace each other)
+    HOMING:  { icon: '🎯', color: '#E67E22', category: 'special', name: 'HOMING', symbol: 'H' },
+    PIERCE:  { icon: '🔥', color: '#E74C3C', category: 'special', name: 'PIERCE', symbol: 'X' },
+    LASER:   { icon: '⚡', color: '#00FFFF', category: 'special', name: 'LASER', symbol: 'L' },
+    MISSILE: { icon: '🚀', color: '#3498DB', category: 'special', name: 'MISSILE', symbol: 'M' },
+    SHIELD:  { icon: '🛡️', color: '#2ECC71', category: 'special', name: 'SHIELD', symbol: '🛡' },
+    SPEED:   { icon: '💨', color: '#F1C40F', category: 'special', name: 'SPEED', symbol: '>' }
+};
+
+// Legacy weapon types (kept for backward compatibility during transition)
+// TODO: Remove after full migration to WEAPON_EVOLUTION system
 window.Game.WEAPONS = {
     NORMAL: { color: '#F7931A', rate: 0.18, bullets: 2 },                           // Twin shot base
     WIDE:   { color: '#9b59b6', rate: 0.40, bullets: 3, spread: 0.18, icon: '🔱' },
@@ -342,8 +382,8 @@ window.Game.WEAPONS = {
     LASER:  { color: '#00ffff', rate: 0.06, bullets: 1, icon: '⚡' }                 // Rapid beam (penetrating)
 };
 
-// Ship power-ups (mutually exclusive - picking one replaces previous)
-// Nerfed: smaller bonuses
+// Legacy ship power-ups (kept for backward compatibility during transition)
+// TODO: Remove after full migration to WEAPON_EVOLUTION system
 window.Game.SHIP_POWERUPS = {
     SPEED:  { speedMult: 1.25, icon: '⚡', color: '#f1c40f' },
     RAPID:  { rateMult: 0.80, icon: '🚀', color: '#3498db' },

@@ -309,12 +309,23 @@ function checkStreakMeme() {
 
 // PowerUp memes - crypto-themed feedback
 const POWERUP_MEMES = {
+    // Legacy weapon types
     WIDE: "🔱 SPREAD THE FUD",
     NARROW: "🎯 LASER EYES",
     FIRE: "🔥 BURN THE FIAT",
-    SPEED: "⚡ ZOOM OUT",
     RAPID: "🚀 TO THE MOON",
-    SHIELD: "🛡️ HODL MODE"
+
+    // WEAPON EVOLUTION v3.0 types
+    UPGRADE: "⬆️ LEVEL UP!",
+    RATE: "⚡ FIRE RATE++",
+    POWER: "💥 POWER++",
+    SPREAD: "🔱 SPREAD++",
+    HOMING: "🎯 HEAT SEEKING",
+    PIERCE: "🔥 PENETRATING",
+    LASER: "⚡ BEAM MODE",
+    MISSILE: "🚀 WARHEAD ARMED",
+    SHIELD: "🛡️ HODL MODE",
+    SPEED: "💨 ZOOM OUT"
 };
 
 // ============================================
@@ -1528,8 +1539,8 @@ window.launchShipAndStart = function () {
     requestAnimationFrame(animateLaunch);
 }
 window.togglePause = function () {
-    if (gameState === 'PLAY' || gameState === 'INTERMISSION') { gameState = 'PAUSE'; setStyle('pause-screen', 'display', 'flex'); setStyle('pause-btn', 'display', 'none'); }
-    else if (gameState === 'PAUSE') { gameState = 'PLAY'; setStyle('pause-screen', 'display', 'none'); setStyle('pause-btn', 'display', 'block'); }
+    if (gameState === 'PLAY' || gameState === 'INTERMISSION') { gameState = 'PAUSE'; setStyle('pause-screen', 'display', 'flex'); setStyle('pause-btn', 'display', 'none'); setStyle('weapon-icon', 'display', 'none'); }
+    else if (gameState === 'PAUSE') { gameState = 'PLAY'; setStyle('pause-screen', 'display', 'none'); setStyle('pause-btn', 'display', 'block'); setStyle('weapon-icon', 'display', 'block'); }
 };
 window.restartRun = function () {
     setStyle('pause-screen', 'display', 'none');
@@ -1729,9 +1740,81 @@ function updateLivesUI(wasHit = false) {
     }
 }
 
+/**
+ * WEAPON EVOLUTION v3.0: Update compact weapon icon (pill design)
+ * Shows shot level by default, special icon during specials
+ * Modifier states shown via small indicator dots
+ */
+function updateWeaponStatusHUD() {
+    if (!player || !Balance.WEAPON_EVOLUTION) return;
+
+    const WE = Balance.WEAPON_EVOLUTION;
+    const iconEl = document.getElementById('weapon-icon');
+    const symbolEl = document.getElementById('weapon-icon-symbol');
+
+    if (!iconEl || !symbolEl) return;
+
+    // Special colors for each type
+    const SPECIAL_COLORS = {
+        HOMING: '#E67E22',
+        PIERCE: '#E74C3C',
+        LASER: '#00FFFF',
+        MISSILE: '#3498DB',
+        SHIELD: '#2ECC71',
+        SPEED: '#F1C40F'
+    };
+
+    // Special icons
+    const SPECIAL_ICONS = {
+        HOMING: '🎯',
+        PIERCE: '🔥',
+        LASER: '⚡',
+        MISSILE: '🚀',
+        SHIELD: '🛡️',
+        SPEED: '💨'
+    };
+
+    // Check if special is active
+    const hasSpecial = player.special && player.specialTimer > 0;
+
+    // Update symbol
+    if (hasSpecial) {
+        // Show special icon + timer
+        const timerSec = Math.ceil(player.specialTimer);
+        symbolEl.textContent = `${SPECIAL_ICONS[player.special] || '?'} ${timerSec}s`;
+        symbolEl.style.letterSpacing = '0';
+        symbolEl.style.fontSize = '12px';
+
+        // Set special color via CSS variable
+        const specialColor = SPECIAL_COLORS[player.special] || '#FFD700';
+        iconEl.style.setProperty('--special-color', specialColor);
+        iconEl.classList.add('special-active');
+    } else {
+        // Show shot level (▸ ▸▸ ▸▸▸)
+        const shotLevel = player.shotLevel || 1;
+        symbolEl.textContent = '▸'.repeat(shotLevel);
+        symbolEl.style.fontSize = '14px';
+
+        iconEl.classList.remove('special-active');
+    }
+
+    // Update shot level class
+    iconEl.classList.remove('shot-1', 'shot-2', 'shot-3');
+    iconEl.classList.add(`shot-${player.shotLevel || 1}`);
+
+    // Update modifier indicators (dots)
+    const rateActive = player.modifiers?.rate?.level > 0;
+    const powerActive = player.modifiers?.power?.level > 0;
+    const spreadActive = player.modifiers?.spread?.level > 0;
+
+    iconEl.classList.toggle('rate-active', rateActive);
+    iconEl.classList.toggle('power-active', powerActive);
+    iconEl.classList.toggle('spread-active', spreadActive);
+}
+
 function startGame() {
     audioSys.init();
-    setStyle('intro-screen', 'display', 'none'); setStyle('gameover-screen', 'display', 'none'); setStyle('pause-screen', 'display', 'none'); setStyle('pause-btn', 'display', 'block');
+    setStyle('intro-screen', 'display', 'none'); setStyle('gameover-screen', 'display', 'none'); setStyle('pause-screen', 'display', 'none'); setStyle('pause-btn', 'display', 'block'); setStyle('weapon-icon', 'display', 'block');
     if (ui.uiLayer) ui.uiLayer.style.display = 'flex'; // SHOW HUD
     // Show touch controls with opacity fade-in to avoid visual flash
     if (ui.touchControls) {
@@ -1783,7 +1866,13 @@ function startGame() {
     // gridSpeed now computed dynamically via getGridSpeed()
 
     gameState = 'PLAY';
-    player.resetState();
+
+    // WEAPON EVOLUTION v3.0: Full reset on new game (resets shot level to 1)
+    if (player.fullReset) {
+        player.fullReset();
+    } else {
+        player.resetState();
+    }
 
     // Reset campaign if already complete (allow fresh start after victory)
     const campaignState = G.CampaignState;
@@ -2732,7 +2821,13 @@ function updateBullets(dt) {
                 audioSys.play('hitEnemy');
 
                 // Boss drops power-ups every N hits - delegated to DropSystem
-                const bossDropInfo = G.DropSystem.tryBossDrop(boss.x + boss.width / 2, boss.y + boss.height, totalTime, getUnlockedWeapons);
+                // WEAPON EVOLUTION v3.0: Use new evolution drop system
+                const useEvolutionBoss = !!(Balance.WEAPON_EVOLUTION && player.shotLevel);
+                const bossDropInfo = G.DropSystem.tryBossDrop(
+                    boss.x + boss.width / 2, boss.y + boss.height, totalTime,
+                    useEvolutionBoss ? player.shotLevel : getUnlockedWeapons,
+                    useEvolutionBoss
+                );
                 if (bossDropInfo) {
                     powerUps.push(new G.PowerUp(bossDropInfo.x, bossDropInfo.y, bossDropInfo.type));
                     audioSys.play('coinPerk');
@@ -3257,6 +3352,12 @@ function checkBulletCollisions(b, bIdx) {
             const baseDmg = player.stats.baseDamage || 14;
             const dmgMult = (runState && runState.getMod) ? runState.getMod('damageMult', 1) : 1;
             let dmg = baseDmg * dmgMult;
+
+            // WEAPON EVOLUTION v3.0: Apply bullet's POWER modifier damage bonus
+            if (b.damageMult && b.damageMult > 1) {
+                dmg *= b.damageMult;
+            }
+
             if (b.isHodl) dmg *= Balance.SCORE.HODL_MULT_ENEMY; // HODL bonus vs enemies
             if (runState && runState.flags && runState.flags.hodlBonus && b.isHodl) dmg *= 1.15; // Stacks with perk
 
@@ -3385,7 +3486,13 @@ function checkBulletCollisions(b, bIdx) {
                 }
 
                 // DROP LOGIC - Delegated to DropSystem
-                const dropInfo = G.DropSystem.tryEnemyDrop(e.symbol, e.x, e.y, totalTime, getUnlockedWeapons);
+                // WEAPON EVOLUTION v3.0: Use new evolution drop system
+                const useEvolution = !!(Balance.WEAPON_EVOLUTION && player.shotLevel);
+                const dropInfo = G.DropSystem.tryEnemyDrop(
+                    e.symbol, e.x, e.y, totalTime,
+                    useEvolution ? player.shotLevel : getUnlockedWeapons,
+                    useEvolution
+                );
                 if (dropInfo) {
                     powerUps.push(new G.PowerUp(dropInfo.x, dropInfo.y, dropInfo.type));
                 }
@@ -3613,6 +3720,13 @@ function executeDeath() {
         G.Debug.trackPlayerDeath(lives, level, 'bullet');
     }
     deathAlreadyTracked = false; // Reset for next death
+
+    // WEAPON EVOLUTION v3.0: Apply death penalty (soft reset)
+    if (player.applyDeathPenalty && Balance.WEAPON_EVOLUTION) {
+        player.applyDeathPenalty();
+        // Update weapon HUD after penalty
+        updateWeaponStatusHUD();
+    }
 
     if (lives > 0) {
         // RESPAWN - 1-hit = 1-life system
@@ -4401,6 +4515,8 @@ function loop(timestamp) {
 
     update(dt);
     updatePowerUps(dt);
+    // WEAPON EVOLUTION v3.0: Update weapon status HUD
+    updateWeaponStatusHUD();
     // Sky update via SkyRenderer
     if (G.SkyRenderer) {
         const skyEffects = G.SkyRenderer.update(dt, { isBearMarket, gameState });
@@ -4554,6 +4670,7 @@ function triggerGameOver() {
     if (ui.kills) ui.kills.innerText = killCount;
     if (ui.streak) ui.streak.innerText = bestStreak;
     setStyle('pause-btn', 'display', 'none');
+    setStyle('weapon-icon', 'display', 'none');
     audioSys.play('explosion');
 }
 
@@ -4568,14 +4685,22 @@ function updatePowerUps(dt) {
             if (Math.abs(p.x - player.x) < 40 && Math.abs(p.y - player.y) < 40) {
                 // Pickup effect!
                 createPowerUpPickupEffect(p.x, p.y, p.config.color);
-                player.upgrade(p.type);
+
+                // WEAPON EVOLUTION v3.0: Use applyPowerUp for new types
+                const evolutionTypes = ['UPGRADE', 'RATE', 'POWER', 'SPREAD', 'HOMING', 'PIERCE', 'LASER', 'MISSILE', 'SHIELD', 'SPEED'];
+                if (evolutionTypes.includes(p.type) && player.applyPowerUp) {
+                    player.applyPowerUp(p.type);
+                } else {
+                    player.upgrade(p.type);
+                }
+
                 // Crypto-themed powerup feedback (gold, fixed position)
                 const meme = POWERUP_MEMES[p.type] || p.type;
                 showPowerUp(meme);
                 // Analytics: Track power-up
                 if (G.Debug) G.Debug.trackPowerUpCollected(p.type, p.isPityDrop || false);
                 powerUps.splice(i, 1);
-                emitEvent('powerup_pickup', { type: p.type });
+                emitEvent('powerup_pickup', { type: p.type, category: p.config?.category });
             }
         }
     }

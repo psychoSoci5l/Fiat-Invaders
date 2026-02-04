@@ -241,6 +241,70 @@ Two categories, **mutually exclusive within category**:
 
 ---
 
+## Weapon Evolution System (v3.0)
+
+Progressive weapon system replacing the old 7-weapon rotation. All config in `Balance.WEAPON_EVOLUTION`.
+
+### Shot Levels (Permanent)
+| Level | Bullets | Pattern |
+|-------|---------|---------|
+| 1 | 1 | Single center shot |
+| 2 | 2 | Dual symmetric |
+| 3 | 3 | Triple (center + sides) |
+
+- **Upgrade trigger**: UPGRADE power-up (guaranteed every 30 kills)
+- **Death penalty**: -1 level (min 1)
+
+### Modifiers (Stackable, Temporary)
+| Type | Icon | Max Level | Effect per Level | Duration |
+|------|------|-----------|------------------|----------|
+| RATE | ⚡ | 3 | -15%, -30%, -45% cooldown | 12s |
+| POWER | 💥 | 3 | +25%, +50%, +75% damage | 12s |
+| SPREAD | 🔱 | 2 | +12°, +24° spread angle | 12s |
+
+- **Stacking**: Same modifier refreshes timer AND adds level
+- **Death penalty**: -1 level per modifier (min 0)
+
+### Specials (Exclusive, Temporary)
+| Type | Icon | Effect | Duration |
+|------|------|--------|----------|
+| HOMING | 🎯 | Bullets track enemies | 12s |
+| PIERCE | 🔥 | Bullets penetrate enemies | 12s |
+| LASER | ⚡ | Continuous beam weapon | 12s |
+| MISSILE | 🚀 | AoE explosive bullets | 12s |
+| SHIELD | 🛡️ | Instant shield activation | 2s |
+| SPEED | 💨 | 1.5x movement speed | 12s |
+
+- **Exclusive**: New special replaces current
+- **Death penalty**: Lost completely
+
+### Player State (Player.js)
+```javascript
+player.shotLevel          // 1-3 (permanent)
+player.modifiers.rate     // { level: 0-3, timer: 0-12 }
+player.modifiers.power    // { level: 0-3, timer: 0-12 }
+player.modifiers.spread   // { level: 0-2, timer: 0-12 }
+player.special            // 'HOMING'|'PIERCE'|'LASER'|'MISSILE'|'SPEED'|null
+player.specialTimer       // seconds remaining
+```
+
+### Debug Commands
+```javascript
+dbg.setShot(3)           // Set shot level 1-3
+dbg.setMod('rate', 2)    // Set modifier level
+dbg.setSpecial('HOMING') // Activate special
+dbg.maxWeapon()          // Max all stats
+dbg.weaponStatus()       // Show current state
+```
+
+### HUD Display
+New weapon-status bar shows:
+- Shot level indicators (▸▸▸)
+- Modifier bars with timer fill
+- Active special icon + countdown
+
+---
+
 ## Enemy System (10 Fiat Currencies)
 
 ### Tiers & Stats

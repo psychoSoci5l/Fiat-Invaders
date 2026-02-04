@@ -969,6 +969,113 @@ window.Game.Debug = {
                 phase: G.HarmonicConductor?.waveIntensity?.currentPhase,
             }
         };
+    },
+
+    // ========== WEAPON EVOLUTION v3.0 DEBUG COMMANDS ==========
+
+    /**
+     * Set player shot level (1-3)
+     * @param {number} level - Shot level to set
+     */
+    setShot(level) {
+        const player = window.player;
+        if (!player) {
+            console.log('[DEBUG] No player found');
+            return;
+        }
+        const max = window.Game.Balance?.WEAPON_EVOLUTION?.MAX_SHOT_LEVEL || 3;
+        player.shotLevel = Math.max(1, Math.min(max, level));
+        console.log(`[DEBUG] Shot level set to ${player.shotLevel}`);
+    },
+
+    /**
+     * Set modifier level and timer
+     * @param {string} type - 'rate', 'power', or 'spread'
+     * @param {number} level - Level to set (0 to disable)
+     */
+    setMod(type, level) {
+        const player = window.player;
+        if (!player || !player.modifiers) {
+            console.log('[DEBUG] No player or modifiers found');
+            return;
+        }
+        const modKey = type.toLowerCase();
+        if (!player.modifiers[modKey]) {
+            console.log(`[DEBUG] Unknown modifier: ${type}`);
+            return;
+        }
+        const WE = window.Game.Balance?.WEAPON_EVOLUTION;
+        const maxLevel = WE?.[type.toUpperCase()]?.MAX_LEVEL || 3;
+        player.modifiers[modKey].level = Math.max(0, Math.min(maxLevel, level));
+        player.modifiers[modKey].timer = level > 0 ? (WE?.MODIFIER_DURATION || 12) : 0;
+        console.log(`[DEBUG] ${type} modifier set to level ${player.modifiers[modKey].level}`);
+    },
+
+    /**
+     * Set active special
+     * @param {string} type - 'HOMING', 'PIERCE', 'LASER', 'MISSILE', 'SPEED', or null to clear
+     */
+    setSpecial(type) {
+        const player = window.player;
+        if (!player) {
+            console.log('[DEBUG] No player found');
+            return;
+        }
+        const WE = window.Game.Balance?.WEAPON_EVOLUTION;
+        if (type === null || type === 'none' || type === '') {
+            player.special = null;
+            player.specialTimer = 0;
+            console.log('[DEBUG] Special cleared');
+        } else {
+            player.special = type.toUpperCase();
+            player.specialTimer = WE?.SPECIAL_DURATION || 12;
+            console.log(`[DEBUG] Special set to ${player.special} (${player.specialTimer}s)`);
+        }
+    },
+
+    /**
+     * Max out all weapon evolution stats (for testing)
+     */
+    maxWeapon() {
+        const player = window.player;
+        if (!player) {
+            console.log('[DEBUG] No player found');
+            return;
+        }
+        const WE = window.Game.Balance?.WEAPON_EVOLUTION;
+
+        // Max shot level
+        player.shotLevel = WE?.MAX_SHOT_LEVEL || 3;
+
+        // Max all modifiers with long timer
+        player.modifiers.rate.level = WE?.RATE?.MAX_LEVEL || 3;
+        player.modifiers.rate.timer = 999;
+        player.modifiers.power.level = WE?.POWER?.MAX_LEVEL || 3;
+        player.modifiers.power.timer = 999;
+        player.modifiers.spread.level = WE?.SPREAD?.MAX_LEVEL || 2;
+        player.modifiers.spread.timer = 999;
+
+        console.log('[DEBUG] Weapon maxed: Shot=3, Rate=3, Power=3, Spread=2');
+    },
+
+    /**
+     * Show current weapon evolution state
+     */
+    weaponStatus() {
+        const player = window.player;
+        if (!player) {
+            console.log('[DEBUG] No player found');
+            return;
+        }
+        console.log('[DEBUG] Weapon Evolution State:');
+        console.log(`  Shot Level: ${player.shotLevel || 1}`);
+        console.log(`  Modifiers:`);
+        if (player.modifiers) {
+            console.log(`    RATE:   Lv${player.modifiers.rate.level} (${player.modifiers.rate.timer.toFixed(1)}s)`);
+            console.log(`    POWER:  Lv${player.modifiers.power.level} (${player.modifiers.power.timer.toFixed(1)}s)`);
+            console.log(`    SPREAD: Lv${player.modifiers.spread.level} (${player.modifiers.spread.timer.toFixed(1)}s)`);
+        }
+        console.log(`  Special: ${player.special || 'none'} (${(player.specialTimer || 0).toFixed(1)}s)`);
     }
 };
 
@@ -976,4 +1083,4 @@ window.Game.Debug = {
 window.dbg = window.Game.Debug;
 
 // Console helper message
-console.log('[DEBUG] DebugSystem loaded. Commands: dbg.stats(), dbg.showOverlay(), dbg.debugBoss()');
+console.log('[DEBUG] DebugSystem loaded. Commands: dbg.stats(), dbg.showOverlay(), dbg.debugBoss(), dbg.maxWeapon(), dbg.weaponStatus()');

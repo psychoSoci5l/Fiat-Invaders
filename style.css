@@ -324,6 +324,111 @@ body {
     color: #fff;
 }
 
+/* === WEAPON EVOLUTION v3.0 - Compact Icon (HUD Top-Right) - Gold pill === */
+#weapon-icon {
+    position: absolute;
+    top: calc(72px + var(--pwa-top-inset, env(safe-area-inset-top, 0px)));
+    right: 10px;
+    width: 70px; /* Same width as LIVELLO label */
+    height: 26px;
+    z-index: 100;
+    pointer-events: none;
+    display: none; /* Hidden until game starts */
+}
+
+/* Inner icon container - gold pill */
+#weapon-icon-inner {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 4px;
+    border: 2px solid #000;
+    background: linear-gradient(180deg, #FFD700 0%, #D4A500 100%);
+    box-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+/* Symbol inside icon */
+#weapon-icon-symbol {
+    font-size: 14px;
+    font-weight: bold;
+    color: #000;
+    text-shadow: none;
+    transition: all 0.2s ease;
+    letter-spacing: 0;
+}
+
+/* Shot level states - adjust letter spacing for multiple arrows */
+#weapon-icon.shot-1 #weapon-icon-symbol { letter-spacing: 1px; }
+#weapon-icon.shot-2 #weapon-icon-symbol { letter-spacing: 0; }
+#weapon-icon.shot-3 #weapon-icon-symbol { letter-spacing: -1px; }
+
+/* Special active - changes background to special color */
+#weapon-icon.special-active #weapon-icon-inner {
+    background: var(--special-color, #FFD700);
+    box-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4),
+        inset 0 -8px 12px rgba(0, 0, 0, 0.15);
+}
+
+#weapon-icon.special-active #weapon-icon-symbol {
+    color: #000;
+}
+
+/* Modifier indicators - subtle dots at bottom */
+#weapon-icon::before,
+#weapon-icon::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: transparent;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+/* RATE indicator - bottom left */
+#weapon-icon::before {
+    left: 12px;
+}
+
+/* POWER indicator - bottom right */
+#weapon-icon::after {
+    right: 12px;
+}
+
+/* Modifier active states */
+#weapon-icon.rate-active::before {
+    background: #00FFFF;
+    border-color: #000;
+    box-shadow: 0 0 6px #00FFFF;
+}
+
+#weapon-icon.power-active::after {
+    background: #FF4444;
+    border-color: #000;
+    box-shadow: 0 0 6px #FF4444;
+}
+
+/* SPREAD indicator - adds purple glow */
+#weapon-icon.spread-active #weapon-icon-inner {
+    box-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3),
+        0 0 10px rgba(155, 89, 182, 0.6);
+}
+
 .perk-chip.new {
     animation: perkPop 0.3s ease-out;
 }
@@ -354,6 +459,7 @@ body {
 
 .shield-container {
     border-color: #00ffff;
+    display: none; /* Hidden - replaced by weapon icon */
 }
 
 .health-container {
@@ -2177,39 +2283,34 @@ body.bear-mode .neon-title {
 .perk-card.rarity-rare .perk-name { color: #6aa9ff; }
 .perk-card.rarity-epic .perk-name { color: #f3a4ff; }
 
-/* Pause Button - Cell-shaded style matching shield button */
+/* Pause Button - HUD Top-Left (under lives) - Gold pill */
 #pause-btn {
     position: absolute;
-    right: 20px;
-    bottom: calc(75px + env(safe-area-inset-bottom, 0px));
-    width: 64px;
-    height: 64px;
-    border-radius: 50%;
-    border: 3px solid #000;
-    background: linear-gradient(135deg, #f39c12 0%, #d35400 100%);
+    left: 10px;
+    top: calc(72px + var(--pwa-top-inset, env(safe-area-inset-top, 0px)));
+    width: 50px;
+    height: 26px;
+    border-radius: 4px;
+    border: 2px solid #000;
+    background: linear-gradient(180deg, #FFD700 0%, #D4A500 100%);
     color: #000;
-    font-size: 24px;
+    font-size: 12px;
+    font-weight: bold;
     pointer-events: auto;
     z-index: 150;
     display: none;
-    transition: transform 0.1s ease, box-shadow 0.2s ease;
+    transition: all 0.15s ease;
     box-shadow:
-        inset 2px 2px 4px rgba(255, 255, 255, 0.3),
-        inset -2px -2px 4px rgba(0, 0, 0, 0.2),
-        0 4px 8px rgba(0, 0, 0, 0.4),
-        0 0 15px rgba(243, 156, 18, 0.5);
-    animation: pause-pulse 1.5s ease-in-out infinite;
+        0 2px 4px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
     touch-action: none;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
 }
 
 #pause-btn:active {
-    transform: translateY(2px) scale(0.95);
-    box-shadow:
-        inset 2px 2px 4px rgba(255, 255, 255, 0.2),
-        inset -2px -2px 4px rgba(0, 0, 0, 0.3),
-        0 2px 4px rgba(0, 0, 0, 0.4);
+    transform: scale(0.95);
+    background: linear-gradient(180deg, #D4A500 0%, #B8860B 100%);
 }
 
 @keyframes pause-pulse {
@@ -3148,6 +3249,22 @@ body.bear-mode .toggle-switch#bear-toggle .switch-label {
     font-size: 11px;
     font-style: italic;
     margin: -8px 0 12px 0;
+}
+
+.section-note.warning {
+    color: #ff6b6b;
+    font-weight: 600;
+    text-align: center;
+    padding: 8px;
+    background: rgba(255, 100, 100, 0.1);
+    border-radius: 6px;
+    margin: 10px 0;
+}
+
+.death-penalty {
+    background: transparent;
+    border: none;
+    padding: 0;
 }
 
 /* Lists */

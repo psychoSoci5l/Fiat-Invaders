@@ -1,18 +1,31 @@
 window.Game = window.Game || {};
 
-// Power-up visual config with icons
+// === WEAPON EVOLUTION v3.0 POWER-UP CONFIG ===
+// New categories: upgrade, modifier, special
+// Legacy categories: weapon, ship (for backward compatibility)
 const POWERUP_CONFIG = {
-    // Weapon types (change firing pattern)
+    // === WEAPON EVOLUTION v3.0 TYPES ===
+    // Upgrade (permanent shot level)
+    UPGRADE: { color: '#FFD700', symbol: '⬆', category: 'upgrade', name: 'UPGRADE' },
+
+    // Modifiers (stackable, temporary)
+    RATE:   { color: '#00FFFF', symbol: '⚡', category: 'modifier', name: 'RATE' },
+    POWER:  { color: '#FF4444', symbol: '💥', category: 'modifier', name: 'POWER' },
+    SPREAD: { color: '#9B59B6', symbol: '🔱', category: 'modifier', name: 'SPREAD' },
+
+    // Specials (exclusive, temporary)
+    HOMING:  { color: '#E67E22', symbol: '🎯', category: 'special', name: 'HOMING' },
+    PIERCE:  { color: '#E74C3C', symbol: '🔥', category: 'special', name: 'PIERCE' },
+    LASER:   { color: '#00FFFF', symbol: '⚡', category: 'special', name: 'LASER' },
+    MISSILE: { color: '#3498DB', symbol: '🚀', category: 'special', name: 'MISSILE' },
+    SHIELD:  { color: '#2ECC71', symbol: '🛡', category: 'special', name: 'SHIELD' },
+    SPEED:   { color: '#F1C40F', symbol: '💨', category: 'special', name: 'SPEED' },
+
+    // === LEGACY TYPES (backward compatibility) ===
     WIDE:   { color: '#9b59b6', symbol: '🔱', category: 'weapon', name: 'WIDE' },
     NARROW: { color: '#3498db', symbol: '🎯', category: 'weapon', name: 'NARROW' },
     FIRE:   { color: '#e74c3c', symbol: '🔥', category: 'weapon', name: 'FIRE' },
-    SPREAD: { color: '#2ecc71', symbol: '🌟', category: 'weapon', name: 'SPREAD' },
-    HOMING: { color: '#e67e22', symbol: '🚀', category: 'weapon', name: 'HOMING' },
-    LASER:  { color: '#00ffff', symbol: '⚡', category: 'weapon', name: 'LASER' },
-    // Ship types (change ship stats)
-    SPEED:  { color: '#f1c40f', symbol: '⚡', category: 'ship', name: 'SPEED' },
-    RAPID:  { color: '#e91e63', symbol: '⚡', category: 'ship', name: 'RAPID' },
-    SHIELD: { color: '#2ecc71', symbol: '🛡', category: 'ship', name: 'SHIELD' }
+    RAPID:  { color: '#e91e63', symbol: '⚡', category: 'ship', name: 'RAPID' }
 };
 
 class PowerUp extends window.Game.Entity {
@@ -57,12 +70,222 @@ class PowerUp extends window.Game.Entity {
         ctx.fill();
         ctx.globalAlpha = 1;
 
-        // Draw based on type
-        if (cfg.category === 'weapon') {
-            this.drawWeaponPowerUp(ctx, x, y, cfg, pulse);
-        } else {
-            this.drawShipPowerUp(ctx, x, y, cfg, pulse);
+        // Draw based on category (WEAPON EVOLUTION v3.0)
+        switch (cfg.category) {
+            case 'upgrade':
+                this.drawUpgradePowerUp(ctx, x, y, cfg, pulse);
+                break;
+            case 'modifier':
+                this.drawModifierPowerUp(ctx, x, y, cfg, pulse);
+                break;
+            case 'special':
+                this.drawSpecialPowerUp(ctx, x, y, cfg, pulse);
+                break;
+            case 'weapon':
+                this.drawWeaponPowerUp(ctx, x, y, cfg, pulse);
+                break;
+            case 'ship':
+            default:
+                this.drawShipPowerUp(ctx, x, y, cfg, pulse);
         }
+
+        ctx.restore();
+    }
+
+    // === WEAPON EVOLUTION v3.0 DRAW METHODS ===
+
+    /**
+     * UPGRADE power-up: Pulsing golden star (permanent shot level)
+     */
+    drawUpgradePowerUp(ctx, x, y, cfg, pulse) {
+        const size = 20 * pulse;
+
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(this.rotation);
+
+        // Outer starburst rays
+        ctx.strokeStyle = '#FFF';
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.6;
+        for (let i = 0; i < 8; i++) {
+            const angle = (Math.PI / 4) * i;
+            ctx.beginPath();
+            ctx.moveTo(Math.cos(angle) * size * 0.7, Math.sin(angle) * size * 0.7);
+            ctx.lineTo(Math.cos(angle) * size * 1.3, Math.sin(angle) * size * 1.3);
+            ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+
+        // Main 6-point star
+        ctx.fillStyle = cfg.color;
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+            const outerAngle = (Math.PI / 3) * i - Math.PI / 2;
+            const innerAngle = outerAngle + Math.PI / 6;
+            const outerX = Math.cos(outerAngle) * size;
+            const outerY = Math.sin(outerAngle) * size;
+            const innerX = Math.cos(innerAngle) * (size * 0.45);
+            const innerY = Math.sin(innerAngle) * (size * 0.45);
+            if (i === 0) ctx.moveTo(outerX, outerY);
+            else ctx.lineTo(outerX, outerY);
+            ctx.lineTo(innerX, innerY);
+        }
+        ctx.closePath();
+        ctx.fill();
+
+        // Bold outline
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        // Inner bright core
+        ctx.fillStyle = '#FFEE88';
+        ctx.beginPath();
+        ctx.arc(0, 0, size * 0.35, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Up arrow symbol
+        ctx.fillStyle = '#111';
+        ctx.beginPath();
+        ctx.moveTo(0, -size * 0.2);
+        ctx.lineTo(size * 0.12, size * 0.05);
+        ctx.lineTo(-size * 0.12, size * 0.05);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillRect(-size * 0.05, 0, size * 0.1, size * 0.15);
+
+        ctx.restore();
+    }
+
+    /**
+     * MODIFIER power-up: Hexagonal capsule (stackable buff)
+     */
+    drawModifierPowerUp(ctx, x, y, cfg, pulse) {
+        const size = 18 * pulse;
+
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(this.rotation * 0.3);
+
+        // Hexagon body
+        ctx.fillStyle = window.Game.ColorUtils.darken(cfg.color, 0.3);
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+            const angle = (Math.PI / 3) * i - Math.PI / 2;
+            const px = Math.cos(angle) * size;
+            const py = Math.sin(angle) * size;
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fill();
+
+        // Light side overlay
+        ctx.fillStyle = cfg.color;
+        ctx.globalAlpha = 0.8;
+        ctx.beginPath();
+        ctx.moveTo(0, -size);
+        ctx.lineTo(size * 0.866, -size * 0.5);
+        ctx.lineTo(size * 0.866, size * 0.5);
+        ctx.lineTo(0, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        // Bold outline
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+            const angle = (Math.PI / 3) * i - Math.PI / 2;
+            const px = Math.cos(angle) * size;
+            const py = Math.sin(angle) * size;
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.stroke();
+
+        // Stack indicator lines (shows it's stackable)
+        ctx.strokeStyle = window.Game.ColorUtils.lighten(cfg.color, 0.4);
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-size * 0.5, -size * 0.2);
+        ctx.lineTo(size * 0.5, -size * 0.2);
+        ctx.moveTo(-size * 0.5, size * 0.2);
+        ctx.lineTo(size * 0.5, size * 0.2);
+        ctx.stroke();
+
+        // Center icon
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 12px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(cfg.symbol, 0, 0);
+
+        ctx.restore();
+    }
+
+    /**
+     * SPECIAL power-up: Circular with orbiting ring (exclusive temp effect)
+     */
+    drawSpecialPowerUp(ctx, x, y, cfg, pulse) {
+        const size = 16 * pulse;
+
+        ctx.save();
+        ctx.translate(x, y);
+
+        // Orbiting ring
+        ctx.strokeStyle = window.Game.ColorUtils.lighten(cfg.color, 0.3);
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(0, 0, size + 6, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Orbiting dots on the ring
+        for (let i = 0; i < 3; i++) {
+            const angle = this.rotation * 2 + (Math.PI * 2 / 3) * i;
+            const dotX = Math.cos(angle) * (size + 6);
+            const dotY = Math.sin(angle) * (size + 6);
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(dotX, dotY, 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Main circular body - shadow side
+        ctx.fillStyle = window.Game.ColorUtils.darken(cfg.color, 0.35);
+        ctx.beginPath();
+        ctx.arc(0, 0, size, Math.PI * 0.5, Math.PI * 1.5);
+        ctx.fill();
+
+        // Main body - light side
+        ctx.fillStyle = cfg.color;
+        ctx.beginPath();
+        ctx.arc(0, 0, size, -Math.PI * 0.5, Math.PI * 0.5);
+        ctx.fill();
+
+        // Bold outline
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(0, 0, size, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Rim highlight
+        ctx.strokeStyle = window.Game.ColorUtils.lighten(cfg.color, 0.5);
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, size - 2, -Math.PI * 0.7, Math.PI * 0.1);
+        ctx.stroke();
+
+        // Center icon
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 14px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(cfg.symbol, 0, 0);
 
         ctx.restore();
     }
