@@ -18,6 +18,8 @@ window.Game.WaveManager = {
     },
 
     reset() {
+        const dbg = window.Game.Debug;
+        dbg.log('WAVE', `[WM] RESET called. Previous wave=${this.wave}`);
         this.wave = 1;
         this.waveInProgress = false;
         this.intermissionTimer = 0;
@@ -27,6 +29,7 @@ window.Game.WaveManager = {
         this.hordeTransitionTimer = 0;
         this.isHordeTransition = false;
         this.hordeSpawned = false;
+        dbg.log('WAVE', `[WM] RESET complete. wave=${this.wave}`);
     },
 
     /**
@@ -93,7 +96,9 @@ window.Game.WaveManager = {
 
         // Don't spawn new waves during mini-boss fight
         if (!bossActive && !this.miniBossActive && enemiesCount === 0 && !this.waveInProgress && gameState === 'PLAY') {
+            const dbg = window.Game.Debug;
             this.waveInProgress = true;
+            dbg.log('WAVE', `[WM] Action triggered. wave=${this.wave}, horde=${this.currentHorde}, hordeSpawned=${this.hordeSpawned}, enemiesCount=${enemiesCount}`);
 
             // Check if we need to spawn horde 2 or move to next wave
             // IMPORTANT: Only transition to horde 2 if horde 1 was actually spawned and cleared
@@ -101,13 +106,19 @@ window.Game.WaveManager = {
             if (this.currentHorde === 1 && this.hordeSpawned && this.getHordesPerWave() > 1) {
                 // Horde 1 complete, transition to horde 2
                 this.hordeSpawned = false; // Reset for horde 2
+                dbg.log('HORDE', `[WM] → START_HORDE_TRANSITION`);
                 return { action: 'START_HORDE_TRANSITION' };
             } else {
                 // Either: game start, horde 2 complete, or single horde mode → go to intermission or boss
                 this.currentHorde = 1; // Reset for next wave
                 this.hordeSpawned = false;
-                if (this.wave <= this.getWavesPerCycle()) return { action: 'START_INTERMISSION' };
-                else return { action: 'SPAWN_BOSS' };
+                if (this.wave <= this.getWavesPerCycle()) {
+                    dbg.log('WAVE', `[WM] → START_INTERMISSION (wave ${this.wave} <= ${this.getWavesPerCycle()})`);
+                    return { action: 'START_INTERMISSION' };
+                } else {
+                    dbg.log('BOSS', `[WM] → SPAWN_BOSS (wave ${this.wave} > ${this.getWavesPerCycle()})`);
+                    return { action: 'SPAWN_BOSS' };
+                }
             }
         }
 
@@ -166,6 +177,7 @@ window.Game.WaveManager = {
                 if (pattern === 'RECT') spawn = true;
                 else if (pattern === 'V_SHAPE' && Math.abs(c - cols / 2) < (rows - r) + 1) spawn = true;
                 else if (pattern === 'COLUMNS' && c % 3 < 2) spawn = true; // More enemies in COLUMNS
+                else if (pattern === 'SINE_WAVE') spawn = true; // v2.22.1 fix: SINE_WAVE was missing!
 
                 if (spawn) {
                     // Tier distribution: 1:2:3 ratio (strong:medium:weak)
@@ -259,10 +271,13 @@ window.Game.WaveManager = {
 
         // Only increment wave after horde 2 (or if single horde mode)
         const hordesPerWave = this.getHordesPerWave();
+        const dbg = window.Game.Debug;
         if (hordeNumber >= hordesPerWave) {
             this.wave++;
+            dbg.log('WAVE', `[WM] Wave incremented to ${this.wave} (after horde ${hordeNumber})`);
         }
         this.waveInProgress = false;
+        dbg.log('WAVE', `[WM] spawnWave done: ${enemies.length} enemies, pattern=${pattern}, horde=${hordeNumber}, wave now=${this.wave}`);
         return { enemies: enemies, pattern: pattern, hordeNumber: hordeNumber };
     }
 };

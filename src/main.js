@@ -129,6 +129,11 @@ let bestStreak = 0;
 let marketCycle = 1; // Track completed boss cycles for difficulty scaling
 window.marketCycle = marketCycle; // Expose for WaveManager
 window.currentLevel = level; // Expose for WaveManager difficulty calculation
+// v2.22.5: Expose boss and miniBoss for debug overlay
+window.boss = null;
+window.miniBoss = null;
+// v2.22.6: Defensive flag to ensure no ghost bullets persist after boss death
+let bossJustDefeated = false;
 // --- BALANCE CONFIG ALIASES (for cleaner code) ---
 const Balance = window.Game.Balance;
 
@@ -1010,7 +1015,7 @@ function init() {
     inputSys.on('toggleDebug', () => {
         debugMode = !debugMode;
         // Debug toggle feedback only shown in debug mode
-        if (debugMode) console.log('Debug mode: ON');
+        if (debugMode) G.Debug.log('STATE', 'Debug mode: ON');
     });
 
     const vid = document.getElementById('intro-video');
@@ -1764,11 +1769,12 @@ function startGame() {
     audioSys.setLevel(1, true); // Set music theme for level 1 (instant, no crossfade)
     // Clear particles via ParticleSystem
     if (G.ParticleSystem) G.ParticleSystem.clear();
-    bullets = []; enemies = []; enemyBullets = []; powerUps = []; particles = []; floatingTexts = []; muzzleFlashes = []; perkIcons = []; boss = null;
+    bullets = []; enemies = []; enemyBullets = []; powerUps = []; particles = []; floatingTexts = []; muzzleFlashes = []; perkIcons = []; boss = null; miniBoss = null;
     if (G.MessageSystem) G.MessageSystem.reset(); // Reset typed messages
     // Sync all array references after reset
     G.enemies = enemies;
     window.enemyBullets = enemyBullets;
+    window.boss = null; window.miniBoss = null; // v2.22.5: Sync for debug overlay
     if (G.HarmonicConductor) G.HarmonicConductor.enemies = enemies;
     grazeCount = 0; grazeMeter = 0; grazeMultiplier = 1.0; updateGrazeUI(); // Reset grazing
 
@@ -1854,6 +1860,9 @@ function startIntermission(msgOverride) {
     waveMgr.intermissionTimer = Balance.TIMING.INTERMISSION_DURATION;
     waveMgr.waveInProgress = false; // Safety reset
 
+    // v2.22.5: Track intermission event
+    G.Debug.trackIntermission(level, waveMgr.wave);
+
     // Convert all remaining enemy bullets to bonus points with explosion effect
     const bulletBonus = enemyBullets.length * 10;
     if (enemyBullets.length > 0) {
@@ -1867,6 +1876,9 @@ function startIntermission(msgOverride) {
         }
     }
 
+    // Release bullets back to pool before clearing (v2.22.3 memory leak fix)
+    bullets.forEach(b => G.Bullet.Pool.release(b));
+    enemyBullets.forEach(b => G.Bullet.Pool.release(b));
     bullets = []; enemyBullets = [];
     window.enemyBullets = enemyBullets; // Update for Player core hitbox indicator
 
@@ -1895,6 +1907,10 @@ function startIntermission(msgOverride) {
 function startHordeTransition() {
     // Horde 1 cleared, brief pause before horde 2
     // This is a quick transition - NOT a full level complete celebration
+
+    // v2.22.5: Track horde transition
+    G.Debug.trackHordeTransition(1, 2, waveMgr.wave);
+
     waveMgr.startHordeTransition();
     waveMgr.waveInProgress = false;
 
@@ -1911,6 +1927,9 @@ function startHordeTransition() {
     }
 
     // Clear bullets but keep player state (graze meter, etc.)
+    // Release bullets back to pool before clearing (v2.22.3 memory leak fix)
+    bullets.forEach(b => G.Bullet.Pool.release(b));
+    enemyBullets.forEach(b => G.Bullet.Pool.release(b));
     bullets = [];
     enemyBullets = [];
     window.enemyBullets = enemyBullets;
@@ -1941,6 +1960,9 @@ function startHorde2() {
     lastWavePattern = spawnData.pattern;
     gridDir = 1;
 
+    // v2.22.5: Track wave start (horde 2)
+    G.Debug.trackWaveStart(waveMgr.wave - 1, 2, level, spawnData.pattern, enemies.length);
+
     // Sync global enemies reference
     G.enemies = enemies;
 
@@ -1959,6 +1981,7 @@ function startHorde2() {
 }
 
 function startBossWarning() {
+    console.log(`[BOSS WARNING] Called. level=${level}, cycle=${marketCycle}, wave=${waveMgr.wave}`);
     // Determine boss type for warning display
     const campaignState = G.CampaignState;
     if (campaignState && campaignState.isEnabled()) {
@@ -1969,7 +1992,7 @@ function startBossWarning() {
         const bossRotation = G.BOSS_ROTATION || ['FEDERAL_RESERVE', 'BCE', 'BOJ'];
         bossWarningType = bossRotation[(marketCycle - 1) % bossRotation.length];
     }
-
+    console.log(`[BOSS WARNING] Type: ${bossWarningType}, timer=${Balance.BOSS.WARNING_DURATION}s`);
     // Start warning timer
     bossWarningTimer = Balance.BOSS.WARNING_DURATION;
 
@@ -1991,6 +2014,7 @@ function startBossWarning() {
 }
 
 function spawnBoss() {
+    console.log(`[SPAWN BOSS] Called. level=${level}, cycle=${marketCycle}`);
     // Determine boss type based on game mode
     const campaignState = G.CampaignState;
     let bossType;
@@ -2011,6 +2035,7 @@ function spawnBoss() {
     if (G.TransitionManager) G.TransitionManager.startFadeOut(0.6, bossFlashColor);
 
     boss = new G.Boss(gameWidth, gameHeight, bossType);
+    window.boss = boss; // v2.22.5: Expose for debug overlay
 
     // Scale boss HP using Balance config
     const Balance = G.Balance;
@@ -2033,12 +2058,30 @@ function spawnBoss() {
     const rawHp = baseHp + (level * hpPerLevel) + ((marketCycle - 1) * hpPerCycle);
     boss.hp = Math.max(hpConfig.MIN_FLOOR, Math.floor(rawHp * perkScaling * dmgCompensation * ngPlusMult));
     boss.maxHp = boss.hp;
+    console.log(`[SPAWN BOSS] Type=${bossType}, HP=${boss.hp}, position=(${boss.x}, ${boss.y})`);
+
+    // v2.22.5: Track boss spawn event
+    G.Debug.trackBossSpawn(bossType, boss.hp, level, marketCycle);
 
     // Reset boss drop tracking for new boss fight
     G.DropSystem.resetBossDrops();
 
+    // v2.22.1 fix: Clear all entities for clean boss entrance
     enemies = [];
     if (window.Game) window.Game.enemies = enemies;
+
+    // v2.22.4: Clear miniBoss if active - only main boss should exist
+    if (miniBoss) {
+        miniBoss.active = false;
+        miniBoss = null;
+        if (waveMgr) waveMgr.miniBossActive = false;
+    }
+
+    // Clear player bullets to prevent instant boss damage from bullets fired during warning
+    const bulletsClearedCount = bullets.length;
+    bullets.forEach(b => { b.markedForDeletion = true; G.Bullet.Pool.release(b); });
+    bullets = [];
+    console.log(`[SPAWN BOSS] Cleared ${bulletsClearedCount} player bullets, ${enemies.length} enemies`);
 
     // Boss-specific danger message
     const dangerMsg = bossConfig.country + ' ' + bossConfig.name + ' ' + bossConfig.country;
@@ -2048,8 +2091,9 @@ function spawnBoss() {
     audioSys.setBossPhase(1); // Start boss music phase 1
 
     // Set Harmonic Conductor to boss sequence
+    // IMPORTANT: Share same reference to prevent desync (v2.22.3 fix)
     if (G.HarmonicConductor) {
-        G.HarmonicConductor.enemies = [];
+        G.HarmonicConductor.enemies = enemies;  // Share reference, don't create new array
         G.HarmonicConductor.setBossSequence(1);
     }
 
@@ -2101,6 +2145,7 @@ function spawnMiniBoss(bossTypeOrSymbol, triggerColor) {
 
         // Create actual Boss instance (scaled down HP for mini-boss encounter)
         miniBoss = new G.Boss(gameWidth, gameHeight, bossType);
+        window.miniBoss = miniBoss; // v2.22.5: Expose for debug overlay
         miniBoss.isMiniBoss = true;
         miniBoss.savedEnemies = savedEnemies;
         miniBoss.triggerColor = triggerColor;
@@ -2153,6 +2198,7 @@ function spawnMiniBoss(bossTypeOrSymbol, triggerColor) {
             animTime: 0,
             active: true
         };
+        window.miniBoss = miniBoss; // v2.22.5: Expose for debug overlay
 
         showDanger(`${miniBoss.name} REVENGE!`);
         showMemeFun(getFiatDeathMeme(), 1500);
@@ -2353,6 +2399,9 @@ function checkMiniBossHit(b) {
 
         if (miniBoss.hp <= 0) {
             // Mini-boss defeated!
+            // v2.22.5: Track mini-boss defeat
+            G.Debug.trackMiniBossDefeat(isBossInstance ? miniBoss.bossType : miniBoss.name);
+
             const bonusScore = isBossInstance ? 3000 * marketCycle : 2000 * marketCycle;
             score += bonusScore;
             updateScore(score);
@@ -2400,6 +2449,7 @@ function checkMiniBossHit(b) {
             if (waveMgr) waveMgr.miniBossActive = false;
 
             miniBoss = null;
+            window.miniBoss = null; // v2.22.5: Sync for debug overlay
         }
         return true;
     }
@@ -2408,6 +2458,17 @@ function checkMiniBossHit(b) {
 
 function update(dt) {
     if (gameState !== 'PLAY' && gameState !== 'INTERMISSION') return;
+
+    // v2.22.6: Defensive cleanup - ensure no ghost bullets from previous boss persist
+    if (bossJustDefeated) {
+        if (enemyBullets.length > 0) {
+            G.Debug.log('BULLET', `[DEFENSIVE] Cleared ${enemyBullets.length} ghost bullets after boss defeat`);
+            enemyBullets.forEach(b => G.Bullet.Pool.release(b));
+            enemyBullets.length = 0;
+            window.enemyBullets = enemyBullets;
+        }
+        bossJustDefeated = false;
+    }
 
     // HYPER MODE time dilation (slight slow-mo for better readability)
     if (player && player.isHyperActive && player.isHyperActive()) {
@@ -2467,17 +2528,21 @@ function update(dt) {
         }
     }
 
-    const waveAction = waveMgr.update(dt, gameState, enemies.length, !!boss);
+    // v2.22.1: Include boss warning state to prevent duplicate boss spawn actions
+    const isBossActive = !!boss || bossWarningTimer > 0;
+    const waveAction = waveMgr.update(dt, gameState, enemies.length, isBossActive);
 
     // Boss warning timer countdown
     if (bossWarningTimer > 0) {
         bossWarningTimer -= dt;
         if (bossWarningTimer <= 0) {
+            G.Debug.log('BOSS', '[BOSS] Warning timer expired, spawning boss');
             spawnBoss(); // Actually spawn boss after warning
         }
     }
 
     if (waveAction) {
+        G.Debug.log('WAVE', `[WAVE] Action: ${waveAction.action} | level=${level}, enemies=${enemies.length}, boss=${!!boss}, bossTimer=${bossWarningTimer.toFixed(2)}`);
         if (waveAction.action === 'START_HORDE_TRANSITION') {
             startHordeTransition();
         } else if (waveAction.action === 'START_HORDE_2') {
@@ -2493,6 +2558,8 @@ function update(dt) {
             const isFirstWaveEver = (level === 1 && waveMgr.wave === 1);
             if (!isFirstWaveEver) {
                 level++;
+                // v2.22.5: Track level up
+                G.Debug.trackLevelUp(level, marketCycle);
                 audioSys.setLevel(level); // Change music theme for new level
                 audioSys.play('levelUp'); // Triumphant jingle
                 updateLevelUI(); // With animation
@@ -2514,6 +2581,9 @@ function update(dt) {
             enemies = spawnData.enemies;
             lastWavePattern = spawnData.pattern;
             gridDir = 1;
+
+            // v2.22.5: Track wave start
+            G.Debug.trackWaveStart(waveMgr.wave, 1, level, spawnData.pattern, enemies.length);
 
             // Sync global enemies reference (used by Boss.js for minion spawning)
             G.enemies = enemies;
@@ -2661,8 +2731,29 @@ function updateBullets(dt) {
                     const bossBonus = Balance.SCORE.BOSS_DEFEAT_BASE + (marketCycle * Balance.SCORE.BOSS_DEFEAT_PER_CYCLE);
                     score += bossBonus;
                     createFloatingScore(bossBonus, bossX, bossY - 50); // Boss bonus floating score
-                    boss.active = false; boss = null; shake = 60; audioSys.play('explosion');
+                    boss.active = false; boss = null; window.boss = null; shake = 60; audioSys.play('explosion');
                     audioSys.setBossPhase(0); // Reset boss music
+
+                    // v2.22.4: Clear all boss bullets AND minions to prevent ghost entities after death
+                    enemyBullets.forEach(b => G.Bullet.Pool.release(b));
+                    enemyBullets.length = 0;
+                    window.enemyBullets = enemyBullets;
+
+                    // v2.22.6: Set defensive flag to catch any edge-case ghost bullets on next frame
+                    bossJustDefeated = true;
+
+                    // Clear boss minions (spawned by printMoney() in phase 3)
+                    enemies.length = 0;
+                    G.enemies = enemies;
+                    if (G.HarmonicConductor) G.HarmonicConductor.enemies = enemies;
+
+                    // v2.22.4: Clear any active miniBoss
+                    if (miniBoss) {
+                        miniBoss.active = false;
+                        miniBoss = null;
+                        if (waveMgr) waveMgr.miniBossActive = false;
+                    }
+
                     updateScore(score);
                     showVictory("🏆 " + defeatedBossName + " DEFEATED!");
 
@@ -2675,15 +2766,27 @@ function updateBullets(dt) {
                     showMemeFun(victoryMemes[defeatedBossType] || "💥 CENTRAL BANK DESTROYED!", 2000);
 
                     // New cycle - increase difficulty (level will increment on next wave start)
+                    console.log(`[BOSS DEFEATED] ${defeatedBossType} at level=${level}, cycle=${marketCycle}, wave=${waveMgr.wave}`);
+
+                    // v2.22.5: Track boss defeat event
+                    G.Debug.trackBossDefeat(defeatedBossType, level, marketCycle);
+
                     marketCycle++;
                     window.marketCycle = marketCycle; // Update global
+                    console.log(`[BOSS DEFEATED] Cycle incremented to ${marketCycle}, calling waveMgr.reset()`);
+
+                    // v2.22.5: Track cycle up event
+                    G.Debug.trackCycleUp(marketCycle);
                     checkWeaponUnlocks(marketCycle); // Check for new weapon unlocks
                     waveMgr.reset();
 
+                    // v2.22.3: Reset fiat kill counter to prevent mini-boss cascade in new cycle
+                    fiatKillCounter = { '¥': 0, '₽': 0, '₹': 0, '€': 0, '£': 0, '₣': 0, '₺': 0, '$': 0, '元': 0, 'Ⓒ': 0 };
+
                     // Reset Harmonic Conductor for new wave cycle
                     if (G.HarmonicConductor) {
+                        G.HarmonicConductor.reset(); // Full reset to clear any pending patterns
                         G.HarmonicConductor.setDifficulty(level, marketCycle, isBearMarket);
-                        G.HarmonicConductor.currentSequence = null; // Will be set when wave spawns
                     }
 
                     // Campaign mode: track boss defeat and check for completion
@@ -3186,7 +3289,8 @@ function checkBulletCollisions(b, bIdx) {
                 emitEvent('enemy_killed', { score: killScore, x: e.x, y: e.y });
 
                 // Track kills per fiat type for mini-boss trigger (v2.18.0: Currency-specific boss mapping)
-                if (e.symbol && fiatKillCounter[e.symbol] !== undefined && !miniBoss) {
+                // v2.22.1: Fixed - don't trigger mini-boss during boss fight, boss warning, or from boss minions
+                if (e.symbol && fiatKillCounter[e.symbol] !== undefined && !miniBoss && !boss && !e.isMinion && bossWarningTimer <= 0) {
                     fiatKillCounter[e.symbol]++;
 
                     // Look up currency-specific boss mapping
@@ -3206,6 +3310,9 @@ function checkBulletCollisions(b, bIdx) {
                             const rotation = G.BOSS_ROTATION || ['FEDERAL_RESERVE', 'BCE', 'BOJ'];
                             bossType = rotation[(marketCycle - 1) % rotation.length];
                         }
+
+                        // v2.22.5: Track mini-boss spawn
+                        G.Debug.trackMiniBossSpawn(bossType, e.symbol, fiatKillCounter[e.symbol]);
 
                         spawnMiniBoss(bossType, e.color);
                         fiatKillCounter[e.symbol] = 0;
@@ -3698,6 +3805,11 @@ function draw() {
 
     // Debug overlay (F3 toggle)
     if (debugMode) drawDebug(ctx);
+
+    // v2.22.5: Advanced debug overlay (console: dbg.showOverlay())
+    if (G.Debug && G.Debug.OVERLAY_ENABLED) {
+        G.Debug.drawOverlay(ctx, gameState);
+    }
 }
 
 // Perk pause overlay - shows acquired perk with dimmed background

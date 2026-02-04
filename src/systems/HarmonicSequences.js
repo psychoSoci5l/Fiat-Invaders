@@ -86,16 +86,17 @@ window.Game.HarmonicSequences = {
         { beat: 10, type: 'RANDOM_SINGLE', tier: 'WEAK', chance: 0.25 }
     ],
 
-    // SINE_WAVE formation - Intense but enemy-based (enemy-based)
+    // SINE_WAVE formation - Challenging but survivable
+    // v2.22.2: Reduced from ALL to MEDIUM/STRONG to prevent bullet flood
     VERSE_SINE_WAVE: [
-        { beat: 0, type: 'SWEEP_LEFT', tier: 'ALL', delay: 0.1 },
+        { beat: 0, type: 'SWEEP_LEFT', tier: 'MEDIUM', delay: 0.15 },
         { beat: 4, type: 'SYNC_FIRE', tier: 'STRONG' },
-        { beat: 8, type: 'SWEEP_RIGHT', tier: 'ALL', delay: 0.1 },
-        { beat: 12, type: 'AIMED_VOLLEY', tier: 'STRONG' },
-        { beat: 2, type: 'RANDOM_SINGLE', tier: 'MEDIUM', chance: 0.35 },
-        { beat: 6, type: 'RANDOM_SINGLE', tier: 'WEAK', chance: 0.35 },
-        { beat: 10, type: 'RANDOM_SINGLE', tier: 'MEDIUM', chance: 0.35 },
-        { beat: 14, type: 'RANDOM_SINGLE', tier: 'WEAK', chance: 0.35 }
+        { beat: 8, type: 'SWEEP_RIGHT', tier: 'MEDIUM', delay: 0.15 },
+        { beat: 12, type: 'RANDOM_SINGLE', tier: 'STRONG', chance: 0.5 },
+        { beat: 2, type: 'RANDOM_SINGLE', tier: 'WEAK', chance: 0.25 },
+        { beat: 6, type: 'RANDOM_SINGLE', tier: 'WEAK', chance: 0.25 },
+        { beat: 10, type: 'RANDOM_SINGLE', tier: 'WEAK', chance: 0.25 },
+        { beat: 14, type: 'RANDOM_SINGLE', tier: 'WEAK', chance: 0.25 }
     ],
 
     // ===========================================

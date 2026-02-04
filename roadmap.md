@@ -1673,4 +1673,29 @@ BOSS_SIGNATURE_MEMES in Constants.js:
 - [ ] **Entry Paths**: Curved paths, loop-de-loops, split formations
 - [ ] **Visual Flair**: Trail effects during entry, formation "snap" when complete
 
+### H) Ghost Bullet Investigation & Fix (v2.22.4 → v2.22.6) ✅
+*Goal: Eliminate ghost bullets persisting after boss defeat.*
+
+#### Investigation Summary (v2.22.4-v2.22.5)
+- **v2.22.4**: Added HarmonicConductor generation counter for stale callback prevention
+- **v2.22.5**: Complete boss cleanup (minions, miniBoss, enemyBullets)
+- **v2.22.6**: Defensive fallback for edge cases
+
+#### Verified Safeguards (All Working)
+- [x] **HarmonicConductor Generation**: All 8 setTimeout callbacks check generation
+- [x] **Boss Defeat Cleanup**: `enemyBullets.length = 0`, `enemies.length = 0`
+- [x] **Boss Update Guard**: `if (boss && boss.active)` check
+- [x] **Enemy Bullet Loop Order**: Runs after boss collision check
+
+#### v2.22.6 Defensive Fix
+- [x] **`bossJustDefeated` Flag**: Set true on boss death, cleared next frame
+- [x] **Defensive Cleanup**: If any enemy bullets exist on next frame, clear them
+- [x] **Debug Logging**: `[DEFENSIVE] Cleared X ghost bullets` when triggered
+
+#### Testing Results (18 Screenshots Analyzed)
+| Transition | Result |
+|------------|--------|
+| FED defeat → Cycle 2 | Clean screen, no ghost bullets |
+| BCE defeat → Cycle 3 | Clean transition, no ghost bullets |
+
 ---

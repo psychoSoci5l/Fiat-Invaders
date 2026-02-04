@@ -81,6 +81,80 @@ All modules attach to `window.Game`. Script load order in `index.html` matters:
 - `window.isBearMarket` - Hard mode flag (checked by WaveManager)
 - `window.marketCycle` - Current difficulty cycle (increases after boss)
 - `window.currentLevel` - Current level (for WaveManager)
+- `window.Game.Debug` - Debug logging system (alias: `window.dbg`)
+
+### Debug System (DebugSystem.js) - v2.22.6
+
+Advanced debug system with logging, event tracking, statistics, and visual overlay.
+
+**Console Commands (use `dbg.` shortcut):**
+```javascript
+// Logging Controls
+dbg.enableAll()           // Enable all logging categories
+dbg.disableAll()          // Disable all logging
+dbg.enable('BOSS')        // Enable specific category
+dbg.disable('WAVE')       // Disable specific category
+dbg.status()              // Show all settings
+
+// Event Statistics
+dbg.stats()               // Show boss/wave/miniboss counters
+dbg.showHistory(20)       // Show last 20 events
+dbg.resetStats()          // Reset all counters
+dbg.getSnapshot()         // Get current state as object
+
+// Visual Overlay
+dbg.showOverlay()         // Show on-screen debug panel
+dbg.hideOverlay()         // Hide overlay
+dbg.toggleOverlay()       // Toggle overlay
+
+// Quick Presets
+dbg.debugBoss()           // Enable boss debugging + overlay
+dbg.debugWaves()          // Enable wave debugging + overlay
+dbg.setProduction()       // Disable all (for release)
+```
+
+**Categories:**
+| Category | Description | Default |
+|----------|-------------|---------|
+| `WAVE` | WaveManager state transitions | ON |
+| `BOSS` | Boss spawn, damage, defeat | ON |
+| `HORDE` | Horde transitions | ON |
+| `MINIBOSS` | Mini-boss triggers | ON |
+| `STATE` | Game state changes | ON |
+| `CONDUCTOR` | HarmonicConductor events | OFF |
+| `ENEMY` | Enemy spawn/death (verbose) | OFF |
+| `BULLET` | Bullet collisions (very verbose) | OFF |
+| `PERK` | Perk triggers | OFF |
+| `DROP` | Power-up drops | OFF |
+
+**Event Tracking (auto-logged):**
+- `trackBossSpawn(type, hp, level, cycle)` - Boss spawn
+- `trackBossDefeat(type, level, cycle)` - Boss killed
+- `trackMiniBossSpawn(type, symbol, kills)` - Mini-boss triggered
+- `trackMiniBossDefeat(type)` - Mini-boss killed
+- `trackWaveStart(wave, horde, level, pattern, count)` - Wave spawned
+- `trackHordeTransition(from, to, wave)` - Horde change
+- `trackIntermission(level, wave)` - Intermission start
+- `trackLevelUp(level, cycle)` - Level increment
+- `trackCycleUp(cycle)` - Cycle increment (after boss)
+- `trackConductorReset(generation)` - HarmonicConductor reset
+
+**Visual Overlay Shows:**
+- Game state (PLAY/INTERMISSION/etc.)
+- Level, Cycle, Wave, Horde
+- Entity counts (enemies, bullets)
+- Boss status (type, HP, phase)
+- MiniBoss status
+- Event counters (spawns/defeats)
+- HarmonicConductor state (generation, sequence, phase)
+
+**Usage in code:**
+```javascript
+G.Debug.log('WAVE', `Spawned ${count} enemies`);
+G.Debug.trackBossSpawn('FEDERAL_RESERVE', 5000, 5, 1);
+```
+
+**Production:** Call `Game.Debug.setProduction()` to disable all.
 
 ### Game States
 

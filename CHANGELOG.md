@@ -1,5 +1,175 @@
 # Changelog
 
+## v2.22.6 - 2026-02-04
+### Fix: Defensive Ghost Bullet Cleanup
+
+**Investigation**: Analyzed 13 screenshots from game session to investigate potential ghost bullets after boss defeat.
+
+**Existing Safeguards Verified (Working Correctly):**
+- HarmonicConductor generation counter (v2.22.4) - All setTimeout callbacks check generation
+- Boss defeat cleanup clears `enemyBullets[]` immediately
+- Boss update guarded by `if (boss && boss.active)`
+- Enemy bullet loop runs after boss collision check
+
+**Defensive Fix Added:**
+- New `bossJustDefeated` flag set when boss dies
+- On next frame, any remaining enemy bullets are cleared (edge case protection)
+- Debug logging when defensive clear triggers: `[DEFENSIVE] Cleared X ghost bullets`
+
+**How to Test:**
+1. Enable debug: `dbg.enable('BULLET'); dbg.showOverlay()`
+2. Play to boss fight and defeat boss
+3. Verify debug overlay shows `enemyBullets: 0` after boss death
+4. If defensive clear triggers, console will log the cleared count
+
+**Files Changed:**
+- `src/main.js` - Added `bossJustDefeated` flag and defensive cleanup in `update()`
+
+---
+
+## v2.22.5 - 2026-02-04
+### Fix: Complete Boss Cleanup + Advanced Debug System
+
+**Bug 1: Boss Minions Persisting After Defeat**
+- Root cause: Boss minions (spawned by `printMoney()` in phase 3) remained in `enemies[]` after boss death
+- Effect: Debug showed `enemies=1` after boss defeat; minions could continue firing
+- Fix: Clear `enemies[]` array when boss is defeated
+
+**Bug 2: MiniBoss Overlapping with Main Boss**
+- Root cause: `miniBoss` not cleared when main boss spawns or dies
+- Effect: Two bosses could theoretically exist simultaneously
+- Fix: Clear `miniBoss` in both `spawnBoss()` and boss defeat handler
+
+**Advanced Debug System (DebugSystem.js):**
+- Event tracking with counters: boss spawns/defeats, mini-boss, waves, hordes, levels, cycles
+- Visual overlay panel (toggle with `dbg.showOverlay()`)
+- Event history (last 50 events with timestamps)
+- Statistics display (`dbg.stats()`)
+- Quick presets: `dbg.debugBoss()`, `dbg.debugWaves()`
+- State snapshot: `dbg.getSnapshot()`
+
+**Debug Tracking Points Added:**
+- `spawnBoss()` → `trackBossSpawn()`
+- Boss defeat → `trackBossDefeat()`, `trackCycleUp()`
+- `spawnMiniBoss()` → `trackMiniBossSpawn()`
+- Mini-boss defeat → `trackMiniBossDefeat()`
+- `startIntermission()` → `trackIntermission()`
+- `startHordeTransition()` → `trackHordeTransition()`
+- Level up → `trackLevelUp()`
+- Wave spawn → `trackWaveStart()`
+- HarmonicConductor reset → `trackConductorReset()`
+
+**Console Commands:**
+```javascript
+dbg.stats()           // Show event statistics
+dbg.showOverlay()     // Visual debug panel on canvas
+dbg.showHistory(20)   // Last 20 events
+dbg.debugBoss()       // Quick boss debugging setup
+dbg.getSnapshot()     // Export current state
+```
+
+---
+
+## v2.22.4 - 2026-02-04
+### Fix: Ghost Boss Bullets & Mini-Boss Cascade
+
+**Bug 1: Ghost Boss Bullets After Death**
+- Root cause: `enemyBullets` array not cleared when boss defeated
+- Effect: Boss bullets continued moving/dealing damage after boss death
+- Fix: Clear and release `enemyBullets` in boss defeat handler
+
+**Bug 2: HarmonicConductor Pending setTimeout Callbacks**
+- Root cause: setTimeout callbacks scheduled by boss patterns continued firing after boss death
+- Effect: New bullets spawned from patterns even after boss was null
+- Fix: Added `generation` counter to HarmonicConductor; all setTimeout callbacks now check generation before executing
+
+**Bug 3: Mini-Boss Cascade in New Cycle**
+- Root cause: `fiatKillCounter` not reset after boss defeat
+- Effect: Counter accumulated across cycles, triggering mini-bosses too easily in new cycle
+- Fix: Reset `fiatKillCounter` when boss is defeated
+
+**HarmonicConductor Generation System:**
+- Added `generation` property (increments on reset)
+- All 8 setTimeout-using methods now capture and check generation:
+  - `executeSyncFire()`, `executeSweep()`, `executeCascade()`
+  - `executePattern()`, `executeAimedVolley()`, `executeRandomSingle()`
+  - `executeRandomVolley()`, `fireEnemy()` (BURST pattern)
+- Ensures no stale callbacks execute after boss death or wave transition
+
+---
+
+## v2.22.3 - 2026-02-04
+### Fix: Root Cause Bug Fixes (HarmonicConductor Desync & Memory Leaks)
+
+**Bug 1: HarmonicConductor Reference Desync**
+- Root cause: `spawnBoss()` created a NEW empty array for `G.HarmonicConductor.enemies = []`
+- Effect: HarmonicConductor held a different array reference than main `enemies`, causing potential double boss spawns
+- Fix: Share same reference with `G.HarmonicConductor.enemies = enemies`
+- Location: `main.js:2062`
+
+**Bug 2: Object Pool Memory Leaks**
+- Root cause: Bullets cleared from arrays without being released back to pool
+- Effect: Memory accumulation, pool exhaustion, performance degradation over time
+- Fix: Release bullets to pool before clearing arrays in:
+  - `startIntermission()` - both `bullets` and `enemyBullets`
+  - `startHordeTransition()` - both `bullets` and `enemyBullets`
+
+**Code Quality: Console.log → DebugSystem Migration**
+- Converted 9 `console.log` statements to use `Game.Debug.log()` with proper categories
+- Categories: WAVE, HORDE, BOSS, STATE
+- Locations: WaveManager.js (7), main.js (2)
+- Debug output now respects toggle settings for cleaner production logs
+
+---
+
+## v2.22.2 - 2026-02-04
+### Fix: Wave Cycle Critical Bugs (VERIFIED)
+
+**Bug 1: SINE_WAVE pattern spawned 0 enemies**
+- Root cause: `spawnWave()` had cases for RECT, V_SHAPE, COLUMNS but **missing SINE_WAVE**
+- Effect: Wave 4 was instantly "completed" (0 enemies to kill), causing level skip
+- Fix: Added `else if (pattern === 'SINE_WAVE') spawn = true;` in WaveManager.js
+- **Verified**: Wave 4 now spawns 20 enemies correctly
+
+**Bug 2: Boss died instantly on spawn**
+- Root cause: Player bullets fired during 2s warning period hit boss immediately on spawn
+- Effect: Boss showed "DEFEATED" message before player could even see it
+- Fix: Clear `bullets[]` array in `spawnBoss()` before boss enters
+- **Verified**: Boss spawns with full HP and takes normal combat damage
+
+**Test Results:**
+- Full cycle tested: Level 1-5 → Boss → Level 6
+- Wave/horde progression: ✅ Correct (2 hordes per wave, 5 waves per cycle)
+- SINE_WAVE pattern: ✅ Spawns 20 enemies
+- Boss warning timer: ✅ 2 second countdown works
+- Boss HP: ✅ 5370 HP, normal damage progression
+- Debug logging: Cleaned up for production
+
+---
+
+## v2.22.1 - 2026-02-04
+### Fix: Critical Boss/Mini-Boss Collision Bug
+
+**Bug Description:**
+- Two bosses (e.g., two FED) could appear simultaneously during boss fights
+- Level progression became anomalous after horde system was introduced
+
+**Root Cause (2 issues):**
+1. **Mini-boss during boss fight**: Boss minions (spawned by FED/BCE/BOJ) have symbols ($, €, ¥). When killed, they incremented `fiatKillCounter`, potentially triggering a mini-boss spawn while the main boss was active.
+2. **Boss warning state not protected**: During boss warning (`bossWarningTimer > 0`), WaveManager wasn't informed that a boss was about to spawn, potentially allowing duplicate spawn actions.
+
+**Fixes Applied:**
+1. Added guards to mini-boss trigger (`main.js:3189`):
+   - `!boss` - Don't trigger during boss fight
+   - `!e.isMinion` - Boss minions don't count for kill counter
+   - `bossWarningTimer <= 0` - Don't trigger during boss warning
+
+2. Extended `bossActive` parameter to WaveManager (`main.js:2471`):
+   - Now includes `bossWarningTimer > 0` state
+   - Prevents WaveManager from generating duplicate SPAWN_BOSS actions
+
+---
+
 ## v2.22.0 - 2026-02-03
 ### Feature: Enemy Formation Entry Animation
 

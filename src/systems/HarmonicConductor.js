@@ -9,6 +9,9 @@ window.Game.HarmonicConductor = {
     sequenceLength: 16,
     spiralAngle: 0,
 
+    // v2.22.3: Generation counter to invalidate pending setTimeout callbacks
+    generation: 0,
+
     // Beat timing (self-managed, synced to audio tempo)
     beatTimer: 0,
     currentBeat: 0,
@@ -61,6 +64,14 @@ window.Game.HarmonicConductor = {
         this.telegraphs = [];
         this.spiralAngle = 0;
         this.beatPulseAlpha = 0;
+        // v2.22.3: Increment generation to invalidate pending setTimeout callbacks
+        this.generation++;
+
+        // v2.22.5: Track conductor reset
+        if (window.Game.Debug) {
+            window.Game.Debug.trackConductorReset(this.generation);
+        }
+
         // Reset wave intensity
         this.waveIntensity = {
             initialCount: 0,
@@ -314,7 +325,9 @@ window.Game.HarmonicConductor = {
 
         // Fire after telegraph delay
         const enemies = tierEnemies.slice(); // Copy array
+        const gen = this.generation; // v2.22.3: Capture generation
         setTimeout(() => {
+            if (this.generation !== gen) return; // v2.22.3: Abort if reset occurred
             enemies.forEach(e => {
                 if (e && e.active) this.fireEnemy(e, pattern);
             });
@@ -330,8 +343,10 @@ window.Game.HarmonicConductor = {
             direction === 'left' ? a.x - b.x : b.x - a.x
         );
 
+        const gen = this.generation; // v2.22.3: Capture generation
         sorted.forEach((e, i) => {
             setTimeout(() => {
+                if (this.generation !== gen) return; // v2.22.3: Abort if reset occurred
                 if (e && e.active) {
                     this.addTelegraph(e.x, e.y, 'flash', 0.1, '#fff');
                     this.fireEnemy(e, 'SINGLE');
@@ -355,14 +370,17 @@ window.Game.HarmonicConductor = {
         const rowKeys = Object.keys(rows).map(Number);
         rowKeys.sort((a, b) => direction === 'down' ? a - b : b - a);
 
+        const gen = this.generation; // v2.22.3: Capture generation
         rowKeys.forEach((rowY, i) => {
             const rowEnemies = rows[rowY].slice();
 
             setTimeout(() => {
+                if (this.generation !== gen) return; // v2.22.3: Abort if reset occurred
                 this.addTelegraph(this.gameWidth / 2, rowY, 'fullbar', delay, '#ff8c00');
             }, i * delay * 500);
 
             setTimeout(() => {
+                if (this.generation !== gen) return; // v2.22.3: Abort if reset occurred
                 rowEnemies.forEach(e => {
                     if (e && e.active) this.fireEnemy(e, 'SINGLE');
                 });
@@ -391,7 +409,9 @@ window.Game.HarmonicConductor = {
 
         this.addTelegraph(cx, cy, 'pattern', 0.2, config.color || '#ff69b4');
 
+        const gen = this.generation; // v2.22.3: Capture generation
         setTimeout(() => {
+            if (this.generation !== gen) return; // v2.22.3: Abort if reset occurred
             let bullets = [];
             const px = this.player ? this.player.x : cx;
             const py = this.player ? this.player.y : cy + 200;
@@ -431,7 +451,9 @@ window.Game.HarmonicConductor = {
         });
 
         const enemies = shooters.slice();
+        const gen = this.generation; // v2.22.3: Capture generation
         setTimeout(() => {
+            if (this.generation !== gen) return; // v2.22.3: Abort if reset occurred
             enemies.forEach(e => {
                 if (e && e.active) this.fireEnemy(e, 'AIMED', spread);
             });
@@ -446,7 +468,9 @@ window.Game.HarmonicConductor = {
         if (!e || !e.active) return;
 
         this.addTelegraph(e.x, e.y, 'ring', 0.1, '#fff');
+        const gen = this.generation; // v2.22.3: Capture generation
         setTimeout(() => {
+            if (this.generation !== gen) return; // v2.22.3: Abort if reset occurred
             if (e && e.active) this.fireEnemy(e, 'SINGLE');
         }, 100);
     },
@@ -463,8 +487,10 @@ window.Game.HarmonicConductor = {
             if (!selected.includes(e)) selected.push(e);
         }
 
+        const gen = this.generation; // v2.22.3: Capture generation
         selected.forEach((e, i) => {
             setTimeout(() => {
+                if (this.generation !== gen) return; // v2.22.3: Abort if reset occurred
                 if (e && e.active) {
                     this.addTelegraph(e.x, e.y, 'flash', 0.08, '#fff');
                     this.fireEnemy(e, 'SINGLE');
@@ -488,8 +514,10 @@ window.Game.HarmonicConductor = {
         } else if (pattern === 'BURST') {
             // Fire 3 bullets with 120ms delay between each
             // Handle directly with setTimeout since we removed attemptFire()
+            const gen = this.generation; // v2.22.3: Capture generation
             for (let i = 0; i < 3; i++) {
                 setTimeout(() => {
+                    if (this.generation !== gen) return; // v2.22.3: Abort if reset occurred
                     if (enemy?.active) {
                         const bd = enemy.buildBullet(this.player, bulletSpeed, 1);
                         if (bd) {
