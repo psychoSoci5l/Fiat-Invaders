@@ -1102,12 +1102,14 @@ function init() {
 
     inputSys.on('escape', () => {
         if (gameState === 'VIDEO') startApp();
+        else if (gameState === 'STORY_SCREEN' && G.StoryScreen) G.StoryScreen.handleTap();
         else if (gameState === 'PLAY' || gameState === 'PAUSE') togglePause();
         else if (gameState === 'SETTINGS') backToIntro();
     });
 
     inputSys.on('start', () => {
         if (gameState === 'VIDEO') startApp();
+        else if (gameState === 'STORY_SCREEN' && G.StoryScreen) G.StoryScreen.handleTap();
         else if (gameState === 'INTRO') {
             // Two-phase intro: SPLASH -> SELECTION -> PLAY
             if (introState === 'SPLASH') {
@@ -1167,6 +1169,17 @@ function init() {
     }
 
     if (ui.highScore) ui.highScore.innerText = highScore;
+
+    // Story screen touch/click handling
+    const storyTapHandler = (e) => {
+        if (gameState === 'STORY_SCREEN' && G.StoryScreen) {
+            e.preventDefault();
+            G.StoryScreen.handleTap();
+        }
+    };
+    canvas.addEventListener('click', storyTapHandler);
+    canvas.addEventListener('touchstart', storyTapHandler, { passive: false });
+
     requestAnimationFrame(loop);
 }
 
@@ -1635,11 +1648,25 @@ window.launchShipAndStart = function () {
 
         audioSys.startMusic();
         if (G.SkyRenderer) G.SkyRenderer.init(gameWidth, gameHeight);
-        startGame();
 
-        setTimeout(() => {
-            if (curtain) curtain.classList.add('open');
-        }, 100);
+        // Story Mode: Show Prologue before first game
+        const campaignState = G.CampaignState;
+        if (campaignState && campaignState.isEnabled() && shouldShowStory('PROLOGUE')) {
+            // Open curtain first, then show story
+            setTimeout(() => {
+                if (curtain) curtain.classList.add('open');
+            }, 100);
+
+            showStoryScreen('PROLOGUE', () => {
+                startGame();
+            });
+        } else {
+            // Arcade mode or Prologue already seen - start directly
+            startGame();
+            setTimeout(() => {
+                if (curtain) curtain.classList.add('open');
+            }, 100);
+        }
     }
 
     // Start animation
@@ -1829,6 +1856,52 @@ function updateLevelUI() {
         lvlEl.classList.add('level-up');
     }
     window.currentLevel = level;
+}
+
+/**
+ * Show story screen and transition to callback when complete
+ * @param {string} storyId - ID from STORY_CONTENT (PROLOGUE, CHAPTER_1, etc.)
+ * @param {Function} onComplete - Function to call when story is dismissed
+ */
+function showStoryScreen(storyId, onComplete) {
+    if (!G.StoryScreen || !G.STORY_CONTENT || !G.STORY_CONTENT[storyId]) {
+        // Story system not loaded or story not found - skip
+        if (onComplete) onComplete();
+        return;
+    }
+
+    // Mark story as shown in campaign state
+    const campaignState = G.CampaignState;
+    if (campaignState && campaignState.storyProgress) {
+        campaignState.storyProgress[storyId] = true;
+        campaignState.save();
+    }
+
+    gameState = 'STORY_SCREEN';
+
+    // Hide HUD during story
+    if (ui.uiLayer) ui.uiLayer.style.display = 'none';
+    if (ui.touchControls) ui.touchControls.style.display = 'none';
+
+    G.StoryScreen.show(storyId, () => {
+        gameState = 'PLAY';
+        if (onComplete) onComplete();
+    });
+}
+
+/**
+ * Check if a story chapter should be shown (hasn't been shown yet in this campaign)
+ */
+function shouldShowStory(storyId) {
+    const campaignState = G.CampaignState;
+    if (!campaignState || !campaignState.isEnabled()) return false;
+    if (!G.STORY_CONTENT || !G.STORY_CONTENT[storyId]) return false;
+
+    // Check if already shown
+    if (campaignState.storyProgress && campaignState.storyProgress[storyId]) {
+        return false;
+    }
+    return true;
 }
 
 function updateLivesUI(wasHit = false) {
@@ -3059,10 +3132,25 @@ function updateBullets(dt) {
                         updateCampaignProgressUI();
                     }
 
-                    if (campaignComplete) {
-                        // Campaign complete! Show special victory screen
+                    // Story Mode: Show chapter after boss defeat
+                    const chapterId = G.BOSS_TO_CHAPTER && G.BOSS_TO_CHAPTER[defeatedBossType];
+                    const shouldShowChapter = chapterId && shouldShowStory(chapterId);
+
+                    if (campaignComplete && shouldShowChapter) {
+                        // Final chapter + victory: show Chapter 3 with victory screen after
+                        showStoryScreen(chapterId, () => {
+                            showCampaignVictory();
+                        });
+                    } else if (campaignComplete) {
+                        // Campaign complete, chapter already shown - go to victory
                         showCampaignVictory();
+                    } else if (shouldShowChapter) {
+                        // Show chapter, then intermission
+                        showStoryScreen(chapterId, () => {
+                            startIntermission("CYCLE " + marketCycle + " BEGINS");
+                        });
                     } else {
+                        // Arcade mode or chapter already shown
                         startIntermission("CYCLE " + marketCycle + " BEGINS");
                     }
 
@@ -3913,6 +4001,12 @@ function executeDeath() {
 function draw() {
     if (gameState === 'VIDEO') { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, gameWidth, gameHeight); return; }
 
+    // STORY_SCREEN: Full-screen narrative display
+    if (gameState === 'STORY_SCREEN' && G.StoryScreen) {
+        G.StoryScreen.draw(ctx, gameWidth, gameHeight);
+        return;
+    }
+
     ctx.save();
     // Apply screen shake via EffectsRenderer
     if (G.EffectsRenderer) {
@@ -4762,6 +4856,14 @@ function loop(timestamp) {
 
     // Remove old "delayed game over" check since executeDeath handles it
     // if (player && player.hp <= 0 && hitStopTimer <= 0 && gameState === 'PLAY') { ... }
+
+    // STORY_SCREEN: Update story display, skip normal game update
+    if (gameState === 'STORY_SCREEN' && G.StoryScreen) {
+        G.StoryScreen.update(dt);
+        draw();
+        requestAnimationFrame(loop);
+        return; // Skip normal game update
+    }
 
     update(dt);
     updatePowerUps(dt);

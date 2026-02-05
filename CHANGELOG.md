@@ -1,5 +1,41 @@
 # Changelog
 
+## v4.7.0 - 2026-02-05
+### Feature: Story Mode — "Storia di Bitcoin"
+
+Full-screen narrative system that tells the story of Bitcoin across 4 chapters.
+
+#### 1. Story System Architecture
+- **StoryScreenData.js**: Narrative content with EN/IT localization
+- **StoryScreen.js**: Canvas-based full-screen renderer with:
+  - Fade in/out transitions (0.8s)
+  - Typewriter text effect (35ms/char)
+  - Animated star background (60 stars)
+  - Multi-paragraph support
+  - Tap/click to continue
+
+#### 2. Narrative Structure
+| Chapter | Period | Trigger | Theme |
+|---------|--------|---------|-------|
+| Prologue | 1971 | Before first game (Story mode) | End of Gold Standard |
+| Chapter 1 | 2008-2010 | After defeating FED | Birth of Bitcoin |
+| Chapter 2 | 2011-2016 | After defeating BCE | Scaling Wars |
+| Chapter 3 | 2017-Today | After defeating BOJ | Unstoppable Network + Victory |
+
+#### 3. Mode Rename
+- "CAMPAIGN" → "STORY" (EN) / "STORIA" (IT)
+- Mode toggle button dynamically updated via `updateUIText()`
+
+#### 4. Progress Tracking
+- `CampaignState.storyProgress`: Tracks which chapters shown (persists to localStorage)
+- Stories only shown once per campaign run
+- Reset on `resetCampaign()` (new playthrough)
+
+#### 5. Integration Points
+- `STORY_SCREEN` game state in main.js
+- Story hooks in `launchShipAndStart()` (Prologue) and boss defeat handler (Chapters)
+- Input handling via keyboard (Space/Enter/Escape) and touch/click
+
 ## v4.6.1 - 2026-02-05
 ### Bug Fixes (Post-Playtest)
 

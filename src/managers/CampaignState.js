@@ -24,6 +24,14 @@ window.Game.CampaignState = {
     ngPlusLevel: 0,  // 0 = normal, 1+ = NG+ cycles
     perksCarryover: [],  // Perks to carry into NG+
 
+    // Story Mode: track which chapters have been shown
+    storyProgress: {
+        PROLOGUE: false,
+        CHAPTER_1: false,
+        CHAPTER_2: false,
+        CHAPTER_3: false
+    },
+
     // Campaign stats
     stats: {
         totalDefeats: 0,
@@ -207,6 +215,13 @@ window.Game.CampaignState = {
         };
         this.ngPlusLevel = 0;
         this.perksCarryover = [];
+        // Reset story progress too
+        this.storyProgress = {
+            PROLOGUE: false,
+            CHAPTER_1: false,
+            CHAPTER_2: false,
+            CHAPTER_3: false
+        };
         this.save();
     },
 
@@ -237,7 +252,8 @@ window.Game.CampaignState = {
                 ngPlusLevel: this.ngPlusLevel,
                 perksCarryover: this.perksCarryover,
                 stats: this.stats,
-                version: 1,
+                storyProgress: this.storyProgress,
+                version: 2,  // Bumped for storyProgress
                 timestamp: Date.now()
             };
             localStorage.setItem('fiat_campaign', JSON.stringify(data));
@@ -256,8 +272,8 @@ window.Game.CampaignState = {
 
             const data = JSON.parse(raw);
 
-            // Validate and apply
-            if (data.version === 1) {
+            // Validate and apply (support both v1 and v2)
+            if (data.version === 1 || data.version === 2) {
                 this.enabled = data.enabled || false;
                 this.ngPlusLevel = data.ngPlusLevel || 0;
                 this.perksCarryover = data.perksCarryover || [];
@@ -274,6 +290,11 @@ window.Game.CampaignState = {
                 // Merge stats
                 if (data.stats) {
                     Object.assign(this.stats, data.stats);
+                }
+
+                // Merge story progress (v2+)
+                if (data.storyProgress) {
+                    Object.assign(this.storyProgress, data.storyProgress);
                 }
             }
         } catch (e) {

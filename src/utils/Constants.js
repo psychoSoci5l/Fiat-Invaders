@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v4.6.1 FIAT vs CRYPTO";
+window.Game.VERSION = "v4.7.0 FIAT vs CRYPTO";
 
 window.Game.TEXTS = {
     EN: {
@@ -110,7 +110,7 @@ window.Game.TEXTS = {
         TAP_START: "TAP TO START",
         HIGH_SCORE: "HIGH SCORE",
         ARCADE: "ARCADE",
-        CAMPAIGN: "CAMPAIGN",
+        CAMPAIGN: "STORY",
         LAUNCH: "LAUNCH",
         HORDE_2_INCOMING: "HORDE 2!",
         GET_READY: "GET READY",
@@ -223,7 +223,7 @@ window.Game.TEXTS = {
         TAP_START: "TOCCA PER INIZIARE",
         HIGH_SCORE: "RECORD",
         ARCADE: "ARCADE",
-        CAMPAIGN: "CAMPAGNA",
+        CAMPAIGN: "STORIA",
         LAUNCH: "LANCIA",
         HORDE_2_INCOMING: "ORDA 2!",
         GET_READY: "PREPARATI",
