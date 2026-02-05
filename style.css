@@ -2115,34 +2115,7 @@ body {
     }
 }
 
-/* --- SETTINGS BUTTON --- */
-#btn-settings {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    background: rgba(0, 0, 0, 0.6);
-    border: 1px solid #444;
-    color: #888;
-    width: 44px;
-    height: 44px;
-    font-size: 24px;
-    cursor: pointer;
-    border-radius: 50%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    backdrop-filter: blur(4px);
-    z-index: 120;
-    /* Safe areas handled by game-container */
-}
-
-#btn-settings:hover {
-    border-color: var(--neon-blue);
-    color: var(--neon-blue);
-    transform: rotate(90deg) scale(1.1);
-    box-shadow: 0 0 15px rgba(52, 152, 219, 0.3);
-}
+/* --- SETTINGS BUTTON (pause menu item) --- */
 
 /* --- MOBILE LAYOUT TWEAK --- */
 @media (max-width: 600px) {
@@ -2376,7 +2349,7 @@ body {
 
 #pause-screen button {
     margin: 0;
-    width: min(260px, 80vw);
+    width: min(320px, 85vw);
     box-shadow: none;
     animation: none;
 }
