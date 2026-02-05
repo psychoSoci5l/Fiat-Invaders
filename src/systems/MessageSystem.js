@@ -1,8 +1,14 @@
 /**
- * MessageSystem.js - Centralized message and popup display
+ * MessageSystem.js v4.4 - 5-Channel Message System
  *
- * Handles: DOM popups (meme, powerup), canvas typed messages (info, danger, victory)
- * Extracted from main.js for modularity.
+ * Channels:
+ * 1. WAVE_STRIP   - Full-width transparent strip for wave/horde info
+ * 2. ALERT        - Colored center box (danger=red, victory=gold) - unchanged
+ * 3. MEME_WHISPER - Tiny italic canvas text, decorative flavor
+ * 4. SHIP_STATUS  - Icon+text above player ship
+ * 5. FLOATING_TEXT - Opt-in score numbers (managed externally, toggle only)
+ *
+ * All rendering is canvas-based (no DOM popups).
  */
 
 (function() {
@@ -14,19 +20,28 @@
     let gameWidth = 0;
     let gameHeight = 0;
 
-    // Popup system (DOM-based)
+    // Meme colors for whispers
     const MEME_COLORS = ['#00FFFF', '#FF00FF', '#00FF00', '#FFD700', '#FF6B6B', '#4ECDC4'];
-    const POPUP_COOLDOWN = 600; // ms between popups
-    const MSG_PRIORITY = { DANGER: 4, VICTORY: 3, POWERUP: 2, MEME: 1 };
-    let memePopupTimer = null;
-    let lastPopupTime = 0;
-    let popupQueue = [];
-    let currentPopupPriority = 0;
 
-    // Typed messages (canvas-based)
-    let gameInfoMessages = [];
+    // === CHANNEL STATE ===
+
+    // WAVE_STRIP: single active strip
+    let waveStrip = null;
+    // { primaryText, subtitleText, life, maxLife }
+
+    // ALERT: danger + victory (same as before)
     let dangerMessages = [];
     let victoryMessages = [];
+
+    // MEME_WHISPER: array of floating whispers
+    let whispers = [];
+
+    // SHIP_STATUS: array of status messages near player
+    let shipStatuses = [];
+
+    // WAVE_SWEEP: horizontal line sweep
+    let waveSweepTimer = 0;
+    let waveSweepDuration = 0.3;
 
     // Callbacks for effects
     let onShake = null;
@@ -55,268 +70,267 @@
      * Reset all message state
      */
     function reset() {
-        popupQueue = [];
-        currentPopupPriority = 0;
-        lastPopupTime = 0;
-        if (memePopupTimer) {
-            clearTimeout(memePopupTimer);
-            memePopupTimer = null;
-        }
-        gameInfoMessages = [];
+        waveStrip = null;
         dangerMessages = [];
         victoryMessages = [];
+        whispers = [];
+        shipStatuses = [];
+        waveSweepTimer = 0;
     }
 
-    /**
-     * Check if popup can be shown based on priority and cooldown
-     */
-    function canShowPopup(priority) {
-        const now = Date.now();
-        if (priority > currentPopupPriority) return true;
-        return (now - lastPopupTime) >= POPUP_COOLDOWN;
-    }
+    // ========================================
+    // CHANNEL 1: WAVE_STRIP
+    // ========================================
 
     /**
-     * Internal popup display function
+     * Show wave strip (replaces showWaveInfo + showGameInfo)
+     * @param {string} primaryText - e.g. "CYCLE 1 • WAVE 3/5" or "HORDE 2"
+     * @param {string} subtitleText - Optional flavor text
      */
-    function showPopupInternal(text, duration, color, fontSize, top, left, rotation, priority) {
-        const el = document.getElementById('meme-popup');
-        if (!el) return;
-
-        if (!canShowPopup(priority)) {
-            if (popupQueue.length < 2 && priority >= MSG_PRIORITY.POWERUP) {
-                popupQueue.push({ text, duration, color, fontSize, top, left, rotation, priority });
-            }
-            return;
-        }
-
-        lastPopupTime = Date.now();
-        currentPopupPriority = priority;
-
-        el.textContent = text;
-        el.style.color = color;
-        el.style.fontSize = fontSize;
-        el.style.transform = rotation;
-        el.style.top = top;
-        el.style.left = left;
-        el.classList.add('show');
-
-        clearTimeout(memePopupTimer);
-        memePopupTimer = setTimeout(() => {
-            el.classList.remove('show');
-            el.style.transform = 'translate(-50%, -50%)';
-            el.style.top = '50%';
-            el.style.left = '50%';
-            currentPopupPriority = 0;
-
-            if (popupQueue.length > 0) {
-                const next = popupQueue.shift();
-                setTimeout(() => {
-                    showPopupInternal(next.text, next.duration, next.color, next.fontSize, next.top, next.left, next.rotation, next.priority);
-                }, 100);
-            }
-        }, duration);
-
-        if (onPlaySound) onPlaySound('coinUI');
-    }
-
-    /**
-     * Show meme popup with random styling
-     */
-    function showMemeFun(text, duration = 1500) {
+    function showWaveStrip(primaryText, subtitleText = '') {
         const Balance = G.Balance;
-        if (!Balance?.HUD_MESSAGES?.MEME_POPUP) return;
-        const color = MEME_COLORS[Math.floor(Math.random() * MEME_COLORS.length)];
-        const fontSize = (24 + Math.random() * 12) + 'px';
-        const rotation = `translate(-50%, -50%) rotate(${(Math.random() - 0.5) * 10}deg)`;
-        const top = (30 + Math.random() * 40) + '%';
-        const left = (30 + Math.random() * 40) + '%';
-        showPopupInternal(text, duration, color, fontSize, top, left, rotation, MSG_PRIORITY.MEME);
-    }
+        if (!Balance?.HUD_MESSAGES?.WAVE_STRIP) return;
 
-    /**
-     * Show power-up notification
-     */
-    function showPowerUp(text) {
-        const Balance = G.Balance;
-        if (!Balance?.HUD_MESSAGES?.POWERUP_POPUP) return;
-        showPopupInternal(text, 800, '#FFD700', '24px', '75%', '50%', 'translate(-50%, -50%)', MSG_PRIORITY.POWERUP);
-    }
-
-    /**
-     * Show game info message (green, top area)
-     */
-    function showGameInfo(text) {
-        const Balance = G.Balance;
-        if (!Balance?.HUD_MESSAGES?.GAME_INFO) return;
-        gameInfoMessages = [{ text, life: 2.0, maxLife: 2.0 }];
-    }
-
-    /**
-     * Show wave info message (compact format)
-     * @param {string} cycleText - Localized cycle text (e.g., "CYCLE 1" or "CICLO 1")
-     * @param {string} waveText - Localized wave text (e.g., "WAVE 3/5" or "ONDATA 3/5")
-     * @param {number} totalWaves - Waves per cycle (for reference)
-     * @param {string} flavorText - Optional flavor text (e.g., "Volatility")
-     */
-    function showWaveInfo(cycleText, waveText, totalWaves, flavorText = '') {
-        const Balance = G.Balance;
-        if (!Balance?.HUD_MESSAGES?.GAME_INFO) return;
-
-        const config = Balance.HUD_MESSAGES.GAME_INFO_BOX || {};
+        const config = Balance.HUD_MESSAGES.WAVE_STRIP_CONFIG || {};
         const duration = config.DURATION || 2.5;
 
-        gameInfoMessages = [{
-            primaryText: cycleText + ' \u2022 ' + waveText,  // Unicode bullet •
-            flavorText: flavorText,
-            isWaveInfo: true,
+        waveStrip = {
+            primaryText: primaryText,
+            subtitleText: subtitleText,
             life: duration,
             maxLife: duration
-        }];
+        };
+
+        // Trigger wave sweep effect
+        const reactive = Balance.REACTIVE_HUD;
+        if (reactive?.ENABLED && reactive?.WAVE_SWEEP?.ENABLED) {
+            waveSweepDuration = reactive.WAVE_SWEEP.DURATION || 0.3;
+            waveSweepTimer = waveSweepDuration;
+        }
     }
 
     /**
-     * Show danger message (red, center, pulsing)
+     * Legacy compatibility: showWaveInfo maps to showWaveStrip
+     */
+    function showWaveInfo(cycleText, waveText, totalWaves, flavorText = '') {
+        showWaveStrip(cycleText + ' \u2022 ' + waveText, flavorText);
+    }
+
+    /**
+     * Legacy compatibility: showGameInfo maps to showWaveStrip
+     */
+    function showGameInfo(text) {
+        showWaveStrip(text);
+    }
+
+    // ========================================
+    // CHANNEL 2: ALERT (danger + victory)
+    // ========================================
+
+    /**
+     * Show danger alert (red, center, pulsing)
      */
     function showDanger(text, shakeIntensity = 20) {
         const Balance = G.Balance;
-        if (!Balance?.HUD_MESSAGES?.DANGER) return;
+        if (!Balance?.HUD_MESSAGES?.ALERT_DANGER) return;
         dangerMessages = [{ text, life: 2.5, maxLife: 2.5 }];
         if (onShake && shakeIntensity > 0) onShake(shakeIntensity);
     }
 
     /**
-     * Show victory message (gold, center)
+     * Show victory alert (gold, center)
      */
     function showVictory(text) {
         const Balance = G.Balance;
-        if (!Balance?.HUD_MESSAGES?.VICTORY) return;
+        if (!Balance?.HUD_MESSAGES?.ALERT_VICTORY) return;
         victoryMessages = [{ text, life: 3.0, maxLife: 3.0 }];
     }
 
+    // ========================================
+    // CHANNEL 3: MEME_WHISPER
+    // ========================================
+
     /**
-     * Alias for showMemeFun
+     * Show a meme whisper (small italic drifting text)
+     * Replaces showMemeFun / showMemePopup
      */
-    function showMemePopup(text, duration = 1500) {
-        showMemeFun(text, duration);
+    function showMemeWhisper(text) {
+        const Balance = G.Balance;
+        if (!Balance?.HUD_MESSAGES?.MEME_WHISPER) return;
+
+        const config = Balance.HUD_MESSAGES.MEME_WHISPER_CONFIG || {};
+        const maxOnScreen = config.MAX_ON_SCREEN || 2;
+
+        // Cap whispers on screen
+        if (whispers.length >= maxOnScreen) {
+            // Remove oldest
+            whispers.shift();
+        }
+
+        const margin = 60;
+        const spawnX = margin + Math.random() * (gameWidth - margin * 2);
+        const spawnY = gameHeight * (config.SPAWN_Y_RATIO || 0.60);
+
+        whispers.push({
+            text: text,
+            x: spawnX,
+            y: spawnY,
+            life: config.LIFETIME || 3.0,
+            maxLife: config.LIFETIME || 3.0,
+            color: MEME_COLORS[Math.floor(Math.random() * MEME_COLORS.length)],
+            alpha: config.ALPHA || 0.45,
+            driftSpeed: config.DRIFT_SPEED || 15
+        });
     }
 
     /**
-     * Update typed messages (call in game loop)
+     * Legacy compatibility aliases
+     */
+    function showMemeFun(text, duration) { showMemeWhisper(text); }
+    function showMemePopup(text, duration) { showMemeWhisper(text); }
+    function showPowerUp(text) { showShipStatus(text); }
+
+    // ========================================
+    // CHANNEL 4: SHIP_STATUS
+    // ========================================
+
+    /**
+     * Show status message above player ship
+     */
+    function showShipStatus(text, icon = '') {
+        const Balance = G.Balance;
+        if (!Balance?.HUD_MESSAGES?.SHIP_STATUS) return;
+
+        const config = Balance.HUD_MESSAGES.SHIP_STATUS_CONFIG || {};
+        const duration = config.DURATION || 2.0;
+
+        // Replace existing (only 1 at a time)
+        shipStatuses = [{
+            text: icon ? icon + ' ' + text : text,
+            life: duration,
+            maxLife: duration
+        }];
+    }
+
+    // ========================================
+    // UPDATE & DRAW
+    // ========================================
+
+    /**
+     * Update all message timers
      */
     function update(dt) {
-        for (let i = gameInfoMessages.length - 1; i >= 0; i--) {
-            gameInfoMessages[i].life -= dt;
-            if (gameInfoMessages[i].life <= 0) gameInfoMessages.splice(i, 1);
+        // Wave strip
+        if (waveStrip) {
+            waveStrip.life -= dt;
+            if (waveStrip.life <= 0) waveStrip = null;
         }
+
+        // Wave sweep
+        if (waveSweepTimer > 0) {
+            waveSweepTimer -= dt;
+            if (waveSweepTimer < 0) waveSweepTimer = 0;
+        }
+
+        // Danger
         for (let i = dangerMessages.length - 1; i >= 0; i--) {
             dangerMessages[i].life -= dt;
             if (dangerMessages[i].life <= 0) dangerMessages.splice(i, 1);
         }
+
+        // Victory
         for (let i = victoryMessages.length - 1; i >= 0; i--) {
             victoryMessages[i].life -= dt;
             if (victoryMessages[i].life <= 0) victoryMessages.splice(i, 1);
         }
+
+        // Whispers
+        for (let i = whispers.length - 1; i >= 0; i--) {
+            const w = whispers[i];
+            w.life -= dt;
+            w.y -= w.driftSpeed * dt; // Drift upward
+            if (w.life <= 0) whispers.splice(i, 1);
+        }
+
+        // Ship status
+        for (let i = shipStatuses.length - 1; i >= 0; i--) {
+            shipStatuses[i].life -= dt;
+            if (shipStatuses[i].life <= 0) shipStatuses.splice(i, 1);
+        }
     }
 
     /**
-     * Draw typed messages
+     * Draw all message channels
      * @param {CanvasRenderingContext2D} ctx
      * @param {number} totalTime - For animations
+     * @param {Object} playerPos - {x, y} player position for SHIP_STATUS
      */
-    function draw(ctx, totalTime = 0) {
-        // Defensive fallback if dimensions not set (prevents left-edge rendering)
+    function draw(ctx, totalTime = 0, playerPos = null) {
         const w = gameWidth || 600;
         const h = gameHeight || 800;
         const cx = w / 2;
 
-        // GAME_INFO: Top area, green box
-        gameInfoMessages.forEach(m => {
-            const alpha = Math.min(1, m.life * 2);
-            const Balance = G.Balance;
+        // --- WAVE_STRIP ---
+        if (waveStrip) {
+            const config = G.Balance?.HUD_MESSAGES?.WAVE_STRIP_CONFIG || {};
+            const stripY = config.Y || 95;
+            const stripH = config.HEIGHT || 28;
+            const fontSize = config.FONT_SIZE || 14;
+            const subSize = config.SUBTITLE_SIZE || 10;
+            const bgAlpha = config.BG_ALPHA || 0.5;
+
+            // Fade in/out
+            const fadeIn = Math.min(1, (waveStrip.maxLife - waveStrip.life) / 0.3);
+            const fadeOut = Math.min(1, waveStrip.life / 0.5);
+            const alpha = Math.min(fadeIn, fadeOut);
 
             ctx.save();
             ctx.globalAlpha = alpha;
 
-            if (m.isWaveInfo) {
-                // NEW: Compact wave info (fixed position, no slide)
-                const config = Balance?.HUD_MESSAGES?.GAME_INFO_BOX || {};
-                const fixedY = config.FIXED_Y || 130;
-                const fixedWidth = config.FIXED_WIDTH || 280;
-                const primarySize = config.PRIMARY_FONT_SIZE || 18;
-                const subtitleSize = config.SUBTITLE_FONT_SIZE || 11;
-                const showFlavor = config.SHOW_FLAVOR_TEXT !== false;
-                const lineSpacing = config.LINE_SPACING || 8;
-                const padV = config.PADDING_V || 12;
+            // Transparent strip background (no border)
+            ctx.fillStyle = `rgba(0, 0, 0, ${bgAlpha})`;
+            ctx.fillRect(0, stripY - stripH / 2, w, stripH);
 
-                // Calculate box height
-                let boxHeight = primarySize + (padV * 2);
-                if (showFlavor && m.flavorText) {
-                    boxHeight += lineSpacing + subtitleSize;
-                }
+            // Primary text (white/gold)
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.font = `bold ${fontSize}px "Press Start 2P", monospace`;
+            ctx.fillStyle = '#FFD700';
 
-                // Draw box (azzurro background, yellow border)
-                ctx.fillStyle = 'rgba(0, 120, 180, 0.85)';
-                ctx.strokeStyle = '#FFD700';
-                ctx.lineWidth = 2;
-                ctx.fillRect(cx - fixedWidth/2, fixedY - boxHeight/2, fixedWidth, boxHeight);
-                ctx.strokeRect(cx - fixedWidth/2, fixedY - boxHeight/2, fixedWidth, boxHeight);
-
-                // Draw primary text (yellow)
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.font = `bold ${primarySize}px "Press Start 2P", monospace`;
-                ctx.fillStyle = '#FFD700';
-
-                let textY = fixedY;
-                if (showFlavor && m.flavorText) {
-                    textY = fixedY - (lineSpacing + subtitleSize) / 2;
-                }
-                ctx.fillText(m.primaryText, cx, textY);
-
-                // Draw flavor text (lighter yellow)
-                if (showFlavor && m.flavorText) {
-                    ctx.font = `${subtitleSize}px "Press Start 2P", monospace`;
-                    ctx.fillStyle = '#FFEC8B';
-                    ctx.fillText(m.flavorText, cx, textY + primarySize/2 + lineSpacing + subtitleSize/2);
-                }
-            } else {
-                // LEGACY: Original dynamic rendering with slide animation
-                const y = 130 - (1 - m.life / m.maxLife) * 20;
-
-                // Dynamic font size: shrink for long texts to fit screen
-                const maxBoxWidth = w - 40; // 20px padding each side
-                let fontSize = 24;
-                ctx.font = `bold ${fontSize}px "Press Start 2P", monospace`;
-                let textWidth = ctx.measureText(m.text).width || 200;
-
-                // Shrink font if text too wide
-                while (textWidth + 40 > maxBoxWidth && fontSize > 12) {
-                    fontSize -= 2;
-                    ctx.font = `bold ${fontSize}px "Press Start 2P", monospace`;
-                    textWidth = ctx.measureText(m.text).width;
-                }
-
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-
-                // Clamp box width to screen bounds
-                const boxWidth = Math.min(textWidth + 40, maxBoxWidth);
-                const boxHeight = fontSize + 12;
-
-                ctx.fillStyle = 'rgba(0, 50, 0, 0.8)';
-                ctx.strokeStyle = '#00FF00';
-                ctx.lineWidth = 2;
-                ctx.fillRect(cx - boxWidth/2, y - boxHeight/2, boxWidth, boxHeight);
-                ctx.strokeRect(cx - boxWidth/2, y - boxHeight/2, boxWidth, boxHeight);
-
-                ctx.fillStyle = '#00FF00';
-                ctx.fillText(m.text, cx, y);
+            let textY = stripY;
+            if (waveStrip.subtitleText) {
+                textY = stripY - 4;
             }
-            ctx.restore();
-        });
+            ctx.fillText(waveStrip.primaryText, cx, textY);
 
-        // DANGER: Center, red pulsing
+            // Subtitle (lighter, smaller)
+            if (waveStrip.subtitleText) {
+                ctx.font = `${subSize}px "Press Start 2P", monospace`;
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                ctx.fillText(waveStrip.subtitleText, cx, stripY + 9);
+            }
+
+            ctx.restore();
+        }
+
+        // --- WAVE SWEEP (reactive) ---
+        if (waveSweepTimer > 0) {
+            const progress = 1 - (waveSweepTimer / waveSweepDuration);
+            const sweepY = progress * h;
+            const sweepAlpha = G.Balance?.REACTIVE_HUD?.WAVE_SWEEP?.ALPHA || 0.3;
+
+            ctx.save();
+            ctx.globalAlpha = sweepAlpha * (1 - progress);
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, sweepY);
+            ctx.lineTo(w, sweepY);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        // --- ALERT: DANGER ---
         dangerMessages.forEach(m => {
             const alpha = Math.min(1, m.life);
             const pulse = Math.sin(totalTime * 10) * 0.3 + 0.7;
@@ -325,7 +339,6 @@
             ctx.save();
             ctx.globalAlpha = alpha;
 
-            // Dynamic font size for long texts
             const maxBoxWidth = w - 40;
             let fontSize = 28;
             ctx.font = `bold ${fontSize}px "Press Start 2P", monospace`;
@@ -346,8 +359,8 @@
             ctx.fillStyle = `rgba(80, 0, 0, ${0.9 * pulse})`;
             ctx.strokeStyle = '#FF0000';
             ctx.lineWidth = 4 + pulse * 2;
-            ctx.fillRect(cx - boxWidth/2, y - boxHeight/2, boxWidth, boxHeight);
-            ctx.strokeRect(cx - boxWidth/2, y - boxHeight/2, boxWidth, boxHeight);
+            ctx.fillRect(cx - boxWidth / 2, y - boxHeight / 2, boxWidth, boxHeight);
+            ctx.strokeRect(cx - boxWidth / 2, y - boxHeight / 2, boxWidth, boxHeight);
 
             ctx.fillStyle = '#FF4444';
             ctx.shadowColor = '#FF0000';
@@ -356,7 +369,7 @@
             ctx.restore();
         });
 
-        // VICTORY: Center, gold with glow
+        // --- ALERT: VICTORY ---
         victoryMessages.forEach(m => {
             const alpha = Math.min(1, m.life);
             const scale = 1 + Math.sin(totalTime * 5) * 0.05;
@@ -365,7 +378,6 @@
             ctx.save();
             ctx.globalAlpha = alpha;
 
-            // Dynamic font size for long texts
             const maxBoxWidth = w - 40;
             let fontSize = 32;
             ctx.font = `bold ${fontSize}px "Press Start 2P", monospace`;
@@ -389,8 +401,8 @@
             ctx.fillStyle = 'rgba(50, 40, 0, 0.9)';
             ctx.strokeStyle = '#FFD700';
             ctx.lineWidth = 3;
-            ctx.fillRect(-boxWidth/2, -boxHeight/2, boxWidth, boxHeight);
-            ctx.strokeRect(-boxWidth/2, -boxHeight/2, boxWidth, boxHeight);
+            ctx.fillRect(-boxWidth / 2, -boxHeight / 2, boxWidth, boxHeight);
+            ctx.strokeRect(-boxWidth / 2, -boxHeight / 2, boxWidth, boxHeight);
 
             ctx.fillStyle = '#FFD700';
             ctx.shadowColor = '#FFD700';
@@ -398,13 +410,58 @@
             ctx.fillText(m.text, 0, 0);
             ctx.restore();
         });
+
+        // --- MEME_WHISPER ---
+        whispers.forEach(w => {
+            const lifeRatio = w.life / w.maxLife;
+            const alpha = w.alpha * lifeRatio;
+
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            ctx.font = `italic ${G.Balance?.HUD_MESSAGES?.MEME_WHISPER_CONFIG?.FONT_SIZE || 13}px "Courier New", monospace`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = w.color;
+            ctx.fillText(w.text, w.x, w.y);
+            ctx.restore();
+        });
+
+        // --- SHIP_STATUS (above player) ---
+        if (playerPos) {
+            shipStatuses.forEach(s => {
+                const config = G.Balance?.HUD_MESSAGES?.SHIP_STATUS_CONFIG || {};
+                const yOff = config.Y_OFFSET || -60;
+                const fontSize = config.FONT_SIZE || 11;
+
+                const fadeIn = Math.min(1, (s.maxLife - s.life) / 0.2);
+                const fadeOut = Math.min(1, s.life / 0.3);
+                const alpha = Math.min(fadeIn, fadeOut);
+                // Float upward as it ages
+                const floatY = (1 - s.life / s.maxLife) * -15;
+
+                ctx.save();
+                ctx.globalAlpha = alpha;
+                ctx.font = `bold ${fontSize}px "Press Start 2P", monospace`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                // Black outline for readability
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 3;
+                ctx.strokeText(s.text, playerPos.x, playerPos.y + yOff + floatY);
+                ctx.fillStyle = '#FFD700';
+                ctx.fillText(s.text, playerPos.x, playerPos.y + yOff + floatY);
+                ctx.restore();
+            });
+        }
     }
 
     /**
      * Check if any messages are active
      */
     function hasActiveMessages() {
-        return gameInfoMessages.length > 0 || dangerMessages.length > 0 || victoryMessages.length > 0;
+        return !!waveStrip || dangerMessages.length > 0 || victoryMessages.length > 0 ||
+               whispers.length > 0 || shipStatuses.length > 0;
     }
 
     // Export to namespace
@@ -414,15 +471,20 @@
         reset,
         update,
         draw,
-        // Popup functions
-        showMemeFun,
-        showPowerUp,
-        showMemePopup,
-        // Typed message functions
-        showGameInfo,
-        showWaveInfo,
+        // Channel 1: Wave Strip
+        showWaveStrip,
+        showWaveInfo,      // Legacy compat
+        showGameInfo,      // Legacy compat
+        // Channel 2: Alert
         showDanger,
         showVictory,
+        // Channel 3: Meme Whisper
+        showMemeWhisper,
+        showMemeFun,       // Legacy compat
+        showMemePopup,     // Legacy compat
+        // Channel 4: Ship Status
+        showShipStatus,
+        showPowerUp,       // Legacy compat
         // State
         hasActiveMessages
     };

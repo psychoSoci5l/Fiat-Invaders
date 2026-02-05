@@ -39,44 +39,19 @@
         <canvas id="gameCanvas"></canvas>
 
         <div id="ui-layer">
-        <!-- TOP BAR: Lives/Health | SCORE | Level/Shield -->
+        <!-- TOP BAR v4.4: Compact single-row HUD -->
         <div class="hud-top-bar">
-            <div class="hud-stat left">
-                <span class="label" id="lives-label">LIVES</span>
-                <span id="livesText" class="value">3</span>
-                <div class="bar-container health-container">
-                    <div id="healthBar"></div>
-                </div>
+            <div class="hud-lives">
+                <span class="hud-heart">&#9829;</span><span id="livesText">3</span>
             </div>
 
-            <div class="hud-score terminal-score">
-                <span class="label" id="score-label">ACCOUNT BALANCE</span>
-                <span id="scoreVal" class="value">0</span>
-                <div id="score-ticker"></div>
-                <div id="meme-ticker"></div>
+            <div class="hud-score-compact">
+                <span id="scoreVal" class="hud-score-value">0</span>
             </div>
 
-            <div class="hud-stat right">
-                <span class="label" id="level-label">LEVEL</span>
-                <span id="lvlVal" class="value">1</span>
-                <div class="bar-container shield-container">
-                    <div id="shieldBar"></div>
-                </div>
+            <div class="hud-level">
+                <span id="lvlVal">1</span>
             </div>
-        </div>
-
-        <div id="perk-bar"></div>
-
-        <!-- WEAPON EVOLUTION v3.0: Compact Weapon Icon (HUD top-right, pill design) -->
-        <div id="weapon-icon">
-            <div id="weapon-icon-inner">
-                <span id="weapon-icon-symbol">▸</span>
-            </div>
-        </div>
-
-        <div id="kill-counter">
-            <span id="killNum">0</span>
-            <span id="killLabel">KILLS</span>
         </div>
 
         <!-- Graze Meter -->
@@ -340,7 +315,6 @@
     </div>
 
         <div id="control-toast">CONTROLS: SWIPE</div>
-        <div id="meme-popup"></div>
     </div><!-- /game-container -->
 
     <!-- SETTINGS MODAL - Outside game-container for proper stacking -->

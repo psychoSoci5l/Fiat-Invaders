@@ -98,86 +98,104 @@ body {
 }
 
 /* IL MODULO GRAFICO */
-/* --- NEW HUD LAYOUT --- */
+/* === COMPACT HUD v4.4 - Single row 45px === */
 .hud-top-bar {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
-    /* PWA mode: use --pwa-top-inset (set by JS), fallback to env() for Safari browser */
-    padding: calc(10px + var(--pwa-top-inset, env(safe-area-inset-top, 0px))) 20px 10px 20px;
+    padding: calc(8px + var(--pwa-top-inset, env(safe-area-inset-top, 0px))) 12px 4px 12px;
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: center;
     box-sizing: border-box;
     z-index: 100;
     pointer-events: none;
+    height: calc(45px + var(--pwa-top-inset, env(safe-area-inset-top, 0px)));
 }
 
-.hud-stat {
+/* Lives: heart icon + number */
+.hud-lives {
     display: flex;
-    flex-direction: column;
     align-items: center;
+    gap: 4px;
+    min-width: 50px;
 }
 
-.hud-stat .label {
-    font-size: 10px;
+.hud-heart {
+    color: #e74c3c;
+    font-size: 18px;
+    text-shadow: 0 0 6px rgba(231, 76, 60, 0.6);
+}
+
+.hud-lives #livesText {
+    font-size: 20px;
+    font-weight: 900;
     color: #fff;
-    font-weight: 700;
-    letter-spacing: 2px;
-    margin-bottom: 2px;
-    text-shadow:
-        -1px -1px 0 #000,
-        1px -1px 0 #000,
-        -1px 1px 0 #000,
-        1px 1px 0 #000,
-        0 0 8px rgba(0, 0, 0, 0.8);
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.5),
+        -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
 }
 
-.hud-stat .value {
-    font-size: 24px;
-    font-weight: bold;
-    color: #fff;
-    text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
-}
-
-.hud-score {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+/* Score: centered, reduced size */
+.hud-score-compact {
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
-    /* Use same safe-area offset as hud-top-bar padding */
-    top: calc(5px + var(--pwa-top-inset, env(safe-area-inset-top, 0px)));
+    text-align: center;
 }
 
-.hud-score .value {
-    font-size: 52px;
+.hud-score-value {
+    font-size: 36px;
     font-weight: 900;
-    color: var(--neon-orange);
+    color: var(--neon-orange, #F7931A);
     text-shadow:
-        0 0 10px var(--neon-orange),
-        0 0 20px var(--neon-orange),
-        0 0 40px rgba(247, 147, 26, 0.5),
+        0 0 8px var(--neon-orange, #F7931A),
+        0 0 16px var(--neon-orange, #F7931A),
+        0 0 30px rgba(247, 147, 26, 0.4),
         0 2px 0 #b35f00;
-    letter-spacing: 2px;
+    letter-spacing: 1px;
     animation: scorePulse 0.5s ease-in-out infinite alternate;
 }
 
 @keyframes scorePulse {
-    0% { text-shadow: 0 0 10px var(--neon-orange), 0 0 20px var(--neon-orange), 0 0 40px rgba(247, 147, 26, 0.5), 0 2px 0 #b35f00; }
-    100% { text-shadow: 0 0 15px var(--neon-orange), 0 0 30px var(--neon-orange), 0 0 60px rgba(247, 147, 26, 0.7), 0 2px 0 #b35f00; }
+    0% { text-shadow: 0 0 8px var(--neon-orange, #F7931A), 0 0 16px var(--neon-orange, #F7931A), 0 0 30px rgba(247, 147, 26, 0.4), 0 2px 0 #b35f00; }
+    100% { text-shadow: 0 0 12px var(--neon-orange, #F7931A), 0 0 24px var(--neon-orange, #F7931A), 0 0 45px rgba(247, 147, 26, 0.6), 0 2px 0 #b35f00; }
 }
 
-.hud-score .value.score-bump {
+.hud-score-value.score-bump {
     animation: scoreBump 0.15s ease-out;
 }
 
 @keyframes scoreBump {
     0% { transform: scale(1); }
-    50% { transform: scale(1.15); color: #fff; }
+    50% { transform: scale(1.12); color: #fff; }
     100% { transform: scale(1); }
+}
+
+/* Level: right side, inline "LV X" */
+.hud-level {
+    display: flex;
+    align-items: center;
+    min-width: 50px;
+    justify-content: flex-end;
+}
+
+.hud-level::before {
+    content: 'LV';
+    font-size: 10px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.6);
+    letter-spacing: 1px;
+    margin-right: 4px;
+    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+}
+
+.hud-level #lvlVal {
+    font-size: 20px;
+    font-weight: 900;
+    color: #2ecc71;
+    text-shadow: 0 0 8px rgba(46, 204, 113, 0.5),
+        -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
 }
 
 /* Lives shake when hit */
@@ -203,244 +221,45 @@ body {
 }
 
 @keyframes levelUpGlow {
-    0% {
-        transform: scale(1);
-        text-shadow: 0 0 5px #2ecc71;
-    }
-    30% {
-        transform: scale(1.3);
-        text-shadow: 0 0 20px #2ecc71, 0 0 40px #27ae60, 0 0 60px #2ecc71;
-        color: #2ecc71;
-    }
-    100% {
-        transform: scale(1);
-        text-shadow: none;
-    }
+    0% { transform: scale(1); text-shadow: 0 0 5px #2ecc71; }
+    30% { transform: scale(1.3); text-shadow: 0 0 20px #2ecc71, 0 0 40px #27ae60; color: #2ecc71; }
+    100% { transform: scale(1); text-shadow: none; }
 }
 
-/* Health bar pulse when low */
-.health-critical {
-    animation: healthCritical 0.5s ease-in-out infinite;
+/* === REACTIVE HUD v4.4 === */
+
+/* Score color during streak milestones */
+.score-streak-10 .hud-score-value { color: #00FF00 !important; text-shadow: 0 0 15px #00FF00 !important; }
+.score-streak-25 .hud-score-value { color: #FFD700 !important; text-shadow: 0 0 15px #FFD700 !important; }
+.score-streak-50 .hud-score-value { color: #FF4444 !important; text-shadow: 0 0 15px #FF4444 !important; }
+
+/* Score during HYPER */
+.score-hyper .hud-score-value {
+    color: #FFD700 !important;
+    text-shadow: 0 0 20px #FFD700, 0 0 40px rgba(255, 215, 0, 0.8) !important;
+    animation: hyperScorePulse 0.3s ease-in-out infinite alternate !important;
 }
 
-@keyframes healthCritical {
-    0%, 100% {
-        box-shadow: 0 0 5px #e74c3c;
-    }
-    50% {
-        box-shadow: 0 0 15px #e74c3c, 0 0 25px rgba(231, 76, 60, 0.5);
-    }
+@keyframes hyperScorePulse {
+    0% { text-shadow: 0 0 15px #FFD700, 0 0 30px rgba(255, 215, 0, 0.6); }
+    100% { text-shadow: 0 0 25px #FFD700, 0 0 50px rgba(255, 215, 0, 0.9); }
 }
 
-.terminal-score .label {
-    letter-spacing: 3px;
-    color: #fff;
-    font-weight: 900;
-    font-size: 12px;
-    text-shadow:
-        -1px -1px 0 #000,
-        1px -1px 0 #000,
-        -1px 1px 0 #000,
-        1px 1px 0 #000,
-        0 0 10px rgba(0, 0, 0, 0.9),
-        0 0 6px var(--terminal-glow);
+/* Lives danger state (1 life left) */
+.lives-danger .hud-heart,
+.lives-danger #livesText {
+    color: #FF4444 !important;
+    animation: livesDangerPulse 0.6s ease-in-out infinite;
 }
 
-.terminal-score .value {
-    font-size: 48px;
-    font-weight: 900;
-    letter-spacing: 2px;
-    color: #F7931A;
-    text-shadow: 0 0 20px rgba(247, 147, 26, 0.9);
-    position: relative;
+@keyframes livesDangerPulse {
+    0%, 100% { opacity: 1; text-shadow: 0 0 5px rgba(255, 68, 68, 0.5); }
+    50% { opacity: 0.7; text-shadow: 0 0 15px rgba(255, 68, 68, 0.9); }
 }
 
-#score-ticker {
-    font-size: 10px;
-    letter-spacing: 2px;
-    color: #8c8c8c;
-    min-height: 14px;
-    margin-top: 4px;
-    text-align: center;
-}
-
-#score-ticker {
-    overflow: hidden;
-    white-space: nowrap;
-    position: relative;
-}
-
-#score-ticker .tick {
-    display: inline-block;
-    animation: tickerIn 1.2s linear forwards;
-}
-
-#score-ticker .tick {
-    margin-right: 8px;
-}
-
-#meme-ticker {
-    display: none; /* Hidden - using popup system instead */
-}
-
-#perk-bar {
-    position: absolute;
-    top: calc(100px + var(--pwa-top-inset, env(safe-area-inset-top, 0px)));
-    left: 0;
-    right: 0;
-    height: 18px;
-    overflow: hidden;
-    pointer-events: none;
-    display: flex;
-    justify-content: center;
-    z-index: 5;
-}
-
-#perk-bar-inner {
-    display: flex;
-    gap: 20px;
-    white-space: nowrap;
-    animation: perkScroll 12s linear infinite;
-}
-
-@keyframes perkScroll {
-    0% { transform: translateX(100%); }
-    100% { transform: translateX(-100%); }
-}
-
-#perk-bar:hover #perk-bar-inner {
-    animation-play-state: paused;
-}
-
-.perk-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 2px 8px;
-    font-size: 10px;
-    background: rgba(10, 10, 15, 0.7);
-    border: 1px solid #555;
-    border-radius: 3px;
-    color: #fff;
-}
-
-/* === WEAPON EVOLUTION v3.0 - Compact Icon (HUD Top-Right) - Gold pill === */
-#weapon-icon {
-    position: absolute;
-    top: calc(72px + var(--pwa-top-inset, env(safe-area-inset-top, 0px)));
-    right: 10px;
-    width: 70px; /* Same width as LIVELLO label */
-    height: 26px;
-    z-index: 100;
-    pointer-events: none;
-    display: none; /* Hidden until game starts */
-}
-
-/* Inner icon container - gold pill */
-#weapon-icon-inner {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    border-radius: 4px;
-    border: 2px solid #000;
-    background: linear-gradient(180deg, #FFD700 0%, #D4A500 100%);
-    box-shadow:
-        0 2px 4px rgba(0, 0, 0, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.3);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-}
-
-/* Symbol inside icon */
-#weapon-icon-symbol {
-    font-size: 14px;
-    font-weight: bold;
-    color: #000;
-    text-shadow: none;
-    transition: all 0.2s ease;
-    letter-spacing: 0;
-}
-
-/* Shot level states - adjust letter spacing for multiple arrows */
-#weapon-icon.shot-1 #weapon-icon-symbol { letter-spacing: 1px; }
-#weapon-icon.shot-2 #weapon-icon-symbol { letter-spacing: 0; }
-#weapon-icon.shot-3 #weapon-icon-symbol { letter-spacing: -1px; }
-
-/* Special active - changes background to special color */
-#weapon-icon.special-active #weapon-icon-inner {
-    background: var(--special-color, #FFD700);
-    box-shadow:
-        0 2px 4px rgba(0, 0, 0, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.4),
-        inset 0 -8px 12px rgba(0, 0, 0, 0.15);
-}
-
-#weapon-icon.special-active #weapon-icon-symbol {
-    color: #000;
-}
-
-/* Modifier indicators - subtle dots at bottom */
-#weapon-icon::before,
-#weapon-icon::after {
-    content: '';
-    position: absolute;
-    bottom: -5px;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: transparent;
-    border: 1px solid transparent;
-    transition: all 0.2s ease;
-    z-index: 10;
-}
-
-/* RATE indicator - bottom left */
-#weapon-icon::before {
-    left: 12px;
-}
-
-/* POWER indicator - bottom right */
-#weapon-icon::after {
-    right: 12px;
-}
-
-/* Modifier active states */
-#weapon-icon.rate-active::before {
-    background: #00FFFF;
-    border-color: #000;
-    box-shadow: 0 0 6px #00FFFF;
-}
-
-#weapon-icon.power-active::after {
-    background: #FF4444;
-    border-color: #000;
-    box-shadow: 0 0 6px #FF4444;
-}
-
-/* SPREAD indicator - adds purple glow */
-#weapon-icon.spread-active #weapon-icon-inner {
-    box-shadow:
-        0 2px 4px rgba(0, 0, 0, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.3),
-        0 0 10px rgba(155, 89, 182, 0.6);
-}
-
-.perk-chip.new {
-    animation: perkPop 0.3s ease-out;
-}
-
-@keyframes perkPop {
-    0% { transform: scale(0.8); opacity: 0; }
-    100% { transform: scale(1); opacity: 1; }
-}
-
-.perk-chip .stack {
-    color: var(--neon-orange);
-    font-weight: bold;
+/* Graze meter approaching (faster shimmer) */
+#graze-meter.graze-approaching #graze-fill {
+    animation: grazeShimmer 0.8s linear infinite;
 }
 
 /* Cleaned up Bottom Bar styles */
@@ -2489,10 +2308,7 @@ body.bear-mode .neon-title {
     }
 }
 
-/* --- KILL COUNTER (disabled) --- */
-#kill-counter {
-    display: none;
-}
+/* --- KILL COUNTER (removed in v4.4) --- */
 
 /* --- GRAZE METER --- */
 #graze-meter {
@@ -2740,28 +2556,7 @@ body.bear-mode .neon-title {
     line-height: 1.4;
 }
 
-/* --- MEME POPUP --- */
-#meme-popup {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) scale(0);
-    font-size: 32px;
-    font-weight: 900;
-    color: #FFD700;
-    text-shadow: 2px 2px 0 #000, 0 0 20px rgba(255, 215, 0, 0.8);
-    text-align: center;
-    pointer-events: none;
-    opacity: 0;
-    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s;
-    z-index: 150;
-    max-width: 80%;
-}
-
-#meme-popup.show {
-    transform: translate(-50%, -50%) scale(1);
-    opacity: 1;
-}
+/* --- MEME POPUP (removed in v4.4 - now canvas MEME_WHISPER) --- */
 
 /* ========================================
    CELL-SHADED UI - Phase 17+

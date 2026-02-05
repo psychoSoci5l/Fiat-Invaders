@@ -1989,7 +1989,56 @@ DIGITAL_THREAT: ['Ⓒ', '$', '元']  // CBDCs + majors
 | `src/utils/Constants.js` | VERSION → v4.3.0, PWA install strings EN/IT |
 | `sw.js` | SW_VERSION → 4.3.0 |
 
-## Phase 34: Formation System Visual Audit (NEXT SESSION)
+## Phase 34: HUD Redesign v4.4.0 — "Zero Distrazioni, Massima Informazione" ✅
+*Goal: Rationalize all visual channels, compact HUD, add diegetic ship elements, reactive feedback.*
+
+### A) Message System Rationalization (12→5 channels) ✅
+- [x] **WAVE_STRIP**: Full-width transparent strip at Y=95 with fade in/out ("CYCLE X • WAVE Y/5" + "HORDE Z")
+- [x] **ALERT**: Danger (red) + Victory (gold) center box — unchanged
+- [x] **MEME_WHISPER**: Small italic 13px canvas text, alpha 0.45, upward drift, max 2 on screen
+- [x] **SHIP_STATUS**: Text above player position with float-up animation
+- [x] **FLOATING_TEXT**: Opt-in score numbers — unchanged
+- [x] Removed DOM elements: `#meme-popup`, `#meme-ticker`, `#score-ticker`
+- [x] Legacy compat: showGameInfo→showWaveStrip, showMemeFun→showMemeWhisper
+
+### B) Compact Top HUD (145px→65px dead zone) ✅
+- [x] **Single-row 45px HUD**: ♥3 | score | LV X (flex row, no labels)
+- [x] **Removed**: `#perk-bar`, `#weapon-icon`, `#kill-counter`, verbose labels
+- [x] **GAMEPLAY_START**: 145→65, FORMATION.START_Y: 150→80
+- [x] **Boss targetY**: 145+safe → 65+safe
+- [x] **Score font**: 52px → 36px
+
+### C) Diegetic Ship Elements ✅
+- [x] **Life pips**: 3 circles below ship (white filled/grey empty, red pulse at lives≤1)
+- [x] **Shield cooldown ring**: Partial cyan arc filling clockwise
+- [x] **Weapon level pips**: 3 triangles above ship with modifier glow
+- [x] **Special icon**: Replaces pips when active, countdown arc
+- [x] **Graze proximity glow**: Pink radial at 75%+, gold pulsing at 100%
+
+### D) Reactive HUD ✅
+- [x] **Score streak colors**: Green/yellow/red on 10/25/50 streaks
+- [x] **HYPER score glow**: Gold shadow during HYPER mode
+- [x] **Lives danger**: Red pulse CSS animation at lives≤1
+- [x] **Low-HP vignette**: Subtle red edge vignette (alpha 0.05)
+- [x] **Graze approaching**: Faster shimmer at 80%+
+- [x] **Wave sweep**: 1px white horizontal line on wave change
+
+### Files Modified
+| File | Changes |
+|------|---------|
+| `src/systems/MessageSystem.js` | Complete rewrite: 5 canvas-based channels |
+| `src/systems/MemeEngine.js` | Output for MEME_WHISPER channel |
+| `src/main.js` | drawTypedMessages, updateReactiveHUD, diegetic data pass, lowHP vignette |
+| `index.html` | Compact HUD DOM, removed perk-bar/weapon-icon/kill-counter/meme-popup |
+| `style.css` | 45px HUD layout, reactive CSS classes, removed old styles |
+| `src/config/BalanceConfig.js` | HUD_MESSAGES v2, DIEGETIC_HUD, REACTIVE_HUD, UI.HUD_HEIGHT=45 |
+| `src/entities/Player.js` | _drawDiegeticHUD() with 5 visual elements |
+| `src/entities/Boss.js` | targetY 145→65 |
+| `src/systems/EffectsRenderer.js` | drawLowHPVignette() |
+
+---
+
+## Phase 35: Formation System Visual Audit (NEXT SESSION)
 *Goal: Fine-tuning of enemy formation placement - targeted fixes based on visual testing.*
 - [ ] **Visual audit**: Test each of the 16 formations individually with debug overlay
 - [ ] **Shape-specific tuning**: Adjust spacing/factors per formation as needed

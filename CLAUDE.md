@@ -527,9 +527,9 @@ Balance.MINI_BOSS.CURRENCY_BOSS_MAP = {
 | Boss | Deep space + stars |
 
 ### Score Display
-- 52px font with glow effects
-- Pulse animation
-- Bump effect on increase
+- 36px font, compact single-row HUD (v4.4.0: was 52px)
+- Reactive: streak colors, HYPER glow, danger pulse
+- No labels (score value only)
 
 ### Bullet Visuals
 
@@ -561,72 +561,111 @@ All shapes maintain identical visibility (glow, trail, white ring) - only intern
 
 - **Trigger**: Cancel 5 enemy bullets within 1.5s window (Balance.PERK.BULLET_CANCEL_COUNT)
 - **Pool**: `Upgrades.js` with rarity/weight
-- **Display**: Horizontal scrolling ticker at `top: 100px`
+- **Display**: Temporary canvas notification above player (SHIP_STATUS channel)
 - **Selection**: Random perk auto-applied (no modal)
 - **Cooldown**: 4s between perks (Balance.PERK.COOLDOWN_TIME)
 
 ---
 
-## UI Safe Zones
+## UI Safe Zones (v4.4.0)
 
 | Zone | Position | Content |
 |------|----------|---------|
-| HUD | top: 0-90px | Score, Lives, Level |
-| Perk Bar | top: 100px | Scrolling perk ticker |
-| Gameplay | top: 145px+ | Enemies, Boss, Bullets |
+| HUD | top: 0-45px (+safe) | Score, Lives, Level (single row) |
+| Perk notification | top: ~55px | Temporary canvas slide (2.5s) |
+| Gameplay | top: 65px+ (+safe) | Enemies, Boss, Bullets |
+| Wave Strip | Y=95 | Temporary full-width strip (2.5s) |
+| Meme Whisper | Y=60% | Small italic drift text (decorative) |
+| Graze Meter | bottom-85 | DOM, unchanged |
+| Shield/HYPER | bottom-75 | DOM buttons, unchanged |
+| Joystick | bottom-30 | DOM, unchanged |
 
-Boss `targetY: 145` ensures no overlap with HUD.
+Boss `targetY: 65 + safeOffset` ensures no overlap with compact HUD.
 
 ---
 
-## HUD Messages System
+## HUD Messages System (v4.4.0)
 
-Messages have distinct visual styles for quick recognition during gameplay:
+5 canvas-based channels with clear visual separation:
 
-| Type | Style | Position | Purpose |
-|------|-------|----------|---------|
-| `GAME_INFO` | Green box, border | Top (Y=130) | Level/Wave progression |
-| `WAVE_INFO` | Green box, fixed | Top (Y=130) | Compact cycle/wave display (v3.0.7) |
-| `DANGER` | Red pulsing, thick border | Center | Boss warnings, alerts |
-| `VICTORY` | Gold glow, scaling | Center | Boss defeated, achievements |
-| `PERK_NOTIFICATION` | Floating icon | Above player | Perk acquired |
-| `FLOATING_TEXT` | Small text | At position | Score numbers (optional) |
-| `MEME_POPUP` | Random color/position | Random | Meme text (optional) |
+| Channel | Style | Position | Purpose |
+|---------|-------|----------|---------|
+| `WAVE_STRIP` | Transparent strip, white/gold text | Y=95, full-width | Wave/horde progression |
+| `ALERT` | Red (danger) / Gold (victory) box | Center screen | Boss warnings, defeats |
+| `MEME_WHISPER` | Italic 13px, alpha 0.45, no bg | Y=60%, random X | Decorative flavor text |
+| `SHIP_STATUS` | Text above player, float-up | Above player Y-60 | Perk acquired, weapon change |
+| `FLOATING_TEXT` | Small text at position | At position | Score numbers (opt-in) |
 
-### Compact Wave Info (v3.0.7)
-New unified wave notification with format: `CYCLE X • WAVE Y/5` + optional flavor text.
+### Design Principle
+- **Game messages** = solid text, centered, with background strip = "must read"
+- **Memes** = italic, no background, low opacity, small = "decorative flavor, ignorable"
 
+### Usage
 ```javascript
-// Usage in main.js
-G.MessageSystem.showWaveInfo(cycleText, waveText, totalWaves, flavorText);
-// Example: "CYCLE 1 • WAVE 3/5" with "Volatility" subtitle
+G.MessageSystem.showWaveStrip('CYCLE 1 • WAVE 3/5', 'Volatility');
+G.MessageSystem.showDanger('BOSS INCOMING!', 5);
+G.MessageSystem.showVictory('BOSS DESTROYED!');
+G.MessageSystem.showMemeWhisper('MONEY PRINTER GO BRRR');
+G.MessageSystem.showShipStatus('HOMING ACQUIRED', '🎯');
 ```
 
-**Localization keys**: `CYCLE`, `WAVE_OF`, `WAVE_FLAVOR_1-5`
+### Legacy Compat
+- `showGameInfo()` → `showWaveStrip()`
+- `showMemeFun()` / `showMemePopup()` → `showMemeWhisper()`
+- `showPowerUp()` → `showShipStatus()`
 
 ### Balance.HUD_MESSAGES
-Toggle each type independently in BalanceConfig.js:
 ```javascript
 HUD_MESSAGES: {
-    GAME_INFO: true,        // Essential progression feedback
-    DANGER: true,           // Warnings require attention
-    VICTORY: true,          // Satisfying boss kill feedback
-    PERK_NOTIFICATION: true,// Know what perk you got
-    FLOATING_TEXT: false,   // Can clutter screen
-    MEME_POPUP: false,      // Can distract
-    MEME_TICKER: false,     // Boss fight ticker
-
-    // Compact wave info box config (v3.0.7)
-    GAME_INFO_BOX: {
-        FIXED_WIDTH: 280,         // Fixed width in pixels
-        FIXED_Y: 130,             // Fixed Y position (no slide)
-        PRIMARY_FONT_SIZE: 18,    // "CYCLE X • WAVE Y/5"
-        SUBTITLE_FONT_SIZE: 11,   // Flavor text
-        SHOW_FLAVOR_TEXT: true,   // Toggle subtitle
-        DURATION: 2.5             // Display duration
+    WAVE_STRIP: true,
+    ALERT_DANGER: true,
+    ALERT_VICTORY: true,
+    MEME_WHISPER: true,
+    SHIP_STATUS: true,
+    FLOATING_TEXT: false,  // opt-in
+    WAVE_STRIP_CONFIG: {
+        Y: 95, HEIGHT: 28, FONT_SIZE: 14,
+        SUBTITLE_SIZE: 10, DURATION: 2.5, BG_ALPHA: 0.5
+    },
+    MEME_WHISPER_CONFIG: {
+        MAX_ON_SCREEN: 2, FONT_SIZE: 13, ALPHA: 0.45,
+        DRIFT_SPEED: 15, LIFETIME: 3.0, SPAWN_Y_RATIO: 0.60
     }
 }
 ```
+
+---
+
+## Diegetic Ship HUD (v4.4.0)
+
+Visual indicators drawn on the player ship (Player.js `_drawDiegeticHUD()`):
+
+| Element | Position | Description |
+|---------|----------|-------------|
+| Life pips | Y+28 below ship | 3 circles (white=alive, grey=lost, red pulse at lives≤1) |
+| Shield ring | Around ship | Partial cyan arc showing cooldown progress |
+| Weapon pips | Y-38 above ship | 3 triangles showing shot level + modifier glow |
+| Special icon | Above ship | Replaces pips when special active, with countdown arc |
+| Graze glow | Around ship | Pink radial at 75%+, gold pulsing at 100% |
+
+All toggleable via `Balance.DIEGETIC_HUD`.
+
+---
+
+## Reactive HUD (v4.4.0)
+
+HUD elements react to game state:
+
+| Behavior | Trigger | Effect |
+|----------|---------|--------|
+| Score streak color | Kill streak 10/25/50 | Green/yellow/red CSS class (0.5s) |
+| HYPER score glow | HYPER mode active | Gold text-shadow on score |
+| Lives danger | lives ≤ 1 | Red pulse CSS + life pips pulse |
+| Low-HP vignette | lives ≤ threshold | Subtle red edge vignette (alpha 0.05) |
+| Graze approaching | 80-99% meter | Faster shimmer on graze bar |
+| Wave sweep | Wave/horde change | 1px white horizontal line sweeps down |
+
+All toggleable via `Balance.REACTIVE_HUD`.
 
 ---
 
@@ -715,7 +754,7 @@ Master switches for all screen-wide visual effects. Allows easy enable/disable w
 | Parameter | Value | Description |
 |-----------|-------|-------------|
 | `SPACING` | 85 | Pixels between formation grid points |
-| `START_Y` | 150 | Starting Y position for formations |
+| `START_Y` | 80 | Starting Y position for formations (v4.4.0: was 150) |
 | `MARGIN` | 60 | Screen edge margin for formations |
 | `ROW_TOLERANCE` | 25 | Y tolerance for grouping positions into rows |
 | `SAFE_EDGE_MARGIN` | 30 | Min X margin from screen edge (> 20px edge-detect threshold) |

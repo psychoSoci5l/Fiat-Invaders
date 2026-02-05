@@ -27,7 +27,7 @@ class Boss extends window.Game.Entity {
         this.phaseTransitionTimer = 0;
 
         const safeOffset = window.safeAreaInsets?.top || 0;
-        this.targetY = 145 + safeOffset; // Below safe zone (HUD + perk bar + iOS safe area)
+        this.targetY = 65 + safeOffset; // v4.4: Below compact HUD (was 145)
         this.dir = 1;
 
         // Movement speed from Balance config (phase 1 default)

@@ -10,7 +10,7 @@
 *   **Responsive**: "Notch-safe" UI design that adapts to all mobile screens.
 *   **Localization**: Fully localized in English (EN) and Italian (IT).
 
-## 🧠 Current Gameplay Rules (v4.1.0)
+## 🧠 Current Gameplay Rules (v4.4.0)
 
 *   **Wave System**: 15 unique waves (5 per cycle x 3 cycles) with 16 formation patterns and thematic currency groups.
 *   **Horde System**: Each wave has 2 hordes with complementary formations and escalating difficulty.
@@ -21,6 +21,8 @@
 *   **Dynamic Difficulty (Rank System)**: Game adapts to player skill in real-time (-1.0 to +1.0 rank).
 *   **3 Unique Bosses**: FED (MEGA-BILL), BCE (MEGA-COIN), BOJ (MEGA-BAR) with exclusive attack patterns.
 *   **10 Fiat Currencies**: Each with unique shape, tier, and fire pattern.
+*   **Compact HUD**: Minimal 45px top bar with diegetic ship indicators (life pips, shield ring, weapon pips, graze glow).
+*   **Reactive Feedback**: Score colors on streaks, danger pulse at low HP, wave sweep transitions.
 
 ## 🎮 How to Play
 

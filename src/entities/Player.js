@@ -1030,6 +1030,12 @@ class Player extends window.Game.Entity {
             ctx.stroke();
         }
 
+        // === DIEGETIC HUD v4.4 ===
+        const diegeticConfig = window.Game.Balance?.DIEGETIC_HUD;
+        if (diegeticConfig?.ENABLED) {
+            this._drawDiegeticHUD(ctx, diegeticConfig);
+        }
+
         // Core Hitbox Indicator - visible when projectiles are near
         // Check if any enemy bullets are within 60px
         const enemyBullets = window.enemyBullets || [];
@@ -1069,6 +1075,165 @@ class Player extends window.Game.Entity {
         }
 
         ctx.restore();
+    }
+
+    /**
+     * v4.4: Diegetic HUD - ship-attached visual elements
+     * Called from draw() in translated coordinate space (0,0 = ship center)
+     */
+    _drawDiegeticHUD(ctx, config) {
+        // 1. LIFE PIPS (below ship)
+        if (config.LIFE_PIPS?.ENABLED && typeof this._livesDisplay === 'number') {
+            const lp = config.LIFE_PIPS;
+            const totalLives = 3;
+            const startX = -(totalLives - 1) * lp.SPACING / 2;
+
+            for (let i = 0; i < totalLives; i++) {
+                const px = startX + i * lp.SPACING;
+                const py = lp.Y_OFFSET;
+                const isFull = i < this._livesDisplay;
+                const isDanger = this._livesDisplay <= 1;
+
+                ctx.beginPath();
+                ctx.arc(px, py, lp.RADIUS, 0, Math.PI * 2);
+
+                if (isFull) {
+                    if (isDanger) {
+                        // Red pulsing when danger
+                        const pulse = Math.sin(this.animTime * 8) * 0.3 + 0.7;
+                        ctx.fillStyle = `rgba(255, 68, 68, ${pulse})`;
+                    } else {
+                        ctx.fillStyle = `rgba(255, 255, 255, ${lp.FULL_ALPHA})`;
+                    }
+                    ctx.fill();
+                } else {
+                    ctx.fillStyle = `rgba(128, 128, 128, ${lp.EMPTY_ALPHA})`;
+                    ctx.fill();
+                }
+            }
+        }
+
+        // 2. SHIELD COOLDOWN RING
+        if (config.SHIELD_RING?.ENABLED) {
+            const sr = config.SHIELD_RING;
+
+            if (!this.shieldActive && this.shieldCooldown > 0) {
+                // Cooldown: partial arc filling clockwise
+                const maxCooldown = 10; // Default shield cooldown
+                const progress = 1 - (this.shieldCooldown / maxCooldown);
+                const angle = Math.PI * 2 * Math.min(1, progress);
+
+                ctx.strokeStyle = `rgba(0, 170, 170, ${sr.COOLDOWN_ALPHA})`;
+                ctx.lineWidth = sr.LINE_WIDTH;
+                ctx.beginPath();
+                ctx.arc(0, 0, sr.RADIUS, -Math.PI / 2, -Math.PI / 2 + angle);
+                ctx.stroke();
+            } else if (!this.shieldActive && this.shieldCooldown <= 0) {
+                // Ready: very faint full ring
+                ctx.strokeStyle = `rgba(0, 170, 170, ${sr.READY_ALPHA})`;
+                ctx.lineWidth = sr.LINE_WIDTH;
+                ctx.beginPath();
+                ctx.arc(0, 0, sr.RADIUS, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        }
+
+        // 3. WEAPON LEVEL PIPS (above ship)
+        if (config.WEAPON_PIPS?.ENABLED && this._weaponState) {
+            const wp = config.WEAPON_PIPS;
+            const shotLevel = this._weaponState.shotLevel || 1;
+            const maxLevel = 3;
+            const startX = -(maxLevel - 1) * wp.SPACING / 2;
+
+            // Check for special override
+            if (this._weaponState.special && this._weaponState.specialTimer > 0) {
+                // Show special icon with countdown arc instead of pips
+                const SPECIAL_ICONS = { HOMING: '🎯', PIERCE: '🔥', LASER: '⚡', MISSILE: '🚀', SHIELD: '🛡️', SPEED: '💨' };
+                const icon = SPECIAL_ICONS[this._weaponState.special] || '?';
+                const timer = this._weaponState.specialTimer;
+                const maxTimer = 12; // SPECIAL_DURATION
+                const ratio = Math.min(1, timer / maxTimer);
+
+                // Countdown arc
+                ctx.strokeStyle = `rgba(255, 215, 0, 0.6)`;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(0, wp.Y_OFFSET, 10, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * ratio);
+                ctx.stroke();
+
+                // Icon
+                ctx.font = '10px monospace';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = `rgba(255, 255, 255, 0.8)`;
+                ctx.fillText(icon, 0, wp.Y_OFFSET);
+            } else {
+                // Normal: shot level triangles
+                for (let i = 0; i < maxLevel; i++) {
+                    const px = startX + i * wp.SPACING;
+                    const py = wp.Y_OFFSET;
+                    const isFull = i < shotLevel;
+                    const s = wp.SIZE;
+
+                    // Check modifier glow
+                    let glowColor = null;
+                    const mods = this._weaponState.modifiers;
+                    if (mods?.rate?.level > 0 && i === 0) glowColor = 'rgba(0, 255, 255, 0.6)';
+                    if (mods?.power?.level > 0 && i === 1) glowColor = 'rgba(255, 68, 68, 0.6)';
+                    if (mods?.spread?.level > 0 && i === 2) glowColor = 'rgba(155, 89, 182, 0.6)';
+
+                    ctx.beginPath();
+                    ctx.moveTo(px, py - s);
+                    ctx.lineTo(px - s * 0.7, py + s * 0.5);
+                    ctx.lineTo(px + s * 0.7, py + s * 0.5);
+                    ctx.closePath();
+
+                    if (isFull) {
+                        ctx.fillStyle = glowColor || `rgba(255, 255, 255, ${wp.FULL_ALPHA})`;
+                        ctx.fill();
+                        if (glowColor) {
+                            ctx.shadowColor = glowColor;
+                            ctx.shadowBlur = 6;
+                            ctx.fill();
+                            ctx.shadowBlur = 0;
+                        }
+                    } else {
+                        ctx.fillStyle = `rgba(128, 128, 128, ${wp.EMPTY_ALPHA})`;
+                        ctx.fill();
+                    }
+                }
+            }
+        }
+
+        // 4. GRAZE PROXIMITY GLOW
+        if (config.GRAZE_GLOW?.ENABLED && typeof this._grazePercent === 'number') {
+            const gg = config.GRAZE_GLOW;
+            const percent = this._grazePercent;
+
+            if (percent >= gg.THRESHOLD) {
+                const isHyperReady = percent >= 100;
+                const ratio = (percent - gg.THRESHOLD) / (100 - gg.THRESHOLD);
+                let alpha, color;
+
+                if (isHyperReady) {
+                    // Gold pulsing glow
+                    alpha = gg.HYPER_READY_ALPHA + Math.sin(this.animTime * 6) * 0.05;
+                    color = `rgba(255, 215, 0, ${alpha})`;
+                } else {
+                    // Pink/magenta glow
+                    alpha = gg.MIN_ALPHA + ratio * (gg.MAX_ALPHA - gg.MIN_ALPHA);
+                    color = `rgba(255, 105, 180, ${alpha})`;
+                }
+
+                const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, gg.RADIUS);
+                gradient.addColorStop(0, color);
+                gradient.addColorStop(1, 'transparent');
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(0, 0, gg.RADIUS, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
     }
 
     takeDamage() {

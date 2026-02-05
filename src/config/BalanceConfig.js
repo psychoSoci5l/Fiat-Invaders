@@ -315,7 +315,7 @@
             SPEED_BASE: 12,           // Base grid scroll speed
             SPEED_SCALE: 20,          // Additional speed at max difficulty
             SPACING: 75,              // Pixels between enemies in grid
-            START_Y: 150,             // Initial Y position for new waves
+            START_Y: 80,              // Initial Y position (v4.4: 150→80 for compact HUD)
             MAX_Y: 380                // Maximum Y before descent stops
         },
 
@@ -532,41 +532,55 @@
             }
         },
 
-        // --- HUD MESSAGES (Toggle for clean testing) ---
-        // Each type has distinct visual style for quick recognition:
-        // - GAME_INFO: Green box at top (progression)
-        // - DANGER: Red pulsing center (warnings)
-        // - VICTORY: Gold glow center (achievements)
-        // - FLOATING_TEXT: Small numbers at position (score feedback)
+        // --- HUD MESSAGES v4.4 (5-channel system) ---
+        // WAVE_STRIP: Minimal full-width strip for wave/horde info
+        // ALERT: Colored center box (danger=red, victory=gold)
+        // MEME_WHISPER: Tiny italic canvas text, decorative flavor
+        // SHIP_STATUS: Icon+text above player ship
+        // FLOATING_TEXT: Opt-in score numbers
         HUD_MESSAGES: {
-            MEME_POPUP: false,            // Random meme popups (can distract)
-            POWERUP_POPUP: false,         // Power-up text (redundant, see effect)
-            GAME_INFO: true,              // LEVEL/WAVE info - essential feedback
-            DANGER: true,                 // Boss warnings - requires attention
-            VICTORY: true,                // Boss defeated - satisfying feedback
-            FLOATING_TEXT: false,         // Damage numbers (optional, can clutter)
-            MEME_TICKER: false,           // Boss fight ticker (distracting)
+            WAVE_STRIP: true,             // Wave/horde strip (replaces GAME_INFO)
+            ALERT_DANGER: true,           // Boss warnings, danger messages
+            ALERT_VICTORY: true,          // Boss defeated, achievements
+            MEME_WHISPER: true,           // Small decorative meme text (replaces MEME_POPUP)
+            SHIP_STATUS: true,            // Perk/weapon/power-up above player
+            FLOATING_TEXT: false,         // Damage numbers (opt-in, can clutter)
             PERK_NOTIFICATION: true,      // Perk icons - useful to know what you got
 
-            // Compact wave info box (v3.0.7)
-            GAME_INFO_BOX: {
-                FIXED_WIDTH: 280,         // Larghezza fissa in pixel
-                FIXED_Y: 110,             // Y fisso, sotto punteggio con margine
-                PRIMARY_FONT_SIZE: 18,    // "CYCLE X • WAVE Y/5"
-                SUBTITLE_FONT_SIZE: 11,   // Flavor text
-                SHOW_FLAVOR_TEXT: true,   // Toggle subtitle
-                DURATION: 2.5,            // Durata display
-                LINE_SPACING: 8,          // Spazio tra le righe
-                PADDING_V: 12             // Padding verticale
+            // Wave strip config
+            WAVE_STRIP_CONFIG: {
+                Y: 95,                    // Y position (below compact HUD)
+                HEIGHT: 28,               // Strip height
+                FONT_SIZE: 14,            // Primary text size
+                SUBTITLE_SIZE: 10,        // Flavor text size
+                DURATION: 2.5,            // Display duration (seconds)
+                BG_ALPHA: 0.5             // Background opacity
+            },
+
+            // Meme whisper config
+            MEME_WHISPER_CONFIG: {
+                MAX_ON_SCREEN: 2,         // Max simultaneous whispers
+                FONT_SIZE: 13,            // Italic font size
+                ALPHA: 0.45,              // Starting opacity
+                DRIFT_SPEED: 15,          // Upward drift px/s
+                LIFETIME: 3.0,            // Seconds to live
+                SPAWN_Y_RATIO: 0.60       // Y spawn = gameHeight * this
+            },
+
+            // Ship status config
+            SHIP_STATUS_CONFIG: {
+                Y_OFFSET: -60,            // Above player
+                FONT_SIZE: 11,            // Text size
+                DURATION: 2.0,            // Display duration
+                ICON_SIZE: 16             // Icon size
             }
         },
 
-        // --- UI LAYOUT ---
+        // --- UI LAYOUT (v4.4 Compact HUD) ---
         UI: {
             // Safe zones (pixels from top)
-            HUD_HEIGHT: 90,               // Top HUD area
-            PERK_BAR_TOP: 100,            // Perk display position
-            GAMEPLAY_START: 145,          // Where gameplay area begins (boss targetY)
+            HUD_HEIGHT: 45,               // Compact single-row HUD
+            GAMEPLAY_START: 65,           // Where gameplay area begins
 
             // Dynamic safe area offset (iOS notch/safe areas)
             get SAFE_OFFSET() {
@@ -599,6 +613,61 @@
                 SENSITIVITY_MIN: 0.5,
                 SENSITIVITY_MAX: 1.5,
                 SENSITIVITY_DEFAULT: 1.0
+            }
+        },
+
+        // --- DIEGETIC HUD (v4.4 - Ship-attached elements) ---
+        DIEGETIC_HUD: {
+            ENABLED: true,
+            LIFE_PIPS: {
+                ENABLED: true,
+                Y_OFFSET: 28,            // Below ship center
+                RADIUS: 4,               // Pip circle radius
+                SPACING: 12,             // Between pips
+                FULL_ALPHA: 0.7,         // Filled pip opacity
+                EMPTY_ALPHA: 0.25        // Empty pip opacity
+            },
+            SHIELD_RING: {
+                ENABLED: true,
+                RADIUS: 35,              // Ring radius
+                COOLDOWN_ALPHA: 0.12,    // Cooldown arc opacity
+                READY_ALPHA: 0.06,       // Ready state (very faint)
+                LINE_WIDTH: 1.5          // Arc line width
+            },
+            WEAPON_PIPS: {
+                ENABLED: true,
+                Y_OFFSET: -38,           // Above ship center
+                SIZE: 6,                 // Triangle size
+                SPACING: 10,             // Between pips
+                FULL_ALPHA: 0.8,         // Active level opacity
+                EMPTY_ALPHA: 0.2         // Inactive level opacity
+            },
+            GRAZE_GLOW: {
+                ENABLED: true,
+                THRESHOLD: 75,           // Graze % to start glow
+                RADIUS: 40,              // Glow radius
+                MIN_ALPHA: 0.10,         // At threshold
+                MAX_ALPHA: 0.18,         // At 99%
+                HYPER_READY_ALPHA: 0.25  // At 100% (gold)
+            }
+        },
+
+        // --- REACTIVE HUD (v4.4 - Dynamic visual feedback) ---
+        REACTIVE_HUD: {
+            ENABLED: true,
+            SCORE_STREAK_COLORS: {
+                STREAK_10: '#00FF00',     // Green
+                STREAK_25: '#FFD700',     // Gold
+                STREAK_50: '#FF4444'      // Red
+            },
+            SCORE_STREAK_DURATION: 0.5,   // Seconds of color change
+            LIVES_DANGER_THRESHOLD: 1,    // Lives <= this triggers danger state
+            LIVES_DANGER_VIGNETTE: 0.05,  // Very subtle red vignette alpha
+            GRAZE_APPROACHING_THRESHOLD: 80, // % to start shimmer speed-up
+            WAVE_SWEEP: {
+                ENABLED: true,
+                ALPHA: 0.3,               // Line opacity
+                DURATION: 0.3             // Sweep duration seconds
             }
         },
 
@@ -836,7 +905,7 @@
         // --- FORMATION LAYOUT (v4.0.3: extracted from WaveManager hardcodes) ---
         FORMATION: {
             SPACING: 85,              // Base spacing between enemies in grid (+13% from 75, prevents overlap)
-            START_Y: 150,             // Initial Y position for new formations
+            START_Y: 80,              // Initial Y position (v4.4: 150→80 for compact HUD)
             MARGIN: 60,               // Left/right margin for scatter/wall
             SPIRAL_CENTER_Y_OFFSET: 100, // Spiral center Y offset from startY
             SPIRAL_ANGLE_STEP: 0.5,   // Radians per enemy in spiral

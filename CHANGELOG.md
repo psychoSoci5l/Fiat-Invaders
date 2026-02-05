@@ -1,5 +1,55 @@
 # Changelog
 
+## v4.4.0 - 2026-02-05
+### Feature: HUD Redesign — "Zero Distrazioni, Massima Informazione"
+
+#### Phase 1: Message System Rationalization (12 channels → 5)
+- **WAVE_STRIP**: Full-width transparent strip (Y=95) for wave/horde info with fade in/out
+- **ALERT**: Unchanged danger (red) and victory (gold) center boxes
+- **MEME_WHISPER**: Small italic canvas text (13px Courier, alpha 0.45) with upward drift — replaces DOM meme-popup
+- **SHIP_STATUS**: Icon+text above player ship for perks/power-ups
+- **FLOATING_TEXT**: Opt-in score numbers (unchanged)
+- Removed: `#meme-popup` DOM, `#meme-ticker` DOM, `GAME_INFO` green box, `POWERUP_POPUP`
+- All meme display now canvas-based (no DOM manipulation during gameplay)
+
+#### Phase 2: Compact Top HUD
+- **Single-row HUD** (45px vs 90px): `♥3 | 12,345 | LV 5`
+- Removed verbose labels (LIVES, ACCOUNT BALANCE, LEVEL)
+- Score reduced from 52px to 36px, still with orange glow
+- Removed `#perk-bar`, `#weapon-icon`, `#kill-counter` DOM elements
+- **GAMEPLAY_START** reduced from 145px to 65px (+80px more gameplay space)
+- Boss `targetY` updated to 65+safeOffset (was 145)
+- Formation `START_Y` reduced from 150 to 80
+
+#### Phase 3: Diegetic Ship Elements (Player.js)
+- **Life pips**: 3 small circles below ship (white=alive, grey=lost, red pulse at 1 life)
+- **Shield cooldown ring**: Partial cyan arc showing cooldown progress around ship
+- **Weapon level pips**: 3 triangles above ship showing shot level (with modifier color glow)
+- **Special icon**: Replaces pips when special active, shows countdown arc
+- **Graze proximity glow**: Pink glow at 75%+ meter, gold pulse at 100% (HYPER ready)
+- All configurable via `Balance.DIEGETIC_HUD` with individual toggles
+
+#### Phase 4: Reactive HUD
+- **Score streak colors**: Green (10), gold (25), red (50) — 0.5s duration
+- **HYPER score glow**: Gold pulsing shadow on score during HYPER mode
+- **Lives danger**: Red pulse animation on heart+number when lives ≤ 1
+- **Low-HP vignette**: Very subtle red edge vignette (alpha 0.05) via EffectsRenderer
+- **Graze approaching**: Faster shimmer animation at 80%+ meter
+- **Wave sweep**: 1px white horizontal line sweeps top-to-bottom on wave change
+- All configurable via `Balance.REACTIVE_HUD` with individual toggles
+
+| File | Changes |
+|------|---------|
+| `src/systems/MessageSystem.js` | Complete rewrite: 5-channel canvas system |
+| `src/systems/MemeEngine.js` | Output for MEME_WHISPER (unchanged API) |
+| `src/main.js` | Compact HUD, reactive state, diegetic data pass, removed weapon-icon |
+| `index.html` | Compact HUD DOM, removed perk-bar/weapon-icon/kill-counter/meme-popup |
+| `style.css` | Compact HUD styles, reactive CSS classes, removed old HUD styles |
+| `src/config/BalanceConfig.js` | New: HUD_MESSAGES v4.4, DIEGETIC_HUD, REACTIVE_HUD |
+| `src/entities/Player.js` | Diegetic drawing methods (_drawDiegeticHUD) |
+| `src/entities/Boss.js` | targetY 145→65 for compact HUD |
+| `src/systems/EffectsRenderer.js` | drawLowHPVignette() |
+
 ## v4.3.0 - 2026-02-05
 ### Feature: PWA Install Prompt Banner
 

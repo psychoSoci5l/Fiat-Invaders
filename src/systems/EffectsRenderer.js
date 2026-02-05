@@ -318,6 +318,33 @@
         ctx.globalAlpha = 1;
     }
 
+    /**
+     * Draw low-HP danger vignette (v4.4 Reactive HUD)
+     * Very subtle red vignette when lives <= threshold
+     * @param {CanvasRenderingContext2D} ctx
+     * @param {number} lives - Current lives count
+     * @param {number} totalTime - For pulse animation
+     */
+    function drawLowHPVignette(ctx, lives, totalTime) {
+        const reactive = G.Balance?.REACTIVE_HUD;
+        if (!reactive?.ENABLED) return;
+
+        const threshold = reactive.LIVES_DANGER_THRESHOLD || 1;
+        if (lives > threshold) return;
+
+        const baseAlpha = reactive.LIVES_DANGER_VIGNETTE || 0.05;
+        const pulse = Math.sin(totalTime * 3) * 0.02 + baseAlpha;
+
+        const gradient = ctx.createRadialGradient(
+            gameWidth / 2, gameHeight / 2, Math.min(gameWidth, gameHeight) * 0.3,
+            gameWidth / 2, gameHeight / 2, Math.max(gameWidth, gameHeight) * 0.7
+        );
+        gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+        gradient.addColorStop(1, `rgba(255, 0, 0, ${pulse})`);
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, gameWidth, gameHeight);
+    }
+
     // Getters for state inspection
     function getShake() { return shake; }
     function getHitStopTimer() { return hitStopTimer; }
@@ -345,6 +372,7 @@
         drawHyperOverlay,
         drawSacrificeOverlay,
         drawVignette,
+        drawLowHPVignette,
         // State
         getShake,
         getHitStopTimer,

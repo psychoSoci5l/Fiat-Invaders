@@ -399,7 +399,8 @@ function updateTypedMessages(dt) {
     if (G.MessageSystem) G.MessageSystem.update(dt);
 }
 function drawTypedMessages(ctx) {
-    if (G.MessageSystem) G.MessageSystem.draw(ctx, totalTime);
+    const playerPos = player ? { x: player.x, y: player.y } : null;
+    if (G.MessageSystem) G.MessageSystem.draw(ctx, totalTime, playerPos);
 }
 
 function canOfferPerk(perk) {
@@ -874,10 +875,10 @@ function init() {
     gameContainer = document.getElementById('game-container');
 
     ['intro-screen', 'hangar-screen', 'settings-modal', 'pause-screen', 'gameover-screen',
-        'scoreVal', 'score-ticker', 'meme-ticker', 'lvlVal', 'weaponName', 'shieldBar', 'healthBar', 'finalScore',
+        'scoreVal', 'lvlVal', 'weaponName', 'shieldBar', 'healthBar', 'finalScore',
         'highScoreVal', 'version-tag', 'pause-btn', 'lang-btn', 'control-btn', 'joy-deadzone', 'joy-sensitivity',
-        'ui-layer', 'touchControls', 'livesText', 'perk-modal', 'perk-options', 'perk-skip', 'perk-bar', 'control-toast',
-        'intro-meme', 'gameover-meme', 'killsVal', 'streakVal', 'kill-counter', 'killNum', 'meme-popup'].forEach(id => {
+        'ui-layer', 'touchControls', 'livesText', 'perk-modal', 'perk-options', 'perk-skip', 'control-toast',
+        'intro-meme', 'gameover-meme', 'killsVal', 'streakVal'].forEach(id => {
             const key = id.replace(/-([a-z])/g, (g) => g[1].toUpperCase()).replace('screen', '').replace('Val', '').replace('Bar', 'Bar').replace('layer', 'Layer').replace('Text', 'Text');
             ui[key] = document.getElementById(id);
         });
@@ -1635,8 +1636,8 @@ window.launchShipAndStart = function () {
     requestAnimationFrame(animateLaunch);
 }
 window.togglePause = function () {
-    if (gameState === 'PLAY' || gameState === 'INTERMISSION') { gameState = 'PAUSE'; setStyle('pause-screen', 'display', 'flex'); setStyle('pause-btn', 'display', 'none'); setStyle('weapon-icon', 'display', 'none'); }
-    else if (gameState === 'PAUSE') { gameState = 'PLAY'; setStyle('pause-screen', 'display', 'none'); setStyle('pause-btn', 'display', 'block'); setStyle('weapon-icon', 'display', 'block'); }
+    if (gameState === 'PLAY' || gameState === 'INTERMISSION') { gameState = 'PAUSE'; setStyle('pause-screen', 'display', 'flex'); setStyle('pause-btn', 'display', 'none'); }
+    else if (gameState === 'PAUSE') { gameState = 'PLAY'; setStyle('pause-screen', 'display', 'none'); setStyle('pause-btn', 'display', 'block'); }
 };
 window.restartRun = function () {
     setStyle('pause-screen', 'display', 'none');
@@ -1821,96 +1822,77 @@ function updateLevelUI() {
 }
 
 function updateLivesUI(wasHit = false) {
-    // 1-hit = 1-life system: Hide health bar entirely (not needed with 1 HP)
-    // Find and hide the health container
-    const healthContainer = document.querySelector('.health-container');
-    if (healthContainer) {
-        healthContainer.style.display = 'none';
-    }
-
     // Shake animation when hit
     if (wasHit && ui.livesText) {
         ui.livesText.classList.remove('lives-shake');
         void ui.livesText.offsetWidth; // Force reflow
         ui.livesText.classList.add('lives-shake');
     }
+
+    // v4.4: Reactive HUD - lives danger state
+    const livesEl = document.querySelector('.hud-lives');
+    if (livesEl) {
+        const threshold = G.Balance?.REACTIVE_HUD?.LIVES_DANGER_THRESHOLD || 1;
+        livesEl.classList.toggle('lives-danger', lives <= threshold);
+    }
 }
 
 /**
- * WEAPON EVOLUTION v3.0: Update compact weapon icon (pill design)
- * Shows shot level by default, special icon during specials
- * Modifier states shown via small indicator dots
+ * v4.4: Reactive HUD - dynamic visual feedback on HUD elements
+ * Score color on streaks, HYPER glow, lives danger, graze shimmer
  */
-function updateWeaponStatusHUD() {
-    if (!player || !Balance.WEAPON_EVOLUTION) return;
+let _reactiveStreakClass = '';
+let _reactiveStreakTimer = 0;
 
-    const WE = Balance.WEAPON_EVOLUTION;
-    const iconEl = document.getElementById('weapon-icon');
-    const symbolEl = document.getElementById('weapon-icon-symbol');
+function updateReactiveHUD() {
+    const reactive = G.Balance?.REACTIVE_HUD;
+    if (!reactive?.ENABLED) return;
 
-    if (!iconEl || !symbolEl) return;
+    const scoreEl = document.querySelector('.hud-score-compact');
+    if (!scoreEl) return;
 
-    // Special colors for each type
-    const SPECIAL_COLORS = {
-        HOMING: '#E67E22',
-        PIERCE: '#E74C3C',
-        LASER: '#00FFFF',
-        MISSILE: '#3498DB',
-        SHIELD: '#2ECC71',
-        SPEED: '#F1C40F'
-    };
-
-    // Special icons
-    const SPECIAL_ICONS = {
-        HOMING: '🎯',
-        PIERCE: '🔥',
-        LASER: '⚡',
-        MISSILE: '🚀',
-        SHIELD: '🛡️',
-        SPEED: '💨'
-    };
-
-    // Check if special is active
-    const hasSpecial = player.special && player.specialTimer > 0;
-
-    // Update symbol
-    if (hasSpecial) {
-        // Show special icon + timer
-        const timerSec = Math.ceil(player.specialTimer);
-        symbolEl.textContent = `${SPECIAL_ICONS[player.special] || '?'} ${timerSec}s`;
-        symbolEl.style.letterSpacing = '0';
-        symbolEl.style.fontSize = '12px';
-
-        // Set special color via CSS variable
-        const specialColor = SPECIAL_COLORS[player.special] || '#FFD700';
-        iconEl.style.setProperty('--special-color', specialColor);
-        iconEl.classList.add('special-active');
-    } else {
-        // Show shot level (▸ ▸▸ ▸▸▸)
-        const shotLevel = player.shotLevel || 1;
-        symbolEl.textContent = '▸'.repeat(shotLevel);
-        symbolEl.style.fontSize = '14px';
-
-        iconEl.classList.remove('special-active');
+    // Score streak color (fades after SCORE_STREAK_DURATION)
+    if (_reactiveStreakTimer > 0) {
+        _reactiveStreakTimer -= (1 / 60); // Approximate dt
+        if (_reactiveStreakTimer <= 0 && _reactiveStreakClass) {
+            scoreEl.classList.remove(_reactiveStreakClass);
+            _reactiveStreakClass = '';
+        }
     }
 
-    // Update shot level class
-    iconEl.classList.remove('shot-1', 'shot-2', 'shot-3');
-    iconEl.classList.add(`shot-${player.shotLevel || 1}`);
+    // HYPER mode score glow
+    const isHyper = player && player.hyperActive;
+    scoreEl.classList.toggle('score-hyper', isHyper);
 
-    // Update modifier indicators (dots)
-    const rateActive = player.modifiers?.rate?.level > 0;
-    const powerActive = player.modifiers?.power?.level > 0;
-    const spreadActive = player.modifiers?.spread?.level > 0;
+    // Graze approaching shimmer
+    const grazeMeterEl = document.getElementById('graze-meter');
+    if (grazeMeterEl) {
+        const grazePercent = typeof grazeMeter !== 'undefined' ? grazeMeter : 0;
+        const approaching = grazePercent >= (reactive.GRAZE_APPROACHING_THRESHOLD || 80) && grazePercent < 100;
+        grazeMeterEl.classList.toggle('graze-approaching', approaching);
+    }
+}
 
-    iconEl.classList.toggle('rate-active', rateActive);
-    iconEl.classList.toggle('power-active', powerActive);
-    iconEl.classList.toggle('spread-active', spreadActive);
+// Called from kill streak milestones
+function triggerScoreStreakColor(streakLevel) {
+    const reactive = G.Balance?.REACTIVE_HUD;
+    if (!reactive?.ENABLED) return;
+
+    const scoreEl = document.querySelector('.hud-score-compact');
+    if (!scoreEl) return;
+
+    // Remove old class
+    if (_reactiveStreakClass) scoreEl.classList.remove(_reactiveStreakClass);
+
+    const className = `score-streak-${streakLevel}`;
+    scoreEl.classList.add(className);
+    _reactiveStreakClass = className;
+    _reactiveStreakTimer = reactive.SCORE_STREAK_DURATION || 0.5;
 }
 
 function startGame() {
     audioSys.init();
-    setStyle('intro-screen', 'display', 'none'); setStyle('gameover-screen', 'display', 'none'); setStyle('pause-screen', 'display', 'none'); setStyle('pause-btn', 'display', 'block'); setStyle('weapon-icon', 'display', 'block');
+    setStyle('intro-screen', 'display', 'none'); setStyle('gameover-screen', 'display', 'none'); setStyle('pause-screen', 'display', 'none'); setStyle('pause-btn', 'display', 'block');
     if (ui.uiLayer) ui.uiLayer.style.display = 'flex'; // SHOW HUD
     // Show touch controls with opacity fade-in to avoid visual flash
     if (ui.touchControls) {
@@ -2080,11 +2062,14 @@ function startIntermission(msgOverride) {
         // Note: No showVictory() here - the countdown overlay provides visual feedback
     }
 
-    // Pick a curated meme for the countdown (from Story dialogue data, level-specific)
+    // Pick a TOP meme for the countdown — this is the spotlight moment
+    // Priority: level-specific story dialogues > HIGH+SAYLOR (best memes) > generic
     const dialogues = G.DIALOGUES;
     const levelMemes = dialogues && dialogues.LEVEL_COMPLETE && dialogues.LEVEL_COMPLETE[level];
-    const genericMemes = dialogues && dialogues.LEVEL_COMPLETE_GENERIC;
-    const memePool = levelMemes || genericMemes || [...(Constants.MEMES.LOW || []), ...(Constants.MEMES.SAYLOR || [])];
+    const topMemes = [...(Constants.MEMES.HIGH || []), ...(Constants.MEMES.SAYLOR || [])];
+    const memePool = levelMemes || (topMemes.length > 0 ? topMemes : null)
+        || (dialogues && dialogues.LEVEL_COMPLETE_GENERIC)
+        || [...(Constants.MEMES.LOW || [])];
     // Story dialogues can be strings or {speaker, text} objects
     const picked = memePool[Math.floor(Math.random() * memePool.length)];
     intermissionMeme = (typeof picked === 'string' ? picked : (picked && picked.text)) || "HODL";
@@ -2142,10 +2127,10 @@ function startHorde2() {
     gameState = 'PLAY';
     waveMgr.waveInProgress = false;
 
-    // v4.0.3: Brief notification + flash for horde 2 escalation
-    if (G.MessageSystem && G.MessageSystem.showGameInfo) {
+    // v4.4: Horde 2 notification via WAVE_STRIP
+    if (G.MessageSystem) {
         const text = G.TEXTS?.[currentLang]?.HORDE_2_INCOMING || 'HORDE 2!';
-        G.MessageSystem.showGameInfo(text, 1.0);
+        G.MessageSystem.showWaveStrip(text);
     }
     triggerScreenFlash('WAVE_START');
 
@@ -3520,12 +3505,15 @@ function checkBulletCollisions(b, bIdx) {
                     if (killStreak === 10) {
                         applyHitStop('STREAK_10', false); // Slowmo for milestone
                         triggerScreenFlash('STREAK_10');
+                        triggerScoreStreakColor(10);
                     } else if (killStreak === 25) {
                         applyHitStop('STREAK_25', false);
                         triggerScreenFlash('STREAK_25');
+                        triggerScoreStreakColor(25);
                     } else if (killStreak === 50) {
                         applyHitStop('STREAK_50', false);
                         triggerScreenFlash('STREAK_50');
+                        triggerScoreStreakColor(50);
                     }
                 } else {
                     killStreak = 1;
@@ -3867,8 +3855,7 @@ function executeDeath() {
     // WEAPON EVOLUTION v3.0: Apply death penalty (soft reset)
     if (player.applyDeathPenalty && Balance.WEAPON_EVOLUTION) {
         player.applyDeathPenalty();
-        // Update weapon HUD after penalty
-        updateWeaponStatusHUD();
+        // v4.4: weapon status now shown via diegetic pips on ship
     }
 
     if (lives > 0) {
@@ -4099,25 +4086,41 @@ function draw() {
             ctx.strokeText(countdown.toString(), 0, 0);
             ctx.fillText(countdown.toString(), 0, 0);
 
-            // Meme text (bottom, gold - merged with countdown box)
+            ctx.restore();
+
+            // Meme text — SEPARATED from countdown (no bounce/scale), static at bottom
             if (intermissionMeme) {
-                // v4.1.2: Larger font sizes for readability
+                ctx.save();
                 const memeLen = intermissionMeme.length;
-                const memeFontSize = memeLen > 40 ? 12 : memeLen > 25 ? 14 : 16;
+                const memeFontSize = memeLen > 40 ? 16 : memeLen > 25 ? 18 : 22;
                 const memeMaxChars = 50;
-                ctx.font = `bold ${memeFontSize}px "Press Start 2P", monospace`;
-                ctx.fillStyle = '#FFD700';
-                ctx.strokeStyle = '#000';
-                ctx.lineWidth = 3;
+                const memeY = gameHeight * 0.78;
+
+                // Fade in smoothly (full alpha after 0.5s)
+                const memeAlpha = Math.min(1, (Balance.TIMING.INTERMISSION_DURATION - timer + 0.1) * 2);
+                ctx.globalAlpha = memeAlpha;
+
+                ctx.font = `italic bold ${memeFontSize}px "Press Start 2P", monospace`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
                 // Truncate if too long, wrap in quotes
                 const memeDisplay = intermissionMeme.length > memeMaxChars
-                    ? '"' + intermissionMeme.substring(0, memeMaxChars - 3) + '..."'
-                    : '"' + intermissionMeme + '"';
-                ctx.strokeText(memeDisplay, 0, 48);
-                ctx.fillText(memeDisplay, 0, 48);
-            }
+                    ? '\u201C' + intermissionMeme.substring(0, memeMaxChars - 3) + '...\u201D'
+                    : '\u201C' + intermissionMeme + '\u201D';
 
-            ctx.restore();
+                // Subtle gold glow
+                ctx.shadowColor = '#F7931A';
+                ctx.shadowBlur = 12;
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 4;
+                ctx.fillStyle = '#FFD700';
+                ctx.strokeText(memeDisplay, centerX, memeY);
+                ctx.fillText(memeDisplay, centerX, memeY);
+                ctx.shadowBlur = 0;
+
+                ctx.restore();
+            }
         }
 
         // Reset countdown tracker when leaving intermission
@@ -4141,6 +4144,8 @@ function draw() {
     if (G.EffectsRenderer) {
         G.EffectsRenderer.drawScreenFlash(ctx);
         G.EffectsRenderer.drawScorePulse(ctx);
+        // v4.4: Low-HP danger vignette
+        G.EffectsRenderer.drawLowHPVignette(ctx, lives, totalTime);
     }
 
     ctx.restore(); // Restore shake
@@ -4692,8 +4697,20 @@ function loop(timestamp) {
 
     update(dt);
     updatePowerUps(dt);
-    // WEAPON EVOLUTION v3.0: Update weapon status HUD
-    updateWeaponStatusHUD();
+    // v4.4: Expose state to player for diegetic HUD drawing
+    if (player) {
+        player._livesDisplay = lives;
+        player._grazePercent = typeof grazeMeter !== 'undefined' ? grazeMeter : 0;
+        player._weaponState = {
+            shotLevel: player.shotLevel || 1,
+            modifiers: player.modifiers,
+            special: player.special,
+            specialTimer: player.specialTimer
+        };
+    }
+
+    // v4.4: Reactive HUD - score streak colors + HYPER score
+    updateReactiveHUD();
     // Sky update via SkyRenderer
     if (G.SkyRenderer) {
         const skyEffects = G.SkyRenderer.update(dt, { isBearMarket, gameState });
@@ -4847,7 +4864,6 @@ function triggerGameOver() {
     if (ui.kills) ui.kills.innerText = killCount;
     if (ui.streak) ui.streak.innerText = bestStreak;
     setStyle('pause-btn', 'display', 'none');
-    setStyle('weapon-icon', 'display', 'none');
     audioSys.play('explosion');
 }
 
