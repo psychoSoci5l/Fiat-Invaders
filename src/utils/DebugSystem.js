@@ -805,14 +805,15 @@ window.Game.Debug = {
 
         ctx.save();
 
-        // Semi-transparent background
+        // Semi-transparent background (dynamic height based on content)
+        const overlayHeight = G._hudState ? 620 : 440;
         ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
-        ctx.fillRect(5, 100, 180, 380);
+        ctx.fillRect(5, 100, 185, overlayHeight);
 
         // Border
         ctx.strokeStyle = '#00ff00';
         ctx.lineWidth = 2;
-        ctx.strokeRect(5, 100, 180, 380);
+        ctx.strokeRect(5, 100, 185, overlayHeight);
 
         // Title
         ctx.fillStyle = '#00ff00';
@@ -898,10 +899,68 @@ window.Game.Debug = {
             ctx.fillText(`Phase: ${conductor.waveIntensity?.currentPhase || 'N/A'}`, 12, y); y += lineHeight;
         }
 
+        // Rank System
+        const rankSys = G.RankSystem;
+        if (rankSys && G.Balance?.RANK?.ENABLED) {
+            y += 5;
+            ctx.fillStyle = '#ffa500';
+            ctx.fillText('─── RANK ───', 12, y); y += lineHeight;
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText(`Rank: ${rankSys.getRankLabel()} (${rankSys.rank.toFixed(2)})`, 12, y); y += lineHeight;
+            ctx.fillText(`FR Mult: ${rankSys.getFireRateMultiplier().toFixed(2)}x`, 12, y); y += lineHeight;
+            ctx.fillText(`Count Mult: ${rankSys.getEnemyCountMultiplier().toFixed(2)}x`, 12, y); y += lineHeight;
+        }
+
+        // HUD State (v4.1.1)
+        const hud = G._hudState;
+        if (hud) {
+            y += 5;
+            ctx.fillStyle = '#00ff99';
+            ctx.fillText('─── HUD ───', 12, y); y += lineHeight;
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText(`Score: ${hud.score}  Lives: ${hud.lives}`, 12, y); y += lineHeight;
+            ctx.fillText(`Graze: ${hud.grazeMeter.toFixed(0)}%  x${hud.grazeMultiplier.toFixed(1)}`, 12, y); y += lineHeight;
+            ctx.fillText(`Streak: ${hud.killStreak} (best:${hud.bestStreak})`, 12, y); y += lineHeight;
+            ctx.fillText(`Floats:${hud.floatingTexts} Perks:${hud.perkIcons}`, 12, y); y += lineHeight;
+
+            // Player state
+            const p = hud.player;
+            if (p) {
+                ctx.fillStyle = '#F7931A';
+                ctx.fillText(`${p.type} [${p.x},${p.y}]`, 12, y); y += lineHeight;
+                ctx.fillStyle = '#ffffff';
+                const shieldTxt = p.shieldActive ? 'ACTIVE' : (p.shieldCooldown > 0 ? p.shieldCooldown.toFixed(1) + 's' : 'ready');
+                ctx.fillText(`Shield: ${shieldTxt}`, 12, y); y += lineHeight;
+                const hyperTxt = p.isHyper ? `ON ${p.hyperTimer.toFixed(1)}s` : (p.hyperAvailable ? 'READY' : 'charging');
+                ctx.fillText(`HYPER: ${hyperTxt}`, 12, y); y += lineHeight;
+                ctx.fillText(`Shot:${p.shotLevel} Spc:${p.special || '-'}`, 12, y); y += lineHeight;
+                if (p.special) {
+                    ctx.fillText(`  Timer: ${p.specialTimer.toFixed(1)}s`, 12, y); y += lineHeight;
+                }
+            }
+
+            // Intermission state
+            if (hud.gameState === 'INTERMISSION') {
+                ctx.fillStyle = '#FFD700';
+                ctx.fillText(`Countdown: ${hud.intermissionTimer.toFixed(1)}s`, 12, y); y += lineHeight;
+                if (hud.intermissionMeme) {
+                    const memePreview = hud.intermissionMeme.length > 18 ? hud.intermissionMeme.substring(0, 16) + '..' : hud.intermissionMeme;
+                    ctx.fillText(`Meme: ${memePreview}`, 12, y); y += lineHeight;
+                }
+            }
+
+            // Messages / Dialogue state
+            ctx.fillStyle = '#cccccc';
+            const msgTxt = hud.msgSystem.hasActive ? 'ACTIVE' : 'idle';
+            const dlgTxt = hud.dialogue.visible ? 'VISIBLE' : 'hidden';
+            ctx.fillText(`Msgs:${msgTxt} Dlg:${dlgTxt}`, 12, y); y += lineHeight;
+        }
+
         // Session time
         const sessionTime = ((Date.now() - this.sessionStart) / 1000).toFixed(0);
         ctx.fillStyle = '#888888';
-        ctx.fillText(`Session: ${sessionTime}s`, 12, 475);
+        y += 5;
+        ctx.fillText(`Session: ${sessionTime}s`, 12, y);
 
         ctx.restore();
     },
@@ -967,8 +1026,105 @@ window.Game.Debug = {
                 generation: G.HarmonicConductor?.generation || 0,
                 hasSequence: !!G.HarmonicConductor?.currentSequence,
                 phase: G.HarmonicConductor?.waveIntensity?.currentPhase,
-            }
+            },
+            hud: G._hudState || null
         };
+    },
+
+    // ========== HUD DEBUG COMMANDS v4.1.1 ==========
+
+    /**
+     * Quick setup for HUD debugging
+     */
+    debugHUD() {
+        this.ENABLED = true;
+        this.OVERLAY_ENABLED = true;
+        this.categories.STATE = true;
+        this.categories.PERK = true;
+        this.categories.DROP = true;
+        console.log('[DEBUG] HUD debugging enabled with overlay');
+    },
+
+    /**
+     * Show full HUD state snapshot in console
+     */
+    hudStatus() {
+        const G = window.Game;
+        const hud = G._hudState;
+        if (!hud) {
+            console.log('[DEBUG] HUD state not available (overlay must run once first, try dbg.showOverlay())');
+            return;
+        }
+
+        console.log('%c═══ HUD STATUS ═══', 'color: #00ff99; font-weight: bold; font-size: 14px');
+
+        // Core game state
+        console.log(`%c  State: ${hud.gameState}  Score: ${hud.score}  Lives: ${hud.lives}  Level: ${hud.level}`, 'color: #fff');
+
+        // Graze & streak
+        console.log(`%c  Graze: ${hud.grazeMeter.toFixed(1)}% (${hud.grazeCount} total) x${hud.grazeMultiplier.toFixed(2)}`, 'color: #0ff');
+        console.log(`%c  Streak: ${hud.killStreak} (best: ${hud.bestStreak}) x${hud.killStreakMult.toFixed(2)}`, 'color: #ff0');
+
+        // Floating elements
+        console.log(`%c  Floating texts: ${hud.floatingTexts}  Perk icons: ${hud.perkIcons}`, 'color: #aaa');
+
+        // Player
+        const p = hud.player;
+        if (p) {
+            console.log(`%c  Player: ${p.type} at [${p.x}, ${p.y}]`, 'color: #F7931A; font-weight: bold');
+            console.log(`    Shield: ${p.shieldActive ? 'ACTIVE' : (p.shieldCooldown > 0 ? 'cooldown ' + p.shieldCooldown.toFixed(1) + 's' : 'ready')}`);
+            console.log(`    HYPER: ${p.isHyper ? 'ACTIVE ' + p.hyperTimer.toFixed(1) + 's' : (p.hyperAvailable ? 'READY' : 'charging')}`);
+            console.log(`    Weapon: Shot Lv${p.shotLevel}  Special: ${p.special || 'none'}${p.special ? ' (' + p.specialTimer.toFixed(1) + 's)' : ''}`);
+        } else {
+            console.log(`%c  Player: NOT FOUND`, 'color: #f00');
+        }
+
+        // Intermission
+        if (hud.gameState === 'INTERMISSION') {
+            console.log(`%c  Countdown: ${hud.intermissionTimer.toFixed(1)}s`, 'color: #FFD700');
+            console.log(`  Meme: "${hud.intermissionMeme || '(none)'}"`);
+        }
+
+        // Messages & dialogue
+        console.log(`  Messages: ${hud.msgSystem.hasActive ? 'ACTIVE' : 'idle'}  Dialogue: ${hud.dialogue.visible ? 'VISIBLE' : 'hidden'}`);
+
+        // Boss warning
+        if (hud.bossWarningTimer > 0) {
+            console.log(`%c  BOSS WARNING: ${hud.bossWarningTimer.toFixed(1)}s`, 'color: #f00; font-weight: bold');
+        }
+
+        // Perk cooldown / bullet cancel
+        if (hud.perkCooldown > 0) console.log(`  Perk cooldown: ${hud.perkCooldown.toFixed(1)}s`);
+        if (hud.bulletCancelStreak > 0) console.log(`  Cancel streak: ${hud.bulletCancelStreak}`);
+
+        // HUD_MESSAGES toggles
+        const hmsg = G.Balance?.HUD_MESSAGES;
+        if (hmsg) {
+            console.log('%c  ─── Message Toggles ───', 'color: #888');
+            console.log(`    GAME_INFO:${hmsg.GAME_INFO ? '✓' : '✗'}  DANGER:${hmsg.DANGER ? '✓' : '✗'}  VICTORY:${hmsg.VICTORY ? '✓' : '✗'}`);
+            console.log(`    PERK:${hmsg.PERK_NOTIFICATION ? '✓' : '✗'}  FLOAT:${hmsg.FLOATING_TEXT ? '✓' : '✗'}  MEME:${hmsg.MEME_POPUP ? '✓' : '✗'}`);
+        }
+    },
+
+    /**
+     * Toggle a HUD_MESSAGES flag at runtime
+     * @param {string} key - e.g. 'FLOATING_TEXT', 'MEME_POPUP', 'DANGER'
+     * @param {boolean} [value] - true/false (omit to toggle)
+     */
+    toggleHudMsg(key, value) {
+        const hmsg = window.Game.Balance?.HUD_MESSAGES;
+        if (!hmsg) {
+            console.log('[DEBUG] Balance.HUD_MESSAGES not found');
+            return;
+        }
+        const k = key.toUpperCase();
+        if (!(k in hmsg)) {
+            console.log(`[DEBUG] Unknown HUD_MESSAGES key: ${k}`);
+            console.log(`  Available: ${Object.keys(hmsg).filter(k => typeof hmsg[k] === 'boolean').join(', ')}`);
+            return;
+        }
+        hmsg[k] = value !== undefined ? !!value : !hmsg[k];
+        console.log(`[DEBUG] HUD_MESSAGES.${k} = ${hmsg[k]}`);
     },
 
     // ========== WEAPON EVOLUTION v3.0 DEBUG COMMANDS ==========
@@ -1083,4 +1239,4 @@ window.Game.Debug = {
 window.dbg = window.Game.Debug;
 
 // Console helper message
-console.log('[DEBUG] DebugSystem loaded. Commands: dbg.stats(), dbg.showOverlay(), dbg.debugBoss(), dbg.maxWeapon(), dbg.weaponStatus()');
+console.log('[DEBUG] DebugSystem loaded. Commands: dbg.stats(), dbg.showOverlay(), dbg.debugBoss(), dbg.debugHUD(), dbg.hudStatus(), dbg.toggleHudMsg(key), dbg.maxWeapon(), dbg.weaponStatus()');

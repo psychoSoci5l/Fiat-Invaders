@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v4.0.0 FIAT vs CRYPTO";
+window.Game.VERSION = "v4.1.2 FIAT vs CRYPTO";
 
 window.Game.TEXTS = {
     EN: {
@@ -425,7 +425,7 @@ window.Game.MINION_TYPE = {
 
 window.Game.SHIPS = {
     BTC: { speed: 420, hp: 3, fireRate: 0.26, baseDamage: 14, color: '#F7931A', hitboxSize: 30, coreHitboxSize: 6 },
-    ETH: { speed: 320, hp: 4, fireRate: 0.57, baseDamage: 22, color: '#8c7ae6', hitboxSize: 38, coreHitboxSize: 8 },
+    ETH: { speed: 320, hp: 4, fireRate: 0.40, baseDamage: 28, color: '#8c7ae6', hitboxSize: 38, coreHitboxSize: 7 }, // v4.0.2: Tank rebalance
     SOL: { speed: 560, hp: 2, fireRate: 0.20, baseDamage: 10, color: '#00d2d3', hitboxSize: 18, coreHitboxSize: 4 }
 };
 

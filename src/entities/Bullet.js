@@ -109,7 +109,7 @@ class Bullet extends window.Game.Entity {
 
                 // Normalize speed
                 const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy) || 1;
-                const targetSpeed = 200; // Base homing speed
+                const targetSpeed = this.maxSpeed || 200; // Use maxSpeed if set, else default
                 this.vx = (this.vx / speed) * targetSpeed;
                 this.vy = (this.vy / speed) * targetSpeed;
             }
@@ -117,8 +117,10 @@ class Bullet extends window.Game.Entity {
 
         super.update(dt);
         this.age += dt; // Track age for animations
-        // Bounds check (vertical only for now)
-        if (this.y < -50 || this.y > 850) {
+        // Bounds check (vertical + horizontal)
+        // v4.0.1: Added horizontal bounds to prevent lateral bullets persisting indefinitely
+        const gw = window.Game._gameWidth || 600;
+        if (this.y < -50 || this.y > 850 || this.x < -100 || this.x > gw + 100) {
             this.markedForDeletion = true;
         }
     }
@@ -967,7 +969,7 @@ class Bullet extends window.Game.Entity {
         ctx.fillStyle = this.color;
         ctx.globalAlpha = 0.3 * pulse * beatBoost;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, r + 8 + (this.beatSynced ? 4 : 0), 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, r + 6 + (this.beatSynced ? 3 : 0), 0, Math.PI * 2);
         ctx.fill();
         ctx.globalAlpha = 1;
 
@@ -979,8 +981,9 @@ class Bullet extends window.Game.Entity {
         ctx.stroke();
 
         // === DIFFERENT: Spinning ellipse core instead of circle ===
+        // v4.0.4: Increased from 0.8/0.4 to 0.9/0.5 for better visibility
         const rotation = this.age * 12; // Spin speed
-        const ellipseWidth = Math.abs(Math.cos(rotation)) * r * 0.8 + r * 0.4;
+        const ellipseWidth = Math.abs(Math.cos(rotation)) * r * 0.9 + r * 0.5;
 
         // Main coin body (ellipse)
         ctx.fillStyle = this.color;
@@ -1054,7 +1057,7 @@ class Bullet extends window.Game.Entity {
         ctx.fillStyle = this.color;
         ctx.globalAlpha = 0.3 * pulse * beatBoost;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, r + 8 + (this.beatSynced ? 4 : 0), 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, r + 6 + (this.beatSynced ? 3 : 0), 0, Math.PI * 2);
         ctx.fill();
         ctx.globalAlpha = 1;
 
@@ -1074,8 +1077,9 @@ class Bullet extends window.Game.Entity {
         ctx.rotate(angle + Math.PI / 2); // Point in direction of travel
 
         // Main paper body (V-shape / folded bill)
-        const w = r * 1.2 * pulse;
-        const h = r * 1.4;
+        // v4.0.4: Increased from 1.2/1.4 to 1.4/1.6 for better visibility
+        const w = r * 1.4 * pulse;
+        const h = r * 1.6;
 
         // Paper body
         ctx.fillStyle = this.color;
@@ -1157,7 +1161,7 @@ class Bullet extends window.Game.Entity {
         ctx.fillStyle = this.color;
         ctx.globalAlpha = 0.3 * pulse * beatBoost;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, r + 8 + (this.beatSynced ? 4 : 0), 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, r + 6 + (this.beatSynced ? 3 : 0), 0, Math.PI * 2);
         ctx.fill();
         ctx.globalAlpha = 1;
 
@@ -1177,8 +1181,9 @@ class Bullet extends window.Game.Entity {
         ctx.translate(this.x, this.y);
 
         // Ingot dimensions
-        const w = r * 1.3 * pulse;
-        const h = r * 0.8;
+        // v4.0.4: Increased from 1.3/0.8 to 1.5/0.95 for better visibility
+        const w = r * 1.5 * pulse;
+        const h = r * 0.95;
         const topW = w * 0.6; // Top face is narrower (trapezoid)
 
         // Calculate 3D offset based on tumble
@@ -1279,7 +1284,7 @@ class Bullet extends window.Game.Entity {
         ctx.fillStyle = this.color;
         ctx.globalAlpha = 0.3 * pulse * beatBoost;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, r + 8 + (this.beatSynced ? 4 : 0), 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, r + 6 + (this.beatSynced ? 3 : 0), 0, Math.PI * 2);
         ctx.fill();
         ctx.globalAlpha = 1;
 
@@ -1297,8 +1302,9 @@ class Bullet extends window.Game.Entity {
         ctx.translate(this.x + glitch, this.y);
 
         // Card dimensions (rectangle)
-        const w = r * 1.1 * pulse;
-        const h = r * 0.8 * pulse;
+        // v4.0.4: Increased from 1.1/0.8 to 1.25/0.95 for better visibility
+        const w = r * 1.25 * pulse;
+        const h = r * 0.95 * pulse;
 
         // Main card body (rounded rectangle)
         ctx.fillStyle = this.color;
@@ -1414,7 +1420,7 @@ class Bullet extends window.Game.Entity {
         ctx.fillStyle = this.color;
         ctx.globalAlpha = 0.3 * pulse * beatBoost;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, r + 8 + (this.beatSynced ? 4 : 0), 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, r + 6 + (this.beatSynced ? 3 : 0), 0, Math.PI * 2);
         ctx.fill();
         ctx.globalAlpha = 1;
 

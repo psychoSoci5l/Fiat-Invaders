@@ -1,5 +1,203 @@
 # Changelog
 
+## v4.1.2 - 2026-02-05
+### Fix: Formations, Overlaps & Meme Readability
+
+#### Formation Generator Fixes (Critical Bug)
+- **DIAMOND**: Fixed `size = ceil(sqrt(count))` producing only 6/12 enemies; now iterates until diamond capacity >= count
+- **ARROW**: Fixed `rows = ceil(count/3)` underfilling; now uses triangle capacity formula `rows*(rows+1)/2 >= count`
+- **CHEVRON**: Fixed `rows = ceil(count/2)` giving capacity 2*rows-1 < count; now iterates correctly
+- **FORTRESS**: Fixed `size = ceil(sqrt(count))` with perimeter capacity 4*(size-1)+1 < count; now iterates to fit
+- **CROSS, STAIRCASE**: Removed early-cutoff guards that truncated shapes
+
+#### Full Shape Generation + Even-Distribution Thinning
+- All geometric generators now produce their FULL shape (no more bottom-row truncation)
+- When shape capacity > count, even-distribution sampling preserves outline while thinning interior
+- Diamonds close properly, chevrons reach their center point, staircases have full widest row
+
+#### Safety Net (Universal Fill Pass)
+- After every formation generator, if `positions.length < count`, extra rows are appended below
+- Logs warning via DebugSystem when safety net activates
+- Prevents any future formation from silently dropping enemies
+
+#### Overlap Prevention (Y Factor Fixes)
+- DIAMOND Y factor: 0.7 → 0.8 (68px gap, was 60px)
+- CHEVRON Y factor: 0.6 → 0.75 (64px gap, was 51px - OVERLAP)
+- PINCER Y factor: 0.7 → 0.8, X factor: 0.6 → 0.7
+- GAUNTLET Y factor: 0.7 → 0.8
+- FLANKING Y factor: 0.7 → 0.8
+- STAIRCASE Y factor: 0.7 → 0.8
+- FORTRESS factor: 0.8 → 0.85 (72px gap)
+
+#### Meme Countdown Readability
+- Font sizes increased: 14/12/10px → 16/14/12px
+- Max chars before truncation: 45 → 50
+- Breakpoints adjusted: >30/>20 → >40/>25 chars
+
+## v4.1.1 - 2026-02-05
+### Polish Pass: Visual & Balance Tweaks
+
+#### Intermission Meme Merge
+- Meme source changed from generic pool to curated Story dialogues (level-specific)
+- Story dialogue box (bottom bar) suppressed during intermission - single display in countdown
+- Boss defeat intermission uses boss-specific defeat quotes
+- Gold color (#FFD700), auto-scaling font (14/12/10px based on length), quotation marks
+- DialogueUI.hide() called on intermission start to prevent overlap
+
+#### Wave 1-2 Enemy Count Buff
+- Wave 1: 8+6=14 → 12+10=22 enemies (fills the screen better)
+- Wave 2: 10+8=18 → 14+12=26 enemies (smoother progression)
+- Still weak currencies only (¥₽₹), tutorial feel maintained
+
+#### Formation Overlap Fix
+- Base SPACING: 75 → 85 pixels (+13%, prevents enemy overlap in all formations)
+- SPIRAL_RADIUS_STEP: 12 → 16 (+33%, fixes worst-case spiral overlap)
+
+#### HUD Debug System
+- New `dbg.debugHUD()` preset: enables overlay with HUD-relevant categories
+- New `dbg.hudStatus()`: full HUD state snapshot in console (score, lives, graze, streak, player, shield, HYPER, weapon, messages, dialogue)
+- New `dbg.toggleHudMsg(key)`: toggle HUD_MESSAGES flags at runtime (e.g. FLOATING_TEXT, MEME_POPUP)
+- Debug overlay expanded with HUD section: score/lives, graze meter, kill streak, floating text/perk icon counts, player state (position, shield, HYPER, weapon), intermission countdown + meme preview, message/dialogue activity
+- `G._hudState` exposed per-frame for debug overlay access
+- Overlay background height now dynamic (620px when HUD data available)
+
+---
+
+## v4.1.0 - 2026-02-05
+### Gameplay Polish: Rank System (Dynamic Difficulty)
+
+New dynamic difficulty adjustment system that adapts to player skill in real-time.
+
+#### Rank System (RankSystem.js)
+- **Rank value**: -1.0 (struggling) to +1.0 (dominating), 0 = neutral
+- **Rolling window**: 30-second performance tracking (kills/sec, grazes/sec)
+- **Death penalty**: Rank drops -0.15 on death, resets momentum
+- **Fire rate adjustment**: 0.8x (easy) to 1.2x (hard) enemy fire rate
+- **Enemy count adjustment**: 0.85x (fewer) to 1.15x (more) enemies per wave
+- **Convergence**: Rank slowly drifts to neutral over time
+- **Labels**: EASY / GENTLE / NORMAL / HARD / BRUTAL
+
+#### Integration Points
+- HarmonicConductor: Fire rate multiplier applied to tempo
+- WaveManager: Enemy count multiplier applied to wave spawning
+- Debug overlay: Shows rank label, value, and multipliers
+
+#### Configuration
+```javascript
+Balance.RANK = {
+    ENABLED: true, WINDOW_SIZE: 30,
+    FIRE_RATE_RANGE: 0.20, ENEMY_COUNT_RANGE: 0.15,
+    DEATH_PENALTY: 0.15, CONVERGENCE_SPEED: 0.5
+}
+```
+
+#### Files
+- NEW: `src/systems/RankSystem.js`
+- Modified: `main.js`, `HarmonicConductor.js`, `WaveManager.js`, `BalanceConfig.js`, `DebugSystem.js`, `index.html`, `sw.js`
+
+---
+
+## v4.0.4 - 2026-02-05
+### HYPER Touch Button & Enemy Bullet Differentiation
+
+#### HYPER Touch Button (Mobile)
+- New circular gold button for HYPER mode activation on touch devices
+- Positioned right side, matching shield button style
+- Three states: hidden (meter < 100), ready (gold pulse), active (bright gold)
+- Touch handler in InputSystem with same pattern as shield button
+
+#### Enemy Bullet Tier Differentiation
+- Reduced outer glow radius (-25%) for less visual noise
+- Increased internal shape sizes (+15%) for better readability:
+  - Coin ellipse: 0.8/0.4 → 0.9/0.5
+  - Bill V-shape: 1.2/1.4 → 1.4/1.6
+  - Bar ingot: 1.3/0.8 → 1.5/0.95
+  - Card rectangle: 1.1/0.8 → 1.25/0.95
+
+#### Files
+- Modified: `index.html`, `style.css`, `InputSystem.js`, `main.js`, `Bullet.js`
+
+---
+
+## v4.0.3 - 2026-02-05
+### Wave Choreography & Formations
+
+#### Diversified Horde 2 Formations
+All 15 waves now use complementary H1/H2 formation pairing:
+- DIAMOND↔PINCER, ARROW↔CHEVRON, FORTRESS↔SCATTER, etc.
+- Each horde presents a different spatial challenge
+
+#### Horde 2 Notification
+- Added "HORDE 2 INCOMING" message with WAVE_START flash
+- Uses existing localization key `HORDE_2_INCOMING`
+
+#### Smoothed Difficulty Curve (Cycle 1→2)
+- CYCLE_BASE: [0.0, 0.30, 0.60] → [0.0, 0.20, 0.55]
+- WAVE_SCALE: 0.03 → 0.04
+- Jump reduced from +150% to +25% between cycles
+
+#### STAIRCASE Formation Fix
+- Rows now centered on screen width (was left-aligned from x=80)
+
+#### Formation Config Extraction
+- New `Balance.FORMATION` block with SPACING, START_Y, MARGIN, SPIRAL params
+- WaveManager reads from config instead of hardcoded values
+
+#### Files
+- Modified: `BalanceConfig.js`, `WaveManager.js`, `main.js`
+
+---
+
+## v4.0.2 - 2026-02-05
+### Fairness Fixes
+
+#### BOJ Phase 3 Telegraph System
+- Replaced random 8%/frame aimed burst with cooldown-based system
+- 2.5s cooldown between interventions
+- 0.4s telegraph: red dashed line + crosshair warning before burst
+- Reduced: count 7→5, speed 320→240
+
+#### BCE Phase 3 Barrier Gap Coordination
+- Barrier 2 gap offset by PI from barrier 1 (guaranteed opposite side)
+- Curtain gap follows safe corridor midpoint
+- Always a navigable path through double barriers
+
+#### ETH Ship Rebalance + Smart Contract
+- Fire rate: 0.57s → 0.40s, Damage: 22 → 28, Hitbox: 8 → 7
+- New "Smart Contract" mechanic: consecutive hits on same enemy within 0.5s give +15% stacking damage
+
+#### Second Wind Perk (replaces Reinforced Plating)
+- Old perk was useless in 1-hit system (added maxHpBonus)
+- New effect: 0.5s invulnerability when shield expires
+
+#### Close Graze Distinction
+- CLOSE_RADIUS: 23 → 18px (7px gap from normal, was 2px)
+- CLOSE_BONUS: 3 → 4 (4x multiplier)
+
+#### Files
+- Modified: `Boss.js`, `BalanceConfig.js`, `Constants.js`, `Upgrades.js`, `Player.js`, `main.js`
+
+---
+
+## v4.0.1 - 2026-02-05
+### Bug Fixes & Quick Wins
+
+#### Bug Fixes
+1. **GLOBAL_BULLET_CAP path**: Fixed lookup from `Balance.ENEMY_FIRE?.PATTERNS` to `Balance.PATTERNS`
+2. **Homing bullet speed**: Changed hardcoded `200` to `this.maxSpeed || 200`
+3. **Boss homing missiles**: Added missing `isHoming`/`homingStrength`/`maxSpeed` property copy for boss bullets
+4. **Horizontal bullet bounds**: Added `x < -100 || x > gameWidth + 100` check (bullets no longer persist off-screen)
+
+#### Config Toggles
+5. **STREAK_FLASH**: Enabled by default (was false)
+6. **SCORE_PULSE**: Enabled by default (was false)
+7. **Particle cap**: Increased from 80 to 120 (both ParticleSystem.js and BalanceConfig.js)
+
+#### Files
+- Modified: `main.js`, `Bullet.js`, `BalanceConfig.js`, `ParticleSystem.js`
+
+---
+
 ## v4.0.0 - 2026-02-04
 ### Wave/Horde System Redesign - Complete Overhaul
 

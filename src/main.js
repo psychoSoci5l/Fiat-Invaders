@@ -18,6 +18,7 @@ let userLang = navigator.language || navigator.userLanguage;
 let currentLang = userLang.startsWith('it') ? 'IT' : 'EN';
 let isBearMarket = false; // 🐻
 window.isBearMarket = isBearMarket; // Expose globally for WaveManager
+G._gameWidth = gameWidth; // v4.0.1: Expose for Bullet horizontal bounds check
 
 // Game Entities
 let player;
@@ -209,7 +210,7 @@ function t(key) { return Constants.TEXTS[currentLang][key] || key; }
 
 // v2.24.6: Global bullet cap check (prevents runaway patterns like BOJ mini-boss)
 function canSpawnEnemyBullet() {
-    const cap = Balance.ENEMY_FIRE?.PATTERNS?.GLOBAL_BULLET_CAP || 150;
+    const cap = Balance.PATTERNS?.GLOBAL_BULLET_CAP || 150;
     return enemyBullets.length < cap;
 }
 
@@ -267,6 +268,40 @@ function updateShieldButton(player) {
         if (progressCircle) progressCircle.style.strokeDashoffset = '0';
     }
 }
+
+// v4.0.4: HYPER button state update (mirrors shield button pattern)
+function updateHyperButton(player, grazeMeter) {
+    const btn = document.getElementById('t-hyper');
+    if (!btn) return;
+
+    // Show only on touch devices
+    if ('ontouchstart' in window && gameState === 'PLAY') {
+        btn.classList.add('visible');
+    } else {
+        btn.classList.remove('visible');
+        return;
+    }
+
+    const progressCircle = btn.querySelector('.hyper-radial-progress');
+    const CIRCUMFERENCE = 188.5;
+    const threshold = Balance.HYPER?.METER_THRESHOLD || 100;
+
+    btn.classList.remove('ready', 'active');
+
+    if (player.isHyperActive && player.isHyperActive()) {
+        btn.classList.add('active');
+        if (progressCircle) progressCircle.style.strokeDashoffset = '0';
+    } else if (player.canActivateHyper && player.canActivateHyper(grazeMeter)) {
+        btn.classList.add('ready');
+        if (progressCircle) progressCircle.style.strokeDashoffset = '0';
+    } else {
+        // Show meter fill progress
+        const progress = Math.min(1, grazeMeter / threshold);
+        const offset = CIRCUMFERENCE * (1 - progress);
+        if (progressCircle) progressCircle.style.strokeDashoffset = String(offset);
+    }
+}
+
 // Meme functions delegate to MemeEngine singleton
 function getRandomMeme() { return G.MemeEngine.getRandomMeme(); }
 function getFiatDeathMeme() { return G.MemeEngine.getEnemyDeathMeme(); }
@@ -1149,6 +1184,9 @@ function resize() {
     canvas.width = gameWidth;
     canvas.height = gameHeight;
 
+    // v4.0.1: Expose gameWidth for Bullet horizontal bounds check
+    G._gameWidth = gameWidth;
+
     if (player) {
         player.gameWidth = gameWidth;
         player.gameHeight = gameHeight;
@@ -1829,6 +1867,8 @@ function startGame() {
     }
 
     if (runState && runState.reset) runState.reset();
+    // v4.1.0: Initialize rank system
+    if (G.RankSystem) G.RankSystem.init();
     // 1-hit = 1-life system: ignore stats.hp and bonuses
     player.maxHp = 1;
     player.hp = 1;
@@ -1951,6 +1991,9 @@ function startIntermission(msgOverride) {
     waveMgr.intermissionTimer = Balance.TIMING.INTERMISSION_DURATION;
     waveMgr.waveInProgress = false; // Safety reset
 
+    // Hide any active story dialogue box - meme is shown in countdown overlay instead
+    if (G.DialogueUI && G.DialogueUI.isVisible) G.DialogueUI.hide();
+
     // v2.22.5: Track intermission event
     G.Debug.trackIntermission(level, waveMgr.wave);
 
@@ -1979,9 +2022,14 @@ function startIntermission(msgOverride) {
         // Note: No showVictory() here - the countdown overlay provides visual feedback
     }
 
-    // Pick a random meme for the countdown
-    const memePool = [...(Constants.MEMES.LOW || []), ...(Constants.MEMES.SAYLOR || [])];
-    intermissionMeme = memePool[Math.floor(Math.random() * memePool.length)] || "HODL";
+    // Pick a curated meme for the countdown (from Story dialogue data, level-specific)
+    const dialogues = G.DIALOGUES;
+    const levelMemes = dialogues && dialogues.LEVEL_COMPLETE && dialogues.LEVEL_COMPLETE[level];
+    const genericMemes = dialogues && dialogues.LEVEL_COMPLETE_GENERIC;
+    const memePool = levelMemes || genericMemes || [...(Constants.MEMES.LOW || []), ...(Constants.MEMES.SAYLOR || [])];
+    // Story dialogues can be strings or {speaker, text} objects
+    const picked = memePool[Math.floor(Math.random() * memePool.length)];
+    intermissionMeme = (typeof picked === 'string' ? picked : (picked && picked.text)) || "HODL";
 
     // Show override text if provided (boss defeat, etc.)
     if (msgOverride) {
@@ -1989,10 +2037,7 @@ function startIntermission(msgOverride) {
     }
     emitEvent('intermission_start', { level: level, wave: waveMgr.wave });
 
-    // Story: Level complete dialogue
-    if (G.Story) {
-        G.Story.onLevelComplete(level);
-    }
+    // Story dialogue suppressed during intermission - meme is shown in countdown overlay instead
 }
 
 function startHordeTransition() {
@@ -2039,8 +2084,12 @@ function startHorde2() {
     gameState = 'PLAY';
     waveMgr.waveInProgress = false;
 
-    // No message or flash - clean transition within same level
-    // Let player enjoy empty screen -> enemies arrive -> action resumes
+    // v4.0.3: Brief notification + flash for horde 2 escalation
+    if (G.MessageSystem && G.MessageSystem.showGameInfo) {
+        const text = G.TEXTS?.[currentLang]?.HORDE_2_INCOMING || 'HORDE 2!';
+        G.MessageSystem.showGameInfo(text, 1.0);
+    }
+    triggerScreenFlash('WAVE_START');
 
     // Spawn horde 2 with pattern variant
     const spawnData = waveMgr.spawnWave(gameWidth, 2);
@@ -2741,7 +2790,7 @@ function update(dt) {
         }
 
         // HYPER MODE activation (H key or touch button)
-        if (inputSys.isDown('KeyH') && player.canActivateHyper && player.canActivateHyper(grazeMeter)) {
+        if ((inputSys.isDown('KeyH') || inputSys.touch.hyper) && player.canActivateHyper && player.canActivateHyper(grazeMeter)) {
             player.activateHyper();
             grazeMeter = 0; // Reset meter on activation
             updateGrazeUI();
@@ -2753,6 +2802,10 @@ function update(dt) {
         setStyle('shieldBar', 'width', sPct + "%");
         setStyle('shieldBar', 'backgroundColor', player.shieldActive ? '#fff' : (player.shieldCooldown <= 0 ? player.stats.color : '#555'));
         updateShieldButton(player);
+        updateHyperButton(player, grazeMeter);
+
+        // v4.1.0: Update dynamic difficulty rank
+        if (G.RankSystem) G.RankSystem.update(dt);
 
         updateBullets(dt);
         updateEnemies(dt);
@@ -2762,7 +2815,16 @@ function update(dt) {
             if (bossBullets && bossBullets.length > 0) {
                 bossBullets.forEach(bd => {
                     if (!canSpawnEnemyBullet()) return; // v2.24.6: Global cap
-                    enemyBullets.push(G.Bullet.Pool.acquire(bd.x, bd.y, bd.vx, bd.vy, bd.color, bd.w, bd.h, false));
+                    const bullet = G.Bullet.Pool.acquire(bd.x, bd.y, bd.vx, bd.vy, bd.color, bd.w, bd.h, false);
+                    // v4.0.1: Copy homing properties (was missing - FED homing missiles never tracked)
+                    if (bd.isHoming) {
+                        bullet.isHoming = true;
+                        bullet.homingStrength = bd.homingStrength || 2.5;
+                        bullet.targetX = player ? player.x : gameWidth / 2;
+                        bullet.targetY = player ? player.y : gameHeight;
+                        bullet.maxSpeed = bd.maxSpeed || 200;
+                    }
+                    enemyBullets.push(bullet);
                 });
             }
             // Update drop system cooldowns
@@ -2950,9 +3012,11 @@ function updateBullets(dt) {
 
                     emitEvent('boss_killed', { level: level, cycle: marketCycle, bossType: defeatedBossType, campaignComplete: campaignComplete });
 
-                    // Story: Boss defeated dialogue
-                    if (G.Story) {
-                        G.Story.onBossDefeat(defeatedBossType);
+                    // Override intermission meme with boss-specific defeat quote
+                    const bossDefeatPool = G.DIALOGUES && G.DIALOGUES.BOSS_DEFEAT && G.DIALOGUES.BOSS_DEFEAT[defeatedBossType];
+                    if (bossDefeatPool && bossDefeatPool.length > 0) {
+                        const bossQuote = bossDefeatPool[Math.floor(Math.random() * bossDefeatPool.length)];
+                        intermissionMeme = (typeof bossQuote === 'string' ? bossQuote : (bossQuote && bossQuote.text)) || intermissionMeme;
                     }
                 }
             } else if (miniBoss && miniBoss.active && checkMiniBossHit(b)) {
@@ -3069,6 +3133,7 @@ function updateBullets(dt) {
                 } else {
                     // Normal graze mode
                     grazeCount += grazeBonus;
+                    if (G.RankSystem) G.RankSystem.onGraze(); // v4.1.0: Rank signal
                     const meterGain = isCloseGraze ? Balance.GRAZE.METER_GAIN_CLOSE : Balance.GRAZE.METER_GAIN;
                     grazeMeter = Math.min(100, grazeMeter + meterGain);
                     grazeMultiplier = 1 + (grazeMeter / Balance.GRAZE.MULT_DIVISOR) * (Balance.GRAZE.MULT_MAX - 1);
@@ -3369,6 +3434,11 @@ function checkBulletCollisions(b, bIdx) {
             if (b.isHodl) dmg *= Balance.SCORE.HODL_MULT_ENEMY; // HODL bonus vs enemies
             if (runState && runState.flags && runState.flags.hodlBonus && b.isHodl) dmg *= 1.15; // Stacks with perk
 
+            // v4.0.2: ETH Smart Contract - consecutive hit bonus
+            if (player.getSmartContractMult) {
+                dmg *= player.getSmartContractMult(e);
+            }
+
             // Use takeDamage which handles shields
             const shouldDie = e.takeDamage(dmg);
             audioSys.play('hitEnemy');
@@ -3377,6 +3447,7 @@ function checkBulletCollisions(b, bIdx) {
                 enemies.splice(j, 1);
                 audioSys.play('coinScore');
                 applyHitStop('ENEMY_KILL', true); // Micro-freeze on kill
+                if (G.RankSystem) G.RankSystem.onKill(); // v4.1.0: Rank signal
 
                 // Update kill streak
                 const now = totalTime;
@@ -3584,6 +3655,9 @@ function startDeathSequence() {
         enterSacrificeDecision();
         return;
     }
+
+    // v4.1.0: Signal death to rank system
+    if (G.RankSystem) G.RankSystem.onDeath();
 
     // Normal death sequence (1-hit = 1-life system)
     // 1. Explode ALL enemy bullets visually (not just clear them)
@@ -3964,16 +4038,22 @@ function draw() {
             ctx.strokeText(countdown.toString(), 0, 0);
             ctx.fillText(countdown.toString(), 0, 0);
 
-            // Meme text (bottom, cyan)
+            // Meme text (bottom, gold - merged with countdown box)
             if (intermissionMeme) {
-                ctx.font = 'bold 12px "Press Start 2P", monospace';
-                ctx.fillStyle = '#00FFFF';
+                // v4.1.2: Larger font sizes for readability
+                const memeLen = intermissionMeme.length;
+                const memeFontSize = memeLen > 40 ? 12 : memeLen > 25 ? 14 : 16;
+                const memeMaxChars = 50;
+                ctx.font = `bold ${memeFontSize}px "Press Start 2P", monospace`;
+                ctx.fillStyle = '#FFD700';
                 ctx.strokeStyle = '#000';
                 ctx.lineWidth = 3;
-                // Truncate if too long
-                const memeDisplay = intermissionMeme.length > 22 ? intermissionMeme.substring(0, 20) + '...' : intermissionMeme;
-                ctx.strokeText(memeDisplay, 0, 55);
-                ctx.fillText(memeDisplay, 0, 55);
+                // Truncate if too long, wrap in quotes
+                const memeDisplay = intermissionMeme.length > memeMaxChars
+                    ? '"' + intermissionMeme.substring(0, memeMaxChars - 3) + '..."'
+                    : '"' + intermissionMeme + '"';
+                ctx.strokeText(memeDisplay, 0, 48);
+                ctx.fillText(memeDisplay, 0, 48);
             }
 
             ctx.restore();
@@ -4010,8 +4090,40 @@ function draw() {
     // Debug overlay (F3 toggle)
     if (debugMode) drawDebug(ctx);
 
-    // v2.22.5: Advanced debug overlay (console: dbg.showOverlay())
+    // v4.1.1: Expose HUD state for debug overlay
     if (G.Debug && G.Debug.OVERLAY_ENABLED) {
+        G._hudState = {
+            score, lives, level, gameState,
+            grazeMeter, grazeCount, grazeMultiplier,
+            killStreak, killStreakMult, bestStreak,
+            floatingTexts: floatingTexts.filter(t => t && t.life > 0).length,
+            perkIcons: perkIcons.filter(p => p && p.life > 0).length,
+            intermissionMeme,
+            intermissionTimer: waveMgr ? waveMgr.intermissionTimer : 0,
+            bossWarningTimer,
+            perkCooldown,
+            bulletCancelStreak,
+            player: player ? {
+                x: Math.round(player.x),
+                y: Math.round(player.y),
+                hp: player.hp,
+                shieldActive: player.shieldActive,
+                shieldCooldown: player.shieldCooldown,
+                hyperAvailable: player.hyperAvailable,
+                isHyper: player.isHyperActive ? player.isHyperActive() : false,
+                hyperTimer: player.getHyperTimeRemaining ? player.getHyperTimeRemaining() : 0,
+                shotLevel: player.shotLevel || 1,
+                special: player.special || null,
+                specialTimer: player.specialTimer || 0,
+                type: player.type
+            } : null,
+            msgSystem: {
+                hasActive: G.MessageSystem ? G.MessageSystem.hasActiveMessages() : false
+            },
+            dialogue: {
+                visible: G.DialogueUI ? G.DialogueUI.isVisible : false
+            }
+        };
         G.Debug.drawOverlay(ctx, gameState);
     }
 }

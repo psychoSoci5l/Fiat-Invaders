@@ -28,16 +28,16 @@ window.Game.UPGRADES = [
         }
     },
     {
-        id: 'reinforced_plating',
-        name: 'Reinforced Plating',
+        id: 'second_wind',
+        name: 'Second Wind',
         rarity: 'rare',
         weight: 40,
-        icon: '🛡️',
-        desc: 'Max HP +1.',
-        stackable: true,
-        maxStacks: 3,
+        icon: '💨',
+        desc: '0.5s invuln when shield expires.',
+        stackable: false,
+        maxStacks: 1,
         apply(runState) {
-            runState.modifiers.maxHpBonus += 1;
+            runState.flags.secondWind = true;
         }
     },
     {

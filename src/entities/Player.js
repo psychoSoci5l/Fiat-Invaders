@@ -38,6 +38,15 @@ class Player extends window.Game.Entity {
         this.shieldTimer = 0;
         this.shieldCooldown = 0;
 
+        // v4.0.2: ETH Smart Contract - consecutive hit tracking
+        this.smartContractTarget = null;  // Enemy ID being hit consecutively
+        this.smartContractTimer = 0;      // Time since last hit on same target
+        this.smartContractStacks = 0;     // Number of consecutive hits
+
+        // v4.0.2: Second Wind - brief invuln when shield expires
+        this.secondWind = false;
+        this.secondWindTimer = 0;
+
         this.beastMode = 0;
         this.hp = 1;  // 1-hit = 1-life system
         this.invulnTimer = 0;
@@ -233,10 +242,17 @@ class Player extends window.Game.Entity {
             this.shieldTimer -= dt;
             if (this.shieldTimer <= 0) {
                 this.shieldActive = false;
-                if (window.Game.Audio) window.Game.Audio.play('shieldDeactivate'); // Natural expiration
+                if (window.Game.Audio) window.Game.Audio.play('shieldDeactivate');
+                // v4.0.2: Second Wind perk - brief invuln when shield expires
+                const rs = window.Game.RunState;
+                if (rs && rs.flags && rs.flags.secondWind) {
+                    this.secondWindTimer = 0.5;
+                    this.invulnTimer = Math.max(this.invulnTimer, 0.5);
+                }
             }
         }
         if (this.shieldCooldown > 0) this.shieldCooldown -= dt;
+        if (this.secondWindTimer > 0) this.secondWindTimer -= dt;
 
         // Weapon timer (WIDE, NARROW, FIRE revert to NORMAL)
         if (this.weapon !== 'NORMAL') {
@@ -254,6 +270,15 @@ class Player extends window.Game.Entity {
         }
         if (this.invulnTimer > 0) this.invulnTimer -= dt;
         this.cooldown -= dt;
+
+        // v4.0.2: Smart Contract timer decay
+        if (this.smartContractTimer > 0) {
+            this.smartContractTimer -= dt;
+            if (this.smartContractTimer <= 0) {
+                this.smartContractStacks = 0;
+                this.smartContractTarget = null;
+            }
+        }
 
         // Weapon Evolution timers
         this.updateWeaponState(dt);
@@ -306,6 +331,28 @@ class Player extends window.Game.Entity {
         this.shieldTimer = 2.0;
         this.shieldCooldown = 10.0 * this.getRunMod('shieldCooldownMult', 1);
         window.Game.Audio.play('shield');
+    }
+
+    /**
+     * v4.0.2: ETH Smart Contract - get damage multiplier for consecutive hits on same enemy
+     * @param {Object} enemy - The enemy being hit
+     * @returns {number} Damage multiplier (1.0 if not ETH, or 1.0 + stacks * bonus)
+     */
+    getSmartContractMult(enemy) {
+        if (this.type !== 'ETH') return 1.0;
+        const Balance = window.Game.Balance;
+        const cfg = Balance && Balance.ETH_BONUS || { STACK_WINDOW: 0.5, DAMAGE_BONUS: 0.15 };
+
+        const enemyId = enemy._uid || (enemy.x * 1000 + enemy.y); // Simple identity
+        if (this.smartContractTarget === enemyId && this.smartContractTimer > 0) {
+            this.smartContractStacks++;
+        } else {
+            this.smartContractStacks = 1;
+            this.smartContractTarget = enemyId;
+        }
+        this.smartContractTimer = cfg.STACK_WINDOW;
+
+        return 1.0 + (this.smartContractStacks - 1) * cfg.DAMAGE_BONUS;
     }
 
     // --- HYPER GRAZE SYSTEM ---

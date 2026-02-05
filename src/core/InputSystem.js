@@ -3,7 +3,7 @@ window.Game = window.Game || {};
 class InputSystem {
     constructor() {
         this.keys = {};
-        this.touch = { active: false, x: 0, shield: false, axisX: 0, joystickActive: false, joystickId: null, useJoystick: false, deadzone: 0.15, sensitivity: 1.0 };
+        this.touch = { active: false, x: 0, shield: false, hyper: false, axisX: 0, joystickActive: false, joystickId: null, useJoystick: false, deadzone: 0.15, sensitivity: 1.0 };
         this.callbacks = {};
         this.debugMode = false;  // Touch debug overlay
         this.debugOverlay = null;
@@ -49,6 +49,13 @@ class InputSystem {
         if (tShield) {
             tShield.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); this.touch.shield = true; }, { passive: false });
             tShield.addEventListener('touchend', (e) => { e.preventDefault(); e.stopPropagation(); this.touch.shield = false; }, { passive: false });
+        }
+
+        // v4.0.4: HYPER button touch handler
+        const tHyper = document.getElementById('t-hyper');
+        if (tHyper) {
+            tHyper.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); this.touch.hyper = true; }, { passive: false });
+            tHyper.addEventListener('touchend', (e) => { e.preventDefault(); e.stopPropagation(); this.touch.hyper = false; }, { passive: false });
         }
 
         // Pause button - explicit touch handler for iOS

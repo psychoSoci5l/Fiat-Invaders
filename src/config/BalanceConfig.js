@@ -20,10 +20,11 @@
         // 3 cycles = complete run (~12 min). Difficulty jumps per cycle, subtle increase per wave.
         DIFFICULTY: {
             // Base difficulty per cycle (stepped progression)
-            CYCLE_BASE: [0.0, 0.30, 0.60],  // Cycle 1: Tutorial, Cycle 2: Learning, Cycle 3: Skilled
+            // v4.0.3: Smoothed C1→C2 jump (0.30→0.20, was +150% now +25%)
+            CYCLE_BASE: [0.0, 0.20, 0.55],  // Cycle 1: Tutorial, Cycle 2: Learning, Cycle 3: Skilled
 
             // Per-wave scaling within cycle
-            WAVE_SCALE: 0.03,               // +3% per wave (5 waves = +12% total within cycle)
+            WAVE_SCALE: 0.04,               // +4% per wave (v4.0.3: 0.03→0.04, 5 waves = +20% total within cycle)
 
             // Bear Market additive bonus (not multiplier)
             BEAR_MARKET_BONUS: 0.25,        // Starts at Cycle 2 equivalent difficulty
@@ -38,6 +39,13 @@
             FRICTION: 0.92            // Velocity decay when not moving
         },
 
+        // --- ETH SMART CONTRACT BONUS (v4.0.2) ---
+        // Consecutive hits on same enemy within window = stacking damage bonus
+        ETH_BONUS: {
+            STACK_WINDOW: 0.5,        // Seconds to count as consecutive hit
+            DAMAGE_BONUS: 0.15        // +15% per consecutive hit
+        },
+
         // --- PERK SYSTEM ---
         PERK: {
             BULLET_CANCEL_COUNT: 5,   // Bullets to cancel for perk trigger
@@ -50,11 +58,11 @@
         // Grazing is the primary skill expression. Close to danger = maximum reward.
         GRAZE: {
             RADIUS: 25,               // Pixels outside core hitbox for graze
-            CLOSE_RADIUS: 23,         // Close graze radius for 3x bonus (v2.24.10: 18→23 for AABB detection)
+            CLOSE_RADIUS: 18,         // Close graze radius for 4x bonus (v4.0.2: 23→18 for 7px gap, more distinct)
 
             // Scoring (grazing = primary score source)
             POINTS_BASE: 25,          // Base points per graze
-            CLOSE_BONUS: 3,           // Close graze multiplier (3x)
+            CLOSE_BONUS: 4,           // Close graze multiplier (v4.0.2: 3x→4x)
             METER_GAIN: 12,           // Normal graze meter gain (v2.24.7: 8→12 for faster fill)
             METER_GAIN_CLOSE: 25,     // Close graze meter gain (v2.24.7: 20→25)
 
@@ -169,9 +177,9 @@
                 BOSS_PHASE_FLASH: true,       // Orange flash on phase change
 
                 // Optional feedback (default OFF - can feel like lag)
-                STREAK_FLASH: false,          // Flash on kill streaks
+                STREAK_FLASH: true,           // Flash on kill streaks (v4.0.1: enabled)
                 GRAZE_FLASH: false,           // Flash on close graze
-                SCORE_PULSE: false,           // Edge glow every 10k points
+                SCORE_PULSE: true,            // Edge glow every 10k points (v4.0.1: enabled)
                 SCREEN_DIMMING: false,        // Darken screen with many bullets
 
                 // Mode-specific overlays
@@ -401,6 +409,15 @@
                 FEDERAL_RESERVE: 2.5,
                 BCE: 3.0,
                 BOJ: 2.0
+            },
+
+            // v4.0.2: BOJ Phase 3 intervention burst (was random 8% per frame, now cooldown-based with telegraph)
+            BOJ_INTERVENTION: {
+                TELEGRAPH: 0.4,       // Seconds of warning lines before burst fires
+                COOLDOWN: 2.5,        // Seconds between intervention bursts
+                COUNT: 5,             // Bullets per burst (was 7)
+                SPEED: 240,           // Bullet speed (was 320)
+                SPREAD: 0.4           // Spread angle in radians
             }
         },
 
@@ -506,7 +523,7 @@
             },
             // Particles
             PARTICLES: {
-                MAX_COUNT: 80,             // Global particle cap
+                MAX_COUNT: 120,            // Global particle cap (v4.0.1: 80→120)
                 DEBRIS_SPEED_MIN: 100,
                 DEBRIS_SPEED_MAX: 350,
                 DEBRIS_SPREAD_ANGLE: 60,   // Degrees
@@ -700,71 +717,72 @@
             },
 
             // Wave definitions: cycle, wave, name, formation, counts, currencies
+            // v4.0.3: H2 formations diversified (complementary pairing for visual variety)
             WAVES: [
                 // === CYCLE 1: "AWAKENING" (Tutorial) ===
                 {
                     cycle: 1, wave: 1, name: 'First Contact',
-                    horde1: { count: 8, formation: 'DIAMOND', currencies: ['¥', '₽', '₹'] },
-                    horde2: { count: 6, formation: 'DIAMOND', currencies: ['¥', '₽', '₹'] }
+                    horde1: { count: 12, formation: 'DIAMOND', currencies: ['¥', '₽', '₹'] },
+                    horde2: { count: 10, formation: 'PINCER', currencies: ['¥', '₽', '₹'] }
                 },
                 {
                     cycle: 1, wave: 2, name: 'European Dawn',
-                    horde1: { count: 10, formation: 'ARROW', currencies: ['¥', '₽', '€'] },
-                    horde2: { count: 8, formation: 'ARROW', currencies: ['₹', '£'] }
+                    horde1: { count: 14, formation: 'ARROW', currencies: ['¥', '₽', '€'] },
+                    horde2: { count: 12, formation: 'CHEVRON', currencies: ['₹', '£'] }
                 },
                 {
                     cycle: 1, wave: 3, name: 'Old World',
                     horde1: { count: 12, formation: 'PINCER', currencies: ['€', '£', '₣'] },
-                    horde2: { count: 10, formation: 'PINCER', currencies: ['₺', '€', '£'] }
+                    horde2: { count: 10, formation: 'DIAMOND', currencies: ['₺', '€', '£'] }
                 },
                 {
                     cycle: 1, wave: 4, name: 'Dollar Emerges',
                     horde1: { count: 14, formation: 'CHEVRON', currencies: ['€', '₣', '$'] },
-                    horde2: { count: 10, formation: 'CHEVRON', currencies: ['£', '₺', '元'] }
+                    horde2: { count: 10, formation: 'ARROW', currencies: ['£', '₺', '元'] }
                 },
                 {
                     cycle: 1, wave: 5, name: 'Global Alliance',
                     horde1: { count: 16, formation: 'FORTRESS', currencies: ['¥', '€', '$', '元'] },
-                    horde2: { count: 12, formation: 'FORTRESS', currencies: ['₽', '£', '₣', 'Ⓒ'] }
+                    horde2: { count: 12, formation: 'SCATTER', currencies: ['₽', '£', '₣', 'Ⓒ'] }
                 },
 
                 // === CYCLE 2: "CONFLICT" (Learning) ===
                 {
                     cycle: 2, wave: 1, name: 'Eastern Front',
                     horde1: { count: 14, formation: 'SCATTER', currencies: ['¥', '元', '₹'] },
-                    horde2: { count: 12, formation: 'SCATTER', currencies: ['¥', '元', '₽'] }
+                    horde2: { count: 12, formation: 'WALL', currencies: ['¥', '元', '₽'] }
                 },
                 {
                     cycle: 2, wave: 2, name: 'Brussels Burns',
                     horde1: { count: 16, formation: 'SPIRAL', currencies: ['€', '₣', '£'] },
-                    horde2: { count: 14, formation: 'SPIRAL', currencies: ['€', '₣', '₺'] }
+                    horde2: { count: 14, formation: 'CROSS', currencies: ['€', '₣', '₺'] }
                 },
                 {
                     cycle: 2, wave: 3, name: 'Reserve War',
                     horde1: { count: 18, formation: 'CROSS', currencies: ['$', '€', '£'] },
-                    horde2: { count: 14, formation: 'CROSS', currencies: ['$', '元', 'Ⓒ'] }
+                    horde2: { count: 14, formation: 'FLANKING', currencies: ['$', '元', 'Ⓒ'] }
                 },
                 {
                     cycle: 2, wave: 4, name: 'BRICS Rising',
                     horde1: { count: 18, formation: 'WALL', currencies: ['₽', '₹', '₺', '$'] },
-                    horde2: { count: 16, formation: 'WALL', currencies: ['元', 'Ⓒ', '$'] }
+                    horde2: { count: 16, formation: 'GAUNTLET', currencies: ['元', 'Ⓒ', '$'] }
                 },
                 {
                     cycle: 2, wave: 5, name: 'Final Stand',
                     horde1: { count: 20, formation: 'GAUNTLET', currencies: ['$', '元', 'Ⓒ', '€'] },
-                    horde2: { count: 16, formation: 'GAUNTLET', currencies: ['$', '元', 'Ⓒ', '₣'] }
+                    horde2: { count: 16, formation: 'WALL', currencies: ['$', '元', 'Ⓒ', '₣'] }
                 },
 
                 // === CYCLE 3: "RECKONING" (Skilled) ===
                 {
                     cycle: 3, wave: 1, name: 'Digital Doom',
                     horde1: { count: 18, formation: 'VORTEX', currencies: ['Ⓒ', '€', '$'] },
-                    horde2: { count: 16, formation: 'VORTEX', currencies: ['Ⓒ', '元', '£'] }
+                    horde2: { count: 16, formation: 'HURRICANE', currencies: ['Ⓒ', '元', '£'] }
                 },
                 {
                     cycle: 3, wave: 2, name: 'Pincer Attack',
                     horde1: { count: 20, formation: 'FLANKING', currencies: ['$', '元', 'Ⓒ'] },
-                    horde2: { count: 18, formation: 'FLANKING', currencies: ['€', '£', '₣', '$'] }
+                    horde2: { count: 18, formation: 'SPIRAL', currencies: ['€', '£', '₣', '$'] }
                 },
                 {
                     cycle: 3, wave: 3, name: 'Escalation',
@@ -774,7 +792,7 @@
                 {
                     cycle: 3, wave: 4, name: 'Eye of Storm',
                     horde1: { count: 22, formation: 'HURRICANE', currencies: ['¥', '₽', '₹', '€', '£', '₣', '₺', '$', '元', 'Ⓒ'] },
-                    horde2: { count: 20, formation: 'HURRICANE', currencies: ['$', '元', 'Ⓒ'] }
+                    horde2: { count: 20, formation: 'VORTEX', currencies: ['$', '元', 'Ⓒ'] }
                 },
                 {
                     cycle: 3, wave: 5, name: 'Endgame',
@@ -815,6 +833,18 @@
             }
         },
 
+        // --- FORMATION LAYOUT (v4.0.3: extracted from WaveManager hardcodes) ---
+        FORMATION: {
+            SPACING: 85,              // Base spacing between enemies in grid (+13% from 75, prevents overlap)
+            START_Y: 150,             // Initial Y position for new formations
+            MARGIN: 60,               // Left/right margin for scatter/wall
+            SPIRAL_CENTER_Y_OFFSET: 100, // Spiral center Y offset from startY
+            SPIRAL_ANGLE_STEP: 0.5,   // Radians per enemy in spiral
+            SPIRAL_BASE_RADIUS: 30,   // Starting radius for spiral
+            SPIRAL_RADIUS_STEP: 16,   // Radius increase per enemy (+33% from 12, prevents spiral overlap)
+            SPIRAL_Y_SQUEEZE: 0.6     // Y axis compression for spiral
+        },
+
         // --- ENEMY FORMATION ENTRY ---
         FORMATION_ENTRY: {
             ENABLED: true,                // Enable formation entry animation
@@ -823,6 +853,16 @@
             SPAWN_Y_OFFSET: -80,          // Y offset above screen for spawning
             SETTLE_TIME: 0.3,             // Seconds to settle after reaching position
             CURVE_INTENSITY: 0.4          // How much enemies curve during entry (0-1)
+        },
+
+        // --- RANK SYSTEM (Dynamic Difficulty v4.1.0) ---
+        RANK: {
+            ENABLED: true,            // Toggle dynamic difficulty
+            WINDOW_SIZE: 30,          // Rolling window in seconds
+            FIRE_RATE_RANGE: 0.20,    // ±20% fire rate adjustment
+            ENEMY_COUNT_RANGE: 0.15,  // ±15% enemy count adjustment
+            DEATH_PENALTY: 0.15,      // Rank decrease on death
+            CONVERGENCE_SPEED: 0.5    // How fast rank changes (lower = smoother)
         },
 
         // --- HELPER FUNCTIONS ---

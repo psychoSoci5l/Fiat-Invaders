@@ -55,7 +55,7 @@ All modules attach to `window.Game`. Script load order in `index.html` matters:
 5. `DropSystem.js` - **Unified power-up drop management**
 6. `MemeEngine.js` - **Unified meme selection & display**
 7. `EventBus.js` - Pub/sub event system
-8. `RunState.js` / `Upgrades.js` - Runtime state and perk system
+8. `RunState.js` / `RankSystem.js` / `Upgrades.js` - Runtime state, dynamic difficulty, perk system
 9. `AudioSystem.js` - Procedural Web Audio synth (no audio files)
 10. `InputSystem.js` - Keyboard + touch/joystick input
 11. `ObjectPool.js` - GC prevention for bullets
@@ -82,6 +82,7 @@ All modules attach to `window.Game`. Script load order in `index.html` matters:
 - `window.marketCycle` - Current difficulty cycle (increases after boss)
 - `window.currentLevel` - Current level (for WaveManager)
 - `window.Game.Debug` - Debug logging system (alias: `window.dbg`)
+- `window.Game.RankSystem` - Dynamic difficulty adjustment (rank -1 to +1)
 
 ### Debug System (DebugSystem.js) - v2.22.6
 
@@ -110,7 +111,12 @@ dbg.toggleOverlay()       // Toggle overlay
 // Quick Presets
 dbg.debugBoss()           // Enable boss debugging + overlay
 dbg.debugWaves()          // Enable wave debugging + overlay
+dbg.debugHUD()            // Enable HUD debugging + overlay
 dbg.setProduction()       // Disable all (for release)
+
+// HUD Monitoring (v4.1.1)
+dbg.hudStatus()           // Show full HUD state snapshot in console
+dbg.toggleHudMsg('KEY')   // Toggle HUD_MESSAGES flag (e.g. 'FLOATING_TEXT')
 
 // Balance Testing (v2.24.8)
 dbg.balanceTest()         // Start balance test run (enables analytics)
@@ -163,6 +169,11 @@ dbg.report()              // Shows: cycle times, boss fights, deaths,
 - MiniBoss status
 - Event counters (spawns/defeats)
 - HarmonicConductor state (generation, sequence, phase)
+- Rank system (label, multipliers)
+- HUD state: score, lives, graze meter, streak, floating texts/perk icons count
+- Player state: position, shield, HYPER, weapon, special
+- Intermission: countdown timer, active meme
+- Message/Dialogue system activity
 
 **Usage in code:**
 ```javascript
@@ -207,11 +218,11 @@ All balancing is centralized in `src/config/BalanceConfig.js` via `window.Game.B
 Bear Market applies additional 1.3x multiplier.
 
 ### Player Fire Rates (after 30% nerf)
-| Ship | Fire Rate (cooldown) |
-|------|---------------------|
-| BTC | 0.26s |
-| ETH | 0.57s |
-| SOL | 0.20s |
+| Ship | Fire Rate (cooldown) | Notes |
+|------|---------------------|-------|
+| BTC | 0.26s | Balanced |
+| ETH | 0.40s | Tank + Smart Contract (+15% stacking dmg) |
+| SOL | 0.20s | Glass cannon |
 
 ---
 
@@ -339,8 +350,8 @@ New weapon-status bar shows:
 #### Cycle 1: "Awakening" (Tutorial)
 | Wave | Horde 1 | Horde 2 | Formation | Theme |
 |------|---------|---------|-----------|-------|
-| 1 | 8 ¥₽₹ | 6 ¥₽₹ | DIAMOND | First Contact |
-| 2 | 10 ¥₽€ | 8 ₹£ | ARROW | European Dawn |
+| 1 | 12 ¥₽₹ | 10 ¥₽₹ | DIAMOND | First Contact |
+| 2 | 14 ¥₽€ | 12 ₹£ | ARROW | European Dawn |
 | 3 | 12 €£₣ | 10 ₺€£ | PINCER | Old World |
 | 4 | 14 €₣$ | 10 £₺元 | CHEVRON | Dollar Emerges |
 | 5 | 16 ¥€$元 | 12 ₽£₣Ⓒ | FORTRESS | Global Alliance |
@@ -635,7 +646,7 @@ All tuning parameters are in `src/config/BalanceConfig.js`. **Always modify Bala
 | Parameter | Value | Description |
 |-----------|-------|-------------|
 | `RADIUS` | 25 | Pixels for graze detection |
-| `CLOSE_RADIUS` | 23 | Close graze for 3x bonus |
+| `CLOSE_RADIUS` | 18 | Close graze for 4x bonus |
 | `PERK_THRESHOLD` | 50 | Graze count for bonus perk |
 | `DECAY_RATE` | 2 | Meter decay per second (v2.24.11) |
 | `DECAY_DELAY` | 1.0 | Seconds before decay starts |
@@ -675,9 +686,9 @@ Master switches for all screen-wide visual effects. Allows easy enable/disable w
 | `BOSS_DEFEAT_FLASH` | true | White flash on boss kill |
 | `BOSS_PHASE_FLASH` | true | Orange flash on phase change |
 | `HYPER_ACTIVATE_FLASH` | true | Gold flash when HYPER activates |
-| `STREAK_FLASH` | false | Flash on kill streaks (10/25/50) |
+| `STREAK_FLASH` | true | Flash on kill streaks (10/25/50) |
 | `GRAZE_FLASH` | false | Flash on close graze |
-| `SCORE_PULSE` | false | Edge glow every 10k points |
+| `SCORE_PULSE` | true | Edge glow every 10k points |
 | `SCREEN_DIMMING` | false | Darken screen with many bullets |
 | `HYPER_OVERLAY` | true | Golden tint during HYPER mode |
 | `SACRIFICE_OVERLAY` | true | White tint during sacrifice |
@@ -700,9 +711,44 @@ Master switches for all screen-wide visual effects. Allows easy enable/disable w
 | `SETTLE_TIME` | 0.3 | Seconds to settle after reaching position |
 | `CURVE_INTENSITY` | 0.4 | How much enemies curve during entry |
 
+### Balance.FORMATION
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| `SPACING` | 85 | Pixels between formation grid points |
+| `START_Y` | 150 | Starting Y position for formations |
+| `MARGIN` | 60 | Screen edge margin for formations |
+
+### Balance.RANK (Dynamic Difficulty v4.1.0)
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| `ENABLED` | true | Enable/disable rank system |
+| `WINDOW_SIZE` | 30 | Seconds of rolling performance window |
+| `FIRE_RATE_RANGE` | 0.20 | Fire rate adjustment range (0.8x to 1.2x) |
+| `ENEMY_COUNT_RANGE` | 0.15 | Enemy count adjustment range (0.85x to 1.15x) |
+| `DEATH_PENALTY` | 0.15 | Rank decrease on death |
+| `CONVERGENCE_SPEED` | 0.5 | How fast rank converges to target |
+
+### Balance.ETH_BONUS (Smart Contract v4.0.2)
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| `STACK_WINDOW` | 0.5 | Seconds window for consecutive hits |
+| `DAMAGE_BONUS` | 0.15 | +15% damage per stack |
+
+### Balance.BOSS.BOJ_INTERVENTION (v4.0.2)
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| `TELEGRAPH` | 0.4 | Seconds of visual warning |
+| `COOLDOWN` | 2.5 | Seconds between interventions |
+| `COUNT` | 5 | Bullets per intervention |
+| `SPEED` | 240 | Bullet speed |
+| `SPREAD` | 0.4 | Spread angle |
+
 ### Wave Patterns (WaveManager.js)
-- Cycle: RECT → V_SHAPE → COLUMNS → SINE_WAVE → RECT → Boss
-- Bear Market: Forces SINE_WAVE from wave 2
+- 15 unique waves (5 per cycle x 3 cycles) with thematic currency assignments
+- 16 formation types: DIAMOND, ARROW, PINCER, CHEVRON, FORTRESS, SCATTER, SPIRAL, CROSS, WALL, GAUNTLET, VORTEX, FLANKING, STAIRCASE, HURRICANE, FINAL_FORM
+- H1/H2 use complementary formations (e.g., DIAMOND↔PINCER, ARROW↔CHEVRON)
+- Legacy fallback for cycles 4+ via `spawnWaveLegacy()`
+- Bear Market: +25% enemy count, forces strong currencies in weak waves
 
 ### Meme Sources (Constants.js)
 - `MEMES.LOW` / `MEMES.HIGH` - General crypto

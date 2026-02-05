@@ -10,20 +10,25 @@
 *   **Responsive**: "Notch-safe" UI design that adapts to all mobile screens.
 *   **Localization**: Fully localized in English (EN) and Italian (IT).
 
-## 🧠 Current Gameplay Rules (as of Jan 30, 2026)
+## 🧠 Current Gameplay Rules (v4.1.0)
 
-*   **Wave Cycle**: 5 waves → Boss → repeat (infinite progression).
-*   **Enemy Fire**: Alternating fire groups (no full-squad volleys).
-*   **Bullet Cancel**: Player bullets can destroy enemy bullets.
-*   **Perks**: No selection modal. Random perk is applied after **3 enemy bullets canceled in a row** (1.5s window).
-*   **Power-ups**: Drawn via Canvas (no sprites).
+*   **Wave System**: 15 unique waves (5 per cycle x 3 cycles) with 16 formation patterns and thematic currency groups.
+*   **Horde System**: Each wave has 2 hordes with complementary formations and escalating difficulty.
+*   **HarmonicConductor**: Beat-synced enemy firing with wave intensity phases (Setup → Build → Panic).
+*   **HYPER Mode**: Fill graze meter to 100%, activate for 5x score + 50% bigger hitbox (high risk/reward).
+*   **Satoshi's Sacrifice**: At 1 life, sacrifice all score for 10s invincibility and 10x multiplier.
+*   **Weapon Evolution**: Progressive shot levels (1-3) + stackable modifiers + exclusive specials.
+*   **Dynamic Difficulty (Rank System)**: Game adapts to player skill in real-time (-1.0 to +1.0 rank).
+*   **3 Unique Bosses**: FED (MEGA-BILL), BCE (MEGA-COIN), BOJ (MEGA-BAR) with exclusive attack patterns.
+*   **10 Fiat Currencies**: Each with unique shape, tier, and fire pattern.
 
 ## 🎮 How to Play
 
-*   **Move**: Arrow Keys (Desktop) or Touch Sides (Mobile).
+*   **Move**: Arrow Keys (Desktop) or Virtual Joystick (Mobile).
 *   **Shoot**: Auto-fire / Spacebar.
-*   **Shield**: Down Arrow or Tap Shield Icon.
-*   **HODL Mode**: Stop moving to charge your "Diamond Hands" and get 2x Multiplier!
+*   **Shield**: Down Arrow or Tap Shield Button.
+*   **HYPER**: H Key or Tap HYPER Button (when meter full).
+*   **HODL Mode**: Stop moving to charge "Diamond Hands" for 2x score multiplier.
 
 ## 🛠️ Development & Running Locally
 
@@ -57,13 +62,15 @@ This project is a static site. You can deploy it instantly to:
 ```
 /assets          # Images and Icons
 /src
-  /core          # Audio, Input, Object Pools
-  /entities      # Game Objects (Player, Enemy, Boss)
-  /managers      # Wave Logic, Collision
-  /utils         # Constants, Text Strings
-  main.js        # Entry Point & Game Loop
+  /config        # BalanceConfig (single source of truth)
+  /core          # Audio, Input, Object Pools, EventBus
+  /entities      # Game Objects (Player, Enemy, Boss, Bullet, PowerUp)
+  /managers      # WaveManager, CampaignState
+  /systems       # HarmonicConductor, ParticleSystem, RankSystem, Effects, Sky, etc.
+  /utils         # Constants, DebugSystem, ColorUtils, MathUtils, Upgrades
+  main.js        # Game Loop & State Machine
 index.html       # DOM Structure & UI Overlay
-style.css        # Cyberpunk Styling & Responsive Rules
+style.css        # Cell-Shaded Styling & Responsive Rules
 sw.js            # Service Worker (Offline Support)
 manifest.json    # PWA Configuration
 ```
@@ -82,16 +89,21 @@ manifest.json    # PWA Configuration
 
 ## 🔧 Common Tweaks
 
-* Enemy fire density: `enemyFireStride`, `enemyFireTimer` in `src/main.js`.
-* Wave patterns/spawn bounds: `src/managers/WaveManager.js`.
-* Perk trigger rules: `bulletCancelStreak` logic in `src/main.js`.
+All tuning is centralized in `src/config/BalanceConfig.js` via `window.Game.Balance`.
+
+* **Difficulty curve**: `Balance.DIFFICULTY` (CYCLE_BASE, WAVE_SCALE, MAX_DIFFICULTY)
+* **Enemy firing**: `Balance.CHOREOGRAPHY` (HarmonicConductor controls all firing)
+* **Wave definitions**: `Balance.WAVE_DEFINITIONS` (15 waves, formations, currencies)
+* **Boss stats**: `Balance.BOSS` (HP, fire rates, movement per boss per phase)
+* **Dynamic difficulty**: `Balance.RANK` (fire rate/enemy count adjustment range)
+* **Graze system**: `Balance.GRAZE` (radius, decay, HYPER meter)
 
 ## ✅ Quickstart Tuning Checklist
 
-* **Too much bullet spam** → raise `enemyFireStride`, increase `enemyFireTimer`.
-* **Waves end too fast** → increase enemy HP in `Constants.FIAT_TYPES`.
-* **Player dies too quickly** → raise base HP or reduce enemy fire rate scaling.
-* **Boss too spiky** → lower boss HP scale or fire cadence.
+* **Too much bullet spam** → Lower `Balance.CHOREOGRAPHY.INTENSITY` rate multipliers
+* **Waves end too fast** → Increase enemy count in `Balance.WAVE_DEFINITIONS`
+* **Player dies too quickly** → Reduce `Balance.RANK.FIRE_RATE_RANGE` or enable easier base difficulty
+* **Boss too spiky** → Lower `Balance.BOSS.HP` or increase fire rate timers
 
 ## 🧩 Known Issues / Watchlist
 

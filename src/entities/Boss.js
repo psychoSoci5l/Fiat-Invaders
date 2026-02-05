@@ -57,6 +57,10 @@ class Boss extends window.Game.Entity {
         this.wavePhase = 0;
         this.interventionCooldown = 0;
         this.zenMode = true;
+        // v4.0.2: BOJ Phase 3 telegraph system
+        this.bojInterventionTimer = 0;
+        this.bojTelegraphTimer = 0;
+        this.bojTelegraphTarget = null; // {x, y} of player when telegraph started
     }
 
     damage(amount) {
@@ -128,8 +132,10 @@ class Boss extends window.Game.Entity {
         if (this.eyeGlow > 0) this.eyeGlow -= dt * 0.5;
         if (this.shakeIntensity > 0) this.shakeIntensity -= dt * 10;
 
-        // BOJ intervention cooldown
+        // BOJ intervention cooldown + telegraph timer
         if (this.interventionCooldown > 0) this.interventionCooldown -= dt;
+        if (this.bojInterventionTimer > 0) this.bojInterventionTimer -= dt;
+        if (this.bojTelegraphTimer > 0) this.bojTelegraphTimer -= dt;
 
         // Phase transition pause
         if (this.phaseTransitioning) {
@@ -543,23 +549,28 @@ class Boss extends window.Game.Entity {
             this.fireTimer = fireRates[2];
             this.angle += 0.22;
 
-            // DOUBLE rotating barriers (chaos!)
+            // DOUBLE rotating barriers - v4.0.2: gaps aligned PI apart for guaranteed safe corridor
+            const barrier1GapAngle = this.animTime * 1.8; // Track barrier 1 gap position
             const barrier1 = Patterns.rotatingBarrier(cx, cy - 30, this.animTime, {
                 count: 18, radius: 60, speed: 70, color: '#003399', size: 9,
                 gapAngle: Math.PI / 4, rotationSpeed: 1.8
             });
             bullets.push(...barrier1);
 
+            // v4.0.2: Barrier 2 gap offset by PI from barrier 1 (opposite side = navigable corridor)
             const barrier2 = Patterns.rotatingBarrier(cx, cy - 50, this.animTime + Math.PI, {
                 count: 16, radius: 90, speed: 55, color: '#001a4d', size: 10,
                 gapAngle: Math.PI / 4, rotationSpeed: -1.2  // Counter-rotate
             });
             bullets.push(...barrier2);
 
-            // Curtain wall through the chaos
+            // Curtain wall - v4.0.2: gap follows midpoint of barrier safe zones
             if (Math.floor(this.animTime * 0.6) !== Math.floor((this.animTime - fireRates[2]) * 0.6) && player) {
-                const wallBullets = Patterns.curtain(cx, cy - 20, player.x, {
-                    width: 350, count: 12, gapSize: 55, speed: 120, color: '#003399', size: 9
+                // Calculate safe corridor from barrier gap positions
+                const safeX = cx + Math.cos(barrier1GapAngle) * 75; // Midpoint of barrier gaps
+                const gapTarget = Math.max(50, Math.min(this.gameWidth - 50, safeX));
+                const wallBullets = Patterns.curtain(cx, cy - 20, gapTarget, {
+                    width: 350, count: 12, gapSize: 65, speed: 120, color: '#003399', size: 9
                 });
                 bullets.push(...wallBullets);
             }
@@ -714,12 +725,20 @@ class Boss extends window.Game.Entity {
             });
             bullets.push(...wave2);
 
-            // Random sudden intervention bursts (BOJ surprise!)
-            if (Math.random() < 0.08 && player) {
-                const burstBullets = Patterns.aimedBurst(cx, cy, player.x, player.y, {
-                    count: 7, speed: 320, spread: 0.5, color: '#ffffff', size: 12
+            // v4.0.2: Cooldown-based intervention with telegraph (was random 8% per frame)
+            const intervention = Balance ? Balance.BOSS.BOJ_INTERVENTION : { TELEGRAPH: 0.4, COOLDOWN: 2.5, COUNT: 5, SPEED: 240, SPREAD: 0.4 };
+            if (this.bojTelegraphTarget && this.bojTelegraphTimer <= 0) {
+                // Telegraph expired - FIRE!
+                const burstBullets = Patterns.aimedBurst(cx, cy, this.bojTelegraphTarget.x, this.bojTelegraphTarget.y, {
+                    count: intervention.COUNT, speed: intervention.SPEED, spread: intervention.SPREAD, color: '#ffffff', size: 12
                 });
                 bullets.push(...burstBullets);
+                this.bojInterventionTimer = intervention.COOLDOWN;
+                this.bojTelegraphTarget = null;
+            } else if (!this.bojTelegraphTarget && this.bojInterventionTimer <= 0 && player) {
+                // Start new telegraph phase
+                this.bojTelegraphTimer = intervention.TELEGRAPH;
+                this.bojTelegraphTarget = { x: player.x, y: player.y };
             }
         }
 
@@ -1356,6 +1375,39 @@ class Boss extends window.Game.Entity {
                 );
                 ctx.stroke();
             }
+        }
+
+        // v4.0.2: Telegraph warning lines for intervention burst
+        if (this.bojTelegraphTarget && this.bojTelegraphTimer > 0) {
+            const tProg = 1 - (this.bojTelegraphTimer / 0.4); // 0→1 as telegraph completes
+            const flashAlpha = 0.3 + tProg * 0.5 + Math.sin(this.animTime * 30) * 0.15;
+            ctx.save();
+            ctx.globalAlpha = flashAlpha;
+            ctx.strokeStyle = '#ff0000';
+            ctx.lineWidth = 2 + tProg * 2;
+            ctx.setLineDash([8, 6]);
+            // Draw warning line from boss center to target
+            const bx = cx;
+            const by = y + h;
+            ctx.beginPath();
+            ctx.moveTo(bx, by);
+            ctx.lineTo(this.bojTelegraphTarget.x, this.bojTelegraphTarget.y);
+            ctx.stroke();
+            // Draw target crosshair
+            const tx = this.bojTelegraphTarget.x;
+            const ty = this.bojTelegraphTarget.y;
+            const cr = 15 + tProg * 10;
+            ctx.beginPath();
+            ctx.arc(tx, ty, cr, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(tx - cr, ty);
+            ctx.lineTo(tx + cr, ty);
+            ctx.moveTo(tx, ty - cr);
+            ctx.lineTo(tx, ty + cr);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.restore();
         }
 
         this.drawHPBar(ctx, x, y, w, 'BOJ');

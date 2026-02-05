@@ -130,11 +130,15 @@ window.Game.WaveManager = {
             const hordeKey = hordeNumber === 1 ? 'horde1' : 'horde2';
             const hordeDef = waveDef[hordeKey];
 
-            // Apply Bear Market scaling
+            // Apply Bear Market scaling + Rank system adjustment
             let targetCount = hordeDef.count;
             if (window.isBearMarket) {
                 const bearMult = Balance.WAVE_DEFINITIONS.BEAR_MARKET.COUNT_MULT || 1.25;
                 targetCount = Math.floor(targetCount * bearMult);
+            }
+            // v4.1.0: Rank-based enemy count adjustment
+            if (G.RankSystem) {
+                targetCount = Math.max(4, Math.round(targetCount * G.RankSystem.getEnemyCountMultiplier()));
             }
 
             // Generate positions using formation
@@ -318,33 +322,68 @@ window.Game.WaveManager = {
      */
     generateFormation(formationName, count, gameWidth) {
         const safeOffset = window.safeAreaInsets?.top || 0;
-        const startY = 150 + safeOffset;
-        const spacing = 75;
+        // v4.0.3: Read from BalanceConfig instead of hardcoded values
+        const FC = window.Game.Balance?.FORMATION || {};
+        const startY = (FC.START_Y || 150) + safeOffset;
+        const spacing = FC.SPACING || 75;
 
+        let positions;
         switch (formationName) {
-            case 'DIAMOND': return this.generateDiamond(count, gameWidth, startY, spacing);
-            case 'ARROW': return this.generateArrow(count, gameWidth, startY, spacing);
-            case 'PINCER': return this.generatePincer(count, gameWidth, startY, spacing);
-            case 'CHEVRON': return this.generateChevron(count, gameWidth, startY, spacing);
-            case 'FORTRESS': return this.generateFortress(count, gameWidth, startY, spacing);
-            case 'SCATTER': return this.generateScatter(count, gameWidth, startY, spacing);
-            case 'SPIRAL': return this.generateSpiral(count, gameWidth, startY, spacing);
-            case 'CROSS': return this.generateCross(count, gameWidth, startY, spacing);
-            case 'WALL': return this.generateWall(count, gameWidth, startY, spacing);
-            case 'GAUNTLET': return this.generateGauntlet(count, gameWidth, startY, spacing);
-            case 'VORTEX': return this.generateVortex(count, gameWidth, startY, spacing);
-            case 'FLANKING': return this.generateFlanking(count, gameWidth, startY, spacing);
-            case 'STAIRCASE': return this.generateStaircase(count, gameWidth, startY, spacing, true);
-            case 'STAIRCASE_REVERSE': return this.generateStaircase(count, gameWidth, startY, spacing, false);
-            case 'HURRICANE': return this.generateHurricane(count, gameWidth, startY, spacing);
-            case 'FINAL_FORM': return this.generateFinalForm(count, gameWidth, startY, spacing);
+            case 'DIAMOND': positions = this.generateDiamond(count, gameWidth, startY, spacing); break;
+            case 'ARROW': positions = this.generateArrow(count, gameWidth, startY, spacing); break;
+            case 'PINCER': positions = this.generatePincer(count, gameWidth, startY, spacing); break;
+            case 'CHEVRON': positions = this.generateChevron(count, gameWidth, startY, spacing); break;
+            case 'FORTRESS': positions = this.generateFortress(count, gameWidth, startY, spacing); break;
+            case 'SCATTER': positions = this.generateScatter(count, gameWidth, startY, spacing); break;
+            case 'SPIRAL': positions = this.generateSpiral(count, gameWidth, startY, spacing); break;
+            case 'CROSS': positions = this.generateCross(count, gameWidth, startY, spacing); break;
+            case 'WALL': positions = this.generateWall(count, gameWidth, startY, spacing); break;
+            case 'GAUNTLET': positions = this.generateGauntlet(count, gameWidth, startY, spacing); break;
+            case 'VORTEX': positions = this.generateVortex(count, gameWidth, startY, spacing); break;
+            case 'FLANKING': positions = this.generateFlanking(count, gameWidth, startY, spacing); break;
+            case 'STAIRCASE': positions = this.generateStaircase(count, gameWidth, startY, spacing, true); break;
+            case 'STAIRCASE_REVERSE': positions = this.generateStaircase(count, gameWidth, startY, spacing, false); break;
+            case 'HURRICANE': positions = this.generateHurricane(count, gameWidth, startY, spacing); break;
+            case 'FINAL_FORM': positions = this.generateFinalForm(count, gameWidth, startY, spacing); break;
             // Legacy fallbacks
-            case 'RECT': return this.generateRect(count, gameWidth, startY, spacing);
-            case 'V_SHAPE': return this.generateVShape(count, gameWidth, startY, spacing);
-            case 'COLUMNS': return this.generateColumns(count, gameWidth, startY, spacing);
-            case 'SINE_WAVE': return this.generateRect(count, gameWidth, startY, spacing);
-            default: return this.generateRect(count, gameWidth, startY, spacing);
+            case 'RECT': positions = this.generateRect(count, gameWidth, startY, spacing); break;
+            case 'V_SHAPE': positions = this.generateVShape(count, gameWidth, startY, spacing); break;
+            case 'COLUMNS': positions = this.generateColumns(count, gameWidth, startY, spacing); break;
+            case 'SINE_WAVE': positions = this.generateRect(count, gameWidth, startY, spacing); break;
+            default: positions = this.generateRect(count, gameWidth, startY, spacing); break;
         }
+
+        // v4.1.2: Even-distribution thinning - preserves full shape outline
+        if (positions.length > count) {
+            const step = positions.length / count;
+            const sampled = [];
+            for (let i = 0; i < count; i++) {
+                sampled.push(positions[Math.floor(i * step)]);
+            }
+            positions = sampled;
+        }
+
+        // v4.1.2: Safety net - fill missing positions with extra rows below
+        if (positions.length < count) {
+            const dbg = window.Game.Debug;
+            dbg.log('WAVE', `[WM] Safety net: ${formationName} produced ${positions.length}/${count}, filling ${count - positions.length} extra`);
+            const maxY = positions.reduce((m, p) => Math.max(m, p.y), startY);
+            const margin = FC.MARGIN || 60;
+            const cols = Math.max(3, Math.floor((gameWidth - 2 * margin) / spacing));
+            let extraRow = 1;
+            while (positions.length < count) {
+                const y = maxY + extraRow * spacing * 0.8;
+                const rowCount = Math.min(cols, count - positions.length);
+                const rowWidth = (rowCount - 1) * spacing;
+                const rowStartX = (gameWidth - rowWidth) / 2;
+                for (let c = 0; c < rowCount && positions.length < count; c++) {
+                    positions.push({ x: rowStartX + c * spacing, y });
+                }
+                extraRow++;
+            }
+        }
+
+        return positions;
     },
 
     /**
@@ -358,15 +397,28 @@ window.Game.WaveManager = {
     generateDiamond(count, gameWidth, startY, spacing) {
         const positions = [];
         const centerX = gameWidth / 2;
-        const size = Math.ceil(Math.sqrt(count));
 
-        for (let row = 0; row < size && positions.length < count; row++) {
+        // Find size where diamond capacity >= count
+        // Diamond capacity for size n: sum of row widths
+        // Row r width = r < n/2 ? r+1 : n-r
+        let size = 3;
+        while (size < 50) {
+            let cap = 0;
+            for (let r = 0; r < size; r++) {
+                cap += r < size / 2 ? r + 1 : size - r;
+            }
+            if (cap >= count) break;
+            size++;
+        }
+
+        // Generate full diamond shape (no early cutoff)
+        for (let row = 0; row < size; row++) {
             const rowWidth = row < size / 2 ? row + 1 : size - row;
-            for (let col = 0; col < rowWidth && positions.length < count; col++) {
+            for (let col = 0; col < rowWidth; col++) {
                 const xOffset = (col - (rowWidth - 1) / 2) * spacing;
                 positions.push({
                     x: centerX + xOffset,
-                    y: startY + row * (spacing * 0.7)
+                    y: startY + row * (spacing * 0.8)
                 });
             }
         }
@@ -384,11 +436,15 @@ window.Game.WaveManager = {
     generateArrow(count, gameWidth, startY, spacing) {
         const positions = [];
         const centerX = gameWidth / 2;
-        const rows = Math.ceil(count / 3);
 
-        for (let row = 0; row < rows && positions.length < count; row++) {
+        // Find rows where triangle capacity (rows*(rows+1)/2) >= count
+        let rows = 1;
+        while (rows * (rows + 1) / 2 < count) rows++;
+
+        // Generate full arrow shape (no early cutoff)
+        for (let row = 0; row < rows; row++) {
             const rowWidth = row + 1;
-            for (let col = 0; col < rowWidth && positions.length < count; col++) {
+            for (let col = 0; col < rowWidth; col++) {
                 const xOffset = (col - (rowWidth - 1) / 2) * spacing;
                 positions.push({
                     x: centerX + xOffset,
@@ -417,8 +473,8 @@ window.Game.WaveManager = {
             const col = i % 2;
             // Left wing
             positions.push({
-                x: leftX + col * spacing * 0.6,
-                y: startY + row * spacing * 0.7
+                x: leftX + col * spacing * 0.7,
+                y: startY + row * spacing * 0.8
             });
         }
         for (let i = 0; i < perSide && positions.length < count; i++) {
@@ -426,8 +482,8 @@ window.Game.WaveManager = {
             const col = i % 2;
             // Right wing
             positions.push({
-                x: rightX - col * spacing * 0.6,
-                y: startY + row * spacing * 0.7
+                x: rightX - col * spacing * 0.7,
+                y: startY + row * spacing * 0.8
             });
         }
         return positions;
@@ -444,17 +500,20 @@ window.Game.WaveManager = {
     generateChevron(count, gameWidth, startY, spacing) {
         const positions = [];
         const centerX = gameWidth / 2;
-        const rows = Math.ceil(count / 2);
 
-        for (let row = 0; row < rows && positions.length < count; row++) {
+        // Chevron capacity: 2*rows - 1 (pairs except last row which is center only)
+        // Find rows where capacity >= count
+        let rows = 1;
+        while (2 * rows - 1 < count) rows++;
+
+        // Generate full chevron shape (no early cutoff)
+        for (let row = 0; row < rows; row++) {
             const xOffset = (rows - row - 1) * spacing * 0.5;
             // Left side
-            if (positions.length < count) {
-                positions.push({ x: centerX - xOffset, y: startY + row * spacing * 0.6 });
-            }
+            positions.push({ x: centerX - xOffset, y: startY + row * spacing * 0.75 });
             // Right side (except center)
-            if (xOffset > 0 && positions.length < count) {
-                positions.push({ x: centerX + xOffset, y: startY + row * spacing * 0.6 });
+            if (xOffset > 0) {
+                positions.push({ x: centerX + xOffset, y: startY + row * spacing * 0.75 });
             }
         }
         return positions;
@@ -471,29 +530,29 @@ window.Game.WaveManager = {
     generateFortress(count, gameWidth, startY, spacing) {
         const positions = [];
         const centerX = gameWidth / 2;
-        const size = Math.ceil(Math.sqrt(count));
+
+        // Fortress capacity: perimeter + center = 4*(size-1) + 1
+        // Find size where capacity >= count
+        let size = 3;
+        while (4 * (size - 1) + 1 < count) size++;
         const halfSize = (size - 1) / 2;
 
-        // Outer walls
-        for (let i = 0; i < size && positions.length < count; i++) {
-            // Top row
-            positions.push({ x: centerX + (i - halfSize) * spacing * 0.8, y: startY });
+        // Generate full fortress shape (no early cutoff)
+        // Top row
+        for (let i = 0; i < size; i++) {
+            positions.push({ x: centerX + (i - halfSize) * spacing * 0.85, y: startY });
         }
-        for (let i = 1; i < size - 1 && positions.length < count; i++) {
-            // Left and right walls
-            positions.push({ x: centerX - halfSize * spacing * 0.8, y: startY + i * spacing * 0.8 });
-            if (positions.length < count) {
-                positions.push({ x: centerX + halfSize * spacing * 0.8, y: startY + i * spacing * 0.8 });
-            }
+        // Left and right walls
+        for (let i = 1; i < size - 1; i++) {
+            positions.push({ x: centerX - halfSize * spacing * 0.85, y: startY + i * spacing * 0.85 });
+            positions.push({ x: centerX + halfSize * spacing * 0.85, y: startY + i * spacing * 0.85 });
         }
-        for (let i = 0; i < size && positions.length < count; i++) {
-            // Bottom row
-            positions.push({ x: centerX + (i - halfSize) * spacing * 0.8, y: startY + (size - 1) * spacing * 0.8 });
+        // Bottom row
+        for (let i = 0; i < size; i++) {
+            positions.push({ x: centerX + (i - halfSize) * spacing * 0.85, y: startY + (size - 1) * spacing * 0.85 });
         }
         // Center
-        if (positions.length < count) {
-            positions.push({ x: centerX, y: startY + halfSize * spacing * 0.8 });
-        }
+        positions.push({ x: centerX, y: startY + halfSize * spacing * 0.85 });
         return positions;
     },
 
@@ -502,7 +561,7 @@ window.Game.WaveManager = {
      */
     generateScatter(count, gameWidth, startY, spacing) {
         const positions = [];
-        const margin = 60;
+        const margin = window.Game.Balance?.FORMATION?.MARGIN || 60;
         const cols = Math.ceil(gameWidth / spacing);
         const rows = Math.ceil(count / cols) + 1;
 
@@ -535,14 +594,20 @@ window.Game.WaveManager = {
     generateSpiral(count, gameWidth, startY, spacing) {
         const positions = [];
         const centerX = gameWidth / 2;
-        const centerY = startY + 100;
+        // v4.0.3: Use BalanceConfig values instead of hardcoded
+        const FC = window.Game.Balance?.FORMATION || {};
+        const centerY = startY + (FC.SPIRAL_CENTER_Y_OFFSET || 100);
+        const angleStep = FC.SPIRAL_ANGLE_STEP || 0.5;
+        const baseRadius = FC.SPIRAL_BASE_RADIUS || 30;
+        const radiusStep = FC.SPIRAL_RADIUS_STEP || 12;
+        const ySqueeze = FC.SPIRAL_Y_SQUEEZE || 0.6;
 
         for (let i = 0; i < count; i++) {
-            const angle = i * 0.5;
-            const radius = 30 + i * 12;
+            const angle = i * angleStep;
+            const radius = baseRadius + i * radiusStep;
             positions.push({
                 x: centerX + Math.cos(angle) * radius,
-                y: centerY + Math.sin(angle) * radius * 0.6
+                y: centerY + Math.sin(angle) * radius * ySqueeze
             });
         }
         return positions;
@@ -561,15 +626,16 @@ window.Game.WaveManager = {
         const centerX = gameWidth / 2;
         const armLength = Math.ceil(count / 4);
 
+        // Generate full cross shape (no early cutoff)
         // Horizontal arm
-        for (let i = -armLength; i <= armLength && positions.length < count; i++) {
+        for (let i = -armLength; i <= armLength; i++) {
             positions.push({
                 x: centerX + i * spacing * 0.7,
                 y: startY + armLength * spacing * 0.5
             });
         }
         // Vertical arm (skip center to avoid duplicate)
-        for (let i = 0; i < armLength * 2 + 1 && positions.length < count; i++) {
+        for (let i = 0; i < armLength * 2 + 1; i++) {
             if (i === armLength) continue; // Skip center
             positions.push({
                 x: centerX,
@@ -620,7 +686,7 @@ window.Game.WaveManager = {
             const col = i % 2;
             positions.push({
                 x: leftX + col * spacing * 0.7,
-                y: startY + row * spacing * 0.7
+                y: startY + row * spacing * 0.8
             });
         }
         for (let i = 0; i < perSide && positions.length < count; i++) {
@@ -628,7 +694,7 @@ window.Game.WaveManager = {
             const col = i % 2;
             positions.push({
                 x: rightX - col * spacing * 0.7,
-                y: startY + row * spacing * 0.7
+                y: startY + row * spacing * 0.8
             });
         }
         return positions;
@@ -677,7 +743,7 @@ window.Game.WaveManager = {
             const col = i % 3;
             positions.push({
                 x: 50 + col * spacing * 0.7,
-                y: startY + row * spacing * 0.7
+                y: startY + row * spacing * 0.8
             });
         }
 
@@ -687,7 +753,7 @@ window.Game.WaveManager = {
             const col = 2 - (i % 3);
             positions.push({
                 x: gameWidth - 50 - col * spacing * 0.7,
-                y: startY + row * spacing * 0.7
+                y: startY + row * spacing * 0.8
             });
         }
         return positions;
@@ -704,17 +770,19 @@ window.Game.WaveManager = {
     generateStaircase(count, gameWidth, startY, spacing, ascending = true) {
         const positions = [];
         const rows = Math.ceil(Math.sqrt(count * 2));
-        let placed = 0;
 
-        for (let row = 0; row < rows && placed < count; row++) {
+        // Generate full staircase shape (no early cutoff)
+        for (let row = 0; row < rows; row++) {
             const actualRow = ascending ? row : (rows - 1 - row);
-            const enemiesInRow = Math.min(actualRow + 1, count - placed);
-            for (let col = 0; col < enemiesInRow && placed < count; col++) {
+            const enemiesInRow = actualRow + 1;
+            // Center each row based on its width
+            const rowWidth = (enemiesInRow - 1) * spacing * 0.8;
+            const rowOffsetX = (gameWidth - rowWidth) / 2;
+            for (let col = 0; col < enemiesInRow; col++) {
                 positions.push({
-                    x: 80 + col * spacing * 0.8,
-                    y: startY + row * spacing * 0.7
+                    x: rowOffsetX + col * spacing * 0.8,
+                    y: startY + row * spacing * 0.8
                 });
-                placed++;
             }
         }
         return positions;

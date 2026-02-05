@@ -1871,3 +1871,93 @@ DIGITAL_THREAT: ['Ⓒ', '$', '元']  // CBDCs + majors
 - Full backward compatibility via `spawnWaveLegacy()`
 
 ---
+
+## Phase 29: Gameplay Polish v4.0.1 → v4.1.0 ✅
+*Goal: Fix bugs, improve fairness, enhance wave choreography, add HYPER touch, and introduce dynamic difficulty.*
+
+### A) Bug Fixes & Quick Wins (v4.0.1) ✅
+- [x] **GLOBAL_BULLET_CAP path fix**: Wrong lookup path in main.js
+- [x] **Homing bullet speed fix**: Hardcoded 200 → use this.maxSpeed
+- [x] **Boss homing missile property copy**: Added missing isHoming/homingStrength/maxSpeed
+- [x] **Horizontal bullet bounds**: Added x-axis bounds check for bullets
+- [x] **STREAK_FLASH enabled**: Default false → true
+- [x] **SCORE_PULSE enabled**: Default false → true
+- [x] **Particle cap increased**: 80 → 120
+
+### B) Fairness Fixes (v4.0.2) ✅
+- [x] **BOJ Phase 3 telegraph**: Cooldown-based aimed burst with 0.4s visual warning
+- [x] **BCE Phase 3 barrier coordination**: Barrier gaps offset by PI, curtain follows safe corridor
+- [x] **ETH rebalance + Smart Contract**: fireRate 0.57→0.40, damage 22→28, hitbox 8→7, +15% consecutive hit bonus
+- [x] **Second Wind perk**: Replaces useless Reinforced Plating (0.5s invuln on shield expiry)
+- [x] **Close graze distinction**: CLOSE_RADIUS 23→18, CLOSE_BONUS 3→4
+
+### C) Wave Choreography & Formations (v4.0.3) ✅
+- [x] **Diversified H2 formations**: Complementary pairing for all 15 waves
+- [x] **Horde 2 notification**: GAME_INFO message + WAVE_START flash
+- [x] **Smoothed difficulty curve**: C1→C2 jump reduced from +150% to +25%
+- [x] **STAIRCASE centering**: Rows centered on screen width
+- [x] **Formation config extraction**: New Balance.FORMATION block
+
+### D) HYPER Touch & Game Feel (v4.0.4) ✅
+- [x] **HYPER touch button**: Circular gold button for mobile HYPER activation
+- [x] **Enemy bullet tier differentiation**: Reduced glow, increased internal shape sizes
+
+### E) Rank System (v4.1.0) ✅
+- [x] **RankSystem.js**: New dynamic difficulty module (rank -1.0 to +1.0)
+- [x] **Game flow integration**: init, update, onKill, onGraze, onDeath signals
+- [x] **Fire rate multiplier**: 0.8x (struggling) to 1.2x (dominating) via HarmonicConductor
+- [x] **Enemy count multiplier**: 0.85x to 1.15x via WaveManager
+- [x] **Debug overlay**: Shows rank label, value, and multipliers
+- [x] **Config**: Balance.RANK with all parameters
+
+### Files Modified
+| Phase | Files |
+|-------|-------|
+| v4.0.1 | `main.js`, `Bullet.js`, `BalanceConfig.js`, `ParticleSystem.js` |
+| v4.0.2 | `Boss.js`, `BalanceConfig.js`, `Constants.js`, `Upgrades.js`, `Player.js`, `main.js` |
+| v4.0.3 | `BalanceConfig.js`, `WaveManager.js`, `main.js` |
+| v4.0.4 | `InputSystem.js`, `main.js`, `index.html`, `style.css`, `Bullet.js` |
+| v4.1.0 | NEW `RankSystem.js`, `main.js`, `WaveManager.js`, `BalanceConfig.js`, `DebugSystem.js`, `HarmonicConductor.js`, `index.html`, `sw.js` |
+
+## Phase 30: Polish Pass v4.1.1 ✅
+*Goal: Quick visual and balance fixes + HUD debug tooling.*
+- [x] **Intermission meme merge**: Curated Story dialogues in countdown, dialogue box suppressed
+- [x] **Wave 1-2 enemy buff**: W1 14→22, W2 18→26 (weak currencies, tutorial feel kept)
+- [x] **Formation overlap fix**: SPACING 75→85, SPIRAL_RADIUS_STEP 12→16
+- [x] **HUD debug system**: `dbg.debugHUD()`, `dbg.hudStatus()`, `dbg.toggleHudMsg(key)`, overlay HUD section
+
+### Files Modified
+| File | Changes |
+|------|---------|
+| `src/main.js` | Meme from Story dialogues, dialogue suppressed, boss defeat meme override, `G._hudState` exposure |
+| `src/config/BalanceConfig.js` | W1/W2 counts, SPACING 85, SPIRAL_RADIUS_STEP 16 |
+| `src/utils/DebugSystem.js` | HUD overlay section, `debugHUD()`, `hudStatus()`, `toggleHudMsg()`, dynamic overlay height |
+
+## Phase 31: Fix v4.1.2 - Formations, Overlaps & Meme Readability
+*Goal: Fix critical formation generation bugs, prevent enemy overlap, improve meme readability.*
+- [x] **DIAMOND generator fix**: Iterative size calc instead of `ceil(sqrt(count))` - was producing 6/12 enemies
+- [x] **ARROW generator fix**: Triangle capacity formula `rows*(rows+1)/2 >= count`
+- [x] **CHEVRON generator fix**: Chevron capacity `2*rows-1 >= count`
+- [x] **FORTRESS generator fix**: Perimeter capacity `4*(size-1)+1 >= count`
+- [x] **Safety net**: Universal fill pass in `generateFormation()` - extra rows below if positions < count
+- [x] **Y factor fixes**: DIAMOND 0.7→0.8, CHEVRON 0.6→0.75, PINCER 0.7→0.8, GAUNTLET 0.7→0.8, FLANKING 0.7→0.8, STAIRCASE 0.7→0.8, FORTRESS 0.8→0.85
+- [x] **Meme font sizes**: 14/12/10px → 16/14/12px, max chars 45→50
+- [x] **Full shape generation**: Removed early-cutoff guards from DIAMOND, ARROW, CHEVRON, FORTRESS, CROSS, STAIRCASE
+- [x] **Even-distribution thinning**: When capacity > count, evenly samples positions to preserve shape outline
+
+### Files Modified
+| File | Changes |
+|------|---------|
+| `src/managers/WaveManager.js` | Fixed 4 generators (DIAMOND, ARROW, CHEVRON, FORTRESS), safety net, Y/X factors, full shape + thinning |
+| `src/main.js` | Meme font sizes increased |
+| `src/utils/Constants.js` | VERSION → v4.1.2 |
+| `sw.js` | SW_VERSION → 4.1.2 |
+
+## Phase 32: Formation System Refinement (NEXT SESSION)
+*Goal: Fine-tuning of enemy formation placement - targeted fixes based on visual testing.*
+- [ ] **Visual audit**: Test each of the 16 formations individually with debug overlay
+- [ ] **Shape-specific tuning**: Adjust spacing/factors per formation as needed
+- [ ] **Edge cases**: Verify formations at all count ranges (8-24) and screen widths
+- [ ] **Thinning algorithm**: Evaluate if even-step sampling creates visible gaps; consider centroid-based removal
+
+---

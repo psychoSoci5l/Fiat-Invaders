@@ -231,8 +231,9 @@ window.Game.HarmonicConductor = {
             this.tempo = audio.tempo || 0.2;
         }
 
-        // Apply fire rate multiplier from intensity phase
-        const effectiveTempo = this.tempo / this.waveIntensity.fireRateMult;
+        // Apply fire rate multiplier from intensity phase + rank system
+        const rankMult = window.Game.RankSystem ? window.Game.RankSystem.getFireRateMultiplier() : 1.0;
+        const effectiveTempo = this.tempo / (this.waveIntensity.fireRateMult * rankMult);
 
         // Advance beat timer
         this.beatTimer += dt;

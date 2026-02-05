@@ -11,7 +11,7 @@
     const G = window.Game = window.Game || {};
 
     // Configuration
-    const MAX_PARTICLES = 80;
+    const MAX_PARTICLES = 120; // v4.0.1: Increased from 80 for richer effects
 
     // Particle state
     let particles = [];
