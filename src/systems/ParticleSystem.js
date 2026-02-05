@@ -11,7 +11,7 @@
     const G = window.Game = window.Game || {};
 
     // Configuration
-    const MAX_PARTICLES = 120; // v4.0.1: Increased from 80 for richer effects
+    const MAX_PARTICLES = 180; // v4.5: Increased from 120 for richer VFX
 
     // Particle state
     let particles = [];
@@ -59,23 +59,54 @@
     }
 
     /**
-     * Create bullet collision spark
+     * Create bullet collision spark — v4.5: contextual, colored, scaled
      * @param {number} x - X position
      * @param {number} y - Y position
-     * @param {string} [color='#fff'] - Particle color (optional)
+     * @param {string} [color='#fff'] - Particle color (matches bullet)
+     * @param {Object} [opts] - Options: { shotLevel, hasPower, isKill, isHyper }
      */
-    function createBulletSpark(x, y, color = '#fff') {
-        const count = Math.min(4, MAX_PARTICLES - particles.length);
+    function createBulletSpark(x, y, color = '#fff', opts = {}) {
+        const vfx = G.Balance?.VFX || {};
+        const baseCount = vfx.SPARK_COUNT_BASE || 4;
+        const perLevel = vfx.SPARK_COUNT_PER_LEVEL || 2;
+        const level = opts.shotLevel || 1;
+        const targetCount = baseCount + (level - 1) * perLevel;
+        const count = Math.min(targetCount, MAX_PARTICLES - particles.length);
+
+        const sizeMult = opts.hasPower ? (vfx.SPARK_POWER_SCALE || 1.5) : 1;
+        const lifetime = opts.isKill ? 0.30 : 0.18;
+
         for (let i = 0; i < count; i++) {
             const angle = Math.random() * Math.PI * 2;
-            const speed = Math.random() * 150 + 80;
+            const speed = Math.random() * 180 + 100;
             addParticle({
-                x: x, y: y,
+                x: x + (Math.random() - 0.5) * 6,
+                y: y + (Math.random() - 0.5) * 6,
                 vx: Math.cos(angle) * speed,
                 vy: Math.sin(angle) * speed,
-                life: 0.2, maxLife: 0.2,
-                color: color,
-                size: Math.random() * 3 + 2
+                life: lifetime, maxLife: lifetime,
+                color: i < 2 ? '#fff' : color, // First 2 white, rest colored
+                size: (Math.random() * 3 + 2) * sizeMult
+            });
+        }
+
+        // Kill ring (expanding burst on kill)
+        if (opts.isKill && (vfx.SPARK_KILL_RING !== false)) {
+            addParticle({
+                x: x, y: y, vx: 0, vy: 0,
+                life: 0.15, maxLife: 0.15,
+                color: color, size: 18,
+                isRing: true
+            });
+        }
+
+        // HYPER golden ring
+        if (opts.isHyper && (vfx.SPARK_HYPER_RING !== false)) {
+            addParticle({
+                x: x, y: y, vx: 0, vy: 0,
+                life: 0.20, maxLife: 0.20,
+                color: '#FFD700', size: 22,
+                isRing: true
             });
         }
     }
@@ -152,36 +183,46 @@
     }
 
     /**
-     * Create muzzle flash particles when player fires
+     * Create muzzle flash particles — v4.5: scales with level/modifiers
+     * @param {number} x - X position
+     * @param {number} y - Y position
+     * @param {string} color - Weapon color
+     * @param {Object} [opts] - { shotLevel, hasPower, hasRate }
      */
-    function createMuzzleFlashParticles(x, y, color) {
+    function createMuzzleFlashParticles(x, y, color, opts = {}) {
         const available = MAX_PARTICLES - particles.length;
         if (available <= 0) return;
 
-        const count = Math.min(5, available);
+        const vfx = G.Balance?.VFX || {};
+        const level = opts.shotLevel || 1;
+        const baseCount = 3 + level * 2; // 5/7/9 particles by level
+        const count = Math.min(baseCount, available);
+
+        const sizeMult = opts.hasPower ? (vfx.MUZZLE_POWER_SCALE || 1.3) : 1;
+        const speedMult = opts.hasRate ? 1.4 : 1;
 
         // Upward sparks (following bullet direction)
         for (let i = 0; i < count; i++) {
-            const spread = (Math.random() - 0.5) * 0.8;
-            const speed = Math.random() * 200 + 150;
+            const spread = (Math.random() - 0.5) * (0.6 + level * 0.15);
+            const speed = (Math.random() * 200 + 150) * speedMult;
             addParticle({
-                x: x + (Math.random() - 0.5) * 8,
+                x: x + (Math.random() - 0.5) * (6 + level * 2),
                 y: y,
                 vx: spread * speed,
-                vy: -speed * 0.6, // Upward bias
-                life: 0.15,
-                maxLife: 0.15,
+                vy: -speed * 0.6,
+                life: 0.12 + level * 0.02,
+                maxLife: 0.18,
                 color: i < 2 ? '#fff' : color,
-                size: Math.random() * 4 + 2
+                size: (Math.random() * 3 + 2) * sizeMult
             });
         }
 
-        // Quick flash ring
+        // Flash ring (always, size scales with level)
         if (available > count) {
             addParticle({
                 x: x, y: y, vx: 0, vy: 0,
-                life: 0.08, maxLife: 0.08,
-                color: color, size: 8,
+                life: 0.06 + level * 0.02, maxLife: 0.10,
+                color: color, size: 6 + level * 3,
                 isRing: true
             });
         }
@@ -245,49 +286,103 @@
     }
 
     /**
-     * Enhanced explosion for enemy deaths with flying currency symbols
+     * Enhanced explosion for enemy deaths — v4.5: tier-differentiated
+     * @param {number} x
+     * @param {number} y
+     * @param {string} color
+     * @param {string} symbol
+     * @param {string} [shape] - Enemy shape for debris style
      */
-    function createEnemyDeathExplosion(x, y, color, symbol) {
-        // Base explosion (smaller, since we're adding more effects)
-        createExplosion(x, y, color, 8);
+    function createEnemyDeathExplosion(x, y, color, symbol, shape) {
+        const Balance = G.Balance;
+        const vfx = Balance?.VFX || {};
+
+        // Determine tier
+        let tier = 'WEAK';
+        if (Balance?.isStrongTier && Balance.isStrongTier(symbol)) tier = 'STRONG';
+        else if (Balance?.isMediumTier && Balance.isMediumTier(symbol)) tier = 'MEDIUM';
+
+        const tierConf = vfx['EXPLOSION_' + tier] || { particles: 8, ringCount: 1, duration: 0.35, debrisCount: 3 };
+
+        // Core explosion (scaled by tier)
+        createExplosion(x, y, color, tierConf.particles);
 
         const available = MAX_PARTICLES - particles.length;
         if (available <= 2) return;
 
-        // Flying currency symbols (3 symbols spinning outward)
-        const symbolCount = Math.min(3, available - 2);
+        // Strong tier: white flash ring
+        if (tierConf.flash) {
+            addParticle({
+                x: x, y: y, vx: 0, vy: 0,
+                life: 0.12, maxLife: 0.12,
+                color: '#fff', size: 30,
+                isRing: true
+            });
+        }
+
+        // Additional ring for strong tier (double ring)
+        if (tierConf.ringCount >= 2) {
+            addParticle({
+                x: x, y: y, vx: 0, vy: 0,
+                life: 0.20, maxLife: 0.20,
+                color: color, size: 35,
+                isRing: true
+            });
+        }
+
+        // Flying currency symbols (2 for weak, 3 for medium/strong)
+        const symbolCount = Math.min(tier === 'WEAK' ? 2 : 3, available - 2);
         for (let i = 0; i < symbolCount; i++) {
             const angle = (Math.PI * 2 / symbolCount) * i + Math.random() * 0.5;
             const speed = Math.random() * 150 + 100;
             addParticle({
-                x: x,
-                y: y,
+                x: x, y: y,
                 vx: Math.cos(angle) * speed,
-                vy: Math.sin(angle) * speed - 50, // Slight upward bias
-                life: 0.7,
-                maxLife: 0.7,
+                vy: Math.sin(angle) * speed - 50,
+                life: tierConf.duration + 0.25,
+                maxLife: tierConf.duration + 0.25,
                 color: color,
-                size: 18 + Math.random() * 6, // Font size
+                size: 16 + Math.random() * 6,
                 symbol: symbol,
                 rotation: Math.random() * Math.PI * 2,
                 rotSpeed: (Math.random() - 0.5) * 15
             });
         }
 
-        // Debris chunks (colored fragments)
-        const debrisCount = Math.min(4, available - symbolCount);
+        // Shape-specific debris
+        const debrisCount = Math.min(tierConf.debrisCount, available - symbolCount);
+        const CU = G.ColorUtils;
+        const debrisColor = CU ? CU.darken(color, 0.2) : color;
+
         for (let i = 0; i < debrisCount; i++) {
             const angle = Math.random() * Math.PI * 2;
-            const speed = Math.random() * 200 + 120;
+            const speed = Math.random() * 220 + 100;
+            // Debris size varies by shape
+            let dSize = Math.random() * 5 + 3;
+            if (shape === 'bar') dSize = Math.random() * 4 + 4;      // Chunky golden shards
+            else if (shape === 'bill') dSize = Math.random() * 3 + 2; // Thin paper scraps
+            else if (shape === 'card') dSize = Math.random() * 4 + 3; // Digital fragments
+
             addParticle({
                 x: x + (Math.random() - 0.5) * 15,
                 y: y + (Math.random() - 0.5) * 15,
                 vx: Math.cos(angle) * speed,
                 vy: Math.sin(angle) * speed,
-                life: 0.35,
-                maxLife: 0.35,
-                color: color,
-                size: Math.random() * 6 + 4
+                life: tierConf.duration,
+                maxLife: tierConf.duration,
+                color: i % 3 === 0 ? '#fff' : debrisColor,
+                size: dSize
+            });
+        }
+
+        // Shockwave ring (expanding semi-transparent)
+        if (tier !== 'WEAK') {
+            const shockSize = tier === 'STRONG' ? 40 : 28;
+            addParticle({
+                x: x, y: y, vx: 0, vy: 0,
+                life: 0.25, maxLife: 0.25,
+                color: color, size: shockSize,
+                isRing: true
             });
         }
     }

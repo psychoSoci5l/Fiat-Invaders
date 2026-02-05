@@ -2038,7 +2038,42 @@ DIGITAL_THREAT: ['Ⓒ', '$', '元']  // CBDCs + majors
 
 ---
 
-## Phase 35: Formation System Visual Audit (NEXT SESSION)
+## Phase 35: Game Feel Overhaul v4.5.0 — "Ogni Colpo Deve Pesare" ✅
+*Goal: Make every shot, hit, and kill visually gratifying.*
+- [x] **Enemy Hit Reaction**: White flash, micro-shake, damage tint, smoke at low HP
+- [x] **Bullet Impact Sparks**: Colored by weapon, scaled by shot level, kill/HYPER rings
+- [x] **Muzzle Flash Evolution**: Scales with shot level + modifiers, weapon-colored
+- [x] **Tiered Explosions**: Weak=pop, Medium=shockwave, Strong=epic double-ring
+- [x] **Trail Enhancement**: POWER glow, HYPER golden sparkles on all bullets
+- [x] **Screen Juice**: Multi-kill flash, strong-tier shake, HYPER ambient, combo scaling
+- [x] **Balance.VFX config**: All 6 systems centralized and tuneable
+- [x] **MAX_PARTICLES**: 120→180 for richer effects
+
+## Phase 36: GODCHAIN MODE + Meme Audit v4.6.0 ✅
+*Goal: Ultimate reward state for maxed-out players + meme system polish.*
+- [x] **GODCHAIN MODE**: All modifiers maxed = red ship, fire trail bullets, aura, speed boost
+- [x] **Activation sound**: Ascending power chord via AudioSystem
+- [x] **Debug commands**: `dbg.godchain()`, `dbg.godchainStatus()`
+- [x] **MEMES.INTERMISSION pool**: 20 curated memes for countdown spotlight
+- [x] **Deduplication system**: No repeat memes within 8 picks per context
+- [x] **Pool cleanup**: No overlap between INTERMISSION, LOW, HIGH, SAYLOR
+- [x] **Text overflow fix**: maxWidth on intermission fillText
+
+## Phase 36.1: Bug Fixes v4.6.1 (Post-Playtest) ✅
+*Goal: Fix 3 bugs found during v4.6.0 playtest.*
+- [x] **CRITICAL: Game stuck at L15**: Miniboss defeat with empty savedEnemies left phase 3 minions blocking WaveManager
+- [x] **GODCHAIN unreachable**: Lowered requirements to Rate=2, Power=2, Spread=1 (was 3/3/2)
+- [x] **Short levels in Cycles 2-3**: Added CYCLE_COUNT_MULT (+25% C2, +50% C3) + increased CYCLE_BASE scaling
+
+## Phase 36.2: Playtest v4.6.1 Fixes (NEXT SESSION — START HERE)
+*Goal: Verify the 3 bug fixes from v4.6.1 before moving on.*
+- [ ] **Bug 1 verify**: Play to L15+, trigger miniboss during last horde — game must continue after defeat
+- [ ] **Bug 2 verify**: Use `dbg.godchainStatus()` — GODCHAIN should activate at Rate=2, Power=2, Spread=1
+- [ ] **Bug 2 verify**: Use `dbg.godchain()` to force-test (red ship, fire trail, sound)
+- [ ] **Bug 3 verify**: Compare level durations — Cycle 2+ levels should last 25-35s minimum
+- [ ] **Balance check**: Run `dbg.balanceTest()` + `dbg.report()` to verify cycle timing targets
+
+## Phase 37: Formation System Visual Audit
 *Goal: Fine-tuning of enemy formation placement - targeted fixes based on visual testing.*
 - [ ] **Visual audit**: Test each of the 16 formations individually with debug overlay
 - [ ] **Shape-specific tuning**: Adjust spacing/factors per formation as needed

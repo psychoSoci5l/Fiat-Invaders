@@ -20,9 +20,14 @@ class Enemy extends window.Game.Entity {
         this.telegraphTimer = 0;
         this.telegraphLead = 0.12;
 
+        this.maxHp = this.hp; // Track for damage tint
         this.active = true;
         this.fireTimer = 0; // Set by spawner for Fibonacci ramp-up
         this.hitFlash = 0; // Flash white when hit
+        this._hitShakeTimer = 0; // Micro-shake timer
+        this._hitShakeX = 0;     // Shake offset X
+        this._hitShakeY = 0;     // Shake offset Y
+        this._smokeTimer = 0;    // Smoke emission timer
 
         // Special behaviors (set by spawner based on tier)
         this.isKamikaze = false;      // Weak tier: can dive at player
@@ -100,6 +105,39 @@ class Enemy extends window.Game.Entity {
         if (this.shieldFlash > 0) this.shieldFlash -= dt * 5;
         if (this.teleportFlash > 0) this.teleportFlash -= dt * 4;
         if (this.teleportCooldown > 0) this.teleportCooldown -= dt;
+
+        // v4.5: Hit shake decay
+        if (this._hitShakeTimer > 0) {
+            this._hitShakeTimer -= dt;
+            const t = this._hitShakeTimer / 0.06;
+            const intensity = (window.Game.Balance?.VFX?.HIT_SHAKE_INTENSITY || 2) * t;
+            this._hitShakeX = (Math.random() - 0.5) * 2 * intensity;
+            this._hitShakeY = (Math.random() - 0.5) * 2 * intensity;
+        } else {
+            this._hitShakeX = 0;
+            this._hitShakeY = 0;
+        }
+
+        // v4.5: Smoke when low HP
+        const vfx = window.Game.Balance?.VFX;
+        if (vfx && this.maxHp > 0 && this.hp / this.maxHp <= (vfx.SMOKE_HP_THRESHOLD || 0.20)) {
+            this._smokeTimer -= dt;
+            if (this._smokeTimer <= 0) {
+                this._smokeTimer = vfx.SMOKE_INTERVAL || 0.15;
+                if (window.Game.ParticleSystem) {
+                    window.Game.ParticleSystem.addParticle({
+                        x: this.x + (Math.random() - 0.5) * 20,
+                        y: this.y + (Math.random() - 0.5) * 10,
+                        vx: (Math.random() - 0.5) * 30,
+                        vy: -30 - Math.random() * 20,
+                        life: 0.4 + Math.random() * 0.2,
+                        maxLife: 0.6,
+                        color: '#888',
+                        size: 3 + Math.random() * 3
+                    });
+                }
+            }
+        }
 
         // FORMATION ENTRY - Handle entry animation before normal movement
         if (this.isEntering) {
@@ -236,6 +274,7 @@ class Enemy extends window.Game.Entity {
 
         this.hp -= amount;
         this.hitFlash = 1;
+        this._hitShakeTimer = window.Game.Balance?.VFX?.HIT_SHAKE_DURATION || 0.06;
         return this.hp <= 0;
     }
 
@@ -247,11 +286,24 @@ class Enemy extends window.Game.Entity {
     }
 
     draw(ctx) {
-        const x = this.x;
-        const y = this.y;
+        // v4.5: Apply hit shake offset
+        const x = this.x + this._hitShakeX;
+        const y = this.y + this._hitShakeY;
 
         ctx.save();
         if (this.rotation) ctx.translate(x, y), ctx.rotate(this.rotation), ctx.translate(-x, -y);
+
+        // v4.5: Damage tint — darken toward red as HP drops
+        const vfx = window.Game.Balance?.VFX;
+        const hpRatio = this.maxHp > 0 ? this.hp / this.maxHp : 1;
+        const tintStart = vfx?.DAMAGE_TINT_START || 0.5;
+        if (hpRatio < tintStart && hpRatio > 0) {
+            const tintAmount = 1 - (hpRatio / tintStart); // 0 at threshold, 1 at 0 HP
+            // Subtle red overlay will be drawn after shape
+            ctx._damageTint = tintAmount;
+        } else {
+            ctx._damageTint = 0;
+        }
 
         ctx.strokeStyle = '#111';
         ctx.lineWidth = 3; // Bold cell-shaded outline
@@ -273,12 +325,22 @@ class Enemy extends window.Game.Entity {
 
         ctx.restore();
 
-        // Hit flash effect (white overlay)
+        // v4.5: Damage tint overlay (red tinge on damaged enemies)
+        if (ctx._damageTint > 0) {
+            ctx.globalAlpha = ctx._damageTint * 0.3; // Max 30% red overlay
+            ctx.fillStyle = '#cc0000';
+            ctx.beginPath();
+            ctx.arc(x, y, 28, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+        }
+
+        // Hit flash effect (white overlay) — v4.5: sharper, shorter
         if (this.hitFlash > 0) {
-            ctx.globalAlpha = this.hitFlash;
+            ctx.globalAlpha = Math.min(1, this.hitFlash * 0.8);
             ctx.fillStyle = '#fff';
             ctx.beginPath();
-            ctx.arc(x, y, 30, 0, Math.PI * 2);
+            ctx.arc(x, y, 28, 0, Math.PI * 2);
             ctx.fill();
             ctx.globalAlpha = 1;
         }

@@ -1215,6 +1215,38 @@ window.Game.Debug = {
     },
 
     /**
+     * Force GODCHAIN mode ON (set all modifiers to max with long timer)
+     */
+    godchain() {
+        const player = window.player;
+        if (!player) {
+            console.log('[DEBUG] No player found');
+            return;
+        }
+        this.maxWeapon();
+        console.log('[DEBUG] GODCHAIN forced ON — all modifiers maxed');
+    },
+
+    /**
+     * Show GODCHAIN status (modifier levels and timers)
+     */
+    godchainStatus() {
+        const player = window.player;
+        if (!player) {
+            console.log('[DEBUG] No player found');
+            return;
+        }
+        const active = player._godchainActive ? 'ACTIVE' : 'INACTIVE';
+        console.log(`[DEBUG] GODCHAIN: ${active}`);
+        console.log(`  Shot Level: ${player.shotLevel || 1} (need 3)`);
+        if (player.modifiers) {
+            console.log(`  RATE:   Lv${player.modifiers.rate.level} / ${player.modifiers.rate.timer.toFixed(1)}s (need max+timer)`);
+            console.log(`  POWER:  Lv${player.modifiers.power.level} / ${player.modifiers.power.timer.toFixed(1)}s (need max+timer)`);
+            console.log(`  SPREAD: Lv${player.modifiers.spread.level} / ${player.modifiers.spread.timer.toFixed(1)}s (need max+timer)`);
+        }
+    },
+
+    /**
      * Show current weapon evolution state
      */
     weaponStatus() {
@@ -1239,4 +1271,4 @@ window.Game.Debug = {
 window.dbg = window.Game.Debug;
 
 // Console helper message
-console.log('[DEBUG] DebugSystem loaded. Commands: dbg.stats(), dbg.showOverlay(), dbg.debugBoss(), dbg.debugHUD(), dbg.hudStatus(), dbg.toggleHudMsg(key), dbg.maxWeapon(), dbg.weaponStatus()');
+console.log('[DEBUG] DebugSystem loaded. Commands: dbg.stats(), dbg.showOverlay(), dbg.debugBoss(), dbg.debugHUD(), dbg.hudStatus(), dbg.toggleHudMsg(key), dbg.maxWeapon(), dbg.weaponStatus(), dbg.godchain(), dbg.godchainStatus()');

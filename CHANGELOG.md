@@ -1,5 +1,96 @@
 # Changelog
 
+## v4.6.1 - 2026-02-05
+### Bug Fixes (Post-Playtest)
+
+#### 1. Fix: Game stuck at Level 15 after miniboss defeat (CRITICAL)
+- **Root cause**: When all wave enemies die before miniboss spawns, `savedEnemies` is empty
+- Phase 3 minions remain in `enemies` array, WaveManager can't proceed (requires `enemiesCount === 0`)
+- **Fix**: Clear enemies array when savedEnemies is empty instead of leaving minions behind
+
+#### 2. Fix: GODCHAIN mode unreachable in normal play
+- **Root cause**: Required all modifiers at absolute max (Rate=3, Power=3, Spread=2) simultaneously with 12s timers — near-zero probability with 10 drop types
+- **Fix**: Lowered requirements to `Rate >= 2, Power >= 2, Spread >= 1` via new `Balance.GODCHAIN.REQUIREMENTS` config
+- `isGodchainActive()` now reads from config instead of hardcoded max levels
+
+#### 3. Fix: Short level durations in Cycles 2-3
+- **Root cause**: Player has maxed weapons by Cycle 2, killing enemies faster than designed
+- **Fix**: Added `CYCLE_COUNT_MULT: [1.0, 1.25, 1.5]` — +25% enemies in Cycle 2, +50% in Cycle 3
+- Increased `DIFFICULTY.CYCLE_BASE` scaling: C2 0.20→0.25, C3 0.55→0.60 for tougher enemies
+
+## v4.6.0 - 2026-02-05
+### Feature: GODCHAIN MODE + Meme Audit
+
+#### 1. GODCHAIN MODE
+- **Trigger**: All modifiers at max level with active timers (Shot=3, Rate=3, Power=3, Spread=2)
+- **Red ship override**: Deep red color palette replaces standard ship when active
+- **Red/orange aura**: Pulsing radial glow around ship during GODCHAIN
+- **Fire trail bullets**: 3 flickering fire tongues trail behind every bullet
+- **Speed bonus**: +5% movement speed while active
+- **Activation sound**: Ascending power chord (low-high harmonic sweep)
+- **Events**: `GODCHAIN_ACTIVATED` / `GODCHAIN_DEACTIVATED` via EventBus
+- **Debug**: `dbg.godchain()` to force ON, `dbg.godchainStatus()` to inspect
+- **Config**: All params in `Balance.GODCHAIN` (ship colors, aura, fire trail)
+
+#### 2. Meme System Audit
+- **New `MEMES.INTERMISSION` pool**: 20 curated best-of memes for countdown spotlight
+- **Deduplication system**: `_pickDeduplicated()` tracks last 8 per context, no repeats
+- **`MemeEngine.getIntermissionMeme()`**: Draws from dedicated pool with dedup
+- **`MemeEngine.getWhisperMeme()`**: Draws from LOW pool with dedup
+- **Pool cleanup**: Removed overlapping memes between INTERMISSION, LOW, HIGH, SAYLOR
+- **Text overflow fix**: `ctx.fillText()` now uses `maxWidth` param (gameWidth - 40px)
+- **Intermission selection**: Simplified priority (level dialogues > INTERMISSION pool)
+
+## v4.5.0 - 2026-02-05
+### Feature: Game Feel Overhaul — "Ogni Colpo Deve Pesare"
+
+#### 1. Enemy Hit Reaction
+- **White flash + micro-shake** (±2px, 0.06s) on every hit — enemies visibly react
+- **Damage tint**: Progressive red overlay as HP drops below 50%
+- **Smoke particles**: Low-HP enemies (<20%) emit grey smoke before dying
+- `maxHp` tracked per enemy for tint calculation
+
+#### 2. Contextual Bullet Impact Sparks
+- **Colored sparks**: Inherit color from projectile (orange NORMAL, purple WIDE, etc.)
+- **Scaled by shot level**: 4→6→8 particles at level 1→2→3
+- **POWER modifier**: +50% spark size
+- **Kill ring**: Expanding colored ring on lethal hits
+- **HYPER ring**: Golden expanding ring during HYPER mode
+- Sparks now fire on ALL bullet-enemy hits (was only on bullet-vs-bullet)
+
+#### 3. Muzzle Flash Evolution
+- **Shot level scaling**: Flash size grows +40% per level (1→2→3)
+- **Weapon-colored**: Flash core matches weapon palette (orange, purple, blue, etc.)
+- **Modifier-reactive**: POWER = bigger flash, RATE = smaller+faster
+- **Level 3 ring burst**: Expanding ring on shot level 3
+- **Radial lines scale**: 1 line at L1, 3 at L2, 5 at L3
+- Muzzle particles also scale (5→7→9 by level)
+
+#### 4. Tiered Enemy Explosions
+- **Weak tier** (¥, ₽, ₹): Quick 6-particle pop, 1 ring, 2 debris
+- **Medium tier** (€, £, ₣, ₺): 10 particles, shockwave ring, 4 debris
+- **Strong tier** ($, 元, Ⓒ): 14 particles, white flash, double ring, 6 debris, +50% duration
+- Shape-specific debris sizing (chunky for bars, thin for bills)
+- Shockwave ring on medium/strong kills
+
+#### 5. Trail Enhancement
+- **POWER modifier glow**: Pulsing golden outer aura on any powered-up bullet
+- **HYPER golden trail**: Two trailing golden sparkles on all bullets during HYPER mode
+- `_isHyper` flag on bullets spawned during HYPER
+
+#### 6. Screen Juice
+- **Multi-kill flash**: White flash + slowmo when 2+ enemies killed in same frame
+- **Strong-tier shake**: ±3px screen shake on $, 元, Ⓒ kills
+- **HYPER ambient sparkles**: Random golden particles across screen during HYPER
+- **Combo score scaling**: Floating score numbers grow with kill streak (>5 kills)
+- MAX_PARTICLES raised from 120 to 180
+
+#### Configuration
+- New `Balance.VFX` section in BalanceConfig.js (all 6 systems tuneable)
+- New `MULTI_KILL` flash in `Balance.JUICE.FLASH`
+- `EFFECTS.PARTICLES.MAX_COUNT` updated to 180
+- All effects canvas-based, no new DOM elements, respects v4.4 HUD zones
+
 ## v4.4.0 - 2026-02-05
 ### Feature: HUD Redesign — "Zero Distrazioni, Massima Informazione"
 

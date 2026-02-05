@@ -21,7 +21,7 @@
         DIFFICULTY: {
             // Base difficulty per cycle (stepped progression)
             // v4.0.3: Smoothed C1→C2 jump (0.30→0.20, was +150% now +25%)
-            CYCLE_BASE: [0.0, 0.20, 0.55],  // Cycle 1: Tutorial, Cycle 2: Learning, Cycle 3: Skilled
+            CYCLE_BASE: [0.0, 0.25, 0.60],  // Cycle 1: Tutorial, Cycle 2: Learning, Cycle 3: Skilled (v4.6.1: +25% per cycle, was 0.20/0.55)
 
             // Per-wave scaling within cycle
             WAVE_SCALE: 0.04,               // +4% per wave (v4.0.3: 0.03→0.04, 5 waves = +20% total within cycle)
@@ -166,7 +166,8 @@
                 BOSS_PHASE: { duration: 0.12, opacity: 0.25, color: '#FF6600' },
                 BOSS_DEFEAT: { duration: 0.20, opacity: 0.50, color: '#FFFFFF' },
                 PLAYER_HIT: { duration: 0.04, opacity: 0.15, color: '#FF0000' },
-                WAVE_START: { duration: 0.05, opacity: 0.25, color: '#FFFFFF' }
+                WAVE_START: { duration: 0.05, opacity: 0.25, color: '#FFFFFF' },
+                MULTI_KILL: { duration: 0.08, opacity: 0.20, color: '#FFFFFF' }  // v4.5
             },
 
             // Master toggles for screen effects (modularity)
@@ -523,7 +524,7 @@
             },
             // Particles
             PARTICLES: {
-                MAX_COUNT: 120,            // Global particle cap (v4.0.1: 80→120)
+                MAX_COUNT: 180,            // Global particle cap (v4.5: 120→180)
                 DEBRIS_SPEED_MIN: 100,
                 DEBRIS_SPEED_MAX: 350,
                 DEBRIS_SPREAD_ANGLE: 60,   // Degrees
@@ -779,6 +780,9 @@
                 2: { behaviorBonus: 0.20, fireRateMult: 1.15, entryStyle: 'rapid' }
             },
 
+            // v4.6.1: Cycle-based enemy count multiplier (player is stronger in later cycles)
+            CYCLE_COUNT_MULT: [1.0, 1.25, 1.5],  // Cycle 1: 1x, Cycle 2: +25%, Cycle 3: +50%
+
             // Bear Market scaling
             BEAR_MARKET: {
                 COUNT_MULT: 1.25,           // +25% enemies
@@ -924,6 +928,77 @@
             SPAWN_Y_OFFSET: -80,          // Y offset above screen for spawning
             SETTLE_TIME: 0.3,             // Seconds to settle after reaching position
             CURVE_INTENSITY: 0.15         // How much enemies curve during entry (0-1)
+        },
+
+        // --- VFX SYSTEM v4.5 (Game Feel Overhaul) ---
+        VFX: {
+            // Enemy hit reaction
+            HIT_FLASH_DURATION: 0.04,         // Seconds of white flash on hit
+            HIT_SHAKE_INTENSITY: 2,           // Max px offset on hit
+            HIT_SHAKE_DURATION: 0.06,         // Seconds of shake
+            DAMAGE_TINT_START: 0.5,           // HP ratio below which tint begins
+            SMOKE_HP_THRESHOLD: 0.20,         // HP ratio below which smoke starts
+            SMOKE_INTERVAL: 0.15,             // Seconds between smoke particles
+
+            // Bullet impact sparks (contextual)
+            SPARK_COUNT_BASE: 4,              // Particles at shot level 1
+            SPARK_COUNT_PER_LEVEL: 2,         // +2 per shot level
+            SPARK_POWER_SCALE: 1.5,           // Size mult with POWER modifier
+            SPARK_KILL_RING: true,            // Expanding ring on kill hit
+            SPARK_HYPER_RING: true,           // Golden ring during HYPER
+
+            // Muzzle flash evolution
+            MUZZLE_SCALE_PER_LEVEL: 0.4,     // +40% per shot level
+            MUZZLE_POWER_SCALE: 1.3,         // Size mult with POWER mod
+            MUZZLE_RATE_SCALE: 0.6,          // Size mult with RATE mod (smaller, faster)
+            MUZZLE_RING_AT_LEVEL: 3,         // Show ring burst at this shot level
+
+            // Explosion tiers
+            EXPLOSION_WEAK: { particles: 6, ringCount: 1, duration: 0.30, debrisCount: 2 },
+            EXPLOSION_MEDIUM: { particles: 10, ringCount: 1, duration: 0.40, debrisCount: 4 },
+            EXPLOSION_STRONG: { particles: 14, ringCount: 2, duration: 0.55, debrisCount: 6, flash: true },
+
+            // Trail enhancement
+            TRAIL_POWER_GLOW: 0.25,           // Outer glow alpha with POWER mod
+            TRAIL_HYPER_SPARKLE: true,        // Golden sparkles during HYPER
+
+            // Screen juice
+            MULTI_KILL_WINDOW: 0.05,          // Seconds to count as multi-kill (3 frames)
+            MULTI_KILL_FLASH: { duration: 0.08, opacity: 0.20, color: '#FFFFFF' },
+            STRONG_KILL_SHAKE: 3,             // Shake px on strong-tier kill
+            STRONG_KILL_SHAKE_DURATION: 0.06, // Shake duration
+            HYPER_AMBIENT_INTERVAL: 0.12,     // Seconds between HYPER sparkles
+            COMBO_SCORE_SCALE: true           // Float score size scales with streak
+        },
+
+        // --- GODCHAIN MODE v4.6 (All modifiers maxed simultaneously) ---
+        GODCHAIN: {
+            // v4.6.1: Lowered from 3/3/2 — original was near-impossible in normal play
+            REQUIREMENTS: { RATE: 2, POWER: 2, SPREAD: 1 },
+            SPEED_BONUS: 1.05,          // +5% movement speed
+            SHIP_COLORS: {
+                BODY: '#cc2222',        // Deep red body
+                BODY_DARK: '#881111',   // Dark red accent
+                BODY_LIGHT: '#ff4444',  // Light red highlight
+                NOSE: '#ff6633',        // Orange-red nose
+                NOSE_LIGHT: '#ff9966',  // Light nose
+                FIN: '#991111',         // Dark red fins
+                FIN_LIGHT: '#dd3333',   // Light red fins
+                WINDOW: '#ffaaaa',      // Pink-red window
+                ENGINE: '#ff4400'       // Engine glow
+            },
+            AURA: {
+                INNER_RADIUS: 28,
+                OUTER_RADIUS: 52,
+                ALPHA: 0.18,
+                PULSE_SPEED: 3.0
+            },
+            FIRE_TRAIL: {
+                TONGUE_COUNT: 3,
+                LENGTH: 12,
+                ALPHA: 0.7,
+                COLORS: ['#ff4400', '#ff6600', '#ffaa00']
+            }
         },
 
         // --- RANK SYSTEM (Dynamic Difficulty v4.1.0) ---

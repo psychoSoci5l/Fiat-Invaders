@@ -111,6 +111,8 @@ let boss = null;
 let score = 0, level = 1, lives = 3;
 let lastScoreMilestone = 0; // Track score milestones for pulse effect
 let shake = 0, gridDir = 1, gridSpeed = 25, totalTime = 0, intermissionTimer = 0;
+let _frameKills = 0;            // v4.5: Multi-kill tracking per frame
+let _hyperAmbientTimer = 0;     // v4.5: HYPER sparkle timer
 // Screen transition moved to TransitionManager.js
 let currentShipIdx = 0;
 let lastWavePattern = 'RECT';
@@ -939,6 +941,14 @@ function init() {
                 volatilityTimer = 2.0;
                 if (runState.modifiers) runState.modifiers.tempFireRateMult = 0.6;
             }
+        });
+        // v4.6: GODCHAIN events
+        events.on('GODCHAIN_ACTIVATED', () => {
+            showPowerUp('🔥 GODCHAIN MODE');
+            if (G.triggerScreenFlash) G.triggerScreenFlash('HYPER_ACTIVATE');
+        });
+        events.on('GODCHAIN_DEACTIVATED', () => {
+            showPowerUp('GODCHAIN LOST');
         });
         // Harmonic Conductor bullet spawning
         events.on('harmonic_bullets', (data) => {
@@ -2062,17 +2072,16 @@ function startIntermission(msgOverride) {
         // Note: No showVictory() here - the countdown overlay provides visual feedback
     }
 
-    // Pick a TOP meme for the countdown — this is the spotlight moment
-    // Priority: level-specific story dialogues > HIGH+SAYLOR (best memes) > generic
+    // v4.6: Pick intermission meme via MemeEngine (curated + deduplicated)
+    // Priority: level-specific story dialogues > INTERMISSION pool > fallback
     const dialogues = G.DIALOGUES;
     const levelMemes = dialogues && dialogues.LEVEL_COMPLETE && dialogues.LEVEL_COMPLETE[level];
-    const topMemes = [...(Constants.MEMES.HIGH || []), ...(Constants.MEMES.SAYLOR || [])];
-    const memePool = levelMemes || (topMemes.length > 0 ? topMemes : null)
-        || (dialogues && dialogues.LEVEL_COMPLETE_GENERIC)
-        || [...(Constants.MEMES.LOW || [])];
-    // Story dialogues can be strings or {speaker, text} objects
-    const picked = memePool[Math.floor(Math.random() * memePool.length)];
-    intermissionMeme = (typeof picked === 'string' ? picked : (picked && picked.text)) || "HODL";
+    if (levelMemes && levelMemes.length > 0) {
+        const picked = levelMemes[Math.floor(Math.random() * levelMemes.length)];
+        intermissionMeme = (typeof picked === 'string' ? picked : (picked && picked.text)) || "HODL";
+    } else {
+        intermissionMeme = G.MemeEngine.getIntermissionMeme();
+    }
 
     // Show override text if provided (boss defeat, etc.)
     if (msgOverride) {
@@ -2643,11 +2652,11 @@ function checkMiniBossHit(b) {
                 window.Game.triggerScreenFlash('BOSS_DEFEAT');
             }
 
-            // Restore enemies if any were saved
-            if (miniBoss.savedEnemies && miniBoss.savedEnemies.length > 0) {
-                enemies = miniBoss.savedEnemies;
-                waveStartTime = totalTime;
-            }
+            // Clear boss minions, then restore wave enemies (v4.6.1: fix stuck game when savedEnemies empty)
+            enemies = (miniBoss.savedEnemies && miniBoss.savedEnemies.length > 0)
+                ? miniBoss.savedEnemies
+                : [];
+            waveStartTime = totalTime;
             // Update global references
             G.enemies = enemies;
             if (window.Game) window.Game.enemies = enemies;
@@ -2829,7 +2838,11 @@ function update(dt) {
         const newBullets = player.update(dt, enemiesEntering);
         if (newBullets && newBullets.length > 0) {
             bullets.push(...newBullets);
-            createMuzzleFlashParticles(player.x, player.y - 25, player.stats.color);
+            createMuzzleFlashParticles(player.x, player.y - 25, player.stats.color, {
+                shotLevel: player.shotLevel || 1,
+                hasPower: player.modifiers?.power?.level > 0,
+                hasRate: player.modifiers?.rate?.level > 0
+            });
         }
 
         // HYPER MODE activation (H key or touch button)
@@ -3486,6 +3499,16 @@ function checkBulletCollisions(b, bIdx) {
             const shouldDie = e.takeDamage(dmg);
             audioSys.play('hitEnemy');
 
+            // v4.5: Impact spark on every hit (colored by bullet)
+            const sparkColor = b.color || player.stats?.color || '#fff';
+            const sparkOpts = {
+                shotLevel: player.shotLevel || 1,
+                hasPower: player.modifiers?.power?.level > 0,
+                isKill: shouldDie,
+                isHyper: player.isHyperActive && player.isHyperActive()
+            };
+            createBulletSpark(e.x, e.y, sparkColor, sparkOpts);
+
             if (shouldDie) {
                 enemies.splice(j, 1);
                 audioSys.play('coinScore');
@@ -3556,6 +3579,21 @@ function checkBulletCollisions(b, bIdx) {
 
                 createEnemyDeathExplosion(e.x, e.y, e.color, e.symbol || '$', e.shape);
                 createScoreParticles(e.x, e.y, e.color);
+
+                // v4.5: Multi-kill detection & strong-tier shake
+                _frameKills++;
+                if (_frameKills >= 2) {
+                    const vfx = Balance?.VFX || {};
+                    const mkFlash = vfx.MULTI_KILL_FLASH || { duration: 0.08, opacity: 0.20, color: '#FFFFFF' };
+                    triggerScreenFlash('MULTI_KILL');
+                    applyHitStop('STREAK_10', false); // Satisfying slowmo
+                }
+                // Strong tier: extra shake on kill
+                if (Balance?.isStrongTier && Balance.isStrongTier(e.symbol)) {
+                    const vfx = Balance?.VFX || {};
+                    shake = Math.max(shake, vfx.STRONG_KILL_SHAKE || 3);
+                }
+
                 killCount++;
                 streak++;
                 if (streak > bestStreak) bestStreak = streak;
@@ -4115,8 +4153,9 @@ function draw() {
                 ctx.strokeStyle = '#000';
                 ctx.lineWidth = 4;
                 ctx.fillStyle = '#FFD700';
-                ctx.strokeText(memeDisplay, centerX, memeY);
-                ctx.fillText(memeDisplay, centerX, memeY);
+                const memeMaxWidth = gameWidth - 40;
+                ctx.strokeText(memeDisplay, centerX, memeY, memeMaxWidth);
+                ctx.fillText(memeDisplay, centerX, memeY, memeMaxWidth);
                 ctx.shadowBlur = 0;
 
                 ctx.restore();
@@ -4406,6 +4445,13 @@ function createFloatingScore(scoreValue, x, y) {
         scale = config.SCALE_LARGE || 1.5;
     }
 
+    // v4.5: Streak-based scaling (scores grow with combo)
+    const vfx = Balance?.VFX;
+    if (vfx?.COMBO_SCORE_SCALE && killStreak > 5) {
+        const streakBonus = Math.min(0.5, (killStreak - 5) * 0.03); // +3% per kill above 5, max +50%
+        scale *= (1 + streakBonus);
+    }
+
     const baseSize = 18;
     const size = Math.floor(baseSize * scale);
     const duration = config.DURATION || 1.2;
@@ -4558,16 +4604,16 @@ function addParticle(props) {
     return G.ParticleSystem ? G.ParticleSystem.addParticle(props) : false;
 }
 
-function createBulletSpark(x, y) {
-    if (G.ParticleSystem) G.ParticleSystem.createBulletSpark(x, y);
+function createBulletSpark(x, y, color, opts) {
+    if (G.ParticleSystem) G.ParticleSystem.createBulletSpark(x, y, color, opts);
 }
 
 function createPowerUpPickupEffect(x, y, color) {
     if (G.ParticleSystem) G.ParticleSystem.createPowerUpPickupEffect(x, y, color);
 }
 
-function createMuzzleFlashParticles(x, y, color) {
-    if (G.ParticleSystem) G.ParticleSystem.createMuzzleFlashParticles(x, y, color);
+function createMuzzleFlashParticles(x, y, color, opts) {
+    if (G.ParticleSystem) G.ParticleSystem.createMuzzleFlashParticles(x, y, color, opts);
 }
 
 function createExplosion(x, y, color, count = 12) {
@@ -4632,6 +4678,28 @@ function loop(timestamp) {
 
     // Update cached difficulty values once per frame
     updateDifficultyCache();
+    _frameKills = 0; // v4.5: Reset multi-kill counter
+
+    // v4.5: HYPER ambient sparkles
+    if (player && player.isHyperActive && player.isHyperActive() && G.ParticleSystem) {
+        const vfx = Balance?.VFX || {};
+        _hyperAmbientTimer -= dt;
+        if (_hyperAmbientTimer <= 0) {
+            _hyperAmbientTimer = vfx.HYPER_AMBIENT_INTERVAL || 0.12;
+            const gw = G._gameWidth || 600;
+            const gh = G._gameHeight || 900;
+            G.ParticleSystem.addParticle({
+                x: Math.random() * gw,
+                y: Math.random() * gh * 0.6,
+                vx: (Math.random() - 0.5) * 20,
+                vy: -15 - Math.random() * 25,
+                life: 0.6 + Math.random() * 0.4,
+                maxLife: 1.0,
+                color: '#FFD700',
+                size: 1.5 + Math.random() * 2
+            });
+        }
+    }
 
     // Death Sequence (uses real time, not slowed time)
     if (deathTimer > 0) {

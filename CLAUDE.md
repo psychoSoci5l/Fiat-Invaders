@@ -550,10 +550,28 @@ Enemy bullets inherit `shape` from the enemy that fires them. Dispatcher in `dra
 
 All shapes maintain identical visibility (glow, trail, white ring) - only internal core differs.
 
-### Particle Effects
-- `createExplosion()` - Enemy death
-- `createBulletSpark()` - Bullet collision
+### Particle Effects (v4.5.0: Game Feel Overhaul)
+- `createBulletSpark(x, y, color, opts)` - Contextual impact spark (color, shotLevel, kill/HYPER rings)
+- `createEnemyDeathExplosion(x, y, color, symbol, shape)` - Tier-differentiated death (WEAK/MEDIUM/STRONG)
+- `createMuzzleFlashParticles(x, y, color, opts)` - Scaled by shotLevel/modifiers
+- `createExplosion()` - Base explosion (used by tiered deaths)
 - `createScoreParticles()` - Score fly-up
+- MAX_PARTICLES: 180 (was 120)
+
+### VFX System (v4.5.0 — Balance.VFX)
+
+All visual feedback configurable via `Balance.VFX`:
+
+| System | Key Properties | Location |
+|--------|---------------|----------|
+| **Enemy Hit Reaction** | HIT_FLASH_DURATION, HIT_SHAKE_INTENSITY, DAMAGE_TINT_START, SMOKE_HP_THRESHOLD | Enemy.js |
+| **Bullet Impact Spark** | SPARK_COUNT_BASE/PER_LEVEL, SPARK_POWER_SCALE, SPARK_KILL_RING, SPARK_HYPER_RING | ParticleSystem.js |
+| **Muzzle Flash** | MUZZLE_SCALE_PER_LEVEL, MUZZLE_POWER_SCALE, MUZZLE_RATE_SCALE, MUZZLE_RING_AT_LEVEL | Player.js |
+| **Tiered Explosions** | EXPLOSION_WEAK/MEDIUM/STRONG (particles, ringCount, duration, debrisCount) | ParticleSystem.js |
+| **Trail Enhancement** | TRAIL_POWER_GLOW, TRAIL_HYPER_SPARKLE | Bullet.js draw() |
+| **Screen Juice** | MULTI_KILL_WINDOW, STRONG_KILL_SHAKE, HYPER_AMBIENT_INTERVAL, COMBO_SCORE_SCALE | main.js |
+
+Enemy `maxHp` tracked for damage tint. Bullet `_isHyper` flag set during HYPER mode.
 
 ---
 
@@ -564,6 +582,73 @@ All shapes maintain identical visibility (glow, trail, white ring) - only intern
 - **Display**: Temporary canvas notification above player (SHIP_STATUS channel)
 - **Selection**: Random perk auto-applied (no modal)
 - **Cooldown**: 4s between perks (Balance.PERK.COOLDOWN_TIME)
+
+---
+
+## GODCHAIN MODE (v4.6.0)
+
+Ultimate reward state when ALL weapon modifiers are maxed simultaneously.
+
+### Trigger Conditions (v4.6.1: lowered from 3/3/2)
+- `shotLevel === 3` (permanent, no timer)
+- `modifiers.rate.level >= 2` AND `timer > 0` (configurable via `Balance.GODCHAIN.REQUIREMENTS.RATE`)
+- `modifiers.power.level >= 2` AND `timer > 0` (configurable via `Balance.GODCHAIN.REQUIREMENTS.POWER`)
+- `modifiers.spread.level >= 1` AND `timer > 0` (configurable via `Balance.GODCHAIN.REQUIREMENTS.SPREAD`)
+- Special is NOT required
+
+Deactivates when ANY modifier timer expires or player dies.
+
+### Effects
+| Effect | Description |
+|--------|-------------|
+| Red ship | Deep red color palette override (Balance.GODCHAIN.SHIP_COLORS) |
+| Red aura | Pulsing orange-red glow around ship |
+| Fire trail | 3 flickering fire tongues on all bullets (`_isGodchain` flag) |
+| Speed boost | +5% movement speed (Balance.GODCHAIN.SPEED_BONUS) |
+| Sound | Ascending power chord on activation |
+| Events | `GODCHAIN_ACTIVATED` / `GODCHAIN_DEACTIVATED` |
+| HUD | "GODCHAIN MODE" / "GODCHAIN LOST" via showPowerUp |
+
+### Config: `Balance.GODCHAIN`
+```javascript
+GODCHAIN: {
+    REQUIREMENTS: { RATE: 2, POWER: 2, SPREAD: 1 },  // v4.6.1
+    SPEED_BONUS: 1.05,
+    SHIP_COLORS: { BODY, BODY_DARK, BODY_LIGHT, NOSE, ... },
+    AURA: { INNER_RADIUS, OUTER_RADIUS, ALPHA, PULSE_SPEED },
+    FIRE_TRAIL: { TONGUE_COUNT, LENGTH, ALPHA, COLORS }
+}
+```
+
+### Debug
+```javascript
+dbg.godchain()       // Force GODCHAIN ON
+dbg.godchainStatus() // Show modifier levels/timers
+```
+
+---
+
+## Meme System (v4.6.0 — Dedup + Dedicated Pools)
+
+### Meme Pools (Constants.js)
+| Pool | Context | Count | Description |
+|------|---------|-------|-------------|
+| `INTERMISSION` | Countdown spotlight | ~20 | Curated best-of, shown during 3-2-1 |
+| `LOW` | Whisper channel | ~32 | Ambient flavor text |
+| `HIGH` | Power-up/streak | ~11 | Celebration memes |
+| `SAYLOR` | Random/general | ~42 | Michael Saylor quotes |
+| `POWELL` | FED boss fight | ~26 | Fed/Powell memes |
+| `BCE` | BCE boss fight | ~14 | ECB memes |
+| `BOJ` | BOJ boss fight | ~14 | Bank of Japan memes |
+| `FIAT_DEATH` | Enemy kill | ~15 | Fiat death taunts |
+| `STREAK` | Kill streaks | ~13 | Streak celebrations |
+| `BOSS` | Boss generic | ~10 | Generic boss memes |
+
+### Deduplication (MemeEngine.js)
+- `_recentMemes`: Map of `{ context: string[] }` tracking last 8 picks per context
+- `_pickDeduplicated(pool, context, count)`: Filters recent, picks random, auto-resets when exhausted
+- `getIntermissionMeme()`: Picks from INTERMISSION pool with dedup
+- `getWhisperMeme()`: Picks from LOW pool with dedup
 
 ---
 
@@ -790,6 +875,7 @@ Master switches for all screen-wide visual effects. Allows easy enable/disable w
 - H1/H2 use complementary formations (e.g., DIAMOND↔PINCER, ARROW↔CHEVRON)
 - Legacy fallback for cycles 4+ via `spawnWaveLegacy()`
 - Bear Market: +25% enemy count, forces strong currencies in weak waves
+- Cycle scaling (v4.6.1): `CYCLE_COUNT_MULT: [1.0, 1.25, 1.5]` — more enemies in later cycles
 
 ### Meme Sources (Constants.js)
 - `MEMES.LOW` / `MEMES.HIGH` - General crypto

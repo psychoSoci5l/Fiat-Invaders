@@ -137,6 +137,52 @@ class Bullet extends window.Game.Entity {
             ctx.lineWidth = 2;
             const pulse = Math.sin(this.age * 20) * 0.15 + 1; // Subtle pulse
 
+            // v4.5: POWER modifier outer glow (pulsing aura on any weapon)
+            if (this.damageMult > 1) {
+                const vfx = window.Game.Balance?.VFX || {};
+                const glowAlpha = (vfx.TRAIL_POWER_GLOW || 0.25) * (0.5 + Math.sin(this.age * 12) * 0.5);
+                ctx.fillStyle = `rgba(255, 200, 50, ${glowAlpha})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 10 + this.damageMult * 4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // v4.5: HYPER mode golden trail overlay (sparkles along any weapon trail)
+            if (this._isHyper) {
+                const sparkAlpha = 0.4 + Math.sin(this.age * 18 + this.x * 0.1) * 0.2;
+                ctx.fillStyle = `rgba(255, 215, 0, ${sparkAlpha})`;
+                // Two trailing sparkles
+                for (let i = 1; i <= 2; i++) {
+                    const ty = this.y + i * 10;
+                    const tx = this.x + Math.sin(this.age * 25 + i * 2) * 3;
+                    ctx.beginPath();
+                    ctx.arc(tx, ty, 2.5 - i * 0.5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            // v4.6: GODCHAIN fire trail (3 flickering fire tongues behind bullet)
+            if (this._isGodchain) {
+                const gcCfg = window.Game.Balance?.GODCHAIN?.FIRE_TRAIL;
+                const tongueCount = gcCfg?.TONGUE_COUNT || 3;
+                const tongueLen = gcCfg?.LENGTH || 12;
+                const baseAlpha = gcCfg?.ALPHA || 0.7;
+                const colors = gcCfg?.COLORS || ['#ff4400', '#ff6600', '#ffaa00'];
+                ctx.globalAlpha = baseAlpha;
+                for (let i = 0; i < tongueCount; i++) {
+                    const offsetX = Math.sin(this.age * 30 + i * 2.1) * 3;
+                    const tLen = tongueLen + Math.sin(this.age * 25 + i * 1.7) * 4;
+                    const tW = 3 - i * 0.5;
+                    ctx.fillStyle = colors[i % colors.length];
+                    ctx.beginPath();
+                    ctx.moveTo(this.x - tW + offsetX, this.y + 6);
+                    ctx.quadraticCurveTo(this.x + offsetX, this.y + 6 + tLen, this.x + tW + offsetX, this.y + 6);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+                ctx.globalAlpha = 1;
+            }
+
             // HODL bullets get golden glow effect (2x damage indicator)
             if (this.isHodl) {
                 const hodlGlow = Math.sin(this.age * 15) * 0.2 + 0.5;

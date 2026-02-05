@@ -136,6 +136,10 @@ window.Game.WaveManager = {
                 const bearMult = Balance.WAVE_DEFINITIONS.BEAR_MARKET.COUNT_MULT || 1.25;
                 targetCount = Math.floor(targetCount * bearMult);
             }
+            // v4.6.1: Cycle scaling — more enemies in later cycles to match player power
+            const cycleMult = Balance.WAVE_DEFINITIONS.CYCLE_COUNT_MULT?.[Math.min(cycle - 1, 2)] || 1.0;
+            targetCount = Math.floor(targetCount * cycleMult);
+
             // v4.1.0: Rank-based enemy count adjustment
             if (G.RankSystem) {
                 targetCount = Math.max(4, Math.round(targetCount * G.RankSystem.getEnemyCountMultiplier()));

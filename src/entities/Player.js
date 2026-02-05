@@ -57,6 +57,9 @@ class Player extends window.Game.Entity {
         this.hyperCooldown = 0;
         this.hyperAvailable = false; // True when meter is full and can activate
 
+        // GODCHAIN MODE state
+        this._godchainActive = false;
+
         // Visual effects
         this.animTime = 0;
         this.muzzleFlash = 0; // Timer for muzzle flash effect
@@ -113,6 +116,9 @@ class Player extends window.Game.Entity {
         this.hyperAvailable = false;
         this.hyperParticles = [];
 
+        // GODCHAIN reset
+        this._godchainActive = false;
+
         // Weapon Evolution reset (soft reset - keep shotLevel on normal reset)
         // Note: applyDeathPenalty() handles death penalty separately
         this.modifiers = {
@@ -161,6 +167,18 @@ class Player extends window.Game.Entity {
         }
     }
 
+    /**
+     * Check if GODCHAIN conditions are met (all modifiers at max with active timers)
+     */
+    isGodchainActive() {
+        // v4.6.1: Use GODCHAIN.REQUIREMENTS config (lowered from max levels)
+        const req = window.Game.Balance?.GODCHAIN?.REQUIREMENTS || { RATE: 3, POWER: 3, SPREAD: 2 };
+        return this.shotLevel >= 3 &&
+               this.modifiers.rate.level >= req.RATE && this.modifiers.rate.timer > 0 &&
+               this.modifiers.power.level >= req.POWER && this.modifiers.power.timer > 0 &&
+               this.modifiers.spread.level >= req.SPREAD && this.modifiers.spread.timer > 0;
+    }
+
     update(dt, blockFiring = false) {
         const input = window.Game.Input;
         const Balance = window.Game.Balance;
@@ -172,6 +190,10 @@ class Player extends window.Game.Entity {
             speedMult = 1.5; // Legacy system
         } else if (this.special === 'SPEED' && WE) {
             speedMult = WE.SPEED_MULTIPLIER || 1.4; // New system
+        }
+        // GODCHAIN speed bonus
+        if (this._godchainActive && Balance.GODCHAIN) {
+            speedMult *= Balance.GODCHAIN.SPEED_BONUS;
         }
         const speed = this.stats.speed * this.getRunMod('speedMult', 1) * speedMult;
 
@@ -282,6 +304,17 @@ class Player extends window.Game.Entity {
 
         // Weapon Evolution timers
         this.updateWeaponState(dt);
+
+        // GODCHAIN state detection
+        const wasGodchain = this._godchainActive;
+        this._godchainActive = this.isGodchainActive();
+        if (this._godchainActive && !wasGodchain) {
+            if (window.Game.Events) window.Game.Events.emit('GODCHAIN_ACTIVATED');
+            if (window.Game.Audio) window.Game.Audio.play('godchainActivate');
+            if (window.Game.Input) window.Game.Input.vibrate([80, 40, 80, 40, 80]);
+        } else if (!this._godchainActive && wasGodchain) {
+            if (window.Game.Events) window.Game.Events.emit('GODCHAIN_DEACTIVATED');
+        }
 
         // HYPER mode timer
         if (this.hyperActive) {
@@ -656,6 +689,10 @@ class Player extends window.Game.Entity {
             }
 
             b.weaponType = this.special || 'EVOLUTION';
+            // v4.5: Flag for HYPER trail effect
+            if (this.hyperActive) b._isHyper = true;
+            // v4.6: Flag for GODCHAIN fire trail
+            if (this._godchainActive) b._isGodchain = true;
             bullets.push(b);
         };
 
@@ -892,12 +929,16 @@ class Player extends window.Game.Entity {
             }
         }
 
+        // v4.6: GODCHAIN ship color palette override
+        const gc = this._godchainActive ? window.Game.Balance?.GODCHAIN : null;
+        const gcColors = gc?.SHIP_COLORS;
+
         // Vector ship (Cuphead-ish) - cell-shaded two-tone
         ctx.lineWidth = 4;
         ctx.strokeStyle = '#111';
 
         // Body - shadow side (left half)
-        ctx.fillStyle = this._colorDark30;
+        ctx.fillStyle = gcColors ? gcColors.BODY_DARK : this._colorDark30;
         ctx.beginPath();
         ctx.moveTo(0, -26);
         ctx.lineTo(-22, 12);
@@ -906,7 +947,7 @@ class Player extends window.Game.Entity {
         ctx.fill();
 
         // Body - light side (right half)
-        ctx.fillStyle = this.stats.color;
+        ctx.fillStyle = gcColors ? gcColors.BODY : this.stats.color;
         ctx.beginPath();
         ctx.moveTo(0, -26);
         ctx.lineTo(0, 12);
@@ -923,7 +964,7 @@ class Player extends window.Game.Entity {
         ctx.stroke();
 
         // Nose cone - two-tone
-        ctx.fillStyle = '#c47d3a'; // Shadow side
+        ctx.fillStyle = gcColors ? gcColors.NOSE : '#c47d3a'; // Shadow side
         ctx.beginPath();
         ctx.moveTo(0, -28);
         ctx.lineTo(-10, -6);
@@ -931,7 +972,7 @@ class Player extends window.Game.Entity {
         ctx.closePath();
         ctx.fill();
 
-        ctx.fillStyle = '#f6b26b'; // Light side
+        ctx.fillStyle = gcColors ? gcColors.NOSE_LIGHT : '#f6b26b'; // Light side
         ctx.beginPath();
         ctx.moveTo(0, -28);
         ctx.lineTo(0, -6);
@@ -948,7 +989,7 @@ class Player extends window.Game.Entity {
         ctx.stroke();
 
         // Left fin - shadow (left fin is in shadow)
-        ctx.fillStyle = '#2d8a91';
+        ctx.fillStyle = gcColors ? gcColors.FIN : '#2d8a91';
         ctx.beginPath();
         ctx.moveTo(-22, 8);
         ctx.lineTo(-34, 16);
@@ -958,7 +999,7 @@ class Player extends window.Game.Entity {
         ctx.stroke();
 
         // Right fin - light
-        ctx.fillStyle = '#4bc0c8';
+        ctx.fillStyle = gcColors ? gcColors.FIN_LIGHT : '#4bc0c8';
         ctx.beginPath();
         ctx.moveTo(22, 8);
         ctx.lineTo(34, 16);
@@ -968,7 +1009,7 @@ class Player extends window.Game.Entity {
         ctx.stroke();
 
         // Rim lighting (right edge of body)
-        ctx.strokeStyle = this._colorLight50;
+        ctx.strokeStyle = gcColors ? gcColors.BODY_LIGHT : this._colorLight50;
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(4, -24);
@@ -976,14 +1017,14 @@ class Player extends window.Game.Entity {
         ctx.stroke();
 
         // Rim light on nose
-        ctx.strokeStyle = '#ffd699';
+        ctx.strokeStyle = gcColors ? gcColors.NOSE_LIGHT : '#ffd699';
         ctx.beginPath();
         ctx.moveTo(2, -26);
         ctx.lineTo(8, -8);
         ctx.stroke();
 
         // Window
-        ctx.fillStyle = '#9fe8ff';
+        ctx.fillStyle = gcColors ? gcColors.WINDOW : '#9fe8ff';
         ctx.beginPath();
         ctx.arc(0, -8, 6, 0, Math.PI * 2);
         ctx.fill();
@@ -996,29 +1037,80 @@ class Player extends window.Game.Entity {
         ctx.textBaseline = 'middle';
         ctx.fillText('₿', 0, 6);
 
-        // Muzzle flash effect
+        // v4.5: Evolved muzzle flash — scales with shot level, weapon color, modifiers
         if (this.muzzleFlash > 0) {
+            const vfx = window.Game.Balance?.VFX || {};
             const flashAlpha = this.muzzleFlash / 0.08;
-            const flashSize = 12 + (1 - flashAlpha) * 8;
-            ctx.fillStyle = `rgba(255, 255, 200, ${flashAlpha * 0.8})`;
+            const level = this.shotLevel || 1;
+            const levelScale = 1 + (level - 1) * (vfx.MUZZLE_SCALE_PER_LEVEL || 0.4);
+
+            // Modifier scaling
+            let modScale = 1;
+            if (this.modifiers?.power?.level > 0) modScale = vfx.MUZZLE_POWER_SCALE || 1.3;
+            else if (this.modifiers?.rate?.level > 0) modScale = vfx.MUZZLE_RATE_SCALE || 0.6;
+
+            const scale = levelScale * modScale;
+            const flashSize = (10 + (1 - flashAlpha) * 8) * scale;
+
+            // Weapon color for flash
+            const wColor = this.stats?.color || '#E67E22';
+            const CU = window.Game.ColorUtils;
+            const lightColor = CU ? CU.lighten(wColor, 0.5) : '#fff';
+
+            // Main flash glow (weapon-colored)
+            ctx.fillStyle = `rgba(255, 255, 220, ${flashAlpha * 0.7})`;
             ctx.beginPath();
             ctx.arc(0, -30, flashSize, 0, Math.PI * 2);
             ctx.fill();
-            // Flash lines
-            ctx.strokeStyle = `rgba(255, 200, 100, ${flashAlpha})`;
-            ctx.lineWidth = 2;
+
+            // Colored inner core
+            const rgb = CU ? CU.hexToRgb(wColor) : '255,160,50';
+            ctx.fillStyle = `rgba(${rgb}, ${flashAlpha * 0.5})`;
+            ctx.beginPath();
+            ctx.arc(0, -30, flashSize * 0.6, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Flash lines (count scales with shot level)
+            ctx.strokeStyle = `rgba(${rgb}, ${flashAlpha * 0.9})`;
+            ctx.lineWidth = 1.5 + level * 0.5;
+            // Center line
             ctx.beginPath();
             ctx.moveTo(0, -28);
-            ctx.lineTo(0, -45 - flashSize);
+            ctx.lineTo(0, -42 - flashSize);
             ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(-6, -28);
-            ctx.lineTo(-10, -38 - flashSize * 0.5);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(6, -28);
-            ctx.lineTo(10, -38 - flashSize * 0.5);
-            ctx.stroke();
+            // Side lines (level 2+)
+            if (level >= 2) {
+                ctx.beginPath();
+                ctx.moveTo(-7 * scale, -28);
+                ctx.lineTo(-12 * scale, -36 - flashSize * 0.5);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(7 * scale, -28);
+                ctx.lineTo(12 * scale, -36 - flashSize * 0.5);
+                ctx.stroke();
+            }
+            // Outer lines (level 3)
+            if (level >= 3) {
+                ctx.strokeStyle = `rgba(${rgb}, ${flashAlpha * 0.6})`;
+                ctx.beginPath();
+                ctx.moveTo(-14 * scale, -26);
+                ctx.lineTo(-18 * scale, -32 - flashSize * 0.3);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(14 * scale, -26);
+                ctx.lineTo(18 * scale, -32 - flashSize * 0.3);
+                ctx.stroke();
+            }
+
+            // Ring burst at level 3 (expanding ring)
+            if (level >= (vfx.MUZZLE_RING_AT_LEVEL || 3) && flashAlpha > 0.7) {
+                const ringExpand = (1 - flashAlpha) * 15;
+                ctx.strokeStyle = `rgba(${rgb}, ${flashAlpha * 0.4})`;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(0, -30, flashSize + ringExpand, 0, Math.PI * 2);
+                ctx.stroke();
+            }
         }
 
         // Shield Overlay
@@ -1202,6 +1294,22 @@ class Player extends window.Game.Entity {
                         ctx.fill();
                     }
                 }
+            }
+        }
+
+        // 4a. GODCHAIN AURA (red/orange pulsing glow)
+        if (this._godchainActive) {
+            const gcCfg = window.Game.Balance?.GODCHAIN?.AURA;
+            if (gcCfg) {
+                const pulse = Math.sin(this.animTime * gcCfg.PULSE_SPEED) * 0.05 + gcCfg.ALPHA;
+                const gradient = ctx.createRadialGradient(0, 0, gcCfg.INNER_RADIUS, 0, 0, gcCfg.OUTER_RADIUS);
+                gradient.addColorStop(0, `rgba(255, 68, 0, ${pulse})`);
+                gradient.addColorStop(0.5, `rgba(255, 100, 0, ${pulse * 0.6})`);
+                gradient.addColorStop(1, 'transparent');
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(0, 0, gcCfg.OUTER_RADIUS, 0, Math.PI * 2);
+                ctx.fill();
             }
         }
 

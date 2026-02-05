@@ -43,6 +43,7 @@
             this.currentPriority = 0;
             this.tickerSwapTimer = 0;
             this.isBossActive = false;
+            this._recentMemes = {}; // { context: string[] } — last N memes per context
         }
 
         /**
@@ -53,6 +54,7 @@
             this.currentPriority = 0;
             this.tickerSwapTimer = 0;
             this.isBossActive = false;
+            this._recentMemes = {};
         }
 
         /**
@@ -177,6 +179,65 @@
          */
         getPowerUpMeme(powerUpType) {
             return POWERUP_MEMES[powerUpType] || `💫 ${powerUpType} ACTIVATED`;
+        }
+
+        // ========================================
+        // DEDUPLICATION SYSTEM v4.6
+        // ========================================
+
+        /**
+         * Pick a meme from pool avoiding recent picks for this context
+         * @param {string[]} pool - Array of meme strings
+         * @param {string} context - Context key for tracking (e.g., 'intermission', 'whisper')
+         * @param {number} count - How many recent memes to track (default 8)
+         * @returns {string} Deduplicated meme pick
+         */
+        _pickDeduplicated(pool, context, count = 8) {
+            if (!pool || pool.length === 0) return 'HODL';
+
+            if (!this._recentMemes[context]) {
+                this._recentMemes[context] = [];
+            }
+            const recents = this._recentMemes[context];
+
+            // Filter out recently used memes
+            let available = pool.filter(m => !recents.includes(m));
+
+            // If all filtered out, reset recents for this context
+            if (available.length === 0) {
+                this._recentMemes[context] = [];
+                available = pool;
+            }
+
+            const pick = available[Math.floor(Math.random() * available.length)];
+
+            // Track this pick
+            recents.push(pick);
+            if (recents.length > count) recents.shift();
+
+            return pick;
+        }
+
+        /**
+         * Get meme for intermission countdown (curated pool, deduplicated)
+         * @returns {string} Intermission meme text
+         */
+        getIntermissionMeme() {
+            const MEMES = G.MEMES;
+            if (!MEMES || !MEMES.INTERMISSION || MEMES.INTERMISSION.length === 0) {
+                return this.getRandomMeme();
+            }
+            return this._pickDeduplicated(MEMES.INTERMISSION, 'intermission');
+        }
+
+        /**
+         * Get meme for whisper channel (LOW pool, deduplicated)
+         * @returns {string} Whisper meme text
+         */
+        getWhisperMeme() {
+            const MEMES = G.MEMES;
+            if (!MEMES || !MEMES.LOW || MEMES.LOW.length === 0) return 'HODL';
+            return this._pickDeduplicated(MEMES.LOW, 'whisper');
         }
 
         // ========================================

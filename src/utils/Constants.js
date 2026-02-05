@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v4.4.0 FIAT vs CRYPTO";
+window.Game.VERSION = "v4.6.1 FIAT vs CRYPTO";
 
 window.Game.TEXTS = {
     EN: {
@@ -234,37 +234,56 @@ window.Game.TEXTS = {
 };
 
 window.Game.MEMES = {
-    // General Crypto Culture
+    // Intermission spotlight memes (curated best-of, shown during countdown)
+    INTERMISSION: [
+        "HAVE FUN STAYING POOR",
+        "WE'RE ALL GONNA MAKE IT",
+        "GENERATIONAL WEALTH",
+        "INFINITY DIVIDED BY 21 MILLION",
+        "THERE IS NO SECOND BEST",
+        "TO THE MOON 🚀",
+        "DIAMOND HANDS 💎",
+        "BITCOIN IS HOPE",
+        "LASER EYES ACTIVATED",
+        "CONVICTION LEVEL: MAX",
+        "GIGACHAD MOVE",
+        "BITCOIN FIXES THIS",
+        "HYPERBITCOINIZATION INCOMING",
+        "THE GREAT REPRICING",
+        "NOT YOUR KEYS, NOT YOUR COINS",
+        "STACK SATS OR DIE TRYING",
+        "INFINITE MONEY GLITCH ENGAGED",
+        "CTRL+P INTENSIFIES",
+        "BITCOIN IS THE APEX PREDATOR",
+        "FREEDOM TECHNOLOGY"
+    ],
+    // General Crypto Culture (whispers, ambient flavor)
     LOW: [
         "HODL", "BUY THE DIP", "SHITCOIN", "PAPER HANDS", "NGMI", "HFSP",
         "FUD DETECTED", "REKT", "WAGMI", "LFG", "APE IN", "DEGEN MODE",
         "PUMP IT", "DUMP IT", "SEND IT", "NFA", "DYOR", "FOMO ENGAGED",
-        "COPE HARDER", "HAVE FUN STAYING POOR", "FEW UNDERSTAND",
+        "COPE HARDER", "FEW UNDERSTAND",
         "THIS IS THE WAY", "PROBABLY NOTHING", "BULLISH AF",
         "FLOOR IS LAVA", "UP ONLY", "NUMBER GO UP", "STACK SATS",
-        "NOT YOUR KEYS", "NOT YOUR COINS", "TRUST THE PROCESS",
+        "TRUST THE PROCESS",
         "ZOOM OUT", "TIME IN MARKET", "DCA IS THE WAY"
     ],
+    // Power-up / streak celebration memes
     HIGH: [
-        "TO THE MOON 🚀", "LAMBO SOON", "WHALE ALERT 🐋", "DIAMOND HANDS 💎",
-        "WE'RE ALL GONNA MAKE IT", "GENERATIONAL WEALTH", "EARLY ADOPTER",
-        "MICHAEL SAYLOR MODE", "LASER EYES ACTIVATED", "STILL EARLY",
-        "FUTURE MILLIONAIRE", "GIGACHAD MOVE", "ABSOLUTE UNIT",
-        "CONVICTION LEVEL: MAX", "NEVER SELLING", "INFINITY HODL",
-        "APEX PREDATOR", "MONETARY MAXIMALIST", "FREEDOM TECHNOLOGY"
+        "LAMBO SOON", "WHALE ALERT 🐋",
+        "EARLY ADOPTER",
+        "MICHAEL SAYLOR MODE", "STILL EARLY",
+        "FUTURE MILLIONAIRE", "ABSOLUTE UNIT",
+        "NEVER SELLING", "INFINITY HODL",
+        "APEX PREDATOR", "MONETARY MAXIMALIST"
     ],
-    // Michael Saylor Quotes
+    // Michael Saylor Quotes (no overlap with INTERMISSION pool)
     SAYLOR: [
-        "BITCOIN IS HOPE",
         "BITCOIN IS DIGITAL GOLD",
         "BITCOIN IS A SWARM OF CYBER HORNETS",
-        "THERE IS NO SECOND BEST",
-        "BITCOIN IS THE APEX PREDATOR",
-        "INFINITY DIVIDED BY 21 MILLION",
         "BTC IS DIGITAL ENERGY",
         "BITCOIN IS ECONOMIC IMMORTALITY",
         "BITCOIN IS THERMODYNAMICALLY SOUND",
-        "BITCOIN FIXES THIS",
         "EVERY COMPANY WILL HOLD BITCOIN",
         "BITCOIN IS A MONETARY NETWORK",
         "BUY BITCOIN AND WAIT",
@@ -272,9 +291,7 @@ window.Game.MEMES = {
         "BITCOIN IS THE HARDEST ASSET",
         "BITCOIN IS INCORRUPTIBLE",
         "BITCOIN IS THE EXIT",
-        "HYPERBITCOINIZATION INCOMING",
         "BITCOIN IS PURE ENERGY",
-        "THE GREAT REPRICING",
         "BITCOIN IS TRUTH",
         "BITCOIN NEVER SLEEPS",
         "BITCOIN IS STRONGER THAN GOVERNMENTS",
@@ -303,8 +320,7 @@ window.Game.MEMES = {
         "BITCOIN IS INCORRUPTIBLE MATH",
         "BITCOIN IS THE ANTIDOTE",
         "BITCOIN: THE FINAL BOSS",
-        "BITCOIN DOESN'T CARE",
-        "STACK SATS OR DIE TRYING"
+        "BITCOIN DOESN'T CARE"
     ],
     // Fiat/Enemy Death Taunts
     FIAT_DEATH: [

@@ -953,6 +953,36 @@ class AudioSystem {
             sweep.start(t);
             sweep.stop(t + 0.5);
         }
+        else if (type === 'godchainActivate') {
+            // v4.6: Ascending power chord — low→high sweep with layered harmonics (~0.3s)
+            const freqs = [110, 164.81, 220, 329.63, 440]; // A2-E3-A3-E4-A4 (power fifth stack)
+            freqs.forEach((freq, i) => {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.connect(gain);
+                gain.connect(output);
+                osc.type = i < 2 ? 'sawtooth' : 'square';
+                osc.frequency.setValueAtTime(freq * 0.5, t);
+                osc.frequency.exponentialRampToValueAtTime(freq, t + 0.15);
+                gain.gain.setValueAtTime(0.08, t + i * 0.02);
+                gain.gain.linearRampToValueAtTime(0.12, t + 0.1);
+                gain.gain.exponentialRampToValueAtTime(0.01, t + 0.4);
+                osc.start(t + i * 0.02);
+                osc.stop(t + 0.45);
+            });
+            // Rising sweep
+            const sweep = this.ctx.createOscillator();
+            const sweepGain = this.ctx.createGain();
+            sweep.connect(sweepGain);
+            sweepGain.connect(output);
+            sweep.type = 'sawtooth';
+            sweep.frequency.setValueAtTime(80, t);
+            sweep.frequency.exponentialRampToValueAtTime(2500, t + 0.3);
+            sweepGain.gain.setValueAtTime(0.06, t);
+            sweepGain.gain.exponentialRampToValueAtTime(0.01, t + 0.3);
+            sweep.start(t);
+            sweep.stop(t + 0.35);
+        }
         else if (type === 'hyperDeactivate') {
             // Descending power-down with relief tone
             const osc = this.ctx.createOscillator();
