@@ -1,5 +1,23 @@
 # Changelog
 
+## v4.3.0 - 2026-02-05
+### Feature: PWA Install Prompt Banner
+
+- **Install banner** on splash screen for first-time visitors (non-standalone)
+- **iOS detection**: Shows Share icon + "Add to Home Screen" instructions
+- **Android/Chrome**: Intercepts `beforeinstallprompt`, shows native install button
+- **Auto-dismiss**: Banner hides after 8 seconds or on close tap
+- **localStorage persistence**: `fiat_pwa_dismissed` flag prevents re-showing
+- **Localized**: EN/IT strings in Constants.js
+- **Standalone skip**: Banner never shown if already installed as PWA
+
+| File | Changes |
+|------|---------|
+| `index.html` | PWA install banner HTML inside `#intro-screen` |
+| `style.css` | Banner styling (fixed bottom, gold border, fadeIn animation) |
+| `src/main.js` | `beforeinstallprompt` listener, `checkPWAInstallPrompt()`, `dismissPWABanner()` |
+| `src/utils/Constants.js` | PWA_INSTALL_IOS, PWA_INSTALL_ANDROID, PWA_INSTALL_BTN (EN/IT) |
+
 ## v4.2.2 - 2026-02-05
 ### Fix: Formation System Overhaul — Currency Rows, Symmetry, Entry Animation
 

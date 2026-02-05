@@ -20,6 +20,12 @@ let isBearMarket = false; // 🐻
 window.isBearMarket = isBearMarket; // Expose globally for WaveManager
 G._gameWidth = gameWidth; // v4.0.1: Expose for Bullet horizontal bounds check
 
+// PWA: Intercept install prompt for Android/Chrome
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    window._deferredInstallPrompt = e;
+});
+
 // Game Entities
 let player;
 let bullets = [], enemyBullets = [], enemies = [], powerUps = [], particles = [], floatingTexts = [], muzzleFlashes = [], perkIcons = [];
@@ -1032,8 +1038,56 @@ function init() {
             if (curtain) {
                 setTimeout(() => curtain.classList.add('open'), 100);
             }
+
+            // PWA install prompt (first visit only)
+            checkPWAInstallPrompt();
         }, 1000);
     };
+
+    // --- PWA Install Prompt ---
+    function dismissPWABanner() {
+        const b = document.getElementById('pwa-install-banner');
+        if (b) b.style.display = 'none';
+        localStorage.setItem('fiat_pwa_dismissed', '1');
+    }
+
+    function checkPWAInstallPrompt() {
+        // Skip if already standalone (PWA installed)
+        if (window.navigator.standalone) return;
+        if (window.matchMedia('(display-mode: standalone)').matches) return;
+        // Skip if already dismissed
+        if (localStorage.getItem('fiat_pwa_dismissed')) return;
+
+        const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+        const banner = document.getElementById('pwa-install-banner');
+        const text = document.getElementById('pwa-banner-text');
+        const action = document.getElementById('pwa-banner-action');
+        const close = document.getElementById('pwa-banner-close');
+        if (!banner || !text || !action || !close) return;
+
+        const T = G.TEXTS[currentLang] || G.TEXTS.EN;
+
+        if (isIOS) {
+            text.innerHTML = T.PWA_INSTALL_IOS;
+            action.style.display = 'none';
+        } else if (window._deferredInstallPrompt) {
+            text.textContent = T.PWA_INSTALL_ANDROID;
+            action.textContent = T.PWA_INSTALL_BTN;
+            action.style.display = '';
+            action.onclick = () => {
+                window._deferredInstallPrompt.prompt();
+                window._deferredInstallPrompt.userChoice.then(() => { window._deferredInstallPrompt = null; });
+                dismissPWABanner();
+            };
+        } else {
+            // Desktop/other without install prompt — don't show
+            return;
+        }
+
+        banner.style.display = 'flex';
+        close.onclick = dismissPWABanner;
+        setTimeout(dismissPWABanner, 15000);
+    }
 
     inputSys.on('escape', () => {
         if (gameState === 'VIDEO') startApp();
@@ -1279,6 +1333,10 @@ window.toggleLang = function () { currentLang = (currentLang === 'EN') ? 'IT' : 
 window.toggleSettings = function () { setStyle('settings-modal', 'display', (document.getElementById('settings-modal').style.display === 'flex') ? 'none' : 'flex'); updateUIText(); };
 window.toggleHelpPanel = function () {
     const panel = document.getElementById('help-panel');
+    if (panel) panel.style.display = (panel.style.display === 'flex') ? 'none' : 'flex';
+};
+window.toggleCreditsPanel = function () {
+    const panel = document.getElementById('credits-panel');
     if (panel) panel.style.display = (panel.style.display === 'flex') ? 'none' : 'flex';
 };
 

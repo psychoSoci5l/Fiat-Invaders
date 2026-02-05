@@ -1971,7 +1971,25 @@ DIGITAL_THREAT: ['Ⓒ', '$', '元']  // CBDCs + majors
 | `src/utils/Constants.js` | VERSION → v4.2.2 |
 | `sw.js` | SW_VERSION → 4.2.2 |
 
-## Phase 33: Formation System Visual Audit (NEXT SESSION)
+## Phase 33: PWA Install Prompt ✅
+*Goal: Prompt first-time visitors to install the app.*
+- [x] **Install banner**: Shown on splash screen for non-standalone first visits
+- [x] **iOS support**: Detects iPhone/iPad, shows Share → Add to Home instructions
+- [x] **Android support**: Intercepts `beforeinstallprompt`, native install button
+- [x] **Auto-dismiss**: 8-second timeout + close button
+- [x] **Persistence**: `fiat_pwa_dismissed` in localStorage prevents re-showing
+- [x] **Standalone check**: Skips banner if already running as PWA
+- [x] **Localization**: EN/IT strings
+
+| File | Changes |
+|------|---------|
+| `index.html` | PWA banner HTML in `#intro-screen` |
+| `style.css` | Banner styles (gold border, fadeIn, safe-area) |
+| `src/main.js` | `beforeinstallprompt` handler, `checkPWAInstallPrompt()`, `dismissPWABanner()` |
+| `src/utils/Constants.js` | VERSION → v4.3.0, PWA install strings EN/IT |
+| `sw.js` | SW_VERSION → 4.3.0 |
+
+## Phase 34: Formation System Visual Audit (NEXT SESSION)
 *Goal: Fine-tuning of enemy formation placement - targeted fixes based on visual testing.*
 - [ ] **Visual audit**: Test each of the 16 formations individually with debug overlay
 - [ ] **Shape-specific tuning**: Adjust spacing/factors per formation as needed

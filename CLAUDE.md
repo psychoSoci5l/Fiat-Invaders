@@ -16,7 +16,7 @@ When completing a feature or ending a session, **always update these files witho
 
 **Version Sync**: Constants.js and sw.js versions MUST match for PWA cache updates to work correctly.
 
-**Credits**: README.md credits line: "Created by **psychoSocial** with **Claude**, **Antigravity**, **ChatGPT**, **Gemini**."
+**Credits**: README.md credits line: "Created by [**psychoSocial**](https://www.psychosoci5l.com/) with **Claude**, **Antigravity**, **ChatGPT**, **Gemini**."
 
 This is a **priority rule** - documentation updates are part of the work, not an afterthought.
 

@@ -154,6 +154,15 @@
             </button>
         </div>
 
+        <!-- PWA Install Banner -->
+        <div id="pwa-install-banner" style="display: none;">
+            <div class="pwa-banner-content">
+                <span id="pwa-banner-text"></span>
+                <button id="pwa-banner-action" class="pwa-banner-btn"></button>
+                <button id="pwa-banner-close" class="pwa-banner-close">&times;</button>
+            </div>
+        </div>
+
         <!-- BOTTOM ICONS (always visible) -->
         <div class="intro-icons">
             <button class="icon-btn-cell mute-toggle" id="intro-mute">
@@ -373,7 +382,20 @@
             </div>
 
             <button class="btn-cell help-btn" onclick="toggleHelpPanel()">? HELP</button>
+            <button class="btn-cell credits-btn" onclick="toggleCreditsPanel()">CREDITS</button>
             <button class="btn-cell" onclick="toggleSettings()">CHIUDI</button>
+        </div>
+    </div>
+
+    <!-- CREDITS PANEL -->
+    <div id="credits-panel" style="display: none;">
+        <div class="modal-content paper-modal credits-modal">
+            <h2 class="modal-title">CREDITS</h2>
+            <div class="credits-content">
+                <p class="credits-author">psychoSocial</p>
+                <a href="https://www.psychosoci5l.com/" target="_blank" rel="noopener noreferrer" class="credits-link">www.psychosoci5l.com</a>
+            </div>
+            <button class="btn-cell" onclick="toggleCreditsPanel()">CHIUDI</button>
         </div>
     </div>
 

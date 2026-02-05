@@ -46,6 +46,7 @@ This game does not collect any personal information from anyone, including child
 
 If you have questions about this privacy policy, you can:
 - Open an issue on our [GitHub repository](https://github.com/psychoSoci5l/Fiat-Invaders)
+- Visit [psychosoci5l.com](https://www.psychosoci5l.com/)
 
 ## Changes to This Policy
 

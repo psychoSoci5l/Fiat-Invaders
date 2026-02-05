@@ -113,4 +113,4 @@ All tuning is centralized in `src/config/BalanceConfig.js` via `window.Game.Bala
 
 ## 📜 Credits
 
-Created by **psychoSocial** with **Claude**, **Antigravity**, **ChatGPT**, **Gemini**.
+Created by [**psychoSocial**](https://www.psychosoci5l.com/) with **Claude**, **Antigravity**, **ChatGPT**, **Gemini**.
