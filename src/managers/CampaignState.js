@@ -7,8 +7,8 @@
 window.Game = window.Game || {};
 
 window.Game.CampaignState = {
-    // Campaign mode flag
-    enabled: false,
+    // Campaign mode flag (v4.8: default to Story mode)
+    enabled: true,
 
     // Boss progression state
     bosses: {

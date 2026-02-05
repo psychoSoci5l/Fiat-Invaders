@@ -63,7 +63,7 @@
     </div>
 
     <div id="intro-screen" style="display: none;">
-        <!-- UNIFIED INTRO - Single screen with transition -->
+        <!-- UNIFIED INTRO v4.8 - Redesigned with mode selector -->
 
         <!-- TITLE (visible in splash, hidden in selection) -->
         <h1 class="game-title intro-title" id="intro-title">
@@ -94,38 +94,30 @@
             </div>
         </div>
 
-        <!-- TAP TO START (visible in splash, hidden in selection) -->
-        <button class="btn-tap-start" id="btn-tap-start" onclick="enterSelectionState()">
-            TAP TO START
-        </button>
-
-        <!-- SELECTION CONTROLS (hidden in splash, visible in selection) -->
-        <div class="selection-controls" id="selection-controls" style="display: none;">
-            <!-- Score/Progress Row -->
-            <div class="selection-score">
-                <div id="arcade-score-display">
-                    <span class="score-label" id="high-score-label">HIGH SCORE</span>
-                    <span id="highScoreVal" class="score-value">0</span>
-                </div>
-                <div id="campaign-progress" style="display: none;">
-                    <span class="score-label" id="campaign-label">CAMPAIGN</span>
-                    <div class="boss-slots-mini">
-                        <span class="boss-mini" id="slot-fed">$</span>
-                        <span class="boss-mini locked" id="slot-bce">€</span>
-                        <span class="boss-mini locked" id="slot-boj">¥</span>
-                    </div>
-                </div>
+        <!-- MODE SELECTOR (visible in splash, hidden in selection) - v4.8.1 minimal style -->
+        <div class="mode-selector" id="mode-selector">
+            <div class="mode-pills">
+                <button class="mode-pill active" id="mode-pill-story" onclick="setGameMode('campaign')">STORY</button>
+                <button class="mode-pill" id="mode-pill-arcade" onclick="setGameMode('arcade')">ARCADE</button>
             </div>
+        </div>
 
-            <!-- Mode toggle -->
-            <div class="selection-mode">
-                <button class="mode-pill active" id="mode-arcade" onclick="setGameMode('arcade')">ARCADE</button>
-                <button class="mode-pill" id="mode-campaign" onclick="setGameMode('campaign')">CAMPAIGN</button>
-            </div>
+        <!-- CURRENT MODE INDICATOR (hidden in splash, visible in selection) -->
+        <div class="current-mode-indicator" id="current-mode-indicator" style="display: none;" onclick="goBackToModeSelect()">
+            <span class="mode-indicator-text" id="mode-indicator-text">STORY MODE</span>
+            <span class="mode-indicator-hint" id="mode-indicator-hint">tap to change</span>
+        </div>
 
-            <!-- Launch button -->
-            <button class="btn-launch" id="btn-launch" onclick="launchShipAndStart()">
-                🚀 LAUNCH
+        <!-- HIGH SCORE ROW (visible in selection only) -->
+        <div class="selection-score-row" id="selection-score-row" style="display: none;">
+            <span class="score-row-label" id="score-row-label">HIGH SCORE</span>
+            <span class="score-row-value" id="badge-score-value">0</span>
+        </div>
+
+        <!-- PRIMARY ACTION BUTTON (fixed position for double-tap) -->
+        <div class="primary-action-container">
+            <button class="btn-primary-action" id="btn-primary-action" onclick="handlePrimaryAction()">
+                TAP TO START
             </button>
         </div>
 

@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v4.7.0 FIAT vs CRYPTO";
+window.Game.VERSION = "v4.8.1 FIAT vs CRYPTO";
 
 window.Game.TEXTS = {
     EN: {
@@ -116,7 +116,13 @@ window.Game.TEXTS = {
         GET_READY: "GET READY",
         PWA_INSTALL_IOS: 'Install: tap <svg class="pwa-share-icon" viewBox="0 0 24 24" fill="none" stroke="#f39c12" stroke-width="2"><path d="M12 3v12M5 10l7-7 7 7"/><path d="M5 21h14a1 1 0 001-1v-6H4v6a1 1 0 001 1z"/></svg> then "Add to Home Screen"',
         PWA_INSTALL_ANDROID: "Install the app for the best experience",
-        PWA_INSTALL_BTN: "INSTALL"
+        PWA_INSTALL_BTN: "INSTALL",
+        // Intro Redesign v4.8
+        MODE_STORY: "STORY",
+        MODE_ARCADE: "ARCADE",
+        MODE_STORY_DESC: "Experience Bitcoin's story through 3 epic chapters",
+        MODE_ARCADE_DESC: "Endless high-score challenge",
+        CHANGE_MODE: "tap to change"
     },
     IT: {
         SCORE: "PUNTI", LEVEL: "LIVELLO", LIVES: "VITE", NORMAL: "NORMALE",
@@ -229,7 +235,13 @@ window.Game.TEXTS = {
         GET_READY: "PREPARATI",
         PWA_INSTALL_IOS: 'Installa: tap <svg class="pwa-share-icon" viewBox="0 0 24 24" fill="none" stroke="#f39c12" stroke-width="2"><path d="M12 3v12M5 10l7-7 7 7"/><path d="M5 21h14a1 1 0 001-1v-6H4v6a1 1 0 001 1z"/></svg> poi "Aggiungi a Home"',
         PWA_INSTALL_ANDROID: "Installa l'app per la migliore esperienza",
-        PWA_INSTALL_BTN: "INSTALLA"
+        PWA_INSTALL_BTN: "INSTALLA",
+        // Intro Redesign v4.8
+        MODE_STORY: "STORIA",
+        MODE_ARCADE: "ARCADE",
+        MODE_STORY_DESC: "Vivi la storia di Bitcoin attraverso 3 capitoli epici",
+        MODE_ARCADE_DESC: "Sfida infinita per il punteggio",
+        CHANGE_MODE: "tocca per cambiare"
     }
 };
 

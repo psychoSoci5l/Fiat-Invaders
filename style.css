@@ -1187,6 +1187,233 @@ body {
     box-shadow: 0 6px 30px rgba(247, 147, 26, 0.7);
 }
 
+/* ========== INTRO REDESIGN v4.8.1 - Minimal Integrated Style ========== */
+
+/* Mode Selector (SPLASH) - Simple pill buttons */
+.mode-selector {
+    margin: 15px 0;
+    transition: all 0.4s ease;
+}
+
+.mode-selector.hidden {
+    opacity: 0;
+    transform: translateY(-10px);
+    pointer-events: none;
+    position: absolute;
+}
+
+.mode-pills {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+/* Reuse existing mode-pill style but ensure it works here */
+.mode-selector .mode-pill {
+    background: transparent;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    color: rgba(255, 255, 255, 0.5);
+    padding: 10px 24px;
+    font-size: clamp(13px, 3.5vw, 15px);
+    font-weight: 700;
+    letter-spacing: 3px;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.mode-selector .mode-pill:hover {
+    border-color: rgba(255, 255, 255, 0.5);
+    color: rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.mode-selector .mode-pill.active {
+    border-color: var(--neon-orange);
+    color: var(--neon-orange);
+    background: rgba(247, 147, 26, 0.15);
+    box-shadow: 0 0 15px rgba(247, 147, 26, 0.3);
+}
+
+/* Current Mode Indicator (SELECTION) - Minimal text style */
+.current-mode-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin: 8px 0;
+    padding: 8px 20px;
+    animation: fadeSlideUp 0.3s ease-out;
+}
+
+.current-mode-indicator:hover {
+    transform: scale(1.02);
+}
+
+.current-mode-indicator:active {
+    transform: scale(0.98);
+}
+
+.mode-indicator-text {
+    font-size: clamp(12px, 3.5vw, 14px);
+    font-weight: 700;
+    color: var(--neon-orange);
+    letter-spacing: 3px;
+    text-shadow: 0 0 8px rgba(247, 147, 26, 0.4);
+}
+
+.mode-indicator-hint {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.4);
+    letter-spacing: 2px;
+    margin-top: 2px;
+}
+
+/* Selection Score Row - Clean inline display */
+.selection-score-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin: 5px 0;
+    animation: fadeSlideUp 0.4s ease-out 0.1s both;
+}
+
+.score-row-label {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.5);
+    letter-spacing: 3px;
+}
+
+.score-row-value {
+    font-size: clamp(20px, 5vw, 26px);
+    font-weight: 900;
+    color: var(--neon-orange);
+    text-shadow: 0 0 10px rgba(247, 147, 26, 0.5);
+}
+
+/* PRIMARY ACTION CONTAINER - FIXED POSITION */
+.primary-action-container {
+    position: absolute;
+    bottom: calc(100px + env(safe-area-inset-bottom, 0px));
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 60px);
+    max-width: 320px;
+    z-index: 10;
+}
+
+.btn-primary-action {
+    width: 100%;
+    padding: 18px 30px;
+    font-size: clamp(18px, 5vw, 24px);
+    font-weight: 900;
+    letter-spacing: 5px;
+    cursor: pointer;
+    border-radius: 12px;
+    font-family: inherit;
+    transition: all 0.2s ease;
+    /* Default: TAP TO START style */
+    background: linear-gradient(180deg, rgba(247, 147, 26, 0.15) 0%, rgba(247, 147, 26, 0.05) 100%);
+    border: 3px solid var(--neon-orange);
+    color: var(--neon-orange);
+    text-shadow: 0 0 15px rgba(247, 147, 26, 0.6), 0 2px 4px rgba(0,0,0,0.5);
+    box-shadow:
+        0 0 20px rgba(247, 147, 26, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        0 4px 0 rgba(0, 0, 0, 0.3);
+    animation: tapPulse 2.5s ease-in-out infinite;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-primary-action::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    animation: tapShine 3s ease-in-out infinite;
+}
+
+.btn-primary-action:hover {
+    background: linear-gradient(180deg, rgba(247, 147, 26, 0.3) 0%, rgba(247, 147, 26, 0.15) 100%);
+    transform: translateY(-3px);
+    box-shadow:
+        0 0 40px rgba(247, 147, 26, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        0 8px 0 rgba(0, 0, 0, 0.3);
+}
+
+.btn-primary-action:active {
+    transform: translateY(2px);
+    box-shadow:
+        0 0 20px rgba(247, 147, 26, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        0 2px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* LAUNCH state for primary action button */
+.btn-primary-action.launch-state {
+    background: linear-gradient(180deg, #F7931A 0%, #c77a15 100%);
+    border: 3px solid #000;
+    color: #000;
+    text-shadow: none;
+    box-shadow: 0 5px 0 #8a5a0a, 0 0 30px rgba(247, 147, 26, 0.5);
+    animation: none;
+}
+
+.btn-primary-action.launch-state::before {
+    animation: none;
+    display: none;
+}
+
+.btn-primary-action.launch-state:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 0 #8a5a0a, 0 0 40px rgba(247, 147, 26, 0.7);
+    background: linear-gradient(180deg, #ffab3d 0%, #F7931A 100%);
+}
+
+.btn-primary-action.launch-state:active {
+    transform: translateY(3px);
+    box-shadow: 0 2px 0 #8a5a0a;
+}
+
+/* Responsive adjustments for small screens */
+@media (max-width: 375px) {
+    .mode-selector .mode-pill {
+        padding: 8px 18px;
+        font-size: 12px;
+        letter-spacing: 2px;
+    }
+    .primary-action-container {
+        width: calc(100% - 40px);
+    }
+}
+
+@media (max-height: 600px) {
+    .mode-selector {
+        margin: 8px 0;
+    }
+    .ship-area {
+        margin: 8px 0;
+    }
+    .current-mode-indicator {
+        margin: 4px 0;
+        padding: 4px 15px;
+    }
+    .selection-score-row {
+        margin: 3px 0;
+    }
+    .primary-action-container {
+        bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+    }
+}
+
 .btn-play:active {
     transform: scale(0.98);
 }

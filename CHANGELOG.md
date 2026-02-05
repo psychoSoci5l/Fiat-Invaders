@@ -1,5 +1,59 @@
 # Changelog
 
+## v4.8.1 - 2026-02-05
+### Fix: Intro Screen Visual Polish
+
+Simplified intro UI design for better visual harmony between SPLASH and SELECTION states.
+
+#### Changes
+- **Minimal mode selector**: Simple pill buttons instead of heavy box with tabs
+- **Clean mode indicator**: Lightweight text instead of badge with background
+- **Better visual integration**: Elements blend naturally with sky background
+- **Score row separation**: High score displayed in dedicated row
+- Removed: box backgrounds, checkmarks, mode descriptions (decluttered)
+- Updated element IDs: `mode-selector`, `mode-pill-*`, `current-mode-indicator`, `mode-indicator-text`, `selection-score-row`
+- Function rename: `updateModeBadge()` → `updateModeIndicator()`
+
+## v4.8.0 - 2026-02-05
+### Feature: Intro Screen Redesign
+
+Complete UX overhaul of SPLASH and SELECTION screens for better flow.
+
+#### 1. Mode Selector (SPLASH Screen)
+- **Mode tabs**: Interactive STORY/ARCADE toggle with checkmark indicator
+- **Mode description**: Contextual text explaining each mode
+- Story mode now **default** (changed from Arcade)
+- Description updates dynamically when switching modes
+
+#### 2. Current Mode Badge (SELECTION Screen)
+- Shows current mode + "tap to change" hint
+- Displays HIGH SCORE inline
+- Click/tap returns to SPLASH for mode change
+
+#### 3. Fixed-Position Primary Action Button
+- **Same screen position** in both SPLASH and SELECTION states
+- Enables **double-tap quick start** (tap → tap → play)
+- Visual state changes: transparent (TAP TO START) → solid (LAUNCH)
+
+#### 4. UX Improvements
+- New user flow: Title → Mode Select → Ship Select → Launch
+- Expert flow: Double-tap anywhere to start immediately
+- Mode preference persists to localStorage
+- Safe zones maintained for iPhone notch/Dynamic Island
+
+#### 5. Code Changes
+- `handlePrimaryAction()`: Unified button handler
+- `goBackToModeSelect()`: Return to mode selection
+- `updatePrimaryButton(state)`: Button state switcher
+- `updateModeBadge()`: Badge content updater
+- New CSS classes: `.mode-selector-box`, `.mode-tab`, `.current-mode-badge`, `.primary-action-container`
+- Removed: old `.btn-tap-start`, `.btn-launch`, `.selection-controls`, `.selection-mode` elements
+
+#### 6. Localization (EN/IT)
+- `MODE_STORY_DESC`: Mode explanation text
+- `MODE_ARCADE_DESC`: Mode explanation text
+- `CHANGE_MODE`: "tap to change" hint
+
 ## v4.7.0 - 2026-02-05
 ### Feature: Story Mode — "Storia di Bitcoin"
 

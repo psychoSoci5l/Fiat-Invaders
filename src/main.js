@@ -75,7 +75,7 @@ function loadAssets() {
 loadAssets(); // Start loading immediately
 
 let highScore = parseInt(localStorage.getItem('fiat_highscore')) || 0; // PERSISTENCE
-setUI('highScoreVal', highScore); // UI Update
+// Note: High score UI update happens in updateModeIndicator() when intro screen is shown
 
 // WEAPON PROGRESSION - Persisted in localStorage
 const BASE_WEAPONS = ['WIDE', 'NARROW', 'FIRE']; // Always unlocked
@@ -569,27 +569,115 @@ window.enterSelectionState = function() {
 
     // Hide splash elements
     const title = document.getElementById('intro-title');
-    const tapBtn = document.getElementById('btn-tap-start');
+    const modeSelector = document.getElementById('mode-selector');
     const introVersion = document.querySelector('.intro-version');
     if (title) title.classList.add('hidden');
-    if (tapBtn) tapBtn.classList.add('hidden');
+    if (modeSelector) modeSelector.classList.add('hidden');
     if (introVersion) introVersion.style.display = 'none';
 
     // Show selection elements
     const header = document.getElementById('selection-header');
     const info = document.getElementById('selection-info');
-    const controls = document.getElementById('selection-controls');
+    const modeIndicator = document.getElementById('current-mode-indicator');
+    const scoreRow = document.getElementById('selection-score-row');
     const arrowLeft = document.getElementById('arrow-left');
     const arrowRight = document.getElementById('arrow-right');
 
     if (header) header.style.display = 'block';
     if (info) info.style.display = 'block';
-    if (controls) controls.style.display = 'flex';
+    if (modeIndicator) modeIndicator.style.display = 'flex';
+    if (scoreRow) scoreRow.style.display = 'flex';
     if (arrowLeft) arrowLeft.classList.add('visible');
     if (arrowRight) arrowRight.classList.add('visible');
 
+    // Update primary action button to LAUNCH state
+    updatePrimaryButton('SELECTION');
+
+    // Update badge content
+    updateModeIndicator();
+
     // Update ship display
     updateShipUI();
+}
+
+// Go back to mode selection from ship selection
+window.goBackToModeSelect = function() {
+    if (introState === 'SPLASH') return;
+    introState = 'SPLASH';
+    audioSys.play('coinUI');
+
+    // Hide selection elements
+    const header = document.getElementById('selection-header');
+    const info = document.getElementById('selection-info');
+    const modeIndicator = document.getElementById('current-mode-indicator');
+    const scoreRow = document.getElementById('selection-score-row');
+    const arrowLeft = document.getElementById('arrow-left');
+    const arrowRight = document.getElementById('arrow-right');
+
+    if (header) header.style.display = 'none';
+    if (info) info.style.display = 'none';
+    if (modeIndicator) modeIndicator.style.display = 'none';
+    if (scoreRow) scoreRow.style.display = 'none';
+    if (arrowLeft) arrowLeft.classList.remove('visible');
+    if (arrowRight) arrowRight.classList.remove('visible');
+
+    // Show splash elements
+    const title = document.getElementById('intro-title');
+    const modeSelector = document.getElementById('mode-selector');
+    const introVersion = document.querySelector('.intro-version');
+    if (title) title.classList.remove('hidden');
+    if (modeSelector) modeSelector.classList.remove('hidden');
+    if (introVersion) introVersion.style.display = 'block';
+
+    // Update primary action button to TAP TO START state
+    updatePrimaryButton('SPLASH');
+}
+
+// Handle primary action button click (unified for both states)
+window.handlePrimaryAction = function() {
+    if (introState === 'SPLASH') {
+        enterSelectionState();
+    } else {
+        launchShipAndStart();
+    }
+}
+
+// Update primary button appearance based on state
+function updatePrimaryButton(state) {
+    const btn = document.getElementById('btn-primary-action');
+    if (!btn) return;
+
+    if (state === 'SELECTION') {
+        btn.classList.add('launch-state');
+        btn.innerHTML = '🚀 ' + t('LAUNCH');
+    } else {
+        btn.classList.remove('launch-state');
+        btn.innerHTML = t('TAP_START');
+    }
+}
+
+// Update the mode indicator in selection screen
+function updateModeIndicator() {
+    const campaignState = G.CampaignState;
+    const isStory = campaignState && campaignState.isEnabled();
+
+    const modeText = document.getElementById('mode-indicator-text');
+    const hint = document.getElementById('mode-indicator-hint');
+    const scoreLabel = document.getElementById('score-row-label');
+    const scoreValue = document.getElementById('badge-score-value');
+
+    if (modeText) {
+        modeText.innerText = isStory ? (t('MODE_STORY') || t('CAMPAIGN')) + ' MODE' : t('MODE_ARCADE') + ' MODE';
+    }
+    if (hint) {
+        hint.innerText = t('CHANGE_MODE');
+    }
+    if (scoreLabel) {
+        scoreLabel.innerText = t('HIGH_SCORE');
+    }
+    if (scoreValue) {
+        scoreValue.innerText = highScore.toLocaleString();
+    }
 }
 
 window.cycleShip = function(dir) {
@@ -616,20 +704,16 @@ window.setGameMode = function(mode) {
         campaignState.resetCampaign();
     }
 
-    // Update buttons
-    const arcadeBtn = document.getElementById('mode-arcade');
-    const campaignBtn = document.getElementById('mode-campaign');
-    if (arcadeBtn) arcadeBtn.classList.toggle('active', !isEnabled);
-    if (campaignBtn) campaignBtn.classList.toggle('active', isEnabled);
+    // Update mode selector pills (SPLASH state)
+    const storyPill = document.getElementById('mode-pill-story');
+    const arcadePill = document.getElementById('mode-pill-arcade');
 
-    // Toggle score/progress display (same row, no layout shift)
-    const arcadeScoreEl = document.getElementById('arcade-score-display');
-    const progressEl = document.getElementById('campaign-progress');
-    if (arcadeScoreEl) arcadeScoreEl.style.display = isEnabled ? 'none' : 'block';
-    if (progressEl) progressEl.style.display = isEnabled ? 'block' : 'none';
+    if (storyPill) storyPill.classList.toggle('active', isEnabled);
+    if (arcadePill) arcadePill.classList.toggle('active', !isEnabled);
 
-    if (isEnabled) {
-        updateCampaignProgressUI();
+    // Update mode indicator if in selection state
+    if (introState === 'SELECTION') {
+        updateModeIndicator();
     }
 
     audioSys.play('coinUI');
@@ -878,7 +962,7 @@ function init() {
 
     ['intro-screen', 'hangar-screen', 'settings-modal', 'pause-screen', 'gameover-screen',
         'scoreVal', 'lvlVal', 'weaponName', 'shieldBar', 'healthBar', 'finalScore',
-        'highScoreVal', 'version-tag', 'pause-btn', 'lang-btn', 'control-btn', 'joy-deadzone', 'joy-sensitivity',
+        'version-tag', 'pause-btn', 'lang-btn', 'control-btn', 'joy-deadzone', 'joy-sensitivity',
         'ui-layer', 'touchControls', 'livesText', 'perk-modal', 'perk-options', 'perk-skip', 'control-toast',
         'intro-meme', 'gameover-meme', 'killsVal', 'streakVal'].forEach(id => {
             const key = id.replace(/-([a-z])/g, (g) => g[1].toUpperCase()).replace('screen', '').replace('Val', '').replace('Bar', 'Bar').replace('layer', 'Layer').replace('Text', 'Text');
@@ -1020,18 +1104,27 @@ function init() {
             if (splash) splash.remove();
             setStyle('intro-screen', 'display', 'flex');
 
-            // Init unified intro - show splash elements, hide selection elements
+            // Init unified intro v4.8 - show splash elements, hide selection elements
             const title = document.getElementById('intro-title');
-            const tapBtn = document.getElementById('btn-tap-start');
+            const modeSelector = document.getElementById('mode-selector');
             const header = document.getElementById('selection-header');
             const info = document.getElementById('selection-info');
-            const controls = document.getElementById('selection-controls');
+            const modeIndicator = document.getElementById('current-mode-indicator');
+            const scoreRow = document.getElementById('selection-score-row');
+            const arrowLeft = document.getElementById('arrow-left');
+            const arrowRight = document.getElementById('arrow-right');
 
             if (title) title.classList.remove('hidden');
-            if (tapBtn) tapBtn.classList.remove('hidden');
+            if (modeSelector) modeSelector.classList.remove('hidden');
             if (header) header.style.display = 'none';
             if (info) info.style.display = 'none';
-            if (controls) controls.style.display = 'none';
+            if (modeIndicator) modeIndicator.style.display = 'none';
+            if (scoreRow) scoreRow.style.display = 'none';
+            if (arrowLeft) arrowLeft.classList.remove('visible');
+            if (arrowRight) arrowRight.classList.remove('visible');
+
+            // Reset primary button to TAP TO START state
+            updatePrimaryButton('SPLASH');
 
             try { updateUIText(); } catch (e) { }
             initIntroShip();
@@ -1039,9 +1132,9 @@ function init() {
             // Initialize sky background for INTRO state
             if (G.SkyRenderer) G.SkyRenderer.init(gameWidth, gameHeight);
 
-            // Restore campaign mode UI state
-            if (G.CampaignState && G.CampaignState.isEnabled()) {
-                setGameMode('campaign');
+            // Restore campaign mode UI state (v4.8: sync UI with stored preference)
+            if (G.CampaignState) {
+                setGameMode(G.CampaignState.isEnabled() ? 'campaign' : 'arcade');
             }
 
             // Open curtain after intro screen is ready
@@ -1149,18 +1242,23 @@ function init() {
         if (splash) splash.style.display = 'none';
         setStyle('intro-screen', 'display', 'flex');
 
-        // Init unified intro
+        // Init unified intro v4.8.1
         const title = document.getElementById('intro-title');
-        const tapBtn = document.getElementById('btn-tap-start');
+        const modeSelector = document.getElementById('mode-selector');
         const header = document.getElementById('selection-header');
         const info = document.getElementById('selection-info');
-        const controls = document.getElementById('selection-controls');
+        const modeIndicator = document.getElementById('current-mode-indicator');
+        const scoreRow = document.getElementById('selection-score-row');
 
         if (title) title.classList.remove('hidden');
-        if (tapBtn) tapBtn.classList.remove('hidden');
+        if (modeSelector) modeSelector.classList.remove('hidden');
         if (header) header.style.display = 'none';
         if (info) info.style.display = 'none';
-        if (controls) controls.style.display = 'none';
+        if (modeIndicator) modeIndicator.style.display = 'none';
+        if (scoreRow) scoreRow.style.display = 'none';
+
+        // Reset primary button to TAP TO START state
+        updatePrimaryButton('SPLASH');
 
         updateUIText();
         gameState = 'INTRO';
@@ -1168,7 +1266,7 @@ function init() {
         initIntroShip();
     }
 
-    if (ui.highScore) ui.highScore.innerText = highScore;
+    // High score is displayed via updateModeIndicator() in updateUIText()
 
     // Story screen touch/click handling
     const storyTapHandler = (e) => {
@@ -1298,18 +1396,39 @@ function updateUIText() {
     if (btnInsert) btnInsert.innerText = t('INSERT_COIN');
     const selectionHeader = document.getElementById('selection-header');
     if (selectionHeader) selectionHeader.innerText = t('CHOOSE_SHIP');
-    const btnTapStart = document.getElementById('btn-tap-start');
-    if (btnTapStart) btnTapStart.innerText = t('TAP_START');
-    const highScoreLabel = document.getElementById('high-score-label');
-    if (highScoreLabel) highScoreLabel.innerText = t('HIGH_SCORE');
-    const campaignLabel = document.getElementById('campaign-label');
-    if (campaignLabel) campaignLabel.innerText = t('CAMPAIGN');
-    const modeArcade = document.getElementById('mode-arcade');
-    if (modeArcade) modeArcade.innerText = t('ARCADE');
-    const modeCampaign = document.getElementById('mode-campaign');
-    if (modeCampaign) modeCampaign.innerText = t('CAMPAIGN');
-    const btnLaunch = document.getElementById('btn-launch');
-    if (btnLaunch) btnLaunch.innerText = '🚀 ' + t('LAUNCH');
+
+    // Mode selector tabs (v4.8)
+    const labelStory = document.getElementById('label-story');
+    if (labelStory) labelStory.innerText = t('MODE_STORY') || t('CAMPAIGN');
+    const labelArcade = document.getElementById('label-arcade');
+    if (labelArcade) labelArcade.innerText = t('MODE_ARCADE') || t('ARCADE');
+
+    // Mode description
+    const campaignState = G.CampaignState;
+    const isStory = campaignState && campaignState.isEnabled();
+    const modeDesc = document.getElementById('mode-description');
+    if (modeDesc) {
+        modeDesc.innerText = isStory
+            ? (t('MODE_STORY_DESC') || "Experience Bitcoin's story through 3 epic chapters")
+            : (t('MODE_ARCADE_DESC') || "Endless high-score challenge");
+    }
+
+    // Primary action button
+    const btnPrimary = document.getElementById('btn-primary-action');
+    if (btnPrimary) {
+        if (introState === 'SELECTION') {
+            btnPrimary.innerHTML = '🚀 ' + t('LAUNCH');
+        } else {
+            btnPrimary.innerHTML = t('TAP_START');
+        }
+    }
+
+    // Mode indicator
+    const modeHint = document.getElementById('mode-indicator-hint');
+    if (modeHint) modeHint.innerText = t('CHANGE_MODE');
+    const scoreRowLabel = document.getElementById('score-row-label');
+    if (scoreRowLabel) scoreRowLabel.innerText = t('HIGH_SCORE');
+    updateModeIndicator();
 
     // HUD labels
     const scoreLabel = document.getElementById('score-label');
@@ -1523,11 +1642,13 @@ window.launchShipAndStart = function () {
     const elementsToExplode = [
         '.intro-icons',
         '.intro-version',
-        '.selection-controls',
+        '.current-mode-indicator',
+        '.selection-score-row',
         '.selection-info',
         '.selection-header',
         '.intro-title',
-        '.btn-tap-start'
+        '.mode-selector',
+        '.primary-action-container'
     ];
 
     // Track destroyed elements for reset in finishLaunch
@@ -1713,12 +1834,13 @@ window.backToIntro = function () {
         gameState = 'INTRO';
         introState = 'SPLASH';
 
-        // Reset to splash state (unified intro)
+        // Reset to splash state (unified intro v4.8.1)
         const title = document.getElementById('intro-title');
-        const tapBtn = document.getElementById('btn-tap-start');
+        const modeSelector = document.getElementById('mode-selector');
         const header = document.getElementById('selection-header');
         const info = document.getElementById('selection-info');
-        const controls = document.getElementById('selection-controls');
+        const modeIndicator = document.getElementById('current-mode-indicator');
+        const scoreRow = document.getElementById('selection-score-row');
         const arrowLeft = document.getElementById('arrow-left');
         const arrowRight = document.getElementById('arrow-right');
 
@@ -1728,17 +1850,20 @@ window.backToIntro = function () {
             title.style.opacity = '';
             title.style.transform = '';
         }
-        if (tapBtn) {
-            tapBtn.classList.remove('hidden');
-            tapBtn.style.display = '';
-            tapBtn.style.opacity = '';
-            tapBtn.style.transform = '';
+        if (modeSelector) {
+            modeSelector.classList.remove('hidden');
+            modeSelector.style.opacity = '';
+            modeSelector.style.transform = '';
         }
+
+        // Reset primary button to TAP TO START state
+        updatePrimaryButton('SPLASH');
 
         // Hide selection elements
         if (header) header.style.display = 'none';
         if (info) info.style.display = 'none';
-        if (controls) controls.style.display = 'none';
+        if (modeIndicator) modeIndicator.style.display = 'none';
+        if (scoreRow) scoreRow.style.display = 'none';
         if (arrowLeft) arrowLeft.classList.remove('visible');
         if (arrowRight) arrowRight.classList.remove('visible');
 
@@ -4962,7 +5087,9 @@ function showCampaignVictory() {
     if (score > highScore) {
         highScore = Math.floor(score);
         localStorage.setItem('fiat_highscore', highScore);
-        setUI('highScoreVal', highScore);
+        // Update badge score display (v4.8)
+        const badgeScore = document.getElementById('badge-score-value');
+        if (badgeScore) badgeScore.innerText = highScore.toLocaleString();
         submitToGameCenter(highScore);
     }
 
@@ -5019,7 +5146,9 @@ function triggerGameOver() {
     if (score > highScore) {
         highScore = Math.floor(score);
         localStorage.setItem('fiat_highscore', highScore);
-        setUI('highScoreVal', highScore);
+        // Update badge score display (v4.8)
+        const badgeScore = document.getElementById('badge-score-value');
+        if (badgeScore) badgeScore.innerText = highScore.toLocaleString();
         submitToGameCenter(highScore); // Game Center hook
     }
     gameState = 'GAMEOVER';

@@ -185,7 +185,14 @@ G.Debug.trackBossSpawn('FEDERAL_RESERVE', 5000, 5, 1);
 
 ### Game States
 
-`gameState` variable in `main.js`: `VIDEO` → `INTRO` → `HANGAR` → `PLAY` / `INTERMISSION` / `PAUSE` → `GAMEOVER`
+`gameState` variable in `main.js`: `VIDEO` → `INTRO` → `HANGAR` → `STORY_SCREEN` → `PLAY` / `INTERMISSION` / `PAUSE` → `GAMEOVER`
+
+#### Intro Sub-States (v4.8)
+`introState` variable: `SPLASH` → `SELECTION`
+- **SPLASH**: Title, mode selector tabs, "TAP TO START"
+- **SELECTION**: Ship arrows, stats, mode badge, "LAUNCH"
+- `handlePrimaryAction()`: Unified button handler for both states
+- `goBackToModeSelect()`: Returns from SELECTION to SPLASH
 
 ### Entity Inheritance
 

@@ -2085,7 +2085,19 @@ DIGITAL_THREAT: ['Ⓒ', '$', '元']  // CBDCs + majors
 - [x] **storyProgress tracking**: Persists to localStorage, resets on new campaign
 - [x] **Mode rename**: CAMPAIGN → STORY (EN) / STORIA (IT)
 
-## Phase 38: Formation System Visual Audit (NEXT SESSION — START HERE)
+## Phase 38: Intro Screen Redesign v4.8.0 ✅
+*Goal: Better UX flow with Story mode default and double-tap quick start.*
+- [x] **Mode selector box**: Interactive STORY/ARCADE tabs with contextual descriptions
+- [x] **Story mode default**: Changed CampaignState.enabled from false to true
+- [x] **Current mode badge**: Click to return to mode selection from ship screen
+- [x] **Fixed-position primary action**: Same button position enables double-tap quick start
+- [x] **Visual states**: TAP TO START (transparent) → LAUNCH (solid gold) transition
+- [x] **Localization**: MODE_STORY_DESC, MODE_ARCADE_DESC, CHANGE_MODE for EN/IT
+- [x] **New functions**: handlePrimaryAction(), goBackToModeSelect(), updatePrimaryButton(), updateModeBadge()
+- [x] **Removed elements**: .btn-tap-start, .btn-launch, .selection-controls, .selection-mode
+- [x] **New elements**: .mode-selector-box, .mode-tab, .current-mode-badge, .primary-action-container
+
+## Phase 39: Formation System Visual Audit (NEXT SESSION — START HERE)
 *Goal: Fine-tuning of enemy formation placement - targeted fixes based on visual testing.*
 - [ ] **Visual audit**: Test each of the 16 formations individually with debug overlay
 - [ ] **Shape-specific tuning**: Adjust spacing/factors per formation as needed
