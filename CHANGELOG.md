@@ -1,5 +1,45 @@
 # Changelog
 
+## v4.9.0 - 2026-02-05
+### Feature: Platform-Aware Manual + Intro Improvements + Story Mode Fixes
+
+Three independent improvements for better UX:
+
+#### 1. Platform-Aware Manual (Controls Tab)
+- Manual "Controls" tab now shows only relevant controls for current platform
+- Desktop: Shows "Keyboard (PC)" controls only
+- Mobile/Touch: Shows "Touch (Mobile)" controls only
+- Detection via `is-touch` class on body element
+
+#### 2. Intro SPLASH Screen Improvements
+- Ship preview now hidden in SPLASH state (visible in SELECTION)
+- Added mode explanation text below mode selector
+- Story: "Follow Bitcoin's rise against central banks."
+- Arcade: "Endless waves. High scores. Pure action."
+- Localized to both EN and IT
+- Smooth transition animations between states
+
+#### 3. Story Mode Fixes
+- **Language fix**: `toggleLang()` now saves to localStorage, so Story screens respect language choice
+- **Always show stories**: `startGame()` resets `storyProgress` every time in Story Mode, so Prologue and Chapters always appear (players can skip if desired)
+
+#### 4. UI/UX Polish
+- **Mode description**: Larger text (+25%), orange color with black outline for readability
+- **Touch scrolling**: Fixed scrolling in Manual and Help panels on mobile (touch-action: pan-y)
+- **Settings controls**: Platform-aware (shows only PC or Mobile controls)
+- **Pause menu**: Fully translated (PAUSA, RIPRENDI, IMPOSTAZIONI, MANUALE, RICOMINCIA, ESCI)
+- **Pause button icon**: Changed from emoji to universal "II" for cross-device compatibility
+- **LAUNCH button**: Adjusted position to avoid overlap with RECORD row
+
+#### Files Changed
+- `index.html` - ship-area hidden class, mode-explanation div, manual section classes
+- `style.css` - platform visibility classes, mode-explanation styles, ship-area.hidden
+- `src/main.js` - platform detection, toggleLang save, setGameMode reset, state transitions
+- `src/utils/Constants.js` - MODE_STORY_DESC, MODE_ARCADE_DESC (EN + IT), version bump
+- `sw.js` - version bump
+
+---
+
 ## v4.8.1 - 2026-02-05
 ### Fix: Intro Screen Visual Polish
 

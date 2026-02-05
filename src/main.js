@@ -571,9 +571,11 @@ window.enterSelectionState = function() {
     const title = document.getElementById('intro-title');
     const modeSelector = document.getElementById('mode-selector');
     const introVersion = document.querySelector('.intro-version');
+    const modeExpl = document.getElementById('mode-explanation');
     if (title) title.classList.add('hidden');
     if (modeSelector) modeSelector.classList.add('hidden');
     if (introVersion) introVersion.style.display = 'none';
+    if (modeExpl) modeExpl.classList.add('hidden');
 
     // Show selection elements
     const header = document.getElementById('selection-header');
@@ -582,6 +584,7 @@ window.enterSelectionState = function() {
     const scoreRow = document.getElementById('selection-score-row');
     const arrowLeft = document.getElementById('arrow-left');
     const arrowRight = document.getElementById('arrow-right');
+    const shipArea = document.querySelector('.ship-area');
 
     if (header) header.style.display = 'block';
     if (info) info.style.display = 'block';
@@ -589,6 +592,7 @@ window.enterSelectionState = function() {
     if (scoreRow) scoreRow.style.display = 'flex';
     if (arrowLeft) arrowLeft.classList.add('visible');
     if (arrowRight) arrowRight.classList.add('visible');
+    if (shipArea) shipArea.classList.remove('hidden');
 
     // Update primary action button to LAUNCH state
     updatePrimaryButton('SELECTION');
@@ -625,9 +629,13 @@ window.goBackToModeSelect = function() {
     const title = document.getElementById('intro-title');
     const modeSelector = document.getElementById('mode-selector');
     const introVersion = document.querySelector('.intro-version');
+    const modeExpl = document.getElementById('mode-explanation');
+    const shipArea = document.querySelector('.ship-area');
     if (title) title.classList.remove('hidden');
     if (modeSelector) modeSelector.classList.remove('hidden');
     if (introVersion) introVersion.style.display = 'block';
+    if (modeExpl) modeExpl.classList.remove('hidden');
+    if (shipArea) shipArea.classList.add('hidden');
 
     // Update primary action button to TAP TO START state
     updatePrimaryButton('SPLASH');
@@ -697,6 +705,17 @@ window.cycleShip = function(dir) {
 window.setGameMode = function(mode) {
     const campaignState = G.CampaignState;
     const isEnabled = mode === 'campaign';
+
+    // Reset story progress when switching TO Story mode (fixes intermittent start bug)
+    if (isEnabled && !campaignState.isEnabled()) {
+        campaignState.storyProgress = {
+            PROLOGUE: false,
+            CHAPTER_1: false,
+            CHAPTER_2: false,
+            CHAPTER_3: false
+        };
+    }
+
     campaignState.setEnabled(isEnabled);
 
     // Reset campaign if already complete (fresh start after victory)
@@ -710,6 +729,12 @@ window.setGameMode = function(mode) {
 
     if (storyPill) storyPill.classList.toggle('active', isEnabled);
     if (arcadePill) arcadePill.classList.toggle('active', !isEnabled);
+
+    // Update mode explanation (SPLASH state)
+    const storyDesc = document.getElementById('mode-story-desc');
+    const arcadeDesc = document.getElementById('mode-arcade-desc');
+    if (storyDesc) storyDesc.style.display = isEnabled ? 'block' : 'none';
+    if (arcadeDesc) arcadeDesc.style.display = isEnabled ? 'none' : 'block';
 
     // Update mode indicator if in selection state
     if (introState === 'SELECTION') {
@@ -974,6 +999,11 @@ function init() {
     if (ui.touchControls) {
         ui.touchControls.classList.remove('visible');
         ui.touchControls.style.display = 'none';
+    }
+
+    // Platform detection for UI (manual controls visibility)
+    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+        document.body.classList.add('is-touch');
     }
 
     const startBtn = document.querySelector('.btn-coin');
@@ -1403,15 +1433,11 @@ function updateUIText() {
     const labelArcade = document.getElementById('label-arcade');
     if (labelArcade) labelArcade.innerText = t('MODE_ARCADE') || t('ARCADE');
 
-    // Mode description
-    const campaignState = G.CampaignState;
-    const isStory = campaignState && campaignState.isEnabled();
-    const modeDesc = document.getElementById('mode-description');
-    if (modeDesc) {
-        modeDesc.innerText = isStory
-            ? (t('MODE_STORY_DESC') || "Experience Bitcoin's story through 3 epic chapters")
-            : (t('MODE_ARCADE_DESC') || "Endless high-score challenge");
-    }
+    // Mode description (v4.9: separate elements for Story/Arcade)
+    const storyDesc = document.getElementById('mode-story-desc');
+    const arcadeDesc = document.getElementById('mode-arcade-desc');
+    if (storyDesc) storyDesc.innerText = t('MODE_STORY_DESC') || "Follow Bitcoin's rise against central banks.";
+    if (arcadeDesc) arcadeDesc.innerText = t('MODE_ARCADE_DESC') || "Endless waves. High scores. Pure action.";
 
     // Primary action button
     const btnPrimary = document.getElementById('btn-primary-action');
@@ -1442,13 +1468,19 @@ function updateUIText() {
     const grazeLabel = document.getElementById('graze-label');
     if (grazeLabel) grazeLabel.innerText = t('GRAZE');
 
-    // Pause
-    const pauseTitle = document.querySelector('#pause-screen .neon-title');
+    // Pause menu
+    const pauseTitle = document.getElementById('pause-title');
     if (pauseTitle) pauseTitle.innerText = t('PAUSED');
-    const resumeBtn = document.querySelector('#pause-screen .btn-coin:first-of-type');
+    const resumeBtn = document.getElementById('btn-resume');
     if (resumeBtn) resumeBtn.innerText = '> ' + t('RESUME');
+    const settingsBtn = document.getElementById('btn-settings');
+    if (settingsBtn) settingsBtn.innerText = '> ' + t('SETTINGS');
+    const manualBtn = document.getElementById('btn-manual');
+    if (manualBtn) manualBtn.innerText = '> ' + t('MANUAL');
+    const restartBtn = document.getElementById('btn-restart');
+    if (restartBtn) restartBtn.innerText = '> ' + t('RESTART_RUN');
     const exitBtn = document.getElementById('btn-exit-title');
-    if (exitBtn) exitBtn.innerText = '> ' + t('EXIT_TITLE');
+    if (exitBtn) exitBtn.innerText = '> ' + t('EXIT');
 
     // Game Over
     const goTitle = document.querySelector('#gameover-screen h1');
@@ -1472,7 +1504,7 @@ function updateUIText() {
     updateManualText();
 }
 
-window.toggleLang = function () { currentLang = (currentLang === 'EN') ? 'IT' : 'EN'; updateUIText(); };
+window.toggleLang = function () { currentLang = (currentLang === 'EN') ? 'IT' : 'EN'; localStorage.setItem('fiat_lang', currentLang); updateUIText(); };
 window.toggleSettings = function () { setStyle('settings-modal', 'display', (document.getElementById('settings-modal').style.display === 'flex') ? 'none' : 'flex'); updateUIText(); };
 window.toggleHelpPanel = function () {
     const panel = document.getElementById('help-panel');
@@ -2100,6 +2132,17 @@ function triggerScoreStreakColor(streakLevel) {
 
 function startGame() {
     audioSys.init();
+
+    // Always reset story progress when starting Story Mode (shows all chapters fresh)
+    if (G.CampaignState && G.CampaignState.isEnabled()) {
+        G.CampaignState.storyProgress = {
+            PROLOGUE: false,
+            CHAPTER_1: false,
+            CHAPTER_2: false,
+            CHAPTER_3: false
+        };
+    }
+
     setStyle('intro-screen', 'display', 'none'); setStyle('gameover-screen', 'display', 'none'); setStyle('pause-screen', 'display', 'none'); setStyle('pause-btn', 'display', 'block');
     if (ui.uiLayer) ui.uiLayer.style.display = 'flex'; // SHOW HUD
     // Show touch controls with opacity fade-in to avoid visual flash

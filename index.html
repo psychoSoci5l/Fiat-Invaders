@@ -75,8 +75,8 @@
         <!-- HEADER (hidden in splash, visible in selection) -->
         <div class="selection-header" id="selection-header" style="display: none;">CHOOSE YOUR SHIP</div>
 
-        <!-- SHIP AREA (always visible, arrows appear in selection) -->
-        <div class="ship-area">
+        <!-- SHIP AREA (hidden in SPLASH, visible in SELECTION) -->
+        <div class="ship-area hidden">
             <button class="ship-arrow ship-arrow-left" id="arrow-left" onclick="cycleShip(-1)" style="visibility: hidden;">‹</button>
             <div class="ship-preview-center">
                 <canvas id="intro-ship-canvas" width="160" height="180"></canvas>
@@ -100,6 +100,16 @@
                 <button class="mode-pill active" id="mode-pill-story" onclick="setGameMode('campaign')">STORY</button>
                 <button class="mode-pill" id="mode-pill-arcade" onclick="setGameMode('arcade')">ARCADE</button>
             </div>
+        </div>
+
+        <!-- MODE EXPLANATION (visible in SPLASH only) -->
+        <div class="mode-explanation" id="mode-explanation">
+            <p class="mode-desc" id="mode-story-desc" data-i18n="MODE_STORY_DESC">
+                Follow Bitcoin's rise against central banks.
+            </p>
+            <p class="mode-desc" id="mode-arcade-desc" data-i18n="MODE_ARCADE_DESC" style="display: none;">
+                Endless waves. High scores. Pure action.
+            </p>
         </div>
 
         <!-- CURRENT MODE INDICATOR (hidden in splash, visible in selection) -->
@@ -240,12 +250,12 @@
 
     <!-- PAUSE SCREEN -->
     <div id="pause-screen" style="display: none;">
-        <h1 class="neon-title">MARKET HALTED</h1>
-        <button class="btn-coin" onclick="togglePause()">> RESUME</button>
-        <button class="btn-coin" onclick="toggleSettings()">> SETTINGS</button>
-        <button class="btn-coin" onclick="toggleManual()">> MANUAL</button>
-        <button class="btn-coin" onclick="restartRun()">> RESTART RUN</button>
-        <button class="btn-coin" id="btn-exit-title" onclick="backToIntro()" style="background: #e74c3c;">> EXIT</button>
+        <h1 class="neon-title" id="pause-title">PAUSA</h1>
+        <button class="btn-coin" id="btn-resume" onclick="togglePause()">> RIPRENDI</button>
+        <button class="btn-coin" id="btn-settings" onclick="toggleSettings()">> IMPOSTAZIONI</button>
+        <button class="btn-coin" id="btn-manual" onclick="toggleManual()">> MANUALE</button>
+        <button class="btn-coin" id="btn-restart" onclick="restartRun()">> RICOMINCIA</button>
+        <button class="btn-coin" id="btn-exit-title" onclick="backToIntro()" style="background: #e74c3c;">> ESCI</button>
         <div class="menu-row">
             <button class="icon-btn mute-toggle">🔇</button>
         </div>
@@ -284,7 +294,7 @@
             <div id="joystick-base"></div>
             <div id="joystick-stick"></div>
         </div>
-        <button id="pause-btn" onclick="togglePause()">⏸</button>
+        <button id="pause-btn" onclick="togglePause()">II</button>
         <div class="shield-btn-wrapper" id="t-shield">
             <svg class="shield-radial" viewBox="0 0 68 68">
                 <circle class="shield-radial-bg" cx="34" cy="34" r="30" />
@@ -343,8 +353,8 @@
 
             <div class="how-to-play paper-box">
                 <h3>CONTROLLI</h3>
-                <p><span class="icon-tag">⌨️</span> Frecce = Muovi • Spazio = Spara • Giù = Scudo</p>
-                <p><span class="icon-tag">📱</span> Swipe o Joystick = Muovi • Icona = Scudo</p>
+                <p class="desktop-only"><span class="icon-tag">⌨️</span> Frecce = Muovi • Spazio = Spara • Giù = Scudo</p>
+                <p class="mobile-only"><span class="icon-tag">📱</span> Swipe o Joystick = Muovi • Icona = Scudo</p>
             </div>
 
             <button class="btn-cell help-btn" onclick="toggleHelpPanel()">? HELP</button>
@@ -525,7 +535,7 @@
                     </div>
 
                     <div class="manual-section">
-                        <h4>🏆 <span data-i18n="CTRL_FIRE">How to Win</span></h4>
+                        <h4>🏆 How to Win</h4>
                         <p data-i18n="WELCOME_WIN">Achieve the highest score possible! Each completed cycle increases the multiplier.</p>
                     </div>
 
@@ -542,7 +552,7 @@
 
                 <!-- CONTROLS TAB -->
                 <div class="manual-panel" id="tab-controls">
-                    <div class="manual-section">
+                    <div class="manual-section desktop-only">
                         <h4 data-i18n="CONTROLS_PC">Keyboard (PC)</h4>
                         <table class="manual-table">
                             <tr><th data-i18n="CTRL_MOVE">Move</th><td data-i18n="CTRL_ARROWS">A/D or Arrow Keys</td></tr>
@@ -552,7 +562,7 @@
                         </table>
                     </div>
 
-                    <div class="manual-section">
+                    <div class="manual-section mobile-only">
                         <h4 data-i18n="CONTROLS_MOBILE">Touch (Mobile)</h4>
                         <table class="manual-table">
                             <tr><th data-i18n="CTRL_MOVE">Move</th><td data-i18n="CTRL_TAP_SIDES">Tap screen sides or joystick</td></tr>

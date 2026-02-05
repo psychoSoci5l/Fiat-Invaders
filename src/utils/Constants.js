@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v4.8.1 FIAT vs CRYPTO";
+window.Game.VERSION = "v4.9.0 FIAT vs CRYPTO";
 
 window.Game.TEXTS = {
     EN: {
@@ -21,7 +21,11 @@ window.Game.TEXTS = {
         COMBO_LOST: "COMBO LOST", COMBO_BREAK: "COMBO BREAK",
         UPGRADE: "UPGRADE LVL", MAX_POWER: "MAX POWER", HODL: "HODL!",
         SETTINGS: "SETTINGS", CLOSE: "CLOSE", LANG: "LANGUAGE",
-        PAUSED: "PAUSED", RESUME: "RESUME", EXIT_TITLE: "EXIT TO TITLE",
+        PAUSED: "PAUSED", RESUME: "RESUME", EXIT_TITLE: "EXIT TO TITLE", EXIT: "EXIT",
+        RESTART_RUN: "RESTART RUN",
+        // Mode descriptions
+        MODE_STORY_DESC: "Follow Bitcoin's rise against central banks.",
+        MODE_ARCADE_DESC: "Endless waves. High scores. Pure action.",
         // Manual
         MANUAL: "MANUAL", MANUAL_TITLE: "PLAYER MANUAL",
         TAB_WELCOME: "WELCOME", TAB_CONTROLS: "CONTROLS", TAB_POWERUPS: "POWER-UPS",
@@ -140,7 +144,11 @@ window.Game.TEXTS = {
         COMBO_LOST: "COMBO PERSA", COMBO_BREAK: "COMBO ROTTA",
         UPGRADE: "POTENZIAMENTO LV", MAX_POWER: "MASSIMA POTENZA", HODL: "HODL!",
         SETTINGS: "IMPOSTAZIONI", CLOSE: "CHIUDI", LANG: "LINGUA",
-        PAUSED: "PAUSA", RESUME: "RIPRENDI", EXIT_TITLE: "ESCI AL TITOLO",
+        PAUSED: "PAUSA", RESUME: "RIPRENDI", EXIT_TITLE: "ESCI AL TITOLO", EXIT: "ESCI",
+        RESTART_RUN: "RICOMINCIA",
+        // Mode descriptions
+        MODE_STORY_DESC: "Segui l'ascesa di Bitcoin contro le banche centrali.",
+        MODE_ARCADE_DESC: "Ondate infinite. Punteggi alti. Pura azione.",
         // Manual
         MANUAL: "MANUALE", MANUAL_TITLE: "MANUALE GIOCATORE",
         TAB_WELCOME: "BENVENUTO", TAB_CONTROLS: "CONTROLLI", TAB_POWERUPS: "POWER-UP",
