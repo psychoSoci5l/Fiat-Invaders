@@ -1953,11 +1953,28 @@ DIGITAL_THREAT: ['Ⓒ', '$', '元']  // CBDCs + majors
 | `src/utils/Constants.js` | VERSION → v4.1.2 |
 | `sw.js` | SW_VERSION → 4.1.2 |
 
-## Phase 32: Formation System Refinement (NEXT SESSION)
+## Phase 32: Fix v4.2.2 - Formation System Overhaul ✅
+*Goal: Fix currency mixing, asymmetric formations, crash-down, and entry animation issues.*
+- [x] **Row-based currency assignment**: One currency per Y-row, weak→medium→strong ordering
+- [x] **Symmetric thinning**: Row-based widest-first removal + re-centering (replaces broken even-step sampling)
+- [x] **X-clamping**: Scale-to-fit + shift + hard clamp prevents edge crash-down
+- [x] **Grid blocked during entry**: `allSettled` flag prevents formation skew from staggered settling
+- [x] **Entry animation tuning**: ENTRY_SPEED 600, STAGGER_DELAY 0.04, CURVE_INTENSITY 0.15
+- [x] **Wave 1 Horde 2**: PINCER → DIAMOND (consistent tutorial)
+- [x] **Config params**: `FORMATION.ROW_TOLERANCE` (25), `SAFE_EDGE_MARGIN` (30)
+
+| File | Changes |
+|------|---------|
+| `src/config/BalanceConfig.js` | FORMATION params, FORMATION_ENTRY tuning, Wave 1 H2 formation |
+| `src/managers/WaveManager.js` | assignCurrencies(), thinning, X-clamping, debug logging |
+| `src/main.js` | allSettled gate on grid movement + hitEdge |
+| `src/utils/Constants.js` | VERSION → v4.2.2 |
+| `sw.js` | SW_VERSION → 4.2.2 |
+
+## Phase 33: Formation System Visual Audit (NEXT SESSION)
 *Goal: Fine-tuning of enemy formation placement - targeted fixes based on visual testing.*
 - [ ] **Visual audit**: Test each of the 16 formations individually with debug overlay
 - [ ] **Shape-specific tuning**: Adjust spacing/factors per formation as needed
 - [ ] **Edge cases**: Verify formations at all count ranges (8-24) and screen widths
-- [ ] **Thinning algorithm**: Evaluate if even-step sampling creates visible gaps; consider centroid-based removal
 
 ---

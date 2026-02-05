@@ -1,5 +1,39 @@
 # Changelog
 
+## v4.2.2 - 2026-02-05
+### Fix: Formation System Overhaul — Currency Rows, Symmetry, Entry Animation
+
+#### Row-Based Currency Assignment (WaveManager.assignCurrencies)
+- Currencies assigned **per row** (Y-proximity grouping, tolerance 25px), not per index
+- Sorted weak→medium→strong before row assignment
+- Removed 20% random swap that caused visual inconsistency
+
+#### Symmetric Formation Thinning (WaveManager.generateFormation)
+- Replaced even-step index sampling with row-based symmetric thinning
+- Algorithm: find widest row (ties → lowest), pop rightmost, re-center on screen midpoint
+- Example: DIAMOND 12→10 produces [1,2,2,2,2,1] — all rows bilaterally symmetric
+
+#### X-Clamping — Crash-Down Prevention (WaveManager.generateFormation)
+- Formations near screen edges triggered edge detection every frame → ~1200px/sec crash-down
+- **Scale-to-fit** if formation span > safe area, **shift** if offset, **hard clamp** for outliers
+- Safe margin: 30px (configurable `FORMATION.SAFE_EDGE_MARGIN`)
+
+#### Grid Movement Blocked During Entry (main.js updateEnemies)
+- `allSettled` flag: grid movement = 0 until ALL enemies complete entry animation
+- Edge detection gated by `allSettled` — prevents premature drops during staggered entry
+
+#### Entry Animation Tuning (BalanceConfig.js FORMATION_ENTRY)
+- `ENTRY_SPEED`: 600 px/s — fast arrival, formation visible as intended shape
+- `STAGGER_DELAY`: 0.04s — tight stagger, ~50% faster full formation entry
+- `CURVE_INTENSITY`: 0.15 — near-straight paths, no sideways drift
+
+#### Wave Definitions (BalanceConfig.js)
+- Wave 1 Horde 2: PINCER → DIAMOND (consistent tutorial experience)
+
+#### New Config Parameters (BalanceConfig.js FORMATION)
+- `ROW_TOLERANCE`: 25 — Y tolerance for row grouping (currency assignment + thinning)
+- `SAFE_EDGE_MARGIN`: 30 — minimum X margin from screen edge
+
 ## v4.1.2 - 2026-02-05
 ### Fix: Formations, Overlaps & Meme Readability
 

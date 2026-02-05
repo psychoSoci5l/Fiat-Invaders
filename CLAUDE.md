@@ -705,11 +705,11 @@ Master switches for all screen-wide visual effects. Allows easy enable/disable w
 | Parameter | Value | Description |
 |-----------|-------|-------------|
 | `ENABLED` | true | Enable formation entry animation |
-| `ENTRY_SPEED` | 350 | Pixels per second during entry |
-| `STAGGER_DELAY` | 0.08 | Seconds between each enemy starting |
+| `ENTRY_SPEED` | 600 | Pixels per second during entry |
+| `STAGGER_DELAY` | 0.04 | Seconds between each enemy starting |
 | `SPAWN_Y_OFFSET` | -80 | Y position above screen for spawn |
 | `SETTLE_TIME` | 0.3 | Seconds to settle after reaching position |
-| `CURVE_INTENSITY` | 0.4 | How much enemies curve during entry |
+| `CURVE_INTENSITY` | 0.15 | How much enemies curve during entry |
 
 ### Balance.FORMATION
 | Parameter | Value | Description |
@@ -717,6 +717,8 @@ Master switches for all screen-wide visual effects. Allows easy enable/disable w
 | `SPACING` | 85 | Pixels between formation grid points |
 | `START_Y` | 150 | Starting Y position for formations |
 | `MARGIN` | 60 | Screen edge margin for formations |
+| `ROW_TOLERANCE` | 25 | Y tolerance for grouping positions into rows |
+| `SAFE_EDGE_MARGIN` | 30 | Min X margin from screen edge (> 20px edge-detect threshold) |
 
 ### Balance.RANK (Dynamic Difficulty v4.1.0)
 | Parameter | Value | Description |

@@ -723,7 +723,7 @@
                 {
                     cycle: 1, wave: 1, name: 'First Contact',
                     horde1: { count: 12, formation: 'DIAMOND', currencies: ['¥', '₽', '₹'] },
-                    horde2: { count: 10, formation: 'PINCER', currencies: ['¥', '₽', '₹'] }
+                    horde2: { count: 10, formation: 'DIAMOND', currencies: ['¥', '₽', '₹'] }
                 },
                 {
                     cycle: 1, wave: 2, name: 'European Dawn',
@@ -842,17 +842,19 @@
             SPIRAL_ANGLE_STEP: 0.5,   // Radians per enemy in spiral
             SPIRAL_BASE_RADIUS: 30,   // Starting radius for spiral
             SPIRAL_RADIUS_STEP: 16,   // Radius increase per enemy (+33% from 12, prevents spiral overlap)
-            SPIRAL_Y_SQUEEZE: 0.6     // Y axis compression for spiral
+            SPIRAL_Y_SQUEEZE: 0.6,    // Y axis compression for spiral
+            ROW_TOLERANCE: 25,        // Y tolerance for grouping positions into rows (currency assignment)
+            SAFE_EDGE_MARGIN: 30      // Min X margin from screen edge (must be > 20px edge-detect threshold)
         },
 
         // --- ENEMY FORMATION ENTRY ---
         FORMATION_ENTRY: {
             ENABLED: true,                // Enable formation entry animation
-            ENTRY_SPEED: 420,             // Pixels per second during entry (+20% from 350)
-            STAGGER_DELAY: 0.08,          // Seconds between each enemy starting entry
+            ENTRY_SPEED: 600,             // Pixels per second during entry
+            STAGGER_DELAY: 0.04,          // Seconds between each enemy starting entry
             SPAWN_Y_OFFSET: -80,          // Y offset above screen for spawning
             SETTLE_TIME: 0.3,             // Seconds to settle after reaching position
-            CURVE_INTENSITY: 0.4          // How much enemies curve during entry (0-1)
+            CURVE_INTENSITY: 0.15         // How much enemies curve during entry (0-1)
         },
 
         // --- RANK SYSTEM (Dynamic Difficulty v4.1.0) ---

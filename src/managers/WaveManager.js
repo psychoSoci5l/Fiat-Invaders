@@ -262,28 +262,57 @@ window.Game.WaveManager = {
      */
     assignCurrencies(positions, allowedCurrencies, cycle, isBearMarket) {
         const Balance = window.Game.Balance;
-        const assignments = [];
+        const FC = Balance?.FORMATION || {};
+        const rowTolerance = FC.ROW_TOLERANCE || 25;
+        const assignments = new Array(positions.length);
 
-        // If Bear Market forces strong enemies
+        // Bear Market: force strong currencies if none present
         let currencies = [...allowedCurrencies];
         if (isBearMarket && Balance.WAVE_DEFINITIONS.BEAR_MARKET.FORCE_STRONG) {
-            // Ensure at least 30% are strong tier
             const strongSymbols = currencies.filter(c => Balance.TIERS.STRONG.includes(c));
             if (strongSymbols.length === 0) {
                 currencies.push('$', '元');
             }
         }
 
-        // Distribute currencies evenly but with some randomization
-        for (let i = 0; i < positions.length; i++) {
-            const currencyIndex = i % currencies.length;
-            // Add slight randomization (20% chance to pick random)
-            if (Math.random() < 0.2) {
-                assignments.push(currencies[Math.floor(Math.random() * currencies.length)]);
+        // Sort currencies by tier: weak → medium → strong
+        const tierOrder = (sym) => {
+            if (Balance.TIERS.WEAK.includes(sym)) return 0;
+            if (Balance.TIERS.MEDIUM.includes(sym)) return 1;
+            return 2; // STRONG
+        };
+        currencies.sort((a, b) => tierOrder(a) - tierOrder(b));
+
+        // Group position indices into rows by Y-proximity
+        const indexed = positions.map((p, i) => ({ y: p.y, idx: i }));
+        indexed.sort((a, b) => a.y - b.y);
+
+        const rows = []; // each row = array of original indices
+        let currentRowY = indexed[0].y;
+        let currentRow = [indexed[0].idx];
+
+        for (let i = 1; i < indexed.length; i++) {
+            if (Math.abs(indexed[i].y - currentRowY) <= rowTolerance) {
+                currentRow.push(indexed[i].idx);
             } else {
-                assignments.push(currencies[currencyIndex]);
+                rows.push(currentRow);
+                currentRowY = indexed[i].y;
+                currentRow = [indexed[i].idx];
             }
         }
+        rows.push(currentRow);
+
+        // Assign one currency per row, cycling through sorted list
+        for (let r = 0; r < rows.length; r++) {
+            const currency = currencies[r % currencies.length];
+            for (const idx of rows[r]) {
+                assignments[idx] = currency;
+            }
+        }
+
+        const dbg = window.Game.Debug;
+        const rowDetail = rows.map((r, i) => `Y${Math.round(positions[r[0]].y)}:${currencies[i % currencies.length]}×${r.length}`).join(' ');
+        dbg.log('WAVE', `[WM] Currency rows: ${rows.length} rows from ${positions.length} pos → ${rowDetail}`);
 
         return assignments;
     },
@@ -353,19 +382,64 @@ window.Game.WaveManager = {
             default: positions = this.generateRect(count, gameWidth, startY, spacing); break;
         }
 
-        // v4.1.2: Even-distribution thinning - preserves full shape outline
+        // Log raw generator output
+        const dbg = window.Game.Debug;
+        const rawCount = positions.length;
+        const rawMinX = positions.reduce((m, p) => Math.min(m, p.x), Infinity);
+        const rawMaxX = positions.reduce((m, p) => Math.max(m, p.x), -Infinity);
+        dbg.log('WAVE', `[WM] ${formationName}: raw ${rawCount}/${count} pos, X[${Math.round(rawMinX)}..${Math.round(rawMaxX)}] on ${gameWidth}px`);
+
+        // Symmetric row-based thinning — preserves bilateral symmetry
         if (positions.length > count) {
-            const step = positions.length / count;
-            const sampled = [];
-            for (let i = 0; i < count; i++) {
-                sampled.push(positions[Math.floor(i * step)]);
+            const rowTolerance = FC.ROW_TOLERANCE || 25;
+            // Group positions into rows by Y-proximity
+            const sorted = [...positions].sort((a, b) => a.y - b.y);
+            const rows = [];
+            let curRowY = sorted[0].y;
+            let curRow = [sorted[0]];
+            for (let i = 1; i < sorted.length; i++) {
+                if (Math.abs(sorted[i].y - curRowY) <= rowTolerance) {
+                    curRow.push(sorted[i]);
+                } else {
+                    curRow.sort((a, b) => a.x - b.x);
+                    rows.push(curRow);
+                    curRowY = sorted[i].y;
+                    curRow = [sorted[i]];
+                }
             }
-            positions = sampled;
+            curRow.sort((a, b) => a.x - b.x);
+            rows.push(curRow);
+
+            let excess = positions.length - count;
+            const cx = gameWidth / 2;
+            while (excess > 0) {
+                // Find widest row; ties → pick lowest (highest Y index)
+                let maxW = 0, tgtR = -1;
+                for (let r = rows.length - 1; r >= 0; r--) {
+                    if (rows[r].length > maxW) { maxW = rows[r].length; tgtR = r; }
+                }
+                if (tgtR < 0 || rows[tgtR].length <= 1) break;
+                // Remove rightmost, then re-center row around screen center
+                rows[tgtR].pop();
+                excess--;
+                const row = rows[tgtR];
+                if (row.length > 1) {
+                    const shift = cx - (row[0].x + row[row.length - 1].x) / 2;
+                    for (const p of row) p.x += shift;
+                } else {
+                    row[0].x = cx;
+                }
+            }
+            // Rebuild positions from rows
+            positions = [];
+            for (const row of rows) {
+                for (const p of row) positions.push({ x: p.x, y: p.y });
+            }
+            dbg.log('WAVE', `[WM] Symmetric thin: ${formationName} ${rawCount}→${positions.length} (${rows.length} rows)`);
         }
 
-        // v4.1.2: Safety net - fill missing positions with extra rows below
+        // Safety net — fill missing positions with extra rows below
         if (positions.length < count) {
-            const dbg = window.Game.Debug;
             dbg.log('WAVE', `[WM] Safety net: ${formationName} produced ${positions.length}/${count}, filling ${count - positions.length} extra`);
             const maxY = positions.reduce((m, p) => Math.max(m, p.y), startY);
             const margin = FC.MARGIN || 60;
@@ -380,6 +454,45 @@ window.Game.WaveManager = {
                     positions.push({ x: rowStartX + c * spacing, y });
                 }
                 extraRow++;
+            }
+        }
+
+        // X-clamping — prevent crash-down from edge detection
+        const safeMargin = FC.SAFE_EDGE_MARGIN || 30;
+        if (positions.length > 0) {
+            const minX = positions.reduce((m, p) => Math.min(m, p.x), Infinity);
+            const maxX = positions.reduce((m, p) => Math.max(m, p.x), -Infinity);
+            const safeLeft = safeMargin;
+            const safeRight = gameWidth - safeMargin;
+
+            if (minX < safeLeft || maxX > safeRight) {
+                const span = maxX - minX;
+                const availableWidth = safeRight - safeLeft;
+                const centerX = (minX + maxX) / 2;
+
+                if (span > availableWidth) {
+                    // Scale-to-fit: compress horizontally around center
+                    const scale = availableWidth / span;
+                    const newCenter = gameWidth / 2;
+                    for (let i = 0; i < positions.length; i++) {
+                        positions[i].x = newCenter + (positions[i].x - centerX) * scale;
+                    }
+                    dbg.log('WAVE', `[WM] X-clamp: ${formationName} scaled ${(scale * 100).toFixed(0)}% (span ${span.toFixed(0)} > avail ${availableWidth.toFixed(0)})`);
+                } else {
+                    // Shift: formation fits but is offset
+                    let shiftX = 0;
+                    if (minX < safeLeft) shiftX = safeLeft - minX;
+                    else if (maxX > safeRight) shiftX = safeRight - maxX;
+                    for (let i = 0; i < positions.length; i++) {
+                        positions[i].x += shiftX;
+                    }
+                }
+
+                // Hard clamp: safety net for any remaining outliers (SCATTER jitter)
+                for (let i = 0; i < positions.length; i++) {
+                    if (positions[i].x < safeLeft) positions[i].x = safeLeft;
+                    if (positions[i].x > safeRight) positions[i].x = safeRight;
+                }
             }
         }
 

@@ -3596,7 +3596,9 @@ function updateEnemies(dt) {
         G.HarmonicConductor.update(dt);
     }
 
-    // HarmonicConductor is now the SOLE firing authority (Fibonacci removed in v2.13.0)
+    // Block grid movement until ALL enemies have completed entry animation
+    const allSettled = enemies.length > 0 && !enemies.some(e => e && !e.hasSettled);
+    const effectiveGridDir = allSettled ? gridDir : 0;
 
     // Cache player hitbox size once (avoid repeated property access per enemy)
     const hitR = (player.stats.hitboxSize || 30) + 15;
@@ -3606,8 +3608,9 @@ function updateEnemies(dt) {
     for (let i = 0; i < enemies.length; i++) {
         const e = enemies[i];
         if (!e) continue; // Safety check
-        e.update(dt, totalTime, lastWavePattern, currentGridSpeed, gridDir, playerX, playerY);
-        if ((gridDir === 1 && e.x > gameWidth - 20) || (gridDir === -1 && e.x < 20)) hitEdge = true;
+        e.update(dt, totalTime, lastWavePattern, currentGridSpeed, effectiveGridDir, playerX, playerY);
+        // Only check edges when formation is complete (all settled)
+        if (allSettled && ((gridDir === 1 && e.x > gameWidth - 20) || (gridDir === -1 && e.x < 20))) hitEdge = true;
 
         // Kamikaze trigger - weak tier enemies occasionally dive at player
         if (e.isKamikaze && !e.kamikazeDiving && e.y > 250 && Math.random() < 0.0005) {
@@ -3631,7 +3634,7 @@ function updateEnemies(dt) {
     }
 
     // Bear Market: enemies drop faster (Panic Selling)
-    // Note: This runs only when hitEdge is true, so separate loop is acceptable
+    // Note: hitEdge only triggers when allSettled=true, so all enemies are settled here
     if (hitEdge) {
         gridDir *= -1;
         const dropAmount = isBearMarket ? 35 : 20;
