@@ -39,39 +39,22 @@
         <canvas id="gameCanvas"></canvas>
 
         <div id="ui-layer">
-        <!-- TOP BAR: Lives/Health | SCORE | Level/Shield -->
+        <!-- TOP BAR v4.4: Compact single-row HUD -->
         <div class="hud-top-bar">
-            <div class="hud-stat left">
-                <span class="label">LIVES</span>
-                <span id="livesText" class="value">3</span>
-                <div class="bar-container health-container">
-                    <div id="healthBar"></div>
-                </div>
+            <div class="hud-lives">
+                <span class="hud-heart">&#9829;</span><span id="livesText">3</span>
             </div>
 
-            <div class="hud-score terminal-score">
-                <span class="label">ACCOUNT BALANCE</span>
-                <span id="scoreVal" class="value">0</span>
-                <div id="score-ticker"></div>
-                <div id="meme-ticker"></div>
+            <div class="hud-score-compact">
+                <span id="scoreVal" class="hud-score-value">0</span>
             </div>
 
-            <div class="hud-stat right">
-                <span class="label">LEVEL</span>
-                <span id="lvlVal" class="value">1</span>
-                <div class="bar-container shield-container">
-                    <div id="shieldBar"></div>
-                </div>
+            <div class="hud-level">
+                <span id="lvlVal">1</span>
             </div>
         </div>
 
-        <div id="perk-bar"></div>
-        <div id="kill-counter">
-            <span id="killNum">0</span>
-            <span id="killLabel">KILLS</span>
-        </div>
-
-        <!-- Graze Meter (Ikeda Rule 3) -->
+        <!-- Graze Meter -->
         <div id="graze-meter">
             <div id="graze-fill"></div>
             <span id="graze-label">GRAZE</span>
@@ -80,51 +63,97 @@
     </div>
 
     <div id="intro-screen" style="display: none;">
-        <!-- Clean Modern Start Screen -->
-        <div class="start-header">
-            <h1 class="game-title">
-                <span class="title-fiat">FIAT</span>
-                <span class="title-vs">vs</span>
-                <span class="title-crypto">CRYPTO</span>
-            </h1>
-            <div class="title-tagline">DEFEND THE BLOCKCHAIN</div>
+        <!-- UNIFIED INTRO v4.8 - Redesigned with mode selector -->
+
+        <!-- TITLE (visible in splash, hidden in selection) -->
+        <h1 class="game-title intro-title" id="intro-title">
+            <span class="title-fiat">FIAT</span>
+            <span class="title-vs">vs</span>
+            <span class="title-crypto">CRYPTO</span>
+        </h1>
+
+        <!-- HEADER (hidden in splash, visible in selection) -->
+        <div class="selection-header" id="selection-header" style="display: none;">CHOOSE YOUR SHIP</div>
+
+        <!-- SHIP AREA (hidden in SPLASH, visible in SELECTION) -->
+        <div class="ship-area hidden">
+            <button class="ship-arrow ship-arrow-left" id="arrow-left" onclick="cycleShip(-1)" style="visibility: hidden;">‹</button>
+            <div class="ship-preview-center">
+                <canvas id="intro-ship-canvas" width="160" height="180"></canvas>
+            </div>
+            <button class="ship-arrow ship-arrow-right" id="arrow-right" onclick="cycleShip(1)" style="visibility: hidden;">›</button>
         </div>
 
-        <!-- Quick Settings Row -->
-        <div class="quick-settings-row">
+        <!-- SHIP INFO (hidden in splash, visible in selection) -->
+        <div class="selection-info" id="selection-info" style="display: none;">
+            <div id="ship-name" class="ship-name-large">BTC STRIKER</div>
+            <div id="ship-stats" class="ship-stats-large">
+                <span class="stat-item">SPD █████░░░</span>
+                <span class="stat-item">PWR ██████░░</span>
+                <span class="stat-item">HIT ███░░░░░</span>
+            </div>
+        </div>
+
+        <!-- MODE SELECTOR (visible in splash, hidden in selection) - v4.8.1 minimal style -->
+        <div class="mode-selector" id="mode-selector">
+            <div class="mode-pills">
+                <button class="mode-pill active" id="mode-pill-story" onclick="setGameMode('campaign')">STORY</button>
+                <button class="mode-pill" id="mode-pill-arcade" onclick="setGameMode('arcade')">ARCADE</button>
+            </div>
+        </div>
+
+        <!-- MODE EXPLANATION (visible in SPLASH only) -->
+        <div class="mode-explanation" id="mode-explanation">
+            <p class="mode-desc" id="mode-story-desc" data-i18n="MODE_STORY_DESC">
+                Follow Bitcoin's rise against central banks.
+            </p>
+            <p class="mode-desc" id="mode-arcade-desc" data-i18n="MODE_ARCADE_DESC" style="display: none;">
+                Endless waves. High scores. Pure action.
+            </p>
+        </div>
+
+        <!-- CURRENT MODE INDICATOR (hidden in splash, visible in selection) -->
+        <div class="current-mode-indicator" id="current-mode-indicator" style="display: none;" onclick="goBackToModeSelect()">
+            <span class="mode-indicator-text" id="mode-indicator-text">STORY MODE</span>
+            <span class="mode-indicator-hint" id="mode-indicator-hint">tap to change</span>
+        </div>
+
+        <!-- HIGH SCORE ROW (visible in selection only) -->
+        <div class="selection-score-row" id="selection-score-row" style="display: none;">
+            <span class="score-row-label" id="score-row-label">HIGH SCORE</span>
+            <span class="score-row-value" id="badge-score-value">0</span>
+        </div>
+
+        <!-- PRIMARY ACTION BUTTON (fixed position for double-tap) -->
+        <div class="primary-action-container">
+            <button class="btn-primary-action" id="btn-primary-action" onclick="handlePrimaryAction()">
+                TAP TO START
+            </button>
+        </div>
+
+        <!-- PWA Install Banner -->
+        <div id="pwa-install-banner" style="display: none;">
+            <div class="pwa-banner-content">
+                <span id="pwa-banner-text"></span>
+                <button id="pwa-banner-action" class="pwa-banner-btn"></button>
+                <button id="pwa-banner-close" class="pwa-banner-close">&times;</button>
+            </div>
+        </div>
+
+        <!-- BOTTOM ICONS (always visible) -->
+        <div class="intro-icons">
             <button class="icon-btn-cell mute-toggle" id="intro-mute">
                 <svg viewBox="0 0 24 24" class="icon-svg"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
             </button>
             <button class="icon-btn-cell" onclick="toggleSettings()" id="intro-settings">
                 <svg viewBox="0 0 24 24" class="icon-svg"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
             </button>
-        </div>
-
-        <div class="start-ship">
-            <button class="ship-arrow ship-arrow-left" onclick="cycleShip(-1)">‹</button>
-            <div class="ship-preview">
-                <canvas id="intro-ship-canvas" width="200" height="200"></canvas>
-                <div id="ship-name" class="ship-name">BTC STRIKER</div>
-                <div id="ship-stats" class="ship-stats">
-                    <span class="stat-item">SPD █████░░░</span>
-                    <span class="stat-item">PWR ██████░░</span>
-                    <span class="stat-item">HP ❤️❤️❤️</span>
-                </div>
-            </div>
-            <button class="ship-arrow ship-arrow-right" onclick="cycleShip(1)">›</button>
-        </div>
-
-        <div class="start-score">
-            <span class="score-label">HIGH SCORE</span>
-            <span id="highScoreVal" class="score-value">0</span>
-        </div>
-
-        <div class="start-actions">
-            <button class="btn-play" onclick="launchShipAndStart()">
-                DESTROY THE SYSTEM
-                <span id="version-tag" class="version-text"></span>
+            <button class="icon-btn-cell" onclick="toggleManual()" id="intro-manual">
+                <svg viewBox="0 0 24 24" class="icon-svg"><path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/></svg>
             </button>
         </div>
+
+        <div class="intro-version" id="version-tag"></div>
     </div>
 
     <!-- HANGAR SCREEN -->
@@ -153,8 +182,8 @@
                         <span class="stat-value" style="color:#F7931A">●●●○○</span>
                     </div>
                     <div class="stat-row">
-                        <span class="stat-icon">❤️</span>
-                        <span class="stat-name">Health</span>
+                        <span class="stat-icon">⭕</span>
+                        <span class="stat-name">Hitbox</span>
                         <span class="stat-value" style="color:#F7931A">●●●○○</span>
                     </div>
                 </div>
@@ -181,9 +210,9 @@
                         <span class="stat-value" style="color:#8c7ae6">●○○○○</span>
                     </div>
                     <div class="stat-row">
-                        <span class="stat-icon">❤️</span>
-                        <span class="stat-name">Health</span>
-                        <span class="stat-value" style="color:#8c7ae6">●●●●○</span>
+                        <span class="stat-icon">⭕</span>
+                        <span class="stat-name">Hitbox</span>
+                        <span class="stat-value" style="color:#8c7ae6">●●○○○</span>
                     </div>
                 </div>
             </div>
@@ -209,9 +238,9 @@
                         <span class="stat-value" style="color:#00d2d3">●●●●●</span>
                     </div>
                     <div class="stat-row">
-                        <span class="stat-icon">❤️</span>
-                        <span class="stat-name">Health</span>
-                        <span class="stat-value" style="color:#00d2d3">●●○○○</span>
+                        <span class="stat-icon">⭕</span>
+                        <span class="stat-name">Hitbox</span>
+                        <span class="stat-value" style="color:#00d2d3">●●●●●</span>
                     </div>
                 </div>
             </div>
@@ -221,11 +250,12 @@
 
     <!-- PAUSE SCREEN -->
     <div id="pause-screen" style="display: none;">
-        <h1 class="neon-title">MARKET HALTED</h1>
-        <button class="btn-coin" onclick="togglePause()">> RESUME</button>
-        <button class="btn-coin" onclick="toggleSettings()">> SETTINGS</button>
-        <button class="btn-coin" onclick="restartRun()">> RESTART RUN</button>
-        <button class="btn-coin" onclick="backToIntro()" style="background: #e74c3c;">> EXIT</button>
+        <h1 class="neon-title" id="pause-title">PAUSA</h1>
+        <button class="btn-coin" id="btn-resume" onclick="togglePause()">> RIPRENDI</button>
+        <button class="btn-coin" id="btn-settings" onclick="toggleSettings()">> IMPOSTAZIONI</button>
+        <button class="btn-coin" id="btn-manual" onclick="toggleManual()">> MANUALE</button>
+        <button class="btn-coin" id="btn-restart" onclick="restartRun()">> RICOMINCIA</button>
+        <button class="btn-coin" id="btn-exit-title" onclick="backToIntro()" style="background: #e74c3c;">> ESCI</button>
         <div class="menu-row">
             <button class="icon-btn mute-toggle">🔇</button>
         </div>
@@ -264,12 +294,29 @@
             <div id="joystick-base"></div>
             <div id="joystick-stick"></div>
         </div>
-        <button id="pause-btn" onclick="togglePause()">⏸</button>
-        <div class="touch-shield-btn" id="t-shield">🛡️</div>
+        <button id="pause-btn" onclick="togglePause()">II</button>
+        <div class="shield-btn-wrapper" id="t-shield">
+            <svg class="shield-radial" viewBox="0 0 68 68">
+                <circle class="shield-radial-bg" cx="34" cy="34" r="30" />
+                <circle class="shield-radial-progress" cx="34" cy="34" r="30" />
+            </svg>
+            <div class="shield-btn-face">
+                <span class="shield-icon">🛡️</span>
+            </div>
+        </div>
+        <!-- v4.0.4: HYPER mode touch button (gold, right side) -->
+        <div class="hyper-btn-wrapper" id="t-hyper">
+            <svg class="hyper-radial" viewBox="0 0 68 68">
+                <circle class="hyper-radial-bg" cx="34" cy="34" r="30" />
+                <circle class="hyper-radial-progress" cx="34" cy="34" r="30" />
+            </svg>
+            <div class="hyper-btn-face">
+                <span class="hyper-icon">⚡</span>
+            </div>
+        </div>
     </div>
 
         <div id="control-toast">CONTROLS: SWIPE</div>
-        <div id="meme-popup"></div>
     </div><!-- /game-container -->
 
     <!-- SETTINGS MODAL - Outside game-container for proper stacking -->
@@ -306,12 +353,25 @@
 
             <div class="how-to-play paper-box">
                 <h3>CONTROLLI</h3>
-                <p><span class="icon-tag">⌨️</span> Frecce = Muovi • Spazio = Spara • Giù = Scudo</p>
-                <p><span class="icon-tag">📱</span> Swipe o Joystick = Muovi • Icona = Scudo</p>
+                <p class="desktop-only"><span class="icon-tag">⌨️</span> Frecce = Muovi • Spazio = Spara • Giù = Scudo</p>
+                <p class="mobile-only"><span class="icon-tag">📱</span> Swipe o Joystick = Muovi • Icona = Scudo</p>
             </div>
 
             <button class="btn-cell help-btn" onclick="toggleHelpPanel()">? HELP</button>
+            <button class="btn-cell credits-btn" onclick="toggleCreditsPanel()">CREDITS</button>
             <button class="btn-cell" onclick="toggleSettings()">CHIUDI</button>
+        </div>
+    </div>
+
+    <!-- CREDITS PANEL -->
+    <div id="credits-panel" style="display: none;">
+        <div class="modal-content paper-modal credits-modal">
+            <h2 class="modal-title">CREDITS</h2>
+            <div class="credits-content">
+                <p class="credits-author">psychoSocial</p>
+                <a href="https://www.psychosoci5l.com/" target="_blank" rel="noopener noreferrer" class="credits-link">www.psychosoci5l.com</a>
+            </div>
+            <button class="btn-cell" onclick="toggleCreditsPanel()">CHIUDI</button>
         </div>
     </div>
 
@@ -364,6 +424,24 @@
             </div>
 
             <div class="help-section">
+                <h3>💀 SURVIVAL</h3>
+                <div class="help-item">
+                    <span class="help-icon">❤️</span>
+                    <div class="help-text">
+                        <strong>1 Hit = 1 Life</strong>
+                        <p>Un colpo = una vita persa! Hai solo 3 vite totali. Usa lo SCUDO!</p>
+                    </div>
+                </div>
+                <div class="help-item">
+                    <span class="help-icon">💥</span>
+                    <div class="help-text">
+                        <strong>Bullet Time</strong>
+                        <p>Quando vieni colpito, tutti i proiettili esplodono e il tempo rallenta per 2 secondi.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="help-section">
                 <h3>🎯 HITBOX</h3>
                 <div class="help-item">
                     <span class="help-icon">⭕</span>
@@ -407,17 +485,264 @@
         </div>
     </div>
 
+    <!-- MANUAL MODAL - Full player manual with tabs -->
+    <div id="manual-modal" style="display: none;">
+        <div class="manual-container">
+            <h2 class="manual-title" data-i18n="MANUAL_TITLE">PLAYER MANUAL</h2>
+
+            <div class="manual-tabs">
+                <button class="manual-tab active" data-tab="welcome" onclick="selectManualTab('welcome')">
+                    <span class="tab-icon">🎮</span>
+                    <span class="tab-label" data-i18n="TAB_WELCOME">WELCOME</span>
+                </button>
+                <button class="manual-tab" data-tab="controls" onclick="selectManualTab('controls')">
+                    <span class="tab-icon">⌨️</span>
+                    <span class="tab-label" data-i18n="TAB_CONTROLS">CONTROLS</span>
+                </button>
+                <button class="manual-tab" data-tab="powerups" onclick="selectManualTab('powerups')">
+                    <span class="tab-icon">⚡</span>
+                    <span class="tab-label" data-i18n="TAB_POWERUPS">POWER-UPS</span>
+                </button>
+                <button class="manual-tab" data-tab="enemies" onclick="selectManualTab('enemies')">
+                    <span class="tab-icon">💰</span>
+                    <span class="tab-label" data-i18n="TAB_ENEMIES">ENEMIES</span>
+                </button>
+                <button class="manual-tab" data-tab="bosses" onclick="selectManualTab('bosses')">
+                    <span class="tab-icon">🏛️</span>
+                    <span class="tab-label" data-i18n="TAB_BOSSES">BOSSES</span>
+                </button>
+                <button class="manual-tab" data-tab="tips" onclick="selectManualTab('tips')">
+                    <span class="tab-icon">💎</span>
+                    <span class="tab-label" data-i18n="TAB_TIPS">PRO TIPS</span>
+                </button>
+            </div>
+
+            <div class="manual-content">
+                <!-- WELCOME TAB -->
+                <div class="manual-panel active" id="tab-welcome">
+                    <h3 class="panel-title" data-i18n="WELCOME_TITLE">Welcome, Crypto Warrior!</h3>
+                    <p class="panel-intro" data-i18n="WELCOME_INTRO">FIAT money is attacking! Centralized currencies have declared war on financial freedom.</p>
+
+                    <div class="manual-section">
+                        <h4 data-i18n="WELCOME_LOOP_TITLE">The Game Loop</h4>
+                        <ol class="manual-list">
+                            <li data-i18n="WELCOME_LOOP_1">Destroy enemies - Waves of fiat currencies descend</li>
+                            <li data-i18n="WELCOME_LOOP_2">Collect power-ups - Upgrade weapons and ship</li>
+                            <li data-i18n="WELCOME_LOOP_3">Survive 5 waves - Each level has 5 waves</li>
+                            <li data-i18n="WELCOME_LOOP_4">Defeat the Boss - The Central Bank awaits!</li>
+                            <li data-i18n="WELCOME_LOOP_5">New cycle - Difficulty increases, better rewards</li>
+                        </ol>
+                    </div>
+
+                    <div class="manual-section">
+                        <h4>🏆 How to Win</h4>
+                        <p data-i18n="WELCOME_WIN">Achieve the highest score possible! Each completed cycle increases the multiplier.</p>
+                    </div>
+
+                    <div class="manual-section">
+                        <h4>💀 Game Over</h4>
+                        <p data-i18n="WELCOME_LOSE">One hit = one life lost! You have 3 lives total. When hit, all bullets explode and time slows down. BUY THE DIP and try again!</p>
+                    </div>
+
+                    <div class="manual-section bear-section">
+                        <h4>🐻 Bear Market</h4>
+                        <p data-i18n="WELCOME_BEAR">Want a challenge? Activate Bear Market for increased difficulty and double scores!</p>
+                    </div>
+                </div>
+
+                <!-- CONTROLS TAB -->
+                <div class="manual-panel" id="tab-controls">
+                    <div class="manual-section desktop-only">
+                        <h4 data-i18n="CONTROLS_PC">Keyboard (PC)</h4>
+                        <table class="manual-table">
+                            <tr><th data-i18n="CTRL_MOVE">Move</th><td data-i18n="CTRL_ARROWS">A/D or Arrow Keys</td></tr>
+                            <tr><th data-i18n="CTRL_FIRE">Fire</th><td data-i18n="CTRL_SPACE">Space or Up Arrow</td></tr>
+                            <tr><th data-i18n="CTRL_SHIELD">Shield</th><td data-i18n="CTRL_DOWN">S or Down Arrow</td></tr>
+                            <tr><th data-i18n="CTRL_PAUSE">Pause</th><td data-i18n="CTRL_ESC">ESC</td></tr>
+                        </table>
+                    </div>
+
+                    <div class="manual-section mobile-only">
+                        <h4 data-i18n="CONTROLS_MOBILE">Touch (Mobile)</h4>
+                        <table class="manual-table">
+                            <tr><th data-i18n="CTRL_MOVE">Move</th><td data-i18n="CTRL_TAP_SIDES">Tap screen sides or joystick</td></tr>
+                            <tr><th data-i18n="CTRL_FIRE">Fire</th><td data-i18n="CTRL_AUTO">Automatic while touching</td></tr>
+                            <tr><th data-i18n="CTRL_SHIELD">Shield</th><td data-i18n="CTRL_TAP_ICON">Tap shield icon</td></tr>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- POWER-UPS TAB - Weapon Evolution System v3.0 -->
+                <div class="manual-panel" id="tab-powerups">
+                    <!-- UPGRADE (Permanent) -->
+                    <div class="manual-section">
+                        <h4 data-i18n="POWERUPS_UPGRADE">Weapon Upgrade</h4>
+                        <p class="section-note" data-i18n="POWERUPS_UPGRADE_NOTE">Permanent! Evolves shots: 1→2→3 bullets. Death: -1 level</p>
+                        <table class="manual-table powerup-table">
+                            <tr><td class="pu-icon">⬆️</td><td class="pu-name">UPGRADE</td><td data-i18n="PU_UPGRADE">⬆️ UPGRADE - Permanent shot level +1</td></tr>
+                        </table>
+                    </div>
+
+                    <!-- MODIFIERS (Stackable + Temporary) -->
+                    <div class="manual-section">
+                        <h4 data-i18n="POWERUPS_MODIFIERS">Modifiers</h4>
+                        <p class="section-note" data-i18n="POWERUPS_MODIFIERS_NOTE">Stackable + temporary (12s). Same pickup = +1 level &amp; refresh timer</p>
+                        <table class="manual-table powerup-table">
+                            <tr><td class="pu-icon">⚡</td><td class="pu-name">RATE</td><td data-i18n="PU_RATE">⚡ RATE - Fire rate -15%/-30%/-45%</td></tr>
+                            <tr><td class="pu-icon">💥</td><td class="pu-name">POWER</td><td data-i18n="PU_POWER">💥 POWER - Damage +25%/+50%/+75%</td></tr>
+                            <tr><td class="pu-icon">🔱</td><td class="pu-name">SPREAD</td><td data-i18n="PU_SPREAD">🔱 SPREAD - Shot angle +12°/+24°</td></tr>
+                        </table>
+                    </div>
+
+                    <!-- SPECIALS (Exclusive + Temporary) -->
+                    <div class="manual-section">
+                        <h4 data-i18n="POWERUPS_SPECIALS">Specials</h4>
+                        <p class="section-note" data-i18n="POWERUPS_SPECIALS_NOTE">Exclusive + temporary (12s). New special replaces current</p>
+                        <table class="manual-table powerup-table">
+                            <tr><td class="pu-icon">🎯</td><td class="pu-name">HOMING</td><td data-i18n="PU_HOMING">🎯 HOMING - Bullets track enemies</td></tr>
+                            <tr><td class="pu-icon">🔥</td><td class="pu-name">PIERCE</td><td data-i18n="PU_PIERCE">🔥 PIERCE - Bullets penetrate</td></tr>
+                            <tr><td class="pu-icon">⚡</td><td class="pu-name">LASER</td><td data-i18n="PU_LASER">⚡ LASER - Continuous beam</td></tr>
+                            <tr><td class="pu-icon">🚀</td><td class="pu-name">MISSILE</td><td data-i18n="PU_MISSILE">🚀 MISSILE - AoE explosions</td></tr>
+                            <tr><td class="pu-icon">🛡️</td><td class="pu-name">SHIELD</td><td data-i18n="PU_SHIELD">🛡️ SHIELD - Instant activation</td></tr>
+                            <tr><td class="pu-icon">💨</td><td class="pu-name">SPEED</td><td data-i18n="PU_SPEED">💨 SPEED - Movement +50%</td></tr>
+                        </table>
+                    </div>
+
+                    <!-- Death Penalty -->
+                    <div class="manual-section death-penalty">
+                        <p class="section-note warning" data-i18n="POWERUPS_DEATH">On Death: -1 level per category (min 0), specials lost</p>
+                    </div>
+                </div>
+
+                <!-- ENEMIES TAB -->
+                <div class="manual-panel" id="tab-enemies">
+                    <div class="manual-section">
+                        <h4 class="tier-weak" data-i18n="ENEMIES_WEAK">Weak Tier</h4>
+                        <table class="manual-table enemy-table">
+                            <tr><td class="enemy-symbol">¥</td><td data-i18n="ENEMY_YEN">Yen</td><td data-i18n="SHAPE_COIN">Coin</td></tr>
+                            <tr><td class="enemy-symbol">₽</td><td data-i18n="ENEMY_RUBLE">Ruble</td><td data-i18n="SHAPE_BILL">Bill</td></tr>
+                            <tr><td class="enemy-symbol">₹</td><td data-i18n="ENEMY_RUPEE">Rupee</td><td data-i18n="SHAPE_COIN">Coin</td></tr>
+                        </table>
+                    </div>
+
+                    <div class="manual-section">
+                        <h4 class="tier-medium" data-i18n="ENEMIES_MEDIUM">Medium Tier</h4>
+                        <table class="manual-table enemy-table">
+                            <tr><td class="enemy-symbol">€</td><td data-i18n="ENEMY_EURO">Euro</td><td data-i18n="SHAPE_BILL">Bill</td></tr>
+                            <tr><td class="enemy-symbol">£</td><td data-i18n="ENEMY_POUND">Pound</td><td data-i18n="SHAPE_COIN">Coin</td></tr>
+                            <tr><td class="enemy-symbol">₣</td><td data-i18n="ENEMY_FRANC">Franc</td><td data-i18n="SHAPE_BAR">Gold Bar</td></tr>
+                            <tr><td class="enemy-symbol">₺</td><td data-i18n="ENEMY_LIRA">Turkish Lira</td><td data-i18n="SHAPE_BILL">Bill</td></tr>
+                        </table>
+                    </div>
+
+                    <div class="manual-section">
+                        <h4 class="tier-strong" data-i18n="ENEMIES_STRONG">Strong Tier (Dangerous!)</h4>
+                        <table class="manual-table enemy-table">
+                            <tr><td class="enemy-symbol">$</td><td data-i18n="ENEMY_DOLLAR">Dollar</td><td data-i18n="SHAPE_BILL">Bill</td></tr>
+                            <tr><td class="enemy-symbol">元</td><td data-i18n="ENEMY_YUAN">Yuan</td><td data-i18n="SHAPE_BAR">Gold Bar</td></tr>
+                            <tr><td class="enemy-symbol">Ⓒ</td><td data-i18n="ENEMY_CBDC">CBDC</td><td data-i18n="SHAPE_CARD">Credit Card</td></tr>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- BOSSES TAB -->
+                <div class="manual-panel" id="tab-bosses">
+                    <p class="panel-intro" data-i18n="BOSSES_INTRO">Every 5 levels you face a boss. Rotation: FED > ECB > BOJ</p>
+
+                    <div class="boss-cards">
+                        <div class="boss-card fed">
+                            <div class="boss-symbol">$</div>
+                            <div class="boss-name" data-i18n="BOSS_FED">THE FED</div>
+                            <div class="boss-style" data-i18n="BOSS_FED_STYLE">Aggressive, rapid attacks</div>
+                        </div>
+                        <div class="boss-card bce">
+                            <div class="boss-symbol">€</div>
+                            <div class="boss-name" data-i18n="BOSS_BCE">ECB</div>
+                            <div class="boss-style" data-i18n="BOSS_BCE_STYLE">Bureaucratic, bullet walls</div>
+                        </div>
+                        <div class="boss-card boj">
+                            <div class="boss-symbol">¥</div>
+                            <div class="boss-name" data-i18n="BOSS_BOJ">BOJ</div>
+                            <div class="boss-style" data-i18n="BOSS_BOJ_STYLE">Zen, lethal precision</div>
+                        </div>
+                    </div>
+
+                    <div class="manual-section">
+                        <h4 data-i18n="BOSS_PHASES">3 Phases per Boss:</h4>
+                        <ul class="phase-list">
+                            <li class="phase-1" data-i18n="BOSS_PHASE1">Phase 1 (100%-66% HP): Slow, simple patterns</li>
+                            <li class="phase-2" data-i18n="BOSS_PHASE2">Phase 2 (66%-33% HP): Fast, complex patterns</li>
+                            <li class="phase-3" data-i18n="BOSS_PHASE3">Phase 3 (33%-0% HP): Erratic, spawns minions!</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- PRO TIPS TAB -->
+                <div class="manual-panel" id="tab-tips">
+                    <div class="tip-card hodl">
+                        <h4>💎 <span data-i18n="TIP_HODL_TITLE">HODL MODE - The Champion's Secret</span></h4>
+                        <p data-i18n="TIP_HODL_1">Stop moving and your ship enters HODL mode:</p>
+                        <ul>
+                            <li data-i18n="TIP_HODL_2">2x damage against all enemies</li>
+                            <li data-i18n="TIP_HODL_3">Golden aura visible around ship</li>
+                        </ul>
+                        <p class="tip-highlight" data-i18n="TIP_HODL_4">Use HODL when enemies are lined up above you!</p>
+                    </div>
+
+                    <div class="tip-card graze">
+                        <h4>🔥 <span data-i18n="TIP_GRAZE_TITLE">GRAZE - Dance with Danger</span></h4>
+                        <p data-i18n="TIP_GRAZE_1">Pass close to enemy bullets without getting hit:</p>
+                        <ul>
+                            <li data-i18n="TIP_GRAZE_2">Build up the Graze Meter (bottom bar)</li>
+                            <li data-i18n="TIP_GRAZE_3">Higher meter = higher score multiplier</li>
+                        </ul>
+                        <p class="tip-highlight" data-i18n="TIP_GRAZE_4">Full meter = up to 2.5x points!</p>
+                    </div>
+
+                    <div class="tip-card shield">
+                        <h4>🛡️ <span data-i18n="TIP_SHIELD_TITLE">Tactical Shield</span></h4>
+                        <p data-i18n="TIP_SHIELD_1">Shield has a 10-second cooldown. Use it to:</p>
+                        <ul>
+                            <li data-i18n="TIP_SHIELD_2">Pass through bullet walls</li>
+                            <li data-i18n="TIP_SHIELD_3">Survive Boss Phase 3 attacks</li>
+                            <li data-i18n="TIP_SHIELD_4">Emergency escape when grazing goes wrong</li>
+                        </ul>
+                    </div>
+
+                    <div class="tip-card boss-tip">
+                        <h4>⚡ <span data-i18n="TIP_BOSS_TITLE">Boss Power-Ups</span></h4>
+                        <p data-i18n="TIP_BOSS_1">During boss fights, every 25 hits drops a power-up. Keep shooting!</p>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-cell manual-close" onclick="toggleManual()" data-i18n="CLOSE">CLOSE</button>
+        </div>
+    </div>
+
     <!-- Ordered Scripts for file:// compatibility (Namespace Pattern) -->
     <script src="src/utils/Constants.js"></script>
+    <script src="src/utils/DebugSystem.js"></script>
+    <script src="src/utils/ColorUtils.js"></script>
+    <script src="src/utils/MathUtils.js"></script>
+    <script src="src/config/BalanceConfig.js"></script>
     <script src="src/systems/BulletPatterns.js"></script>
+    <script src="src/systems/DropSystem.js"></script>
+    <script src="src/systems/MemeEngine.js"></script>
     <script src="src/core/EventBus.js"></script>
     <script src="src/systems/HarmonicSequences.js"></script>
     <script src="src/systems/HarmonicConductor.js"></script>
     <script src="src/utils/RunState.js"></script>
+    <script src="src/systems/RankSystem.js"></script>
     <script src="src/utils/Upgrades.js"></script>
     <script src="src/core/AudioSystem.js"></script>
     <script src="src/core/InputSystem.js"></script>
     <script src="src/core/ObjectPool.js"></script>
+    <script src="src/systems/ParticleSystem.js"></script>
+    <script src="src/systems/EffectsRenderer.js"></script>
+    <script src="src/systems/SkyRenderer.js"></script>
+    <script src="src/systems/TransitionManager.js"></script>
+    <script src="src/systems/MessageSystem.js"></script>
     <script src="src/entities/Entity.js"></script>
     <script src="src/entities/Bullet.js"></script>
     <script src="src/entities/Player.js"></script>
@@ -425,7 +750,10 @@
     <script src="src/entities/Boss.js"></script>
     <script src="src/entities/PowerUp.js"></script>
     <script src="src/managers/WaveManager.js"></script>
+    <script src="src/managers/CampaignState.js"></script>
     <!-- Story System -->
+    <script src="src/story/StoryScreenData.js"></script>
+    <script src="src/story/StoryScreen.js"></script>
     <script src="src/story/DialogueData.js"></script>
     <script src="src/story/StoryManager.js"></script>
     <script src="src/story/DialogueUI.js"></script>

@@ -1,7 +1,8 @@
 // Game Constants & Configuration (Namespace Pattern)
 window.Game = window.Game || {};
 
-window.Game.VERSION = "v2.7.0 FIAT vs CRYPTO";
+// ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
+window.Game.VERSION = "v4.11.0 FIAT vs CRYPTO";
 
 window.Game.TEXTS = {
     EN: {
@@ -11,12 +12,129 @@ window.Game.TEXTS = {
         MOBILE_HINT: "📱 TOUCH SIDES to Move • ICON for Shield",
         PRO_TIP: "💎 PRO TIP: STOP MOVING TO HODL (2x SCORE)",
         WAVE1: "WAVE 1: ACCUMULATION", WAVE2: "WAVE 2: BULL RUN", WAVE3: "WAVE 3: VOLATILITY",
+        WAVE4: "WAVE 4: CORRECTION", WAVE5: "WAVE 5: CLIMAX",
+        CYCLE: "CYCLE", WAVE_OF: "WAVE", BEGINS: "BEGINS",
+        WAVE_FLAVOR_1: "Accumulation", WAVE_FLAVOR_2: "Bull Run", WAVE_FLAVOR_3: "Volatility",
+        WAVE_FLAVOR_4: "Correction", WAVE_FLAVOR_5: "Climax",
         BOSS_ENTER: "GOLD RESERVES", BOSS_DEATH: "RESERVES LIQUIDATED",
         GAME_OVER: "REKT", RESTART: "BUY THE DIP",
         COMBO_LOST: "COMBO LOST", COMBO_BREAK: "COMBO BREAK",
+        BULLET_BONUS: "BULLET BONUS", GRAZE_BONUS: "GRAZE BONUS!",
+        HYPER_READY: "HYPER READY!", HYPER_FAILED: "HYPER FAILED!",
+        SURVIVE_CRASH: "SURVIVE THE CRASH",
+        APPEARS: "APPEARS!", REVENGE: "REVENGE!", DESTROYED: "DESTROYED!", DEFEATED: "DEFEATED!",
+        GODCHAIN_ON: "GODCHAIN MODE", GODCHAIN_OFF: "GODCHAIN LOST",
+        TIME_LEFT: "s LEFT!", PROFIT: "PROFIT!",
+        WEAPON_UNLOCK: "NEW WEAPON UNLOCKED:", GRAZE_MASTER: "GRAZE MASTER",
+        LAST_FIAT: "LAST FIAT!", RESPAWN: "RESPAWN!",
         UPGRADE: "UPGRADE LVL", MAX_POWER: "MAX POWER", HODL: "HODL!",
         SETTINGS: "SETTINGS", CLOSE: "CLOSE", LANG: "LANGUAGE",
-        PAUSED: "PAUSED", RESUME: "RESUME", EXIT_TITLE: "EXIT TO TITLE"
+        PAUSED: "PAUSED", RESUME: "RESUME", EXIT_TITLE: "EXIT TO TITLE", EXIT: "EXIT",
+        RESTART_RUN: "RESTART RUN",
+        // Mode descriptions
+        MODE_STORY_DESC: "Follow Bitcoin's rise against central banks.",
+        MODE_ARCADE_DESC: "Endless waves. High scores. Pure action.",
+        // Manual
+        MANUAL: "MANUAL", MANUAL_TITLE: "PLAYER MANUAL",
+        TAB_WELCOME: "WELCOME", TAB_CONTROLS: "CONTROLS", TAB_POWERUPS: "POWER-UPS",
+        TAB_ENEMIES: "ENEMIES", TAB_BOSSES: "BOSSES", TAB_TIPS: "PRO TIPS",
+        // Welcome tab
+        WELCOME_TITLE: "Welcome, Crypto Warrior!",
+        WELCOME_INTRO: "FIAT money is attacking! Centralized currencies have declared war on financial freedom. Your mission: pilot your crypto ship and defend the decentralized future.",
+        WELCOME_LOOP_TITLE: "The Game Loop",
+        WELCOME_LOOP_1: "Destroy enemies - Waves of fiat currencies descend",
+        WELCOME_LOOP_2: "Collect power-ups - Upgrade weapons and ship",
+        WELCOME_LOOP_3: "Survive 5 waves - Each level has 5 waves",
+        WELCOME_LOOP_4: "Defeat the Boss - The Central Bank awaits!",
+        WELCOME_LOOP_5: "New cycle - Difficulty increases, better rewards",
+        WELCOME_WIN: "Achieve the highest score possible! Each completed cycle increases the multiplier.",
+        WELCOME_LOSE: "One hit = one life lost! You have 3 lives total. When hit, all bullets explode and time slows down. BUY THE DIP and try again!",
+        WELCOME_BEAR: "Want a challenge? Activate Bear Market for increased difficulty and double scores!",
+        // Controls tab
+        CONTROLS_PC: "Keyboard (PC)",
+        CONTROLS_MOBILE: "Touch (Mobile)",
+        CTRL_MOVE: "Move", CTRL_FIRE: "Fire", CTRL_SHIELD: "Shield", CTRL_PAUSE: "Pause",
+        CTRL_ARROWS: "A/D or Arrow Keys", CTRL_SPACE: "Space or Up Arrow", CTRL_DOWN: "S or Down Arrow", CTRL_ESC: "ESC",
+        CTRL_TAP_SIDES: "Tap screen sides or joystick", CTRL_AUTO: "Automatic while touching", CTRL_TAP_ICON: "Tap shield icon",
+        // Power-ups tab - Weapon Evolution System v3.0
+        POWERUPS_UPGRADE: "Weapon Upgrade",
+        POWERUPS_UPGRADE_NOTE: "Permanent! Evolves shots: 1→2→3 bullets. Death: -1 level",
+        POWERUPS_MODIFIERS: "Modifiers",
+        POWERUPS_MODIFIERS_NOTE: "Stackable + temporary (12s). Same pickup = +1 level & refresh timer",
+        POWERUPS_SPECIALS: "Specials",
+        POWERUPS_SPECIALS_NOTE: "Exclusive + temporary (12s). New special replaces current",
+        // Upgrade
+        PU_UPGRADE: "⬆️ UPGRADE - Permanent shot level +1",
+        // Modifiers
+        PU_RATE: "⚡ RATE - Fire rate -15%/-30%/-45%",
+        PU_POWER: "💥 POWER - Damage +25%/+50%/+75%",
+        PU_SPREAD: "🔱 SPREAD - Shot angle +12°/+24°",
+        // Specials
+        PU_HOMING: "🎯 HOMING - Bullets track enemies",
+        PU_PIERCE: "🔥 PIERCE - Bullets penetrate",
+        PU_LASER: "⚡ LASER - Continuous beam",
+        PU_MISSILE: "🚀 MISSILE - AoE explosions",
+        PU_SHIELD: "🛡️ SHIELD - Instant activation",
+        PU_SPEED: "💨 SPEED - Movement +50%",
+        // Death penalty
+        POWERUPS_DEATH: "On Death: -1 level per category (min 0), specials lost",
+        // Enemies tab
+        ENEMIES_WEAK: "Weak Tier",
+        ENEMIES_MEDIUM: "Medium Tier",
+        ENEMIES_STRONG: "Strong Tier (Dangerous!)",
+        ENEMY_YEN: "Yen", ENEMY_RUBLE: "Ruble", ENEMY_RUPEE: "Rupee",
+        ENEMY_EURO: "Euro", ENEMY_POUND: "Pound", ENEMY_FRANC: "Franc", ENEMY_LIRA: "Turkish Lira",
+        ENEMY_DOLLAR: "Dollar", ENEMY_YUAN: "Yuan", ENEMY_CBDC: "CBDC",
+        SHAPE_COIN: "Coin", SHAPE_BILL: "Bill", SHAPE_BAR: "Gold Bar", SHAPE_CARD: "Credit Card",
+        // Bosses tab
+        BOSSES_INTRO: "Every 5 levels you face a boss. Rotation: FED > ECB > BOJ",
+        BOSS_FED: "THE FED", BOSS_BCE: "ECB", BOSS_BOJ: "BOJ",
+        BOSS_FED_STYLE: "Aggressive, rapid attacks",
+        BOSS_BCE_STYLE: "Bureaucratic, bullet walls",
+        BOSS_BOJ_STYLE: "Zen, lethal precision",
+        BOSS_PHASES: "3 Phases per Boss:",
+        BOSS_PHASE1: "Phase 1 (100%-66% HP): Slow, simple patterns",
+        BOSS_PHASE2: "Phase 2 (66%-33% HP): Fast, complex patterns",
+        BOSS_PHASE3: "Phase 3 (33%-0% HP): Erratic, spawns minions!",
+        // Tips tab
+        TIP_HODL_TITLE: "HODL MODE - The Champion's Secret",
+        TIP_HODL_1: "Stop moving and your ship enters HODL mode:",
+        TIP_HODL_2: "2x damage against all enemies",
+        TIP_HODL_3: "Golden aura visible around ship",
+        TIP_HODL_4: "Use HODL when enemies are lined up above you!",
+        TIP_GRAZE_TITLE: "GRAZE - Dance with Danger",
+        TIP_GRAZE_1: "Pass close to enemy bullets without getting hit:",
+        TIP_GRAZE_2: "Build up the Graze Meter (bottom bar)",
+        TIP_GRAZE_3: "Higher meter = higher score multiplier",
+        TIP_GRAZE_4: "Full meter = up to 2.5x points!",
+        TIP_SHIELD_TITLE: "Tactical Shield (CRITICAL!)",
+        TIP_SHIELD_1: "One hit = one life! Shield has 10s cooldown. Use it to:",
+        TIP_SHIELD_2: "Block a fatal hit (your only defense!)",
+        TIP_SHIELD_3: "Survive Boss Phase 3 attacks",
+        TIP_SHIELD_4: "Emergency escape when grazing goes wrong",
+        TIP_BOSS_TITLE: "Boss Power-Ups",
+        TIP_BOSS_1: "During boss fights, every 25 hits drops a power-up. Keep shooting!",
+        // UI Elements (intro/HUD)
+        ACCOUNT_BALANCE: "ACCOUNT BALANCE",
+        KILLS: "KILLS",
+        GRAZE: "GRAZE",
+        CHOOSE_SHIP: "CHOOSE YOUR SHIP",
+        TAP_START: "TAP TO START",
+        HIGH_SCORE: "HIGH SCORE",
+        ARCADE: "ARCADE",
+        CAMPAIGN: "STORY",
+        LAUNCH: "LAUNCH",
+        HORDE_2_INCOMING: "HORDE 2!",
+        GET_READY: "GET READY",
+        PWA_INSTALL_IOS: 'Install: tap <svg class="pwa-share-icon" viewBox="0 0 24 24" fill="none" stroke="#f39c12" stroke-width="2"><path d="M12 3v12M5 10l7-7 7 7"/><path d="M5 21h14a1 1 0 001-1v-6H4v6a1 1 0 001 1z"/></svg> then "Add to Home Screen"',
+        PWA_INSTALL_ANDROID: "Install the app for the best experience",
+        PWA_INSTALL_BTN: "INSTALL",
+        // Intro Redesign v4.8
+        MODE_STORY: "STORY",
+        MODE_ARCADE: "ARCADE",
+        MODE_STORY_DESC: "Experience Bitcoin's story through 3 epic chapters",
+        MODE_ARCADE_DESC: "Endless high-score challenge",
+        CHANGE_MODE: "tap to change"
     },
     IT: {
         SCORE: "PUNTI", LEVEL: "LIVELLO", LIVES: "VITE", NORMAL: "NORMALE",
@@ -25,47 +143,183 @@ window.Game.TEXTS = {
         MOBILE_HINT: "📱 TOCCA LATI: Muovi • ICONA: Scudo",
         PRO_TIP: "💎 PRO TIP: FERMATI PER HODL (Punti Doppi)",
         WAVE1: "ONDATA 1: ACCUMULO", WAVE2: "ONDATA 2: BULL RUN", WAVE3: "ONDATA 3: VOLATILITÀ",
+        WAVE4: "ONDATA 4: CORREZIONE", WAVE5: "ONDATA 5: CLIMAX",
+        CYCLE: "CICLO", WAVE_OF: "ONDATA", BEGINS: "INIZIA",
+        WAVE_FLAVOR_1: "Accumulo", WAVE_FLAVOR_2: "Bull Run", WAVE_FLAVOR_3: "Volatilita",
+        WAVE_FLAVOR_4: "Correzione", WAVE_FLAVOR_5: "Climax",
         BOSS_ENTER: "RISERVE AUREE", BOSS_DEATH: "RISERVE LIQUIDATE",
         GAME_OVER: "REKT", RESTART: "COMPRA IL DIP",
         COMBO_LOST: "COMBO PERSA", COMBO_BREAK: "COMBO ROTTA",
+        BULLET_BONUS: "BONUS PROIETTILI", GRAZE_BONUS: "BONUS GRAZE!",
+        HYPER_READY: "HYPER PRONTO!", HYPER_FAILED: "HYPER FALLITO!",
+        SURVIVE_CRASH: "SOPRAVVIVI AL CRASH",
+        APPEARS: "APPARE!", REVENGE: "VENDETTA!", DESTROYED: "DISTRUTTO!", DEFEATED: "SCONFITTO!",
+        GODCHAIN_ON: "GODCHAIN ATTIVA", GODCHAIN_OFF: "GODCHAIN PERSA",
+        TIME_LEFT: "s RIMASTI!", PROFIT: "PROFITTO!",
+        WEAPON_UNLOCK: "NUOVA ARMA SBLOCCATA:", GRAZE_MASTER: "MAESTRO GRAZE",
+        LAST_FIAT: "ULTIMO FIAT!", RESPAWN: "RINASCITA!",
         UPGRADE: "POTENZIAMENTO LV", MAX_POWER: "MASSIMA POTENZA", HODL: "HODL!",
         SETTINGS: "IMPOSTAZIONI", CLOSE: "CHIUDI", LANG: "LINGUA",
-        PAUSED: "PAUSA", RESUME: "RIPRENDI", EXIT_TITLE: "ESCI AL TITOLO"
+        PAUSED: "PAUSA", RESUME: "RIPRENDI", EXIT_TITLE: "ESCI AL TITOLO", EXIT: "ESCI",
+        RESTART_RUN: "RICOMINCIA",
+        // Mode descriptions
+        MODE_STORY_DESC: "Segui l'ascesa di Bitcoin contro le banche centrali.",
+        MODE_ARCADE_DESC: "Ondate infinite. Punteggi alti. Pura azione.",
+        // Manual
+        MANUAL: "MANUALE", MANUAL_TITLE: "MANUALE GIOCATORE",
+        TAB_WELCOME: "BENVENUTO", TAB_CONTROLS: "CONTROLLI", TAB_POWERUPS: "POWER-UP",
+        TAB_ENEMIES: "NEMICI", TAB_BOSSES: "BOSS", TAB_TIPS: "CONSIGLI",
+        // Welcome tab
+        WELCOME_TITLE: "Benvenuto, Guerriero Crypto!",
+        WELCOME_INTRO: "Il denaro FIAT sta attaccando! Le valute centralizzate hanno dichiarato guerra alla libertà finanziaria. La tua missione: pilota la tua nave crypto e difendi il futuro decentralizzato.",
+        WELCOME_LOOP_TITLE: "Il Ciclo di Gioco",
+        WELCOME_LOOP_1: "Distruggi i nemici - Ondate di valute fiat scendono",
+        WELCOME_LOOP_2: "Raccogli i power-up - Potenzia armi e nave",
+        WELCOME_LOOP_3: "Sopravvivi a 5 ondate - Ogni livello ha 5 ondate",
+        WELCOME_LOOP_4: "Sconfiggi il Boss - La Banca Centrale ti aspetta!",
+        WELCOME_LOOP_5: "Nuovo ciclo - Difficoltà aumenta, ricompense migliori",
+        WELCOME_WIN: "Ottieni il punteggio più alto possibile! Ogni ciclo completato aumenta il moltiplicatore.",
+        WELCOME_LOSE: "Un colpo = una vita persa! Hai 3 vite totali. Quando vieni colpito, tutti i proiettili esplodono e il tempo rallenta. COMPRA IL DIP e riprova!",
+        WELCOME_BEAR: "Vuoi una sfida? Attiva Bear Market per difficoltà aumentata e punteggi doppi!",
+        // Controls tab
+        CONTROLS_PC: "Tastiera (PC)",
+        CONTROLS_MOBILE: "Touch (Mobile)",
+        CTRL_MOVE: "Muovi", CTRL_FIRE: "Spara", CTRL_SHIELD: "Scudo", CTRL_PAUSE: "Pausa",
+        CTRL_ARROWS: "A/D o Frecce", CTRL_SPACE: "Spazio o Freccia Su", CTRL_DOWN: "S o Freccia Giù", CTRL_ESC: "ESC",
+        CTRL_TAP_SIDES: "Tocca i lati o joystick", CTRL_AUTO: "Automatico mentre tocchi", CTRL_TAP_ICON: "Tocca icona scudo",
+        // Power-ups tab - Weapon Evolution System v3.0
+        POWERUPS_UPGRADE: "Potenziamento Arma",
+        POWERUPS_UPGRADE_NOTE: "Permanente! Evolve colpi: 1→2→3 proiettili. Morte: -1 livello",
+        POWERUPS_MODIFIERS: "Modificatori",
+        POWERUPS_MODIFIERS_NOTE: "Cumulabili + temporanei (12s). Stesso pickup = +1 livello & refresh timer",
+        POWERUPS_SPECIALS: "Speciali",
+        POWERUPS_SPECIALS_NOTE: "Esclusivi + temporanei (12s). Nuovo speciale sostituisce attuale",
+        // Upgrade
+        PU_UPGRADE: "⬆️ UPGRADE - Livello colpi permanente +1",
+        // Modifiers
+        PU_RATE: "⚡ RATE - Cadenza -15%/-30%/-45%",
+        PU_POWER: "💥 POWER - Danno +25%/+50%/+75%",
+        PU_SPREAD: "🔱 SPREAD - Angolo colpi +12°/+24°",
+        // Specials
+        PU_HOMING: "🎯 HOMING - Proiettili auto-guidati",
+        PU_PIERCE: "🔥 PIERCE - Proiettili penetranti",
+        PU_LASER: "⚡ LASER - Raggio continuo",
+        PU_MISSILE: "🚀 MISSILE - Esplosioni ad area",
+        PU_SHIELD: "🛡️ SHIELD - Attivazione istantanea",
+        PU_SPEED: "💨 SPEED - Movimento +50%",
+        // Death penalty
+        POWERUPS_DEATH: "Alla Morte: -1 livello per categoria (min 0), speciali persi",
+        // Enemies tab
+        ENEMIES_WEAK: "Tier Debole",
+        ENEMIES_MEDIUM: "Tier Medio",
+        ENEMIES_STRONG: "Tier Forte (Pericoloso!)",
+        ENEMY_YEN: "Yen", ENEMY_RUBLE: "Rublo", ENEMY_RUPEE: "Rupia",
+        ENEMY_EURO: "Euro", ENEMY_POUND: "Sterlina", ENEMY_FRANC: "Franco", ENEMY_LIRA: "Lira Turca",
+        ENEMY_DOLLAR: "Dollaro", ENEMY_YUAN: "Yuan", ENEMY_CBDC: "CBDC",
+        SHAPE_COIN: "Moneta", SHAPE_BILL: "Banconota", SHAPE_BAR: "Lingotto", SHAPE_CARD: "Carta",
+        // Bosses tab
+        BOSSES_INTRO: "Ogni 5 livelli affronti un boss. Rotazione: FED > BCE > BOJ",
+        BOSS_FED: "LA FED", BOSS_BCE: "BCE", BOSS_BOJ: "BOJ",
+        BOSS_FED_STYLE: "Aggressivo, attacchi rapidi",
+        BOSS_BCE_STYLE: "Burocratico, muri di proiettili",
+        BOSS_BOJ_STYLE: "Zen, precisione letale",
+        BOSS_PHASES: "3 Fasi per Boss:",
+        BOSS_PHASE1: "Fase 1 (100%-66% HP): Lento, pattern semplici",
+        BOSS_PHASE2: "Fase 2 (66%-33% HP): Veloce, pattern complessi",
+        BOSS_PHASE3: "Fase 3 (33%-0% HP): Erratico, genera minion!",
+        // Tips tab
+        TIP_HODL_TITLE: "HODL MODE - Il Segreto dei Campioni",
+        TIP_HODL_1: "Fermati e la nave entra in modalità HODL:",
+        TIP_HODL_2: "Danno 2x contro tutti i nemici",
+        TIP_HODL_3: "Aura dorata visibile intorno alla nave",
+        TIP_HODL_4: "Usa HODL quando i nemici sono allineati sopra di te!",
+        TIP_GRAZE_TITLE: "GRAZE - Danza col Pericolo",
+        TIP_GRAZE_1: "Passa vicino ai proiettili nemici senza farti colpire:",
+        TIP_GRAZE_2: "Riempi il Graze Meter (barra in basso)",
+        TIP_GRAZE_3: "Meter più alto = moltiplicatore punti più alto",
+        TIP_GRAZE_4: "Meter pieno = fino a 2.5x punti!",
+        TIP_SHIELD_TITLE: "Scudo Tattico (CRITICO!)",
+        TIP_SHIELD_1: "Un colpo = una vita! Scudo ha cooldown 10s. Usalo per:",
+        TIP_SHIELD_2: "Bloccare un colpo fatale (unica difesa!)",
+        TIP_SHIELD_3: "Sopravvivere agli attacchi Boss Fase 3",
+        TIP_SHIELD_4: "Fuga d'emergenza quando il grazing va male",
+        TIP_BOSS_TITLE: "Power-Up Boss",
+        TIP_BOSS_1: "Durante i boss fight, ogni 25 colpi rilascia un power-up. Continua a sparare!",
+        // UI Elements (intro/HUD)
+        ACCOUNT_BALANCE: "SALDO CONTO",
+        KILLS: "UCCISIONI",
+        GRAZE: "GRAZE",
+        CHOOSE_SHIP: "SCEGLI LA NAVE",
+        TAP_START: "TOCCA PER INIZIARE",
+        HIGH_SCORE: "RECORD",
+        ARCADE: "ARCADE",
+        CAMPAIGN: "STORIA",
+        LAUNCH: "LANCIA",
+        HORDE_2_INCOMING: "ORDA 2!",
+        GET_READY: "PREPARATI",
+        PWA_INSTALL_IOS: 'Installa: tap <svg class="pwa-share-icon" viewBox="0 0 24 24" fill="none" stroke="#f39c12" stroke-width="2"><path d="M12 3v12M5 10l7-7 7 7"/><path d="M5 21h14a1 1 0 001-1v-6H4v6a1 1 0 001 1z"/></svg> poi "Aggiungi a Home"',
+        PWA_INSTALL_ANDROID: "Installa l'app per la migliore esperienza",
+        PWA_INSTALL_BTN: "INSTALLA",
+        // Intro Redesign v4.8
+        MODE_STORY: "STORIA",
+        MODE_ARCADE: "ARCADE",
+        MODE_STORY_DESC: "Vivi la storia di Bitcoin attraverso 3 capitoli epici",
+        MODE_ARCADE_DESC: "Sfida infinita per il punteggio",
+        CHANGE_MODE: "tocca per cambiare"
     }
 };
 
 window.Game.MEMES = {
-    // General Crypto Culture
+    // Intermission spotlight memes (curated best-of, shown during countdown)
+    INTERMISSION: [
+        "HAVE FUN STAYING POOR",
+        "WE'RE ALL GONNA MAKE IT",
+        "GENERATIONAL WEALTH",
+        "INFINITY DIVIDED BY 21 MILLION",
+        "THERE IS NO SECOND BEST",
+        "TO THE MOON 🚀",
+        "DIAMOND HANDS 💎",
+        "BITCOIN IS HOPE",
+        "LASER EYES ACTIVATED",
+        "CONVICTION LEVEL: MAX",
+        "GIGACHAD MOVE",
+        "BITCOIN FIXES THIS",
+        "HYPERBITCOINIZATION INCOMING",
+        "THE GREAT REPRICING",
+        "NOT YOUR KEYS, NOT YOUR COINS",
+        "STACK SATS OR DIE TRYING",
+        "INFINITE MONEY GLITCH ENGAGED",
+        "CTRL+P INTENSIFIES",
+        "BITCOIN IS THE APEX PREDATOR",
+        "FREEDOM TECHNOLOGY"
+    ],
+    // General Crypto Culture (whispers, ambient flavor)
     LOW: [
         "HODL", "BUY THE DIP", "SHITCOIN", "PAPER HANDS", "NGMI", "HFSP",
         "FUD DETECTED", "REKT", "WAGMI", "LFG", "APE IN", "DEGEN MODE",
         "PUMP IT", "DUMP IT", "SEND IT", "NFA", "DYOR", "FOMO ENGAGED",
-        "COPE HARDER", "HAVE FUN STAYING POOR", "FEW UNDERSTAND",
+        "COPE HARDER", "FEW UNDERSTAND",
         "THIS IS THE WAY", "PROBABLY NOTHING", "BULLISH AF",
         "FLOOR IS LAVA", "UP ONLY", "NUMBER GO UP", "STACK SATS",
-        "NOT YOUR KEYS", "NOT YOUR COINS", "TRUST THE PROCESS",
+        "TRUST THE PROCESS",
         "ZOOM OUT", "TIME IN MARKET", "DCA IS THE WAY"
     ],
+    // Power-up / streak celebration memes
     HIGH: [
-        "TO THE MOON 🚀", "LAMBO SOON", "WHALE ALERT 🐋", "DIAMOND HANDS 💎",
-        "WE'RE ALL GONNA MAKE IT", "GENERATIONAL WEALTH", "EARLY ADOPTER",
-        "MICHAEL SAYLOR MODE", "LASER EYES ACTIVATED", "STILL EARLY",
-        "FUTURE MILLIONAIRE", "GIGACHAD MOVE", "ABSOLUTE UNIT",
-        "CONVICTION LEVEL: MAX", "NEVER SELLING", "INFINITY HODL",
-        "APEX PREDATOR", "MONETARY MAXIMALIST", "FREEDOM TECHNOLOGY"
+        "LAMBO SOON", "WHALE ALERT 🐋",
+        "EARLY ADOPTER",
+        "MICHAEL SAYLOR MODE", "STILL EARLY",
+        "FUTURE MILLIONAIRE", "ABSOLUTE UNIT",
+        "NEVER SELLING", "INFINITY HODL",
+        "APEX PREDATOR", "MONETARY MAXIMALIST"
     ],
-    // Michael Saylor Quotes
+    // Michael Saylor Quotes (no overlap with INTERMISSION pool)
     SAYLOR: [
-        "BITCOIN IS HOPE",
         "BITCOIN IS DIGITAL GOLD",
         "BITCOIN IS A SWARM OF CYBER HORNETS",
-        "THERE IS NO SECOND BEST",
-        "BITCOIN IS THE APEX PREDATOR",
-        "INFINITY DIVIDED BY 21 MILLION",
         "BTC IS DIGITAL ENERGY",
         "BITCOIN IS ECONOMIC IMMORTALITY",
         "BITCOIN IS THERMODYNAMICALLY SOUND",
-        "BITCOIN FIXES THIS",
         "EVERY COMPANY WILL HOLD BITCOIN",
         "BITCOIN IS A MONETARY NETWORK",
         "BUY BITCOIN AND WAIT",
@@ -73,9 +327,7 @@ window.Game.MEMES = {
         "BITCOIN IS THE HARDEST ASSET",
         "BITCOIN IS INCORRUPTIBLE",
         "BITCOIN IS THE EXIT",
-        "HYPERBITCOINIZATION INCOMING",
         "BITCOIN IS PURE ENERGY",
-        "THE GREAT REPRICING",
         "BITCOIN IS TRUTH",
         "BITCOIN NEVER SLEEPS",
         "BITCOIN IS STRONGER THAN GOVERNMENTS",
@@ -104,8 +356,7 @@ window.Game.MEMES = {
         "BITCOIN IS INCORRUPTIBLE MATH",
         "BITCOIN IS THE ANTIDOTE",
         "BITCOIN: THE FINAL BOSS",
-        "BITCOIN DOESN'T CARE",
-        "STACK SATS OR DIE TRYING"
+        "BITCOIN DOESN'T CARE"
     ],
     // Fiat/Enemy Death Taunts
     FIAT_DEATH: [
@@ -159,20 +410,47 @@ window.Game.MEMES = {
     ]
 };
 
-// Weapon types (mutually exclusive - picking one replaces previous)
-// Rebalanced: Base twin-shot is strong, power-ups are utility (spread/penetration) not DPS multipliers
-window.Game.WEAPONS = {
-    NORMAL: { color: '#F7931A', rate: 0.18, bullets: 2 },                           // Twin shot base
-    WIDE:   { color: '#9b59b6', rate: 0.40, bullets: 3, spread: 0.18, icon: '🔱' },  // Tighter spread (was 0.25)
-    NARROW: { color: '#3498db', rate: 0.38, bullets: 3, spread: 0.08, icon: '🎯' }, // Tighter focused (was 0.12)
-    FIRE:   { color: '#e74c3c', rate: 0.44, bullets: 3, spread: 0, icon: '🔥' }     // Penetration utility
+// === WEAPON EVOLUTION SYSTEM v3.0 ===
+// New progressive power-up system:
+// - UPGRADE: permanent shot level (1→2→3), death = -1 level
+// - Modifiers: stackable temp buffs (RATE/POWER/SPREAD), death = -1 level
+// - Specials: exclusive temp effects (HOMING/PIERCE/LASER/MISSILE/SHIELD/SPEED), death = lost
+
+window.Game.POWERUP_TYPES = {
+    // Upgrade (permanent shot level)
+    UPGRADE: { icon: '⬆️', color: '#FFD700', category: 'upgrade', name: 'UPGRADE', symbol: '↑' },
+
+    // Modifiers (stackable, temporary with timer)
+    RATE:   { icon: '⚡', color: '#00FFFF', category: 'modifier', name: 'RATE', symbol: 'R' },
+    POWER:  { icon: '💥', color: '#FF4444', category: 'modifier', name: 'POWER', symbol: 'P' },
+    SPREAD: { icon: '🔱', color: '#9B59B6', category: 'modifier', name: 'SPREAD', symbol: 'S' },
+
+    // Specials (exclusive, temporary - replace each other)
+    HOMING:  { icon: '🎯', color: '#E67E22', category: 'special', name: 'HOMING', symbol: 'H' },
+    PIERCE:  { icon: '🔥', color: '#E74C3C', category: 'special', name: 'PIERCE', symbol: 'X' },
+    LASER:   { icon: '⚡', color: '#00FFFF', category: 'special', name: 'LASER', symbol: 'L' },
+    MISSILE: { icon: '🚀', color: '#3498DB', category: 'special', name: 'MISSILE', symbol: 'M' },
+    SHIELD:  { icon: '🛡️', color: '#2ECC71', category: 'special', name: 'SHIELD', symbol: '🛡' },
+    SPEED:   { icon: '💨', color: '#F1C40F', category: 'special', name: 'SPEED', symbol: '>' }
 };
 
-// Ship power-ups (mutually exclusive - picking one replaces previous)
-// Nerfed: smaller bonuses
+// Legacy weapon types (kept for backward compatibility during transition)
+// TODO: Remove after full migration to WEAPON_EVOLUTION system
+window.Game.WEAPONS = {
+    NORMAL: { color: '#F7931A', rate: 0.18, bullets: 2 },                           // Twin shot base
+    WIDE:   { color: '#9b59b6', rate: 0.40, bullets: 3, spread: 0.18, icon: '🔱' },
+    NARROW: { color: '#3498db', rate: 0.38, bullets: 3, spread: 0.08, icon: '🎯' },
+    FIRE:   { color: '#e74c3c', rate: 0.44, bullets: 3, spread: 0, icon: '🔥' },    // Penetration utility
+    SPREAD: { color: '#2ecc71', rate: 0.55, bullets: 5, spread: 0.35, icon: '🌟' }, // 5-shot wide fan
+    HOMING: { color: '#e67e22', rate: 0.50, bullets: 2, icon: '🎯' },               // Tracking missiles
+    LASER:  { color: '#00ffff', rate: 0.06, bullets: 1, icon: '⚡' }                 // Rapid beam (penetrating)
+};
+
+// Legacy ship power-ups (kept for backward compatibility during transition)
+// TODO: Remove after full migration to WEAPON_EVOLUTION system
 window.Game.SHIP_POWERUPS = {
-    SPEED:  { speedMult: 1.25, icon: '⚡', color: '#f1c40f' },  // Was 1.4
-    RAPID:  { rateMult: 0.80, icon: '🚀', color: '#3498db' },  // Was 0.6 (now 20% faster, not 40%)
+    SPEED:  { speedMult: 1.25, icon: '⚡', color: '#f1c40f' },
+    RAPID:  { rateMult: 0.80, icon: '🚀', color: '#3498db' },
     SHIELD: { instant: true, icon: '🛡️', color: '#2ecc71' }
 };
 
@@ -196,14 +474,21 @@ window.Game.FIAT_TYPES = [
     { s: 'Ⓒ', name: 'CBDC', c: '#8e44ad', val: 100, hp: 1.5, fireMin: 1.4, fireMax: 2.2, aimSpread: 0.10, pattern: 'DOUBLE', shape: 'card' }
 ];
 
+// Boss minion type - spawned during boss fights
+window.Game.MINION_TYPE = {
+    s: '💵', name: 'MINION', c: '#e74c3c', val: 15, hp: 0.5,
+    fireMin: 2.0, fireMax: 3.0, aimSpread: 0.25, pattern: 'SINGLE', shape: 'coin',
+    isMinion: true
+};
+
 window.Game.SHIPS = {
     BTC: { speed: 420, hp: 3, fireRate: 0.26, baseDamage: 14, color: '#F7931A', hitboxSize: 30, coreHitboxSize: 6 },
-    ETH: { speed: 320, hp: 4, fireRate: 0.57, baseDamage: 22, color: '#8c7ae6', hitboxSize: 38, coreHitboxSize: 8 },
+    ETH: { speed: 320, hp: 4, fireRate: 0.40, baseDamage: 28, color: '#8c7ae6', hitboxSize: 38, coreHitboxSize: 7 }, // v4.0.2: Tank rebalance
     SOL: { speed: 560, hp: 2, fireRate: 0.20, baseDamage: 10, color: '#00d2d3', hitboxSize: 18, coreHitboxSize: 4 }
 };
 
-// Bullet Hell Color Palette (Ikeda Style - High Contrast)
-window.Game.BULLET_HELL_COLORS = {
+// High-contrast projectile color palette
+window.Game.PROJECTILE_COLORS = {
     PINK: '#ff69b4',
     CYAN: '#00ffff',
     MAGENTA: '#ff00ff',
@@ -211,13 +496,15 @@ window.Game.BULLET_HELL_COLORS = {
     WHITE: '#ffffff',
     ORANGE: '#ff8c00'
 };
+// Alias for backwards compatibility
+window.Game.BULLET_HELL_COLORS = window.Game.PROJECTILE_COLORS;
 
 window.Game.ASSETS = {};
 
 window.Game.M_CHARS = "01BTCETH$$£€¥HODL";
 
 // Boss Definitions - Rotation: FED → BCE → BOJ → repeat
-// Uniform difficulty: same base HP, cycle bonus adds ~10% per rotation
+// Uniform difficulty: balanced HP for ~5-8 second fights
 window.Game.BOSSES = {
     FEDERAL_RESERVE: {
         name: 'THE FED',
@@ -228,9 +515,9 @@ window.Game.BOSSES = {
         symbol: '$',
         country: '🇺🇸',
         personality: 'arrogant',
-        baseHp: 5500,               // Increased from 4500 (+22%)
-        hpPerLevel: 500,
-        hpPerCycle: 600             // Uniform cycle scaling
+        baseHp: 2000,
+        hpPerLevel: 150,
+        hpPerCycle: 250
     },
     BCE: {
         name: 'BCE',
@@ -241,9 +528,9 @@ window.Game.BOSSES = {
         symbol: '€',
         country: '🇪🇺',
         personality: 'bureaucratic',
-        baseHp: 5500,               // Same as FED (was 5000+850 effective)
-        hpPerLevel: 500,
-        hpPerCycle: 600
+        baseHp: 2000,
+        hpPerLevel: 150,
+        hpPerCycle: 250
     },
     BOJ: {
         name: 'BOJ',
@@ -254,14 +541,21 @@ window.Game.BOSSES = {
         symbol: '¥',
         country: '🇯🇵',
         personality: 'zen',
-        baseHp: 5500,               // Same as others
-        hpPerLevel: 500,
-        hpPerCycle: 600
+        baseHp: 2000,
+        hpPerLevel: 150,
+        hpPerCycle: 250
     }
 };
 
 // Boss rotation order
 window.Game.BOSS_ROTATION = ['FEDERAL_RESERVE', 'BCE', 'BOJ'];
+
+// Boss signature memes - displayed during entrance with typewriter effect
+window.Game.BOSS_SIGNATURE_MEMES = {
+    FEDERAL_RESERVE: "MONEY PRINTER GO BRRRRR",
+    BCE: "WHATEVER IT TAKES... AGAIN",
+    BOJ: "YIELD CURVE: CONTROLLED"
+};
 
 // Boss-specific memes
 window.Game.MEMES.BCE = [

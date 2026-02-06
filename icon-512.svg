@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Space background gradient -->
+    <radialGradient id="spaceGrad" cx="50%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#1a1a3e"/>
+      <stop offset="50%" stop-color="#0d0d1a"/>
+      <stop offset="100%" stop-color="#000005"/>
+    </radialGradient>
+
+    <!-- Flame gradients -->
+    <linearGradient id="flameOuter" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#cc3300"/>
+      <stop offset="100%" stop-color="#ff4400"/>
+    </linearGradient>
+    <linearGradient id="flameMain" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ff6600"/>
+      <stop offset="100%" stop-color="#ff8800"/>
+    </linearGradient>
+    <linearGradient id="flameInner" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffcc00"/>
+      <stop offset="100%" stop-color="#ffee66"/>
+    </linearGradient>
+
+    <!-- Glow filter -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Engine glow -->
+    <filter id="engineGlow" x="-100%" y="-50%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" fill="url(#spaceGrad)"/>
+
+  <!-- Stars -->
+  <g fill="#fff">
+    <circle cx="50" cy="80" r="1.5" opacity="0.8"/>
+    <circle cx="120" cy="45" r="1" opacity="0.6"/>
+    <circle cx="200" cy="90" r="2" opacity="0.9"/>
+    <circle cx="380" cy="60" r="1.5" opacity="0.7"/>
+    <circle cx="450" cy="100" r="1" opacity="0.5"/>
+    <circle cx="80" cy="180" r="1" opacity="0.6"/>
+    <circle cx="420" cy="200" r="1.5" opacity="0.8"/>
+    <circle cx="470" cy="280" r="1" opacity="0.5"/>
+    <circle cx="40" cy="350" r="1.5" opacity="0.7"/>
+    <circle cx="90" cy="450" r="1" opacity="0.6"/>
+    <circle cx="300" cy="480" r="1.5" opacity="0.8"/>
+    <circle cx="430" cy="420" r="2" opacity="0.9"/>
+    <circle cx="150" cy="400" r="1" opacity="0.5"/>
+    <circle cx="350" cy="150" r="1" opacity="0.6"/>
+    <circle cx="480" cy="380" r="1" opacity="0.7"/>
+  </g>
+
+  <!-- Ship group - centered at 256, 230 with scale 5x -->
+  <g transform="translate(256, 230) scale(5)">
+
+    <!-- Engine glow (behind flame) -->
+    <ellipse cx="0" cy="20" rx="15" ry="8" fill="#ff6600" opacity="0.4" filter="url(#engineGlow)"/>
+
+    <!-- Reactor flame - outer (red) -->
+    <polygon points="-13,12 0,45 13,12" fill="url(#flameOuter)" opacity="0.7" filter="url(#glow)"/>
+
+    <!-- Reactor flame - main (orange) -->
+    <polygon points="-10,12 0,40 10,12" fill="url(#flameMain)"/>
+
+    <!-- Reactor flame - inner (yellow) -->
+    <polygon points="-5,12 0,32 5,12" fill="url(#flameInner)"/>
+
+    <!-- Reactor flame - core (white) -->
+    <polygon points="-2,12 0,22 2,12" fill="#fff"/>
+
+    <!-- Left fin (shadow) -->
+    <polygon points="-22,8 -34,16 -16,18" fill="#2d8a91" stroke="#111" stroke-width="3"/>
+
+    <!-- Right fin (light) -->
+    <polygon points="22,8 34,16 16,18" fill="#4bc0c8" stroke="#111" stroke-width="3"/>
+
+    <!-- Body - shadow side (left half) -->
+    <polygon points="0,-26 -22,12 0,12" fill="#c76b10" stroke="none"/>
+
+    <!-- Body - light side (right half) -->
+    <polygon points="0,-26 0,12 22,12" fill="#F7931A" stroke="none"/>
+
+    <!-- Body outline -->
+    <polygon points="0,-26 -22,12 22,12" fill="none" stroke="#111" stroke-width="4" stroke-linejoin="round"/>
+
+    <!-- Nose cone - shadow side -->
+    <polygon points="0,-28 -10,-6 0,-6" fill="#c47d3a"/>
+
+    <!-- Nose cone - light side -->
+    <polygon points="0,-28 0,-6 10,-6" fill="#f6b26b"/>
+
+    <!-- Nose cone outline -->
+    <polygon points="0,-28 -10,-6 10,-6" fill="none" stroke="#111" stroke-width="3" stroke-linejoin="round"/>
+
+    <!-- Rim lighting (right edge) -->
+    <line x1="4" y1="-24" x2="20" y2="10" stroke="#ffb347" stroke-width="2" stroke-linecap="round"/>
+
+    <!-- Rim light on nose -->
+    <line x1="2" y1="-26" x2="8" y2="-8" stroke="#ffd699" stroke-width="2" stroke-linecap="round"/>
+
+    <!-- Window glow -->
+    <circle cx="0" cy="-8" r="8" fill="#4dc8ff" opacity="0.3" filter="url(#glow)"/>
+
+    <!-- Window -->
+    <circle cx="0" cy="-8" r="6" fill="#9fe8ff" stroke="#111" stroke-width="3"/>
+
+    <!-- Window highlight -->
+    <circle cx="-2" cy="-10" r="2" fill="#fff" opacity="0.7"/>
+
+    <!-- BTC logo -->
+    <text x="0" y="8" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#111" text-anchor="middle">&#x20bf;</text>
+
+  </g>
+
+  <!-- Title text (optional - can remove) -->
+  <text x="256" y="470" font-family="Arial Black, sans-serif" font-size="26" fill="#F7931A" text-anchor="middle" letter-spacing="1" filter="url(#glow)">FIAT vs CRYPTO</text>
+
+</svg>

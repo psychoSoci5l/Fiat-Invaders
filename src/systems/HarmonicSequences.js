@@ -14,6 +14,15 @@ window.Game.HarmonicSequences = {
         RANDOM_SINGLE: 'RANDOM_SINGLE' // Sparse random fire
     },
 
+    // Fallback sequence - guaranteed to always work
+    // Used when no specific sequence is set (ensures enemies always fire)
+    DEFAULT_BASIC: [
+        { beat: 0, type: 'RANDOM_SINGLE', tier: 'STRONG', chance: 0.5 },
+        { beat: 4, type: 'RANDOM_SINGLE', tier: 'MEDIUM', chance: 0.4 },
+        { beat: 8, type: 'RANDOM_SINGLE', tier: 'STRONG', chance: 0.5 },
+        { beat: 12, type: 'RANDOM_SINGLE', tier: 'WEAK', chance: 0.3 }
+    ],
+
     // Tier definitions for enemy targeting
     TIERS: {
         STRONG: [7, 8, 9],  // Dollar, Yuan, CBDC
@@ -57,11 +66,11 @@ window.Game.HarmonicSequences = {
         { beat: 14, type: 'RANDOM_SINGLE', tier: 'WEAK', chance: 0.3 }
     ],
 
-    // V_SHAPE formation - Cascading with pattern overlays
+    // V_SHAPE formation - Cascading (cascading)
     VERSE_V_SHAPE: [
         { beat: 0, type: 'CASCADE_DOWN', delay: 0.15 },
         { beat: 4, type: 'SYNC_FIRE', tier: 'STRONG', target: 'tip' },
-        { beat: 8, type: 'PATTERN', name: 'expandingRing', config: { count: 12, color: '#00ffff' } },
+        { beat: 8, type: 'SWEEP_LEFT', tier: 'MEDIUM' },
         { beat: 12, type: 'SYNC_FIRE', tier: 'STRONG', target: 'tip' },
         { beat: 6, type: 'RANDOM_SINGLE', tier: 'MEDIUM', chance: 0.4 },
         { beat: 14, type: 'RANDOM_SINGLE', tier: 'MEDIUM', chance: 0.4 }
@@ -77,31 +86,32 @@ window.Game.HarmonicSequences = {
         { beat: 10, type: 'RANDOM_SINGLE', tier: 'WEAK', chance: 0.25 }
     ],
 
-    // SINE_WAVE formation - Complex dance patterns
+    // SINE_WAVE formation - Challenging but survivable
+    // v2.22.2: Reduced from ALL to MEDIUM/STRONG to prevent bullet flood
     VERSE_SINE_WAVE: [
-        { beat: 0, type: 'PATTERN', name: 'curtain', config: { gapSize: 80, color: '#ff69b4' } },
-        { beat: 4, type: 'PATTERN', name: 'spiral', config: { arms: 4, color: '#ffff00' } },
-        { beat: 8, type: 'PATTERN', name: 'curtain', config: { gapSize: 80, color: '#00ffff' } },
-        { beat: 12, type: 'AIMED_VOLLEY', tier: 'STRONG' },
-        { beat: 2, type: 'RANDOM_SINGLE', tier: 'MEDIUM', chance: 0.35 },
-        { beat: 6, type: 'RANDOM_SINGLE', tier: 'WEAK', chance: 0.35 },
-        { beat: 10, type: 'RANDOM_SINGLE', tier: 'MEDIUM', chance: 0.35 },
-        { beat: 14, type: 'RANDOM_SINGLE', tier: 'WEAK', chance: 0.35 }
+        { beat: 0, type: 'SWEEP_LEFT', tier: 'MEDIUM', delay: 0.15 },
+        { beat: 4, type: 'SYNC_FIRE', tier: 'STRONG' },
+        { beat: 8, type: 'SWEEP_RIGHT', tier: 'MEDIUM', delay: 0.15 },
+        { beat: 12, type: 'RANDOM_SINGLE', tier: 'STRONG', chance: 0.5 },
+        { beat: 2, type: 'RANDOM_SINGLE', tier: 'WEAK', chance: 0.25 },
+        { beat: 6, type: 'RANDOM_SINGLE', tier: 'WEAK', chance: 0.25 },
+        { beat: 10, type: 'RANDOM_SINGLE', tier: 'WEAK', chance: 0.25 },
+        { beat: 14, type: 'RANDOM_SINGLE', tier: 'WEAK', chance: 0.25 }
     ],
 
     // ===========================================
     // CHORUS SEQUENCES (High intensity > 80%)
     // ===========================================
 
-    // 32-beat intense assault
+    // 32-beat intense assault (enemy-based)
     CHORUS_ASSAULT: [
         { beat: 0, type: 'CASCADE_DOWN', delay: 0.12 },
-        { beat: 4, type: 'PATTERN', name: 'expandingRing', config: { count: 16, color: '#00ffff' } },
+        { beat: 4, type: 'SYNC_FIRE', tier: 'ALL' },
         { beat: 8, type: 'CASCADE_UP', delay: 0.12 },
-        { beat: 12, type: 'PATTERN', name: 'flower', config: { petals: 6, color: '#ff00ff' } },
-        { beat: 16, type: 'PATTERN', name: 'doubleHelix', config: {} },
-        { beat: 20, type: 'PATTERN', name: 'sineWave', config: { count: 14 } },
-        { beat: 24, type: 'PATTERN', name: 'spiral', config: { arms: 6, color: '#ffff00' } },
+        { beat: 12, type: 'AIMED_VOLLEY', tier: 'STRONG' },
+        { beat: 16, type: 'SWEEP_LEFT', tier: 'ALL', delay: 0.08 },
+        { beat: 20, type: 'SYNC_FIRE', tier: 'ALL' },
+        { beat: 24, type: 'SWEEP_RIGHT', tier: 'ALL', delay: 0.08 },
         { beat: 28, type: 'AIMED_VOLLEY', tier: 'ALL' },
         // Filler throughout
         { beat: 2, type: 'SYNC_FIRE', tier: 'STRONG' },
@@ -118,24 +128,25 @@ window.Game.HarmonicSequences = {
     // BEAR MARKET CHAOS (Hard mode)
     // ===========================================
 
+    // Bear Market - Fast and intense but enemy-based (enemy-based)
     BEAR_MARKET_CHAOS: [
-        { beat: 0, type: 'PATTERN', name: 'curtain', config: { count: 24, gapSize: 55, color: '#ff4444' } },
-        { beat: 2, type: 'PATTERN', name: 'spiral', config: { arms: 3, color: '#ffff00' } },
+        { beat: 0, type: 'SYNC_FIRE', tier: 'ALL' },
+        { beat: 2, type: 'SWEEP_LEFT', tier: 'ALL', delay: 0.05 },
         { beat: 4, type: 'RANDOM_VOLLEY', count: 8 },
-        { beat: 6, type: 'PATTERN', name: 'expandingRing', config: { count: 14, color: '#00ffff' } },
-        { beat: 8, type: 'SWEEP_LEFT', tier: 'ALL', delay: 0.06 },
+        { beat: 6, type: 'AIMED_VOLLEY', tier: 'STRONG', spread: 0.5 },
+        { beat: 8, type: 'SWEEP_RIGHT', tier: 'ALL', delay: 0.05 },
         { beat: 10, type: 'AIMED_VOLLEY', tier: 'STRONG', spread: 0.6 },
-        { beat: 12, type: 'PATTERN', name: 'doubleHelix', config: {} },
-        { beat: 14, type: 'PATTERN', name: 'flower', config: { petals: 8, color: '#ff00ff' } },
+        { beat: 12, type: 'CASCADE_DOWN', delay: 0.06 },
+        { beat: 14, type: 'SYNC_FIRE', tier: 'ALL' },
         // Second loop (beats 16-31)
-        { beat: 16, type: 'CASCADE_DOWN', delay: 0.08 },
-        { beat: 18, type: 'PATTERN', name: 'spiral', config: { arms: 5, color: '#ff8c00' } },
+        { beat: 16, type: 'CASCADE_UP', delay: 0.06 },
+        { beat: 18, type: 'SWEEP_LEFT', tier: 'ALL', delay: 0.05 },
         { beat: 20, type: 'SYNC_FIRE', tier: 'ALL' },
-        { beat: 22, type: 'PATTERN', name: 'expandingRing', config: { count: 18, rotate: true } },
-        { beat: 24, type: 'SWEEP_RIGHT', tier: 'ALL', delay: 0.06 },
+        { beat: 22, type: 'AIMED_VOLLEY', tier: 'ALL', spread: 0.4 },
+        { beat: 24, type: 'SWEEP_RIGHT', tier: 'ALL', delay: 0.05 },
         { beat: 26, type: 'AIMED_VOLLEY', tier: 'ALL', spread: 0.4 },
-        { beat: 28, type: 'CASCADE_UP', delay: 0.08 },
-        { beat: 30, type: 'PATTERN', name: 'flower', config: { petals: 6, bulletsPerPetal: 4 } }
+        { beat: 28, type: 'CASCADE_DOWN', delay: 0.06 },
+        { beat: 30, type: 'SYNC_FIRE', tier: 'ALL' }
     ],
 
     // ===========================================

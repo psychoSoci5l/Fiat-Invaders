@@ -1,6 +1,6 @@
-# Fiat Invaders: Panic Selling Update (v2.1)
+# FIAT vs CRYPTO
 
-**Fiat Invaders** is a retro-arcade space shooter built with modern Web Technologies (HTML5 Canvas, ES6 Modules). Defend the blockchain from the infinite printing of Fiat Currencies!
+**FIAT vs CRYPTO** is a retro-arcade space shooter built with modern Web Technologies (HTML5 Canvas, ES6 Modules). Defend the blockchain from the infinite printing of Fiat Currencies!
 
 ## 🚀 Features
 
@@ -10,20 +10,30 @@
 *   **Responsive**: "Notch-safe" UI design that adapts to all mobile screens.
 *   **Localization**: Fully localized in English (EN) and Italian (IT).
 
-## 🧠 Current Gameplay Rules (as of Jan 30, 2026)
+## 🧠 Current Gameplay Rules (v4.11.0)
 
-*   **Wave Cycle**: 5 waves → Boss → repeat (infinite progression).
-*   **Enemy Fire**: Alternating fire groups (no full-squad volleys).
-*   **Bullet Cancel**: Player bullets can destroy enemy bullets.
-*   **Perks**: No selection modal. Random perk is applied after **3 enemy bullets canceled in a row** (1.5s window).
-*   **Power-ups**: Drawn via Canvas (no sprites).
+*   **Two Game Modes**: **Story Mode** (3 acts with narrative chapters, boss progression FED→BCE→BOJ) and **Arcade Mode** (endless waves, high scores, mini-bosses).
+*   **Wave System**: 15 unique waves (5 per cycle x 3 cycles) with 16 formation patterns and thematic currency groups.
+*   **Horde System**: Each wave has 2 hordes with complementary formations and escalating difficulty.
+*   **HarmonicConductor**: Beat-synced enemy firing with wave intensity phases (Setup → Build → Panic).
+*   **HYPER Mode**: Fill graze meter to 100%, activate for 5x score + 50% bigger hitbox (high risk/reward).
+*   **Satoshi's Sacrifice**: At 1 life, sacrifice all score for 10s invincibility and 10x multiplier.
+*   **Weapon Evolution**: Progressive shot levels (1-3) + stackable modifiers + exclusive specials.
+*   **GODCHAIN Mode**: Max all weapon modifiers simultaneously for ultimate ship form (red aura, fire trails, speed boost).
+*   **Dynamic Difficulty (Rank System)**: Game adapts to player skill in real-time (-1.0 to +1.0 rank).
+*   **3 Unique Bosses**: FED (MEGA-BILL), BCE (MEGA-COIN), BOJ (MEGA-BAR) with exclusive attack patterns.
+*   **10 Fiat Currencies**: Each with unique shape, tier, and fire pattern.
+*   **Compact HUD**: Minimal 45px top bar with diegetic ship indicators (life pips, shield ring, weapon pips, graze glow).
+*   **Reactive Feedback**: Score colors on streaks, danger pulse at low HP, wave sweep transitions.
+*   **Skippable Intermissions**: Tap/click/spacebar to skip the 3-2-1 countdown between waves.
 
 ## 🎮 How to Play
 
-*   **Move**: Arrow Keys (Desktop) or Touch Sides (Mobile).
+*   **Move**: Arrow Keys (Desktop) or Virtual Joystick (Mobile).
 *   **Shoot**: Auto-fire / Spacebar.
-*   **Shield**: Down Arrow or Tap Shield Icon.
-*   **HODL Mode**: Stop moving to charge your "Diamond Hands" and get 2x Multiplier!
+*   **Shield**: Down Arrow or Tap Shield Button.
+*   **HYPER**: H Key or Tap HYPER Button (when meter full).
+*   **HODL Mode**: Stop moving to charge "Diamond Hands" for 2x score multiplier.
 
 ## 🛠️ Development & Running Locally
 
@@ -57,13 +67,15 @@ This project is a static site. You can deploy it instantly to:
 ```
 /assets          # Images and Icons
 /src
-  /core          # Audio, Input, Object Pools
-  /entities      # Game Objects (Player, Enemy, Boss)
-  /managers      # Wave Logic, Collision
-  /utils         # Constants, Text Strings
-  main.js        # Entry Point & Game Loop
+  /config        # BalanceConfig (single source of truth)
+  /core          # Audio, Input, Object Pools, EventBus
+  /entities      # Game Objects (Player, Enemy, Boss, Bullet, PowerUp)
+  /managers      # WaveManager, CampaignState
+  /systems       # HarmonicConductor, ParticleSystem, RankSystem, Effects, Sky, etc.
+  /utils         # Constants, DebugSystem, ColorUtils, MathUtils, Upgrades
+  main.js        # Game Loop & State Machine
 index.html       # DOM Structure & UI Overlay
-style.css        # Cyberpunk Styling & Responsive Rules
+style.css        # Cell-Shaded Styling & Responsive Rules
 sw.js            # Service Worker (Offline Support)
 manifest.json    # PWA Configuration
 ```
@@ -77,21 +89,63 @@ manifest.json    # PWA Configuration
 ## 🧪 Dev Tips
 
 * **Hard refresh** after changing assets: `Ctrl+F5`.
-* If changes don’t show, clear SW cache: DevTools → Application → Service Workers → Unregister → Clear Storage.
+* If changes don't show, clear SW cache: DevTools → Application → Service Workers → Unregister → Clear Storage.
 * Current visuals are **code‑drawn**; sprites in `/assets` are optional unless wired back.
+
+## 🔬 Debug & Performance Tools
+
+All tools accessible via browser console using `dbg.` shortcut.
+
+### Balance Testing (one-command workflow)
+```javascript
+dbg.balanceTest()   // Start tracking + auto-enable perf profiler
+// ... play the game ...
+dbg.report()        // After game over: full analytics + performance report
+```
+
+### Performance Profiler
+```javascript
+dbg.perf()          // Start profiling (shows FPS overlay top-right)
+dbg.perfStop()      // Stop profiling
+dbg.perfReport()    // Detailed report: FPS, frame times (P50/P95/P99),
+                    // jank analysis, GC spikes, entity peaks, verdict
+```
+
+### Debug Overlay & Logging
+```javascript
+dbg.showOverlay()   // On-screen panel: state, entities, boss, rank, HUD
+dbg.debugBoss()     // Enable boss logging + overlay
+dbg.debugWaves()    // Enable wave logging + overlay
+dbg.debugHUD()      // Enable HUD logging + overlay
+dbg.hudStatus()     // Full HUD state snapshot
+```
+
+### Weapon Debug
+```javascript
+dbg.maxWeapon()     // Max all weapon stats
+dbg.setShot(3)      // Set shot level 1-3
+dbg.setMod('rate',2)// Set modifier level
+dbg.setSpecial('HOMING') // Activate special
+dbg.godchain()      // Force GODCHAIN mode
+```
 
 ## 🔧 Common Tweaks
 
-* Enemy fire density: `enemyFireStride`, `enemyFireTimer` in `src/main.js`.
-* Wave patterns/spawn bounds: `src/managers/WaveManager.js`.
-* Perk trigger rules: `bulletCancelStreak` logic in `src/main.js`.
+All tuning is centralized in `src/config/BalanceConfig.js` via `window.Game.Balance`.
+
+* **Difficulty curve**: `Balance.DIFFICULTY` (CYCLE_BASE, WAVE_SCALE, MAX_DIFFICULTY)
+* **Enemy firing**: `Balance.CHOREOGRAPHY` (HarmonicConductor controls all firing)
+* **Wave definitions**: `Balance.WAVE_DEFINITIONS` (15 waves, formations, currencies)
+* **Boss stats**: `Balance.BOSS` (HP, fire rates, movement per boss per phase)
+* **Dynamic difficulty**: `Balance.RANK` (fire rate/enemy count adjustment range)
+* **Graze system**: `Balance.GRAZE` (radius, decay, HYPER meter)
 
 ## ✅ Quickstart Tuning Checklist
 
-* **Too much bullet spam** → raise `enemyFireStride`, increase `enemyFireTimer`.
-* **Waves end too fast** → increase enemy HP in `Constants.FIAT_TYPES`.
-* **Player dies too quickly** → raise base HP or reduce enemy fire rate scaling.
-* **Boss too spiky** → lower boss HP scale or fire cadence.
+* **Too much bullet spam** → Lower `Balance.CHOREOGRAPHY.INTENSITY` rate multipliers
+* **Waves end too fast** → Increase enemy count in `Balance.WAVE_DEFINITIONS`
+* **Player dies too quickly** → Reduce `Balance.RANK.FIRE_RATE_RANGE` or enable easier base difficulty
+* **Boss too spiky** → Lower `Balance.BOSS.HP` or increase fire rate timers
 
 ## 🧩 Known Issues / Watchlist
 
@@ -101,5 +155,4 @@ manifest.json    # PWA Configuration
 
 ## 📜 Credits
 
-Created by **Antigravity** (Google DeepMind) & **Tsune**.
-*Panic Selling Update v2.1.0*
+Created by [**psychoSocial**](https://www.psychosoci5l.com/) with **Claude**, **Antigravity**, **ChatGPT**, **Gemini**.

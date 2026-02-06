@@ -14,6 +14,11 @@ class DialogueUI {
         this.isVisible = false;
         this.hideTimeout = null;
         this.typewriterInterval = null;
+        this._listenersAttached = false;  // Prevent duplicate listeners
+
+        // Bound handlers for cleanup
+        this._onClickHandler = null;
+        this._onTouchHandler = null;
 
         // Config
         this.config = {
@@ -37,13 +42,16 @@ class DialogueUI {
         this.speakerEl = document.getElementById('dialogue-speaker');
         this.textEl = document.getElementById('dialogue-text');
 
-        // Click/tap to dismiss
-        if (this.container) {
-            this.container.addEventListener('click', () => this.hide());
-            this.container.addEventListener('touchstart', (e) => {
+        // Click/tap to dismiss (only attach once)
+        if (this.container && !this._listenersAttached) {
+            this._onClickHandler = () => this.hide();
+            this._onTouchHandler = (e) => {
                 e.preventDefault();
                 this.hide();
-            });
+            };
+            this.container.addEventListener('click', this._onClickHandler);
+            this.container.addEventListener('touchstart', this._onTouchHandler, { passive: false });
+            this._listenersAttached = true;
         }
     }
 
@@ -187,6 +195,33 @@ class DialogueUI {
      */
     setConfig(options) {
         Object.assign(this.config, options);
+    }
+
+    /**
+     * Cleanup - remove event listeners and DOM
+     */
+    destroy() {
+        this.hide();
+
+        // Remove event listeners
+        if (this.container && this._listenersAttached) {
+            if (this._onClickHandler) {
+                this.container.removeEventListener('click', this._onClickHandler);
+            }
+            if (this._onTouchHandler) {
+                this.container.removeEventListener('touchstart', this._onTouchHandler);
+            }
+            this._listenersAttached = false;
+        }
+
+        // Remove DOM element
+        if (this.container && this.container.parentNode) {
+            this.container.parentNode.removeChild(this.container);
+        }
+
+        this.container = null;
+        this.speakerEl = null;
+        this.textEl = null;
     }
 }
 

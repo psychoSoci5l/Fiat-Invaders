@@ -3,8 +3,12 @@ window.Game = window.Game || {};
 class InputSystem {
     constructor() {
         this.keys = {};
-        this.touch = { active: false, x: 0, shield: false, axisX: 0, joystickActive: false, joystickId: null, useJoystick: false, deadzone: 0.15, sensitivity: 1.0 };
+        this.touch = { active: false, x: 0, shield: false, hyper: false, axisX: 0, joystickActive: false, joystickId: null, useJoystick: false, deadzone: 0.15, sensitivity: 1.0 };
         this.callbacks = {};
+        this.debugMode = false;  // Touch debug overlay
+        this.debugOverlay = null;
+        this.vibrationSupported = !!(navigator.vibrate);
+        this.vibrationFallbackCallback = null;  // Visual fallback when no vibration
     }
 
     init() {
@@ -35,12 +39,39 @@ class InputSystem {
 
         window.addEventListener('touchstart', handleTouch, { passive: false });
         window.addEventListener('touchmove', handleTouch, { passive: false });
-        window.addEventListener('touchend', () => { if (!this.touch.joystickActive) this.touch.active = false; });
+        window.addEventListener('touchend', () => { if (!this.touch.joystickActive) this.touch.active = false; }, { passive: true });
 
-        const tShield = document.getElementById('t-shield');
+        // Shield button - with dynamic fallback creation
+        let tShield = document.getElementById('t-shield');
+        if (!tShield) {
+            tShield = this._createShieldButton();
+        }
         if (tShield) {
-            tShield.addEventListener('touchstart', (e) => { e.preventDefault(); this.touch.shield = true; });
-            tShield.addEventListener('touchend', (e) => { e.preventDefault(); this.touch.shield = false; });
+            tShield.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); this.touch.shield = true; }, { passive: false });
+            tShield.addEventListener('touchend', (e) => { e.preventDefault(); e.stopPropagation(); this.touch.shield = false; }, { passive: false });
+        }
+
+        // v4.0.4: HYPER button touch handler
+        const tHyper = document.getElementById('t-hyper');
+        if (tHyper) {
+            tHyper.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); this.touch.hyper = true; }, { passive: false });
+            tHyper.addEventListener('touchend', (e) => { e.preventDefault(); e.stopPropagation(); this.touch.hyper = false; }, { passive: false });
+        }
+
+        // Pause button - explicit touch handler for iOS
+        const pauseBtn = document.getElementById('pause-btn');
+        if (pauseBtn) {
+            pauseBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, { passive: false });
+            pauseBtn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (typeof window.togglePause === 'function') {
+                    window.togglePause();
+                }
+            }, { passive: false });
         }
 
         const joy = document.getElementById('joystick');
@@ -63,7 +94,8 @@ class InputSystem {
                 const cy = dy * clamped;
                 joyStick.style.transform = `translate(${cx}px, ${cy}px)`;
                 let axis = (cx / radius) * this.touch.sensitivity;
-                if (Math.abs(axis) < this.touch.deadzone) axis = 0;
+                // Smooth deadzone - gradual transition instead of hard cutoff
+                axis = this._applyDeadzone(axis);
                 this.touch.axisX = Math.max(-1, Math.min(1, axis));
                 this.touch.active = true;
             };
@@ -87,7 +119,15 @@ class InputSystem {
 
             const onJoyMove = (e) => {
                 if (!this.touch.joystickActive) return;
-                const t = Array.from(e.changedTouches).find(tt => tt.identifier === this.touch.joystickId);
+                // Direct iteration (no Array.from allocation)
+                let t = null;
+                const touches = e.changedTouches;
+                for (let i = 0, len = touches.length; i < len; i++) {
+                    if (touches[i].identifier === this.touch.joystickId) {
+                        t = touches[i];
+                        break;
+                    }
+                }
                 if (!t) return;
                 const rect = joy.getBoundingClientRect();
                 const dx = t.clientX - (rect.left + center.x);
@@ -96,7 +136,15 @@ class InputSystem {
             };
 
             const onJoyEnd = (e) => {
-                const t = Array.from(e.changedTouches).find(tt => tt.identifier === this.touch.joystickId);
+                // Direct iteration (no Array.from allocation)
+                let t = null;
+                const touches = e.changedTouches;
+                for (let i = 0, len = touches.length; i < len; i++) {
+                    if (touches[i].identifier === this.touch.joystickId) {
+                        t = touches[i];
+                        break;
+                    }
+                }
                 if (!t) return;
                 this.touch.joystickActive = false;
                 this.touch.joystickId = null;
@@ -122,6 +170,7 @@ class InputSystem {
         if (code === 'Escape' && this.callbacks['escape']) this.callbacks['escape']();
         if ((code === 'Enter' || code === 'Space') && this.callbacks['start']) this.callbacks['start']();
         if (code === 'F3' && this.callbacks['toggleDebug']) this.callbacks['toggleDebug']();
+        if (code === 'F4') this.toggleDebugMode();  // Touch debug overlay
         if (this.callbacks['navigate']) this.callbacks['navigate'](code);
     }
 
@@ -147,6 +196,150 @@ class InputSystem {
         if (typeof sensitivity === 'number') this.touch.sensitivity = Math.max(0.5, Math.min(1.5, sensitivity));
         localStorage.setItem('fiat_joy_deadzone', String(this.touch.deadzone));
         localStorage.setItem('fiat_joy_sensitivity', String(this.touch.sensitivity));
+    }
+
+    // === DEADZONE: Smooth transition instead of hard cutoff ===
+    _applyDeadzone(axis) {
+        const dz = this.touch.deadzone;
+        const absAxis = Math.abs(axis);
+        if (absAxis < dz) {
+            return 0;  // Inside deadzone
+        }
+        // Remap from [deadzone, 1] to [0, 1] for smooth transition
+        const sign = Math.sign(axis);
+        const remapped = (absAxis - dz) / (1 - dz);
+        return sign * remapped;
+    }
+
+    // === FALLBACK: Create shield button dynamically if missing ===
+    _createShieldButton() {
+        const container = document.getElementById('game-container') || document.body;
+        const btn = document.createElement('div');
+        btn.id = 't-shield';
+        btn.className = 'shield-btn-wrapper ready';
+        btn.innerHTML = `
+            <svg class="shield-radial" viewBox="0 0 68 68">
+                <circle class="shield-radial-bg" cx="34" cy="34" r="30" />
+                <circle class="shield-radial-progress" cx="34" cy="34" r="30" />
+            </svg>
+            <div class="shield-btn-face">
+                <span class="shield-icon">🛡️</span>
+            </div>
+        `;
+        container.appendChild(btn);
+        return btn;
+    }
+
+    // === VIBRATION with visual fallback ===
+    setVibrationFallback(callback) {
+        this.vibrationFallbackCallback = callback;
+    }
+
+    vibrate(pattern) {
+        if (this.vibrationSupported) {
+            try {
+                navigator.vibrate(pattern);
+                return;
+            } catch (e) {
+                // Vibration failed, use fallback
+            }
+        }
+        // Visual fallback when vibration unavailable
+        if (this.vibrationFallbackCallback) {
+            this.vibrationFallbackCallback(pattern);
+        }
+    }
+
+    // === TOUCH DEBUG MODE (F4 toggle) ===
+    toggleDebugMode() {
+        this.debugMode = !this.debugMode;
+        if (this.debugMode) {
+            this._showDebugOverlay();
+        } else {
+            this._hideDebugOverlay();
+        }
+        return this.debugMode;
+    }
+
+    _showDebugOverlay() {
+        if (this.debugOverlay) return;
+
+        this.debugOverlay = document.createElement('div');
+        this.debugOverlay.id = 'touch-debug-overlay';
+        this.debugOverlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+        `;
+
+        // Touch indicator
+        const indicator = document.createElement('div');
+        indicator.id = 'touch-debug-indicator';
+        indicator.style.cssText = `
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border: 3px solid #00ff00;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+            box-shadow: 0 0 10px #00ff00;
+        `;
+        this.debugOverlay.appendChild(indicator);
+
+        // Info panel
+        const info = document.createElement('div');
+        info.id = 'touch-debug-info';
+        info.style.cssText = `
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.8);
+            color: #0f0;
+            font-family: monospace;
+            font-size: 12px;
+            padding: 8px;
+            border-radius: 4px;
+        `;
+        info.innerHTML = 'Touch Debug: ON<br>Vibration: ' + (this.vibrationSupported ? 'YES' : 'NO');
+        this.debugOverlay.appendChild(info);
+
+        document.body.appendChild(this.debugOverlay);
+
+        // Update debug info on touch
+        this._debugTouchHandler = (e) => {
+            const indicator = document.getElementById('touch-debug-indicator');
+            const info = document.getElementById('touch-debug-info');
+            if (e.touches.length > 0) {
+                const t = e.touches[0];
+                indicator.style.display = 'block';
+                indicator.style.left = t.clientX + 'px';
+                indicator.style.top = t.clientY + 'px';
+                info.innerHTML = `Touch Debug: ON<br>X: ${t.clientX.toFixed(0)}<br>Y: ${t.clientY.toFixed(0)}<br>xPct: ${(t.clientX / window.innerWidth).toFixed(2)}<br>axisX: ${this.touch.axisX.toFixed(2)}<br>Shield: ${this.touch.shield}<br>Vibration: ${this.vibrationSupported ? 'YES' : 'NO'}`;
+            } else {
+                indicator.style.display = 'none';
+            }
+        };
+        window.addEventListener('touchstart', this._debugTouchHandler);
+        window.addEventListener('touchmove', this._debugTouchHandler);
+        window.addEventListener('touchend', this._debugTouchHandler);
+    }
+
+    _hideDebugOverlay() {
+        if (this.debugOverlay) {
+            this.debugOverlay.remove();
+            this.debugOverlay = null;
+        }
+        if (this._debugTouchHandler) {
+            window.removeEventListener('touchstart', this._debugTouchHandler);
+            window.removeEventListener('touchmove', this._debugTouchHandler);
+            window.removeEventListener('touchend', this._debugTouchHandler);
+            this._debugTouchHandler = null;
+        }
     }
 }
 
