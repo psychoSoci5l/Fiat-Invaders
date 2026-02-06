@@ -1,5 +1,175 @@
 # Changelog
 
+## v4.11.0 - 2026-02-06
+### Performance: 60fps Rock Solid — Draw + GC Optimization
+
+Targeted optimization based on mobile performance report (BTC Normal, 80.3fps avg, 814 GC spikes, 37.6ms worst frame).
+
+#### FIX 1: RGBA String Cache (CRITICAL — ~500 alloc/frame eliminated)
+- **`ColorUtils.rgba(r, g, b, alpha)`**: Cached rgba strings with alpha discretized to 0.05 steps (21 values per color)
+- **20 most-used colors pre-cached** at module load (gold, white, red, cyan, etc.)
+- Replaced all `\`rgba(...)\`` template literals in `Bullet.js` (4), `Player.js` (36), `Boss.js` (3) with cached lookups
+- Static color constants on Bullet class (`_WHITE_HALF`, `_WHITE_15`, `_WHITE_90`) for enemy bullet shapes
+
+#### FIX 2: Font String Cache (~50 alloc/frame eliminated)
+- **`ColorUtils.font(weight, size, family)`**: Cached font strings keyed by weight+size+family
+- Replaced 8 dynamic `\`bold ${size}px ...\`` template literals in main.js, ParticleSystem.js
+
+#### FIX 3: Intermission Blur Removal (2-5ms/frame saved during intermission)
+- Removed `ctx.filter = 'blur(4px)'; ctx.drawImage(canvas)` — the single most expensive GPU operation
+- Replaced with simple `rgba(0,0,0,0.6)` dark overlay (visually similar, ~100x cheaper)
+
+#### FIX 4: Enemy Bullet Trail Simplification (~450 path ops/frame saved)
+- Reduced trail segments from 4 triangles to 2 per bullet across all 5 enemy shapes
+- At 150 enemy bullets: 600→300 triangle path operations per frame
+- Removed intermediate colored ring from default energy bolt (3 circles→2)
+
+#### FIX 5: shadowBlur Removal (GPU cost reduction)
+- Replaced `shadowBlur` with stroke outlines or glow circles in:
+  - Boss.js: BCE phase 3 `€` symbol, BOJ phase 3 `¥` symbol
+  - main.js: Perk icons, HYPER ready indicator, intermission meme
+  - Player.js: Weapon pip modifier glow
+
+#### FIX 6: Perk Icon Gradient Optimization
+- Parse hex color once per icon (`_rgb` cached), use `rgba()` for gradient stops
+- Eliminated 4 `hexToRgba()` calls per perk icon per frame
+
+**Measured Impact** (desktop): GC spikes 814→3, worst frame 37.6ms→9.8ms, 0 jank >16ms — Verdict: EXCELLENT
+
+### Bug Fixes (v4.11.0)
+
+#### Story Mode: Campaign Progress Persistence Bug (CRITICAL)
+- **Problem**: Boss defeats persisted in localStorage across sessions. Starting a new Story game with 2/3 bosses already defeated from previous sessions caused the campaign to complete after 1 boss fight (BOJ as Cycle 1 boss instead of FED)
+- **Fix**: `resetCampaign()` now called **always** when starting Story Mode, not just when campaign was already complete
+- **Symptom**: Game ended with "CAMPAIGN COMPLETE" after first boss, Final Score: 0
+
+#### Story Mode: Campaign Victory Score Not Recorded
+- **Problem**: `showCampaignVictory()` bypassed `triggerGameOver()`, so `endAnalyticsRun(score)` was never called — Final Score always showed 0 in `dbg.report()`
+- **Fix**: Added `endAnalyticsRun()` call in `showCampaignVictory()`
+
+#### Story Screen Language Always English
+- **Problem**: `StoryScreen.show()` read `localStorage.getItem('fiat_lang')` which is `null` if user never toggled language (browser auto-detect doesn't save to localStorage)
+- **Fix**: Exposed `G._currentLang` from main.js; StoryScreen reads it directly with localStorage fallback
+
+#### Mini-Bosses Disabled in Story Mode
+- **Rationale**: Mini-bosses break narrative rhythm in Story Mode; they're arcade-oriented mechanics
+- **Implementation**: Early guard `!(G.CampaignState && G.CampaignState.isEnabled())` before the entire mini-boss trigger block — zero wasted computation in Story Mode
+
+#### Intermission Countdown Skippable
+- **Feature**: Tap/click/spacebar during 3-2-1 intermission countdown now skips it instantly
+- **Implementation**: Added `INTERMISSION` case to `inputSys.on('start')` handler, sets `intermissionTimer = 0`
+
+## v4.10.3 - 2026-02-06
+### Enhancement: Unified Balance + Performance Report
+
+`dbg.balanceTest()` now auto-starts performance profiling, and `dbg.report()` includes a PERFORMANCE section.
+
+- **`balanceTest()`**: Automatically calls `this.perf()` — no need to run `dbg.perf()` separately
+- **`report()`**: Appends performance data (Avg FPS, frame times P95/P99, jank counts, GC spikes, entity peaks, verdict)
+- **No breaking changes**: `dbg.perf()` and `dbg.perfReport()` still work standalone
+- **Workflow**: `dbg.balanceTest()` → play → game over → `dbg.report()` = everything in one place
+
+## v4.10.2 - 2026-02-06
+### Fix: Post-Playtest Balance Fixes — BOJ, Mini-Boss Spam, Boss HP, Formation Bounds
+
+Critical balance fixes identified during Story Mode BTC playtest session.
+
+#### Fix 1: BOJ Phase 1 Pattern Density (CRITICAL)
+- **Problem**: BOJ Phase 1 lasted 72s (10x longer than FED/BCE) due to 24 bullets/sec flooding the screen
+- **Fix**: Phase 1 fire rate 0.75s → 0.90s, zenGarden fires every 2nd cycle (was every cycle), arms 3→2, bulletsPerArm 2→1
+- **Result**: ~6 bullets/sec (was 24), player can now damage the boss
+
+#### Fix 2: Mini-Boss Spam Prevention (CRITICAL)
+- **Problem**: C3W5H2 Ⓒ-swarm (26 enemies) triggered 3 consecutive BOJ mini-bosses (~100s total)
+- **Fix**: Ⓒ threshold 12→24 (max 1 trigger per wave), added `MAX_PER_WAVE: 2` cap with per-wave counter
+- **Result**: Max 1-2 mini-bosses per wave regardless of enemy composition
+
+#### Fix 3: Boss HP Scaling (HIGH)
+- **Problem**: `dmgCompensation = Math.sqrt(playerDmgMult)` punished players for taking Kinetic Rounds perk — counterintuitive
+- **Fix**: Removed dmgCompensation entirely. perkScaling already handles perk-based HP increase
+- **Result**: ~28% lower boss HP with damage perks (no more double penalty)
+
+#### Fix 4: Formation Y-Clamping (MEDIUM)
+- **Problem**: SPIRAL generated Y=-49, STAIRCASE Y=624, CROSS Y=590 — enemies invisible off-screen
+- **Fix**: Added Y-clamp after formation generation (same pattern as existing X-clamp): minY=startY, maxY=gameHeight*0.65
+- **Result**: All enemies visible within gameplay area (80px to ~455px)
+
+## v4.10.1 - 2026-02-06
+### Fix: Full Localization Audit — All Game Messages Now Respect Language Setting
+
+Complete audit and fix of hardcoded English strings in game messages. All gameplay text now uses the `t()` localization function.
+
+#### Fixed Strings (14 total)
+- **CYCLE X BEGINS** → IT: "CICLO X INIZIA" (intermission after boss)
+- **HYPER READY! [H]** → IT: "HYPER PRONTO! [H]" (wave strip + canvas overlay)
+- **HYPER FAILED!** → IT: "HYPER FALLITO!" (danger alert)
+- **SURVIVE THE CRASH** → IT: "SOPRAVVIVI AL CRASH" (Bear Market start)
+- **[Boss] APPEARS!** → IT: "[Boss] APPARE!" (mini-boss entrance)
+- **[Boss] REVENGE!** → IT: "[Boss] VENDETTA!" (mini-boss revenge)
+- **[Boss] DESTROYED!** → IT: "[Boss] DISTRUTTO!" (boss/mini-boss killed)
+- **[Boss] DEFEATED!** → IT: "[Boss] SCONFITTO!" (boss defeated)
+- **GODCHAIN MODE / LOST** → IT: "GODCHAIN ATTIVA / PERSA"
+- **BULLET BONUS** → IT: "BONUS PROIETTILI"
+- **GRAZE BONUS!** → IT: "BONUS GRAZE!"
+- **GRAZE MASTER** → IT: "MAESTRO GRAZE"
+- **LAST FIAT!** → IT: "ULTIMO FIAT!"
+- **RESPAWN!** → IT: "RINASCITA!"
+- **NEW WEAPON UNLOCKED:** → IT: "NUOVA ARMA SBLOCCATA:"
+- **PROFIT!** → IT: "PROFITTO!"
+- **s LEFT!** → IT: "s RIMASTI!"
+
+#### Intentionally Kept in English (crypto jargon)
+- "SATOSHI MODE", "SATOSHI APPROVES", "NGMI" — universal crypto slang
+- "CENTRAL BANK REKT!", "FIAT IS DEAD!" — meme flavor text
+- Boss names (FEDERAL RESERVE, BCE, BOJ) — proper nouns
+- All meme pools (SAYLOR, POWELL, etc.) — crypto culture content
+
+#### Service Worker
+- Fixed 206 partial response caching error (was throwing `TypeError: Partial response unsupported`)
+
+## v4.10.0 - 2026-02-06
+### Engine Hardening: Phase 40A — GC Pressure & Hot-Path Optimization
+
+Zero-allocation engine pass targeting the ~3800 GC pauses detected during full story mode profiling.
+
+#### HarmonicConductor (biggest impact)
+- Replaced ALL `.filter()` calls with manual for-loops (was ~960 alloc/sec)
+- Replaced `.some()` with early-return for-loop
+- Pre-allocated `_tempActive` / `_tempTier` reusable arrays for `getEnemiesByTier()`
+- Replaced `.forEach()` with for-loops in `processBeat()`, `executeCascade()`, `executeSyncFire()`
+- Centroid calculation in `executePattern()` now inline (no `.filter().reduce()`)
+
+#### EventBus
+- `emit()`: replaced `.slice().forEach()` with simple for-loop (was allocating array copy per emit)
+- Removed dead `beat` event emission in AudioSystem (no listeners existed, created object per beat)
+- `harmonic_bullets` handler: `.forEach()` → for-loop
+
+#### main.js Hot-Path
+- DOM cache (`_domCache`): `setStyle()` / `setUI()` no longer call `getElementById()` per frame
+- `updateShieldButton()` / `updateHyperButton()`: cached button + progress circle refs
+- `_weaponState`: pre-allocated object, updated in-place (was recreating every frame)
+- `bossBullets.forEach()` → for-loop
+- Debug overlay: `floatingTexts.filter().length` → `_countActive()` manual counter (2 arrays/frame eliminated)
+
+#### Performance Profiler v4.10.1
+- Session-wide percentiles via histogram (200 buckets × 0.25ms) — no longer just last 300 frames
+- Session-wide update/draw breakdown sums (was only from circular buffer)
+- Session-wide jank counters (`_above16`, `_above25`, `_above33`)
+- GC pause detection: absolute 8ms threshold (was 2.5x avg, way too sensitive at sub-1ms avg)
+- Improved verdict categories (EXCELLENT/GREAT/GOOD/NEEDS WORK/POOR)
+
+#### Bug Fix: Story Mode HUD disappearing (pre-existing)
+- `showStoryScreen()` hid `ui-layer` and `touchControls` but callback never restored them
+- After Chapter 1/2/3 story screens (post-boss), all DOM HUD elements became invisible
+- Fix: restore `ui.uiLayer` and `ui.touchControls` in StoryScreen dismiss callback
+- Only the Prologue was unaffected (its callback calls `startGame()` which restores HUD)
+
+#### Summary
+- Estimated ~1000+ allocations/sec eliminated from hot path
+- All changes are internal — zero gameplay/visual changes
+- Profiler now produces accurate session-wide metrics
+- Fixed pre-existing Story Mode HUD bug
+
 ## v4.9.0 - 2026-02-05
 ### Feature: Platform-Aware Manual + Intro Improvements + Story Mode Fixes
 

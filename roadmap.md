@@ -2097,10 +2097,118 @@ DIGITAL_THREAT: ['Ⓒ', '$', '元']  // CBDCs + majors
 - [x] **Removed elements**: .btn-tap-start, .btn-launch, .selection-controls, .selection-mode
 - [x] **New elements**: .mode-selector-box, .mode-tab, .current-mode-badge, .primary-action-container
 
-## Phase 39: Formation System Visual Audit (NEXT SESSION — START HERE)
+## Phase 39: Formation System Visual Audit
 *Goal: Fine-tuning of enemy formation placement - targeted fixes based on visual testing.*
 - [ ] **Visual audit**: Test each of the 16 formations individually with debug overlay
 - [ ] **Shape-specific tuning**: Adjust spacing/factors per formation as needed
 - [ ] **Edge cases**: Verify formations at all count ranges (8-24) and screen widths
+
+---
+
+## Phase 40: Engine Hardening — Release Candidate Prep (IN PROGRESS)
+*Goal: Motore rock solid e prestante. Il gioco funziona, ora il codice deve essere professionale.*
+
+> **Contesto**: Il gameplay è completo. Questa fase prepara il motore per la release candidate.
+> Nessuna feature nuova — solo solidità, performance e pulizia.
+
+### A) Hardcoded Values Audit 🔍
+- [ ] **Scan completo**: Identificare tutti i magic numbers rimasti in main.js, Player.js, Enemy.js, Boss.js
+- [ ] **Migrazione a BalanceConfig**: Spostare valori hardcoded in Balance.* (posizioni, soglie, tempi)
+- [ ] **Costanti CSS**: Verificare valori inline in index.html e duplicati in style.css
+
+### B) Cache & Memory Optimization 🧠 — v4.10.0 ✅
+- [x] **GC pressure fix**: Eliminati ~1000+ alloc/sec da hot path
+  - HarmonicConductor: tutti `.filter()` → for-loop manuali, array pre-allocati `_tempActive`/`_tempTier`
+  - EventBus `emit()`: `.slice().forEach()` → for-loop (eliminata copia array per emissione)
+  - Rimosso `beat` event morto in AudioSystem (nessun listener)
+  - `harmonic_bullets` handler: `.forEach()` → for-loop
+  - `bossBullets.forEach()` → for-loop
+  - `floatingTexts/perkIcons.filter().length` → `_countActive()` manuale
+- [x] **DOM access caching**: `_domCache` per `setStyle()`/`setUI()`, refs cached per shield/hyper buttons
+- [x] **Object reuse**: `_weaponState` pre-allocato, aggiornato in-place (era ricreato ogni frame)
+- [x] **Calculation caching**: rgba() con alpha discretizzato (21 step) + font() string cache in ColorUtils — v4.11.0
+- [ ] **Object pool audit**: Verificare che tutti gli oggetti ad alta frequenza siano pooled
+
+### C) Buffer & Rendering Pipeline ⚡ — v4.11.0 (parziale)
+- [x] **Draw call analysis**: Enemy bullet trail ridotti da 4 a 2 segmenti (-450 path ops/frame a 150 bullets) — v4.11.0
+- [x] **shadowBlur elimination**: Tutti i shadowBlur rimossi (Boss.js, Player.js, main.js) → glow circles/stroke — v4.11.0
+- [x] **Blur filter removal**: Intermission `ctx.filter='blur(4px)'` → semplice overlay scuro — v4.11.0
+- [ ] **Batch rendering**: Raggruppare entità simili (tutti i nemici coin, poi bill, poi bar, ecc.)
+- [ ] **Off-screen canvas**: Valutare pre-rendering per elementi statici o ripetitivi
+- [x] **Particle budget**: Verificato — MAX_PARTICLES (180) raggiunto in gioco reale, pool saturo ma funzionante
+
+### D) Event System Rationalization 📡 — v4.10.0 ✅
+- [x] **EventBus audit**: 28 eventi totali, 5 con listener attivi, 14 orfani identificati (emit senza listener)
+  - Orfani sono benigni (emit fa early-return se nessun listener)
+  - `beat` event rimosso (unico orfano con costo di allocazione)
+- [x] **Listener cleanup**: init() chiamato 1 volta sola — nessun leak
+- [x] **Event frequency**: `harmonic_bullets` è il più frequente, ottimizzato con for-loop
+- [x] **Callback chain**: Nessuna catena circolare trovata
+
+### E) main.js Decomposition (da Sprint 23.4)
+- [ ] **CollisionSystem.js**: Estrarre logica collisioni (~400 righe)
+- [ ] **Global variable cleanup**: Spostare globali in RunState o manager dedicati
+- [ ] **State machine**: Formalizzare transizioni game state (evitare if/else chains)
+
+### F) Profiling & Benchmarks 📊 — v4.10.0 (parziale)
+- [x] **Performance Profiler v4.10.1**: Sessione intera con histogram per percentili, breakdown update/draw, jank counters, GC spike detection
+- [x] **Baseline misurato**: 130.8 FPS avg, 0.88ms frame avg, worst 45.4ms, 3800 GC pauses (pre-fix)
+- [x] **Post-fix benchmark #1** (desktop): 135.6 FPS, 56 GC spikes (98.5% reduction), 0 frames >16.7ms, worst 12.2ms
+- [x] **Post-fix benchmark #2** (mobile): 100.3 FPS, 228 spikes >8ms (different device/conditions)
+- [ ] **60fps target mobile**: Test su device reale durante fasi intensive
+- [ ] **Memory footprint**: Verificare stabilità memoria su sessioni lunghe (10+ minuti)
+
+### G) Localization Audit — v4.10.1 ✅
+- [x] **Full message audit**: Identificati e corretti 17 stringhe hardcoded in inglese in main.js
+- [x] **Nuove chiavi**: BEGINS, HYPER_READY, HYPER_FAILED, SURVIVE_CRASH, APPEARS, REVENGE, DESTROYED, DEFEATED, GODCHAIN_ON/OFF, BULLET_BONUS, GRAZE_BONUS, GRAZE_MASTER, LAST_FIAT, RESPAWN, WEAPON_UNLOCK, PROFIT, TIME_LEFT
+- [x] **Traduzioni IT**: Tutte le stringhe di gioco ora rispettano la lingua selezionata
+- [x] **Esclusi intenzionalmente**: Slang crypto universale (SATOSHI, NGMI, HODL) + nomi propri boss
+
+### I) Unified Debug Report — v4.10.3 ✅
+- [x] **`balanceTest()` auto-perf**: Chiama `this.perf()` automaticamente — un solo comando per attivare tutto
+- [x] **`report()` con PERFORMANCE**: Sezione finale con Avg FPS, frame times (P95/P99), jank, GC spikes, entity peaks, verdict
+- [x] **Nessun breaking change**: `dbg.perf()` e `dbg.perfReport()` funzionano ancora standalone
+
+### H) Post-Playtest Balance Fixes — v4.10.2 ✅
+- [x] **BOJ Phase 1**: Fire rate 0.75→0.90s, zenGarden ogni 2 cicli (era ogni ciclo), arms 3→2, bulletsPerArm 2→1
+- [x] **Mini-boss spam**: Ⓒ threshold 12→24, aggiunto MAX_PER_WAVE: 2 cap con counter per-wave
+- [x] **Boss HP**: Rimosso dmgCompensation (doppia penalità controintuitiva), ~28% HP in meno con perk danno
+- [x] **Formation Y-clamp**: Aggiunto clamp Y dopo generazione formazione (minY=startY, maxY=gameHeight*0.65)
+
+### J) Draw + GC Optimization — v4.11.0 ✅
+*Target: 60fps su mobile. Dati pre-fix: 80.3fps, 814 GC spikes, 37.6ms worst frame.*
+- [x] **rgba string cache**: `ColorUtils.rgba(r,g,b,alpha)` con alpha discretizzato (21 step) — ~500 alloc/frame eliminati
+- [x] **Font string cache**: `ColorUtils.font(weight,size,family)` — ~50 alloc/frame eliminati
+- [x] **Blur filter rimosso**: `ctx.filter='blur(4px)'` intermission → overlay semplice — -2-5ms/frame
+- [x] **Enemy bullet trail**: 4→2 segmenti triangolo per proiettile — -450 path ops/frame a 150 bullets
+- [x] **shadowBlur eliminato**: Boss.js, Player.js, main.js → glow circles/stroke — riduzione GPU
+- [x] **Perk gradient ottimizzato**: hex parsato 1 volta per icona, rgba() per stops — -4 hexToRgba/frame
+- [x] **Risultato misurato (desktop)**: 132.6fps, 3 GC spikes (da 814), worst 9.8ms, 0 jank >16ms — EXCELLENT
+
+### K) Story Mode Bug Fixes — v4.11.0 ✅
+- [x] **Campaign persistence bug**: Boss defeats da sessioni precedenti causavano fine campagna dopo 1 boss. Fix: `resetCampaign()` sempre all'avvio Story Mode
+- [x] **Campaign Victory Score: 0**: `showCampaignVictory()` non chiamava `endAnalyticsRun()`. Fix: aggiunto
+- [x] **Story Screen in inglese**: `StoryScreen.show()` leggeva `localStorage` che poteva essere `null`. Fix: esposto `G._currentLang` da main.js
+- [x] **Mini-boss disabilitati in Story Mode**: Early guard sul blocco intero, zero risorse sprecate
+- [x] **Intermission skippabile**: Tap/click/spazio durante countdown 3-2-1 lo salta
+
+---
+
+## Phase 41: Prossima Sessione — TODO
+*Continuazione diretta da v4.11.0. Il motore è solid, focus su gameplay e polish.*
+
+### Da verificare
+- [ ] **Mobile playtest post-v4.11.0**: Ripetere `dbg.balanceTest()` su device reale — confermare GC spikes <100
+- [ ] **Story Mode flow completo**: Verificare 3 cicli FED→BCE→BOJ con reset campagna funzionante
+- [ ] **Intermission skip feel**: Confermare che skippare non causi glitch audio/visual
+
+### Aperti da Phase 40
+- [ ] **Hardcoded Values Audit** (A): Magic numbers rimasti in main.js, Player.js, Enemy.js, Boss.js
+- [ ] **Object pool audit** (B): Verificare che tutti gli oggetti ad alta frequenza siano pooled
+- [ ] **Batch rendering** (C): Raggruppare entità simili nel draw
+- [ ] **Off-screen canvas** (C): Pre-rendering per elementi statici
+- [ ] **main.js Decomposition** (E): CollisionSystem.js, state machine, global cleanup
+- [ ] **60fps target mobile** (F): Test su device reale durante fasi intensive
+- [ ] **Memory footprint** (F): Stabilità memoria su sessioni lunghe (10+ minuti)
 
 ---

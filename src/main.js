@@ -16,6 +16,7 @@ let gameHeight = 800;
 let gameState = 'VIDEO';
 let userLang = navigator.language || navigator.userLanguage;
 let currentLang = userLang.startsWith('it') ? 'IT' : 'EN';
+G._currentLang = currentLang; // v4.11.0: Expose for StoryScreen localization
 let isBearMarket = false; // 🐻
 window.isBearMarket = isBearMarket; // Expose globally for WaveManager
 G._gameWidth = gameWidth; // v4.0.1: Expose for Bullet horizontal bounds check
@@ -100,7 +101,7 @@ function checkWeaponUnlocks(cycle) {
         // Check for new unlocks
         for (const [weapon, reqCycle] of Object.entries(WEAPON_UNLOCK_CYCLE)) {
             if (reqCycle === cycle) {
-                showGameInfo(`NEW WEAPON UNLOCKED: ${weapon}!`);
+                showGameInfo(t('WEAPON_UNLOCK') + ' ' + weapon + '!');
                 if (G.Audio) G.Audio.play('levelUp');
             }
         }
@@ -182,6 +183,7 @@ let fiatKillCounter = { '¥': 0, '₽': 0, '₹': 0, '€': 0, '£': 0, '₣': 0
 window.fiatKillCounter = fiatKillCounter; // Expose for debug
 let miniBoss = null; // Special boss spawned from kill counter
 let lastMiniBossSpawnTime = 0; // v2.24.4: Cooldown tracking for mini-boss spawns
+let miniBossThisWave = 0; // v4.10.2: Per-wave mini-boss counter to prevent spam
 
 // Drop system now managed by G.DropSystem singleton
 // Boss fight drops also managed by G.DropSystem
@@ -248,16 +250,22 @@ function updateScore(newScore) {
 function triggerScorePulse() {
     if (G.EffectsRenderer) G.EffectsRenderer.triggerScorePulse();
 }
-function setStyle(id, prop, val) { const el = document.getElementById(id) || ui[id]; if (el) el.style[prop] = val; }
-function setUI(id, val) { const el = document.getElementById(id) || ui[id]; if (el) el.innerText = val; }
+// DOM cache to avoid getElementById in hot path
+var _domCache = {};
+function _cachedEl(id) { return _domCache[id] || (_domCache[id] = document.getElementById(id) || ui[id]); }
+function setStyle(id, prop, val) { var el = _cachedEl(id); if (el) el.style[prop] = val; }
+function setUI(id, val) { var el = _cachedEl(id); if (el) el.innerText = val; }
 function emitEvent(name, payload) { if (events && events.emit) events.emit(name, payload); }
+function _countActive(arr) { var c = 0; for (var i = 0, len = arr.length; i < len; i++) { if (arr[i] && arr[i].life > 0) c++; } return c; }
 
 // Shield button radial indicator update
+var _shieldBtn = null, _shieldProgress = null, _shieldCached = false;
 function updateShieldButton(player) {
-    const btn = document.getElementById('t-shield');
+    if (!_shieldCached) { _shieldBtn = document.getElementById('t-shield'); _shieldCached = true; }
+    var btn = _shieldBtn;
     if (!btn) return;
 
-    const progressCircle = btn.querySelector('.shield-radial-progress');
+    var progressCircle = _shieldProgress || (_shieldProgress = btn.querySelector('.shield-radial-progress'));
     const COOLDOWN_MAX = 10.0;
     const CIRCUMFERENCE = 188.5; // 2 * PI * 30
 
@@ -278,8 +286,10 @@ function updateShieldButton(player) {
 }
 
 // v4.0.4: HYPER button state update (mirrors shield button pattern)
+var _hyperBtn = null, _hyperProgress = null, _hyperCached = false;
 function updateHyperButton(player, grazeMeter) {
-    const btn = document.getElementById('t-hyper');
+    if (!_hyperCached) { _hyperBtn = document.getElementById('t-hyper'); _hyperCached = true; }
+    var btn = _hyperBtn;
     if (!btn) return;
 
     // Show only on touch devices
@@ -290,7 +300,7 @@ function updateHyperButton(player, grazeMeter) {
         return;
     }
 
-    const progressCircle = btn.querySelector('.hyper-radial-progress');
+    var progressCircle = _hyperProgress || (_hyperProgress = btn.querySelector('.hyper-radial-progress'));
     const CIRCUMFERENCE = 188.5;
     const threshold = Balance.HYPER?.METER_THRESHOLD || 100;
 
@@ -718,8 +728,9 @@ window.setGameMode = function(mode) {
 
     campaignState.setEnabled(isEnabled);
 
-    // Reset campaign if already complete (fresh start after victory)
-    if (isEnabled && campaignState.isCampaignComplete()) {
+    // Always reset boss defeats when starting Story Mode (v4.11.0)
+    // Prevents partial progress from previous sessions carrying over
+    if (isEnabled) {
         campaignState.resetCampaign();
     }
 
@@ -1058,24 +1069,24 @@ function init() {
         });
         // v4.6: GODCHAIN events
         events.on('GODCHAIN_ACTIVATED', () => {
-            showPowerUp('🔥 GODCHAIN MODE');
+            showPowerUp('🔥 ' + t('GODCHAIN_ON'));
             if (G.triggerScreenFlash) G.triggerScreenFlash('HYPER_ACTIVATE');
         });
         events.on('GODCHAIN_DEACTIVATED', () => {
-            showPowerUp('GODCHAIN LOST');
+            showPowerUp(t('GODCHAIN_OFF'));
         });
         // Harmonic Conductor bullet spawning
         events.on('harmonic_bullets', (data) => {
             if (!data || !data.bullets) return;
-            data.bullets.forEach(bd => {
-                if (!canSpawnEnemyBullet()) return; // v2.24.6: Global cap
-                const bullet = G.Bullet.Pool.acquire(bd.x, bd.y, bd.vx, bd.vy, bd.color, bd.w || 8, bd.h || 8, false);
-                // Enhanced trail for beat-synced bullets
+            var bds = data.bullets;
+            for (var i = 0, len = bds.length; i < len; i++) {
+                if (!canSpawnEnemyBullet()) break; // v2.24.6: Global cap
+                var bd = bds[i];
+                var bullet = G.Bullet.Pool.acquire(bd.x, bd.y, bd.vx, bd.vy, bd.color, bd.w || 8, bd.h || 8, false);
                 bullet.beatSynced = true;
-                // Shape-based visual differentiation (coin/bill/bar/card)
                 bullet.shape = bd.shape || null;
                 enemyBullets.push(bullet);
-            });
+            }
         });
     }
 
@@ -1233,6 +1244,9 @@ function init() {
     inputSys.on('start', () => {
         if (gameState === 'VIDEO') startApp();
         else if (gameState === 'STORY_SCREEN' && G.StoryScreen) G.StoryScreen.handleTap();
+        else if (gameState === 'INTERMISSION' && waveMgr && waveMgr.intermissionTimer > 0) {
+            waveMgr.intermissionTimer = 0; // Skip intermission countdown
+        }
         else if (gameState === 'INTRO') {
             // Two-phase intro: SPLASH -> SELECTION -> PLAY
             if (introState === 'SPLASH') {
@@ -1504,7 +1518,7 @@ function updateUIText() {
     updateManualText();
 }
 
-window.toggleLang = function () { currentLang = (currentLang === 'EN') ? 'IT' : 'EN'; localStorage.setItem('fiat_lang', currentLang); updateUIText(); };
+window.toggleLang = function () { currentLang = (currentLang === 'EN') ? 'IT' : 'EN'; G._currentLang = currentLang; localStorage.setItem('fiat_lang', currentLang); updateUIText(); };
 window.toggleSettings = function () { setStyle('settings-modal', 'display', (document.getElementById('settings-modal').style.display === 'flex') ? 'none' : 'flex'); updateUIText(); };
 window.toggleHelpPanel = function () {
     const panel = document.getElementById('help-panel');
@@ -2042,6 +2056,14 @@ function showStoryScreen(storyId, onComplete) {
 
     G.StoryScreen.show(storyId, () => {
         gameState = 'PLAY';
+        // Restore HUD after story screen (was hidden at line 2048-2049)
+        if (ui.uiLayer) ui.uiLayer.style.display = 'flex';
+        if (ui.touchControls) {
+            ui.touchControls.style.display = 'block';
+            requestAnimationFrame(() => {
+                if (ui.touchControls) ui.touchControls.classList.add('visible');
+            });
+        }
         if (onComplete) onComplete();
     });
 }
@@ -2215,7 +2237,7 @@ function startGame() {
     if (isBearMarket) {
         // 1-hit = 1-life is now default for all modes
         // Bear Market speed handled in getGridSpeed() via 1.3x multiplier
-        showDanger("🩸 SURVIVE THE CRASH 🩸");
+        showDanger("🩸 " + t('SURVIVE_CRASH') + " 🩸");
     }
 
     killCount = 0;
@@ -2233,6 +2255,7 @@ function startGame() {
     fiatKillCounter = { '¥': 0, '₽': 0, '₹': 0, '€': 0, '£': 0, '₣': 0, '₺': 0, '$': 0, '元': 0, 'Ⓒ': 0 };
     miniBoss = null;
     lastMiniBossSpawnTime = 0; // v2.24.4: Reset cooldown
+    miniBossThisWave = 0; // v4.10.2: Reset per-wave counter
     G.DropSystem.reset(); // Reset drop system (pity timer, weapon cooldown, boss drops)
     G.MemeEngine.reset(); // Reset meme engine (ticker timer, popup cooldown)
     grazePerksThisLevel = 0; // Reset graze perk cap
@@ -2297,7 +2320,7 @@ function startIntermission(msgOverride) {
         if (bulletBonus > 0) {
             score += bulletBonus;
             updateScore(score);
-            addText(`+${bulletBonus} BULLET BONUS`, gameWidth / 2, gameHeight / 2 + 50, '#0ff', 18);
+            addText(`+${bulletBonus} ${t('BULLET_BONUS')}`, gameWidth / 2, gameHeight / 2 + 50, '#0ff', 18);
         }
     }
 
@@ -2478,15 +2501,14 @@ function spawnBoss() {
     const perkCount = (runState && runState.perks) ? runState.perks.length : 0;
     const perkScaling = 1 + (perkCount * hpConfig.PERK_SCALE);
 
-    // Also scale based on player's damage multiplier (if player hits harder, boss has more HP)
-    const playerDmgMult = (runState && runState.getMod) ? runState.getMod('damageMult', 1) : 1;
-    const dmgCompensation = Math.sqrt(playerDmgMult); // Square root for softer scaling
+    // v4.10.2: Removed dmgCompensation (was punishing player for damage perks — counterintuitive)
+    // perkScaling already accounts for perk count including Kinetic Rounds
 
     // NG+ scaling (campaign mode)
     const ngPlusMult = (campaignState && campaignState.isEnabled()) ? campaignState.getNGPlusMultiplier() : 1;
 
     const rawHp = baseHp + (level * hpPerLevel) + ((marketCycle - 1) * hpPerCycle);
-    boss.hp = Math.max(hpConfig.MIN_FLOOR, Math.floor(rawHp * perkScaling * dmgCompensation * ngPlusMult));
+    boss.hp = Math.max(hpConfig.MIN_FLOOR, Math.floor(rawHp * perkScaling * ngPlusMult));
     boss.maxHp = boss.hp;
     console.log(`[SPAWN BOSS] Type=${bossType}, HP=${boss.hp}, position=(${boss.x}, ${boss.y})`);
 
@@ -2593,7 +2615,7 @@ function spawnMiniBoss(bossTypeOrSymbol, triggerColor) {
 
         // Display signature meme
         const signatureMeme = G.BOSS_SIGNATURE_MEMES?.[bossType];
-        showDanger(`${bossConfig.name} APPEARS!`);
+        showDanger(bossConfig.name + ' ' + t('APPEARS'));
         if (signatureMeme) {
             showMemeFun(signatureMeme, 2500);
         }
@@ -2633,7 +2655,7 @@ function spawnMiniBoss(bossTypeOrSymbol, triggerColor) {
         };
         window.miniBoss = miniBoss; // v2.22.5: Expose for debug overlay
 
-        showDanger(`${miniBoss.name} REVENGE!`);
+        showDanger(miniBoss.name + ' ' + t('REVENGE'));
         showMemeFun(getFiatDeathMeme(), 1500);
     }
 
@@ -2880,7 +2902,7 @@ function checkMiniBossHit(b) {
             createExplosion(deathX + 40, deathY + 30, deathColor, 15);
             createExplosion(deathX, deathY, '#fff', 20);
 
-            showVictory(deathName + " DESTROYED!");
+            showVictory(deathName + ' ' + t('DESTROYED'));
             showMemeFun(isBossInstance ? "CENTRAL BANK REKT!" : "💀 FIAT IS DEAD!", 1500);
             shake = 40;
             audioSys.play('explosion');
@@ -2972,7 +2994,7 @@ function update(dt) {
     // HYPER cooldown finished - can now rebuild meter
     if (player && player.hyperCooldown <= 0 && grazeMeter >= Balance.HYPER.METER_THRESHOLD && !player.hyperAvailable && !isHyperActive) {
         player.hyperAvailable = true;
-        showGameInfo("HYPER READY! [H]");
+        showGameInfo(t('HYPER_READY') + " [H]");
         audioSys.play('hyperReady');
     }
 
@@ -3046,6 +3068,7 @@ function update(dt) {
 
             // Reset horde state for new wave
             waveMgr.currentHorde = 1;
+            miniBossThisWave = 0; // v4.10.2: Reset per-wave mini-boss counter
 
             const spawnData = waveMgr.spawnWave(gameWidth, 1); // Start with horde 1
             enemies = spawnData.enemies;
@@ -3110,10 +3133,10 @@ function update(dt) {
         if (boss && boss.active) {
             const bossBullets = boss.update(dt, player);
             if (bossBullets && bossBullets.length > 0) {
-                bossBullets.forEach(bd => {
-                    if (!canSpawnEnemyBullet()) return; // v2.24.6: Global cap
-                    const bullet = G.Bullet.Pool.acquire(bd.x, bd.y, bd.vx, bd.vy, bd.color, bd.w, bd.h, false);
-                    // v4.0.1: Copy homing properties (was missing - FED homing missiles never tracked)
+                for (var bi = 0, bLen = bossBullets.length; bi < bLen; bi++) {
+                    if (!canSpawnEnemyBullet()) break;
+                    var bd = bossBullets[bi];
+                    var bullet = G.Bullet.Pool.acquire(bd.x, bd.y, bd.vx, bd.vy, bd.color, bd.w, bd.h, false);
                     if (bd.isHoming) {
                         bullet.isHoming = true;
                         bullet.homingStrength = bd.homingStrength || 2.5;
@@ -3122,7 +3145,7 @@ function update(dt) {
                         bullet.maxSpeed = bd.maxSpeed || 200;
                     }
                     enemyBullets.push(bullet);
-                });
+                }
             }
             // Update drop system cooldowns
             G.DropSystem.update(dt);
@@ -3249,7 +3272,7 @@ function updateBullets(dt) {
                     }
 
                     updateScore(score);
-                    showVictory("🏆 " + defeatedBossName + " DEFEATED!");
+                    showVictory("🏆 " + defeatedBossName + ' ' + t('DEFEATED'));
 
                     // Boss-specific victory meme
                     const victoryMemes = {
@@ -3315,11 +3338,11 @@ function updateBullets(dt) {
                     } else if (shouldShowChapter) {
                         // Show chapter, then intermission
                         showStoryScreen(chapterId, () => {
-                            startIntermission("CYCLE " + marketCycle + " BEGINS");
+                            startIntermission(t('CYCLE') + ' ' + marketCycle + ' ' + t('BEGINS'));
                         });
                     } else {
                         // Arcade mode or chapter already shown
-                        startIntermission("CYCLE " + marketCycle + " BEGINS");
+                        startIntermission(t('CYCLE') + ' ' + marketCycle + ' ' + t('BEGINS'));
                     }
 
                     emitEvent('boss_killed', { level: level, cycle: marketCycle, bossType: defeatedBossType, campaignComplete: campaignComplete });
@@ -3380,7 +3403,7 @@ function updateBullets(dt) {
                     G.Bullet.Pool.release(eb);
                     enemyBullets.splice(i, 1);
                     shake = 60;
-                    showDanger("HYPER FAILED!");
+                    showDanger(t('HYPER_FAILED'));
                     startDeathSequence();
                     return; // Exit collision check
                 }
@@ -3484,13 +3507,13 @@ function updateBullets(dt) {
                         if (grazePerksThisLevel < Balance.GRAZE.MAX_PERKS_PER_LEVEL) {
                             applyRandomPerk();
                             audioSys.play('grazePerk'); // Triumphant fanfare
-                            showMemePopup("GRAZE BONUS!", 1200);
+                            showMemePopup(t('GRAZE_BONUS'), 1200);
                             grazePerksThisLevel++;
                         } else {
                             // Max graze perks reached, give score instead
                             score += 500;
                             updateScore(score);
-                            showGameInfo("+500 GRAZE MASTER");
+                            showGameInfo("+500 " + t('GRAZE_MASTER'));
                         }
                     }
 
@@ -3498,7 +3521,7 @@ function updateBullets(dt) {
                     if (grazeMeter >= Balance.HYPER.METER_THRESHOLD && player.hyperCooldown <= 0) {
                         if (!player.hyperAvailable) {
                             player.hyperAvailable = true;
-                            showGameInfo("HYPER READY! [H]");
+                            showGameInfo(t('HYPER_READY') + " [H]");
                             audioSys.play('hyperReady');
                         }
                     }
@@ -3573,7 +3596,7 @@ function drawHyperUI(ctx) {
         ctx.strokeRect(barX, barY, barWidth, barHeight);
 
         // HYPER text
-        ctx.font = `bold ${Math.floor(18 * pulse)}px "Courier New", monospace`;
+        ctx.font = G.ColorUtils.font('bold', 18 * pulse, '"Courier New", monospace');
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillStyle = '#fff';
@@ -3595,19 +3618,16 @@ function drawHyperUI(ctx) {
         const pulse = Math.sin(totalTime * 6) * 0.15 + 0.85;
 
         ctx.save();
-        ctx.font = `bold ${Math.floor(20 * pulse)}px "Courier New", monospace`;
+        ctx.font = G.ColorUtils.font('bold', 20 * pulse, '"Courier New", monospace');
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
 
-        // Glow effect
-        ctx.shadowColor = '#FFD700';
-        ctx.shadowBlur = 15;
-
         ctx.fillStyle = '#FFD700';
         ctx.strokeStyle = '#000';
-        ctx.lineWidth = 3;
-        ctx.strokeText('⚡ HYPER READY [H] ⚡', centerX, 70);
-        ctx.fillText('⚡ HYPER READY [H] ⚡', centerX, 70);
+        ctx.lineWidth = 4;
+        var hyperReadyLabel = '⚡ ' + t('HYPER_READY') + ' [H] ⚡';
+        ctx.strokeText(hyperReadyLabel, centerX, 70);
+        ctx.fillText(hyperReadyLabel, centerX, 70);
 
         ctx.restore();
     }
@@ -3660,7 +3680,7 @@ function drawSacrificeUI(ctx) {
         ctx.stroke();
 
         // Bitcoin symbol
-        ctx.font = `bold ${Math.floor(btnSize * 0.5)}px Arial`;
+        ctx.font = G.ColorUtils.font('bold', btnSize * 0.5, 'Arial');
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillStyle = '#fff';
@@ -3696,7 +3716,7 @@ function drawSacrificeUI(ctx) {
         const pulse = Math.sin(totalTime * 6) * 0.1 + 1;
 
         // Large countdown at top
-        ctx.font = `bold ${Math.floor(config.COUNTDOWN_FONT_SIZE * pulse)}px "Courier New", monospace`;
+        ctx.font = G.ColorUtils.font('bold', config.COUNTDOWN_FONT_SIZE * pulse, '"Courier New", monospace');
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
 
@@ -3830,7 +3850,7 @@ function checkBulletCollisions(b, bIdx) {
                 if (isLastEnemy && lastEnemyMult > 1) {
                     applyHitStop('STREAK_25', false); // Dramatic slowmo
                     triggerScreenFlash('STREAK_25'); // Gold flash
-                    showGameInfo("💀 LAST FIAT! x" + lastEnemyMult.toFixed(0));
+                    showGameInfo("💀 " + t('LAST_FIAT') + " x" + lastEnemyMult.toFixed(0));
                 }
 
                 createEnemyDeathExplosion(e.x, e.y, e.color, e.symbol || '$', e.shape);
@@ -3859,11 +3879,9 @@ function checkBulletCollisions(b, bIdx) {
                 checkStreakMeme();
                 emitEvent('enemy_killed', { score: killScore, x: e.x, y: e.y });
 
-                // Track kills per fiat type for mini-boss trigger (v2.18.0: Currency-specific boss mapping)
-                // v2.22.1: Fixed - don't trigger mini-boss during boss fight, boss warning, or from boss minions
-                // v2.24.4: Added cooldown check using Balance.MINI_BOSS.COOLDOWN
-                const miniBossCooldownElapsed = (totalTime - lastMiniBossSpawnTime) >= Balance.MINI_BOSS.COOLDOWN;
-                if (e.symbol && fiatKillCounter[e.symbol] !== undefined && !miniBoss && !boss && !e.isMinion && bossWarningTimer <= 0 && miniBossCooldownElapsed) {
+                // Mini-boss trigger: Arcade only (v4.11.0: disabled in Story Mode)
+                // v2.18.0: Currency-specific boss mapping | v2.22.1: No trigger during boss/warning/minions
+                if (!(G.CampaignState && G.CampaignState.isEnabled()) && e.symbol && fiatKillCounter[e.symbol] !== undefined && !miniBoss && !boss && !e.isMinion && bossWarningTimer <= 0 && (totalTime - lastMiniBossSpawnTime) >= Balance.MINI_BOSS.COOLDOWN && miniBossThisWave < (Balance.MINI_BOSS.MAX_PER_WAVE || 2)) {
                     fiatKillCounter[e.symbol]++;
 
                     // Look up currency-specific boss mapping
@@ -3898,6 +3916,7 @@ function checkBulletCollisions(b, bIdx) {
                         };
 
                         lastMiniBossSpawnTime = totalTime; // v2.24.4: Track spawn time for cooldown
+                        miniBossThisWave++; // v4.10.2: Increment per-wave counter
                         spawnMiniBoss(bossType, e.color);
                         // v2.24.4: Reset ALL counters to prevent cascade spawns (was only resetting triggered symbol)
                         Object.keys(fiatKillCounter).forEach(k => fiatKillCounter[k] = 0);
@@ -4099,7 +4118,7 @@ function endSacrifice() {
         // Bonus message
         const profit = earnedAmount - sacrificedAmount;
         if (profit > 0) {
-            showGameInfo("+" + Math.floor(profit) + " PROFIT!");
+            showGameInfo("+" + Math.floor(profit) + " " + t('PROFIT'));
         }
     } else {
         // FAILURE - NGMI but survive
@@ -4157,7 +4176,7 @@ function executeDeath() {
         player.hp = 1;
         player.invulnTimer = Balance.TIMING.INVULNERABILITY;
         updateLivesUI();
-        showGameInfo("💚 RESPAWN!");
+        showGameInfo("💚 " + t('RESPAWN'));
         // Maybe move player to center?
         player.x = gameWidth / 2;
     } else {
@@ -4299,7 +4318,7 @@ function draw() {
             const fadeStart = maxLife * 0.3; // Start fading in last 30%
             const alpha = t.life < fadeStart ? t.life / fadeStart : 1;
 
-            ctx.font = `bold ${t.size || 20}px Courier New`;
+            ctx.font = G.ColorUtils.font('bold', t.size || 20, 'Courier New');
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.globalAlpha = alpha;
@@ -4345,16 +4364,9 @@ function draw() {
                 audioSys.play('countdownTick', { pitch });
             }
 
-            // Apply blur effect to entire canvas
+            // v4.11: Dark overlay instead of GPU-expensive blur filter
             ctx.save();
-            ctx.filter = 'blur(4px)';
-            ctx.drawImage(ctx.canvas, 0, 0);
-            ctx.filter = 'none';
-            ctx.restore();
-
-            // Dark overlay for contrast
-            ctx.save();
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.fillStyle = 'rgba(0,0,0,0.6)';
             ctx.fillRect(0, 0, gameWidth, gameHeight);
             ctx.restore();
 
@@ -4400,7 +4412,7 @@ function draw() {
                 const memeAlpha = Math.min(1, (Balance.TIMING.INTERMISSION_DURATION - timer + 0.1) * 2);
                 ctx.globalAlpha = memeAlpha;
 
-                ctx.font = `italic bold ${memeFontSize}px "Press Start 2P", monospace`;
+                ctx.font = G.ColorUtils.font('italic bold', memeFontSize, '"Press Start 2P", monospace');
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
 
@@ -4409,16 +4421,13 @@ function draw() {
                     ? '\u201C' + intermissionMeme.substring(0, memeMaxChars - 3) + '...\u201D'
                     : '\u201C' + intermissionMeme + '\u201D';
 
-                // Subtle gold glow
-                ctx.shadowColor = '#F7931A';
-                ctx.shadowBlur = 12;
+                // v4.11: Removed shadowBlur for perf (stroke outline provides visibility)
                 ctx.strokeStyle = '#000';
                 ctx.lineWidth = 4;
                 ctx.fillStyle = '#FFD700';
                 const memeMaxWidth = gameWidth - 40;
                 ctx.strokeText(memeDisplay, centerX, memeY, memeMaxWidth);
                 ctx.fillText(memeDisplay, centerX, memeY, memeMaxWidth);
-                ctx.shadowBlur = 0;
 
                 ctx.restore();
             }
@@ -4463,8 +4472,8 @@ function draw() {
             score, lives, level, gameState,
             grazeMeter, grazeCount, grazeMultiplier,
             killStreak, killStreakMult, bestStreak,
-            floatingTexts: floatingTexts.filter(t => t && t.life > 0).length,
-            perkIcons: perkIcons.filter(p => p && p.life > 0).length,
+            floatingTexts: _countActive(floatingTexts),
+            perkIcons: _countActive(perkIcons),
             intermissionMeme,
             intermissionTimer: waveMgr ? waveMgr.intermissionTimer : 0,
             bossWarningTimer,
@@ -4492,6 +4501,10 @@ function draw() {
             }
         };
         G.Debug.drawOverlay(ctx, gameState);
+    }
+    // v4.10: Perf overlay always draws when perf profiling is active (independent of debug overlay)
+    if (G.Debug._perf.overlayEnabled) {
+        G.Debug.drawPerfOverlay(ctx, gameWidth);
     }
 }
 
@@ -4628,7 +4641,7 @@ function drawBossWarningOverlay(ctx) {
 
     // Countdown (shows seconds remaining)
     const countdown = Math.ceil(bossWarningTimer);
-    ctx.font = `bold ${60 + pulse * 10}px "Courier New", monospace`;
+    ctx.font = G.ColorUtils.font('bold', 60 + pulse * 10, '"Courier New", monospace');
     ctx.fillStyle = '#F7931A';
     ctx.strokeStyle = '#000';
     ctx.lineWidth = 5;
@@ -4809,11 +4822,16 @@ function drawPerkIcons(ctx) {
         ctx.save();
         ctx.globalAlpha = alpha;
 
+        // v4.11: Parse hex once, use cached rgba for gradient stops
+        const CU = G.ColorUtils;
+        if (!p._rgb) p._rgb = CU.parseHex(p.color);
+        const pr = p._rgb.r, pg = p._rgb.g, pb = p._rgb.b;
+
         // Outer glow (large, soft)
         const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, size * 1.8);
-        gradient.addColorStop(0, hexToRgba(p.color, glowIntensity * 0.5));
-        gradient.addColorStop(0.5, hexToRgba(p.color, 0.25));
-        gradient.addColorStop(1, hexToRgba(p.color, 0));
+        gradient.addColorStop(0, CU.rgba(pr, pg, pb, glowIntensity * 0.5));
+        gradient.addColorStop(0.5, CU.rgba(pr, pg, pb, 0.25));
+        gradient.addColorStop(1, CU.rgba(pr, pg, pb, 0));
         ctx.fillStyle = gradient;
         ctx.beginPath();
         ctx.arc(p.x, p.y, size * 1.8, 0, Math.PI * 2);
@@ -4823,22 +4841,22 @@ function drawPerkIcons(ctx) {
         const innerGlow = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, size * 0.9);
         innerGlow.addColorStop(0, '#fff');
         innerGlow.addColorStop(0.3, p.color);
-        innerGlow.addColorStop(1, hexToRgba(p.color, 0));
+        innerGlow.addColorStop(1, CU.rgba(pr, pg, pb, 0));
         ctx.fillStyle = innerGlow;
         ctx.beginPath();
         ctx.arc(p.x, p.y, size * 0.9, 0, Math.PI * 2);
         ctx.fill();
 
         // Icon
-        ctx.font = `bold ${Math.floor(size)}px Arial`;
+        ctx.font = G.ColorUtils.font('bold', size, 'Arial');
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        // Shadow/outline for visibility
-        ctx.shadowColor = '#000';
-        ctx.shadowBlur = 8;
+        // v4.11: Stroke outline instead of GPU-expensive shadowBlur
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 3;
         ctx.fillStyle = '#fff';
+        ctx.strokeText(p.icon, p.x, p.y);
         ctx.fillText(p.icon, p.x, p.y);
-        ctx.shadowBlur = 0;
 
         // Perk name below icon (smaller, fades in)
         if (p.scale > 0.5) {
@@ -5007,7 +5025,7 @@ function loop(timestamp) {
 
         // Warning when time is running low
         if (sacrificeActiveTimer <= Balance.SACRIFICE.WARNING_TIME && sacrificeActiveTimer > Balance.SACRIFICE.WARNING_TIME - 0.1) {
-            showDanger("⚠️ " + Math.ceil(sacrificeActiveTimer) + "s LEFT!");
+            showDanger("⚠️ " + Math.ceil(sacrificeActiveTimer) + t('TIME_LEFT'));
         }
 
         // Sacrifice ended
@@ -5033,18 +5051,22 @@ function loop(timestamp) {
         return; // Skip normal game update
     }
 
+    // v4.10: Performance profiler timing
+    var _perfT0 = 0, _perfT1 = 0, _perfT2 = 0;
+    if (G.Debug._perf.enabled) _perfT0 = performance.now();
+
     update(dt);
     updatePowerUps(dt);
     // v4.4: Expose state to player for diegetic HUD drawing
     if (player) {
         player._livesDisplay = lives;
         player._grazePercent = typeof grazeMeter !== 'undefined' ? grazeMeter : 0;
-        player._weaponState = {
-            shotLevel: player.shotLevel || 1,
-            modifiers: player.modifiers,
-            special: player.special,
-            specialTimer: player.specialTimer
-        };
+        // Reuse object to avoid per-frame allocation
+        var ws = player._weaponState || (player._weaponState = {});
+        ws.shotLevel = player.shotLevel || 1;
+        ws.modifiers = player.modifiers;
+        ws.special = player.special;
+        ws.specialTimer = player.specialTimer;
     }
 
     // v4.4: Reactive HUD - score streak colors + HYPER score
@@ -5055,7 +5077,27 @@ function loop(timestamp) {
         if (skyEffects.shake > 0) shake = Math.max(shake, skyEffects.shake);
         if (skyEffects.playSound) audioSys.play(skyEffects.playSound);
     }
+
+    if (G.Debug._perf.enabled) _perfT1 = performance.now();
+
     draw();
+
+    // v4.10: Record frame perf data
+    if (G.Debug._perf.enabled) {
+        _perfT2 = performance.now();
+        G.Debug.perfFrame(
+            _perfT2 - _perfT0,
+            _perfT1 - _perfT0,
+            _perfT2 - _perfT1,
+            {
+                enemies: enemies ? enemies.length : 0,
+                eBullets: enemyBullets ? enemyBullets.length : 0,
+                pBullets: bullets ? bullets.length : 0,
+                particles: G.ParticleSystem ? G.ParticleSystem.getCount() : 0
+            }
+        );
+    }
+
     requestAnimationFrame(loop);
 }
 
@@ -5070,6 +5112,9 @@ function submitToGameCenter(scoreValue) {
 // Campaign Victory - All 3 central banks defeated!
 function showCampaignVictory() {
     const campaignState = G.CampaignState;
+
+    // Analytics: End run tracking (v4.11.0 — was missing, score stayed 0)
+    if (G.Debug) G.Debug.endAnalyticsRun(Math.floor(score));
 
     // Dramatic screen effects
     shake = 30;

@@ -126,6 +126,7 @@ class Bullet extends window.Game.Entity {
     }
 
     draw(ctx) {
+        const CU = window.Game.ColorUtils;
         const isEnemy = this.vy > 0; // Enemy bullets go down
 
         if (isEnemy) {
@@ -141,7 +142,7 @@ class Bullet extends window.Game.Entity {
             if (this.damageMult > 1) {
                 const vfx = window.Game.Balance?.VFX || {};
                 const glowAlpha = (vfx.TRAIL_POWER_GLOW || 0.25) * (0.5 + Math.sin(this.age * 12) * 0.5);
-                ctx.fillStyle = `rgba(255, 200, 50, ${glowAlpha})`;
+                ctx.fillStyle = CU.rgba(255, 200, 50, glowAlpha);
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, 10 + this.damageMult * 4, 0, Math.PI * 2);
                 ctx.fill();
@@ -150,7 +151,7 @@ class Bullet extends window.Game.Entity {
             // v4.5: HYPER mode golden trail overlay (sparkles along any weapon trail)
             if (this._isHyper) {
                 const sparkAlpha = 0.4 + Math.sin(this.age * 18 + this.x * 0.1) * 0.2;
-                ctx.fillStyle = `rgba(255, 215, 0, ${sparkAlpha})`;
+                ctx.fillStyle = CU.rgba(255, 215, 0, sparkAlpha);
                 // Two trailing sparkles
                 for (let i = 1; i <= 2; i++) {
                     const ty = this.y + i * 10;
@@ -186,13 +187,13 @@ class Bullet extends window.Game.Entity {
             // HODL bullets get golden glow effect (2x damage indicator)
             if (this.isHodl) {
                 const hodlGlow = Math.sin(this.age * 15) * 0.2 + 0.5;
-                ctx.fillStyle = `rgba(255, 215, 0, ${hodlGlow * 0.4})`;
+                ctx.fillStyle = CU.rgba(255, 215, 0, hodlGlow * 0.4);
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, 12 + pulse * 3, 0, Math.PI * 2);
                 ctx.fill();
 
                 // Golden sparkle trail
-                ctx.fillStyle = `rgba(255, 255, 150, ${hodlGlow * 0.6})`;
+                ctx.fillStyle = CU.rgba(255, 255, 150, hodlGlow * 0.6);
                 for (let i = 0; i < 2; i++) {
                     const trailY = this.y + 8 + i * 8;
                     const trailSize = 2 - i * 0.5;
@@ -995,20 +996,25 @@ class Bullet extends window.Game.Entity {
         const perpY = dirX;
         const trailLen = Math.min(28, speed * 0.12);
 
-        // === SAME AS ENERGY BOLT: Trail ===
-        for (let i = 4; i > 0; i--) {
-            const segDist = (i / 4) * trailLen;
-            const segAlpha = 0.12 * (5 - i);
-            const segWidth = r * (0.25 + (i * 0.12));
-            ctx.fillStyle = this.color;
-            ctx.globalAlpha = segAlpha;
-            ctx.beginPath();
-            ctx.moveTo(this.x - dirX * segDist - perpX * segWidth, this.y - dirY * segDist - perpY * segWidth);
-            ctx.lineTo(this.x - dirX * (segDist + 8), this.y - dirY * (segDist + 8));
-            ctx.lineTo(this.x - dirX * segDist + perpX * segWidth, this.y - dirY * segDist + perpY * segWidth);
-            ctx.closePath();
-            ctx.fill();
-        }
+        // === Trail (2 segments instead of 4 for perf) ===
+        ctx.fillStyle = this.color;
+        ctx.globalAlpha = 0.35;
+        ctx.beginPath();
+        const d1 = trailLen * 0.5;
+        const w1 = r * 0.45;
+        ctx.moveTo(this.x - dirX * d1 - perpX * w1, this.y - dirY * d1 - perpY * w1);
+        ctx.lineTo(this.x - dirX * (d1 + 8), this.y - dirY * (d1 + 8));
+        ctx.lineTo(this.x - dirX * d1 + perpX * w1, this.y - dirY * d1 + perpY * w1);
+        ctx.closePath();
+        ctx.fill();
+        ctx.globalAlpha = 0.15;
+        ctx.beginPath();
+        const w2 = r * 0.6;
+        ctx.moveTo(this.x - dirX * trailLen - perpX * w2, this.y - dirY * trailLen - perpY * w2);
+        ctx.lineTo(this.x - dirX * (trailLen + 8), this.y - dirY * (trailLen + 8));
+        ctx.lineTo(this.x - dirX * trailLen + perpX * w2, this.y - dirY * trailLen + perpY * w2);
+        ctx.closePath();
+        ctx.fill();
         ctx.globalAlpha = 1;
 
         // === SAME AS ENERGY BOLT: Outer glow ===
@@ -1020,7 +1026,7 @@ class Bullet extends window.Game.Entity {
         ctx.globalAlpha = 1;
 
         // === SAME AS ENERGY BOLT: White ring ===
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.strokeStyle = Bullet._WHITE_HALF;
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.arc(this.x, this.y, r + 3, 0, Math.PI * 2);
@@ -1083,20 +1089,24 @@ class Bullet extends window.Game.Entity {
         const perpY = dirX;
         const trailLen = Math.min(28, speed * 0.12);
 
-        // === SAME AS ENERGY BOLT: Trail ===
-        for (let i = 4; i > 0; i--) {
-            const segDist = (i / 4) * trailLen;
-            const segAlpha = 0.12 * (5 - i);
-            const segWidth = r * (0.25 + (i * 0.12));
-            ctx.fillStyle = this.color;
-            ctx.globalAlpha = segAlpha;
-            ctx.beginPath();
-            ctx.moveTo(this.x - dirX * segDist - perpX * segWidth, this.y - dirY * segDist - perpY * segWidth);
-            ctx.lineTo(this.x - dirX * (segDist + 8), this.y - dirY * (segDist + 8));
-            ctx.lineTo(this.x - dirX * segDist + perpX * segWidth, this.y - dirY * segDist + perpY * segWidth);
-            ctx.closePath();
-            ctx.fill();
-        }
+        // === Trail (2 segments) ===
+        ctx.fillStyle = this.color;
+        ctx.globalAlpha = 0.35;
+        ctx.beginPath();
+        const d1 = trailLen * 0.5, w1 = r * 0.45;
+        ctx.moveTo(this.x - dirX * d1 - perpX * w1, this.y - dirY * d1 - perpY * w1);
+        ctx.lineTo(this.x - dirX * (d1 + 8), this.y - dirY * (d1 + 8));
+        ctx.lineTo(this.x - dirX * d1 + perpX * w1, this.y - dirY * d1 + perpY * w1);
+        ctx.closePath();
+        ctx.fill();
+        ctx.globalAlpha = 0.15;
+        ctx.beginPath();
+        const w2 = r * 0.6;
+        ctx.moveTo(this.x - dirX * trailLen - perpX * w2, this.y - dirY * trailLen - perpY * w2);
+        ctx.lineTo(this.x - dirX * (trailLen + 8), this.y - dirY * (trailLen + 8));
+        ctx.lineTo(this.x - dirX * trailLen + perpX * w2, this.y - dirY * trailLen + perpY * w2);
+        ctx.closePath();
+        ctx.fill();
         ctx.globalAlpha = 1;
 
         // === SAME AS ENERGY BOLT: Outer glow ===
@@ -1108,7 +1118,7 @@ class Bullet extends window.Game.Entity {
         ctx.globalAlpha = 1;
 
         // === SAME AS ENERGY BOLT: White ring ===
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.strokeStyle = Bullet._WHITE_HALF;
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.arc(this.x, this.y, r + 3, 0, Math.PI * 2);
@@ -1187,20 +1197,24 @@ class Bullet extends window.Game.Entity {
         const perpY = dirX;
         const trailLen = Math.min(28, speed * 0.12);
 
-        // === SAME AS ENERGY BOLT: Trail ===
-        for (let i = 4; i > 0; i--) {
-            const segDist = (i / 4) * trailLen;
-            const segAlpha = 0.12 * (5 - i);
-            const segWidth = r * (0.25 + (i * 0.12));
-            ctx.fillStyle = this.color;
-            ctx.globalAlpha = segAlpha;
-            ctx.beginPath();
-            ctx.moveTo(this.x - dirX * segDist - perpX * segWidth, this.y - dirY * segDist - perpY * segWidth);
-            ctx.lineTo(this.x - dirX * (segDist + 8), this.y - dirY * (segDist + 8));
-            ctx.lineTo(this.x - dirX * segDist + perpX * segWidth, this.y - dirY * segDist + perpY * segWidth);
-            ctx.closePath();
-            ctx.fill();
-        }
+        // === Trail (2 segments) ===
+        ctx.fillStyle = this.color;
+        ctx.globalAlpha = 0.35;
+        ctx.beginPath();
+        const d1 = trailLen * 0.5, w1 = r * 0.45;
+        ctx.moveTo(this.x - dirX * d1 - perpX * w1, this.y - dirY * d1 - perpY * w1);
+        ctx.lineTo(this.x - dirX * (d1 + 8), this.y - dirY * (d1 + 8));
+        ctx.lineTo(this.x - dirX * d1 + perpX * w1, this.y - dirY * d1 + perpY * w1);
+        ctx.closePath();
+        ctx.fill();
+        ctx.globalAlpha = 0.15;
+        ctx.beginPath();
+        const w2 = r * 0.6;
+        ctx.moveTo(this.x - dirX * trailLen - perpX * w2, this.y - dirY * trailLen - perpY * w2);
+        ctx.lineTo(this.x - dirX * (trailLen + 8), this.y - dirY * (trailLen + 8));
+        ctx.lineTo(this.x - dirX * trailLen + perpX * w2, this.y - dirY * trailLen + perpY * w2);
+        ctx.closePath();
+        ctx.fill();
         ctx.globalAlpha = 1;
 
         // === SAME AS ENERGY BOLT: Outer glow ===
@@ -1212,7 +1226,7 @@ class Bullet extends window.Game.Entity {
         ctx.globalAlpha = 1;
 
         // === SAME AS ENERGY BOLT: White ring ===
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.strokeStyle = Bullet._WHITE_HALF;
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.arc(this.x, this.y, r + 3, 0, Math.PI * 2);
@@ -1310,20 +1324,24 @@ class Bullet extends window.Game.Entity {
         const perpY = dirX;
         const trailLen = Math.min(28, speed * 0.12);
 
-        // === SAME AS ENERGY BOLT: Trail ===
-        for (let i = 4; i > 0; i--) {
-            const segDist = (i / 4) * trailLen;
-            const segAlpha = 0.12 * (5 - i);
-            const segWidth = r * (0.25 + (i * 0.12));
-            ctx.fillStyle = this.color;
-            ctx.globalAlpha = segAlpha;
-            ctx.beginPath();
-            ctx.moveTo(this.x - dirX * segDist - perpX * segWidth, this.y - dirY * segDist - perpY * segWidth);
-            ctx.lineTo(this.x - dirX * (segDist + 8), this.y - dirY * (segDist + 8));
-            ctx.lineTo(this.x - dirX * segDist + perpX * segWidth, this.y - dirY * segDist + perpY * segWidth);
-            ctx.closePath();
-            ctx.fill();
-        }
+        // === Trail (2 segments) ===
+        ctx.fillStyle = this.color;
+        ctx.globalAlpha = 0.35;
+        ctx.beginPath();
+        const d1 = trailLen * 0.5, w1 = r * 0.45;
+        ctx.moveTo(this.x - dirX * d1 - perpX * w1, this.y - dirY * d1 - perpY * w1);
+        ctx.lineTo(this.x - dirX * (d1 + 8), this.y - dirY * (d1 + 8));
+        ctx.lineTo(this.x - dirX * d1 + perpX * w1, this.y - dirY * d1 + perpY * w1);
+        ctx.closePath();
+        ctx.fill();
+        ctx.globalAlpha = 0.15;
+        ctx.beginPath();
+        const w2 = r * 0.6;
+        ctx.moveTo(this.x - dirX * trailLen - perpX * w2, this.y - dirY * trailLen - perpY * w2);
+        ctx.lineTo(this.x - dirX * (trailLen + 8), this.y - dirY * (trailLen + 8));
+        ctx.lineTo(this.x - dirX * trailLen + perpX * w2, this.y - dirY * trailLen + perpY * w2);
+        ctx.closePath();
+        ctx.fill();
         ctx.globalAlpha = 1;
 
         // === SAME AS ENERGY BOLT: Outer glow ===
@@ -1335,7 +1353,7 @@ class Bullet extends window.Game.Entity {
         ctx.globalAlpha = 1;
 
         // === SAME AS ENERGY BOLT: White ring ===
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.strokeStyle = Bullet._WHITE_HALF;
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.arc(this.x, this.y, r + 3, 0, Math.PI * 2);
@@ -1394,7 +1412,7 @@ class Bullet extends window.Game.Entity {
         ctx.stroke();
 
         // Scanline effect (subtle horizontal lines)
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+        ctx.strokeStyle = Bullet._WHITE_15;
         ctx.lineWidth = 1;
         for (let i = -3; i <= 3; i++) {
             const lineY = i * h * 0.25;
@@ -1435,30 +1453,24 @@ class Bullet extends window.Game.Entity {
         // Trail length based on speed
         const trailLen = Math.min(28, speed * 0.12);
 
-        // Multi-segment fading trail (4 segments for longer trail)
-        for (let i = 4; i > 0; i--) {
-            const segDist = (i / 4) * trailLen;
-            const segAlpha = 0.12 * (5 - i);
-            const segWidth = r * (0.25 + (i * 0.12));
-
-            ctx.fillStyle = this.color;
-            ctx.globalAlpha = segAlpha;
-            ctx.beginPath();
-            ctx.moveTo(
-                this.x - dirX * segDist - perpX * segWidth,
-                this.y - dirY * segDist - perpY * segWidth
-            );
-            ctx.lineTo(
-                this.x - dirX * (segDist + 8),
-                this.y - dirY * (segDist + 8)
-            );
-            ctx.lineTo(
-                this.x - dirX * segDist + perpX * segWidth,
-                this.y - dirY * segDist + perpY * segWidth
-            );
-            ctx.closePath();
-            ctx.fill();
-        }
+        // v4.11: 2-segment trail (was 4) for perf
+        ctx.fillStyle = this.color;
+        ctx.globalAlpha = 0.35;
+        ctx.beginPath();
+        const d1 = trailLen * 0.5, w1 = r * 0.45;
+        ctx.moveTo(this.x - dirX * d1 - perpX * w1, this.y - dirY * d1 - perpY * w1);
+        ctx.lineTo(this.x - dirX * (d1 + 8), this.y - dirY * (d1 + 8));
+        ctx.lineTo(this.x - dirX * d1 + perpX * w1, this.y - dirY * d1 + perpY * w1);
+        ctx.closePath();
+        ctx.fill();
+        ctx.globalAlpha = 0.15;
+        ctx.beginPath();
+        const w2 = r * 0.6;
+        ctx.moveTo(this.x - dirX * trailLen - perpX * w2, this.y - dirY * trailLen - perpY * w2);
+        ctx.lineTo(this.x - dirX * (trailLen + 8), this.y - dirY * (trailLen + 8));
+        ctx.lineTo(this.x - dirX * trailLen + perpX * w2, this.y - dirY * trailLen + perpY * w2);
+        ctx.closePath();
+        ctx.fill();
         ctx.globalAlpha = 1;
 
         // Outer danger glow
@@ -1471,43 +1483,34 @@ class Bullet extends window.Game.Entity {
         ctx.globalAlpha = 1;
 
         // Secondary white ring for visibility
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.strokeStyle = Bullet._WHITE_HALF;
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.arc(this.x, this.y, r + 3, 0, Math.PI * 2);
         ctx.stroke();
 
-        // Main bolt body
+        // Main bolt body + white contour (single path)
         ctx.fillStyle = this.color;
         ctx.beginPath();
         ctx.arc(this.x, this.y, r * pulse, 0, Math.PI * 2);
         ctx.fill();
-
-        // White contour
         ctx.strokeStyle = '#fff';
         ctx.lineWidth = 2;
         ctx.stroke();
-
-        // Inner colored ring
-        ctx.fillStyle = window.Game.ColorUtils.lighten(this.color, 0.3);
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, r * 0.65, 0, Math.PI * 2);
-        ctx.fill();
 
         // Bright white core center
         ctx.fillStyle = '#fff';
         ctx.beginPath();
         ctx.arc(this.x, this.y, r * 0.35, 0, Math.PI * 2);
         ctx.fill();
-
-        // Inner core highlight
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-        ctx.beginPath();
-        ctx.arc(this.x - r * 0.1, this.y - r * 0.1, r * 0.15, 0, Math.PI * 2);
-        ctx.fill();
     }
 
 }
+
+// Static cached color strings (avoid per-frame allocation)
+Bullet._WHITE_HALF = 'rgba(255,255,255,0.50)';
+Bullet._WHITE_15 = 'rgba(255,255,255,0.15)';
+Bullet._WHITE_90 = 'rgba(255,255,255,0.90)';
 
 // Attach to namespace
 window.Game.Bullet = Bullet;

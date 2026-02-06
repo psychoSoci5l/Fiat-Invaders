@@ -644,9 +644,10 @@ class Boss extends window.Game.Entity {
             bullets.push(...waveBullets);
 
             // Zen garden spirals (BOJ signature - hypnotic)
-            if (Math.floor(this.animTime * 0.5) !== Math.floor((this.animTime - fireRates[0]) * 0.5)) {
+            // v4.10.2: Fire every 2nd cycle (was every cycle) + reduced arms/bullets to lower Phase 1 density
+            if (Math.floor(this.animTime * 0.25) !== Math.floor((this.animTime - fireRates[0]) * 0.25)) {
                 const zenBullets = Patterns.zenGarden(cx, cy - 30, this.wavePhase, {
-                    arms: 3, bulletsPerArm: 2, speed: 110, color1: '#bc002d', color2: '#ffffff', size: 9
+                    arms: 2, bulletsPerArm: 1, speed: 110, color1: '#bc002d', color2: '#ffffff', size: 9
                 });
                 bullets.push(...zenBullets);
             }
@@ -835,8 +836,9 @@ class Boss extends window.Game.Entity {
 
         // Seal outer glow
         if (this.eyeGlow > 0 || this.phase === 3) {
+            const CU = window.Game.ColorUtils;
             const glowAlpha = this.phase === 3 ? 0.4 + Math.sin(this.animTime * 8) * 0.3 : this.eyeGlow * 0.5;
-            ctx.fillStyle = `rgba(255, 100, 100, ${glowAlpha})`;
+            ctx.fillStyle = CU.rgba(255, 100, 100, glowAlpha);
             ctx.beginPath();
             ctx.arc(cx, sealY, sealRadius + 12, 0, Math.PI * 2);
             ctx.fill();
@@ -935,7 +937,7 @@ class Boss extends window.Game.Entity {
                 const flameY = billY + billH - 5 - flameT * 15;
                 const flameSize = 4 + Math.random() * 4;
 
-                ctx.fillStyle = `rgba(255, ${100 + Math.floor(Math.random() * 100)}, 0, ${0.7 - flameT * 0.5})`;
+                ctx.fillStyle = window.Game.ColorUtils.rgba(255, 100 + Math.floor(Math.random() * 100), 0, 0.7 - flameT * 0.5);
                 ctx.beginPath();
                 ctx.arc(flameX, flameY, flameSize, 0, Math.PI * 2);
                 ctx.fill();
@@ -1110,14 +1112,18 @@ class Boss extends window.Game.Entity {
         // Big Euro symbol in center
         ctx.fillStyle = goldColor;
         if (this.phase === 3) {
-            ctx.shadowColor = goldColor;
-            ctx.shadowBlur = 20 + Math.sin(this.animTime * 8) * 10;
+            // v4.11: Glow circle instead of GPU-expensive shadowBlur
+            const glowR = 30 + Math.sin(this.animTime * 8) * 8;
+            ctx.globalAlpha = 0.4;
+            ctx.beginPath();
+            ctx.arc(cx, cy, glowR, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
         }
         ctx.font = 'bold 42px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('€', cx, cy);
-        ctx.shadowBlur = 0;
 
         // "1 EURO" text
         ctx.fillStyle = goldColor;
@@ -1285,8 +1291,15 @@ class Boss extends window.Game.Entity {
         ctx.strokeStyle = goldLight;
         ctx.lineWidth = 2;
         if (this.phase === 3) {
-            ctx.shadowColor = '#ffffff';
-            ctx.shadowBlur = 20 + Math.sin(this.animTime * 8) * 10;
+            // v4.11: Glow circle instead of GPU-expensive shadowBlur
+            const glowR = 30 + Math.sin(this.animTime * 8) * 8;
+            ctx.fillStyle = '#ffffff';
+            ctx.globalAlpha = 0.35;
+            ctx.beginPath();
+            ctx.arc(cx, cy + 10, glowR, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = goldDark;
         }
         ctx.font = 'bold 48px Arial';
         ctx.textAlign = 'center';
@@ -1295,7 +1308,6 @@ class Boss extends window.Game.Entity {
         ctx.fillText('¥', cx + 2, cy + 12);
         ctx.fillStyle = goldLight;
         ctx.fillText('¥', cx, cy + 10);
-        ctx.shadowBlur = 0;
 
         // Reflective shine effect (moving highlight)
         ctx.globalAlpha = 0.3 + Math.sin(this.animTime * 2) * 0.15;
@@ -1364,7 +1376,7 @@ class Boss extends window.Game.Entity {
             // Heat waves
             for (let i = 0; i < 4; i++) {
                 const waveY = barY - 10 - i * 8 - (this.animTime * 20) % 15;
-                ctx.strokeStyle = `rgba(255, 200, 100, ${0.3 - i * 0.07})`;
+                ctx.strokeStyle = window.Game.ColorUtils.rgba(255, 200, 100, 0.3 - i * 0.07);
                 ctx.lineWidth = 2;
                 ctx.beginPath();
                 ctx.moveTo(barX + 20, waveY);

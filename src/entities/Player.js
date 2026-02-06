@@ -718,6 +718,7 @@ class Player extends window.Game.Entity {
         if (this.invulnTimer > 0 && Math.floor(Date.now() / 100) % 2 === 0) return;
 
         const Balance = window.Game.Balance;
+        const CU = window.Game.ColorUtils;
 
         // HYPER MODE AURA - Intense golden aura (overrides HODL visuals)
         if (this.hyperActive) {
@@ -727,9 +728,9 @@ class Player extends window.Game.Entity {
 
             // Outer intense golden glow
             const hyperGradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, hyperSize);
-            hyperGradient.addColorStop(0, `rgba(255, 215, 0, ${hyperPulse * 0.9})`);
-            hyperGradient.addColorStop(0.3, `rgba(255, 180, 0, ${hyperPulse * 0.6})`);
-            hyperGradient.addColorStop(0.6, `rgba(255, 140, 0, ${hyperPulse * 0.3})`);
+            hyperGradient.addColorStop(0, CU.rgba(255, 215, 0, hyperPulse * 0.9));
+            hyperGradient.addColorStop(0.3, CU.rgba(255, 180, 0, hyperPulse * 0.6));
+            hyperGradient.addColorStop(0.6, CU.rgba(255, 140, 0, hyperPulse * 0.3));
             hyperGradient.addColorStop(1, 'transparent');
             ctx.fillStyle = hyperGradient;
             ctx.beginPath();
@@ -737,7 +738,7 @@ class Player extends window.Game.Entity {
             ctx.fill();
 
             // Inner blazing ring
-            ctx.strokeStyle = `rgba(255, 255, 150, ${hyperPulse})`;
+            ctx.strokeStyle = CU.rgba(255, 255, 150, hyperPulse);
             ctx.lineWidth = 4;
             ctx.beginPath();
             ctx.arc(this.x, this.y, 35 + Math.sin(this.animTime * 12) * 4, 0, Math.PI * 2);
@@ -759,7 +760,7 @@ class Player extends window.Game.Entity {
                 const orbX = this.x + Math.cos(angle) * dist;
                 const orbY = this.y + Math.sin(angle) * dist;
 
-                ctx.fillStyle = `rgba(255, 255, 200, ${hyperPulse})`;
+                ctx.fillStyle = CU.rgba(255, 255, 200, hyperPulse);
                 ctx.beginPath();
                 ctx.arc(orbX, orbY, 4 + Math.sin(this.animTime * 10 + i) * 2, 0, Math.PI * 2);
                 ctx.fill();
@@ -768,7 +769,7 @@ class Player extends window.Game.Entity {
             // Draw HYPER particles
             for (const p of this.hyperParticles) {
                 const alpha = p.life / 0.8;
-                ctx.fillStyle = `rgba(255, 215, 0, ${alpha})`;
+                ctx.fillStyle = CU.rgba(255, 215, 0, alpha);
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, p.size * alpha, 0, Math.PI * 2);
                 ctx.fill();
@@ -782,14 +783,14 @@ class Player extends window.Game.Entity {
             ctx.translate(this.x, this.y);
 
             // Warning ring (larger hitbox!)
-            ctx.strokeStyle = `rgba(255, 100, 100, ${corePulse * 0.6})`;
+            ctx.strokeStyle = CU.rgba(255, 100, 100, corePulse * 0.6);
             ctx.lineWidth = 3;
             ctx.beginPath();
             ctx.arc(0, 0, coreR + 6, 0, Math.PI * 2);
             ctx.stroke();
 
             // Core hitbox (red tint to show danger)
-            ctx.fillStyle = `rgba(255, 200, 150, ${corePulse * 0.9})`;
+            ctx.fillStyle = CU.rgba(255, 200, 150, corePulse * 0.9);
             ctx.beginPath();
             ctx.arc(0, 0, coreR, 0, Math.PI * 2);
             ctx.fill();
@@ -805,8 +806,8 @@ class Player extends window.Game.Entity {
 
             // Outer golden glow
             const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, hodlSize);
-            gradient.addColorStop(0, `rgba(255, 215, 0, ${hodlPulse * 0.6})`);
-            gradient.addColorStop(0.5, `rgba(255, 180, 0, ${hodlPulse * 0.3})`);
+            gradient.addColorStop(0, CU.rgba(255, 215, 0, hodlPulse * 0.6));
+            gradient.addColorStop(0.5, CU.rgba(255, 180, 0, hodlPulse * 0.3));
             gradient.addColorStop(1, 'transparent');
             ctx.fillStyle = gradient;
             ctx.beginPath();
@@ -814,7 +815,7 @@ class Player extends window.Game.Entity {
             ctx.fill();
 
             // Inner bright ring
-            ctx.strokeStyle = `rgba(255, 255, 200, ${hodlPulse * 0.8})`;
+            ctx.strokeStyle = CU.rgba(255, 255, 200, hodlPulse * 0.8);
             ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.arc(this.x, this.y, 30 + Math.sin(this.animTime * 10) * 3, 0, Math.PI * 2);
@@ -827,7 +828,7 @@ class Player extends window.Game.Entity {
                 const sparkX = this.x + Math.cos(angle) * dist;
                 const sparkY = this.y + Math.sin(angle) * dist;
 
-                ctx.fillStyle = `rgba(255, 255, 150, ${hodlPulse})`;
+                ctx.fillStyle = CU.rgba(255, 255, 150, hodlPulse);
                 ctx.beginPath();
                 ctx.arc(sparkX, sparkY, 2 + Math.sin(this.animTime * 8 + i) * 1, 0, Math.PI * 2);
                 ctx.fill();
@@ -1058,20 +1059,20 @@ class Player extends window.Game.Entity {
             const lightColor = CU ? CU.lighten(wColor, 0.5) : '#fff';
 
             // Main flash glow (weapon-colored)
-            ctx.fillStyle = `rgba(255, 255, 220, ${flashAlpha * 0.7})`;
+            ctx.fillStyle = CU.rgba(255, 255, 220, flashAlpha * 0.7);
             ctx.beginPath();
             ctx.arc(0, -30, flashSize, 0, Math.PI * 2);
             ctx.fill();
 
             // Colored inner core
-            const rgb = CU ? CU.hexToRgb(wColor) : '255,160,50';
-            ctx.fillStyle = `rgba(${rgb}, ${flashAlpha * 0.5})`;
+            const wParsed = CU.parseHex(wColor);
+            ctx.fillStyle = CU.rgba(wParsed.r, wParsed.g, wParsed.b, flashAlpha * 0.5);
             ctx.beginPath();
             ctx.arc(0, -30, flashSize * 0.6, 0, Math.PI * 2);
             ctx.fill();
 
             // Flash lines (count scales with shot level)
-            ctx.strokeStyle = `rgba(${rgb}, ${flashAlpha * 0.9})`;
+            ctx.strokeStyle = CU.rgba(wParsed.r, wParsed.g, wParsed.b, flashAlpha * 0.9);
             ctx.lineWidth = 1.5 + level * 0.5;
             // Center line
             ctx.beginPath();
@@ -1091,7 +1092,7 @@ class Player extends window.Game.Entity {
             }
             // Outer lines (level 3)
             if (level >= 3) {
-                ctx.strokeStyle = `rgba(${rgb}, ${flashAlpha * 0.6})`;
+                ctx.strokeStyle = CU.rgba(wParsed.r, wParsed.g, wParsed.b, flashAlpha * 0.6);
                 ctx.beginPath();
                 ctx.moveTo(-14 * scale, -26);
                 ctx.lineTo(-18 * scale, -32 - flashSize * 0.3);
@@ -1105,7 +1106,7 @@ class Player extends window.Game.Entity {
             // Ring burst at level 3 (expanding ring)
             if (level >= (vfx.MUZZLE_RING_AT_LEVEL || 3) && flashAlpha > 0.7) {
                 const ringExpand = (1 - flashAlpha) * 15;
-                ctx.strokeStyle = `rgba(${rgb}, ${flashAlpha * 0.4})`;
+                ctx.strokeStyle = CU.rgba(wParsed.r, wParsed.g, wParsed.b, flashAlpha * 0.4);
                 ctx.lineWidth = 2;
                 ctx.beginPath();
                 ctx.arc(0, -30, flashSize + ringExpand, 0, Math.PI * 2);
@@ -1147,20 +1148,20 @@ class Player extends window.Game.Entity {
             const pulse = Math.sin(this.animTime * 15) * 0.3 + 0.7;
 
             // Outer glow ring
-            ctx.strokeStyle = `rgba(255, 255, 255, ${pulse * 0.4})`;
+            ctx.strokeStyle = CU.rgba(255, 255, 255, pulse * 0.4);
             ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.arc(0, 0, coreR + 4, 0, Math.PI * 2);
             ctx.stroke();
 
             // Core hitbox circle (pulsing white)
-            ctx.fillStyle = `rgba(255, 255, 255, ${pulse * 0.8})`;
+            ctx.fillStyle = CU.rgba(255, 255, 255, pulse * 0.8);
             ctx.beginPath();
             ctx.arc(0, 0, coreR, 0, Math.PI * 2);
             ctx.fill();
 
             // Inner bright core
-            ctx.fillStyle = `rgba(255, 255, 255, ${pulse})`;
+            ctx.fillStyle = CU.rgba(255, 255, 255, pulse);
             ctx.beginPath();
             ctx.arc(0, 0, coreR * 0.5, 0, Math.PI * 2);
             ctx.fill();
@@ -1174,6 +1175,7 @@ class Player extends window.Game.Entity {
      * Called from draw() in translated coordinate space (0,0 = ship center)
      */
     _drawDiegeticHUD(ctx, config) {
+        const CU = window.Game.ColorUtils;
         // 1. LIFE PIPS (below ship)
         if (config.LIFE_PIPS?.ENABLED && typeof this._livesDisplay === 'number') {
             const lp = config.LIFE_PIPS;
@@ -1193,13 +1195,13 @@ class Player extends window.Game.Entity {
                     if (isDanger) {
                         // Red pulsing when danger
                         const pulse = Math.sin(this.animTime * 8) * 0.3 + 0.7;
-                        ctx.fillStyle = `rgba(255, 68, 68, ${pulse})`;
+                        ctx.fillStyle = CU.rgba(255, 68, 68, pulse);
                     } else {
-                        ctx.fillStyle = `rgba(255, 255, 255, ${lp.FULL_ALPHA})`;
+                        ctx.fillStyle = CU.rgba(255, 255, 255, lp.FULL_ALPHA);
                     }
                     ctx.fill();
                 } else {
-                    ctx.fillStyle = `rgba(128, 128, 128, ${lp.EMPTY_ALPHA})`;
+                    ctx.fillStyle = CU.rgba(128, 128, 128, lp.EMPTY_ALPHA);
                     ctx.fill();
                 }
             }
@@ -1215,14 +1217,14 @@ class Player extends window.Game.Entity {
                 const progress = 1 - (this.shieldCooldown / maxCooldown);
                 const angle = Math.PI * 2 * Math.min(1, progress);
 
-                ctx.strokeStyle = `rgba(0, 170, 170, ${sr.COOLDOWN_ALPHA})`;
+                ctx.strokeStyle = CU.rgba(0, 170, 170, sr.COOLDOWN_ALPHA);
                 ctx.lineWidth = sr.LINE_WIDTH;
                 ctx.beginPath();
                 ctx.arc(0, 0, sr.RADIUS, -Math.PI / 2, -Math.PI / 2 + angle);
                 ctx.stroke();
             } else if (!this.shieldActive && this.shieldCooldown <= 0) {
                 // Ready: very faint full ring
-                ctx.strokeStyle = `rgba(0, 170, 170, ${sr.READY_ALPHA})`;
+                ctx.strokeStyle = CU.rgba(0, 170, 170, sr.READY_ALPHA);
                 ctx.lineWidth = sr.LINE_WIDTH;
                 ctx.beginPath();
                 ctx.arc(0, 0, sr.RADIUS, 0, Math.PI * 2);
@@ -1247,7 +1249,7 @@ class Player extends window.Game.Entity {
                 const ratio = Math.min(1, timer / maxTimer);
 
                 // Countdown arc
-                ctx.strokeStyle = `rgba(255, 215, 0, 0.6)`;
+                ctx.strokeStyle = CU.rgba(255, 215, 0, 0.6);
                 ctx.lineWidth = 2;
                 ctx.beginPath();
                 ctx.arc(0, wp.Y_OFFSET, 10, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * ratio);
@@ -1257,7 +1259,7 @@ class Player extends window.Game.Entity {
                 ctx.font = '10px monospace';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillStyle = `rgba(255, 255, 255, 0.8)`;
+                ctx.fillStyle = CU.rgba(255, 255, 255, 0.8);
                 ctx.fillText(icon, 0, wp.Y_OFFSET);
             } else {
                 // Normal: shot level triangles
@@ -1281,16 +1283,18 @@ class Player extends window.Game.Entity {
                     ctx.closePath();
 
                     if (isFull) {
-                        ctx.fillStyle = glowColor || `rgba(255, 255, 255, ${wp.FULL_ALPHA})`;
+                        ctx.fillStyle = glowColor || CU.rgba(255, 255, 255, wp.FULL_ALPHA);
                         ctx.fill();
                         if (glowColor) {
-                            ctx.shadowColor = glowColor;
-                            ctx.shadowBlur = 6;
+                            // v4.11: Double-fill with color instead of shadowBlur (GPU-heavy)
+                            ctx.globalAlpha = 0.4;
+                            ctx.beginPath();
+                            ctx.arc(px, py, wp.SIZE * 1.5, 0, Math.PI * 2);
                             ctx.fill();
-                            ctx.shadowBlur = 0;
+                            ctx.globalAlpha = 1;
                         }
                     } else {
-                        ctx.fillStyle = `rgba(128, 128, 128, ${wp.EMPTY_ALPHA})`;
+                        ctx.fillStyle = CU.rgba(128, 128, 128, wp.EMPTY_ALPHA);
                         ctx.fill();
                     }
                 }
@@ -1303,8 +1307,8 @@ class Player extends window.Game.Entity {
             if (gcCfg) {
                 const pulse = Math.sin(this.animTime * gcCfg.PULSE_SPEED) * 0.05 + gcCfg.ALPHA;
                 const gradient = ctx.createRadialGradient(0, 0, gcCfg.INNER_RADIUS, 0, 0, gcCfg.OUTER_RADIUS);
-                gradient.addColorStop(0, `rgba(255, 68, 0, ${pulse})`);
-                gradient.addColorStop(0.5, `rgba(255, 100, 0, ${pulse * 0.6})`);
+                gradient.addColorStop(0, CU.rgba(255, 68, 0, pulse));
+                gradient.addColorStop(0.5, CU.rgba(255, 100, 0, pulse * 0.6));
                 gradient.addColorStop(1, 'transparent');
                 ctx.fillStyle = gradient;
                 ctx.beginPath();
@@ -1326,11 +1330,11 @@ class Player extends window.Game.Entity {
                 if (isHyperReady) {
                     // Gold pulsing glow
                     alpha = gg.HYPER_READY_ALPHA + Math.sin(this.animTime * 6) * 0.05;
-                    color = `rgba(255, 215, 0, ${alpha})`;
+                    color = CU.rgba(255, 215, 0, alpha);
                 } else {
                     // Pink/magenta glow
                     alpha = gg.MIN_ALPHA + ratio * (gg.MAX_ALPHA - gg.MIN_ALPHA);
-                    color = `rgba(255, 105, 180, ${alpha})`;
+                    color = CU.rgba(255, 105, 180, alpha);
                 }
 
                 const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, gg.RADIUS);

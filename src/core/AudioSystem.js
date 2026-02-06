@@ -1468,17 +1468,9 @@ class AudioSystem {
         }
 
         while (this.noteTime < this.ctx.currentTime + 0.2) {
-            // Emit beat event for Harmonic Conductor (only once per beat)
+            // Beat tracking (used internally, no EventBus emit — no listeners exist)
             if (this.noteIndex !== this.lastEmittedBeat) {
                 this.lastEmittedBeat = this.noteIndex;
-                if (window.Game && window.Game.Events) {
-                    window.Game.Events.emit('beat', {
-                        index: this.noteIndex,
-                        tempo: this.tempo,
-                        isKick: this.noteIndex === 0 || this.noteIndex === 8,
-                        isSnare: this.noteIndex === 4 || this.noteIndex === 12
-                    });
-                }
             }
 
             // Always play bass (intensity 0+)

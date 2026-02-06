@@ -607,6 +607,52 @@ window.Game.Debug = {
             console.log(`║   ${mb.type} (${mb.trigger} x${mb.killCount}) - ${(mb.duration/1000).toFixed(1)}s`);
         }
 
+        // Performance
+        console.log('║                                                            ║');
+        console.log('║ PERFORMANCE                                                ║');
+        console.log('║ ──────────────────────────────────────────────────────────║');
+        const p = this._perf;
+        if (p._totalFrames === 0) {
+            console.log('║   Profiler not active (run dbg.perf() before playing)     ║');
+        } else {
+            const total = p._totalFrames;
+            const duration = (performance.now() - p._startTime) / 1000;
+            const avgFps = total / duration;
+            const avgFrame = p._sumFrame / total;
+            const avgUpdate = p._sumUpdate / total;
+            const avgDraw = p._sumDraw / total;
+
+            // Histogram percentiles
+            const hist = p._histogram;
+            const pct = function(n) {
+                var target = Math.floor(total * n / 100);
+                var cumulative = 0;
+                for (var i = 0; i < p._histBuckets; i++) {
+                    cumulative += hist[i];
+                    if (cumulative >= target) return (i + 0.5) * p._histStep;
+                }
+                return p._worstFrame;
+            };
+
+            // Verdict
+            const jankPct = p._above16 / total;
+            var verdict;
+            if (avgFps >= 58 && jankPct < 0.001) verdict = 'EXCELLENT';
+            else if (avgFps >= 55 && jankPct < 0.01) verdict = 'GREAT';
+            else if (avgFps >= 50 && jankPct < 0.05) verdict = 'GOOD';
+            else if (avgFps >= 40) verdict = 'NEEDS WORK';
+            else verdict = 'POOR';
+
+            const pk = p._entityPeaks;
+            console.log(`║   Avg FPS: ${avgFps.toFixed(1)}    Frames: ${total}`);
+            console.log(`║   Frame — avg: ${avgFrame.toFixed(2)}ms  P95: ${pct(95).toFixed(2)}ms  P99: ${pct(99).toFixed(2)}ms  worst: ${p._worstFrame.toFixed(1)}ms`);
+            console.log(`║   Breakdown — update: ${avgUpdate.toFixed(2)}ms (${avgFrame > 0 ? (avgUpdate/avgFrame*100).toFixed(0) : 0}%)  draw: ${avgDraw.toFixed(2)}ms (${avgFrame > 0 ? (avgDraw/avgFrame*100).toFixed(0) : 0}%)`);
+            console.log(`║   Jank — >16ms: ${p._above16} (${(p._above16/total*100).toFixed(2)}%)  >25ms: ${p._above25}  >33ms: ${p._above33}`);
+            console.log(`║   GC Spikes (>8ms): ${p._gcPauses}`);
+            console.log(`║   Peaks — enemies: ${pk.enemies}  eBullets: ${pk.eBullets}  pBullets: ${pk.pBullets}  particles: ${pk.particles}`);
+            console.log(`║   Verdict: ${verdict}`);
+        }
+
         console.log('╚════════════════════════════════════════════════════════════╝');
         console.log('');
 
@@ -631,7 +677,8 @@ window.Game.Debug = {
         this.categories.BOSS = true;
         this.categories.HORDE = true;
         this.categories.STATE = true;
-        console.log('[DEBUG] Balance testing mode enabled');
+        this.perf(); // Auto-start performance profiling
+        console.log('[DEBUG] Balance testing mode enabled (perf profiling auto-started)');
         console.log('[DEBUG] Use dbg.report() after game over to see analytics');
     },
 
@@ -1246,6 +1293,323 @@ window.Game.Debug = {
         }
     },
 
+    // ========== PERFORMANCE PROFILER v4.10 ==========
+
+    _perf: {
+        enabled: false,
+        overlayEnabled: false,
+        // Pre-allocated circular buffers (5 seconds @ 60fps) — for overlay/recent
+        _bufSize: 300,
+        _bufIdx: 0,
+        _bufCount: 0,
+        _frameTimes: null,   // Float64Array
+        _updateTimes: null,  // Float64Array
+        _drawTimes: null,    // Float64Array
+        // Running stats (FULL SESSION)
+        _totalFrames: 0,
+        _gcPauses: 0,        // frames > 8ms (realistic threshold)
+        _worstFrame: 0,
+        _bestFrame: 999,
+        _sumFrame: 0,
+        _sumUpdate: 0,       // Session-wide update time sum
+        _sumDraw: 0,         // Session-wide draw time sum
+        // Session-wide jank counters
+        _above16: 0,
+        _above25: 0,
+        _above33: 0,
+        // Histogram for session-wide percentiles (200 buckets, 0.25ms each, covers 0-50ms)
+        _histBuckets: 200,
+        _histStep: 0.25,     // ms per bucket
+        _histogram: null,    // Uint32Array
+        // Entity peaks
+        _entityPeaks: { enemies: 0, eBullets: 0, pBullets: 0, particles: 0 },
+        // Timestamp
+        _startTime: 0,
+        // FPS counter
+        _fpsFrames: 0,
+        _fpsLastTime: 0,
+        _fpsDisplay: 0,
+        // Sorted frame buffer for recent percentiles
+        _sortBuf: null,
+    },
+
+    /**
+     * Initialize perf buffers (called once on first perf() call)
+     */
+    _initPerfBuffers() {
+        const p = this._perf;
+        if (!p._frameTimes) {
+            p._frameTimes = new Float64Array(p._bufSize);
+            p._updateTimes = new Float64Array(p._bufSize);
+            p._drawTimes = new Float64Array(p._bufSize);
+            p._sortBuf = new Float64Array(p._bufSize);
+            p._histogram = new Uint32Array(p._histBuckets);
+        }
+    },
+
+    /**
+     * Start performance profiling
+     * Usage: dbg.perf()
+     */
+    perf() {
+        this._initPerfBuffers();
+        const p = this._perf;
+        p.enabled = true;
+        p.overlayEnabled = true;
+        p._bufIdx = 0;
+        p._bufCount = 0;
+        p._totalFrames = 0;
+        p._gcPauses = 0;
+        p._worstFrame = 0;
+        p._bestFrame = 999;
+        p._sumFrame = 0;
+        p._sumUpdate = 0;
+        p._sumDraw = 0;
+        p._above16 = 0;
+        p._above25 = 0;
+        p._above33 = 0;
+        p._histogram.fill(0);
+        p._entityPeaks = { enemies: 0, eBullets: 0, pBullets: 0, particles: 0 };
+        p._startTime = performance.now();
+        p._fpsLastTime = performance.now();
+        p._fpsFrames = 0;
+        p._fpsDisplay = 0;
+        console.log('[PERF] Profiling started. Play normally, then run dbg.perfReport()');
+        console.log('[PERF] FPS overlay enabled (top-right corner)');
+    },
+
+    /**
+     * Stop profiling
+     */
+    perfStop() {
+        this._perf.enabled = false;
+        this._perf.overlayEnabled = false;
+        console.log('[PERF] Profiling stopped.');
+    },
+
+    /**
+     * Record one frame's timing data (called from main.js loop)
+     * @param {number} frameMs - total frame time
+     * @param {number} updateMs - update() time
+     * @param {number} drawMs - draw() time
+     * @param {object} counts - { enemies, eBullets, pBullets, particles }
+     */
+    perfFrame(frameMs, updateMs, drawMs, counts) {
+        const p = this._perf;
+        if (!p.enabled) return;
+
+        // Store in circular buffer (for overlay/recent metrics)
+        const idx = p._bufIdx;
+        p._frameTimes[idx] = frameMs;
+        p._updateTimes[idx] = updateMs;
+        p._drawTimes[idx] = drawMs;
+        p._bufIdx = (idx + 1) % p._bufSize;
+        if (p._bufCount < p._bufSize) p._bufCount++;
+
+        // Session-wide running stats
+        p._totalFrames++;
+        p._sumFrame += frameMs;
+        p._sumUpdate += updateMs;
+        p._sumDraw += drawMs;
+        if (frameMs > p._worstFrame) p._worstFrame = frameMs;
+        if (frameMs < p._bestFrame) p._bestFrame = frameMs;
+
+        // Session-wide jank counters
+        if (frameMs > 16.67) p._above16++;
+        if (frameMs > 25) p._above25++;
+        if (frameMs > 33.33) p._above33++;
+
+        // GC pause detection: frame > 8ms (absolute threshold — our code usually <2ms)
+        if (frameMs > 8) p._gcPauses++;
+
+        // Histogram for session-wide percentiles
+        var bucket = Math.min((frameMs / p._histStep) | 0, p._histBuckets - 1);
+        p._histogram[bucket]++;
+
+        // Entity peaks
+        if (counts) {
+            const pk = p._entityPeaks;
+            if (counts.enemies > pk.enemies) pk.enemies = counts.enemies;
+            if (counts.eBullets > pk.eBullets) pk.eBullets = counts.eBullets;
+            if (counts.pBullets > pk.pBullets) pk.pBullets = counts.pBullets;
+            if (counts.particles > pk.particles) pk.particles = counts.particles;
+        }
+
+        // FPS counter (update every 500ms)
+        p._fpsFrames++;
+        const now = performance.now();
+        const fpsDelta = now - p._fpsLastTime;
+        if (fpsDelta >= 500) {
+            p._fpsDisplay = Math.round(p._fpsFrames / (fpsDelta / 1000));
+            p._fpsFrames = 0;
+            p._fpsLastTime = now;
+        }
+    },
+
+    /**
+     * Draw performance overlay (top-right corner)
+     * Called from main.js draw when perf overlay is active
+     */
+    drawPerfOverlay(ctx, gameWidth) {
+        const p = this._perf;
+        if (!p.overlayEnabled || p._bufCount < 2) return;
+
+        const w = 160;
+        const h = 110;
+        const x = (gameWidth || 600) - w - 5;
+        const y = 5;
+
+        ctx.save();
+
+        // Background
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        ctx.fillRect(x, y, w, h);
+        ctx.strokeStyle = '#00ff00';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x, y, w, h);
+
+        // FPS (big)
+        const fps = p._fpsDisplay;
+        ctx.font = 'bold 22px monospace';
+        ctx.fillStyle = fps >= 55 ? '#00ff00' : fps >= 40 ? '#ffff00' : '#ff0000';
+        ctx.fillText(fps + ' FPS', x + 8, y + 22);
+
+        // Frame time stats
+        const avg = p._totalFrames > 0 ? (p._sumFrame / p._totalFrames) : 0;
+        const count = p._bufCount;
+        let recent = 0;
+        for (let i = 0; i < Math.min(30, count); i++) {
+            const ri = (p._bufIdx - 1 - i + p._bufSize) % p._bufSize;
+            recent += p._frameTimes[ri];
+        }
+        const recentAvg = Math.min(30, count) > 0 ? recent / Math.min(30, count) : 0;
+
+        ctx.font = '10px monospace';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(`frame: ${recentAvg.toFixed(1)}ms avg`, x + 8, y + 36);
+        ctx.fillText(`worst: ${p._worstFrame.toFixed(1)}ms  gc: ${p._gcPauses}`, x + 8, y + 48);
+
+        // Frame time bar graph (last 60 frames)
+        const barY = y + 55;
+        const barH = 45;
+        const barCount = Math.min(60, count);
+        const barW = (w - 16) / 60;
+
+        // 16.67ms target line
+        ctx.strokeStyle = 'rgba(255, 255, 0, 0.4)';
+        ctx.lineWidth = 1;
+        const targetY = barY + barH - (16.67 / 33.33) * barH;
+        ctx.beginPath();
+        ctx.moveTo(x + 8, targetY);
+        ctx.lineTo(x + w - 8, targetY);
+        ctx.stroke();
+
+        // Bars
+        for (let i = 0; i < barCount; i++) {
+            const ri = (p._bufIdx - barCount + i + p._bufSize) % p._bufSize;
+            const ms = p._frameTimes[ri];
+            const barHeight = Math.min((ms / 33.33) * barH, barH);
+            const bx = x + 8 + i * barW;
+            const by = barY + barH - barHeight;
+
+            ctx.fillStyle = ms <= 16.67 ? '#00ff00' : ms <= 25 ? '#ffff00' : '#ff0000';
+            ctx.fillRect(bx, by, Math.max(barW - 0.5, 1), barHeight);
+        }
+
+        // Labels
+        ctx.fillStyle = '#888888';
+        ctx.font = '8px monospace';
+        ctx.fillText('16ms', x + w - 30, targetY - 2);
+        ctx.fillText(`${p._totalFrames} frames`, x + 8, y + h - 2);
+
+        ctx.restore();
+    },
+
+    /**
+     * Generate detailed performance report
+     * Usage: dbg.perfReport()
+     */
+    perfReport() {
+        const p = this._perf;
+        if (p._totalFrames === 0) {
+            console.log('[PERF] No data. Run dbg.perf() first and play a game.');
+            return;
+        }
+
+        const total = p._totalFrames;
+        const duration = (performance.now() - p._startTime) / 1000;
+        const avg = p._sumFrame / total;
+
+        // Compute session-wide percentiles from histogram
+        const hist = p._histogram;
+        const pct = function(n) {
+            var target = Math.floor(total * n / 100);
+            var cumulative = 0;
+            for (var i = 0; i < p._histBuckets; i++) {
+                cumulative += hist[i];
+                if (cumulative >= target) return (i + 0.5) * p._histStep;
+            }
+            return p._worstFrame;
+        };
+
+        // Session-wide update/draw breakdown
+        const avgUpdate = p._sumUpdate / total;
+        const avgDraw = p._sumDraw / total;
+
+        console.log('');
+        console.log('%c╔════════════════════════════════════════════════════════════╗', 'color: #0f0');
+        console.log('%c║         PERFORMANCE PROFILER REPORT v4.10.1               ║', 'color: #0f0; font-weight: bold');
+        console.log('%c╠════════════════════════════════════════════════════════════╣', 'color: #0f0');
+
+        console.log(`%c║ Duration: ${duration.toFixed(1)}s    Total Frames: ${total}`, 'color: #fff');
+        console.log(`%c║ Avg FPS: ${(total / duration).toFixed(1)}    Last FPS: ${p._fpsDisplay}`, 'color: #fff');
+
+        console.log('%c╠══ FRAME TIME (full session) ══════════════════════════════╣', 'color: #0ff');
+        console.log(`%c║   Average:  ${avg.toFixed(2)} ms`, 'color: #fff');
+        console.log(`%c║   Best:     ${p._bestFrame.toFixed(2)} ms`, 'color: #0f0');
+        console.log(`%c║   Worst:    ${p._worstFrame.toFixed(2)} ms`, p._worstFrame > 33 ? 'color: #f00' : 'color: #ff0');
+        console.log(`%c║   P50:      ${pct(50).toFixed(2)} ms (median)`, 'color: #fff');
+        console.log(`%c║   P95:      ${pct(95).toFixed(2)} ms`, pct(95) > 16 ? 'color: #ff0' : 'color: #fff');
+        console.log(`%c║   P99:      ${pct(99).toFixed(2)} ms (1% worst)`, pct(99) > 25 ? 'color: #f00' : 'color: #fff');
+
+        console.log('%c╠══ TIME BREAKDOWN (full session) ══════════════════════════╣', 'color: #0ff');
+        console.log(`%c║   Update: ${avgUpdate.toFixed(2)} ms (${avg > 0 ? (avgUpdate/avg*100).toFixed(0) : 0}%)`, 'color: #fff');
+        console.log(`%c║   Draw:   ${avgDraw.toFixed(2)} ms (${avg > 0 ? (avgDraw/avg*100).toFixed(0) : 0}%)`, 'color: #fff');
+        console.log(`%c║   Other:  ${Math.max(0, avg - avgUpdate - avgDraw).toFixed(2)} ms (${avg > 0 ? (Math.max(0, avg-avgUpdate-avgDraw)/avg*100).toFixed(0) : 0}%)`, 'color: #888');
+
+        console.log('%c╠══ JANK ANALYSIS (full session) ═══════════════════════════╣', 'color: #0ff');
+        console.log(`%c║   Frames >16.7ms (miss 60fps): ${p._above16}/${total} (${(p._above16/total*100).toFixed(2)}%)`, p._above16/total > 0.01 ? 'color: #ff0' : 'color: #0f0');
+        console.log(`%c║   Frames >25ms (miss 40fps):   ${p._above25}/${total} (${(p._above25/total*100).toFixed(2)}%)`, p._above25 > 0 ? 'color: #f00' : 'color: #0f0');
+        console.log(`%c║   Frames >33ms (miss 30fps):   ${p._above33}/${total} (${(p._above33/total*100).toFixed(2)}%)`, p._above33 > 0 ? 'color: #f00' : 'color: #0f0');
+        console.log(`%c║   Spikes >8ms (GC/system):     ${p._gcPauses}`, p._gcPauses > 20 ? 'color: #ff0' : 'color: #0f0');
+
+        console.log('%c╠══ ENTITY PEAKS ═══════════════════════════════════════════╣', 'color: #0ff');
+        const pk = p._entityPeaks;
+        console.log(`%c║   Enemies:         ${pk.enemies}`, 'color: #fff');
+        console.log(`%c║   Enemy Bullets:   ${pk.eBullets}`, 'color: #fff');
+        console.log(`%c║   Player Bullets:  ${pk.pBullets}`, 'color: #fff');
+        console.log(`%c║   Particles:       ${pk.particles}`, 'color: #fff');
+
+        // Verdict based on session-wide data
+        console.log('%c╠══ VERDICT ════════════════════════════════════════════════╣', 'color: #0ff');
+        const avgFps = total / duration;
+        const jankPct = p._above16 / total;
+        if (avgFps >= 58 && jankPct < 0.001) {
+            console.log('%c║   🟢 EXCELLENT — Smooth 60fps, virtually no jank', 'color: #0f0; font-weight: bold');
+        } else if (avgFps >= 55 && jankPct < 0.01) {
+            console.log('%c║   🟢 GREAT — Solid 60fps with rare dips', 'color: #0f0; font-weight: bold');
+        } else if (avgFps >= 50 && jankPct < 0.05) {
+            console.log('%c║   🟡 GOOD — Mostly smooth, occasional drops', 'color: #ff0; font-weight: bold');
+        } else if (avgFps >= 40) {
+            console.log('%c║   🟠 NEEDS WORK — Noticeable frame drops', 'color: #f80; font-weight: bold');
+        } else {
+            console.log('%c║   🔴 POOR — Significant performance issues', 'color: #f00; font-weight: bold');
+        }
+
+        console.log('%c╚════════════════════════════════════════════════════════════╝', 'color: #0f0');
+        console.log('');
+    },
+
     /**
      * Show current weapon evolution state
      */
@@ -1271,4 +1635,4 @@ window.Game.Debug = {
 window.dbg = window.Game.Debug;
 
 // Console helper message
-console.log('[DEBUG] DebugSystem loaded. Commands: dbg.stats(), dbg.showOverlay(), dbg.debugBoss(), dbg.debugHUD(), dbg.hudStatus(), dbg.toggleHudMsg(key), dbg.maxWeapon(), dbg.weaponStatus(), dbg.godchain(), dbg.godchainStatus()');
+console.log('[DEBUG] DebugSystem loaded. Commands: dbg.stats(), dbg.showOverlay(), dbg.perf(), dbg.perfReport(), dbg.debugBoss(), dbg.debugHUD(), dbg.hudStatus(), dbg.toggleHudMsg(key), dbg.maxWeapon(), dbg.weaponStatus(), dbg.godchain(), dbg.godchainStatus()');

@@ -37,6 +37,10 @@ window.Game.HarmonicConductor = {
     // Beat pulse visual
     beatPulseAlpha: 0,
 
+    // Pre-allocated reusable arrays (GC pressure fix)
+    _tempActive: [],
+    _tempTier: [],
+
     // Wave Intensity System (Ikeda Choreography)
     waveIntensity: {
         initialCount: 0,          // Enemies at wave start
@@ -94,7 +98,10 @@ window.Game.HarmonicConductor = {
     // Get wave progress (0.0 to 1.0)
     getWaveProgress() {
         if (!this.enemies || this.waveIntensity.initialCount === 0) return 0;
-        const remaining = this.enemies.filter(e => e && e.active).length;
+        var remaining = 0;
+        for (var i = 0, len = this.enemies.length; i < len; i++) {
+            if (this.enemies[i] && this.enemies[i].active) remaining++;
+        }
         return 1 - (remaining / this.waveIntensity.initialCount);
     },
 
@@ -105,7 +112,12 @@ window.Game.HarmonicConductor = {
         if (!choreography) return;
 
         const progress = this.getWaveProgress();
-        const remaining = this.enemies ? this.enemies.filter(e => e && e.active).length : 0;
+        var remaining = 0;
+        if (this.enemies) {
+            for (var i = 0, len = this.enemies.length; i < len; i++) {
+                if (this.enemies[i] && this.enemies[i].active) remaining++;
+            }
+        }
 
         // Determine phase
         let newPhase = 'SETUP';
@@ -152,7 +164,11 @@ window.Game.HarmonicConductor = {
     // Check if any enemies are still entering formation (should not fire)
     areEnemiesEntering() {
         if (!this.enemies || this.enemies.length === 0) return false;
-        return this.enemies.some(e => e && e.active && e.isEntering);
+        for (var i = 0, len = this.enemies.length; i < len; i++) {
+            var e = this.enemies[i];
+            if (e && e.active && e.isEntering) return true;
+        }
+        return false;
     },
 
     // Get last enemy score bonus
@@ -196,10 +212,10 @@ window.Game.HarmonicConductor = {
 
     getSequenceMaxBeat() {
         if (!this.currentSequence) return 15;
-        let max = 15;
-        this.currentSequence.forEach(cmd => {
-            if (cmd.beat > max) max = cmd.beat;
-        });
+        var max = 15;
+        for (var i = 0, len = this.currentSequence.length; i < len; i++) {
+            if (this.currentSequence[i].beat > max) max = this.currentSequence[i].beat;
+        }
         return max;
     },
 
@@ -256,9 +272,11 @@ window.Game.HarmonicConductor = {
             this.beatPulseAlpha = 0.05;
         }
 
-        // Find commands for this beat
-        const commands = this.currentSequence.filter(cmd => cmd.beat === beatIndex);
-        commands.forEach(cmd => this.executeCommand(cmd));
+        // Execute commands for this beat (no .filter() allocation)
+        var seq = this.currentSequence;
+        for (var i = 0, len = seq.length; i < len; i++) {
+            if (seq[i].beat === beatIndex) this.executeCommand(seq[i]);
+        }
     },
 
     executeCommand(cmd) {
@@ -297,20 +315,28 @@ window.Game.HarmonicConductor = {
 
     getEnemiesByTier(tierName) {
         const Sequences = window.Game.HarmonicSequences;
-        if (!Sequences || !this.enemies) return [];
+        if (!Sequences || !this.enemies) return this._tempTier;
 
-        // Only include enemies that have settled (not still entering formation)
-        const activeEnemies = this.enemies.filter(e => e && e.active && e.hasSettled !== false);
-        if (tierName === 'ALL') return activeEnemies;
+        // Reuse pre-allocated array (callers must use immediately or .slice())
+        var result = this._tempTier;
+        result.length = 0;
 
-        const tierIndices = Sequences.TIERS[tierName];
-        if (!tierIndices) return activeEnemies;
+        var tierIndices = (tierName !== 'ALL') ? Sequences.TIERS[tierName] : null;
+        var types = window.Game.FIAT_TYPES || [];
 
-        return activeEnemies.filter(e => {
-            const types = window.Game.FIAT_TYPES || [];
-            const typeIdx = types.findIndex(t => t.s === e.symbol);
-            return tierIndices.includes(typeIdx);
-        });
+        for (var i = 0, len = this.enemies.length; i < len; i++) {
+            var e = this.enemies[i];
+            if (!e || !e.active || e.hasSettled === false) continue;
+            if (tierIndices) {
+                var typeIdx = -1;
+                for (var j = 0, tLen = types.length; j < tLen; j++) {
+                    if (types[j].s === e.symbol) { typeIdx = j; break; }
+                }
+                if (tierIndices.indexOf(typeIdx) === -1) continue;
+            }
+            result.push(e);
+        }
+        return result;
     },
 
     // SYNC_FIRE: All enemies of tier fire together
@@ -319,13 +345,13 @@ window.Game.HarmonicConductor = {
         if (tierEnemies.length === 0) return;
 
         // Add telegraph
-        tierEnemies.forEach(e => {
-            this.addTelegraph(e.x, e.y, 'ring', this.difficultyParams.telegraphTime,
+        for (var i = 0; i < tierEnemies.length; i++) {
+            this.addTelegraph(tierEnemies[i].x, tierEnemies[i].y, 'ring', this.difficultyParams.telegraphTime,
                 pattern === 'BURST' ? '#ff6b6b' : '#4ecdc4');
-        });
+        }
 
         // Fire after telegraph delay
-        const enemies = tierEnemies.slice(); // Copy array
+        const enemies = tierEnemies.slice(); // Copy array (needed for setTimeout)
         const gen = this.generation; // v2.22.3: Capture generation
         setTimeout(() => {
             if (this.generation !== gen) return; // v2.22.3: Abort if reset occurred
@@ -361,12 +387,13 @@ window.Game.HarmonicConductor = {
         if (!this.enemies || this.enemies.length === 0) return;
 
         const rows = {};
-        this.enemies.forEach(e => {
-            if (!e || !e.active) return;
-            const rowKey = Math.round(e.baseY / 75) * 75;
+        for (var i = 0, len = this.enemies.length; i < len; i++) {
+            var e = this.enemies[i];
+            if (!e || !e.active) continue;
+            var rowKey = Math.round(e.baseY / 75) * 75;
             if (!rows[rowKey]) rows[rowKey] = [];
             rows[rowKey].push(e);
-        });
+        }
 
         const rowKeys = Object.keys(rows).map(Number);
         rowKeys.sort((a, b) => direction === 'down' ? a - b : b - a);
@@ -394,13 +421,17 @@ window.Game.HarmonicConductor = {
         const Patterns = window.Game.BulletPatterns;
         if (!Patterns || !Patterns[patternName]) return;
 
-        let cx = this.gameWidth / 2;
-        let cy = 200;
+        var cx = this.gameWidth / 2;
+        var cy = 200;
 
-        const active = this.enemies ? this.enemies.filter(e => e && e.active) : [];
-        if (active.length > 0) {
-            cx = active.reduce((sum, e) => sum + e.x, 0) / active.length;
-            cy = active.reduce((sum, e) => sum + e.y, 0) / active.length;
+        // Compute centroid without array allocation
+        if (this.enemies) {
+            var sumX = 0, sumY = 0, cnt = 0;
+            for (var i = 0, len = this.enemies.length; i < len; i++) {
+                var e = this.enemies[i];
+                if (e && e.active) { sumX += e.x; sumY += e.y; cnt++; }
+            }
+            if (cnt > 0) { cx = sumX / cnt; cy = sumY / cnt; }
         }
 
         const scaledConfig = Object.assign({}, config);
@@ -477,27 +508,36 @@ window.Game.HarmonicConductor = {
     },
 
     executeRandomVolley(count) {
-        const active = this.enemies ? this.enemies.filter(e => e && e.active) : [];
+        // Build active list without allocation (reuse _tempActive)
+        var active = this._tempActive;
+        active.length = 0;
+        if (this.enemies) {
+            for (var i = 0, len = this.enemies.length; i < len; i++) {
+                if (this.enemies[i] && this.enemies[i].active) active.push(this.enemies[i]);
+            }
+        }
         if (active.length === 0) return;
 
-        const selected = [];
-        const numToFire = Math.min(count, active.length);
-
-        for (let i = 0; i < numToFire && selected.length < numToFire; i++) {
-            const e = active[Math.floor(Math.random() * active.length)];
-            if (!selected.includes(e)) selected.push(e);
+        var numToFire = Math.min(count, active.length);
+        // Must snapshot for setTimeout — allocate only what's needed
+        var selected = [];
+        for (var j = 0; j < numToFire && selected.length < numToFire; j++) {
+            var e = active[Math.floor(Math.random() * active.length)];
+            if (selected.indexOf(e) === -1) selected.push(e);
         }
 
-        const gen = this.generation; // v2.22.3: Capture generation
-        selected.forEach((e, i) => {
-            setTimeout(() => {
-                if (this.generation !== gen) return; // v2.22.3: Abort if reset occurred
-                if (e && e.active) {
-                    this.addTelegraph(e.x, e.y, 'flash', 0.08, '#fff');
-                    this.fireEnemy(e, 'SINGLE');
-                }
-            }, i * 50);
-        });
+        var gen = this.generation;
+        for (var k = 0; k < selected.length; k++) {
+            (function(enemy, delay, self) {
+                setTimeout(function() {
+                    if (self.generation !== gen) return;
+                    if (enemy && enemy.active) {
+                        self.addTelegraph(enemy.x, enemy.y, 'flash', 0.08, '#fff');
+                        self.fireEnemy(enemy, 'SINGLE');
+                    }
+                }, delay);
+            })(selected[k], k * 50, this);
+        }
     },
 
     // Fire a single enemy

@@ -108,12 +108,8 @@
             return;
         }
 
-        // Detect language from game settings
-        if (G.TEXTS) {
-            const testKey = 'SCORE';
-            currentLang = (G.TEXTS.IT && G.TEXTS.IT[testKey]) ?
-                (localStorage.getItem('fiat_lang') || 'EN') : 'EN';
-        }
+        // Detect language from game state (v4.11.0: was reading localStorage which may be unset)
+        currentLang = G._currentLang || localStorage.getItem('fiat_lang') || 'EN';
 
         currentStory = storyContent;
         onCompleteCallback = onComplete;

@@ -562,7 +562,7 @@
                 ctx.fillStyle = p.color;
                 ctx.strokeStyle = '#111';
                 ctx.lineWidth = 2;
-                ctx.font = `bold ${Math.floor(p.size)}px Arial`;
+                ctx.font = window.Game.ColorUtils.font('bold', p.size, 'Arial');
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.save();

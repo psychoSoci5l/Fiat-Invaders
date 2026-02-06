@@ -343,6 +343,7 @@
         MINI_BOSS: {
             KILL_THRESHOLD: 15,       // Default kills for mini-boss (used as fallback)
             COOLDOWN: 15.0,           // Seconds between mini-boss spawns
+            MAX_PER_WAVE: 2,          // v4.10.2: Cap mini-bosses per wave to prevent spam
 
             // Currency → Boss mapping with individual thresholds
             // v2.24.5: Balanced thresholds (~1.5x original) with 15s cooldown + global reset
@@ -365,8 +366,9 @@
                 '₹': { boss: 'RANDOM', threshold: 35 },
                 '₺': { boss: 'RANDOM', threshold: 35 },
 
-                // CBDC → Boss of current cycle (rare spawn)
-                'Ⓒ': { boss: 'CYCLE_BOSS', threshold: 12 }
+                // CBDC → Boss of current cycle
+                // v4.10.2: threshold 12→24 (C3W5H2 has 26 Ⓒ, was triggering 3 minibosses)
+                'Ⓒ': { boss: 'CYCLE_BOSS', threshold: 24 }
             }
         },
 
@@ -402,7 +404,7 @@
             FIRE_RATES: {
                 FEDERAL_RESERVE: [0.85, 0.38, 0.20],  // Aggressive printer
                 BCE: [1.40, 0.70, 0.35],              // Bureaucratic delays
-                BOJ: [0.75, 0.45, 0.18]               // Precise intervention
+                BOJ: [0.90, 0.45, 0.18]               // v4.10.2: Phase 1 slowed (0.75→0.90) to reduce bullet density
             },
 
             // Minion spawn rate (seconds between spawns in Phase 3)

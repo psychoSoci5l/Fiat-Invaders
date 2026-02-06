@@ -500,6 +500,46 @@ window.Game.WaveManager = {
             }
         }
 
+        // v4.10.2: Y-clamping — prevent enemies spawning above screen or in player area
+        if (positions.length > 0) {
+            const gameH = window.Game._gameHeight || 700;
+            const minYBound = startY;
+            const maxYBound = gameH * 0.65; // ~455px on 700px — leaves room for player
+
+            const minY = positions.reduce((m, p) => Math.min(m, p.y), Infinity);
+            const maxY = positions.reduce((m, p) => Math.max(m, p.y), -Infinity);
+
+            if (minY < minYBound || maxY > maxYBound) {
+                const span = maxY - minY;
+                const availableHeight = maxYBound - minYBound;
+
+                if (span > availableHeight) {
+                    // Scale-to-fit: compress vertically
+                    const scale = availableHeight / span;
+                    const centerY = (minY + maxY) / 2;
+                    const newCenterY = (minYBound + maxYBound) / 2;
+                    for (let i = 0; i < positions.length; i++) {
+                        positions[i].y = newCenterY + (positions[i].y - centerY) * scale;
+                    }
+                    dbg.log('WAVE', `[WM] Y-clamp: ${formationName} scaled ${(scale * 100).toFixed(0)}% (span ${span.toFixed(0)} > avail ${availableHeight.toFixed(0)})`);
+                } else {
+                    // Shift: formation fits but is offset
+                    let shiftY = 0;
+                    if (minY < minYBound) shiftY = minYBound - minY;
+                    else if (maxY > maxYBound) shiftY = maxYBound - maxY;
+                    for (let i = 0; i < positions.length; i++) {
+                        positions[i].y += shiftY;
+                    }
+                }
+
+                // Hard clamp: safety net for any remaining outliers
+                for (let i = 0; i < positions.length; i++) {
+                    if (positions[i].y < minYBound) positions[i].y = minYBound;
+                    if (positions[i].y > maxYBound) positions[i].y = maxYBound;
+                }
+            }
+        }
+
         return positions;
     },
 

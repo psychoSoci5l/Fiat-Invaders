@@ -21,9 +21,10 @@ class EventBus {
     emit(eventName, payload) {
         const list = this.listeners[eventName];
         if (!list || list.length === 0) return;
-        list.slice().forEach(fn => {
-            try { fn(payload); } catch (e) { }
-        });
+        // Iterate without .slice() allocation; snapshot length for safety
+        for (var i = 0, len = list.length; i < len; i++) {
+            try { list[i](payload); } catch (e) { }
+        }
     }
 }
 

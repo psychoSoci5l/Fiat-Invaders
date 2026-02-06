@@ -1,7 +1,7 @@
 // Service Worker for FIAT vs CRYPTO
 // ⚠️ VERSION SYNC: Must match src/utils/Constants.js window.Game.VERSION
 // When updating version: 1) Constants.js  2) sw.js  3) CHANGELOG.md
-const SW_VERSION = '4.9.0';
+const SW_VERSION = '4.11.0';
 const CACHE_NAME = `fiat-vs-crypto-v${SW_VERSION}`;
 
 // All assets to cache
@@ -135,11 +135,13 @@ self.addEventListener('fetch', (event) => {
         caches.match(event.request)
             .then((response) => {
                 return response || fetch(event.request).then((fetchResponse) => {
-                    // Cache new static assets
-                    const responseClone = fetchResponse.clone();
-                    caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(event.request, responseClone);
-                    });
+                    // Only cache complete (200) responses — 206 partial responses are unsupported
+                    if (fetchResponse.status === 200) {
+                        const responseClone = fetchResponse.clone();
+                        caches.open(CACHE_NAME).then((cache) => {
+                            cache.put(event.request, responseClone);
+                        });
+                    }
                     return fetchResponse;
                 });
             })
