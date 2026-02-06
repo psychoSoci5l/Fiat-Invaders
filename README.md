@@ -10,19 +10,22 @@
 *   **Responsive**: "Notch-safe" UI design that adapts to all mobile screens.
 *   **Localization**: Fully localized in English (EN) and Italian (IT).
 
-## 🧠 Current Gameplay Rules (v4.4.0)
+## 🧠 Current Gameplay Rules (v4.11.0)
 
+*   **Two Game Modes**: **Story Mode** (3 acts with narrative chapters, boss progression FED→BCE→BOJ) and **Arcade Mode** (endless waves, high scores, mini-bosses).
 *   **Wave System**: 15 unique waves (5 per cycle x 3 cycles) with 16 formation patterns and thematic currency groups.
 *   **Horde System**: Each wave has 2 hordes with complementary formations and escalating difficulty.
 *   **HarmonicConductor**: Beat-synced enemy firing with wave intensity phases (Setup → Build → Panic).
 *   **HYPER Mode**: Fill graze meter to 100%, activate for 5x score + 50% bigger hitbox (high risk/reward).
 *   **Satoshi's Sacrifice**: At 1 life, sacrifice all score for 10s invincibility and 10x multiplier.
 *   **Weapon Evolution**: Progressive shot levels (1-3) + stackable modifiers + exclusive specials.
+*   **GODCHAIN Mode**: Max all weapon modifiers simultaneously for ultimate ship form (red aura, fire trails, speed boost).
 *   **Dynamic Difficulty (Rank System)**: Game adapts to player skill in real-time (-1.0 to +1.0 rank).
 *   **3 Unique Bosses**: FED (MEGA-BILL), BCE (MEGA-COIN), BOJ (MEGA-BAR) with exclusive attack patterns.
 *   **10 Fiat Currencies**: Each with unique shape, tier, and fire pattern.
 *   **Compact HUD**: Minimal 45px top bar with diegetic ship indicators (life pips, shield ring, weapon pips, graze glow).
 *   **Reactive Feedback**: Score colors on streaks, danger pulse at low HP, wave sweep transitions.
+*   **Skippable Intermissions**: Tap/click/spacebar to skip the 3-2-1 countdown between waves.
 
 ## 🎮 How to Play
 
@@ -86,8 +89,45 @@ manifest.json    # PWA Configuration
 ## 🧪 Dev Tips
 
 * **Hard refresh** after changing assets: `Ctrl+F5`.
-* If changes don’t show, clear SW cache: DevTools → Application → Service Workers → Unregister → Clear Storage.
+* If changes don't show, clear SW cache: DevTools → Application → Service Workers → Unregister → Clear Storage.
 * Current visuals are **code‑drawn**; sprites in `/assets` are optional unless wired back.
+
+## 🔬 Debug & Performance Tools
+
+All tools accessible via browser console using `dbg.` shortcut.
+
+### Balance Testing (one-command workflow)
+```javascript
+dbg.balanceTest()   // Start tracking + auto-enable perf profiler
+// ... play the game ...
+dbg.report()        // After game over: full analytics + performance report
+```
+
+### Performance Profiler
+```javascript
+dbg.perf()          // Start profiling (shows FPS overlay top-right)
+dbg.perfStop()      // Stop profiling
+dbg.perfReport()    // Detailed report: FPS, frame times (P50/P95/P99),
+                    // jank analysis, GC spikes, entity peaks, verdict
+```
+
+### Debug Overlay & Logging
+```javascript
+dbg.showOverlay()   // On-screen panel: state, entities, boss, rank, HUD
+dbg.debugBoss()     // Enable boss logging + overlay
+dbg.debugWaves()    // Enable wave logging + overlay
+dbg.debugHUD()      // Enable HUD logging + overlay
+dbg.hudStatus()     // Full HUD state snapshot
+```
+
+### Weapon Debug
+```javascript
+dbg.maxWeapon()     // Max all weapon stats
+dbg.setShot(3)      // Set shot level 1-3
+dbg.setMod('rate',2)// Set modifier level
+dbg.setSpecial('HOMING') // Activate special
+dbg.godchain()      // Force GODCHAIN mode
+```
 
 ## 🔧 Common Tweaks
 

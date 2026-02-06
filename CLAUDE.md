@@ -83,10 +83,12 @@ All modules attach to `window.Game`. Script load order in `index.html` matters:
 - `window.currentLevel` - Current level (for WaveManager)
 - `window.Game.Debug` - Debug logging system (alias: `window.dbg`)
 - `window.Game.RankSystem` - Dynamic difficulty adjustment (rank -1 to +1)
+- `window.Game.CampaignState` - Story Mode progression tracker (boss defeats, chapters, NG+)
+- `window.Game._currentLang` - Current language ('EN' or 'IT'), used by StoryScreen
 
-### Debug System (DebugSystem.js) - v2.22.6
+### Debug System (DebugSystem.js) - v4.11.0
 
-Advanced debug system with logging, event tracking, statistics, and visual overlay.
+Advanced debug system with logging, event tracking, statistics, performance profiling, and visual overlay.
 
 **Console Commands (use `dbg.` shortcut):**
 ```javascript
@@ -118,22 +120,38 @@ dbg.setProduction()       // Disable all (for release)
 dbg.hudStatus()           // Show full HUD state snapshot in console
 dbg.toggleHudMsg('KEY')   // Toggle HUD_MESSAGES flag (e.g. 'FLOATING_TEXT')
 
-// Balance Testing (v2.24.8)
-dbg.balanceTest()         // Start balance test run (enables analytics)
-dbg.report()              // Show full analytics report after game over
+// Balance Testing (v4.10.3 — unified with perf)
+dbg.balanceTest()         // Start balance test + auto-start perf profiler
+dbg.report()              // Full analytics + PERFORMANCE section after game over
+
+// Performance Profiler (v4.10.0)
+dbg.perf()                // Start profiling (shows FPS overlay top-right)
+dbg.perfStop()            // Stop profiling
+dbg.perfReport()          // Detailed report: FPS, P50/P95/P99 frame times,
+                          // jank analysis, GC spikes, update/draw breakdown,
+                          // entity peaks, verdict (EXCELLENT/GREAT/GOOD/NEEDS WORK/POOR)
 ```
 
-**Balance Testing Workflow:**
+**Balance + Performance Testing Workflow:**
 ```javascript
 // 1. Open DevTools Console (F12)
-dbg.balanceTest()         // Start tracking
+dbg.balanceTest()         // Start tracking + perf profiler (auto)
 
-// 2. Play the game normally
+// 2. Play the game normally (FPS overlay shows top-right)
 
 // 3. After game over:
 dbg.report()              // Shows: cycle times, boss fights, deaths,
-                          // grazes, HYPER, power-ups, mini-bosses
+                          // grazes, HYPER, power-ups, mini-bosses,
+                          // + PERFORMANCE: FPS, frame times, jank, GC spikes, verdict
 ```
+
+**Performance Report Includes:**
+- Avg FPS, P50/P95/P99 frame times, worst frame
+- Update vs Draw time breakdown (% split)
+- Jank counters: frames >16ms, >25ms, >33ms
+- GC spike count (>8ms absolute threshold)
+- Entity peaks: enemies, enemy bullets, player bullets, particles
+- Verdict: EXCELLENT / GREAT / GOOD / NEEDS WORK / POOR
 
 **Categories:**
 | Category | Description | Default |
@@ -904,3 +922,8 @@ Consolidated color manipulation in `src/utils/ColorUtils.js` via `window.Game.Co
 | `hexToRgb(hex)` | Convert hex to "r,g,b" string |
 | `hexToRgba(hex, alpha)` | Convert hex to rgba() string |
 | `withAlpha(color, alpha)` | Add alpha to any color format |
+| `rgba(r, g, b, alpha)` | **v4.11.0** Cached rgba string (alpha discretized to 0.05 steps, 21 values per color). Zero allocation after first call. |
+| `font(weight, size, family)` | **v4.11.0** Cached font string (keyed by weight + floor(size) + family). Zero allocation after first call. |
+| `parseHex(hex)` | Parse hex to `{r, g, b}` object (cached) |
+
+**Performance Note**: Use `rgba()` and `font()` in all per-frame draw code instead of template literals to avoid GC pressure. 20 most-used colors are pre-cached at module load.
