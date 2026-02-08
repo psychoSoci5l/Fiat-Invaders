@@ -6,6 +6,293 @@
     --terminal-bg: rgba(4, 8, 12, 0.7);
     --terminal-border: rgba(106, 169, 255, 0.35);
     --terminal-glow: rgba(106, 169, 255, 0.25);
+    /* Button Design System */
+    --btn-gold-top: #F7931A;
+    --btn-gold-bottom: #c77a15;
+    --btn-gold-shadow: #8a5a0a;
+    --btn-gold-glow: rgba(247, 147, 26, 0.4);
+    --btn-danger-top: #e74c3c;
+    --btn-danger-bottom: #c0392b;
+    --btn-danger-shadow: #7b241c;
+}
+
+/* ======== BUTTON DESIGN SYSTEM ======== */
+
+/* Base button reset */
+.btn {
+    font-family: inherit;
+    font-weight: 900;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    border: none;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.15s, box-shadow 0.15s;
+    position: relative;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    text-decoration: none;
+    line-height: 1.2;
+}
+
+.btn:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 3px;
+}
+
+/* Primary — Gold gradient */
+.btn-primary {
+    background: linear-gradient(180deg, var(--btn-gold-top), var(--btn-gold-bottom));
+    border: 3px solid #000;
+    color: #000;
+    border-radius: 8px;
+    padding: 14px 36px;
+    font-size: 16px;
+    box-shadow: 0 4px 0 var(--btn-gold-shadow), 0 0 20px var(--btn-gold-glow);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 0 var(--btn-gold-shadow), 0 0 30px rgba(247, 147, 26, 0.6);
+    background: linear-gradient(180deg, #ffab3d, var(--btn-gold-top));
+}
+
+.btn-primary:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 var(--btn-gold-shadow);
+}
+
+/* Secondary — Ghost */
+.btn-secondary {
+    background: transparent;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    color: rgba(255, 255, 255, 0.6);
+    border-radius: 8px;
+    padding: 14px 36px;
+    font-size: 16px;
+}
+
+.btn-secondary:hover {
+    border-color: rgba(255, 255, 255, 0.5);
+    color: #fff;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.btn-secondary:active {
+    transform: translateY(2px);
+}
+
+/* Danger — Red gradient (ESCI) */
+.btn-danger {
+    background: linear-gradient(180deg, var(--btn-danger-top), var(--btn-danger-bottom));
+    border: 3px solid #000;
+    color: #fff;
+    border-radius: 8px;
+    padding: 14px 36px;
+    font-size: 16px;
+    font-weight: 900;
+    box-shadow: 0 4px 0 var(--btn-danger-shadow), 0 0 15px rgba(231, 76, 60, 0.3);
+}
+
+.btn-danger:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 0 var(--btn-danger-shadow), 0 0 25px rgba(231, 76, 60, 0.5);
+    background: linear-gradient(180deg, #ff6b5a, var(--btn-danger-top));
+}
+
+.btn-danger:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 var(--btn-danger-shadow);
+}
+
+/* Toggle — Compact gold (lingua/controlli) */
+.btn-toggle {
+    background: linear-gradient(180deg, var(--btn-gold-top), var(--btn-gold-bottom));
+    color: #000;
+    border: 2px solid #000;
+    border-radius: 6px;
+    padding: 8px 20px;
+    font-size: 14px;
+    font-weight: 900;
+    box-shadow: 0 3px 0 var(--btn-gold-shadow);
+}
+
+.btn-toggle:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 0 var(--btn-gold-shadow), 0 0 15px var(--btn-gold-glow);
+}
+
+.btn-toggle:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 var(--btn-gold-shadow);
+}
+
+/* Icon — 44x44 square gold (intro icons) */
+.btn-icon {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    background: linear-gradient(180deg, var(--btn-gold-top), var(--btn-gold-bottom));
+    border: 3px solid #000;
+    border-radius: 8px;
+    box-shadow: 0 3px 0 #111;
+}
+
+.btn-icon:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 0 #111, 0 0 15px var(--btn-gold-glow);
+    background: linear-gradient(180deg, #ffdb4d, var(--btn-gold-top));
+}
+
+.btn-icon:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 #111;
+}
+
+.btn-icon .icon-svg {
+    width: 24px;
+    height: 24px;
+    fill: #000;
+    transition: fill 0.15s;
+}
+
+.btn-icon:hover .icon-svg {
+    fill: #333;
+}
+
+.btn-icon.muted .icon-svg {
+    fill: #c0392b;
+}
+
+/* Icon Round — 50px circular gold (pause mute) */
+.btn-icon-round {
+    width: 50px;
+    height: 50px;
+    padding: 0;
+    font-size: 24px;
+    background: linear-gradient(180deg, #f5c842, #e6a800);
+    border: 3px solid #000;
+    border-radius: 50%;
+    box-shadow: 0 3px 0 #111;
+}
+
+.btn-icon-round:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 0 #111, 0 0 15px var(--btn-gold-glow);
+}
+
+.btn-icon-round:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 #111;
+}
+
+/* Size modifiers */
+.btn-sm {
+    padding: 10px 24px;
+    font-size: 14px;
+}
+
+.btn-lg {
+    padding: 18px 40px;
+    font-size: 18px;
+    letter-spacing: 3px;
+}
+
+/* Block — Full width */
+.btn-block {
+    width: min(320px, 85vw);
+    display: flex;
+}
+
+/* CTA — Title action with pulse + shine */
+.btn-cta {
+    width: 100%;
+    padding: 18px 30px;
+    font-size: clamp(18px, 5vw, 24px);
+    letter-spacing: 5px;
+    border-radius: 12px;
+    /* Default: TAP TO START ghost style */
+    background: linear-gradient(180deg, rgba(247, 147, 26, 0.15), rgba(247, 147, 26, 0.05));
+    border: 3px solid var(--neon-orange);
+    color: var(--neon-orange);
+    text-shadow: 0 0 15px rgba(247, 147, 26, 0.6), 0 2px 4px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 20px rgba(247, 147, 26, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 4px 0 rgba(0, 0, 0, 0.3);
+    animation: tapPulse 2.5s ease-in-out infinite;
+    overflow: hidden;
+}
+
+.btn-cta::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    animation: tapShine 3s ease-in-out infinite;
+}
+
+.btn-cta:hover {
+    background: linear-gradient(180deg, rgba(247, 147, 26, 0.3), rgba(247, 147, 26, 0.15));
+    transform: translateY(-3px);
+    box-shadow: 0 0 40px rgba(247, 147, 26, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 8px 0 rgba(0, 0, 0, 0.3);
+}
+
+.btn-cta:active {
+    transform: translateY(2px);
+    box-shadow: 0 0 20px rgba(247, 147, 26, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 2px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* CTA LAUNCH state — solid gold */
+.btn-cta.launch-state {
+    background: linear-gradient(180deg, var(--btn-gold-top), var(--btn-gold-bottom));
+    border: 3px solid #000;
+    color: #000;
+    text-shadow: none;
+    box-shadow: 0 5px 0 var(--btn-gold-shadow), 0 0 30px rgba(247, 147, 26, 0.5);
+    animation: none;
+}
+
+.btn-cta.launch-state::before {
+    animation: none;
+    display: none;
+}
+
+.btn-cta.launch-state:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 0 var(--btn-gold-shadow), 0 0 40px rgba(247, 147, 26, 0.7);
+    background: linear-gradient(180deg, #ffab3d, var(--btn-gold-top));
+}
+
+.btn-cta.launch-state:active {
+    transform: translateY(3px);
+    box-shadow: 0 2px 0 var(--btn-gold-shadow);
+}
+
+/* PWA install banner button */
+.btn-pwa {
+    background: var(--btn-gold-top);
+    color: #000;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    white-space: nowrap;
+}
+
+.btn-pwa:active {
+    background: #e67e22;
+    transform: scale(0.95);
+}
+
+/* Tutorial flex fix */
+.tutorial-actions .btn {
+    flex: 1;
+    min-height: 48px;
 }
 
 /* iframe embedding support */
@@ -1155,37 +1442,7 @@ body {
     flex-shrink: 0;
 }
 
-.btn-play {
-    background: linear-gradient(135deg, var(--neon-orange) 0%, #e67e22 100%);
-    color: #000;
-    border: 3px solid #000;
-    padding: 18px 40px 14px;
-    font-family: inherit;
-    font-size: 18px;
-    font-weight: 900;
-    letter-spacing: 3px;
-    cursor: pointer;
-    border-radius: 8px;
-    box-shadow: 0 4px 20px rgba(247, 147, 26, 0.5);
-    transition: transform 0.15s, box-shadow 0.15s;
-    min-width: 280px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-}
-
-.btn-play .version-text {
-    font-size: 9px;
-    font-weight: 400;
-    letter-spacing: 1px;
-    color: rgba(0, 0, 0, 0.5);
-}
-
-.btn-play:hover {
-    transform: scale(1.05);
-    box-shadow: 0 6px 30px rgba(247, 147, 26, 0.7);
-}
+/* .btn-play replaced by .btn-primary .btn-lg in Button Design System */
 
 /* ========== INTRO REDESIGN v4.8.1 - Minimal Integrated Style ========== */
 
@@ -1345,83 +1602,7 @@ body {
     z-index: 10;
 }
 
-.btn-primary-action {
-    width: 100%;
-    padding: 18px 30px;
-    font-size: clamp(18px, 5vw, 24px);
-    font-weight: 900;
-    letter-spacing: 5px;
-    cursor: pointer;
-    border-radius: 12px;
-    font-family: inherit;
-    transition: all 0.2s ease;
-    /* Default: TAP TO START style */
-    background: linear-gradient(180deg, rgba(247, 147, 26, 0.15) 0%, rgba(247, 147, 26, 0.05) 100%);
-    border: 3px solid var(--neon-orange);
-    color: var(--neon-orange);
-    text-shadow: 0 0 15px rgba(247, 147, 26, 0.6), 0 2px 4px rgba(0,0,0,0.5);
-    box-shadow:
-        0 0 20px rgba(247, 147, 26, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1),
-        0 4px 0 rgba(0, 0, 0, 0.3);
-    animation: tapPulse 2.5s ease-in-out infinite;
-    position: relative;
-    overflow: hidden;
-}
-
-.btn-primary-action::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-    animation: tapShine 3s ease-in-out infinite;
-}
-
-.btn-primary-action:hover {
-    background: linear-gradient(180deg, rgba(247, 147, 26, 0.3) 0%, rgba(247, 147, 26, 0.15) 100%);
-    transform: translateY(-3px);
-    box-shadow:
-        0 0 40px rgba(247, 147, 26, 0.5),
-        inset 0 1px 0 rgba(255, 255, 255, 0.2),
-        0 8px 0 rgba(0, 0, 0, 0.3);
-}
-
-.btn-primary-action:active {
-    transform: translateY(2px);
-    box-shadow:
-        0 0 20px rgba(247, 147, 26, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1),
-        0 2px 0 rgba(0, 0, 0, 0.3);
-}
-
-/* LAUNCH state for primary action button */
-.btn-primary-action.launch-state {
-    background: linear-gradient(180deg, #F7931A 0%, #c77a15 100%);
-    border: 3px solid #000;
-    color: #000;
-    text-shadow: none;
-    box-shadow: 0 5px 0 #8a5a0a, 0 0 30px rgba(247, 147, 26, 0.5);
-    animation: none;
-}
-
-.btn-primary-action.launch-state::before {
-    animation: none;
-    display: none;
-}
-
-.btn-primary-action.launch-state:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 0 #8a5a0a, 0 0 40px rgba(247, 147, 26, 0.7);
-    background: linear-gradient(180deg, #ffab3d 0%, #F7931A 100%);
-}
-
-.btn-primary-action.launch-state:active {
-    transform: translateY(3px);
-    box-shadow: 0 2px 0 #8a5a0a;
-}
+/* .btn-primary-action replaced by .btn-cta in Button Design System */
 
 /* Responsive adjustments for small screens */
 @media (max-width: 375px) {
@@ -1454,10 +1635,6 @@ body {
     }
 }
 
-.btn-play:active {
-    transform: scale(0.98);
-}
-
 /* Game Over Actions */
 .gameover-actions {
     display: flex;
@@ -1467,34 +1644,7 @@ body {
     align-items: center;
 }
 
-.btn-secondary {
-    background: transparent;
-    color: #888;
-    border: 2px solid #444;
-    padding: 12px 40px;
-    font-family: inherit;
-    font-size: 16px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    cursor: pointer;
-    border-radius: 8px;
-    transition: all 0.15s;
-    min-width: 200px;
-}
-
-.btn-secondary:hover {
-    border-color: #666;
-    color: #fff;
-    background: rgba(255, 255, 255, 0.05);
-}
-
-.btn-secondary:active {
-    transform: scale(0.98);
-}
-
-/* Bear Market button moved to Settings toggle */
-
-/* Version text styled inside button - see .btn-play .version-text */
+/* Old .btn-secondary, .btn-play version-text replaced by Button Design System */
 
 /* Legacy classes kept for compatibility */
 .neon-title {
@@ -1512,54 +1662,9 @@ body {
     margin-top: 20px;
 }
 
-.icon-btn {
-    background: linear-gradient(180deg, #f5c842 0%, #e6a800 100%);
-    border: 3px solid #000;
-    color: #000;
-    width: 50px;
-    height: 50px;
-    font-size: 24px;
-    cursor: pointer;
-    border-radius: 50%;
-    /* Circular */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    backdrop-filter: blur(4px);
-}
+/* .icon-btn replaced by .btn-icon-round in Button Design System */
 
-.icon-btn:hover {
-    border-color: var(--neon-blue);
-    background: rgba(52, 152, 219, 0.2);
-    box-shadow: 0 0 15px rgba(52, 152, 219, 0.3);
-    transform: translateY(-3px);
-}
-
-.btn-coin {
-    background: var(--neon-orange);
-    color: #000;
-    border: 3px solid #000;
-    padding: 20px 60px;
-    font-family: inherit;
-    font-size: 24px;
-    font-weight: 900;
-    cursor: pointer;
-    clip-path: polygon(15% 0, 100% 0, 100% 70%, 85% 100%, 0 100%, 0 30%);
-    box-shadow: 0 0 25px var(--neon-orange);
-    animation: blinkBtn 0.6s infinite alternate;
-    pointer-events: auto;
-    transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.btn-coin:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 40px var(--neon-orange);
-}
-
-.btn-coin:active {
-    transform: scale(0.95);
-}
+/* .btn-coin replaced by .btn-primary in Button Design System */
 
 .controls-hint {
     margin-top: 30px;
@@ -2051,15 +2156,7 @@ body {
     }
 }
 
-@keyframes blinkBtn {
-    from {
-        filter: brightness(1);
-    }
-
-    to {
-        filter: brightness(1.3);
-    }
-}
+/* @keyframes blinkBtn removed — no longer used */
 
 @keyframes shake {
     0% {
@@ -2121,13 +2218,6 @@ body {
 @media (max-width: 600px) {
     .intro-action {
         margin-bottom: 60px;
-    }
-
-    .btn-coin {
-        padding: 20px 40px;
-        font-size: 22px;
-        width: 100%;
-        max-width: 280px;
     }
 }
 
@@ -2199,12 +2289,7 @@ body {
     line-height: 1.4;
 }
 
-.btn-coin.mini {
-    padding: 10px 30px;
-    font-size: 16px;
-    margin: 0;
-    clip-path: none;
-}
+/* .btn-coin.mini replaced by .btn-sm in Button Design System */
 
 /* --- HANGAR SCREEN --- */
 #hangar-screen {
@@ -2347,10 +2432,8 @@ body {
     margin-bottom: 40px;
 }
 
-#pause-screen button {
+#pause-screen .btn {
     margin: 0;
-    width: min(320px, 85vw);
-    box-shadow: none;
     animation: none;
 }
 
@@ -2678,28 +2761,7 @@ body.bear-mode .neon-title {
     touch-action: pan-y;
 }
 
-.help-btn {
-    background: linear-gradient(180deg, #3498db 0%, #2980b9 100%) !important;
-    border-color: #5dade2 !important;
-    box-shadow: 0 4px 0 #1a5276, 0 0 20px rgba(52, 152, 219, 0.4) !important;
-    margin-bottom: 10px;
-}
-
-.help-btn:hover {
-    box-shadow: 0 6px 0 #1a5276, 0 0 30px rgba(52, 152, 219, 0.6) !important;
-}
-
-/* Credits button */
-.credits-btn {
-    background: linear-gradient(180deg, #8e44ad 0%, #6c3483 100%) !important;
-    border-color: #a569bd !important;
-    box-shadow: 0 4px 0 #4a235a, 0 0 20px rgba(142, 68, 173, 0.4) !important;
-    margin-bottom: 10px;
-}
-
-.credits-btn:hover {
-    box-shadow: 0 6px 0 #4a235a, 0 0 30px rgba(142, 68, 173, 0.6) !important;
-}
+/* .help-btn, .credits-btn replaced by .btn-primary in Button Design System */
 
 /* Credits panel */
 #credits-panel {
@@ -2815,47 +2877,7 @@ body.bear-mode .neon-title {
     margin-bottom: 15px;
 }
 
-/* Cell-Shaded Icon Buttons - Yellow Theme to match main button */
-.icon-btn-cell {
-    width: 44px;
-    height: 44px;
-    background: linear-gradient(180deg, #f5c842 0%, #e6a800 100%);
-    border: 3px solid #000;
-    border-radius: 8px;
-    cursor: pointer;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
-    box-shadow: 0 3px 0 #111;
-    position: relative;
-}
-
-.icon-btn-cell:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 0 #111, 0 0 15px rgba(247, 147, 26, 0.5);
-    background: linear-gradient(180deg, #ffdb4d 0%, #f5c842 100%);
-}
-
-.icon-btn-cell:active {
-    transform: translateY(2px);
-    box-shadow: 0 1px 0 #111;
-}
-
-.icon-btn-cell .icon-svg {
-    width: 24px;
-    height: 24px;
-    fill: #000;
-    transition: fill 0.15s;
-}
-
-.icon-btn-cell:hover .icon-svg {
-    fill: #333;
-}
-
-.icon-btn-cell.muted .icon-svg {
-    fill: #c0392b;
-}
+/* .icon-btn-cell replaced by .btn-icon in Button Design System */
 
 /* Cell-Shaded Modal - Dark Crypto Theme */
 .paper-modal {
@@ -2951,30 +2973,7 @@ body.bear-mode .neon-title {
     min-width: 30px;
 }
 
-/* Cell-Shaded Toggle Button - Dark Theme */
-.toggle-btn-cell {
-    background: linear-gradient(180deg, #4a90d9 0%, #3a70b9 100%);
-    color: #fff;
-    border: 2px solid #5aa0e9;
-    border-radius: 6px;
-    padding: 8px 20px;
-    font-family: inherit;
-    font-weight: 900;
-    font-size: 14px;
-    cursor: pointer;
-    box-shadow: 0 3px 0 #2a5080, 0 0 10px rgba(74, 144, 217, 0.3);
-    transition: transform 0.1s, box-shadow 0.1s;
-}
-
-.toggle-btn-cell:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 0 #2a5080, 0 0 15px rgba(74, 144, 217, 0.5);
-}
-
-.toggle-btn-cell:active {
-    transform: translateY(2px);
-    box-shadow: 0 1px 0 #2a5080;
-}
+/* .toggle-btn-cell replaced by .btn-toggle in Button Design System */
 
 /* Cell-Shaded Slider - Dark Theme */
 .slider-cell {
@@ -3048,32 +3047,7 @@ body.bear-mode .neon-title {
     font-weight: bold;
 }
 
-/* Cell-Shaded Button - Dark Theme */
-.btn-cell {
-    background: linear-gradient(180deg, #f39c12 0%, #d68910 100%);
-    color: #000;
-    border: 2px solid #f5b041;
-    border-radius: 8px;
-    padding: 12px 40px;
-    font-family: inherit;
-    font-weight: 900;
-    font-size: 16px;
-    letter-spacing: 2px;
-    cursor: pointer;
-    box-shadow: 0 4px 0 #8a5a0a, 0 0 20px rgba(243, 156, 18, 0.4);
-    transition: transform 0.1s, box-shadow 0.1s;
-    text-transform: uppercase;
-}
-
-.btn-cell:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 0 #8a5a0a, 0 0 30px rgba(243, 156, 18, 0.6);
-}
-
-.btn-cell:active {
-    transform: translateY(2px);
-    box-shadow: 0 2px 0 #8a5a0a;
-}
+/* .btn-cell replaced by .btn-primary in Button Design System */
 
 /* Bear mode body class - affect toggle */
 body.bear-mode .toggle-switch#bear-toggle {
@@ -3819,25 +3793,7 @@ body.is-touch p.mobile-only { display: block; }
     margin: 0 2px;
 }
 
-.pwa-banner-btn {
-    background: #f39c12;
-    color: #000;
-    border: none;
-    border-radius: 6px;
-    padding: 8px 14px;
-    font-family: inherit;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: background 0.2s;
-}
-
-.pwa-banner-btn:active {
-    background: #e67e22;
-    transform: scale(0.95);
-}
+/* .pwa-banner-btn replaced by .btn-pwa in Button Design System */
 
 .pwa-banner-close {
     background: none;
@@ -4024,46 +3980,7 @@ body.is-touch p.mobile-only { display: block; }
     margin-top: 25px;
 }
 
-.tutorial-btn {
-    flex: 1;
-    padding: 14px 20px;
-    font-family: inherit;
-    font-size: 16px;
-    font-weight: 900;
-    letter-spacing: 3px;
-    border-radius: 10px;
-    cursor: pointer;
-    min-height: 48px;
-    transition: all 0.15s ease;
-}
-
-.tutorial-skip {
-    background: transparent;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    color: rgba(255, 255, 255, 0.6);
-}
-
-.tutorial-skip:hover {
-    border-color: rgba(255, 255, 255, 0.5);
-    color: rgba(255, 255, 255, 0.8);
-}
-
-.tutorial-next {
-    background: linear-gradient(180deg, #F7931A 0%, #c77a15 100%);
-    border: 2px solid #000;
-    color: #000;
-    box-shadow: 0 4px 0 #8a5a0a;
-}
-
-.tutorial-next:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 0 #8a5a0a, 0 0 20px rgba(247, 147, 26, 0.5);
-}
-
-.tutorial-next:active {
-    transform: translateY(2px);
-    box-shadow: 0 2px 0 #8a5a0a;
-}
+/* .tutorial-btn, .tutorial-skip, .tutorial-next replaced by Button Design System */
 
 /* ========================================
    ACCESSIBILITY - v4.12.0
@@ -4082,7 +3999,7 @@ body.is-touch p.mobile-only { display: block; }
     .title-crypto,
     .title-vs,
     .btn-tap-start,
-    .btn-primary-action,
+    .btn-cta,
     #intro-ship-canvas,
     .hud-score-value,
     .shield-btn-wrapper.ready .shield-btn-face,
@@ -4096,7 +4013,7 @@ body.is-touch p.mobile-only { display: block; }
     }
 
     .btn-tap-start::before,
-    .btn-primary-action::before {
+    .btn-cta::before {
         animation: none !important;
     }
 

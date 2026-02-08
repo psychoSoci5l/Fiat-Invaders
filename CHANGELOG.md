@@ -1,5 +1,34 @@
 # Changelog
 
+## v4.13.0 - 2026-02-08
+### Button Design System
+
+- **Unified button system**: 12 composable CSS classes (`.btn`, `.btn-primary`, `.btn-secondary`, `.btn-danger`, `.btn-toggle`, `.btn-icon`, `.btn-icon-round`, `.btn-sm`, `.btn-lg`, `.btn-block`, `.btn-cta`, `.btn-pwa`)
+- **CSS custom properties**: `--btn-gold-*`, `--btn-danger-*` variables in `:root` for consistent theming
+- **Gold/amber design language**: All ~22 buttons across 9 screens now use unified gold gradient, 3D shadow, hover lift, active press
+- **Danger state**: ESCI button uses red gradient (`.btn-danger`) — no more inline styles
+- **Ghost secondary**: MENU/SKIP buttons use transparent border style (`.btn-secondary`)
+- **Toggle compact**: Language/Controls buttons use gold compact style (`.btn-toggle`)
+- **Removed 15+ old CSS classes**: `.btn-coin`, `.btn-play`, `.btn-cell`, `.icon-btn-cell`, `.icon-btn`, `.toggle-btn-cell`, `.btn-primary-action`, `.pwa-banner-btn`, `.tutorial-btn/.tutorial-skip/.tutorial-next`, `.help-btn`, `.credits-btn`, `@keyframes blinkBtn`
+- **JS selectors fixed**: 6 selectors updated from class-based to `getElementById` for robustness
+- **Accessibility**: `focus-visible` outline on all buttons, `prefers-reduced-motion` updated for `.btn-cta`
+- **Mobile-first**: 48px+ touch targets, `min(320px, 85vw)` block width
+
+---
+
+## v4.12.1 (docs) - 2026-02-08
+### Documentation Restructure — 3-Layer Architecture
+
+- **CLAUDE.md** reduced from 41.3k → 8.5k chars (auto-loaded every prompt)
+- **SYSTEM_REFERENCE.md** created (15k): detailed system tables, read on-demand per task
+- **PROJECT_SNAPSHOT.md** cleaned to orientation-only (24k): read when starting code work
+- Updated `.gitignore` to exclude `SYSTEM_REFERENCE.md`
+- Updated `MEMORY.md` with 3-layer protocol and session behavior rules
+
+**Loading scenarios**: Chat only = 8.5k, Code work = 32k, Full reference = 47k (was 41k always)
+
+---
+
 ## v4.12.1 - 2026-02-08
 ### Accessibility, Onboarding & Bugfixes
 

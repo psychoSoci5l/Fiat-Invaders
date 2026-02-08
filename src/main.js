@@ -1026,7 +1026,7 @@ function init() {
         document.body.classList.add('is-touch');
     }
 
-    const startBtn = document.querySelector('.btn-coin');
+    const startBtn = document.getElementById('btn-primary-action');
     if (startBtn) {
         startBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -1445,8 +1445,7 @@ function updateUIText() {
     if (ui.memeTicker && !ui.memeTicker.innerText) ui.memeTicker.innerText = getRandomMeme();
 
     // Intro screen
-    const btnInsert = document.querySelector('#intro-screen .btn-coin');
-    if (btnInsert) btnInsert.innerText = t('INSERT_COIN');
+    // Primary action button text updated via updatePrimaryButton()
     const selectionHeader = document.getElementById('selection-header');
     if (selectionHeader) selectionHeader.innerText = t('CHOOSE_SHIP');
 
@@ -1508,13 +1507,13 @@ function updateUIText() {
     // Game Over
     const goTitle = document.querySelector('#gameover-screen h1');
     if (goTitle) goTitle.innerText = "LIQUIDATION EVENT";
-    const goBtn = document.querySelector('#gameover-screen .btn-coin');
+    const goBtn = document.getElementById('btn-retry');
     if (goBtn) goBtn.innerText = t('RESTART');
 
     // Settings
     const setHeader = document.querySelector('#settings-modal h2');
     if (setHeader) setHeader.innerText = t('SETTINGS');
-    const closeBtn = document.querySelector('#settings-modal .btn-coin.mini');
+    const closeBtn = document.getElementById('btn-settings-close');
     if (closeBtn) closeBtn.innerText = t('CLOSE');
     // Select the lang row specifically (parent of #lang-btn)
     const langBtn = document.getElementById('lang-btn');
@@ -2088,7 +2087,7 @@ window.toggleBearMode = function () {
 function updateMuteUI(isMuted) {
     document.querySelectorAll('.mute-toggle').forEach(btn => {
         // Check if it's a cell-shaded SVG button
-        if (btn.classList.contains('icon-btn-cell')) {
+        if (btn.classList.contains('btn-icon')) {
             const svg = btn.querySelector('.icon-svg');
             if (svg) {
                 if (isMuted) {
@@ -5230,8 +5229,8 @@ function showCampaignVictory() {
                 <div class="final-score">FINAL SCORE: <span id="campaign-final-score">0</span></div>
                 <div class="ng-plus-info" id="ng-plus-info"></div>
                 <div class="victory-actions">
-                    <button class="btn-play" onclick="startNewGamePlus()">NEW GAME+ 🔄</button>
-                    <button class="btn-secondary" onclick="backToIntroFromVictory()">MAIN MENU</button>
+                    <button class="btn btn-primary btn-lg" onclick="startNewGamePlus()">NEW GAME+ 🔄</button>
+                    <button class="btn btn-secondary" onclick="backToIntroFromVictory()">MAIN MENU</button>
                 </div>
             </div>
         `;

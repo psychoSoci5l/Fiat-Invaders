@@ -1,7 +1,7 @@
 # Roadmap: FIAT vs CRYPTO
 
 > [!IMPORTANT]
-> **Versione attuale**: v4.12.1 (2026-02-08)
+> **Versione attuale**: v4.13.0 (2026-02-08)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
 > **Stato**: Gameplay completo, in fase di hardening e bugfix.
 
@@ -29,7 +29,7 @@
 
 ---
 
-## FASI COMPLETATE (v1.0 → v4.12.1)
+## FASI COMPLETATE (v1.0 → v4.13.0)
 
 > Archivio compatto di tutto ciò che è stato implementato. Dettagli nelle versioni precedenti di questo file o in CHANGELOG.md.
 
@@ -70,6 +70,7 @@
 | 38 | v4.8.0 | Intro screen redesign (STORY/ARCADE tabs, double-tap quick start) |
 | 40-partial | v4.10-11 | Engine hardening (GC fix, DOM cache, EventBus audit, perf profiler, i18n audit, draw optimization) |
 | Accessibility | v4.12.1 | WCAG AA+ (contrast, tutorial, title, manual v2, meme reposition, version migration) |
+| Button Design System | v4.13.0 | Unified 12-class button system, CSS variables, removed 15+ old classes, focus-visible |
 
 ---
 

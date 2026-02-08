@@ -126,7 +126,7 @@
 
         <!-- PRIMARY ACTION BUTTON (fixed position for double-tap) -->
         <div class="primary-action-container">
-            <button class="btn-primary-action" id="btn-primary-action" onclick="handlePrimaryAction()">
+            <button class="btn btn-cta btn-lg" id="btn-primary-action" onclick="handlePrimaryAction()">
                 TAP TO START
             </button>
         </div>
@@ -135,20 +135,20 @@
         <div id="pwa-install-banner" style="display: none;">
             <div class="pwa-banner-content">
                 <span id="pwa-banner-text"></span>
-                <button id="pwa-banner-action" class="pwa-banner-btn"></button>
+                <button id="pwa-banner-action" class="btn btn-pwa"></button>
                 <button id="pwa-banner-close" class="pwa-banner-close">&times;</button>
             </div>
         </div>
 
         <!-- BOTTOM ICONS (always visible) -->
         <div class="intro-icons">
-            <button class="icon-btn-cell mute-toggle" id="intro-mute">
+            <button class="btn btn-icon mute-toggle" id="intro-mute">
                 <svg viewBox="0 0 24 24" class="icon-svg"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
             </button>
-            <button class="icon-btn-cell" onclick="toggleSettings()" id="intro-settings">
+            <button class="btn btn-icon" onclick="toggleSettings()" id="intro-settings">
                 <svg viewBox="0 0 24 24" class="icon-svg"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
             </button>
-            <button class="icon-btn-cell" onclick="toggleManual()" id="intro-manual">
+            <button class="btn btn-icon" onclick="toggleManual()" id="intro-manual">
                 <svg viewBox="0 0 24 24" class="icon-svg"><path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/></svg>
             </button>
         </div>
@@ -245,19 +245,19 @@
                 </div>
             </div>
         </div>
-        <button class="btn-coin mini" onclick="backToIntro()">BACK</button>
+        <button class="btn btn-primary btn-sm" onclick="backToIntro()">BACK</button>
     </div>
 
     <!-- PAUSE SCREEN -->
     <div id="pause-screen" style="display: none;">
         <h1 class="neon-title" id="pause-title">PAUSA</h1>
-        <button class="btn-coin" id="btn-resume" onclick="togglePause()">> RIPRENDI</button>
-        <button class="btn-coin" id="btn-settings" onclick="toggleSettings()">> IMPOSTAZIONI</button>
-        <button class="btn-coin" id="btn-manual" onclick="toggleManual()">> MANUALE</button>
-        <button class="btn-coin" id="btn-restart" onclick="restartRun()">> RICOMINCIA</button>
-        <button class="btn-coin" id="btn-exit-title" onclick="backToIntro()" style="background: #e74c3c;">> ESCI</button>
+        <button class="btn btn-primary btn-block" id="btn-resume" onclick="togglePause()">> RIPRENDI</button>
+        <button class="btn btn-primary btn-block" id="btn-settings" onclick="toggleSettings()">> IMPOSTAZIONI</button>
+        <button class="btn btn-primary btn-block" id="btn-manual" onclick="toggleManual()">> MANUALE</button>
+        <button class="btn btn-primary btn-block" id="btn-restart" onclick="restartRun()">> RICOMINCIA</button>
+        <button class="btn btn-danger btn-block" id="btn-exit-title" onclick="backToIntro()">> ESCI</button>
         <div class="menu-row">
-            <button class="icon-btn mute-toggle">🔇</button>
+            <button class="btn btn-icon-round mute-toggle">🔇</button>
         </div>
     </div>
 
@@ -267,7 +267,7 @@
             <div class="terminal-header-small">UPGRADE OFFER</div>
             <h2 class="neon-title">CHOOSE MODULE</h2>
             <div id="perk-options" class="perk-options"></div>
-            <button id="perk-skip" class="btn-coin mini">SKIP</button>
+            <button id="perk-skip" class="btn btn-secondary btn-sm">SKIP</button>
         </div>
     </div>
 
@@ -282,8 +282,8 @@
             <div>BEST STREAK: <span id="streakVal">0</span></div>
         </div>
         <div class="gameover-actions">
-            <button class="btn-play" onclick="restartFromGameOver()">RETRY</button>
-            <button class="btn-secondary" onclick="backToIntro()">MENU</button>
+            <button class="btn btn-primary btn-lg" id="btn-retry" onclick="restartFromGameOver()">RETRY</button>
+            <button class="btn btn-secondary" onclick="backToIntro()">MENU</button>
         </div>
     </div>
 
@@ -346,8 +346,8 @@
                 <p class="tutorial-text" data-i18n="TUT_SURVIVAL_TEXT">You have 3 lives. 1 hit = 1 life lost. Use your Shield (10s cooldown) to survive!</p>
             </div>
             <div class="tutorial-actions">
-                <button class="tutorial-btn tutorial-skip" id="tut-skip" onclick="skipTutorial()" data-i18n="TUT_SKIP">SKIP</button>
-                <button class="tutorial-btn tutorial-next" id="tut-next" onclick="nextTutorialStep()" data-i18n="TUT_NEXT">NEXT</button>
+                <button class="btn btn-secondary" id="tut-skip" onclick="skipTutorial()" data-i18n="TUT_SKIP">SKIP</button>
+                <button class="btn btn-primary" id="tut-next" onclick="nextTutorialStep()" data-i18n="TUT_NEXT">NEXT</button>
             </div>
         </div>
     </div>
@@ -369,11 +369,11 @@
 
             <div class="setting-row">
                 <span class="setting-label">LINGUA</span>
-                <button class="toggle-btn-cell" onclick="toggleLang()" id="lang-btn">IT</button>
+                <button class="btn btn-toggle" onclick="toggleLang()" id="lang-btn">IT</button>
             </div>
             <div class="setting-row">
                 <span class="setting-label">CONTROLLI</span>
-                <button class="toggle-btn-cell" onclick="toggleControlMode()" id="control-btn">SWIPE</button>
+                <button class="btn btn-toggle" onclick="toggleControlMode()" id="control-btn">SWIPE</button>
             </div>
             <div class="setting-row">
                 <span class="setting-label">DEADZONE</span>
@@ -390,9 +390,9 @@
                 <p class="mobile-only"><span class="icon-tag">📱</span> Swipe o Joystick = Muovi • Icona = Scudo</p>
             </div>
 
-            <button class="btn-cell help-btn" onclick="toggleHelpPanel()">? HELP</button>
-            <button class="btn-cell credits-btn" onclick="toggleCreditsPanel()">CREDITS</button>
-            <button class="btn-cell" onclick="toggleSettings()">CHIUDI</button>
+            <button class="btn btn-primary" onclick="toggleHelpPanel()">? HELP</button>
+            <button class="btn btn-primary" onclick="toggleCreditsPanel()">CREDITS</button>
+            <button class="btn btn-primary" id="btn-settings-close" onclick="toggleSettings()">CHIUDI</button>
         </div>
     </div>
 
@@ -404,7 +404,7 @@
                 <p class="credits-author">psychoSocial</p>
                 <a href="https://www.psychosoci5l.com/" target="_blank" rel="noopener noreferrer" class="credits-link">www.psychosoci5l.com</a>
             </div>
-            <button class="btn-cell" onclick="toggleCreditsPanel()">CHIUDI</button>
+            <button class="btn btn-primary" onclick="toggleCreditsPanel()">CHIUDI</button>
         </div>
     </div>
 
@@ -514,7 +514,7 @@
                 </div>
             </div>
 
-            <button class="btn-cell" onclick="toggleHelpPanel()">CHIUDI</button>
+            <button class="btn btn-primary" onclick="toggleHelpPanel()">CHIUDI</button>
         </div>
     </div>
 
@@ -582,7 +582,7 @@
                 </div>
             </div>
 
-            <button class="btn-cell manual-close" onclick="toggleManual()" data-i18n="CLOSE">CLOSE</button>
+            <button class="btn btn-primary manual-close" onclick="toggleManual()" data-i18n="CLOSE">CLOSE</button>
         </div>
     </div>
 
