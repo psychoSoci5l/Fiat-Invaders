@@ -1,5 +1,33 @@
 # Changelog
 
+## v4.12.1 - 2026-02-08
+### Accessibility, Onboarding & Bugfixes
+
+#### Accessibility (WCAG 2.1 AA+)
+- **P1 Menu Readability**: Mode pill contrast 0.5→0.75, font sizes enlarged, 48px+ touch targets
+- **P3 Title Visual Hierarchy**: Intro title `clamp(58px, 13vw, 84px)`, small screen fallback, `prefers-reduced-motion` support
+- **P5 Meme Repositioning**: Whispers moved from 60%→25% screen height, opacity 0.45→0.35
+
+#### Tutorial Onboarding (P2)
+- 3-step DOM overlay on first launch: Controls (platform-aware), Objective, Survival
+- Skip/Next/Got It buttons, progress dots, 48px min-height touch targets
+- Auto-skips on repeat visits via localStorage flag
+- Fixed: tutorial overlay placed outside game-container for correct z-index stacking above curtain
+
+#### Manual v2 (P4)
+- Replaced 6-tab manual with 4 scrollable sections: Controls, Objectives, Power-Ups, Tips
+- Single-column vertical scroll with flexbox `min-height: 0` fix
+- Mobile fullscreen: padding removed, 100dvh height, no border/radius
+- Platform-aware controls section (desktop/mobile)
+
+#### Bugfixes
+- Fixed `backToIntro()` not restoring mode-explanation and ship-area visibility (pre-existing v4.11.0 bug)
+- Added localStorage force-reset on version change (clean slate for all cached users)
+
+#### Infrastructure
+- Version migration system: `localStorage.clear()` on version mismatch
+- Forced cache invalidation via SW_VERSION bump to 4.12.1
+
 ## v4.11.0 (infra) - 2026-02-08
 ### Git Hygiene & Architecture Docs
 - **Added `.gitignore`**: Excludes prompt files (`*.txt`, `*prompt*.md`), local tool config (`.claude/`, `_ps_meta/`), dev docs (`PROJECT_SNAPSHOT.md`, `BALANCE_TEST.md`), OS artifacts

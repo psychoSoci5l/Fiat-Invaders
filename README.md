@@ -10,7 +10,7 @@
 *   **Responsive**: "Notch-safe" UI design that adapts to all mobile screens.
 *   **Localization**: Fully localized in English (EN) and Italian (IT).
 
-## 🧠 Current Gameplay Rules (v4.11.0)
+## 🧠 Current Gameplay Rules (v4.12.1)
 
 *   **Two Game Modes**: **Story Mode** (3 acts with narrative chapters, boss progression FED→BCE→BOJ) and **Arcade Mode** (endless waves, high scores, mini-bosses).
 *   **Wave System**: 15 unique waves (5 per cycle x 3 cycles) with 16 formation patterns and thematic currency groups.
@@ -26,6 +26,8 @@
 *   **Compact HUD**: Minimal 45px top bar with diegetic ship indicators (life pips, shield ring, weapon pips, graze glow).
 *   **Reactive Feedback**: Score colors on streaks, danger pulse at low HP, wave sweep transitions.
 *   **Skippable Intermissions**: Tap/click/spacebar to skip the 3-2-1 countdown between waves.
+*   **First-Run Tutorial**: 3-step onboarding overlay (Controls, Objective, Survival) for new players.
+*   **Accessibility**: WCAG 2.1 AA+ contrast ratios, 48px+ touch targets, `prefers-reduced-motion` support.
 
 ## 🎮 How to Play
 

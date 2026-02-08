@@ -317,7 +317,40 @@
     </div>
 
         <div id="control-toast">CONTROLS: SWIPE</div>
+
     </div><!-- /game-container -->
+
+    <!-- TUTORIAL OVERLAY (v4.12.0) - Outside game-container for proper stacking above curtain -->
+    <div id="tutorial-overlay" style="display: none;">
+        <div class="tutorial-container">
+            <div class="tutorial-progress">
+                <span class="tutorial-dot active"></span>
+                <span class="tutorial-dot"></span>
+                <span class="tutorial-dot"></span>
+            </div>
+            <div class="tutorial-step active" id="tut-step-0">
+                <h3 class="tutorial-title" data-i18n="TUT_CONTROLS_TITLE">CONTROLS</h3>
+                <div class="desktop-only">
+                    <p class="tutorial-text" data-i18n="TUT_CONTROLS_PC">A/D or Arrows to move. Space to fire. S or Down for Shield.</p>
+                </div>
+                <div class="mobile-only">
+                    <p class="tutorial-text" data-i18n="TUT_CONTROLS_MOBILE">Use the joystick to move. Auto-fire is ON. Tap the shield icon for defense.</p>
+                </div>
+            </div>
+            <div class="tutorial-step" id="tut-step-1">
+                <h3 class="tutorial-title" data-i18n="TUT_OBJECTIVE_TITLE">OBJECTIVE</h3>
+                <p class="tutorial-text" data-i18n="TUT_OBJECTIVE_TEXT">Destroy fiat enemies across 5 waves, then defeat the Boss. Collect power-ups to upgrade your weapons!</p>
+            </div>
+            <div class="tutorial-step" id="tut-step-2">
+                <h3 class="tutorial-title" data-i18n="TUT_SURVIVAL_TITLE">SURVIVAL</h3>
+                <p class="tutorial-text" data-i18n="TUT_SURVIVAL_TEXT">You have 3 lives. 1 hit = 1 life lost. Use your Shield (10s cooldown) to survive!</p>
+            </div>
+            <div class="tutorial-actions">
+                <button class="tutorial-btn tutorial-skip" id="tut-skip" onclick="skipTutorial()" data-i18n="TUT_SKIP">SKIP</button>
+                <button class="tutorial-btn tutorial-next" id="tut-next" onclick="nextTutorialStep()" data-i18n="TUT_NEXT">NEXT</button>
+            </div>
+        </div>
+    </div>
 
     <!-- SETTINGS MODAL - Outside game-container for proper stacking -->
     <div id="settings-modal" style="display: none;">
@@ -485,75 +518,16 @@
         </div>
     </div>
 
-    <!-- MANUAL MODAL - Full player manual with tabs -->
+    <!-- MANUAL MODAL v2 - Scrollable sections (v4.12.0) -->
     <div id="manual-modal" style="display: none;">
-        <div class="manual-container">
+        <div class="manual-container manual-v2">
             <h2 class="manual-title" data-i18n="MANUAL_TITLE">PLAYER MANUAL</h2>
 
-            <div class="manual-tabs">
-                <button class="manual-tab active" data-tab="welcome" onclick="selectManualTab('welcome')">
-                    <span class="tab-icon">🎮</span>
-                    <span class="tab-label" data-i18n="TAB_WELCOME">WELCOME</span>
-                </button>
-                <button class="manual-tab" data-tab="controls" onclick="selectManualTab('controls')">
-                    <span class="tab-icon">⌨️</span>
-                    <span class="tab-label" data-i18n="TAB_CONTROLS">CONTROLS</span>
-                </button>
-                <button class="manual-tab" data-tab="powerups" onclick="selectManualTab('powerups')">
-                    <span class="tab-icon">⚡</span>
-                    <span class="tab-label" data-i18n="TAB_POWERUPS">POWER-UPS</span>
-                </button>
-                <button class="manual-tab" data-tab="enemies" onclick="selectManualTab('enemies')">
-                    <span class="tab-icon">💰</span>
-                    <span class="tab-label" data-i18n="TAB_ENEMIES">ENEMIES</span>
-                </button>
-                <button class="manual-tab" data-tab="bosses" onclick="selectManualTab('bosses')">
-                    <span class="tab-icon">🏛️</span>
-                    <span class="tab-label" data-i18n="TAB_BOSSES">BOSSES</span>
-                </button>
-                <button class="manual-tab" data-tab="tips" onclick="selectManualTab('tips')">
-                    <span class="tab-icon">💎</span>
-                    <span class="tab-label" data-i18n="TAB_TIPS">PRO TIPS</span>
-                </button>
-            </div>
-
-            <div class="manual-content">
-                <!-- WELCOME TAB -->
-                <div class="manual-panel active" id="tab-welcome">
-                    <h3 class="panel-title" data-i18n="WELCOME_TITLE">Welcome, Crypto Warrior!</h3>
-                    <p class="panel-intro" data-i18n="WELCOME_INTRO">FIAT money is attacking! Centralized currencies have declared war on financial freedom.</p>
-
-                    <div class="manual-section">
-                        <h4 data-i18n="WELCOME_LOOP_TITLE">The Game Loop</h4>
-                        <ol class="manual-list">
-                            <li data-i18n="WELCOME_LOOP_1">Destroy enemies - Waves of fiat currencies descend</li>
-                            <li data-i18n="WELCOME_LOOP_2">Collect power-ups - Upgrade weapons and ship</li>
-                            <li data-i18n="WELCOME_LOOP_3">Survive 5 waves - Each level has 5 waves</li>
-                            <li data-i18n="WELCOME_LOOP_4">Defeat the Boss - The Central Bank awaits!</li>
-                            <li data-i18n="WELCOME_LOOP_5">New cycle - Difficulty increases, better rewards</li>
-                        </ol>
-                    </div>
-
-                    <div class="manual-section">
-                        <h4>🏆 How to Win</h4>
-                        <p data-i18n="WELCOME_WIN">Achieve the highest score possible! Each completed cycle increases the multiplier.</p>
-                    </div>
-
-                    <div class="manual-section">
-                        <h4>💀 Game Over</h4>
-                        <p data-i18n="WELCOME_LOSE">One hit = one life lost! You have 3 lives total. When hit, all bullets explode and time slows down. BUY THE DIP and try again!</p>
-                    </div>
-
-                    <div class="manual-section bear-section">
-                        <h4>🐻 Bear Market</h4>
-                        <p data-i18n="WELCOME_BEAR">Want a challenge? Activate Bear Market for increased difficulty and double scores!</p>
-                    </div>
-                </div>
-
-                <!-- CONTROLS TAB -->
-                <div class="manual-panel" id="tab-controls">
-                    <div class="manual-section desktop-only">
-                        <h4 data-i18n="CONTROLS_PC">Keyboard (PC)</h4>
+            <div class="manual-scroll">
+                <!-- SECTION 1: CONTROLS -->
+                <div class="manual-section-v2">
+                    <h3 class="section-heading" data-i18n="TAB_CONTROLS">CONTROLS</h3>
+                    <div class="desktop-only">
                         <table class="manual-table">
                             <tr><th data-i18n="CTRL_MOVE">Move</th><td data-i18n="CTRL_ARROWS">A/D or Arrow Keys</td></tr>
                             <tr><th data-i18n="CTRL_FIRE">Fire</th><td data-i18n="CTRL_SPACE">Space or Up Arrow</td></tr>
@@ -561,9 +535,7 @@
                             <tr><th data-i18n="CTRL_PAUSE">Pause</th><td data-i18n="CTRL_ESC">ESC</td></tr>
                         </table>
                     </div>
-
-                    <div class="manual-section mobile-only">
-                        <h4 data-i18n="CONTROLS_MOBILE">Touch (Mobile)</h4>
+                    <div class="mobile-only">
                         <table class="manual-table">
                             <tr><th data-i18n="CTRL_MOVE">Move</th><td data-i18n="CTRL_TAP_SIDES">Tap screen sides or joystick</td></tr>
                             <tr><th data-i18n="CTRL_FIRE">Fire</th><td data-i18n="CTRL_AUTO">Automatic while touching</td></tr>
@@ -572,146 +544,40 @@
                     </div>
                 </div>
 
-                <!-- POWER-UPS TAB - Weapon Evolution System v3.0 -->
-                <div class="manual-panel" id="tab-powerups">
-                    <!-- UPGRADE (Permanent) -->
-                    <div class="manual-section">
-                        <h4 data-i18n="POWERUPS_UPGRADE">Weapon Upgrade</h4>
-                        <p class="section-note" data-i18n="POWERUPS_UPGRADE_NOTE">Permanent! Evolves shots: 1→2→3 bullets. Death: -1 level</p>
-                        <table class="manual-table powerup-table">
-                            <tr><td class="pu-icon">⬆️</td><td class="pu-name">UPGRADE</td><td data-i18n="PU_UPGRADE">⬆️ UPGRADE - Permanent shot level +1</td></tr>
-                        </table>
-                    </div>
-
-                    <!-- MODIFIERS (Stackable + Temporary) -->
-                    <div class="manual-section">
-                        <h4 data-i18n="POWERUPS_MODIFIERS">Modifiers</h4>
-                        <p class="section-note" data-i18n="POWERUPS_MODIFIERS_NOTE">Stackable + temporary (12s). Same pickup = +1 level &amp; refresh timer</p>
-                        <table class="manual-table powerup-table">
-                            <tr><td class="pu-icon">⚡</td><td class="pu-name">RATE</td><td data-i18n="PU_RATE">⚡ RATE - Fire rate -15%/-30%/-45%</td></tr>
-                            <tr><td class="pu-icon">💥</td><td class="pu-name">POWER</td><td data-i18n="PU_POWER">💥 POWER - Damage +25%/+50%/+75%</td></tr>
-                            <tr><td class="pu-icon">🔱</td><td class="pu-name">SPREAD</td><td data-i18n="PU_SPREAD">🔱 SPREAD - Shot angle +12°/+24°</td></tr>
-                        </table>
-                    </div>
-
-                    <!-- SPECIALS (Exclusive + Temporary) -->
-                    <div class="manual-section">
-                        <h4 data-i18n="POWERUPS_SPECIALS">Specials</h4>
-                        <p class="section-note" data-i18n="POWERUPS_SPECIALS_NOTE">Exclusive + temporary (12s). New special replaces current</p>
-                        <table class="manual-table powerup-table">
-                            <tr><td class="pu-icon">🎯</td><td class="pu-name">HOMING</td><td data-i18n="PU_HOMING">🎯 HOMING - Bullets track enemies</td></tr>
-                            <tr><td class="pu-icon">🔥</td><td class="pu-name">PIERCE</td><td data-i18n="PU_PIERCE">🔥 PIERCE - Bullets penetrate</td></tr>
-                            <tr><td class="pu-icon">⚡</td><td class="pu-name">LASER</td><td data-i18n="PU_LASER">⚡ LASER - Continuous beam</td></tr>
-                            <tr><td class="pu-icon">🚀</td><td class="pu-name">MISSILE</td><td data-i18n="PU_MISSILE">🚀 MISSILE - AoE explosions</td></tr>
-                            <tr><td class="pu-icon">🛡️</td><td class="pu-name">SHIELD</td><td data-i18n="PU_SHIELD">🛡️ SHIELD - Instant activation</td></tr>
-                            <tr><td class="pu-icon">💨</td><td class="pu-name">SPEED</td><td data-i18n="PU_SPEED">💨 SPEED - Movement +50%</td></tr>
-                        </table>
-                    </div>
-
-                    <!-- Death Penalty -->
-                    <div class="manual-section death-penalty">
-                        <p class="section-note warning" data-i18n="POWERUPS_DEATH">On Death: -1 level per category (min 0), specials lost</p>
-                    </div>
+                <!-- SECTION 2: OBJECTIVES -->
+                <div class="manual-section-v2">
+                    <h3 class="section-heading" data-i18n="MAN_OBJECTIVES">OBJECTIVES</h3>
+                    <p class="manual-body" data-i18n="MAN_OBJ_TEXT">Destroy waves of fiat enemies, collect power-ups, survive 5 waves per level, then defeat the Boss. Each cycle increases difficulty and rewards.</p>
+                    <p class="manual-body manual-warn" data-i18n="MAN_OBJ_DEATH">1 hit = 1 life lost. 3 lives total. Shield is your only defense!</p>
                 </div>
 
-                <!-- ENEMIES TAB -->
-                <div class="manual-panel" id="tab-enemies">
-                    <div class="manual-section">
-                        <h4 class="tier-weak" data-i18n="ENEMIES_WEAK">Weak Tier</h4>
-                        <table class="manual-table enemy-table">
-                            <tr><td class="enemy-symbol">¥</td><td data-i18n="ENEMY_YEN">Yen</td><td data-i18n="SHAPE_COIN">Coin</td></tr>
-                            <tr><td class="enemy-symbol">₽</td><td data-i18n="ENEMY_RUBLE">Ruble</td><td data-i18n="SHAPE_BILL">Bill</td></tr>
-                            <tr><td class="enemy-symbol">₹</td><td data-i18n="ENEMY_RUPEE">Rupee</td><td data-i18n="SHAPE_COIN">Coin</td></tr>
-                        </table>
-                    </div>
-
-                    <div class="manual-section">
-                        <h4 class="tier-medium" data-i18n="ENEMIES_MEDIUM">Medium Tier</h4>
-                        <table class="manual-table enemy-table">
-                            <tr><td class="enemy-symbol">€</td><td data-i18n="ENEMY_EURO">Euro</td><td data-i18n="SHAPE_BILL">Bill</td></tr>
-                            <tr><td class="enemy-symbol">£</td><td data-i18n="ENEMY_POUND">Pound</td><td data-i18n="SHAPE_COIN">Coin</td></tr>
-                            <tr><td class="enemy-symbol">₣</td><td data-i18n="ENEMY_FRANC">Franc</td><td data-i18n="SHAPE_BAR">Gold Bar</td></tr>
-                            <tr><td class="enemy-symbol">₺</td><td data-i18n="ENEMY_LIRA">Turkish Lira</td><td data-i18n="SHAPE_BILL">Bill</td></tr>
-                        </table>
-                    </div>
-
-                    <div class="manual-section">
-                        <h4 class="tier-strong" data-i18n="ENEMIES_STRONG">Strong Tier (Dangerous!)</h4>
-                        <table class="manual-table enemy-table">
-                            <tr><td class="enemy-symbol">$</td><td data-i18n="ENEMY_DOLLAR">Dollar</td><td data-i18n="SHAPE_BILL">Bill</td></tr>
-                            <tr><td class="enemy-symbol">元</td><td data-i18n="ENEMY_YUAN">Yuan</td><td data-i18n="SHAPE_BAR">Gold Bar</td></tr>
-                            <tr><td class="enemy-symbol">Ⓒ</td><td data-i18n="ENEMY_CBDC">CBDC</td><td data-i18n="SHAPE_CARD">Credit Card</td></tr>
-                        </table>
-                    </div>
+                <!-- SECTION 3: POWER-UPS -->
+                <div class="manual-section-v2">
+                    <h3 class="section-heading" data-i18n="TAB_POWERUPS">POWER-UPS</h3>
+                    <table class="manual-table powerup-table">
+                        <tr><td class="pu-icon">⬆️</td><td class="pu-name">UPGRADE</td><td data-i18n="MAN_PU_UPGRADE">Permanent shot level +1 (1→2→3)</td></tr>
+                        <tr><td class="pu-icon">⚡</td><td class="pu-name">RATE</td><td data-i18n="MAN_PU_RATE">Fire rate boost (stacks x3, 12s)</td></tr>
+                        <tr><td class="pu-icon">💥</td><td class="pu-name">POWER</td><td data-i18n="MAN_PU_POWER">Damage boost (stacks x3, 12s)</td></tr>
+                        <tr><td class="pu-icon">🔱</td><td class="pu-name">SPREAD</td><td data-i18n="MAN_PU_SPREAD">Wider shot angle (stacks x2, 12s)</td></tr>
+                        <tr><td class="pu-icon">🎯</td><td class="pu-name">HOMING</td><td data-i18n="MAN_PU_HOMING">Auto-tracking bullets (12s)</td></tr>
+                        <tr><td class="pu-icon">🔥</td><td class="pu-name">PIERCE</td><td data-i18n="MAN_PU_PIERCE">Penetrating bullets (12s)</td></tr>
+                        <tr><td class="pu-icon">⚡</td><td class="pu-name">LASER</td><td data-i18n="MAN_PU_LASER">Continuous beam (12s)</td></tr>
+                        <tr><td class="pu-icon">🚀</td><td class="pu-name">MISSILE</td><td data-i18n="MAN_PU_MISSILE">AoE explosive shots (12s)</td></tr>
+                        <tr><td class="pu-icon">🛡️</td><td class="pu-name">SHIELD</td><td data-i18n="MAN_PU_SHIELD">Instant shield activation</td></tr>
+                        <tr><td class="pu-icon">💨</td><td class="pu-name">SPEED</td><td data-i18n="MAN_PU_SPEED">Movement speed +50% (12s)</td></tr>
+                    </table>
+                    <p class="section-note warning" data-i18n="POWERUPS_DEATH">On Death: -1 level per category (min 0), specials lost</p>
                 </div>
 
-                <!-- BOSSES TAB -->
-                <div class="manual-panel" id="tab-bosses">
-                    <p class="panel-intro" data-i18n="BOSSES_INTRO">Every 5 levels you face a boss. Rotation: FED > ECB > BOJ</p>
-
-                    <div class="boss-cards">
-                        <div class="boss-card fed">
-                            <div class="boss-symbol">$</div>
-                            <div class="boss-name" data-i18n="BOSS_FED">THE FED</div>
-                            <div class="boss-style" data-i18n="BOSS_FED_STYLE">Aggressive, rapid attacks</div>
-                        </div>
-                        <div class="boss-card bce">
-                            <div class="boss-symbol">€</div>
-                            <div class="boss-name" data-i18n="BOSS_BCE">ECB</div>
-                            <div class="boss-style" data-i18n="BOSS_BCE_STYLE">Bureaucratic, bullet walls</div>
-                        </div>
-                        <div class="boss-card boj">
-                            <div class="boss-symbol">¥</div>
-                            <div class="boss-name" data-i18n="BOSS_BOJ">BOJ</div>
-                            <div class="boss-style" data-i18n="BOSS_BOJ_STYLE">Zen, lethal precision</div>
-                        </div>
-                    </div>
-
-                    <div class="manual-section">
-                        <h4 data-i18n="BOSS_PHASES">3 Phases per Boss:</h4>
-                        <ul class="phase-list">
-                            <li class="phase-1" data-i18n="BOSS_PHASE1">Phase 1 (100%-66% HP): Slow, simple patterns</li>
-                            <li class="phase-2" data-i18n="BOSS_PHASE2">Phase 2 (66%-33% HP): Fast, complex patterns</li>
-                            <li class="phase-3" data-i18n="BOSS_PHASE3">Phase 3 (33%-0% HP): Erratic, spawns minions!</li>
-                        </ul>
-                    </div>
-                </div>
-
-                <!-- PRO TIPS TAB -->
-                <div class="manual-panel" id="tab-tips">
-                    <div class="tip-card hodl">
-                        <h4>💎 <span data-i18n="TIP_HODL_TITLE">HODL MODE - The Champion's Secret</span></h4>
-                        <p data-i18n="TIP_HODL_1">Stop moving and your ship enters HODL mode:</p>
-                        <ul>
-                            <li data-i18n="TIP_HODL_2">2x damage against all enemies</li>
-                            <li data-i18n="TIP_HODL_3">Golden aura visible around ship</li>
-                        </ul>
-                        <p class="tip-highlight" data-i18n="TIP_HODL_4">Use HODL when enemies are lined up above you!</p>
-                    </div>
-
-                    <div class="tip-card graze">
-                        <h4>🔥 <span data-i18n="TIP_GRAZE_TITLE">GRAZE - Dance with Danger</span></h4>
-                        <p data-i18n="TIP_GRAZE_1">Pass close to enemy bullets without getting hit:</p>
-                        <ul>
-                            <li data-i18n="TIP_GRAZE_2">Build up the Graze Meter (bottom bar)</li>
-                            <li data-i18n="TIP_GRAZE_3">Higher meter = higher score multiplier</li>
-                        </ul>
-                        <p class="tip-highlight" data-i18n="TIP_GRAZE_4">Full meter = up to 2.5x points!</p>
-                    </div>
-
-                    <div class="tip-card shield">
-                        <h4>🛡️ <span data-i18n="TIP_SHIELD_TITLE">Tactical Shield</span></h4>
-                        <p data-i18n="TIP_SHIELD_1">Shield has a 10-second cooldown. Use it to:</p>
-                        <ul>
-                            <li data-i18n="TIP_SHIELD_2">Pass through bullet walls</li>
-                            <li data-i18n="TIP_SHIELD_3">Survive Boss Phase 3 attacks</li>
-                            <li data-i18n="TIP_SHIELD_4">Emergency escape when grazing goes wrong</li>
-                        </ul>
-                    </div>
-
-                    <div class="tip-card boss-tip">
-                        <h4>⚡ <span data-i18n="TIP_BOSS_TITLE">Boss Power-Ups</span></h4>
-                        <p data-i18n="TIP_BOSS_1">During boss fights, every 25 hits drops a power-up. Keep shooting!</p>
+                <!-- SECTION 4: TIPS -->
+                <div class="manual-section-v2">
+                    <h3 class="section-heading" data-i18n="TAB_TIPS">PRO TIPS</h3>
+                    <div class="tip-compact">
+                        <p data-i18n="MAN_TIP_HODL">💎 <strong>HODL</strong> — Stop moving = 2x damage + golden aura</p>
+                        <p data-i18n="MAN_TIP_GRAZE">🔥 <strong>GRAZE</strong> — Dodge close to bullets = score multiplier (up to 2.5x)</p>
+                        <p data-i18n="MAN_TIP_SHIELD">🛡️ <strong>SHIELD</strong> — 10s cooldown. Your only defense against hits!</p>
+                        <p data-i18n="MAN_TIP_BOSS">⚡ <strong>BOSSES</strong> — 3 phases each. Every 25 hits drops a power-up</p>
+                        <p data-i18n="MAN_TIP_BEAR">🐻 <strong>BEAR MARKET</strong> — Hard mode in Settings. Double points!</p>
                     </div>
                 </div>
             </div>

@@ -9,6 +9,15 @@ const runState = G.RunState;
 window.Game.images = {}; // Placeholder, populated by main.js
 
 
+// --- VERSION MIGRATION: Force clean slate on version change ---
+(function() {
+    const APP_VER = G.VERSION.replace(/[^0-9.]/g, '').trim();
+    if (localStorage.getItem('fiat_app_version') !== APP_VER) {
+        localStorage.clear();
+        localStorage.setItem('fiat_app_version', APP_VER);
+    }
+})();
+
 // --- GLOBAL STATE ---
 let canvas, ctx, gameContainer;
 let gameWidth = 600;
@@ -1816,29 +1825,103 @@ window.launchShipAndStart = function () {
         audioSys.startMusic();
         if (G.SkyRenderer) G.SkyRenderer.init(gameWidth, gameHeight);
 
-        // Story Mode: Show Prologue before first game
-        const campaignState = G.CampaignState;
-        if (campaignState && campaignState.isEnabled() && shouldShowStory('PROLOGUE')) {
-            // Open curtain first, then show story
-            setTimeout(() => {
-                if (curtain) curtain.classList.add('open');
-            }, 100);
+        // Tutorial check (v4.12.0): show tutorial on first launch
+        function afterTutorial() {
+            // Story Mode: Show Prologue before first game
+            const campaignState = G.CampaignState;
+            if (campaignState && campaignState.isEnabled() && shouldShowStory('PROLOGUE')) {
+                // Open curtain first, then show story
+                setTimeout(() => {
+                    if (curtain) curtain.classList.add('open');
+                }, 100);
 
-            showStoryScreen('PROLOGUE', () => {
+                showStoryScreen('PROLOGUE', () => {
+                    startGame();
+                });
+            } else {
+                // Arcade mode or Prologue already seen - start directly
                 startGame();
-            });
+                setTimeout(() => {
+                    if (curtain) curtain.classList.add('open');
+                }, 100);
+            }
+        }
+
+        if (!localStorage.getItem('fiat_tutorial_seen')) {
+            showTutorial(afterTutorial);
         } else {
-            // Arcade mode or Prologue already seen - start directly
-            startGame();
-            setTimeout(() => {
-                if (curtain) curtain.classList.add('open');
-            }, 100);
+            afterTutorial();
         }
     }
 
     // Start animation
     requestAnimationFrame(animateLaunch);
 }
+
+// === Tutorial System (v4.12.0) ===
+let tutorialStep = 0;
+let tutorialCallback = null;
+
+function showTutorial(callback) {
+    tutorialStep = 0;
+    tutorialCallback = callback;
+    const overlay = document.getElementById('tutorial-overlay');
+    if (!overlay) { callback(); return; }
+    overlay.style.display = 'flex';
+    updateTutorialStep();
+    updateTutorialText();
+}
+
+function updateTutorialStep() {
+    const dots = document.querySelectorAll('.tutorial-dot');
+    const steps = document.querySelectorAll('.tutorial-step');
+    const nextBtn = document.getElementById('tut-next');
+    const T = G.TEXTS[G._currentLang || 'EN'] || G.TEXTS.EN;
+
+    dots.forEach((dot, i) => {
+        dot.classList.toggle('active', i === tutorialStep);
+        dot.classList.toggle('done', i < tutorialStep);
+    });
+    steps.forEach((step, i) => {
+        step.classList.toggle('active', i === tutorialStep);
+    });
+
+    if (nextBtn) {
+        nextBtn.textContent = tutorialStep === 2 ? (T.TUT_GOT_IT || 'GOT IT!') : (T.TUT_NEXT || 'NEXT');
+    }
+}
+
+function updateTutorialText() {
+    const T = G.TEXTS[G._currentLang || 'EN'] || G.TEXTS.EN;
+    const overlay = document.getElementById('tutorial-overlay');
+    if (!overlay) return;
+    overlay.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (T[key]) el.textContent = T[key];
+    });
+}
+
+window.nextTutorialStep = function() {
+    tutorialStep++;
+    if (tutorialStep > 2) {
+        completeTutorial();
+    } else {
+        updateTutorialStep();
+    }
+};
+
+window.skipTutorial = function() {
+    completeTutorial();
+};
+
+function completeTutorial() {
+    localStorage.setItem('fiat_tutorial_seen', '1');
+    const overlay = document.getElementById('tutorial-overlay');
+    if (overlay) overlay.style.display = 'none';
+    if (tutorialCallback) tutorialCallback();
+    tutorialCallback = null;
+}
+
 window.togglePause = function () {
     if (gameState === 'PLAY' || gameState === 'INTERMISSION') { gameState = 'PAUSE'; setStyle('pause-screen', 'display', 'flex'); setStyle('pause-btn', 'display', 'none'); }
     else if (gameState === 'PAUSE') { gameState = 'PLAY'; setStyle('pause-screen', 'display', 'none'); setStyle('pause-btn', 'display', 'block'); }
@@ -1901,6 +1984,12 @@ window.backToIntro = function () {
             modeSelector.style.opacity = '';
             modeSelector.style.transform = '';
         }
+
+        // Reset mode explanation and ship area (hidden by enterSelectionState)
+        const modeExpl = document.getElementById('mode-explanation');
+        const shipArea = document.querySelector('.ship-area');
+        if (modeExpl) modeExpl.classList.remove('hidden');
+        if (shipArea) shipArea.classList.add('hidden');
 
         // Reset primary button to TAP TO START state
         updatePrimaryButton('SPLASH');

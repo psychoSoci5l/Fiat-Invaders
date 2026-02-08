@@ -2213,6 +2213,19 @@ DIGITAL_THREAT: ['Ⓒ', '$', '元']  // CBDCs + majors
 
 ---
 
+## Phase 30: Accessibility & Onboarding v4.12.1 ✅
+*Goal: WCAG 2.1 AA+ compliance, first-run tutorial, streamlined manual.*
+
+- [x] **P1: Menu Readability** — Mode pill contrast 0.5→0.75, font sizes increased, touch targets 48px+
+- [x] **P2: Tutorial Onboarding** — 3-step DOM overlay (Controls/Objective/Survival) with localStorage skip
+- [x] **P3: Title Hierarchy** — Intro title enlarged to clamp(58px, 13vw, 84px), prefers-reduced-motion support
+- [x] **P4: Manual Rationalized** — 6 tabs → 4 scrollable sections, mobile fullscreen, flexbox scroll fix
+- [x] **P5: Meme Repositioning** — SPAWN_Y_RATIO 0.60→0.25, ALPHA 0.45→0.35
+- [x] **Bugfix: backToIntro()** — Mode explanation + ship area visibility restored on return to menu
+- [x] **Infra: Version migration** — localStorage.clear() on version change, forced cache invalidation
+
+---
+
 ## BUGFIX ROADMAP — Partenza da v4.11.0 (stabile GitHub)
 
 > Le sessioni v4.12–v4.17 hanno identificato questi problemi ma le modifiche non sono mai state

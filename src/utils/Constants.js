@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v4.11.0 FIAT vs CRYPTO";
+window.Game.VERSION = "v4.12.1 FIAT vs CRYPTO";
 
 window.Game.TEXTS = {
     EN: {
@@ -129,6 +129,36 @@ window.Game.TEXTS = {
         PWA_INSTALL_IOS: 'Install: tap <svg class="pwa-share-icon" viewBox="0 0 24 24" fill="none" stroke="#f39c12" stroke-width="2"><path d="M12 3v12M5 10l7-7 7 7"/><path d="M5 21h14a1 1 0 001-1v-6H4v6a1 1 0 001 1z"/></svg> then "Add to Home Screen"',
         PWA_INSTALL_ANDROID: "Install the app for the best experience",
         PWA_INSTALL_BTN: "INSTALL",
+        // Tutorial (v4.12.0)
+        TUT_CONTROLS_TITLE: "CONTROLS",
+        TUT_CONTROLS_PC: "A/D or Arrows to move. Space to fire. S or Down for Shield.",
+        TUT_CONTROLS_MOBILE: "Use the joystick to move. Auto-fire is ON. Tap the shield icon for defense.",
+        TUT_OBJECTIVE_TITLE: "OBJECTIVE",
+        TUT_OBJECTIVE_TEXT: "Destroy fiat enemies across 5 waves, then defeat the Boss. Collect power-ups to upgrade your weapons!",
+        TUT_SURVIVAL_TITLE: "SURVIVAL",
+        TUT_SURVIVAL_TEXT: "You have 3 lives. 1 hit = 1 life lost. Use your Shield (10s cooldown) to survive!",
+        TUT_SKIP: "SKIP",
+        TUT_NEXT: "NEXT",
+        TUT_GOT_IT: "GOT IT!",
+        // Manual v2 condensed (v4.12.0)
+        MAN_OBJECTIVES: "OBJECTIVES",
+        MAN_OBJ_TEXT: "Destroy waves of fiat enemies, collect power-ups, survive 5 waves per level, then defeat the Boss. Each cycle increases difficulty and rewards.",
+        MAN_OBJ_DEATH: "1 hit = 1 life lost. 3 lives total. Shield is your only defense!",
+        MAN_PU_UPGRADE: "Permanent shot level +1 (1\u21922\u21923)",
+        MAN_PU_RATE: "Fire rate boost (stacks x3, 12s)",
+        MAN_PU_POWER: "Damage boost (stacks x3, 12s)",
+        MAN_PU_SPREAD: "Wider shot angle (stacks x2, 12s)",
+        MAN_PU_HOMING: "Auto-tracking bullets (12s)",
+        MAN_PU_PIERCE: "Penetrating bullets (12s)",
+        MAN_PU_LASER: "Continuous beam (12s)",
+        MAN_PU_MISSILE: "AoE explosive shots (12s)",
+        MAN_PU_SHIELD: "Instant shield activation",
+        MAN_PU_SPEED: "Movement speed +50% (12s)",
+        MAN_TIP_HODL: "\uD83D\uDC8E HODL \u2014 Stop moving = 2x damage + golden aura",
+        MAN_TIP_GRAZE: "\uD83D\uDD25 GRAZE \u2014 Dodge close to bullets = score multiplier (up to 2.5x)",
+        MAN_TIP_SHIELD: "\uD83D\uDEE1\uFE0F SHIELD \u2014 10s cooldown. Your only defense against hits!",
+        MAN_TIP_BOSS: "\u26A1 BOSSES \u2014 3 phases each. Every 25 hits drops a power-up",
+        MAN_TIP_BEAR: "\uD83D\uDC3B BEAR MARKET \u2014 Hard mode in Settings. Double points!",
         // Intro Redesign v4.8
         MODE_STORY: "STORY",
         MODE_ARCADE: "ARCADE",
@@ -260,6 +290,36 @@ window.Game.TEXTS = {
         PWA_INSTALL_IOS: 'Installa: tap <svg class="pwa-share-icon" viewBox="0 0 24 24" fill="none" stroke="#f39c12" stroke-width="2"><path d="M12 3v12M5 10l7-7 7 7"/><path d="M5 21h14a1 1 0 001-1v-6H4v6a1 1 0 001 1z"/></svg> poi "Aggiungi a Home"',
         PWA_INSTALL_ANDROID: "Installa l'app per la migliore esperienza",
         PWA_INSTALL_BTN: "INSTALLA",
+        // Tutorial (v4.12.0)
+        TUT_CONTROLS_TITLE: "CONTROLLI",
+        TUT_CONTROLS_PC: "A/D o Frecce per muoverti. Spazio per sparare. S o Gi\u00F9 per lo Scudo.",
+        TUT_CONTROLS_MOBILE: "Usa il joystick per muoverti. Auto-fuoco attivo. Tocca l'icona scudo per difenderti.",
+        TUT_OBJECTIVE_TITLE: "OBIETTIVO",
+        TUT_OBJECTIVE_TEXT: "Distruggi i nemici fiat in 5 ondate, poi sconfiggi il Boss. Raccogli i power-up per potenziare le armi!",
+        TUT_SURVIVAL_TITLE: "SOPRAVVIVENZA",
+        TUT_SURVIVAL_TEXT: "Hai 3 vite. 1 colpo = 1 vita persa. Usa lo Scudo (cooldown 10s) per sopravvivere!",
+        TUT_SKIP: "SALTA",
+        TUT_NEXT: "AVANTI",
+        TUT_GOT_IT: "CAPITO!",
+        // Manual v2 condensed (v4.12.0)
+        MAN_OBJECTIVES: "OBIETTIVI",
+        MAN_OBJ_TEXT: "Distruggi ondate di nemici fiat, raccogli power-up, sopravvivi a 5 ondate per livello, poi sconfiggi il Boss. Ogni ciclo aumenta difficolt\u00E0 e ricompense.",
+        MAN_OBJ_DEATH: "1 colpo = 1 vita persa. 3 vite totali. Lo scudo \u00E8 la tua unica difesa!",
+        MAN_PU_UPGRADE: "Livello colpi permanente +1 (1\u21922\u21923)",
+        MAN_PU_RATE: "Cadenza di fuoco (cumula x3, 12s)",
+        MAN_PU_POWER: "Danno potenziato (cumula x3, 12s)",
+        MAN_PU_SPREAD: "Angolo colpi pi\u00F9 ampio (cumula x2, 12s)",
+        MAN_PU_HOMING: "Proiettili auto-guidati (12s)",
+        MAN_PU_PIERCE: "Proiettili penetranti (12s)",
+        MAN_PU_LASER: "Raggio continuo (12s)",
+        MAN_PU_MISSILE: "Esplosioni ad area (12s)",
+        MAN_PU_SHIELD: "Attivazione scudo istantanea",
+        MAN_PU_SPEED: "Velocit\u00E0 +50% (12s)",
+        MAN_TIP_HODL: "\uD83D\uDC8E HODL \u2014 Fermati = danno 2x + aura dorata",
+        MAN_TIP_GRAZE: "\uD83D\uDD25 GRAZE \u2014 Sfiora i proiettili = moltiplicatore punti (fino a 2.5x)",
+        MAN_TIP_SHIELD: "\uD83D\uDEE1\uFE0F SCUDO \u2014 Cooldown 10s. Unica difesa contro i colpi!",
+        MAN_TIP_BOSS: "\u26A1 BOSS \u2014 3 fasi ciascuno. Ogni 25 colpi rilascia un power-up",
+        MAN_TIP_BEAR: "\uD83D\uDC3B BEAR MARKET \u2014 Hard mode nelle Impostazioni. Punti doppi!",
         // Intro Redesign v4.8
         MODE_STORY: "STORIA",
         MODE_ARCADE: "ARCADE",

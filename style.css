@@ -538,9 +538,9 @@ body {
 
 /* Title */
 .intro-title {
-    font-size: clamp(42px, 10vw, 64px);
+    font-size: clamp(58px, 13vw, 84px);
     text-align: center;
-    margin-bottom: 10px;
+    margin-bottom: 15px;
     transition: all 0.4s ease;
 }
 
@@ -553,7 +553,7 @@ body {
 
 /* Selection header */
 .selection-header {
-    font-size: clamp(18px, 5vw, 24px);
+    font-size: clamp(20px, 5vw, 26px);
     font-weight: 700;
     letter-spacing: 5px;
     color: #fff;
@@ -745,7 +745,7 @@ body {
 }
 
 .selection-header {
-    font-size: clamp(18px, 5vw, 24px);
+    font-size: clamp(20px, 5vw, 26px);
     font-weight: 700;
     letter-spacing: 5px;
     color: #fff;
@@ -903,8 +903,8 @@ body {
 .mode-pill {
     background: transparent;
     border: 2px solid rgba(255, 255, 255, 0.3);
-    color: rgba(255, 255, 255, 0.5);
-    padding: 12px 28px;
+    color: rgba(255, 255, 255, 0.75);
+    padding: 14px 28px;
     font-size: clamp(14px, 4vw, 16px);
     font-weight: 700;
     letter-spacing: 3px;
@@ -1204,7 +1204,7 @@ body {
 
 .mode-pills {
     display: flex;
-    gap: 15px;
+    gap: 20px;
     justify-content: center;
 }
 
@@ -1212,9 +1212,9 @@ body {
 .mode-selector .mode-pill {
     background: transparent;
     border: 2px solid rgba(255, 255, 255, 0.3);
-    color: rgba(255, 255, 255, 0.5);
-    padding: 10px 24px;
-    font-size: clamp(13px, 3.5vw, 15px);
+    color: rgba(255, 255, 255, 0.75);
+    padding: 14px 28px;
+    font-size: clamp(15px, 4vw, 17px);
     font-weight: 700;
     letter-spacing: 3px;
     border-radius: 25px;
@@ -1247,7 +1247,7 @@ body {
     opacity: 0; height: 0; margin: 0; overflow: hidden;
 }
 .mode-desc {
-    font-size: clamp(15px, 4.4vw, 18px);
+    font-size: clamp(16px, 4.4vw, 20px);
     color: var(--neon-orange);
     font-style: italic;
     line-height: 1.4;
@@ -1287,7 +1287,7 @@ body {
 }
 
 .mode-indicator-text {
-    font-size: clamp(12px, 3.5vw, 14px);
+    font-size: clamp(14px, 3.5vw, 16px);
     font-weight: 700;
     color: var(--neon-orange);
     letter-spacing: 3px;
@@ -1295,7 +1295,7 @@ body {
 }
 
 .mode-indicator-hint {
-    font-size: 10px;
+    font-size: 12px;
     color: var(--neon-orange);
     letter-spacing: 2px;
     margin-top: 2px;
@@ -3751,9 +3751,16 @@ body.is-touch p.mobile-only { display: block; }
 
 /* Mobile responsive */
 @media (max-width: 500px) {
+    #manual-modal {
+        padding: 0;
+    }
+
     .manual-container {
-        max-height: 95vh;
-        border-radius: 12px;
+        max-height: 100vh;
+        max-height: 100dvh;
+        max-width: 100%;
+        border-radius: 0;
+        border: none;
     }
 
     .manual-title {
@@ -3761,35 +3768,12 @@ body.is-touch p.mobile-only { display: block; }
         padding: 14px 15px 10px;
     }
 
-    .manual-tabs {
-        gap: 4px;
-        padding: 10px;
-    }
-
-    .manual-tab {
-        padding: 6px 8px;
-        min-width: 55px;
-    }
-
-    .tab-icon {
-        font-size: 16px;
-    }
-
-    .tab-label {
-        font-size: 8px;
+    .manual-v2 .manual-scroll {
+        padding: 15px;
     }
 
     .manual-content {
         padding: 15px;
-    }
-
-    .boss-cards {
-        gap: 10px;
-    }
-
-    .boss-card {
-        min-width: 85px;
-        padding: 12px;
     }
 }
 
@@ -3868,4 +3852,255 @@ body.is-touch p.mobile-only { display: block; }
 
 .pwa-banner-close:active {
     color: #fff;
+}
+
+/* ========================================
+   MANUAL v2 - Scrollable Sections (v4.12.0)
+   ======================================== */
+
+.manual-v2 .manual-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 20px;
+    scrollbar-width: thin;
+    scrollbar-color: #F7931A #1a1a2e;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+}
+
+.manual-v2 .manual-scroll::-webkit-scrollbar {
+    width: 8px;
+}
+
+.manual-v2 .manual-scroll::-webkit-scrollbar-track {
+    background: #1a1a2e;
+    border-radius: 4px;
+}
+
+.manual-v2 .manual-scroll::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #F7931A 0%, #c77a15 100%);
+    border-radius: 4px;
+}
+
+.manual-section-v2 {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 18px;
+}
+
+.section-heading {
+    color: #F7931A;
+    font-size: 16px;
+    font-weight: 900;
+    letter-spacing: 3px;
+    margin: 0 0 12px 0;
+    padding-bottom: 8px;
+    border-bottom: 2px solid rgba(247, 147, 26, 0.3);
+}
+
+.manual-body {
+    color: #ccc;
+    font-size: 14px;
+    line-height: 1.6;
+    margin: 0 0 10px 0;
+}
+
+.manual-warn {
+    color: #ff6b6b;
+    font-weight: 600;
+}
+
+.tip-compact p {
+    color: #ccc;
+    font-size: 14px;
+    line-height: 1.6;
+    margin: 0 0 10px 0;
+}
+
+.tip-compact strong {
+    color: #F7931A;
+}
+
+/* ========================================
+   TUTORIAL OVERLAY (v4.12.0)
+   ======================================== */
+
+#tutorial-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 9500;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    animation: tutorialFadeIn 0.3s ease-out;
+}
+
+@keyframes tutorialFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.tutorial-container {
+    background: linear-gradient(180deg, #1a1a2e 0%, #0a0a15 100%);
+    border: 3px solid #F7931A;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 400px;
+    padding: 30px 25px;
+    text-align: center;
+    box-shadow:
+        0 0 40px rgba(247, 147, 26, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.tutorial-progress {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 25px;
+}
+
+.tutorial-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    transition: all 0.3s ease;
+}
+
+.tutorial-dot.active {
+    background: #F7931A;
+    border-color: #F7931A;
+    box-shadow: 0 0 10px rgba(247, 147, 26, 0.5);
+}
+
+.tutorial-dot.done {
+    background: rgba(247, 147, 26, 0.4);
+    border-color: rgba(247, 147, 26, 0.6);
+}
+
+.tutorial-step {
+    display: none;
+    animation: tutStepIn 0.3s ease-out;
+}
+
+.tutorial-step.active {
+    display: block;
+}
+
+@keyframes tutStepIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.tutorial-title {
+    color: #F7931A;
+    font-size: 20px;
+    font-weight: 900;
+    letter-spacing: 4px;
+    margin: 0 0 15px 0;
+    text-shadow: 0 0 15px rgba(247, 147, 26, 0.5);
+}
+
+.tutorial-text {
+    color: #ccc;
+    font-size: 16px;
+    line-height: 1.6;
+    margin: 0;
+}
+
+.tutorial-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    margin-top: 25px;
+}
+
+.tutorial-btn {
+    flex: 1;
+    padding: 14px 20px;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 900;
+    letter-spacing: 3px;
+    border-radius: 10px;
+    cursor: pointer;
+    min-height: 48px;
+    transition: all 0.15s ease;
+}
+
+.tutorial-skip {
+    background: transparent;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.tutorial-skip:hover {
+    border-color: rgba(255, 255, 255, 0.5);
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.tutorial-next {
+    background: linear-gradient(180deg, #F7931A 0%, #c77a15 100%);
+    border: 2px solid #000;
+    color: #000;
+    box-shadow: 0 4px 0 #8a5a0a;
+}
+
+.tutorial-next:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 0 #8a5a0a, 0 0 20px rgba(247, 147, 26, 0.5);
+}
+
+.tutorial-next:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 #8a5a0a;
+}
+
+/* ========================================
+   ACCESSIBILITY - v4.12.0
+   ======================================== */
+
+/* Small screen title fallback */
+@media (max-height: 600px) {
+    .intro-title {
+        font-size: clamp(42px, 10vw, 56px);
+    }
+}
+
+/* Reduced Motion - Disable all animations for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+    .title-fiat,
+    .title-crypto,
+    .title-vs,
+    .btn-tap-start,
+    .btn-primary-action,
+    #intro-ship-canvas,
+    .hud-score-value,
+    .shield-btn-wrapper.ready .shield-btn-face,
+    .shield-btn-wrapper.active .shield-btn-face,
+    .hyper-btn-wrapper.ready .hyper-btn-face,
+    .hyper-btn-wrapper.active .hyper-btn-face,
+    .text-particle,
+    .boss-slot.current,
+    .trophy {
+        animation: none !important;
+    }
+
+    .btn-tap-start::before,
+    .btn-primary-action::before {
+        animation: none !important;
+    }
+
+    * {
+        transition-duration: 0.01s !important;
+    }
 }

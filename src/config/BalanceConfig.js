@@ -564,10 +564,10 @@
             MEME_WHISPER_CONFIG: {
                 MAX_ON_SCREEN: 2,         // Max simultaneous whispers
                 FONT_SIZE: 13,            // Italic font size
-                ALPHA: 0.45,              // Starting opacity
+                ALPHA: 0.35,              // Starting opacity (v4.12: was 0.45, less distracting)
                 DRIFT_SPEED: 15,          // Upward drift px/s
                 LIFETIME: 3.0,            // Seconds to live
-                SPAWN_Y_RATIO: 0.60       // Y spawn = gameHeight * this
+                SPAWN_Y_RATIO: 0.25       // Y spawn = gameHeight * this (v4.12: was 0.60, moved to top-quarter)
             },
 
             // Ship status config
