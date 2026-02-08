@@ -10,7 +10,7 @@
 *   **Responsive**: "Notch-safe" UI design that adapts to all mobile screens.
 *   **Localization**: Fully localized in English (EN) and Italian (IT).
 
-## 🧠 Current Gameplay Rules (v4.14.0)
+## 🧠 Current Gameplay Rules (v4.14.1)
 
 *   **Two Game Modes**: **Story Mode** (3 acts with narrative chapters, boss progression FED→BCE→BOJ) and **Arcade Mode** (endless waves, high scores, mini-bosses).
 *   **Wave System**: 15 unique waves (5 per cycle x 3 cycles) with 16 formation patterns and thematic currency groups.
@@ -100,9 +100,11 @@ All tools accessible via browser console using `dbg.` shortcut.
 
 ### Balance Testing (one-command workflow)
 ```javascript
-dbg.balanceTest()   // Start tracking + auto-enable perf profiler
+dbg.balanceTest()      // Start tracking + auto-enable perf profiler
 // ... play the game ...
-dbg.report()        // After game over: full analytics + performance report
+dbg.report()           // After game over: full analytics + performance report
+dbg.powerUpReport()    // Detailed power-up economy: spawned/collected/expired,
+                       // weapon timeline, modifier overlap, GODCHAIN stats
 ```
 
 ### Performance Profiler

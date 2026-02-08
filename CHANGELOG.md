@@ -1,5 +1,21 @@
 # Changelog
 
+## v4.14.1 - 2026-02-08
+### Debug: Power-Up Economy Report
+
+- **`dbg.powerUpReport()`**: New detailed report for power-up lifecycle analysis
+  - DROP ECONOMY: spawned / collected / expired / collection rate %
+  - DROPS BY SOURCE: enemy vs boss breakdown
+  - DROPS BY CATEGORY: upgrade / modifier / special counts
+  - WEAPON TIMELINE: chronological weapon evolution events (last 30)
+  - MODIFIER ANALYSIS: overlap % (time with 2+ active modifiers)
+  - GODCHAIN: activations, total/avg duration
+  - WEAPON STATE FINAL: end-of-run weapon snapshot
+- **Tracking hooks**: Drop spawned/expired in main.js, weapon events in Player.js (modifier/special expired, GODCHAIN on/off, shot level up, death penalty)
+- **Analytics extended**: `dropsSpawned[]`, `dropsExpired`, `weaponTimeline[]`, GODCHAIN duration, modifier overlap frames
+
+---
+
 ## v4.14.0 - 2026-02-08
 ### Game Balance Rebalancing — Enemy Size & Spawn
 

@@ -3197,6 +3197,13 @@ function update(dt) {
             });
         }
 
+        // Power-up economy tracking: modifier overlap per frame
+        if (G.Debug?.analytics?.runStart) {
+            const mods = player.modifiers;
+            const activeCount = (mods.rate.timer > 0 ? 1 : 0) + (mods.power.timer > 0 ? 1 : 0) + (mods.spread.timer > 0 ? 1 : 0);
+            G.Debug.trackModifierFrame(activeCount);
+        }
+
         // HYPER MODE activation (H key or touch button)
         if ((inputSys.isDown('KeyH') || inputSys.touch.hyper) && player.canActivateHyper && player.canActivateHyper(grazeMeter)) {
             player.activateHyper();
@@ -3309,6 +3316,7 @@ function updateBullets(dt) {
                 if (bossDropInfo) {
                     powerUps.push(new G.PowerUp(bossDropInfo.x, bossDropInfo.y, bossDropInfo.type));
                     audioSys.play('coinPerk');
+                    if (G.Debug) G.Debug.trackDropSpawned(bossDropInfo.type, bossDropInfo.category, 'boss');
                 }
 
                 if (!b.penetration) {
@@ -4021,6 +4029,7 @@ function checkBulletCollisions(b, bIdx) {
                 );
                 if (dropInfo) {
                     powerUps.push(new G.PowerUp(dropInfo.x, dropInfo.y, dropInfo.type));
+                    if (G.Debug) G.Debug.trackDropSpawned(dropInfo.type, dropInfo.category, 'enemy');
                 }
             }
             if (!b.penetration) {
@@ -5348,6 +5357,7 @@ function updatePowerUps(dt) {
         if (!p) { powerUps.splice(i, 1); continue; } // Safety check
         p.update(dt);
         if (p.markedForDeletion) {
+            if (G.Debug) G.Debug.trackDropExpired();
             powerUps.splice(i, 1);
         } else {
             if (Math.abs(p.x - player.x) < 40 && Math.abs(p.y - player.y) < 40) {

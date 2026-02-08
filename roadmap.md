@@ -1,7 +1,7 @@
 # Roadmap: FIAT vs CRYPTO
 
 > [!IMPORTANT]
-> **Versione attuale**: v4.14.0 (2026-02-08)
+> **Versione attuale**: v4.14.1 (2026-02-08)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
 > **Stato**: Gameplay completo, in fase di hardening e bugfix.
 
@@ -14,6 +14,13 @@
 
 ---
 
+## v4.14.1 — Debug: Power-Up Economy Report (COMPLETATO)
+- `dbg.powerUpReport()` per analisi ciclo di vita drop (spawned/collected/expired)
+- Tracking hooks in main.js + Player.js (weapon events, GODCHAIN, modifier overlap)
+- Analytics estesi con weaponTimeline, dropsSpawned, modifier overlap frames
+
+---
+
 ## PROSSIMA SESSIONE: Gameplay Audit con Debug Attivo
 
 > Prima di qualsiasi fix, serve una valutazione sul campo dello stato attuale del gioco.
@@ -22,6 +29,7 @@
 1. `dbg.balanceTest()` — attiva tracking + perf profiler
 2. Giro completo: Arcade BTC, Ciclo 1 → Boss FED → Ciclo 2 inizio
 3. `dbg.report()` — analytics completo + performance
+3b. `dbg.powerUpReport()` — economia power-up dettagliata
 4. Annotare: cosa funziona, cosa stona, cosa è rotto
 5. Decidere priorità della patch sulla base dei dati reali
 

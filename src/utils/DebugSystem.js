@@ -352,6 +352,16 @@ window.Game.Debug = {
             miniBossData: [],
             scoreAtCycleEnd: {},
             finalScore: 0,
+
+            // Power-up economy tracking (v4.14.1)
+            dropsSpawned: [],          // [{ time, type, category, source:'enemy'|'boss', wave, cycle }]
+            dropsExpired: 0,           // counter di drop non raccolti
+            weaponTimeline: [],        // [{ time, event, detail }]
+            godchainActivations: 0,
+            godchainTotalDuration: 0,
+            _godchainStart: null,
+            modifierOverlapFrames: 0,  // frames con 2+ modifier attivi
+            _totalTrackedFrames: 0,
         };
         console.log(`[ANALYTICS] Run started: ${ship} / ${mode}`);
     },
@@ -495,6 +505,204 @@ window.Game.Debug = {
             killCount: killCount,
             duration: duration
         });
+    },
+
+    // ========== POWER-UP ECONOMY TRACKING v4.14.1 ==========
+
+    /**
+     * Track a drop spawned (enemy or boss)
+     */
+    trackDropSpawned(type, category, source) {
+        const a = this.analytics;
+        if (!a.runStart) return;
+        const G = window.Game;
+        a.dropsSpawned.push({
+            time: Date.now() - a.runStart,
+            type: type,
+            category: category || 'unknown',
+            source: source,
+            wave: G.WaveManager?.wave || 0,
+            cycle: window.marketCycle || 1
+        });
+    },
+
+    /**
+     * Track a drop that expired (not collected)
+     */
+    trackDropExpired() {
+        const a = this.analytics;
+        if (!a.runStart) return;
+        a.dropsExpired++;
+    },
+
+    /**
+     * Track modifier overlap per frame
+     * @param {number} activeModCount - number of active modifiers this frame
+     */
+    trackModifierFrame(activeModCount) {
+        const a = this.analytics;
+        a._totalTrackedFrames++;
+        if (activeModCount >= 2) {
+            a.modifierOverlapFrames++;
+        }
+    },
+
+    /**
+     * Track GODCHAIN activation
+     */
+    trackGodchainActivate() {
+        const a = this.analytics;
+        if (!a.runStart) return;
+        a.godchainActivations++;
+        a._godchainStart = Date.now();
+        this.trackWeaponEvent('GODCHAIN_ON', '');
+    },
+
+    /**
+     * Track GODCHAIN deactivation
+     */
+    trackGodchainDeactivate() {
+        const a = this.analytics;
+        if (!a.runStart) return;
+        if (a._godchainStart) {
+            a.godchainTotalDuration += (Date.now() - a._godchainStart);
+            a._godchainStart = null;
+        }
+        this.trackWeaponEvent('GODCHAIN_OFF', '');
+    },
+
+    /**
+     * Track a weapon evolution event
+     * @param {string} event - UPGRADE, MODIFIER, SPECIAL, DEATH_PENALTY, GODCHAIN_ON/OFF, MODIFIER_EXPIRED, SPECIAL_EXPIRED
+     * @param {string} detail - e.g. 'SHOT_LV2', 'RATE_LV1', 'HOMING'
+     */
+    trackWeaponEvent(event, detail) {
+        const a = this.analytics;
+        if (!a.runStart) return;
+        a.weaponTimeline.push({
+            time: Date.now() - a.runStart,
+            event: event,
+            detail: detail
+        });
+    },
+
+    /**
+     * Power-Up Economy Report — detailed analysis of drop lifecycle
+     */
+    powerUpReport() {
+        const a = this.analytics;
+        const runTime = (a.runEnd || Date.now()) - a.runStart;
+
+        const formatTime = (ms) => {
+            const sec = Math.floor(ms / 1000);
+            const min = Math.floor(sec / 60);
+            return `${min}:${(sec % 60).toString().padStart(2, '0')}`;
+        };
+
+        const spawned = a.dropsSpawned.length;
+        const collected = a.powerUpsCollected.length;
+        const expired = a.dropsExpired;
+        const collectionRate = spawned > 0 ? ((collected / spawned) * 100).toFixed(1) : '0.0';
+
+        console.log('');
+        console.log('%c╔════════════════════════════════════════════════════════════╗', 'color: #f80');
+        console.log('%c║           POWER-UP ECONOMY REPORT v4.14.1                 ║', 'color: #f80; font-weight: bold');
+        console.log('%c╠════════════════════════════════════════════════════════════╣', 'color: #f80');
+        console.log(`%c║ Run Time: ${formatTime(runTime).padEnd(10)} Ship: ${(a.ship || '?').padEnd(8)}`, 'color: #fff');
+
+        // 1. DROP ECONOMY
+        console.log('%c╠══ DROP ECONOMY ═══════════════════════════════════════════╣', 'color: #0ff');
+        console.log(`%c║   Spawned:  ${spawned}`, 'color: #fff');
+        console.log(`%c║   Collected: ${collected}`, 'color: #0f0');
+        console.log(`%c║   Expired:  ${expired}`, expired > 0 ? 'color: #f00' : 'color: #fff');
+        console.log(`%c║   Collection Rate: ${collectionRate}%`, parseFloat(collectionRate) < 50 ? 'color: #ff0' : 'color: #0f0');
+        if (spawned > 0 && spawned !== collected + expired) {
+            console.log(`%c║   In-flight: ${spawned - collected - expired}`, 'color: #888');
+        }
+
+        // 2. DROPS BY SOURCE
+        console.log('%c╠══ DROPS BY SOURCE ════════════════════════════════════════╣', 'color: #0ff');
+        const bySource = { enemy: 0, boss: 0 };
+        for (const d of a.dropsSpawned) {
+            bySource[d.source] = (bySource[d.source] || 0) + 1;
+        }
+        console.log(`%c║   Enemy: ${bySource.enemy}    Boss: ${bySource.boss}`, 'color: #fff');
+
+        // 3. DROPS BY CATEGORY
+        console.log('%c╠══ DROPS BY CATEGORY ══════════════════════════════════════╣', 'color: #0ff');
+        const byCat = {};
+        for (const d of a.dropsSpawned) {
+            byCat[d.category] = (byCat[d.category] || 0) + 1;
+        }
+        const catStr = Object.entries(byCat).map(([c, n]) => `${c}: ${n}`).join('  ');
+        console.log(`%c║   ${catStr || '(none)'}`, 'color: #fff');
+
+        // Collected by type
+        const collByType = {};
+        for (const p of a.powerUpsCollected) {
+            collByType[p.type] = (collByType[p.type] || 0) + 1;
+        }
+        const collStr = Object.entries(collByType).map(([t, c]) => `${t}:${c}`).join(' ');
+        if (collStr) {
+            console.log(`%c║   Collected: ${collStr}`, 'color: #0f0');
+        }
+
+        // 4. WEAPON TIMELINE
+        console.log('%c╠══ WEAPON TIMELINE (last 30) ═════════════════════════════╣', 'color: #0ff');
+        const timeline = a.weaponTimeline.slice(-30);
+        if (timeline.length === 0) {
+            console.log('%c║   (no events)                                            ║', 'color: #888');
+        }
+        for (const ev of timeline) {
+            const t = formatTime(ev.time);
+            const detail = ev.detail ? ` ${ev.detail}` : '';
+            const color = ev.event.includes('EXPIRED') || ev.event === 'DEATH_PENALTY' ? 'color: #f44'
+                : ev.event.includes('GODCHAIN') ? 'color: #f80'
+                : 'color: #fff';
+            console.log(`%c║   @${t}  ${ev.event}${detail}`, color);
+        }
+
+        // 5. MODIFIER ANALYSIS
+        console.log('%c╠══ MODIFIER ANALYSIS ══════════════════════════════════════╣', 'color: #0ff');
+        const totalFrames = a._totalTrackedFrames;
+        const overlapFrames = a.modifierOverlapFrames;
+        const overlapPct = totalFrames > 0 ? ((overlapFrames / totalFrames) * 100).toFixed(1) : '0.0';
+        console.log(`%c║   Tracked Frames: ${totalFrames}`, 'color: #fff');
+        console.log(`%c║   Overlap Frames (2+ mods): ${overlapFrames} (${overlapPct}%)`, 'color: #fff');
+
+        // 6. GODCHAIN
+        console.log('%c╠══ GODCHAIN ═══════════════════════════════════════════════╣', 'color: #0ff');
+        const gcActs = a.godchainActivations;
+        let gcTotal = a.godchainTotalDuration;
+        // If still active, add current duration
+        if (a._godchainStart) {
+            gcTotal += (Date.now() - a._godchainStart);
+        }
+        const gcAvg = gcActs > 0 ? (gcTotal / gcActs / 1000).toFixed(1) : '0.0';
+        console.log(`%c║   Activations: ${gcActs}`, 'color: #fff');
+        console.log(`%c║   Total Duration: ${(gcTotal / 1000).toFixed(1)}s`, 'color: #fff');
+        console.log(`%c║   Avg Duration: ${gcAvg}s`, 'color: #fff');
+
+        // 7. WEAPON STATE FINAL
+        console.log('%c╠══ WEAPON STATE (final) ═══════════════════════════════════╣', 'color: #0ff');
+        const p = window.player;
+        if (p) {
+            console.log(`%c║   Shot Level: ${p.shotLevel || 1}`, 'color: #fff');
+            if (p.modifiers) {
+                console.log(`%c║   RATE:   Lv${p.modifiers.rate.level} (${p.modifiers.rate.timer.toFixed(1)}s)`, 'color: #fff');
+                console.log(`%c║   POWER:  Lv${p.modifiers.power.level} (${p.modifiers.power.timer.toFixed(1)}s)`, 'color: #fff');
+                console.log(`%c║   SPREAD: Lv${p.modifiers.spread.level} (${p.modifiers.spread.timer.toFixed(1)}s)`, 'color: #fff');
+            }
+            console.log(`%c║   Special: ${p.special || 'none'} (${(p.specialTimer || 0).toFixed(1)}s)`, 'color: #fff');
+            console.log(`%c║   GODCHAIN: ${p._godchainActive ? 'ACTIVE' : 'inactive'}`, p._godchainActive ? 'color: #f80; font-weight: bold' : 'color: #888');
+        } else {
+            console.log('%c║   (no player)                                            ║', 'color: #888');
+        }
+
+        console.log('%c╚════════════════════════════════════════════════════════════╝', 'color: #f80');
+        console.log('');
+
+        return this.getAnalyticsData();
     },
 
     /**
@@ -679,7 +887,7 @@ window.Game.Debug = {
         this.categories.STATE = true;
         this.perf(); // Auto-start performance profiling
         console.log('[DEBUG] Balance testing mode enabled (perf profiling auto-started)');
-        console.log('[DEBUG] Use dbg.report() after game over to see analytics');
+        console.log('[DEBUG] Use dbg.report() or dbg.powerUpReport() after game over to see analytics');
     },
 
     // ========== CATEGORY CONTROLS ==========
@@ -1635,4 +1843,4 @@ window.Game.Debug = {
 window.dbg = window.Game.Debug;
 
 // Console helper message
-console.log('[DEBUG] DebugSystem loaded. Commands: dbg.stats(), dbg.showOverlay(), dbg.perf(), dbg.perfReport(), dbg.debugBoss(), dbg.debugHUD(), dbg.hudStatus(), dbg.toggleHudMsg(key), dbg.maxWeapon(), dbg.weaponStatus(), dbg.godchain(), dbg.godchainStatus()');
+console.log('[DEBUG] DebugSystem loaded. Commands: dbg.stats(), dbg.showOverlay(), dbg.perf(), dbg.perfReport(), dbg.debugBoss(), dbg.debugHUD(), dbg.hudStatus(), dbg.toggleHudMsg(key), dbg.maxWeapon(), dbg.weaponStatus(), dbg.godchain(), dbg.godchainStatus(), dbg.powerUpReport()');

@@ -151,6 +151,7 @@ class Player extends window.Game.Entity {
             if (mod.timer > 0) {
                 mod.timer -= dt;
                 if (mod.timer <= 0) {
+                    if (window.Game.Debug) window.Game.Debug.trackWeaponEvent('MODIFIER_EXPIRED', modKey.toUpperCase());
                     mod.level = 0;
                     mod.timer = 0;
                 }
@@ -161,6 +162,7 @@ class Player extends window.Game.Entity {
         if (this.special && this.specialTimer > 0) {
             this.specialTimer -= dt;
             if (this.specialTimer <= 0) {
+                if (window.Game.Debug) window.Game.Debug.trackWeaponEvent('SPECIAL_EXPIRED', this.special);
                 this.special = null;
                 this.specialTimer = 0;
             }
@@ -312,8 +314,10 @@ class Player extends window.Game.Entity {
             if (window.Game.Events) window.Game.Events.emit('GODCHAIN_ACTIVATED');
             if (window.Game.Audio) window.Game.Audio.play('godchainActivate');
             if (window.Game.Input) window.Game.Input.vibrate([80, 40, 80, 40, 80]);
+            if (window.Game.Debug) window.Game.Debug.trackGodchainActivate();
         } else if (!this._godchainActive && wasGodchain) {
             if (window.Game.Events) window.Game.Events.emit('GODCHAIN_DEACTIVATED');
+            if (window.Game.Debug) window.Game.Debug.trackGodchainDeactivate();
         }
 
         // HYPER mode timer
@@ -1424,6 +1428,7 @@ class Player extends window.Game.Entity {
             if (this.shotLevel < WE.MAX_SHOT_LEVEL) {
                 this.shotLevel++;
                 if (Audio) Audio.play('levelUp');
+                if (window.Game.Debug) window.Game.Debug.trackWeaponEvent('UPGRADE', 'SHOT_LV' + this.shotLevel);
 
                 // Emit event for UI feedback
                 if (window.Game.Events) {
@@ -1442,6 +1447,7 @@ class Player extends window.Game.Entity {
             // Stack level (up to max), refresh timer
             mod.level = Math.min(modConfig.MAX_LEVEL, mod.level + 1);
             mod.timer = WE.MODIFIER_DURATION;
+            if (window.Game.Debug) window.Game.Debug.trackWeaponEvent('MODIFIER', type + '_LV' + mod.level);
 
             if (Audio) Audio.play('coinPerk');
 
@@ -1471,6 +1477,7 @@ class Player extends window.Game.Entity {
             // Other specials: set as active special with timer
             this.special = type;
             this.specialTimer = WE.SPECIAL_DURATION;
+            if (window.Game.Debug) window.Game.Debug.trackWeaponEvent('SPECIAL', type);
 
             if (Audio) Audio.play('powerUp');
 
@@ -1513,6 +1520,8 @@ class Player extends window.Game.Entity {
         // Special: lost completely on death
         this.special = null;
         this.specialTimer = 0;
+
+        if (window.Game.Debug) window.Game.Debug.trackWeaponEvent('DEATH_PENALTY', 'SHOT_LV' + this.shotLevel);
 
         // Emit event for UI update
         if (window.Game.Events) {
