@@ -1,9 +1,16 @@
 # Roadmap: FIAT vs CRYPTO
 
 > [!IMPORTANT]
-> **Versione attuale**: v4.14.1 (2026-02-08)
+> **Versione attuale**: v4.15.0 (2026-02-08)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
 > **Stato**: Gameplay completo, in fase di hardening e bugfix.
+
+---
+
+## v4.15.0 — Power-Up Visual Design: Category Distinction (COMPLETATO)
+- MODIFIER shape: hexagon → 4-pointed diamond (distinzione chiara da UPGRADE stella)
+- Glow effects su tutte e 3 le categorie (UPGRADE gold, MODIFIER/SPECIAL color-matched)
+- Gerarchia visuale: Star (permanente) / Diamond (temp stackabile) / Circle+Ring (temp esclusivo)
 
 ---
 

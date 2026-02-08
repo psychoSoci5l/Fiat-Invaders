@@ -89,6 +89,27 @@ class PowerUp extends window.Game.Entity {
                 this.drawShipPowerUp(ctx, x, y, cfg, pulse);
         }
 
+        // Light sweep effect — diagonal shine that passes over periodically
+        const sweepPeriod = 1;
+        const sweepPhase = (this.animTime % sweepPeriod) / sweepPeriod;
+        if (sweepPhase < 0.25) {
+            const t = sweepPhase / 0.25; // 0→1 during active sweep
+            const sweepX = x + (t - 0.5) * 56;
+            const alpha = Math.sin(t * Math.PI) * 0.55;
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(x, y, 20 * pulse, 0, Math.PI * 2);
+            ctx.clip();
+
+            ctx.globalAlpha = alpha;
+            ctx.translate(sweepX, y);
+            ctx.rotate(-0.785); // 45 degrees
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(-5, -36, 10, 72);
+            ctx.restore();
+        }
+
         ctx.restore();
     }
 
@@ -117,6 +138,10 @@ class PowerUp extends window.Game.Entity {
         }
         ctx.globalAlpha = 1;
 
+        // Glow shadow for star
+        ctx.shadowColor = 'rgba(255,215,0,0.4)';
+        ctx.shadowBlur = 8;
+
         // Main 6-point star
         ctx.fillStyle = cfg.color;
         ctx.beginPath();
@@ -133,6 +158,10 @@ class PowerUp extends window.Game.Entity {
         }
         ctx.closePath();
         ctx.fill();
+
+        // Remove shadow for detail work
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
 
         // Bold outline
         ctx.strokeStyle = '#111';
@@ -159,7 +188,8 @@ class PowerUp extends window.Game.Entity {
     }
 
     /**
-     * MODIFIER power-up: Hexagonal capsule (stackable buff)
+     * MODIFIER power-up: 4-pointed DIAMOND (stackable buff)
+     * Changed from hexagon to diamond for clear visual distinction from UPGRADE star
      */
     drawModifierPowerUp(ctx, x, y, cfg, pulse) {
         const size = 18 * pulse;
@@ -168,27 +198,31 @@ class PowerUp extends window.Game.Entity {
         ctx.translate(x, y);
         ctx.rotate(this.rotation * 0.3);
 
-        // Hexagon body
+        // Glow shadow
+        ctx.shadowColor = cfg.color;
+        ctx.shadowBlur = 6;
+
+        // 4-pointed DIAMOND body (clearly different from UPGRADE star)
         ctx.fillStyle = window.Game.ColorUtils.darken(cfg.color, 0.3);
         ctx.beginPath();
-        for (let i = 0; i < 6; i++) {
-            const angle = (Math.PI / 3) * i - Math.PI / 2;
-            const px = Math.cos(angle) * size;
-            const py = Math.sin(angle) * size;
-            if (i === 0) ctx.moveTo(px, py);
-            else ctx.lineTo(px, py);
-        }
+        ctx.moveTo(0, -size);         // Top point
+        ctx.lineTo(size * 0.7, 0);    // Right point
+        ctx.lineTo(0, size);          // Bottom point
+        ctx.lineTo(-size * 0.7, 0);   // Left point
         ctx.closePath();
         ctx.fill();
 
-        // Light side overlay
+        // Remove shadow for detail work
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+
+        // Light side overlay (right facet)
         ctx.fillStyle = cfg.color;
         ctx.globalAlpha = 0.8;
         ctx.beginPath();
         ctx.moveTo(0, -size);
-        ctx.lineTo(size * 0.866, -size * 0.5);
-        ctx.lineTo(size * 0.866, size * 0.5);
-        ctx.lineTo(0, 0);
+        ctx.lineTo(size * 0.7, 0);
+        ctx.lineTo(0, size * 0.3);
         ctx.closePath();
         ctx.fill();
         ctx.globalAlpha = 1;
@@ -197,13 +231,10 @@ class PowerUp extends window.Game.Entity {
         ctx.strokeStyle = '#111';
         ctx.lineWidth = 3;
         ctx.beginPath();
-        for (let i = 0; i < 6; i++) {
-            const angle = (Math.PI / 3) * i - Math.PI / 2;
-            const px = Math.cos(angle) * size;
-            const py = Math.sin(angle) * size;
-            if (i === 0) ctx.moveTo(px, py);
-            else ctx.lineTo(px, py);
-        }
+        ctx.moveTo(0, -size);
+        ctx.lineTo(size * 0.7, 0);
+        ctx.lineTo(0, size);
+        ctx.lineTo(-size * 0.7, 0);
         ctx.closePath();
         ctx.stroke();
 
@@ -211,10 +242,10 @@ class PowerUp extends window.Game.Entity {
         ctx.strokeStyle = window.Game.ColorUtils.lighten(cfg.color, 0.4);
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.moveTo(-size * 0.5, -size * 0.2);
-        ctx.lineTo(size * 0.5, -size * 0.2);
-        ctx.moveTo(-size * 0.5, size * 0.2);
-        ctx.lineTo(size * 0.5, size * 0.2);
+        ctx.moveTo(-size * 0.35, -size * 0.3);
+        ctx.lineTo(size * 0.35, -size * 0.3);
+        ctx.moveTo(-size * 0.35, size * 0.3);
+        ctx.lineTo(size * 0.35, size * 0.3);
         ctx.stroke();
 
         // Center icon
@@ -254,6 +285,10 @@ class PowerUp extends window.Game.Entity {
             ctx.fill();
         }
 
+        // Glow shadow for circle
+        ctx.shadowColor = cfg.color;
+        ctx.shadowBlur = 8;
+
         // Main circular body - shadow side
         ctx.fillStyle = window.Game.ColorUtils.darken(cfg.color, 0.35);
         ctx.beginPath();
@@ -265,6 +300,10 @@ class PowerUp extends window.Game.Entity {
         ctx.beginPath();
         ctx.arc(0, 0, size, -Math.PI * 0.5, Math.PI * 0.5);
         ctx.fill();
+
+        // Remove shadow for detail work
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
 
         // Bold outline
         ctx.strokeStyle = '#111';

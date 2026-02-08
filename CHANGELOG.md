@@ -1,5 +1,24 @@
 # Changelog
 
+## v4.15.0 - 2026-02-08
+### Power-Up Visual Design: Category Distinction
+
+- **MODIFIER shape changed**: Hexagon → 4-pointed Diamond for clear distinction from UPGRADE star
+  - Diamond vertices: top/right/bottom/left (0.7x width ratio)
+  - Light-side facet overlay on right half
+  - Stack indicator lines repositioned for diamond geometry
+- **Glow effects added** to all 3 power-up categories:
+  - UPGRADE: Gold glow (shadowBlur 8, rgba gold 0.4)
+  - MODIFIER: Color-matched glow (shadowBlur 6)
+  - SPECIAL: Color-matched glow (shadowBlur 8)
+- **Visual hierarchy now clear**:
+  - UPGRADE = Gold Star (permanent)
+  - MODIFIER = Colored Diamond (temporary, stackable)
+  - SPECIAL = Circle + Orbiting Ring (temporary, exclusive)
+- No changes to colors, symbols, or gameplay mechanics
+
+---
+
 ## v4.14.1 - 2026-02-08
 ### Debug: Power-Up Economy Report
 
