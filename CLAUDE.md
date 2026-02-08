@@ -129,8 +129,8 @@ Managed by `DropSystem.js`. Drop rates: 3%/2.5%/1% by tier + pity timer (55 kill
 ### Visual & VFX (v4.5.0)
 Sky progression (5 levels + boss). Tiered death explosions. Hit stop & screen flash via `Balance.JUICE`. VFX config via `Balance.VFX`. Screen effects toggles via `Balance.JUICE.SCREEN_EFFECTS`.
 
-### Meme System (v4.6.0)
-10+ pools (LOW, HIGH, SAYLOR, POWELL, BCE, BOJ, etc.) in Constants.js. Deduplication via MemeEngine.js (last 8 per context).
+### Meme System (v4.6.0, v4.20.0)
+10+ pools (LOW, HIGH, SAYLOR, POWELL, BCE, BOJ, etc.) in Constants.js. Deduplication via MemeEngine.js (last 8 per context). v4.20.0: DOM popup `#meme-popup` replaces ALL canvas memes + boss DialogueUI during gameplay. Whisper-style (italic gold, black outline) above player ship (bottom 240px). 3-tier priority queue (CRITICAL=red, HIGH=gold, NORMAL=muted gold). `queueMeme(event, text, emoji)` API. 11 event types (incl. BOSS_TICKER). Boss intro/phase dialogues (POWELL, LAGARDE, KURODA) routed through popup with speaker label. Config: `Balance.MEME_POPUP`.
 
 ### Perk System
 Trigger: cancel 5 enemy bullets in 1.5s. Random perk auto-applied. Cooldown 4s. Pool in `Upgrades.js`.

@@ -379,7 +379,7 @@ function checkStreakMeme() {
     // Only major streak milestones - no random memes
     const meme = STREAK_MEMES.find(m => m.at === streak);
     if (meme) {
-        showMemePopup(meme.text);
+        G.MemeEngine.queueMeme('STREAK', meme.text, 'STREAK');
     }
 }
 
@@ -1508,15 +1508,15 @@ function updateUIText() {
     const pauseTitle = document.getElementById('pause-title');
     if (pauseTitle) pauseTitle.innerText = t('PAUSED');
     const resumeBtn = document.getElementById('btn-resume');
-    if (resumeBtn) resumeBtn.innerText = '> ' + t('RESUME');
+    if (resumeBtn) resumeBtn.innerText = '⟡ ' + t('RESUME');
     const settingsBtn = document.getElementById('btn-settings');
-    if (settingsBtn) settingsBtn.innerText = '> ' + t('SETTINGS');
+    if (settingsBtn) settingsBtn.innerText = '⟡ ' + t('SETTINGS');
     const manualBtn = document.getElementById('btn-manual');
-    if (manualBtn) manualBtn.innerText = '> ' + t('MANUAL');
+    if (manualBtn) manualBtn.innerText = '⟡ ' + t('MANUAL');
     const restartBtn = document.getElementById('btn-restart');
-    if (restartBtn) restartBtn.innerText = '> ' + t('RESTART_RUN');
+    if (restartBtn) restartBtn.innerText = '⟡ ' + t('RESTART_RUN');
     const exitBtn = document.getElementById('btn-exit-title');
-    if (exitBtn) exitBtn.innerText = '> ' + t('EXIT');
+    if (exitBtn) exitBtn.innerText = '⟡ ' + t('EXIT');
 
     // Game Over
     const goTitle = document.querySelector('#gameover-screen h1');
@@ -1616,6 +1616,7 @@ window.goToHangar = function () {
         onShake: (intensity) => { shake = Math.max(shake, intensity); },
         onPlaySound: (sound) => { if (audioSys) audioSys.play(sound); }
     });
+    if (G.MemeEngine) G.MemeEngine.initDOM();
 }
 
 // Ship launch animation - goes directly to game (skips hangar)
@@ -2301,6 +2302,8 @@ function startGame() {
     }
 
     if (runState && runState.reset) runState.reset();
+    // v4.20.0: Ensure meme popup DOM refs are cached
+    if (G.MemeEngine) G.MemeEngine.initDOM();
     // v4.1.0: Initialize rank system
     if (G.RankSystem) G.RankSystem.init();
     // 1-hit = 1-life system: ignore stats.hp and bonuses
@@ -2468,13 +2471,19 @@ function startIntermission(msgOverride) {
         intermissionMeme = G.MemeEngine.getIntermissionMeme();
     }
 
+    // v4.20.0: Show intermission meme via DOM popup
+    if (intermissionMeme) {
+        const memeDisplay = intermissionMeme.length > 50
+            ? '\u201C' + intermissionMeme.substring(0, 47) + '...\u201D'
+            : '\u201C' + intermissionMeme + '\u201D';
+        G.MemeEngine.queueMeme('STREAK', memeDisplay, '');
+    }
+
     // Show override text if provided (boss defeat, etc.)
     if (msgOverride) {
         addText(msgOverride, gameWidth / 2, gameHeight / 2 - 80, '#00ff00', 30);
     }
     emitEvent('intermission_start', { level: level, wave: waveMgr.wave });
-
-    // Story dialogue suppressed during intermission - meme is shown in countdown overlay instead
 }
 
 function startHordeTransition() {
@@ -2662,7 +2671,7 @@ function spawnBoss() {
     // Boss-specific danger message
     const dangerMsg = bossConfig.country + ' ' + bossConfig.name + ' ' + bossConfig.country;
     showDanger("⚠️ " + dangerMsg + " ⚠️");
-    showMemeFun(getBossMeme(bossType), 2000);
+    G.MemeEngine.queueMeme('BOSS_SPAWN', getBossMeme(bossType), bossConfig.name);
     audioSys.play('bossSpawn');
     audioSys.setBossPhase(1); // Start boss music phase 1
 
@@ -2677,9 +2686,11 @@ function spawnBoss() {
     if (ui.memeTicker) ui.memeTicker.innerText = getBossMeme(bossType);
     memeSwapTimer = Balance.MEMES.BOSS_TICKER_INTERVAL;
 
-    // Story: Boss intro dialogue
-    if (G.Story) {
-        G.Story.onBossIntro(bossType);
+    // v4.20.0: Boss intro dialogue via meme popup (was DialogueUI at bottom)
+    const bossIntroPool = G.DIALOGUES?.BOSS_INTRO?.[bossType];
+    if (bossIntroPool && bossIntroPool.length > 0) {
+        const intro = bossIntroPool[Math.floor(Math.random() * bossIntroPool.length)];
+        G.MemeEngine.queueMeme('BOSS_SPAWN', intro.text, intro.speaker);
     }
 }
 
@@ -2738,7 +2749,7 @@ function spawnMiniBoss(bossTypeOrSymbol, triggerColor) {
         const signatureMeme = G.BOSS_SIGNATURE_MEMES?.[bossType];
         showDanger(bossConfig.name + ' ' + t('APPEARS'));
         if (signatureMeme) {
-            showMemeFun(signatureMeme, 2500);
+            G.MemeEngine.queueMeme('MINI_BOSS_SPAWN', signatureMeme, bossConfig.name);
         }
     } else {
         // Legacy: Spawn giant fiat currency mini-boss
@@ -2777,7 +2788,7 @@ function spawnMiniBoss(bossTypeOrSymbol, triggerColor) {
         window.miniBoss = miniBoss; // v2.22.5: Expose for debug overlay
 
         showDanger(miniBoss.name + ' ' + t('REVENGE'));
-        showMemeFun(getFiatDeathMeme(), 1500);
+        G.MemeEngine.queueMeme('MINI_BOSS_SPAWN', getFiatDeathMeme(), miniBoss.name);
     }
 
     audioSys.play('bossSpawn');
@@ -3024,7 +3035,7 @@ function checkMiniBossHit(b) {
             createExplosion(deathX, deathY, '#fff', 20);
 
             showVictory(deathName + ' ' + t('DESTROYED'));
-            showMemeFun(isBossInstance ? "CENTRAL BANK REKT!" : "💀 FIAT IS DEAD!", 1500);
+            G.MemeEngine.queueMeme('MINI_BOSS_DEFEATED', isBossInstance ? "CENTRAL BANK REKT!" : "FIAT IS DEAD!", deathName);
             shake = 40;
             audioSys.play('explosion');
 
@@ -3119,19 +3130,18 @@ function update(dt) {
         audioSys.play('hyperReady');
     }
 
-    // Meme ticker: only visible during boss fight (if enabled)
-    if (ui.memeTicker) {
-        if (boss && boss.active && Balance.HUD_MESSAGES.MEME_TICKER) {
-            ui.memeTicker.style.display = 'block';
-            memeSwapTimer -= dt;
-            if (memeSwapTimer <= 0) {
-                ui.memeTicker.innerText = getPowellMeme();
-                memeSwapTimer = 4.0;
-            }
-        } else {
-            ui.memeTicker.style.display = 'none';
+    // Boss meme rotation via popup (v4.20.0: replaces ticker)
+    if (boss && boss.active && Balance.HUD_MESSAGES.MEME_TICKER) {
+        memeSwapTimer -= dt;
+        if (memeSwapTimer <= 0) {
+            const bossConfig = G.BOSSES?.[boss.type];
+            const bossLabel = bossConfig?.name || boss.type;
+            G.MemeEngine.queueMeme('BOSS_TICKER', getBossMeme(boss.type), bossLabel);
+            memeSwapTimer = Balance.MEMES.BOSS_TICKER_INTERVAL;
         }
     }
+    // Hide legacy ticker if present
+    if (ui.memeTicker) ui.memeTicker.style.display = 'none';
 
     // v2.22.1: Include boss warning state to prevent duplicate boss spawn actions
     const isBossActive = !!boss || bossWarningTimer > 0;
@@ -3409,7 +3419,7 @@ function updateBullets(dt) {
                         'BCE': "💥 FRAGMENTATION COMPLETE!",
                         'BOJ': "💥 YEN LIBERATED!"
                     };
-                    showMemeFun(victoryMemes[defeatedBossType] || "💥 CENTRAL BANK DESTROYED!", 2000);
+                    G.MemeEngine.queueMeme('BOSS_DEFEATED', victoryMemes[defeatedBossType] || "CENTRAL BANK DESTROYED!", defeatedBossName);
 
                     // New cycle - increase difficulty (level will increment on next wave start)
                     console.log(`[BOSS DEFEATED] ${defeatedBossType} at level=${level}, cycle=${marketCycle}, wave=${waveMgr.wave}`);
@@ -3476,11 +3486,14 @@ function updateBullets(dt) {
 
                     emitEvent('boss_killed', { level: level, cycle: marketCycle, bossType: defeatedBossType, campaignComplete: campaignComplete });
 
-                    // Override intermission meme with boss-specific defeat quote
+                    // Override intermission meme with boss-specific defeat quote (v4.20.0: via popup)
                     const bossDefeatPool = G.DIALOGUES && G.DIALOGUES.BOSS_DEFEAT && G.DIALOGUES.BOSS_DEFEAT[defeatedBossType];
                     if (bossDefeatPool && bossDefeatPool.length > 0) {
                         const bossQuote = bossDefeatPool[Math.floor(Math.random() * bossDefeatPool.length)];
-                        intermissionMeme = (typeof bossQuote === 'string' ? bossQuote : (bossQuote && bossQuote.text)) || intermissionMeme;
+                        const quoteText = (typeof bossQuote === 'string' ? bossQuote : (bossQuote && bossQuote.text)) || '';
+                        if (quoteText) {
+                            G.MemeEngine.queueMeme('BOSS_DEFEATED', '\u201C' + quoteText + '\u201D', defeatedBossName);
+                        }
                     }
                 }
             } else if (miniBoss && miniBoss.active && checkMiniBossHit(b)) {
@@ -3636,7 +3649,7 @@ function updateBullets(dt) {
                         if (grazePerksThisLevel < Balance.GRAZE.MAX_PERKS_PER_LEVEL) {
                             applyRandomPerk();
                             audioSys.play('grazePerk'); // Triumphant fanfare
-                            showMemePopup(t('GRAZE_BONUS'), 1200);
+                            G.MemeEngine.queueMeme('GRAZE', t('GRAZE_BONUS'), 'GRAZE');
                             grazePerksThisLevel++;
                         } else {
                             // Max graze perks reached, give score instead
@@ -4307,6 +4320,7 @@ function executeDeath() {
         player.invulnTimer = Balance.TIMING.INVULNERABILITY;
         updateLivesUI();
         showGameInfo("💚 " + t('RESPAWN'));
+        G.MemeEngine.queueMeme('DEATH', t('RESPAWN'), 'REKT');
         // Maybe move player to center?
         player.x = gameWidth / 2;
     } else {
@@ -4530,37 +4544,7 @@ function draw() {
 
             ctx.restore();
 
-            // Meme text — SEPARATED from countdown (no bounce/scale), static at bottom
-            if (intermissionMeme) {
-                ctx.save();
-                const memeLen = intermissionMeme.length;
-                const memeFontSize = memeLen > 40 ? 16 : memeLen > 25 ? 18 : 22;
-                const memeMaxChars = 50;
-                const memeY = gameHeight * 0.78;
-
-                // Fade in smoothly (full alpha after 0.5s)
-                const memeAlpha = Math.min(1, (Balance.TIMING.INTERMISSION_DURATION - timer + 0.1) * 2);
-                ctx.globalAlpha = memeAlpha;
-
-                ctx.font = G.ColorUtils.font('italic bold', memeFontSize, '"Press Start 2P", monospace');
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-
-                // Truncate if too long, wrap in quotes
-                const memeDisplay = intermissionMeme.length > memeMaxChars
-                    ? '\u201C' + intermissionMeme.substring(0, memeMaxChars - 3) + '...\u201D'
-                    : '\u201C' + intermissionMeme + '\u201D';
-
-                // v4.11: Removed shadowBlur for perf (stroke outline provides visibility)
-                ctx.strokeStyle = '#000';
-                ctx.lineWidth = 4;
-                ctx.fillStyle = '#FFD700';
-                const memeMaxWidth = gameWidth - 40;
-                ctx.strokeText(memeDisplay, centerX, memeY, memeMaxWidth);
-                ctx.fillText(memeDisplay, centerX, memeY, memeMaxWidth);
-
-                ctx.restore();
-            }
+            // Meme text — now shown via DOM popup (v4.20.0)
         }
 
         // Reset countdown tracker when leaving intermission
@@ -5405,9 +5389,10 @@ function updatePowerUps(dt) {
                     player.upgrade(p.type);
                 }
 
-                // Crypto-themed powerup feedback (gold, fixed position)
+                // Crypto-themed powerup feedback via meme popup
                 const meme = POWERUP_MEMES[p.type] || p.type;
-                showPowerUp(meme);
+                const puCategory = p.config?.category || 'MODIFIER';
+                G.MemeEngine.queueMeme(puCategory.toUpperCase(), meme, p.type);
                 // Analytics: Track power-up
                 if (G.Debug) G.Debug.trackPowerUpCollected(p.type, p.isPityDrop || false);
                 powerUps.splice(i, 1);

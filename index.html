@@ -251,11 +251,11 @@
     <!-- PAUSE SCREEN -->
     <div id="pause-screen" style="display: none;">
         <h1 class="neon-title" id="pause-title">PAUSA</h1>
-        <button class="btn btn-primary btn-block" id="btn-resume" onclick="togglePause()">> RIPRENDI</button>
-        <button class="btn btn-primary btn-block" id="btn-settings" onclick="toggleSettings()">> IMPOSTAZIONI</button>
-        <button class="btn btn-primary btn-block" id="btn-manual" onclick="toggleManual()">> MANUALE</button>
-        <button class="btn btn-primary btn-block" id="btn-restart" onclick="restartRun()">> RICOMINCIA</button>
-        <button class="btn btn-danger btn-block" id="btn-exit-title" onclick="backToIntro()">> ESCI</button>
+        <button class="btn btn-primary btn-block" id="btn-resume" onclick="togglePause()">⟡ RIPRENDI</button>
+        <button class="btn btn-primary btn-block" id="btn-settings" onclick="toggleSettings()">⟡ IMPOSTAZIONI</button>
+        <button class="btn btn-primary btn-block" id="btn-manual" onclick="toggleManual()">⟡ MANUALE</button>
+        <button class="btn btn-primary btn-block" id="btn-restart" onclick="restartRun()">⟡ RICOMINCIA</button>
+        <button class="btn btn-danger btn-block" id="btn-exit-title" onclick="backToIntro()">⟡ ESCI</button>
         <div class="menu-row">
             <button class="btn btn-icon-round mute-toggle">🔇</button>
         </div>
@@ -317,6 +317,14 @@
     </div>
 
         <div id="control-toast">CONTROLS: SWIPE</div>
+
+        <!-- MEME POPUP v4.20.0 - Neon cartoon popup above player ship -->
+        <div id="meme-popup">
+            <div class="meme-box">
+                <span class="meme-emoji"></span>
+                <span class="meme-text"></span>
+            </div>
+        </div>
 
     </div><!-- /game-container -->
 

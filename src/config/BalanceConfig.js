@@ -484,6 +484,27 @@
             COLORS: ['#00FFFF', '#FF00FF', '#00FF00', '#FFD700', '#FF6B6B', '#4ECDC4']
         },
 
+        // --- MEME POPUP v4.20.0 ---
+        MEME_POPUP: {
+            ENABLED: true,
+            PRIORITIES: { CRITICAL: 3, HIGH: 2, NORMAL: 1 },
+            COOLDOWNS: { CRITICAL: 0, HIGH: 400, NORMAL: 800 },
+            MAX_QUEUE_SIZE: 5,
+            DURATIONS: {
+                DEATH: 2000,
+                BOSS_DEFEATED: 3000,
+                MINI_BOSS_DEFEATED: 2000,
+                BOSS_SPAWN: 2500,
+                MINI_BOSS_SPAWN: 2000,
+                BOSS_TICKER: 3000,
+                UPGRADE: 2500,
+                SPECIAL: 2500,
+                MODIFIER: 2000,
+                STREAK: 2000,
+                GRAZE: 1500
+            }
+        },
+
         // --- TIMING SYSTEM (all durations in seconds unless noted) ---
         TIMING: {
             // State transitions

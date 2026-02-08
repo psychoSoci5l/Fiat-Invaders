@@ -1,9 +1,29 @@
 # Roadmap: FIAT vs CRYPTO
 
 > [!IMPORTANT]
-> **Versione attuale**: v4.19.2 (2026-02-08)
+> **Versione attuale**: v4.20.0 (2026-02-08)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
 > **Stato**: Gameplay completo, in fase di hardening e bugfix.
+
+---
+
+## v4.20.0 — Meme Popup System: Full-Width Neon Cartoon (COMPLETATO)
+
+> I meme canvas (13px italic, alpha 0.35, posizione random) erano illeggibili. Il player guarda la navicella (bottom-center), quindi i meme venivano persi.
+
+### Implementato
+
+- [x] **DOM Popup** — `#meme-popup` whisper-style inside `#game-container`, z-index 90, bottom 240px, `pointer-events: none`
+- [x] **Whisper Aesthetic** — Italic gold text, black outline, no box background (canvas whisper style)
+- [x] **3-Tier Priority** — CRITICAL (rosso: boss defeat, death), HIGH (oro: boss spawn, upgrades), NORMAL (oro smorzato: modifiers, streak, graze)
+- [x] **Priority Queue** — MemeEngine.js `queueMeme()` API, max 5 queued, CRITICAL interrupts, sorted by priority
+- [x] **11 Event Types** — incl. BOSS_TICKER, durate configurabili in `Balance.MEME_POPUP.DURATIONS`
+- [x] **Boss dialogues unificate** — BOSS_INTRO + BOSS_PHASE ora via popup con speaker label (POWELL, LAGARDE, KURODA)
+- [x] **Boss ticker via popup** — Rotazione meme boss durante il fight usa il popup
+- [x] **Intermission meme via popup** — Sostituito rendering canvas
+- [x] **Power-up routing** — Categoria power-up → tier meme (UPGRADE/SPECIAL→HIGH, MODIFIER→NORMAL)
+- [x] **Death meme** — CRITICAL popup su respawn
+- [x] **Pause menu** — Prefisso `>` → `⟡`, testo allineato a sinistra
 
 ---
 

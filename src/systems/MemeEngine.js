@@ -37,6 +37,21 @@
         SHIELD: '🛡️ HODL MODE'
     };
 
+    // Event → tier mapping for queueMeme()
+    const EVENT_TIER_MAP = {
+        BOSS_DEFEATED:      'CRITICAL',
+        MINI_BOSS_DEFEATED: 'CRITICAL',
+        DEATH:              'CRITICAL',
+        BOSS_SPAWN:         'HIGH',
+        MINI_BOSS_SPAWN:    'HIGH',
+        UPGRADE:            'HIGH',
+        SPECIAL:            'HIGH',
+        BOSS_TICKER:        'HIGH',
+        MODIFIER:           'NORMAL',
+        STREAK:             'NORMAL',
+        GRAZE:              'NORMAL'
+    };
+
     class MemeEngine {
         constructor() {
             this.lastPopupTime = 0;
@@ -44,6 +59,16 @@
             this.tickerSwapTimer = 0;
             this.isBossActive = false;
             this._recentMemes = {}; // { context: string[] } — last N memes per context
+
+            // v4.20.0: Priority queue for DOM popup
+            this._queue = [];
+            this._isShowing = false;
+            this._currentItem = null;
+            this._hideTimer = null;
+            this._lastShowTime = 0;
+            this._popup = null;
+            this._emojiEl = null;
+            this._textEl = null;
         }
 
         /**
@@ -55,6 +80,19 @@
             this.tickerSwapTimer = 0;
             this.isBossActive = false;
             this._recentMemes = {};
+
+            // v4.20.0: Clear popup queue and hide
+            this._queue = [];
+            this._isShowing = false;
+            this._currentItem = null;
+            this._lastShowTime = 0;
+            if (this._hideTimer) {
+                clearTimeout(this._hideTimer);
+                this._hideTimer = null;
+            }
+            if (this._popup) {
+                this._popup.className = '';
+            }
         }
 
         /**
@@ -325,6 +363,145 @@
                 default:
                     return Balance.MEMES.POPUP_DURATION_DEFAULT;
             }
+        }
+
+        // ========================================
+        // DOM POPUP SYSTEM v4.20.0
+        // ========================================
+
+        /**
+         * Cache DOM references for popup. Call once after DOM is ready.
+         */
+        initDOM() {
+            this._popup = document.getElementById('meme-popup');
+            if (this._popup) {
+                this._emojiEl = this._popup.querySelector('.meme-emoji');
+                this._textEl = this._popup.querySelector('.meme-text');
+            }
+        }
+
+        /**
+         * Public API: queue a meme for display
+         * @param {string} event - Event type (BOSS_DEFEATED, STREAK, GRAZE, etc.)
+         * @param {string} text - Meme text to display
+         * @param {string} emoji - Emoji prefix (optional)
+         */
+        queueMeme(event, text, emoji) {
+            if (!this._popup || !text) return;
+
+            const config = G.Balance?.MEME_POPUP;
+            if (!config || !config.ENABLED) return;
+
+            const tier = EVENT_TIER_MAP[event] || 'NORMAL';
+            const priority = config.PRIORITIES[tier] || 1;
+            const duration = config.DURATIONS[event] || 2000;
+
+            const item = { event, text, emoji: emoji || '', tier, priority, duration };
+
+            // CRITICAL interrupts immediately
+            if (tier === 'CRITICAL' && this._isShowing) {
+                this._interruptCurrent(item);
+                return;
+            }
+
+            // Enforce cooldown for non-critical
+            const now = Date.now();
+            const cooldown = config.COOLDOWNS[tier] || 0;
+            if (this._isShowing && (now - this._lastShowTime) < cooldown) {
+                // Queue if room
+                if (this._queue.length < config.MAX_QUEUE_SIZE) {
+                    this._queue.push(item);
+                }
+                return;
+            }
+
+            if (this._isShowing) {
+                // Queue it
+                if (this._queue.length < config.MAX_QUEUE_SIZE) {
+                    this._queue.push(item);
+                }
+                return;
+            }
+
+            this._showPopup(item);
+        }
+
+        /**
+         * Process next item in queue (priority-sorted, FIFO within same priority)
+         */
+        _processQueue() {
+            if (this._queue.length === 0) return;
+
+            // Sort by priority descending (stable: FIFO within same priority)
+            this._queue.sort((a, b) => b.priority - a.priority);
+
+            const next = this._queue.shift();
+            this._showPopup(next);
+        }
+
+        /**
+         * Show a popup item
+         * @param {Object} item - { text, emoji, tier, duration }
+         */
+        _showPopup(item) {
+            if (!this._popup) return;
+
+            this._isShowing = true;
+            this._currentItem = item;
+            this._lastShowTime = Date.now();
+
+            // Set content
+            this._textEl.textContent = item.text;
+            this._emojiEl.textContent = item.emoji || '';
+
+            // Set tier class
+            this._popup.className = 'tier-' + item.tier.toLowerCase() + ' show';
+
+            // Schedule hide
+            this._hideTimer = setTimeout(() => {
+                this._hidePopup();
+            }, item.duration);
+        }
+
+        /**
+         * Hide current popup with exit animation, then process queue
+         */
+        _hidePopup() {
+            if (!this._popup) return;
+
+            this._hideTimer = null;
+            const tierClass = this._currentItem ? 'tier-' + this._currentItem.tier.toLowerCase() : '';
+
+            this._popup.className = tierClass + ' hide';
+
+            // After exit animation (250ms), clean up and process next
+            setTimeout(() => {
+                this._popup.className = '';
+                this._isShowing = false;
+                this._currentItem = null;
+                this._processQueue();
+            }, 250);
+        }
+
+        /**
+         * Interrupt current popup for a higher-priority item
+         * @param {Object} item - New item to show immediately
+         */
+        _interruptCurrent(item) {
+            if (this._hideTimer) {
+                clearTimeout(this._hideTimer);
+                this._hideTimer = null;
+            }
+
+            // Force reset without animation
+            this._popup.className = '';
+            this._isShowing = false;
+            this._currentItem = null;
+
+            // Force reflow to restart animation
+            void this._popup.offsetWidth;
+
+            this._showPopup(item);
         }
     }
 

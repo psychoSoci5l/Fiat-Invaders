@@ -105,9 +105,11 @@ class Boss extends window.Game.Entity {
             window.Game.Audio.setBossPhase(newPhase);
         }
 
-        // Story: Boss phase change dialogue
-        if (window.Game.Story) {
-            window.Game.Story.onBossPhaseChange(newPhase, this.bossType);
+        // v4.20.0: Boss phase dialogue via meme popup (was DialogueUI at bottom)
+        const phasePool = window.Game.DIALOGUES?.BOSS_PHASE?.[this.bossType]?.[newPhase];
+        if (phasePool && phasePool.length > 0 && window.Game.MemeEngine) {
+            const pick = phasePool[Math.floor(Math.random() * phasePool.length)];
+            window.Game.MemeEngine.queueMeme('BOSS_SPAWN', pick.text, pick.speaker);
         }
 
         // Update Harmonic Conductor for new boss phase

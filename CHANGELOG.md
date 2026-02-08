@@ -1,5 +1,25 @@
 # Changelog
 
+## v4.20.0 - 2026-02-09
+### Meme Popup System
+
+- **DOM Popup replaces canvas memes**: Whisper-style popup (italic gold text, black outline) positioned above the player ship (bottom 240px), replaces all canvas meme rendering
+- **3-tier priority system**: CRITICAL (red, boss defeat/death), HIGH (gold, boss spawn/upgrades), NORMAL (muted gold, modifiers/streaks/graze)
+- **Priority queue**: Up to 5 queued memes, sorted by priority (FIFO within same tier). CRITICAL interrupts immediately
+- **Spring-pop animation**: Scale(0.3)→1.08→1 entrance (150ms), scale+fade exit (250ms)
+- **11 event types**: BOSS_DEFEATED, MINI_BOSS_DEFEATED, DEATH, BOSS_SPAWN, MINI_BOSS_SPAWN, BOSS_TICKER, UPGRADE, SPECIAL, MODIFIER, STREAK, GRAZE — each with configurable duration
+- **Boss dialogues unified**: Boss intro (BOSS_INTRO) and phase change (BOSS_PHASE) dialogues now routed through meme popup with speaker label (POWELL, LAGARDE, KURODA), replacing bottom DialogueUI during gameplay
+- **Boss ticker via popup**: Boss fight meme rotation now uses popup instead of legacy DOM ticker
+- **Intermission meme via popup**: Canvas-rendered intermission meme replaced with popup
+- **Power-up pickup routing**: Category-based meme tier (UPGRADE→HIGH, SPECIAL→HIGH, MODIFIER→NORMAL)
+- **Death meme**: Respawn now shows CRITICAL popup
+- **Speaker labels**: All memes show contextual label (boss name, STREAK, GRAZE, REKT, power-up type)
+- **Config**: `Balance.MEME_POPUP` in BalanceConfig.js (priorities, cooldowns, durations)
+- **Pause menu**: Button prefix changed from `>` to `⟡`, text aligned left
+- **pointer-events: none**: Popup never blocks touch controls
+
+---
+
 ## v4.19.2 - 2026-02-08
 ### Mode-Aware Tutorial + Mobile Control Fix
 
