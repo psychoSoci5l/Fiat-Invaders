@@ -7,7 +7,34 @@
 
 ---
 
-## v4.20.0 — Meme Popup System: Full-Width Neon Cartoon (COMPLETATO)
+## v4.21.0 — Top Bar Message Strip (PROSSIMO)
+
+> Razionalizzare i messaggi in-game su **2 soli punti di comunicazione standardizzati**: il meme popup (bottom, sopra la nave) e una **striscia messaggi** fissa sotto la top bar HUD.
+
+### Obiettivo
+
+Attualmente i messaggi gameplay (showDanger, showVictory, showGameInfo, wave strip, floating text) usano canali canvas sovrapposti, spesso illeggibili durante le orde. La proposta:
+
+- **Striscia fissa** posizionata subito sotto gli indicatori vita/livello (sotto la top bar 45px), altezza dedicata
+- **Nessuna sovrapposizione**: nemici e proiettili non devono coprire la striscia — safe zone rispettata dalle formazioni
+- **2 canali unici** per tutta la comunicazione player:
+  1. **Top strip** (sotto HUD): wave announce, danger, victory, game info — messaggi di stato/contesto
+  2. **Bottom popup** (sopra nave): meme, boss dialogue, streak, power-up — feedback immediato/flavor
+- Stile coerente con il meme popup (whisper aesthetic o variante)
+- Queue/priorità come il meme popup per evitare overlap
+
+### TODO
+
+- [ ] Definire altezza e safe zone della striscia (es. 45-65px Y range)
+- [ ] Creare DOM element `#message-strip` dentro `#game-container`
+- [ ] Migrare showDanger, showVictory, showGameInfo, wave strip al nuovo elemento
+- [ ] Aggiornare WaveManager/enemy spawn Y-min per rispettare la safe zone
+- [ ] Rimuovere i canali canvas sostituiti da MessageSystem
+- [ ] Verificare leggibilità durante orde dense
+
+---
+
+## v4.20.0 — Meme Popup System (COMPLETATO)
 
 > I meme canvas (13px italic, alpha 0.35, posizione random) erano illeggibili. Il player guarda la navicella (bottom-center), quindi i meme venivano persi.
 
