@@ -1,5 +1,23 @@
 # Changelog
 
+## v4.16.0 - 2026-02-08
+### Post-Audit Balance Tuning
+
+Gameplay audit results: BTC Arcade Normal, 3 cycles, 7:27, 0 deaths, 78 power-ups collected.
+
+- **Drop rates halved**: STRONG 6%→3%, MEDIUM 4%→2.5%, WEAK 2%→1%
+  - Pity timer raised: 30→45 kills guaranteed drop
+  - Cycle bonus reduced: 1%→0.5%, pity reduction 5→3 kills/cycle
+- **Boss HP boosted +25-40%**: BASE 2400→3000, PER_LEVEL 50→65, PER_CYCLE 1000→1400
+  - Target: 30-50s boss fights (was 10-13s for C1/C2)
+- **Boss phase thresholds from config**: Boss.js now reads `Balance.BOSS.PHASE_THRESHOLDS`
+  - Fixed hardcoded 0.66/0.33 values that ignored config
+- **CHEVRON Y-overflow fix**: Y-spacing multiplier 0.75→0.55 (from `Balance.FORMATION.CHEVRON_Y_MULT`)
+  - Prevents enemies spawning in player zone with high counts
+- **Y-clamp configurable**: `Balance.FORMATION.MAX_Y_RATIO` replaces hardcoded `gameH * 0.65`
+
+---
+
 ## v4.15.0 - 2026-02-08
 ### Power-Up Visual Design: Category Distinction
 

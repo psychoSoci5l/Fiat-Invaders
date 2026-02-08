@@ -1,9 +1,36 @@
 # Roadmap: FIAT vs CRYPTO
 
 > [!IMPORTANT]
-> **Versione attuale**: v4.15.0 (2026-02-08)
+> **Versione attuale**: v4.16.0 (2026-02-08)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
 > **Stato**: Gameplay completo, in fase di hardening e bugfix.
+
+---
+
+## v4.16.0 — Post-Audit Balance Tuning (COMPLETATO)
+
+> Dati dal gameplay audit: BTC Arcade Normal, 3 cicli completi, 7:27, 0 morti.
+> Problemi critici: cicli 50-60% più veloci del target, boss C1/C2 triviali (<13s),
+> 78 power-up raccolti (10.5/min), CHEVRON Y-overflow confermato.
+
+### Modifiche implementate
+
+- [x] **Drop rate dimezzato** — STRONG 6%→3%, MEDIUM 4%→2.5%, WEAK 2%→1%, pity 30→45 kills
+- [x] **Drop scaling ridotto** — cycle bonus 1%→0.5%, pity reduction 5→3 kills/cycle
+- [x] **Boss HP boost +25-40%** — BASE 2400→3000, PER_LEVEL 50→65, PER_CYCLE 1000→1400
+- [x] **Boss phase thresholds da config** — Boss.js:72,74 ora legge Balance.BOSS.PHASE_THRESHOLDS
+- [x] **CHEVRON Y-overflow fix** — Y-mult 0.75→0.55 da config, MAX_Y_RATIO estratto (era 0.65 hardcoded)
+
+### Impatto atteso (stime)
+| Metrica | Prima | Target |
+|---------|-------|--------|
+| Power-up/run | ~78 | ~30-40 |
+| Cycle 1 | 2:08 | 3:30-4:30 |
+| Cycle 2 | 2:02 | 4:00-5:00 |
+| Cycle 3 | 3:11 | 5:00-6:00 |
+| Boss FED (C1) | 12.7s | 30-50s |
+| Boss BCE (C2) | 9.7s | 30-50s |
+| Boss BOJ (C3) | 62.7s | 50-75s |
 
 ---
 
@@ -28,26 +55,69 @@
 
 ---
 
-## PROSSIMA SESSIONE: Gameplay Audit con Debug Attivo
+## PROSSIMA SESSIONE: v4.17.0 — Balance Pass #2 (Power-Up Economy)
 
-> Prima di qualsiasi fix, serve una valutazione sul campo dello stato attuale del gioco.
+> v4.16.0 ha migliorato enormemente boss e mortalità, ma i power-up restano troppi.
+> Dati audit salvati in `tests/console.txt` (v4.15.0) e `tests/console 1.txt` (v4.16.0).
 
-### Protocollo
-1. `dbg.balanceTest()` — attiva tracking + perf profiler
-2. Giro completo: Arcade BTC, Ciclo 1 → Boss FED → Ciclo 2 inizio
-3. `dbg.report()` — analytics completo + performance
-3b. `dbg.powerUpReport()` — economia power-up dettagliata
-4. Annotare: cosa funziona, cosa stona, cosa è rotto
-5. Decidere priorità della patch sulla base dei dati reali
+### Problema centrale: Power-Up Flood
+v4.16.0 ha raccolto **62 power-up in 8:29** (~7.3/min). Target: **30-40 totali** (~4/min).
+Il taglio dal 6/4/2% al 3/2.5/1% ha ridotto solo del 21% perché:
 
-### Osservare durante il gioco
-- Formazioni: nemici fuori schermo? CHEVRON overflow?
-- Proiettili nemici: confusione con power-up?
-- Drop rate: troppi power-up? Boss triviali?
-- Performance mobile: jank? GC spikes?
-- Tutorial: funziona al primo avvio? Chiaro?
-- Manual: scroll fluido? Contenuti utili?
-- Modo Story: flow narrativo completo? Reset campagna?
+1. **Boss drops non sono limitati dalle drop rate** — usano `BOSS.DROP_INTERVAL` (ogni 25 hit)
+   e `BOSS_DROP_COOLDOWN` (1.5s). Con boss fight da 63-79s = ~20-25 drop solo dai boss.
+2. **Pity timer a 45 kills** scatta comunque in C2/C3 dove le horde sono 30-50 nemici.
+3. **DROP_SCALING.CYCLE_BONUS** aggiunge +0.5%/ciclo — a C3 le rate sono ~4.5%/3.5%/2%.
+
+### Interventi proposti (da discutere)
+
+#### A. Boss Drop Economy (impatto alto, rischio zero)
+- `BOSS.DROP_INTERVAL`: 25 → 40 hit (meno drop per boss fight)
+- `DROPS.BOSS_DROP_COOLDOWN`: 1.5s → 3.0s (più distanziati)
+- Nuovo: **BOSS_MAX_DROPS**: cap 5-6 drop per boss fight (impedisce overflow su fight lunghi)
+
+#### B. Pity Timer Ricalibrato (impatto medio, rischio zero)
+- `DROP_SCALING.PITY_BASE`: 45 → 55 (servono più kills senza drop)
+- `DROP_SCALING.PITY_REDUCTION`: 3 → 2 kills/ciclo (scaling più lento)
+- Alternativa: pity timer a conteggio globale, non per-ciclo
+
+#### C. Cycle Scaling Removal (impatto medio, rischio basso)
+- `DROP_SCALING.CYCLE_BONUS`: 0.005 → 0 (nessun aumento rate per ciclo)
+- Razionale: i cicli successivi hanno già più nemici = più opportunità di drop naturali
+
+#### D. Weapon Cooldown Esteso (impatto medio, rischio basso)
+- `DROPS.WEAPON_COOLDOWN`: 5.0s → 8.0s (meno weapon drop in sequenza rapida)
+- Impedisce catene modifier→modifier→modifier in pochi secondi
+
+### Problema secondario: Cicli ancora veloci
+| Ciclo | v4.15.0 | v4.16.0 | Target |
+|-------|---------|---------|--------|
+| C1 | 2:08 | 3:03 | 4-5m |
+| C2 | 2:02 | 3:31 | 5-6m |
+| C3 | 3:11 | morto C3W4 | 6-7m |
+
+Mancano ~1-2 min per ciclo. Opzioni:
+- **Ridurre DPS indirettamente** (meno power-up → già in corso)
+- **Enemy HP scaling** più aggressivo (`ENEMY_HP.SCALE`: 15 → 20-25)
+- **Weapon evolution nerf** (POWER bonus 25/50/75% → 20/40/60%, o RATE cooldown reduction)
+- Non toccare: i cicli veloci possono essere un pregio se il feeling è giusto
+
+### Dati di confronto rapido (per la prossima sessione)
+
+| Metrica | v4.15.0 | v4.16.0 | Target v4.17 |
+|---------|---------|---------|--------------|
+| Power-up totali | 78 | 62 | 30-40 |
+| Morti | 0 | 3 | 2-4 ✅ |
+| Boss FED | 12.7s | 63.3s | 45-75s ✅ |
+| Boss BCE | 9.7s | 79.4s | 45-75s ✅ |
+| HYPER attivazioni | 0 | 1 | 1-3 |
+| Ciclo 1 | 2:08 | 3:03 | 4-5m |
+| Ciclo 2 | 2:02 | 3:31 | 5-6m |
+
+### Protocollo test
+1. `dbg.balanceTest()` → partita BTC Arcade Normal, 3 cicli
+2. `dbg.report()` + `dbg.powerUpReport()` (quest'ultimo cruciale per economia drop)
+3. Confrontare power-up totali, source breakdown (enemy vs boss), weapon timeline
 
 ---
 
@@ -130,35 +200,18 @@
 
 ---
 
-### BUG 1: Boss phase thresholds ignorano config
-**Severità**: Media | **Rischio**: Zero | **Complessità**: 2 righe
-**File**: `src/entities/Boss.js` — `damage()`, righe 72/74
-**Problema**: `0.66` e `0.33` hardcoded. `Balance.BOSS.PHASE_THRESHOLDS` esiste ma non viene letto.
-**Fix**:
-```javascript
-const thresholds = window.Game.Balance?.BOSS?.PHASE_THRESHOLDS || [0.66, 0.33];
-if (hpPct <= thresholds[1] && this.phase < 3) { ... }
-else if (hpPct <= thresholds[0] && this.phase < 2) { ... }
-```
+### ~~BUG 1: Boss phase thresholds ignorano config~~ ✅ FIXATO v4.16.0
+Boss.js ora legge `Balance.BOSS.PHASE_THRESHOLDS` con fallback [0.66, 0.33].
 
 ---
 
-### BUG 2: CHEVRON formation overflow → nemici nella zona player
-**Severità**: Alta | **Rischio**: Basso | **Complessità**: ~30 righe
-**File**: `src/managers/WaveManager.js` — `generateChevron()`, righe 657-677
-**Problema**: 1 nemico/braccio/riga → `(count+1)/2` righe. Con scaling ciclico (×1.25/×1.5), CHEVRON di Cycle 2+ producono 10+ righe che superano la Y-safety zone.
-**Opzioni**:
-- A: Braccia larghe (2 nemici/braccio/riga → dimezza righe)
-- B: Spaziatura Y compressa (0.75 → ~0.45 per CHEVRON)
-- Estrarre moltiplicatore Y in `Balance.FORMATION`
+### ~~BUG 2: CHEVRON formation overflow~~ ✅ FIXATO v4.16.0
+Y-spacing estratto in `Balance.FORMATION.CHEVRON_Y_MULT` (0.75→0.55).
 
 ---
 
-### BUG 3: Y-clamp hardcoded a 0.65
-**Severità**: Media | **Rischio**: Zero | **Complessità**: 2 righe
-**File**: `src/managers/WaveManager.js` — riga 507
-**Problema**: `maxYBound = gameH * 0.65` hardcoded. Non configurabile.
-**Fix**: Estrarre in `Balance.FORMATION.MAX_Y_RATIO` con fallback 0.65.
+### ~~BUG 3: Y-clamp hardcoded a 0.65~~ ✅ FIXATO v4.16.0
+Estratto in `Balance.FORMATION.MAX_Y_RATIO` con fallback 0.65.
 
 ---
 
@@ -181,11 +234,8 @@ else if (hpPct <= thresholds[0] && this.phase < 2) { ... }
 
 ---
 
-### BUG 6: Drop rate feedback loop → boss triviali
-**Severità**: Media | **Rischio**: Zero | **Complessità**: Config only
-**File**: `src/config/BalanceConfig.js` — `DROPS`
-**Problema**: 6%/4%/2% + pity 30 = pioggia power-up → DPS esplode → boss in <30s.
-**Target**: `0.04/0.025/0.015`, pity 40, max 5 drop per boss fight.
+### ~~BUG 6: Drop rate feedback loop → boss triviali~~ ✅ FIXATO v4.16.0
+Drop rates dimezzati: 3%/2.5%/1%, pity 45. Boss HP +25-40%. Cycle bonus ridotto.
 
 ---
 
@@ -196,17 +246,17 @@ else if (hpPct <= thresholds[0] && this.phase < 2) { ... }
 
 ---
 
-### Priorità consigliata (da rivalutare dopo gameplay audit)
+### Priorità rimanente (post-audit v4.16.0)
 
 | # | Bug | Rischio | Complessità | Priorità |
 |---|-----|---------|-------------|----------|
-| 1 | Boss thresholds | Zero | 2 righe | **Immediato** |
-| 3 | Y-clamp config | Zero | 2 righe | **Immediato** |
-| 2 | CHEVRON overflow | Basso | ~30 righe | **Alto** |
-| 6 | Drop rate | Zero | Config only | **Alto** |
-| 4 | Visual proiettili | Medio | ~100 righe | **Medio** |
+| ~~1~~ | ~~Boss thresholds~~ | — | — | ✅ v4.16.0 |
+| ~~3~~ | ~~Y-clamp config~~ | — | — | ✅ v4.16.0 |
+| ~~2~~ | ~~CHEVRON overflow~~ | — | — | ✅ v4.16.0 |
+| ~~6~~ | ~~Drop rate~~ | — | — | ✅ v4.16.0 |
+| 4 | Visual proiettili | Medio | ~100 righe | **Alto** (prossimo) |
 | 5 | Entity resize | Alto | Multi-file | **Medio** (dopo 4) |
-| 7 | Fire budget | Medio | Nuovo sistema | **Basso** (dopo 5+6) |
+| 7 | Fire budget | Medio | Nuovo sistema | **Basso** (rivalutare dopo playtest v4.16) |
 
 ---
 

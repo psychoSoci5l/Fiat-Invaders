@@ -504,7 +504,8 @@ window.Game.WaveManager = {
         if (positions.length > 0) {
             const gameH = window.Game._gameHeight || 700;
             const minYBound = startY;
-            const maxYBound = gameH * 0.65; // ~455px on 700px — leaves room for player
+            const maxYRatio = window.Game.Balance?.FORMATION?.MAX_Y_RATIO || 0.65;
+            const maxYBound = gameH * maxYRatio; // v4.16: from config (was hardcoded 0.65)
 
             const minY = positions.reduce((m, p) => Math.min(m, p.y), Infinity);
             const maxY = positions.reduce((m, p) => Math.max(m, p.y), -Infinity);
@@ -657,6 +658,8 @@ window.Game.WaveManager = {
     generateChevron(count, gameWidth, startY, spacing) {
         const positions = [];
         const centerX = gameWidth / 2;
+        // v4.16: Y-mult from config (was hardcoded 0.75, caused Y-overflow with high counts)
+        const yMult = window.Game.Balance?.FORMATION?.CHEVRON_Y_MULT || 0.55;
 
         // Chevron capacity: 2*rows - 1 (pairs except last row which is center only)
         // Find rows where capacity >= count
@@ -667,10 +670,10 @@ window.Game.WaveManager = {
         for (let row = 0; row < rows; row++) {
             const xOffset = (rows - row - 1) * spacing * 0.5;
             // Left side
-            positions.push({ x: centerX - xOffset, y: startY + row * spacing * 0.75 });
+            positions.push({ x: centerX - xOffset, y: startY + row * spacing * yMult });
             // Right side (except center)
             if (xOffset > 0) {
-                positions.push({ x: centerX + xOffset, y: startY + row * spacing * 0.75 });
+                positions.push({ x: centerX + xOffset, y: startY + row * spacing * yMult });
             }
         }
         return positions;

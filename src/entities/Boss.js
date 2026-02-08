@@ -67,11 +67,12 @@ class Boss extends window.Game.Entity {
         this.hp -= amount;
         this.hitTimer = 0.12;
 
-        // Phase transitions
+        // Phase transitions — v4.16: read thresholds from Balance config (was hardcoded 0.66/0.33)
+        const thresholds = window.Game.Balance?.BOSS?.PHASE_THRESHOLDS || [0.66, 0.33];
         const hpPct = this.hp / this.maxHp;
-        if (hpPct <= 0.33 && this.phase < 3) {
+        if (hpPct <= thresholds[1] && this.phase < 3) {
             this.triggerPhaseTransition(3);
-        } else if (hpPct <= 0.66 && this.phase < 2) {
+        } else if (hpPct <= thresholds[0] && this.phase < 2) {
             this.triggerPhaseTransition(2);
         }
     }

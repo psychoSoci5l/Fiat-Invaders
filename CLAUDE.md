@@ -121,7 +121,7 @@ Activates when shotLevel=3 + rate>=2 + power>=2 + spread>=1. Red ship, fire trai
 3 bosses: FEDERAL_RESERVE ($), BCE (euro), BOJ (yen). 3 phases each. HP: `1200 + level*25 + (cycle-1)*500`. 6 exclusive patterns. Mini-boss triggers via per-currency kill counters.
 
 ### Power-Up & Drop System
-Managed by `DropSystem.js`. Drop rates: 6%/4%/2% by tier + pity timer (30 kills). Weapon cooldown 5s. Categories: UPGRADE, MODIFIER, SPECIAL.
+Managed by `DropSystem.js`. Drop rates: 6%/4%/2% by tier + pity timer (30 kills). Weapon cooldown 5s. Categories: UPGRADE, MODIFIER, SPECIAL. v4.15: Visual distinction — UPGRADE=Star, MODIFIER=Diamond (was hexagon), SPECIAL=Circle+Ring. Glow + light sweep on all power-ups.
 
 ### HUD & Messages (v4.4.0)
 5 canvas channels: WAVE_STRIP, ALERT, MEME_WHISPER, SHIP_STATUS, FLOATING_TEXT. Diegetic ship HUD (life pips, shield ring, weapon pips). Reactive HUD (streak colors, HYPER glow, danger pulse).

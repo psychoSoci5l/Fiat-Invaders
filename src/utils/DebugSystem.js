@@ -880,13 +880,15 @@ window.Game.Debug = {
      */
     balanceTest() {
         this.ENABLED = true;
-        this.OVERLAY_ENABLED = true;
+        this.OVERLAY_ENABLED = false; // v4.16: overlay off by default (use dbg.showOverlay() if needed)
         this.categories.WAVE = true;
         this.categories.BOSS = true;
         this.categories.HORDE = true;
         this.categories.STATE = true;
         this.perf(); // Auto-start performance profiling
+        this._perf.overlayEnabled = false; // v4.16: FPS counter off too — all data in console
         console.log('[DEBUG] Balance testing mode enabled (perf profiling auto-started)');
+        console.log('[DEBUG] Overlays OFF — use dbg.showOverlay() or dbg.perfOverlay() to enable');
         console.log('[DEBUG] Use dbg.report() or dbg.powerUpReport() after game over to see analytics');
     },
 

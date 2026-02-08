@@ -331,12 +331,13 @@
         },
 
         // --- DROP SYSTEM ---
+        // v4.16: Halved rates — audit showed 78 power-ups/7min (10.5/min), target ~30-40/run
         DROPS: {
             WEAPON_COOLDOWN: 5.0,     // Min seconds between weapon drops
-            PITY_TIMER_KILLS: 30,     // Guaranteed drop after N kills
-            CHANCE_STRONG: 0.06,      // 6% for strong enemies ($, 元, Ⓒ)
-            CHANCE_MEDIUM: 0.04,      // 4% for medium enemies (€, £, ₣, ₺)
-            CHANCE_WEAK: 0.02,        // 2% for weak enemies (¥, ₽, ₹)
+            PITY_TIMER_KILLS: 45,     // Guaranteed drop after N kills (v4.16: 30→45)
+            CHANCE_STRONG: 0.03,      // 3% for strong enemies (v4.16: 6%→3%)
+            CHANCE_MEDIUM: 0.025,     // 2.5% for medium enemies (v4.16: 4%→2.5%)
+            CHANCE_WEAK: 0.01,        // 1% for weak enemies (v4.16: 2%→1%)
             WEAPON_RATIO: 0.5,        // 50% weapon, 50% ship power-up
             BOSS_DROP_COOLDOWN: 1.5,  // Seconds between boss power-up drops
             SHIP_TYPES: ['SPEED', 'RAPID', 'SHIELD']  // Available ship power-ups
@@ -392,13 +393,13 @@
             PHASE_TRANSITION_TIME: 1.5,    // Seconds for phase transition
 
             // HP scaling (applied before perk/damage modifiers)
-            // v2.24.9: 2x HP (was 3x, too tanky). Target: 45-75s fights
+            // v4.16: +25-40% boost — audit showed FED 12.7s, BCE 9.7s (target 45-75s)
             HP: {
-                BASE: 2400,           // Base HP for all bosses (v2.24.9: 3600→2400)
-                PER_LEVEL: 50,        // +50 HP per level (v2.24.9: 75→50)
-                PER_CYCLE: 1000,      // +1000 HP per cycle (v2.24.9: 1500→1000)
+                BASE: 3000,           // Base HP for all bosses (v4.16: 2400→3000)
+                PER_LEVEL: 65,        // +65 HP per level (v4.16: 50→65)
+                PER_CYCLE: 1400,      // +1400 HP per cycle (v4.16: 1000→1400)
                 PERK_SCALE: 0.10,     // +10% per player perk
-                MIN_FLOOR: 2000       // Minimum HP (v2.24.9: 3000→2000)
+                MIN_FLOOR: 2500       // Minimum HP (v4.16: 2000→2500)
             },
 
             // Movement speed per phase per boss type
@@ -750,13 +751,14 @@
         },
 
         // --- DROP SCALING ---
+        // v4.16: Reduced scaling to match halved base rates
         DROP_SCALING: {
             // Per-cycle bonus to drop chance
-            CYCLE_BONUS: 0.01,            // +1% per cycle
+            CYCLE_BONUS: 0.005,           // +0.5% per cycle (v4.16: 1%→0.5%)
 
             // Pity timer decreases with cycle
-            PITY_BASE: 30,                // Base kills for guaranteed drop
-            PITY_REDUCTION: 5             // -5 kills per cycle (min 15)
+            PITY_BASE: 45,               // Base kills for guaranteed drop (v4.16: 30→45)
+            PITY_REDUCTION: 3            // -3 kills per cycle (min 15) (v4.16: 5→3)
         },
 
         // --- WAVES ---
@@ -924,6 +926,8 @@
             SPACING: 65,              // v4.14: 85→65 (48px enemies, was 65px enemies)
             START_Y: 80,              // Initial Y position (v4.4: 150→80 for compact HUD)
             MARGIN: 60,               // Left/right margin for scatter/wall
+            MAX_Y_RATIO: 0.65,        // v4.16: extracted from WaveManager hardcode (max Y as ratio of gameHeight)
+            CHEVRON_Y_MULT: 0.55,     // v4.16: Y-spacing multiplier for CHEVRON (was 0.75, caused overflow with high counts)
             SPIRAL_CENTER_Y_OFFSET: 100, // Spiral center Y offset from startY
             SPIRAL_ANGLE_STEP: 0.5,   // Radians per enemy in spiral
             SPIRAL_BASE_RADIUS: 30,   // Starting radius for spiral
