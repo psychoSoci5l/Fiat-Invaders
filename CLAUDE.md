@@ -112,7 +112,7 @@ Scaling via `Balance.DIFFICULTY`: +8%/level, +20%/cycle, cap 85%, Bear Market 1.
 Activates when shotLevel=3 + rate>=2 + power>=2 + spread>=1. Red ship, fire trails, +5% speed. Deactivates on modifier expiry or death. Config: `Balance.GODCHAIN`.
 
 ### Enemy System
-10 fiat currencies in 3 tiers (Weak/Medium/Strong). 4 visual shapes: coin, bill, bar, card. Enemy bullets inherit shape from parent enemy.
+10 fiat currencies in 3 tiers (Weak/Medium/Strong). 4 visual shapes: coin, bill, bar, card. Enemy bullets inherit shape from parent enemy. v4.14: Enemies 48×48px (was 65), bullets 4×4 (was 6×6), bullet speed -40%.
 
 ### Wave System (v4.0)
 15 unique waves (5 per cycle x 3 cycles) with thematic currency assignments. 16 formation types. 2 hordes per wave. Bear Market: +25% count. Legacy fallback cycles 4+.

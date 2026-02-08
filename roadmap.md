@@ -1,9 +1,16 @@
 # Roadmap: FIAT vs CRYPTO
 
 > [!IMPORTANT]
-> **Versione attuale**: v4.13.0 (2026-02-08)
+> **Versione attuale**: v4.14.0 (2026-02-08)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
 > **Stato**: Gameplay completo, in fase di hardening e bugfix.
+
+---
+
+## v4.14.0 — Game Balance Rebalancing (COMPLETATO)
+- Enemy size -25% (65→48px), spawn +25%, enemy bullets -40% (size+speed)
+- Formation spacing ridotto, collision hitbox ricalcolati
+- Fire rate invariato (Option A)
 
 ---
 

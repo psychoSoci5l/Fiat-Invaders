@@ -2926,8 +2926,8 @@ function checkMiniBossHit(b) {
 
     // v2.18.0: Handle Boss instance mini-boss
     const isBossInstance = miniBoss instanceof G.Boss;
-    const hitboxW = isBossInstance ? miniBoss.width / 2 : 60;
-    const hitboxH = isBossInstance ? miniBoss.height / 2 : 60;
+    const hitboxW = isBossInstance ? miniBoss.width / 2 : 44;
+    const hitboxH = isBossInstance ? miniBoss.height / 2 : 44;
     const bossX = isBossInstance ? (miniBoss.x + miniBoss.width / 2) : miniBoss.x;
     const bossY = isBossInstance ? (miniBoss.y + miniBoss.height / 2) : miniBoss.y;
 
@@ -3841,7 +3841,7 @@ function checkBulletCollisions(b, bIdx) {
         if (!e) continue; // Safety check: enemy may have been removed during iteration
         // Skip enemies still entering formation (invulnerable until settled)
         if (e.isEntering || !e.hasSettled) continue;
-        if (Math.abs(b.x - e.x) < 40 && Math.abs(b.y - e.y) < 40) { // Adjusted for larger enemies
+        if (Math.abs(b.x - e.x) < 30 && Math.abs(b.y - e.y) < 30) { // v4.14: 40→30 for 48px enemies (was 65px)
             const baseDmg = player.stats.baseDamage || 14;
             const dmgMult = (runState && runState.getMod) ? runState.getMod('damageMult', 1) : 1;
             let dmg = baseDmg * dmgMult;

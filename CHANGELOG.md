@@ -1,5 +1,19 @@
 # Changelog
 
+## v4.14.0 - 2026-02-08
+### Game Balance Rebalancing — Enemy Size & Spawn
+
+- **Enemy size -25%**: 65×65 → 48×48 pixels, all shape drawings rescaled (coin, bill, bar, card)
+- **Enemy count +25%**: All 15 wave definitions increased by 25% (ceil), e.g. C1W1 12→15, C3W5 24→30
+- **Enemy bullets -40%**: Size 6×6 → 4×4, speed base 128→77, speed scale 68→41
+- **BULLET_VISUALS config**: New BalanceConfig section for per-shape enemy bullet sizes
+- **Formation spacing**: 85→65 (FORMATION), 75→60 (GRID) — tighter grid for smaller enemies
+- **Collision detection**: Player bullet→enemy hitbox 40→30, mini-boss fallback 60→44
+- **Drawing details**: All hardcoded radii, arcs, fonts proportionally rescaled (×0.75)
+- **Fire rate unchanged**: Option A (conservativo) — more enemies = naturally more bullets
+
+---
+
 ## v4.13.0 - 2026-02-08
 ### Button Design System
 

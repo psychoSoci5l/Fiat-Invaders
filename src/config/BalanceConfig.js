@@ -216,8 +216,18 @@
         // Note: STRIDE, MAX_SHOTS_PER_TICK, FIBONACCI_INTERVAL removed in v2.13.0
         // All firing now handled by HarmonicConductor with beat-synced sequences
         ENEMY_FIRE: {
-            BULLET_SPEED_BASE: 128,   // Base bullet speed
-            BULLET_SPEED_SCALE: 68    // Additional speed at max difficulty
+            BULLET_SPEED_BASE: 77,    // v4.14: -40% (was 128) — smaller bullets, slower speed
+            BULLET_SPEED_SCALE: 41    // v4.14: -40% (was 68)
+        },
+
+        // --- ENEMY BULLET VISUALS (v4.14) ---
+        // Size per enemy shape — used by Enemy.buildBullet() and Bullet.draw()
+        BULLET_VISUALS: {
+            coin:    { size: { w: 4, h: 4 } },
+            bill:    { size: { w: 4, h: 4 } },
+            bar:     { size: { w: 4, h: 4 } },
+            card:    { size: { w: 4, h: 4 } },
+            DEFAULT: { size: { w: 4, h: 4 } }
         },
 
         // --- WAVE CHOREOGRAPHY (Ikeda Philosophy: Readable Bullet Ballet) ---
@@ -315,7 +325,7 @@
         GRID: {
             SPEED_BASE: 12,           // Base grid scroll speed
             SPEED_SCALE: 20,          // Additional speed at max difficulty
-            SPACING: 75,              // Pixels between enemies in grid
+            SPACING: 60,              // v4.14: 75→60 (48px enemies, was 65px)
             START_Y: 80,              // Initial Y position (v4.4: 150→80 for compact HUD)
             MAX_Y: 380                // Maximum Y before descent stops
         },
@@ -793,86 +803,87 @@
 
             // Wave definitions: cycle, wave, name, formation, counts, currencies
             // v4.0.3: H2 formations diversified (complementary pairing for visual variety)
+            // v4.14: All counts +25% (ceil) — rebalanced for smaller 48px enemies
             WAVES: [
                 // === CYCLE 1: "AWAKENING" (Tutorial) ===
                 {
                     cycle: 1, wave: 1, name: 'First Contact',
-                    horde1: { count: 12, formation: 'DIAMOND', currencies: ['¥', '₽', '₹'] },
-                    horde2: { count: 10, formation: 'DIAMOND', currencies: ['¥', '₽', '₹'] }
+                    horde1: { count: 15, formation: 'DIAMOND', currencies: ['¥', '₽', '₹'] },
+                    horde2: { count: 13, formation: 'DIAMOND', currencies: ['¥', '₽', '₹'] }
                 },
                 {
                     cycle: 1, wave: 2, name: 'European Dawn',
-                    horde1: { count: 14, formation: 'ARROW', currencies: ['¥', '₽', '€'] },
-                    horde2: { count: 12, formation: 'CHEVRON', currencies: ['₹', '£'] }
+                    horde1: { count: 18, formation: 'ARROW', currencies: ['¥', '₽', '€'] },
+                    horde2: { count: 15, formation: 'CHEVRON', currencies: ['₹', '£'] }
                 },
                 {
                     cycle: 1, wave: 3, name: 'Old World',
-                    horde1: { count: 12, formation: 'PINCER', currencies: ['€', '£', '₣'] },
-                    horde2: { count: 10, formation: 'DIAMOND', currencies: ['₺', '€', '£'] }
+                    horde1: { count: 15, formation: 'PINCER', currencies: ['€', '£', '₣'] },
+                    horde2: { count: 13, formation: 'DIAMOND', currencies: ['₺', '€', '£'] }
                 },
                 {
                     cycle: 1, wave: 4, name: 'Dollar Emerges',
-                    horde1: { count: 14, formation: 'CHEVRON', currencies: ['€', '₣', '$'] },
-                    horde2: { count: 10, formation: 'ARROW', currencies: ['£', '₺', '元'] }
+                    horde1: { count: 18, formation: 'CHEVRON', currencies: ['€', '₣', '$'] },
+                    horde2: { count: 13, formation: 'ARROW', currencies: ['£', '₺', '元'] }
                 },
                 {
                     cycle: 1, wave: 5, name: 'Global Alliance',
-                    horde1: { count: 16, formation: 'FORTRESS', currencies: ['¥', '€', '$', '元'] },
-                    horde2: { count: 12, formation: 'SCATTER', currencies: ['₽', '£', '₣', 'Ⓒ'] }
+                    horde1: { count: 20, formation: 'FORTRESS', currencies: ['¥', '€', '$', '元'] },
+                    horde2: { count: 15, formation: 'SCATTER', currencies: ['₽', '£', '₣', 'Ⓒ'] }
                 },
 
                 // === CYCLE 2: "CONFLICT" (Learning) ===
                 {
                     cycle: 2, wave: 1, name: 'Eastern Front',
-                    horde1: { count: 14, formation: 'SCATTER', currencies: ['¥', '元', '₹'] },
-                    horde2: { count: 12, formation: 'WALL', currencies: ['¥', '元', '₽'] }
+                    horde1: { count: 18, formation: 'SCATTER', currencies: ['¥', '元', '₹'] },
+                    horde2: { count: 15, formation: 'WALL', currencies: ['¥', '元', '₽'] }
                 },
                 {
                     cycle: 2, wave: 2, name: 'Brussels Burns',
-                    horde1: { count: 16, formation: 'SPIRAL', currencies: ['€', '₣', '£'] },
-                    horde2: { count: 14, formation: 'CROSS', currencies: ['€', '₣', '₺'] }
+                    horde1: { count: 20, formation: 'SPIRAL', currencies: ['€', '₣', '£'] },
+                    horde2: { count: 18, formation: 'CROSS', currencies: ['€', '₣', '₺'] }
                 },
                 {
                     cycle: 2, wave: 3, name: 'Reserve War',
-                    horde1: { count: 18, formation: 'CROSS', currencies: ['$', '€', '£'] },
-                    horde2: { count: 14, formation: 'FLANKING', currencies: ['$', '元', 'Ⓒ'] }
+                    horde1: { count: 23, formation: 'CROSS', currencies: ['$', '€', '£'] },
+                    horde2: { count: 18, formation: 'FLANKING', currencies: ['$', '元', 'Ⓒ'] }
                 },
                 {
                     cycle: 2, wave: 4, name: 'BRICS Rising',
-                    horde1: { count: 18, formation: 'WALL', currencies: ['₽', '₹', '₺', '$'] },
-                    horde2: { count: 16, formation: 'GAUNTLET', currencies: ['元', 'Ⓒ', '$'] }
+                    horde1: { count: 23, formation: 'WALL', currencies: ['₽', '₹', '₺', '$'] },
+                    horde2: { count: 20, formation: 'GAUNTLET', currencies: ['元', 'Ⓒ', '$'] }
                 },
                 {
                     cycle: 2, wave: 5, name: 'Final Stand',
-                    horde1: { count: 20, formation: 'GAUNTLET', currencies: ['$', '元', 'Ⓒ', '€'] },
-                    horde2: { count: 16, formation: 'WALL', currencies: ['$', '元', 'Ⓒ', '₣'] }
+                    horde1: { count: 25, formation: 'GAUNTLET', currencies: ['$', '元', 'Ⓒ', '€'] },
+                    horde2: { count: 20, formation: 'WALL', currencies: ['$', '元', 'Ⓒ', '₣'] }
                 },
 
                 // === CYCLE 3: "RECKONING" (Skilled) ===
                 {
                     cycle: 3, wave: 1, name: 'Digital Doom',
-                    horde1: { count: 18, formation: 'VORTEX', currencies: ['Ⓒ', '€', '$'] },
-                    horde2: { count: 16, formation: 'HURRICANE', currencies: ['Ⓒ', '元', '£'] }
+                    horde1: { count: 23, formation: 'VORTEX', currencies: ['Ⓒ', '€', '$'] },
+                    horde2: { count: 20, formation: 'HURRICANE', currencies: ['Ⓒ', '元', '£'] }
                 },
                 {
                     cycle: 3, wave: 2, name: 'Pincer Attack',
-                    horde1: { count: 20, formation: 'FLANKING', currencies: ['$', '元', 'Ⓒ'] },
-                    horde2: { count: 18, formation: 'SPIRAL', currencies: ['€', '£', '₣', '$'] }
+                    horde1: { count: 25, formation: 'FLANKING', currencies: ['$', '元', 'Ⓒ'] },
+                    horde2: { count: 23, formation: 'SPIRAL', currencies: ['€', '£', '₣', '$'] }
                 },
                 {
                     cycle: 3, wave: 3, name: 'Escalation',
-                    horde1: { count: 22, formation: 'STAIRCASE', currencies: ['¥', '₽', '₹', '€', '£', '₣', '₺', '$', '元', 'Ⓒ'] },
-                    horde2: { count: 18, formation: 'STAIRCASE_REVERSE', currencies: ['$', '元', 'Ⓒ', '₺', '₣', '£', '€', '₹', '₽', '¥'] }
+                    horde1: { count: 28, formation: 'STAIRCASE', currencies: ['¥', '₽', '₹', '€', '£', '₣', '₺', '$', '元', 'Ⓒ'] },
+                    horde2: { count: 23, formation: 'STAIRCASE_REVERSE', currencies: ['$', '元', 'Ⓒ', '₺', '₣', '£', '€', '₹', '₽', '¥'] }
                 },
                 {
                     cycle: 3, wave: 4, name: 'Eye of Storm',
-                    horde1: { count: 22, formation: 'HURRICANE', currencies: ['¥', '₽', '₹', '€', '£', '₣', '₺', '$', '元', 'Ⓒ'] },
-                    horde2: { count: 20, formation: 'VORTEX', currencies: ['$', '元', 'Ⓒ'] }
+                    horde1: { count: 28, formation: 'HURRICANE', currencies: ['¥', '₽', '₹', '€', '£', '₣', '₺', '$', '元', 'Ⓒ'] },
+                    horde2: { count: 25, formation: 'VORTEX', currencies: ['$', '元', 'Ⓒ'] }
                 },
                 {
                     cycle: 3, wave: 5, name: 'Endgame',
-                    horde1: { count: 24, formation: 'FINAL_FORM', currencies: ['$', '元', 'Ⓒ', '€', '£', '₣'] },
-                    horde2: { count: 20, formation: 'FINAL_FORM', currencies: ['Ⓒ', 'Ⓒ', 'Ⓒ', '$', '元'] }
+                    horde1: { count: 30, formation: 'FINAL_FORM', currencies: ['$', '元', 'Ⓒ', '€', '£', '₣'] },
+                    horde2: { count: 25, formation: 'FINAL_FORM', currencies: ['Ⓒ', 'Ⓒ', 'Ⓒ', '$', '元'] }
                 }
             ],
 
@@ -910,7 +921,7 @@
 
         // --- FORMATION LAYOUT (v4.0.3: extracted from WaveManager hardcodes) ---
         FORMATION: {
-            SPACING: 85,              // Base spacing between enemies in grid (+13% from 75, prevents overlap)
+            SPACING: 65,              // v4.14: 85→65 (48px enemies, was 65px enemies)
             START_Y: 80,              // Initial Y position (v4.4: 150→80 for compact HUD)
             MARGIN: 60,               // Left/right margin for scatter/wall
             SPIRAL_CENTER_Y_OFFSET: 100, // Spiral center Y offset from startY
