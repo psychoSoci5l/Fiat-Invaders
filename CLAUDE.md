@@ -705,7 +705,7 @@ dbg.godchainStatus() // Show modifier levels/timers
 | Perk notification | top: ~55px | Temporary canvas slide (2.5s) |
 | Gameplay | top: 65px+ (+safe) | Enemies, Boss, Bullets |
 | Wave Strip | Y=95 | Temporary full-width strip (2.5s) |
-| Meme Whisper | Y=60% | Small italic drift text (decorative) |
+| Meme Whisper | Y=25% | Small italic drift text (decorative, top quarter) |
 | Graze Meter | bottom-85 | DOM, unchanged |
 | Shield/HYPER | bottom-75 | DOM buttons, unchanged |
 | Joystick | bottom-30 | DOM, unchanged |
@@ -722,7 +722,7 @@ Boss `targetY: 65 + safeOffset` ensures no overlap with compact HUD.
 |---------|-------|----------|---------|
 | `WAVE_STRIP` | Transparent strip, white/gold text | Y=95, full-width | Wave/horde progression |
 | `ALERT` | Red (danger) / Gold (victory) box | Center screen | Boss warnings, defeats |
-| `MEME_WHISPER` | Italic 13px, alpha 0.45, no bg | Y=60%, random X | Decorative flavor text |
+| `MEME_WHISPER` | Italic 13px, alpha 0.35, no bg | Y=25%, random X | Decorative flavor text |
 | `SHIP_STATUS` | Text above player, float-up | Above player Y-60 | Perk acquired, weapon change |
 | `FLOATING_TEXT` | Small text at position | At position | Score numbers (opt-in) |
 
@@ -758,8 +758,8 @@ HUD_MESSAGES: {
         SUBTITLE_SIZE: 10, DURATION: 2.5, BG_ALPHA: 0.5
     },
     MEME_WHISPER_CONFIG: {
-        MAX_ON_SCREEN: 2, FONT_SIZE: 13, ALPHA: 0.45,
-        DRIFT_SPEED: 15, LIFETIME: 3.0, SPAWN_Y_RATIO: 0.60
+        MAX_ON_SCREEN: 2, FONT_SIZE: 13, ALPHA: 0.35,
+        DRIFT_SPEED: 15, LIFETIME: 3.0, SPAWN_Y_RATIO: 0.25
     }
 }
 ```
@@ -947,3 +947,92 @@ Consolidated color manipulation in `src/utils/ColorUtils.js` via `window.Game.Co
 | `parseHex(hex)` | Parse hex to `{r, g, b}` object (cached) |
 
 **Performance Note**: Use `rgba()` and `font()` in all per-frame draw code instead of template literals to avoid GC pressure. 20 most-used colors are pre-cached at module load.
+
+---
+
+## Tutorial System (v4.12.0)
+
+3-step onboarding overlay for first-time players. DOM-based (not Canvas) for accessibility.
+
+### Flow
+```
+finishLaunch() → check localStorage('fiat_tutorial_seen')
+  → NOT seen: showTutorial(callback) → 3 steps → completeTutorial() → afterTutorial()
+  → SEEN: afterTutorial() directly → [story/startGame]
+```
+
+### Steps
+1. **Controls**: Platform-aware (desktop keyboard / mobile joystick)
+2. **Objective**: Destroy enemies → waves → boss → collect power-ups
+3. **Survival**: 3 lives, shield cooldown, scoring
+
+### DOM Structure
+`#tutorial-overlay` is a **sibling of `#game-container`** (NOT a child). This is critical for z-index stacking — see Architecture Note below.
+
+### Functions (main.js)
+- `showTutorial(callback)` — Display overlay, set step 0
+- `nextTutorialStep()` — Advance step (window-exposed for onclick)
+- `skipTutorial()` — Skip all steps (window-exposed for onclick)
+- `completeTutorial()` — Set localStorage, hide overlay, call callback
+
+### Texts
+Constants.js keys: `TUT_CONTROLS_TITLE`, `TUT_CONTROLS_PC`, `TUT_CONTROLS_MOBILE`, `TUT_OBJECTIVE_TITLE`, `TUT_OBJECTIVE_TEXT`, `TUT_SURVIVAL_TITLE`, `TUT_SURVIVAL_TEXT`, `TUT_SKIP`, `TUT_NEXT`, `TUT_GOT_IT` (EN + IT)
+
+---
+
+## Manual v2 (v4.12.0)
+
+Replaced 6-tab manual with 4 scrollable sections for better mobile UX.
+
+### Sections
+1. **Controls** — Platform-aware (`.desktop-only` / `.mobile-only` classes)
+2. **Objectives** — Game loop + win/lose conditions
+3. **Power-Ups** — UPGRADE + 3 modifiers + 6 specials (one line each)
+4. **Tips** — HODL, Graze, Shield, Boss hints
+
+### CSS Classes
+- `.manual-v2` — Flex column wrapper
+- `.manual-scroll` — Scrollable area (`min-height: 0` for flexbox scroll)
+- `.manual-section-v2` — Card-style section
+- `.section-heading` — Gold icon + title header
+
+### Texts
+Constants.js keys: `MAN_CONTROLS_TITLE`, `MAN_OBJ_TITLE`, `MAN_PU_TITLE`, `MAN_TIPS_TITLE`, etc. (EN + IT)
+
+---
+
+## localStorage Version Migration (v4.12.1)
+
+IIFE at top of main.js forces full localStorage clear when app version changes.
+
+```javascript
+// Runs immediately on script load
+(function() {
+    const APP_VER = G.VERSION.replace(/[^0-9.]/g, '').trim();
+    if (localStorage.getItem('fiat_app_version') !== APP_VER) {
+        localStorage.clear();
+        localStorage.setItem('fiat_app_version', APP_VER);
+    }
+})();
+```
+
+This ensures users always get a clean state on version updates. Clears: high scores, tutorial seen flag, campaign progress, language preference.
+
+---
+
+## Architecture Note: z-index Stacking (v4.12.1)
+
+**Critical**: `#game-container` creates its own CSS stacking context. All overlays that must appear ABOVE the curtain (`#curtain-overlay`, z-index 9000) must be **DOM siblings outside `#game-container`**, not children.
+
+### z-index Hierarchy
+| Element | z-index | Position |
+|---------|---------|----------|
+| `#splash-layer` | 9999 | Outside game-container |
+| `#tutorial-overlay` | 9500 | Outside game-container (fixed) |
+| `#curtain-overlay` | 9000 | Outside game-container |
+| Modals (settings, manual, help) | 1000-1100 | Outside game-container |
+| `#touchControls` | 200 | Inside game-container |
+| `#ui-layer` | 120 | Inside game-container |
+| `.scanlines` | 100 | Inside game-container |
+
+**Rule**: If adding a new overlay that must be above the curtain, place it as a sibling of `#game-container` in index.html, NOT inside it.
