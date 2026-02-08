@@ -1860,8 +1860,12 @@ window.launchShipAndStart = function () {
             }
         }
 
-        if (!localStorage.getItem('fiat_tutorial_seen')) {
-            showTutorial(afterTutorial);
+        // v4.19.2: per-mode tutorial with backward compat
+        const isStory = !!(G.CampaignState && G.CampaignState.isEnabled());
+        const tutMode = isStory ? 'story' : 'arcade';
+        const tutKey = 'fiat_tutorial_' + tutMode + '_seen';
+        if (!localStorage.getItem(tutKey) && !localStorage.getItem('fiat_tutorial_seen')) {
+            showTutorial(afterTutorial, tutMode);
         } else {
             afterTutorial();
         }
@@ -1871,15 +1875,29 @@ window.launchShipAndStart = function () {
     requestAnimationFrame(animateLaunch);
 }
 
-// === Tutorial System (v4.12.0) ===
+// === Tutorial System (v4.12.0, v4.19.2: mode-aware) ===
 let tutorialStep = 0;
 let tutorialCallback = null;
+let tutorialMode = 'arcade';
 
-function showTutorial(callback) {
+function showTutorial(callback, gameMode) {
     tutorialStep = 0;
     tutorialCallback = callback;
+    tutorialMode = gameMode || 'arcade';
     const overlay = document.getElementById('tutorial-overlay');
     if (!overlay) { callback(); return; }
+
+    // v4.19.2: Dynamic mobile control text based on current control mode
+    const controlMode = localStorage.getItem('fiat_control_mode') || 'SWIPE';
+    const mobileEl = overlay.querySelector('.mobile-only .tutorial-text');
+    if (mobileEl) mobileEl.setAttribute('data-i18n',
+        controlMode === 'JOYSTICK' ? 'TUT_CONTROLS_MOBILE_JOY' : 'TUT_CONTROLS_MOBILE_SWIPE');
+
+    // v4.19.2: Mode-specific objective text
+    const objEl = overlay.querySelector('#tut-step-1 .tutorial-text');
+    if (objEl) objEl.setAttribute('data-i18n',
+        tutorialMode === 'story' ? 'TUT_OBJECTIVE_STORY' : 'TUT_OBJECTIVE_ARCADE');
+
     overlay.style.display = 'flex';
     updateTutorialStep();
     updateTutorialText();
@@ -1928,7 +1946,8 @@ window.skipTutorial = function() {
 };
 
 function completeTutorial() {
-    localStorage.setItem('fiat_tutorial_seen', '1');
+    // v4.19.2: per-mode tutorial flag (backward compat via fiat_tutorial_seen at call site)
+    localStorage.setItem('fiat_tutorial_' + tutorialMode + '_seen', '1');
     const overlay = document.getElementById('tutorial-overlay');
     if (overlay) overlay.style.display = 'none';
     if (tutorialCallback) tutorialCallback();

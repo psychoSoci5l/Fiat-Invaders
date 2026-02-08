@@ -1,5 +1,16 @@
 # Changelog
 
+## v4.19.2 - 2026-02-08
+### Mode-Aware Tutorial + Mobile Control Fix
+
+- **Tutorial per modalita**: Step "Obiettivo" ora mostra contenuto diverso per Story Mode ("3 atti contro le banche centrali, FED → BCE → BOJ") e Arcade Mode ("ondate infinite, batti il record")
+- **Controlli mobile dinamici**: Step "Controlli" riflette il controllo attualmente selezionato (Swipe vs Joystick) invece di mostrare sempre "joystick"
+- **localStorage per-mode**: `fiat_tutorial_story_seen` / `fiat_tutorial_arcade_seen` — chi gioca entrambe le modalita vede il tutorial corretto per ciascuna
+- **Backward compat**: vecchia chiave `fiat_tutorial_seen` ancora rispettata come skip globale
+- **4 nuove chiavi i18n**: `TUT_CONTROLS_MOBILE_SWIPE`, `TUT_CONTROLS_MOBILE_JOY`, `TUT_OBJECTIVE_STORY`, `TUT_OBJECTIVE_ARCADE` (EN + IT)
+
+---
+
 ## v4.19.1 - 2026-02-08
 ### Boss Movement Freeze Fix
 

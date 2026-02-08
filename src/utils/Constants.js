@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v4.19.1 FIAT vs CRYPTO";
+window.Game.VERSION = "v4.19.2 FIAT vs CRYPTO";
 
 window.Game.TEXTS = {
     EN: {
@@ -133,8 +133,12 @@ window.Game.TEXTS = {
         TUT_CONTROLS_TITLE: "CONTROLS",
         TUT_CONTROLS_PC: "A/D or Arrows to move. Space to fire. S or Down for Shield.",
         TUT_CONTROLS_MOBILE: "Use the joystick to move. Auto-fire is ON. Tap the shield icon for defense.",
+        TUT_CONTROLS_MOBILE_SWIPE: "Swipe to move. Auto-fire is ON. Tap the shield icon for defense.",
+        TUT_CONTROLS_MOBILE_JOY: "Use the joystick to move. Auto-fire is ON. Tap the shield icon for defense.",
         TUT_OBJECTIVE_TITLE: "OBJECTIVE",
         TUT_OBJECTIVE_TEXT: "Destroy fiat enemies across 5 waves, then defeat the Boss. Collect power-ups to upgrade your weapons!",
+        TUT_OBJECTIVE_STORY: "Fight through 3 acts against the central banks. Each act: 5 waves + a final Boss (FED \u2192 BCE \u2192 BOJ). Collect power-ups to upgrade your weapons!",
+        TUT_OBJECTIVE_ARCADE: "Survive endless waves and beat your high score! A boss appears every 5 waves. Collect power-ups to upgrade your weapons!",
         TUT_SURVIVAL_TITLE: "SURVIVAL",
         TUT_SURVIVAL_TEXT: "You have 3 lives. 1 hit = 1 life lost. Use your Shield (10s cooldown) to survive!",
         TUT_SKIP: "SKIP",
@@ -294,8 +298,12 @@ window.Game.TEXTS = {
         TUT_CONTROLS_TITLE: "CONTROLLI",
         TUT_CONTROLS_PC: "A/D o Frecce per muoverti. Spazio per sparare. S o Gi\u00F9 per lo Scudo.",
         TUT_CONTROLS_MOBILE: "Usa il joystick per muoverti. Auto-fuoco attivo. Tocca l'icona scudo per difenderti.",
+        TUT_CONTROLS_MOBILE_SWIPE: "Swipe per muoverti. Auto-fuoco attivo. Tocca l'icona scudo per difenderti.",
+        TUT_CONTROLS_MOBILE_JOY: "Usa il joystick per muoverti. Auto-fuoco attivo. Tocca l'icona scudo per difenderti.",
         TUT_OBJECTIVE_TITLE: "OBIETTIVO",
         TUT_OBJECTIVE_TEXT: "Distruggi i nemici fiat in 5 ondate, poi sconfiggi il Boss. Raccogli i power-up per potenziare le armi!",
+        TUT_OBJECTIVE_STORY: "Combatti in 3 atti contro le banche centrali. Ogni atto: 5 ondate + Boss finale (FED \u2192 BCE \u2192 BOJ). Raccogli i power-up per potenziare le armi!",
+        TUT_OBJECTIVE_ARCADE: "Sopravvivi a ondate infinite e batti il tuo record! Ogni 5 ondate appare un boss. Raccogli i power-up per potenziare le armi!",
         TUT_SURVIVAL_TITLE: "SOPRAVVIVENZA",
         TUT_SURVIVAL_TEXT: "Hai 3 vite. 1 colpo = 1 vita persa. Usa lo Scudo (cooldown 10s) per sopravvivere!",
         TUT_SKIP: "SALTA",

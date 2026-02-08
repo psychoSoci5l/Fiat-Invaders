@@ -138,8 +138,8 @@ Trigger: cancel 5 enemy bullets in 1.5s. Random perk auto-applied. Cooldown 4s. 
 ### Debug System
 Console: `dbg.balanceTest()` -> play -> `dbg.report()`. Overlay: `dbg.showOverlay()`. Presets: `dbg.debugBoss()`, `dbg.debugWaves()`. Weapon: `dbg.weaponStatus()`, `dbg.maxWeapon()`. Production: `dbg.setProduction()`. Power-up economy: `dbg.powerUpReport()` (drops spawned/collected/expired, weapon timeline, modifier overlap, GODCHAIN stats, adaptive suppression stats).
 
-### Tutorial (v4.12.0) & Manual v2
-3-step DOM overlay (Controls/Objective/Survival), localStorage skip. Manual: 4 scrollable sections replacing 6 tabs.
+### Tutorial (v4.12.0, v4.19.2) & Manual v2
+3-step DOM overlay (Controls/Objective/Survival). v4.19.2: mode-aware — Story ("3 atti, FED→BCE→BOJ") vs Arcade ("ondate infinite, record"). Mobile control text dynamic (Swipe/Joystick via `fiat_control_mode`). Per-mode localStorage: `fiat_tutorial_story_seen` / `fiat_tutorial_arcade_seen` (backward compat with `fiat_tutorial_seen`). Manual: 4 scrollable sections replacing 6 tabs.
 
 ---
 

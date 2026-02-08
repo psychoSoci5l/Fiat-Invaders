@@ -1,9 +1,22 @@
 # Roadmap: FIAT vs CRYPTO
 
 > [!IMPORTANT]
-> **Versione attuale**: v4.19.1 (2026-02-08)
+> **Versione attuale**: v4.19.2 (2026-02-08)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
 > **Stato**: Gameplay completo, in fase di hardening e bugfix.
+
+---
+
+## v4.19.2 — Mode-Aware Tutorial + Mobile Control Fix (COMPLETATO)
+
+> Il tutorial (v4.12.0) mostrava contenuto identico per Story e Arcade, e il testo mobile diceva sempre "joystick" anche con controlli SWIPE.
+
+### Implementato
+
+- [x] **Tutorial per modalita** — Step "Obiettivo" differenziato: Story ("3 atti, FED→BCE→BOJ") vs Arcade ("ondate infinite, record")
+- [x] **Controlli mobile dinamici** — Legge `localStorage.fiat_control_mode` e mostra Swipe o Joystick
+- [x] **localStorage per-mode** — `fiat_tutorial_story_seen` / `fiat_tutorial_arcade_seen` (backward compat con `fiat_tutorial_seen`)
+- [x] **4 chiavi i18n** — `TUT_CONTROLS_MOBILE_SWIPE/JOY`, `TUT_OBJECTIVE_STORY/ARCADE` (EN+IT)
 
 ---
 
