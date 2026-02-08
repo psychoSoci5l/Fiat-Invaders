@@ -356,6 +356,8 @@ window.Game.Debug = {
             // Power-up economy tracking (v4.14.1)
             dropsSpawned: [],          // [{ time, type, category, source:'enemy'|'boss', wave, cycle }]
             dropsExpired: 0,           // counter di drop non raccolti
+            // v4.19: Adaptive drop suppression tracking
+            dropsSuppressed: [],       // [{ time, powerScore, shotLevel, modLevels, hasSpecial }]
             weaponTimeline: [],        // [{ time, event, detail }]
             godchainActivations: 0,
             godchainTotalDuration: 0,
@@ -536,6 +538,24 @@ window.Game.Debug = {
     },
 
     /**
+     * Track a drop suppressed by adaptive system (v4.19)
+     * @param {Object} playerState - { shotLevel, modifiers: { rate, power, spread }, hasSpecial }
+     */
+    trackDropSuppressed(playerState) {
+        const a = this.analytics;
+        if (!a.runStart) return;
+        const DS = window.Game.DropSystem;
+        const powerScore = DS ? DS.getPlayerPowerScore(playerState) : 0;
+        a.dropsSuppressed.push({
+            time: Date.now() - a.runStart,
+            powerScore: powerScore,
+            shotLevel: playerState.shotLevel,
+            modLevels: (playerState.modifiers.rate || 0) + (playerState.modifiers.power || 0) + (playerState.modifiers.spread || 0),
+            hasSpecial: playerState.hasSpecial
+        });
+    },
+
+    /**
      * Track modifier overlap per frame
      * @param {number} activeModCount - number of active modifiers this frame
      */
@@ -697,6 +717,24 @@ window.Game.Debug = {
             console.log(`%c║   GODCHAIN: ${p._godchainActive ? 'ACTIVE' : 'inactive'}`, p._godchainActive ? 'color: #f80; font-weight: bold' : 'color: #888');
         } else {
             console.log('%c║   (no player)                                            ║', 'color: #888');
+        }
+
+        // 8. ADAPTIVE SUPPRESSION (v4.19)
+        console.log('%c╠══ ADAPTIVE SUPPRESSION (v4.19) ═══════════════════════════╣', 'color: #0ff');
+        const suppressed = a.dropsSuppressed || [];
+        const suppCount = suppressed.length;
+        const totalAttempts = spawned + suppCount;
+        const suppRate = totalAttempts > 0 ? ((suppCount / totalAttempts) * 100).toFixed(1) : '0.0';
+        const avgPower = suppCount > 0
+            ? (suppressed.reduce((s, d) => s + d.powerScore, 0) / suppCount).toFixed(2)
+            : '0.00';
+        console.log(`%c║   Suppressed: ${suppCount}  (of ${totalAttempts} attempts, ${suppRate}%)`, suppCount > 0 ? 'color: #ff0' : 'color: #fff');
+        console.log(`%c║   Avg Power Score at suppression: ${avgPower}`, 'color: #fff');
+        if (suppCount > 0) {
+            const last5 = suppressed.slice(-5);
+            for (const s of last5) {
+                console.log(`%c║     @${formatTime(s.time)} score=${s.powerScore.toFixed(2)} shot=${s.shotLevel} mods=${s.modLevels} spc=${s.hasSpecial}`, 'color: #888');
+            }
         }
 
         console.log('%c╚════════════════════════════════════════════════════════════╝', 'color: #f80');

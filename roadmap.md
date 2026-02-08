@@ -1,9 +1,50 @@
 # Roadmap: FIAT vs CRYPTO
 
 > [!IMPORTANT]
-> **Versione attuale**: v4.17.0 (2026-02-08)
+> **Versione attuale**: v4.19.1 (2026-02-08)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
 > **Stato**: Gameplay completo, in fase di hardening e bugfix.
+
+---
+
+## v4.19.1 — Boss Movement Freeze Fix (COMPLETATO)
+
+> Playtest v4.19.0: tutti i boss (FED/BCE) smettono di muoversi dopo transizione di fase.
+
+### Root Cause
+- Phase transition shake (`this.x += random * shakeIntensity`) causa random walk fino a ±40px
+- Boundary check faceva solo `dir *= -1` senza clamp della posizione
+- Step di movimento (~0.88px/frame) insufficiente per uscire dalla zona di overshoot → oscillazione sub-pixel permanente
+
+### Fix
+- [x] **Boundary clamp** — FED P1/P2, BCE P1/P2/P3 ora clampano posizione + impostano dir assoluta
+- FED P3 e BOJ (tutti i phase) già usavano lerp+clamp, non affetti
+
+---
+
+## v4.19.0 — Adaptive Drop System (COMPLETATO)
+
+> Playtest v4.18: 19 drops in 4:32, SHOT_LV3 at 0:46, 0 GODCHAIN activations.
+> Sistema adattivo che interroga lo stato del player prima di droppare.
+
+### Implementato
+
+- [x] **Player Power Score** — 0.0→1.0 composite (shot 40%, mods 35%, special 25%)
+- [x] **Suppression Gate** — drop soppresso con probabilità = power score
+- [x] **Need-Based Category Selection** — weighted random proporzionale ai bisogni
+- [x] **Config ADAPTIVE_DROPS** — in BalanceConfig.js (SUPPRESSION_FLOOR, CATEGORY_WEIGHTS)
+- [x] **Debug tracking** — dropsSuppressed in analytics, sezione ADAPTIVE SUPPRESSION in powerUpReport()
+
+### Impatto atteso
+
+| Stato player | Power Score | Soppressione |
+|---|---|---|
+| Inizio partita | 0.00 | 0% |
+| Dopo LV2 | 0.20 | 20% |
+| LV3 + qualche mod | 0.53 | 53% |
+| Dopo morte (LV2) | 0.20 | 20% (recovery veloce) |
+
+Target: ~12-14 drops in 4:30 (era 19).
 
 ---
 

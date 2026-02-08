@@ -103,6 +103,20 @@ function getUnlockedWeapons() {
     return unlocked;
 }
 
+// v4.19: Build player state snapshot for adaptive drop system
+function buildPlayerState() {
+    if (!player) return { shotLevel: 1, modifiers: { rate: 0, power: 0, spread: 0 }, hasSpecial: false };
+    return {
+        shotLevel: player.shotLevel || 1,
+        modifiers: {
+            rate: player.modifiers ? player.modifiers.rate.level : 0,
+            power: player.modifiers ? player.modifiers.power.level : 0,
+            spread: player.modifiers ? player.modifiers.spread.level : 0
+        },
+        hasSpecial: !!player.special
+    };
+}
+
 function checkWeaponUnlocks(cycle) {
     if (cycle > maxCycleReached) {
         maxCycleReached = cycle;
@@ -3310,7 +3324,7 @@ function updateBullets(dt) {
                 const useEvolutionBoss = !!(Balance.WEAPON_EVOLUTION && player.shotLevel);
                 const bossDropInfo = G.DropSystem.tryBossDrop(
                     boss.x + boss.width / 2, boss.y + boss.height, totalTime,
-                    useEvolutionBoss ? player.shotLevel : getUnlockedWeapons,
+                    useEvolutionBoss ? buildPlayerState() : getUnlockedWeapons,
                     useEvolutionBoss
                 );
                 if (bossDropInfo) {
@@ -4024,7 +4038,7 @@ function checkBulletCollisions(b, bIdx) {
                 const useEvolution = !!(Balance.WEAPON_EVOLUTION && player.shotLevel);
                 const dropInfo = G.DropSystem.tryEnemyDrop(
                     e.symbol, e.x, e.y, totalTime,
-                    useEvolution ? player.shotLevel : getUnlockedWeapons,
+                    useEvolution ? buildPlayerState() : getUnlockedWeapons,
                     useEvolution
                 );
                 if (dropInfo) {

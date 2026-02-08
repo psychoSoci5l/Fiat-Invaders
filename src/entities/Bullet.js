@@ -957,7 +957,9 @@ class Bullet extends window.Game.Entity {
     }
 
     // v4.17: Get hostile-tinted glow color (70% enemy color + 30% red)
+    // v4.18: White bullets bypass mixing (avoid pink/salmon tint)
     getHostileGlowColor() {
+        if (this.color === '#ffffff') return '#ffffff';
         const CU = window.Game.ColorUtils;
         if (!CU || !CU.parseColor) return this.color;
         // Parse the enemy color to RGB, mix with red

@@ -21,7 +21,7 @@
         DIFFICULTY: {
             // Base difficulty per cycle (stepped progression)
             // v4.0.3: Smoothed C1→C2 jump (0.30→0.20, was +150% now +25%)
-            CYCLE_BASE: [0.0, 0.25, 0.60],  // Cycle 1: Tutorial, Cycle 2: Learning, Cycle 3: Skilled (v4.6.1: +25% per cycle, was 0.20/0.55)
+            CYCLE_BASE: [0.0, 0.40, 0.60],  // Cycle 1: Tutorial, Cycle 2: Learning, Cycle 3: Skilled (v4.18: C2 0.25→0.40 for +HP)
 
             // Per-wave scaling within cycle
             WAVE_SCALE: 0.04,               // +4% per wave (v4.0.3: 0.03→0.04, 5 waves = +20% total within cycle)
@@ -388,7 +388,8 @@
         BOSS: {
             WARNING_DURATION: 2.0,    // Seconds of warning before boss spawns
             DROP_INTERVAL: 40,        // Drop power-up every N hits on boss (v4.17: 25→40)
-            MAX_DROPS_PER_BOSS: 6,    // v4.17: Cap absolute drops per boss fight
+            MAX_DROPS_PER_BOSS: 99,   // v4.18: Effectively uncapped — dynamic time-based cap below
+            DROP_TIME_INTERVAL: 12,   // v4.18: Seconds between allowed boss drops (dynamic cap)
             MEME_ROTATION_INTERVAL: 4.0,  // Seconds between boss meme rotations
             PHASE_THRESHOLDS: [0.66, 0.33], // HP % for phase transitions (Phase 2, Phase 3)
             PHASE_TRANSITION_TIME: 1.5,    // Seconds for phase transition
@@ -398,7 +399,7 @@
             HP: {
                 BASE: 3000,           // Base HP for all bosses (v4.16: 2400→3000)
                 PER_LEVEL: 65,        // +65 HP per level (v4.16: 50→65)
-                PER_CYCLE: 1400,      // +1400 HP per cycle (v4.16: 1000→1400)
+                PER_CYCLE: 3000,      // +3000 HP per cycle (v4.18: 1400→3000, BCE C2 was 26.4s)
                 PERK_SCALE: 0.10,     // +10% per player perk
                 MIN_FLOOR: 2500       // Minimum HP (v4.16: 2000→2500)
             },
@@ -762,6 +763,25 @@
             PITY_REDUCTION: 2           // -2 kills per cycle (min 15) (v4.17: 3→2)
         },
 
+        // --- ADAPTIVE DROPS v4.19 ---
+        // Dynamic suppression based on player power state
+        ADAPTIVE_DROPS: {
+            ENABLED: true,
+            // Power score weights (sum = 1.0)
+            SHOT_WEIGHT: 0.40,          // Weight of shot level in power score
+            MOD_WEIGHT: 0.35,           // Weight of modifiers in power score
+            SPECIAL_WEIGHT: 0.25,       // Weight of special in power score
+            // Suppression
+            SUPPRESSION_FLOOR: 0.15,    // Below this power score, no suppression
+            // Need-based category selection weights
+            CATEGORY_WEIGHTS: {
+                UPGRADE: 1.5,           // Base weight for upgrade need
+                MODIFIER: 1.0,          // Base weight for modifier need
+                SPECIAL: 0.8            // Base weight for special need
+            },
+            MIN_CATEGORY_WEIGHT: 0.05   // Minimum weight to prevent zero-chance
+        },
+
         // --- WAVES ---
         WAVES: {
             PER_CYCLE: 5,                 // Waves before boss appears
@@ -796,7 +816,8 @@
             },
 
             // v4.6.1: Cycle-based enemy count multiplier (player is stronger in later cycles)
-            CYCLE_COUNT_MULT: [1.0, 1.25, 1.5],  // Cycle 1: 1x, Cycle 2: +25%, Cycle 3: +50%
+            // v4.18: +20% C1, +10% C2, +5% C3 — slow down early cycles, more targets to clear
+            CYCLE_COUNT_MULT: [1.2, 1.375, 1.575],  // C1: 1.0×1.2, C2: 1.25×1.1, C3: 1.5×1.05
 
             // Bear Market scaling
             BEAR_MARKET: {
@@ -1033,7 +1054,7 @@
         // Limits total enemy bullets/sec to prevent screen flooding with many enemies
         FIRE_BUDGET: {
             ENABLED: true,
-            BULLETS_PER_SECOND: [25, 45, 70],  // Per cycle [C1, C2, C3]
+            BULLETS_PER_SECOND: [20, 36, 56],  // Per cycle [C1, C2, C3] — v4.18: -20% flat
             BEAR_MARKET_BONUS: 10,              // +10 bullets/sec in Bear Market
             PANIC_MULTIPLIER: 1.3,              // +30% during PANIC phase
             RANK_SCALE: 0.15,                   // ±15% from rank

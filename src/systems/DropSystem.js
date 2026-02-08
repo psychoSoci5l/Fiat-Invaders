@@ -29,6 +29,10 @@
 
             // v4.17: Boss drop cap tracking
             this.bossDropCount = 0;        // Drops generated in current boss fight
+            this.bossFightStartTime = 0;   // v4.18: Track fight start for dynamic cap
+
+            // v4.19: Adaptive drop suppression tracking
+            this.suppressedDrops = 0;
         }
 
         /**
@@ -46,6 +50,9 @@
 
             // v4.17: Boss drop cap reset
             this.bossDropCount = 0;
+
+            // v4.19: Adaptive drop suppression reset
+            this.suppressedDrops = 0;
         }
 
         /**
@@ -112,16 +119,27 @@
 
         /**
          * Select drop type using WEAPON EVOLUTION v3.0 system
-         * @param {number} currentShotLevel - Player's current shot level (1-3)
+         * v4.19: Accepts playerState object or number (backward compat)
+         * @param {Object|number} playerStateOrShotLevel - Player state or shot level
          * @returns {Object} { type: string, category: string }
          */
-        selectEvolutionDropType(currentShotLevel) {
+        selectEvolutionDropType(playerStateOrShotLevel) {
             const WE = G.Balance.WEAPON_EVOLUTION;
             if (!WE) {
-                // Fallback to legacy - pick a random modifier/special
                 const fallbackTypes = ['RATE', 'POWER', 'SPREAD', 'HOMING', 'PIERCE', 'SPEED'];
                 const type = fallbackTypes[Math.floor(Math.random() * fallbackTypes.length)];
                 return { type, category: 'modifier' };
+            }
+
+            // v4.19: Backward compat — wrap number in minimal playerState
+            let playerState;
+            let currentShotLevel;
+            if (typeof playerStateOrShotLevel === 'number') {
+                currentShotLevel = playerStateOrShotLevel;
+                playerState = null;
+            } else {
+                playerState = playerStateOrShotLevel;
+                currentShotLevel = playerState.shotLevel;
             }
 
             // Check for guaranteed UPGRADE (pity timer)
@@ -131,15 +149,37 @@
                 return { type: 'UPGRADE', category: 'upgrade' };
             }
 
-            // Random drop: 60% modifier, 40% special
+            // v4.19: Need-based category selection when adaptive drops enabled
+            const AD = G.Balance.ADAPTIVE_DROPS;
+            if (AD && AD.ENABLED && playerState) {
+                const category = this.selectNeedBasedCategory(playerState);
+
+                if (category === 'upgrade') {
+                    // If player already at max shot level, fall back to modifier
+                    if (currentShotLevel >= WE.MAX_SHOT_LEVEL) {
+                        const modifiers = ['RATE', 'POWER', 'SPREAD'];
+                        const type = modifiers[Math.floor(Math.random() * modifiers.length)];
+                        return { type, category: 'modifier' };
+                    }
+                    this.lastUpgradeKillCount = this.totalKills;
+                    return { type: 'UPGRADE', category: 'upgrade' };
+                } else if (category === 'modifier') {
+                    const modifiers = ['RATE', 'POWER', 'SPREAD'];
+                    const type = modifiers[Math.floor(Math.random() * modifiers.length)];
+                    return { type, category: 'modifier' };
+                } else {
+                    const type = this.getWeightedSpecial(WE);
+                    return { type, category: 'special' };
+                }
+            }
+
+            // Legacy fixed 60/40 split (when adaptive is off or no playerState)
             const roll = Math.random();
             if (roll < 0.6) {
-                // Modifier (equal weight among RATE, POWER, SPREAD)
                 const modifiers = ['RATE', 'POWER', 'SPREAD'];
                 const type = modifiers[Math.floor(Math.random() * modifiers.length)];
                 return { type, category: 'modifier' };
             } else {
-                // Special (weighted selection)
                 const type = this.getWeightedSpecial(WE);
                 return { type, category: 'special' };
             }
@@ -190,6 +230,77 @@
             return killsSinceUpgrade >= WE.KILLS_FOR_UPGRADE;
         }
 
+        // === ADAPTIVE DROPS v4.19 ===
+
+        /**
+         * Calculate player power score (0.0 → 1.0)
+         * @param {Object} playerState - { shotLevel, modifiers: { rate, power, spread }, hasSpecial }
+         * @returns {number} Power score from 0.0 (unarmed) to 1.0 (fully armed)
+         */
+        getPlayerPowerScore(playerState) {
+            const AD = G.Balance.ADAPTIVE_DROPS;
+            if (!AD) return 0;
+
+            const shotScore = (playerState.shotLevel - 1) / 2;
+            const modTotal = (playerState.modifiers.rate || 0)
+                           + (playerState.modifiers.power || 0)
+                           + (playerState.modifiers.spread || 0);
+            const modScore = modTotal / 8;
+            const specialScore = playerState.hasSpecial ? 1.0 : 0.0;
+
+            return AD.SHOT_WEIGHT * shotScore
+                 + AD.MOD_WEIGHT * modScore
+                 + AD.SPECIAL_WEIGHT * specialScore;
+        }
+
+        /**
+         * Decide if a successful drop roll should be suppressed
+         * @param {Object} playerState - Player state object
+         * @param {boolean} isPityDrop - If true, pity drops bypass suppression
+         * @returns {boolean} True if drop should be suppressed
+         */
+        shouldSuppressDrop(playerState, isPityDrop) {
+            const AD = G.Balance.ADAPTIVE_DROPS;
+            if (!AD || !AD.ENABLED) return false;
+            if (isPityDrop) return false;
+
+            const powerScore = this.getPlayerPowerScore(playerState);
+            if (powerScore < AD.SUPPRESSION_FLOOR) return false;
+
+            return Math.random() < powerScore;
+        }
+
+        /**
+         * Select drop category based on player need (replaces fixed 60/40 split)
+         * @param {Object} playerState - Player state object
+         * @returns {string} 'upgrade', 'modifier', or 'special'
+         */
+        selectNeedBasedCategory(playerState) {
+            const AD = G.Balance.ADAPTIVE_DROPS;
+            const CW = AD.CATEGORY_WEIGHTS;
+            const MIN = AD.MIN_CATEGORY_WEIGHT;
+
+            // Calculate need scores (0.0 = no need, 1.0 = maximum need)
+            const upgradeNeed = (3 - playerState.shotLevel) / 2;
+            const modTotal = (playerState.modifiers.rate || 0)
+                           + (playerState.modifiers.power || 0)
+                           + (playerState.modifiers.spread || 0);
+            const modifierNeed = (8 - modTotal) / 8;
+            const specialNeed = playerState.hasSpecial ? 0.0 : 1.0;
+
+            // Weighted needs
+            const wUpgrade = Math.max(MIN, upgradeNeed * CW.UPGRADE);
+            const wModifier = Math.max(MIN, modifierNeed * CW.MODIFIER);
+            const wSpecial = Math.max(MIN, specialNeed * CW.SPECIAL);
+            const totalWeight = wUpgrade + wModifier + wSpecial;
+
+            // Weighted random selection
+            const roll = Math.random() * totalWeight;
+            if (roll < wUpgrade) return 'upgrade';
+            if (roll < wUpgrade + wModifier) return 'modifier';
+            return 'special';
+        }
+
         /**
          * Check if enemy death should trigger a drop
          * Supports both legacy and WEAPON EVOLUTION v3.0 systems
@@ -225,9 +336,17 @@
 
             // === WEAPON EVOLUTION v3.0 ===
             if (useEvolution && Balance.WEAPON_EVOLUTION) {
-                const currentShotLevel = typeof getUnlockedWeaponsOrShotLevel === 'number'
-                    ? getUnlockedWeaponsOrShotLevel
-                    : 1;
+                // v4.19: Extract playerState (object or number for backward compat)
+                let playerState = null;
+                let currentShotLevel;
+                if (typeof getUnlockedWeaponsOrShotLevel === 'object' && getUnlockedWeaponsOrShotLevel !== null) {
+                    playerState = getUnlockedWeaponsOrShotLevel;
+                    currentShotLevel = playerState.shotLevel;
+                } else {
+                    currentShotLevel = typeof getUnlockedWeaponsOrShotLevel === 'number'
+                        ? getUnlockedWeaponsOrShotLevel
+                        : 1;
+                }
 
                 // Check for forced UPGRADE (pity timer for shot level)
                 if (this.shouldForceUpgrade(currentShotLevel)) {
@@ -243,7 +362,18 @@
 
                 // Normal drop chance check
                 if (pityDrop || Math.random() < dropChance) {
-                    const dropInfo = this.selectEvolutionDropType(currentShotLevel);
+                    // v4.19: Adaptive suppression gate
+                    if (playerState && this.shouldSuppressDrop(playerState, pityDrop)) {
+                        this.suppressedDrops++;
+                        // Track suppression in debug
+                        if (G.Debug && G.Debug.trackDropSuppressed) {
+                            G.Debug.trackDropSuppressed(playerState);
+                        }
+                        // killsSinceLastDrop NOT reset — pity timer keeps counting
+                        return null;
+                    }
+
+                    const dropInfo = this.selectEvolutionDropType(playerState || currentShotLevel);
                     if (dropInfo) {
                         this.killsSinceLastDrop = 0;
                         return {
@@ -288,8 +418,15 @@
 
             this.bossHitCount++;
 
-            // v4.17: Enforce max drops per boss fight
-            const maxDrops = Balance.BOSS.MAX_DROPS_PER_BOSS || 6;
+            // v4.18: Track fight start time on first hit
+            if (this.bossFightStartTime === 0) {
+                this.bossFightStartTime = totalTime;
+            }
+
+            // v4.18: Dynamic time-based cap (1 drop per DROP_TIME_INTERVAL seconds)
+            const timeInterval = Balance.BOSS.DROP_TIME_INTERVAL || 12;
+            const fightDuration = totalTime - this.bossFightStartTime;
+            const maxDrops = Math.max(1, Math.floor(fightDuration / timeInterval) + 1);
             if (this.bossDropCount >= maxDrops) return null;
 
             if (this.bossHitCount >= Balance.BOSS.DROP_INTERVAL && this.bossDropCooldown <= 0) {
@@ -300,10 +437,28 @@
 
                 // === WEAPON EVOLUTION v3.0 ===
                 if (useEvolution && Balance.WEAPON_EVOLUTION) {
-                    const currentShotLevel = typeof getUnlockedWeaponsOrShotLevel === 'number'
-                        ? getUnlockedWeaponsOrShotLevel
-                        : 1;
-                    dropInfo = this.selectEvolutionDropType(currentShotLevel);
+                    // v4.19: Extract playerState
+                    let playerState = null;
+                    let currentShotLevel;
+                    if (typeof getUnlockedWeaponsOrShotLevel === 'object' && getUnlockedWeaponsOrShotLevel !== null) {
+                        playerState = getUnlockedWeaponsOrShotLevel;
+                        currentShotLevel = playerState.shotLevel;
+                    } else {
+                        currentShotLevel = typeof getUnlockedWeaponsOrShotLevel === 'number'
+                            ? getUnlockedWeaponsOrShotLevel
+                            : 1;
+                    }
+
+                    // v4.19: Adaptive suppression gate (boss drops)
+                    if (playerState && this.shouldSuppressDrop(playerState, false)) {
+                        this.suppressedDrops++;
+                        if (G.Debug && G.Debug.trackDropSuppressed) {
+                            G.Debug.trackDropSuppressed(playerState);
+                        }
+                        return null;
+                    }
+
+                    dropInfo = this.selectEvolutionDropType(playerState || currentShotLevel);
                 } else {
                     // Legacy system
                     dropInfo = this.selectDropType(totalTime, getUnlockedWeaponsOrShotLevel);
@@ -330,7 +485,8 @@
         resetBossDrops() {
             this.bossHitCount = 0;
             this.bossDropCooldown = 0;
-            this.bossDropCount = 0; // v4.17: Reset drop cap counter
+            this.bossDropCount = 0;        // v4.17: Reset drop cap counter
+            this.bossFightStartTime = 0;   // v4.18: Reset fight start time
         }
 
         /**

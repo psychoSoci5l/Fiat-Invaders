@@ -118,10 +118,10 @@ Activates when shotLevel=3 + rate>=2 + power>=2 + spread>=1. Red ship, fire trai
 15 unique waves (5 per cycle x 3 cycles) with thematic currency assignments. 16 formation types. 2 hordes per wave. Bear Market: +25% count. Legacy fallback cycles 4+.
 
 ### Boss System
-3 bosses: FEDERAL_RESERVE ($), BCE (euro), BOJ (yen). 3 phases each. HP: `3000 + level*65 + (cycle-1)*1400`. Phase thresholds from `Balance.BOSS.PHASE_THRESHOLDS`. 6 exclusive patterns. Mini-boss triggers via per-currency kill counters.
+3 bosses: FEDERAL_RESERVE ($), BCE (euro), BOJ (yen). 3 phases each. HP: `3000 + level*65 + (cycle-1)*1400`. Phase thresholds from `Balance.BOSS.PHASE_THRESHOLDS`. 6 exclusive patterns. Mini-boss triggers via per-currency kill counters. v4.19.1: Dir-based movement (FED P1/P2, BCE P1/P2/P3) uses boundary clamp to prevent oscillation after phase transition shake.
 
 ### Power-Up & Drop System
-Managed by `DropSystem.js`. Drop rates: 3%/2.5%/1% by tier + pity timer (55 kills). Weapon cooldown 8s. Boss drops capped at 6 per fight (DROP_INTERVAL 40, cooldown 3s). No cycle scaling (CYCLE_BONUS=0). Categories: UPGRADE, MODIFIER, SPECIAL. v4.15: Visual distinction — UPGRADE=Star, MODIFIER=Diamond (was hexagon), SPECIAL=Circle+Ring. Glow + light sweep on all power-ups.
+Managed by `DropSystem.js`. Drop rates: 3%/2.5%/1% by tier + pity timer (55 kills). Weapon cooldown 8s. Boss drops capped at 6 per fight (DROP_INTERVAL 40, cooldown 3s). No cycle scaling (CYCLE_BONUS=0). Categories: UPGRADE, MODIFIER, SPECIAL. v4.15: Visual distinction — UPGRADE=Star, MODIFIER=Diamond (was hexagon), SPECIAL=Circle+Ring. Glow + light sweep on all power-ups. v4.19: Adaptive Drops — suppression gate based on Player Power Score (0.0→1.0), need-based category selection. Config: `Balance.ADAPTIVE_DROPS`.
 
 ### HUD & Messages (v4.4.0)
 5 canvas channels: WAVE_STRIP, ALERT, MEME_WHISPER, SHIP_STATUS, FLOATING_TEXT. Diegetic ship HUD (life pips, shield ring, weapon pips). Reactive HUD (streak colors, HYPER glow, danger pulse).
@@ -136,7 +136,7 @@ Sky progression (5 levels + boss). Tiered death explosions. Hit stop & screen fl
 Trigger: cancel 5 enemy bullets in 1.5s. Random perk auto-applied. Cooldown 4s. Pool in `Upgrades.js`.
 
 ### Debug System
-Console: `dbg.balanceTest()` -> play -> `dbg.report()`. Overlay: `dbg.showOverlay()`. Presets: `dbg.debugBoss()`, `dbg.debugWaves()`. Weapon: `dbg.weaponStatus()`, `dbg.maxWeapon()`. Production: `dbg.setProduction()`. Power-up economy: `dbg.powerUpReport()` (drops spawned/collected/expired, weapon timeline, modifier overlap, GODCHAIN stats).
+Console: `dbg.balanceTest()` -> play -> `dbg.report()`. Overlay: `dbg.showOverlay()`. Presets: `dbg.debugBoss()`, `dbg.debugWaves()`. Weapon: `dbg.weaponStatus()`, `dbg.maxWeapon()`. Production: `dbg.setProduction()`. Power-up economy: `dbg.powerUpReport()` (drops spawned/collected/expired, weapon timeline, modifier overlap, GODCHAIN stats, adaptive suppression stats).
 
 ### Tutorial (v4.12.0) & Manual v2
 3-step DOM overlay (Controls/Objective/Survival), localStorage skip. Manual: 4 scrollable sections replacing 6 tabs.

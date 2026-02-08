@@ -1,5 +1,38 @@
 # Changelog
 
+## v4.19.1 - 2026-02-08
+### Boss Movement Freeze Fix
+
+- **BUG FIX**: All bosses (FED/BCE) could permanently stop moving after phase transitions
+  - **Root cause**: Phase transition shake used `this.x +=` (random walk), pushing boss 20-40px past screen boundaries. Boundary check only flipped `dir` without clamping position, causing sub-pixel oscillation (~0.88px/frame step couldn't escape 5-10px overshoot zone)
+  - **Fix**: All 5 dir-based boundary checks (FED P1/P2, BCE P1/P2/P3) now clamp position + set absolute direction instead of `dir *= -1`
+  - FED P3 and BOJ (all phases) already used lerp+clamp, unaffected
+
+---
+
+## v4.19.0 - 2026-02-08
+### Adaptive Drop System
+
+Intelligent power-up economy that scales drops based on player power state.
+
+- **Player Power Score** (0.0→1.0): Composite metric from shot level (40%), modifier levels (35%), and special (25%)
+- **Suppression Gate**: Drops have a chance to be suppressed proportional to power score
+  - Power 0.0 → 0% suppressed (weak player gets everything)
+  - Power 0.5 → 50% suppressed
+  - Power 1.0 → ~100% suppressed (fully armed player rarely gets more)
+  - Pity drops always bypass suppression
+  - SUPPRESSION_FLOOR: 0.15 (protects fresh/post-death players)
+  - Suppressed drops don't reset kill counter → pity timer keeps counting
+- **Need-Based Category Selection**: Replaces fixed 60/40 modifier/special split
+  - Categories weighted by player need (upgrade, modifier, special)
+  - Max-level players get fewer upgrades, more of what they lack
+- **Config**: New `Balance.ADAPTIVE_DROPS` block in BalanceConfig.js
+- **Debug**: `dbg.powerUpReport()` now shows ADAPTIVE SUPPRESSION section
+  - Tracks suppressed count, rate, avg power score at suppression
+- **Impact**: ~12-14 drops per 4:30 run (was 19), gradual power curve, fast post-death recovery
+
+---
+
 ## v4.17.0 - 2026-02-08
 ### Unified Balance & Bugfix Patch
 

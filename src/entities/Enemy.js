@@ -92,7 +92,7 @@ class Enemy extends window.Game.Entity {
             y: this.y + 24, // v4.14: Adjusted for 48px enemy (was +32 for 65px)
             vx: vx,
             vy: vy,
-            color: this.color, // Match enemy color
+            color: '#ffffff', // v4.18: All enemy bullets white for visual clarity
             w: size.w,
             h: size.h,
             shape: this.shape  // Pass enemy shape for visual differentiation

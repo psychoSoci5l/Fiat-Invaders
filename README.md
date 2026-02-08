@@ -10,7 +10,7 @@
 *   **Responsive**: "Notch-safe" UI design that adapts to all mobile screens.
 *   **Localization**: Fully localized in English (EN) and Italian (IT).
 
-## 🧠 Current Gameplay Rules (v4.16.0)
+## 🧠 Current Gameplay Rules (v4.19.1)
 
 *   **Two Game Modes**: **Story Mode** (3 acts with narrative chapters, boss progression FED→BCE→BOJ) and **Arcade Mode** (endless waves, high scores, mini-bosses).
 *   **Wave System**: 15 unique waves (5 per cycle x 3 cycles) with 16 formation patterns and thematic currency groups.

@@ -181,15 +181,23 @@ class Boss extends window.Game.Entity {
         if (this.phase === 1) {
             // Slow patrol
             this.x += this.moveSpeed * this.dir * dt;
-            if (this.x < 20 || this.x + this.width > this.gameWidth - 20) {
-                this.dir *= -1;
+            if (this.x < 20) {
+                this.x = 20;
+                this.dir = 1;
+            } else if (this.x + this.width > this.gameWidth - 20) {
+                this.x = this.gameWidth - 20 - this.width;
+                this.dir = -1;
             }
         } else if (this.phase === 2) {
             // Faster, erratic movement (speed from Balance config)
             this.x += this.moveSpeed * this.dir * dt;
             this.y = this.targetY + Math.sin(this.animTime * 3) * 20;
-            if (this.x < 20 || this.x + this.width > this.gameWidth - 20) {
-                this.dir *= -1;
+            if (this.x < 20) {
+                this.x = 20;
+                this.dir = 1;
+            } else if (this.x + this.width > this.gameWidth - 20) {
+                this.x = this.gameWidth - 20 - this.width;
+                this.dir = -1;
             }
         } else {
             // Phase 3: RAGE - Erratic aggressive movement (speed from Balance config)
@@ -216,22 +224,34 @@ class Boss extends window.Game.Entity {
         if (this.phase === 1) {
             // Very slow patrol - bureaucracy is slow
             this.x += this.moveSpeed * this.dir * dt;
-            if (this.x < 40 || this.x + this.width > this.gameWidth - 40) {
-                this.dir *= -1;
+            if (this.x < 40) {
+                this.x = 40;
+                this.dir = 1;
+            } else if (this.x + this.width > this.gameWidth - 40) {
+                this.x = this.gameWidth - 40 - this.width;
+                this.dir = -1;
             }
         } else if (this.phase === 2) {
             // Still slow but with vertical oscillation
             this.x += this.moveSpeed * this.dir * dt;
             this.y = this.targetY + Math.sin(this.animTime * 1.5) * 15;
-            if (this.x < 30 || this.x + this.width > this.gameWidth - 30) {
-                this.dir *= -1;
+            if (this.x < 30) {
+                this.x = 30;
+                this.dir = 1;
+            } else if (this.x + this.width > this.gameWidth - 30) {
+                this.x = this.gameWidth - 30 - this.width;
+                this.dir = -1;
             }
         } else {
             // Phase 3: Fragmentation - faster, erratic
             this.x += this.moveSpeed * this.dir * dt;
             this.y = this.targetY + Math.sin(this.animTime * 3) * 25 + Math.cos(this.animTime * 5) * 10;
-            if (this.x < 20 || this.x + this.width > this.gameWidth - 20) {
-                this.dir *= -1;
+            if (this.x < 20) {
+                this.x = 20;
+                this.dir = 1;
+            } else if (this.x + this.width > this.gameWidth - 20) {
+                this.x = this.gameWidth - 20 - this.width;
+                this.dir = -1;
             }
 
             // Spawn euro minions (rate from Balance config)
