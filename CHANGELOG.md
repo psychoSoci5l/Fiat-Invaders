@@ -1,5 +1,12 @@
 # Changelog
 
+## v4.11.0 (infra) - 2026-02-08
+### Git Hygiene & Architecture Docs
+- **Added `.gitignore`**: Excludes prompt files (`*.txt`, `*prompt*.md`), local tool config (`.claude/`, `_ps_meta/`), dev docs (`PROJECT_SNAPSHOT.md`, `BALANCE_TEST.md`), OS artifacts
+- **Removed 6 non-project files from git tracking** (kept on disk): `.claude/`, `_ps_meta/`, `debug checklist.txt`, `BALANCE_TEST.md`
+- **Updated CLAUDE.md**: New "Git Hygiene" mandatory rule — ON/NOT on git checklist, pre-commit check
+- **Created `PROJECT_SNAPSHOT.md`** (local-only): Full architecture snapshot for faster session onboarding (38 files, 28 classes, 150+ methods documented)
+
 ## v4.11.0 - 2026-02-06
 ### Performance: 60fps Rock Solid — Draw + GC Optimization
 

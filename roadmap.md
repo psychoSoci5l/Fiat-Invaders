@@ -2212,3 +2212,110 @@ DIGITAL_THREAT: ['Ⓒ', '$', '元']  // CBDCs + majors
 - [ ] **Memory footprint** (F): Stabilità memoria su sessioni lunghe (10+ minuti)
 
 ---
+
+## BUGFIX ROADMAP — Partenza da v4.11.0 (stabile GitHub)
+
+> Le sessioni v4.12–v4.17 hanno identificato questi problemi ma le modifiche non sono mai state
+> portate a termine con successo. Si riparte dalla base stabile v4.11.0.
+> Ogni fix deve essere chirurgico: minimo impatto, massima stabilità.
+
+---
+
+### BUG 1: Boss phase thresholds ignorano config
+**Severità**: Media — il boss cambia fase a 66%/33% HP, ma il config `PHASE_THRESHOLDS` non viene letto
+**File**: `src/entities/Boss.js` — metodo `damage()`, righe 72/74
+**Problema**: Valori `0.66` e `0.33` hardcoded. `Balance.BOSS.PHASE_THRESHOLDS` esiste (`[0.66, 0.33]`) ma non viene mai usato. Se si modificano i threshold nel config, non succede nulla.
+**Fix**:
+```javascript
+// Boss.js damage() — leggere da config con fallback
+const thresholds = window.Game.Balance?.BOSS?.PHASE_THRESHOLDS || [0.66, 0.33];
+if (hpPct <= thresholds[1] && this.phase < 3) { ... }
+else if (hpPct <= thresholds[0] && this.phase < 2) { ... }
+```
+**Impatto**: Solo `Boss.js`, 2 righe. Zero rischio regressione.
+
+---
+
+### BUG 2: CHEVRON formation genera troppe righe → nemici nella zona player
+**Severità**: Alta — causa morte entro 4 secondi su wave specifiche
+**File**: `src/managers/WaveManager.js` — `generateChevron()`, righe 657-677
+**Problema**: L'algoritmo genera 1 nemico per braccio per riga → servono `(count+1)/2` righe. Con scaling ciclico (×1.25/×1.5), le CHEVRON di Ciclo 2+ producono 10+ righe, superando la Y-safety zone.
+**Esempio concreto**: C1W4 H1 (14 nemici × 1.25 = 17): 9 righe × 85px × 0.75 = 574px di span. Bordo inferiore a ~654px, player a ~630px. Morte istantanea.
+**Fix proposto** (due opzioni, scegliere una):
+- **Opzione A**: Braccia larghe — 2 nemici per braccio per riga → dimezza il numero di righe
+- **Opzione B**: Spaziatura Y compressa — ridurre il moltiplicatore 0.75 → ~0.45 per CHEVRON
+- In entrambi i casi, estrarre il moltiplicatore Y in `Balance.FORMATION`
+**Impatto**: Solo `WaveManager.js` generatore CHEVRON + 1 parametro in `BalanceConfig.js`
+
+---
+
+### BUG 3: Y-clamp hardcoded a 0.65
+**Severità**: Media — collegato a BUG 2, impedisce tuning senza modifica codice
+**File**: `src/managers/WaveManager.js` — riga 507
+**Problema**: `maxYBound = gameH * 0.65` è hardcoded. Se si vuole modificare la zona sicura, bisogna editare il codice.
+**Fix**: Estrarre in `Balance.FORMATION.MAX_Y_RATIO` con fallback a 0.65 (o valore più sicuro)
+**Impatto**: 1 riga in WaveManager + 1 parametro in BalanceConfig. Zero rischio.
+
+---
+
+### BUG 4: Confusione visiva proiettili nemici ↔ power-up
+**Severità**: Alta — i playtester scambiano proiettili nemici per collezionabili
+**File**: `src/entities/Bullet.js` — `drawEnemyBullet()`, righe 963-980
+**Problema**: Il sistema attuale è basato sulla **forma** del nemico (coin/bill/bar/card). I proiettili di tipo "coin" (rotondi, metallici, brillanti) assomigliano ai power-up. Non c'è differenziazione per livello di minaccia.
+**Obiettivo**: Passare a un sistema basato sul **tier** (WEAK/MEDIUM/STRONG) con visual distinti:
+- WEAK: piccolo, grigio/bianco, non pericoloso → cerchio semplice
+- MEDIUM: medio, ambra → diamante
+- STRONG: grande, rosso → freccia/dardo
+- Regola: "Se brilla d'oro → raccoglilo". Mai glow dorato sui nemici.
+**Stato attuale v4.11.0**: Dispatch `switch(this.shape)` → `drawCoinBullet`, `drawBillBullet`, `drawBarBullet`, `drawCardBullet`
+**Fix**: Cambiare dispatch a `switch(this.tier)` → `drawWeakBullet`, `drawMediumBullet`, `drawStrongBullet`. I metodi draw devono avere identità visiva propria e qualità all'altezza del motore (il gioco gira a 114+ FPS, c'è budget di draw calls).
+**Attenzione**: Due tentativi di riscrittura sono stati rifiutati perché inferiori all'originale. Il codice attuale shape-based (v4.11.0) è il BASELINE di qualità da eguagliare o superare, non un placeholder.
+**Impatto**: `Bullet.js` (dispatch + 3 metodi draw), `Enemy.js` (passare tier al proiettile al posto di shape)
+
+---
+
+### BUG 5: Entità sovradimensionate (65px nemici)
+**Severità**: Media — contribuisce a BUG 4 (confusione visiva) e ingombro schermo
+**File**: `src/entities/Enemy.js` riga 5 (costruttore: `super(x, y, 65, 65)`)
+**Problema**: Nemici 65×65px occupano troppo spazio → formazioni dense sembrano un muro, proiettili si confondono tra entità. Player 30px, Power-Up 30px — i nemici sono 2× più grandi dei power-up.
+**Target**: Scalare a ~36×36px con proporzionale riduzione di:
+- Spaziatura formazione: 85 → ~48px (`Balance.FORMATION.SPACING`)
+- Proiettili player: proporzionali
+- Power-up: 30 → ~24px con glow dorato prominente (differenziazione)
+- Boss (160×140): invariato → diventa 4.4× il nemico (più imponente)
+**Impatto**: `Enemy.js` (size + draw proporzionale), `BalanceConfig.js` (FORMATION spacing/margin), `Bullet.js` (player bullet size), `PowerUp.js` (size + glow)
+**Rischio**: Alto — tocca rendering di tutte le entità. Richiede playtest approfondito.
+
+---
+
+### BUG 6: Drop rate feedback loop → boss triviali
+**Severità**: Media — emerso dal playtest, non un crash ma gameplay rotto
+**File**: `src/config/BalanceConfig.js` — sezione `DROPS`
+**Problema**: Drop rate 6%/4%/2% + pity timer ogni 30 kill = pioggia di power-up → DPS esplode → boss muoiono in <30s. Il loop: più nemici uccidi → più drop → più DPS → uccidi ancora più veloce.
+**Valori attuali**: `CHANCE_STRONG: 0.06`, `CHANCE_MEDIUM: 0.04`, `CHANCE_WEAK: 0.02`, `PITY_TIMER_KILLS: 30`
+**Target provato**: `0.04/0.025/0.015`, pity timer 40, max 5 drop per boss fight
+**Impatto**: Solo `BalanceConfig.js`. Richiede playtest per validare.
+
+---
+
+### BUG 7: Firing nemico scala linearmente con conteggio
+**Severità**: Media — più nemici = proporzionalmente più proiettili, non è controllato
+**Problema**: Il sistema HarmonicConductor gestisce il firing beat-driven, ma con più nemici a schermo il volume di fuoco scala linearmente. Con scaling ciclico (×1.25/×1.5) la quantità di proiettili diventa ingestibile.
+**Soluzione provata**: Fire budget system — budget fisso di proiettili/secondo (3-5), distribuito con peso per tier (STRONG 3×, MEDIUM 2×, WEAK 1×). Boss fight restano beat-driven.
+**Impatto**: Nuovo sistema in `BalanceConfig.js` + logica firing in main.js/HarmonicConductor. Cambiamento medio-grande.
+
+---
+
+### Ordine di priorità consigliato
+
+| # | Bug | Rischio | Complessità | Priorità |
+|---|-----|---------|-------------|----------|
+| 1 | Boss thresholds | Zero | 2 righe | **Immediato** |
+| 3 | Y-clamp config | Zero | 2 righe | **Immediato** |
+| 2 | CHEVRON overflow | Basso | ~30 righe | **Alto** |
+| 4 | Visual proiettili | Medio | ~100 righe | **Alto** |
+| 6 | Drop rate | Zero | Config only | **Medio** |
+| 5 | Entity resize | Alto | Multi-file | **Medio** (dopo 4) |
+| 7 | Fire budget | Medio | Nuovo sistema | **Basso** (dopo 5+6) |
+
+---

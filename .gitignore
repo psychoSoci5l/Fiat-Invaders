@@ -1,0 +1,25 @@
+# === Dev / AI prompt files ===
+*.txt
+*prompt*.md
+fiat_invaders_*.md
+PROJECT_SNAPSHOT.md
+BALANCE_TEST.md
+
+# === Local tool config ===
+.claude/
+_ps_meta/
+
+# === Windows artifacts ===
+nul
+Thumbs.db
+Desktop.ini
+
+# === OS files ===
+.DS_Store
+
+# === Editor ===
+*.swp
+*.swo
+*~
+.vscode/
+.idea/

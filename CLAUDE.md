@@ -20,6 +20,26 @@ When completing a feature or ending a session, **always update these files witho
 
 This is a **priority rule** - documentation updates are part of the work, not an afterthought.
 
+### Git Hygiene (MANDATORY)
+
+Only **project files** belong in git. Personal/dev files stay local, excluded by `.gitignore`.
+
+**ON git** (project):
+- Source code (`src/`, `index.html`, `style.css`, `sw.js`)
+- Assets (`icon-512.png`, `splashscreen.mp4`, `manifest.json`, `_headers`)
+- Docs (`README.md`, `CLAUDE.md`, `CHANGELOG.md`, `roadmap.md`, `PLAYER_MANUAL.md`, `MANUALE_GIOCATORE.md`, `PRIVACY.md`, `NOTES.md`)
+- Tests (`tests/`)
+- `.gitignore`
+
+**NOT on git** (local-only, in `.gitignore`):
+- Prompt files (`*.txt`, `*prompt*.md`)
+- AI tool config (`.claude/`)
+- Project metadata (`_ps_meta/`)
+- Local dev docs (`PROJECT_SNAPSHOT.md`, `BALANCE_TEST.md`)
+- OS artifacts (`nul`, `.DS_Store`, `Thumbs.db`)
+
+**Rule**: Before committing, always check `git status`. If you see untracked files that are NOT project code/docs, do NOT add them. If a new file type should be excluded, update `.gitignore` first.
+
 ---
 
 ## Project Overview
