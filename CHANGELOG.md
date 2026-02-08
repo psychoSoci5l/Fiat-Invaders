@@ -1,5 +1,34 @@
 # Changelog
 
+## v4.17.0 - 2026-02-08
+### Unified Balance & Bugfix Patch
+
+Power-up economy fix, enemy bullet visual distinction, and fire budget system.
+
+- **Power-Up Economy Fix**: Target 30-40/run (was 62)
+  - Boss drops: DROP_INTERVAL 25→40, BOSS_DROP_COOLDOWN 1.5→3.0s
+  - New: MAX_DROPS_PER_BOSS cap of 6 per boss fight
+  - Pity timer: PITY_BASE 45→55, PITY_REDUCTION 3→2 kills/cycle
+  - Cycle scaling removed: CYCLE_BONUS 0.5%→0% (flat rate across cycles)
+  - Weapon cooldown: 5.0→8.0s between weapon drops
+- **BUG 4: Enemy Bullet Visual Distinction** (Bullet.js)
+  - Glow reduced: radius r+6→r+3, alpha halved (0.3→0.15)
+  - White ring removed: replaced with dark hostile ring (rgba(80,20,20,0.35))
+  - Hostile tint: glow color shifted 70% enemy + 30% red
+  - Trail dimmed: alpha 0.35/0.15→0.20/0.08
+  - White contours on shapes (coin/bill/bar/card) → dark semi-transparent
+  - Core shape, animation, and size unchanged (4×4px)
+- **BUG 7: Fire Budget System** (HarmonicConductor.js)
+  - New FIRE_BUDGET config in BalanceConfig.js
+  - Per-cycle bullet limits: C1 25/sec, C2 45/sec, C3 70/sec
+  - Bear Market +10/sec, PANIC phase +30%, Rank ±15%
+  - Budget recharges per-frame, caps at 1.5x max
+  - Commands skipped (not delayed) when budget exhausted
+  - GLOBAL_BULLET_CAP (150) remains as separate safety net
+- **BUG 5 closed**: 48px entities confirmed OK since v4.14.0
+
+---
+
 ## v4.16.0 - 2026-02-08
 ### Post-Audit Balance Tuning
 

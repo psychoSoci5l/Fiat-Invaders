@@ -112,7 +112,7 @@ Scaling via `Balance.DIFFICULTY`: +8%/level, +20%/cycle, cap 85%, Bear Market 1.
 Activates when shotLevel=3 + rate>=2 + power>=2 + spread>=1. Red ship, fire trails, +5% speed. Deactivates on modifier expiry or death. Config: `Balance.GODCHAIN`.
 
 ### Enemy System
-10 fiat currencies in 3 tiers (Weak/Medium/Strong). 4 visual shapes: coin, bill, bar, card. Enemy bullets inherit shape from parent enemy. v4.14: Enemies 48×48px (was 65), bullets 4×4 (was 6×6), bullet speed -40%.
+10 fiat currencies in 3 tiers (Weak/Medium/Strong). 4 visual shapes: coin, bill, bar, card. Enemy bullets inherit shape from parent enemy. v4.14: Enemies 48×48px (was 65), bullets 4×4 (was 6×6), bullet speed -40%. v4.17: Enemy bullets have hostile tint (70% color + 30% red), dark rings/contours (no white glow), dimmed trails — visually distinct from power-ups. Fire budget limits bullet density: C1=25, C2=45, C3=70 bullets/sec.
 
 ### Wave System (v4.0)
 15 unique waves (5 per cycle x 3 cycles) with thematic currency assignments. 16 formation types. 2 hordes per wave. Bear Market: +25% count. Legacy fallback cycles 4+.
@@ -121,7 +121,7 @@ Activates when shotLevel=3 + rate>=2 + power>=2 + spread>=1. Red ship, fire trai
 3 bosses: FEDERAL_RESERVE ($), BCE (euro), BOJ (yen). 3 phases each. HP: `3000 + level*65 + (cycle-1)*1400`. Phase thresholds from `Balance.BOSS.PHASE_THRESHOLDS`. 6 exclusive patterns. Mini-boss triggers via per-currency kill counters.
 
 ### Power-Up & Drop System
-Managed by `DropSystem.js`. Drop rates: 3%/2.5%/1% by tier + pity timer (45 kills). Weapon cooldown 5s. Categories: UPGRADE, MODIFIER, SPECIAL. v4.15: Visual distinction — UPGRADE=Star, MODIFIER=Diamond (was hexagon), SPECIAL=Circle+Ring. Glow + light sweep on all power-ups.
+Managed by `DropSystem.js`. Drop rates: 3%/2.5%/1% by tier + pity timer (55 kills). Weapon cooldown 8s. Boss drops capped at 6 per fight (DROP_INTERVAL 40, cooldown 3s). No cycle scaling (CYCLE_BONUS=0). Categories: UPGRADE, MODIFIER, SPECIAL. v4.15: Visual distinction — UPGRADE=Star, MODIFIER=Diamond (was hexagon), SPECIAL=Circle+Ring. Glow + light sweep on all power-ups.
 
 ### HUD & Messages (v4.4.0)
 5 canvas channels: WAVE_STRIP, ALERT, MEME_WHISPER, SHIP_STATUS, FLOATING_TEXT. Diegetic ship HUD (life pips, shield ring, weapon pips). Reactive HUD (streak colors, HYPER glow, danger pulse).

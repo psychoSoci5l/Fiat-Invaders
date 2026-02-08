@@ -333,13 +333,13 @@
         // --- DROP SYSTEM ---
         // v4.16: Halved rates — audit showed 78 power-ups/7min (10.5/min), target ~30-40/run
         DROPS: {
-            WEAPON_COOLDOWN: 5.0,     // Min seconds between weapon drops
+            WEAPON_COOLDOWN: 8.0,     // Min seconds between weapon drops (v4.17: 5.0→8.0)
             PITY_TIMER_KILLS: 45,     // Guaranteed drop after N kills (v4.16: 30→45)
             CHANCE_STRONG: 0.03,      // 3% for strong enemies (v4.16: 6%→3%)
             CHANCE_MEDIUM: 0.025,     // 2.5% for medium enemies (v4.16: 4%→2.5%)
             CHANCE_WEAK: 0.01,        // 1% for weak enemies (v4.16: 2%→1%)
             WEAPON_RATIO: 0.5,        // 50% weapon, 50% ship power-up
-            BOSS_DROP_COOLDOWN: 1.5,  // Seconds between boss power-up drops
+            BOSS_DROP_COOLDOWN: 3.0,  // Seconds between boss power-up drops (v4.17: 1.5→3.0)
             SHIP_TYPES: ['SPEED', 'RAPID', 'SHIELD']  // Available ship power-ups
         },
 
@@ -387,7 +387,8 @@
         // Designed for 3-cycle runs (~12 min). Each boss ~2-3 min fight.
         BOSS: {
             WARNING_DURATION: 2.0,    // Seconds of warning before boss spawns
-            DROP_INTERVAL: 25,        // Drop power-up every N hits on boss
+            DROP_INTERVAL: 40,        // Drop power-up every N hits on boss (v4.17: 25→40)
+            MAX_DROPS_PER_BOSS: 6,    // v4.17: Cap absolute drops per boss fight
             MEME_ROTATION_INTERVAL: 4.0,  // Seconds between boss meme rotations
             PHASE_THRESHOLDS: [0.66, 0.33], // HP % for phase transitions (Phase 2, Phase 3)
             PHASE_TRANSITION_TIME: 1.5,    // Seconds for phase transition
@@ -751,14 +752,14 @@
         },
 
         // --- DROP SCALING ---
-        // v4.16: Reduced scaling to match halved base rates
+        // v4.17: Fixed drop rate to prevent power-up flood (62/run → target 30-40)
         DROP_SCALING: {
             // Per-cycle bonus to drop chance
-            CYCLE_BONUS: 0.005,           // +0.5% per cycle (v4.16: 1%→0.5%)
+            CYCLE_BONUS: 0,              // v4.17: 0.5%→0 (flat rate, no cycle scaling)
 
             // Pity timer decreases with cycle
-            PITY_BASE: 45,               // Base kills for guaranteed drop (v4.16: 30→45)
-            PITY_REDUCTION: 3            // -3 kills per cycle (min 15) (v4.16: 5→3)
+            PITY_BASE: 55,              // Base kills for guaranteed drop (v4.17: 45→55)
+            PITY_REDUCTION: 2           // -2 kills per cycle (min 15) (v4.17: 3→2)
         },
 
         // --- WAVES ---
@@ -1026,6 +1027,17 @@
             ENEMY_COUNT_RANGE: 0.15,  // ±15% enemy count adjustment
             DEATH_PENALTY: 0.15,      // Rank decrease on death
             CONVERGENCE_SPEED: 0.5    // How fast rank changes (lower = smoother)
+        },
+
+        // --- FIRE BUDGET (v4.17 — BUG 7 fix: bullet density control) ---
+        // Limits total enemy bullets/sec to prevent screen flooding with many enemies
+        FIRE_BUDGET: {
+            ENABLED: true,
+            BULLETS_PER_SECOND: [25, 45, 70],  // Per cycle [C1, C2, C3]
+            BEAR_MARKET_BONUS: 10,              // +10 bullets/sec in Bear Market
+            PANIC_MULTIPLIER: 1.3,              // +30% during PANIC phase
+            RANK_SCALE: 0.15,                   // ±15% from rank
+            DEFICIT_CARRYOVER: 0.5              // 50% unused budget carried over
         },
 
         // --- HELPER FUNCTIONS ---

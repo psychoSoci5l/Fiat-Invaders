@@ -956,6 +956,19 @@ class Bullet extends window.Game.Entity {
         ctx.fillText('₿', this.x, this.y + 1);
     }
 
+    // v4.17: Get hostile-tinted glow color (70% enemy color + 30% red)
+    getHostileGlowColor() {
+        const CU = window.Game.ColorUtils;
+        if (!CU || !CU.parseColor) return this.color;
+        // Parse the enemy color to RGB, mix with red
+        const c = CU.parseColor(this.color);
+        if (!c) return this.color;
+        const r = Math.min(255, Math.round(c.r * 0.7 + 200 * 0.3));
+        const g = Math.round(c.g * 0.7);
+        const b = Math.round(c.b * 0.7);
+        return CU.rgba(r, g, b, 1);
+    }
+
     // ═══════════════════════════════════════════════════════════════════
     // ENEMY BULLET DISPATCHER
     // Routes to shape-specific method or default energy bolt
@@ -987,6 +1000,7 @@ class Bullet extends window.Game.Entity {
         const beatBoost = this.beatSynced ? 1.5 : 1.0;
         const r = (this.width || 5) * 1.8;
         const pulse = Math.sin(this.age * 25) * 0.15 + 1;
+        const glowColor = this.getHostileGlowColor(); // v4.17: hostile tint
 
         // Calculate direction for trail
         const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy) || 1;
@@ -996,9 +1010,9 @@ class Bullet extends window.Game.Entity {
         const perpY = dirX;
         const trailLen = Math.min(28, speed * 0.12);
 
-        // === Trail (2 segments instead of 4 for perf) ===
-        ctx.fillStyle = this.color;
-        ctx.globalAlpha = 0.35;
+        // === Trail (2 segments) — v4.17: reduced alpha ===
+        ctx.fillStyle = glowColor;
+        ctx.globalAlpha = 0.20;
         ctx.beginPath();
         const d1 = trailLen * 0.5;
         const w1 = r * 0.45;
@@ -1007,7 +1021,7 @@ class Bullet extends window.Game.Entity {
         ctx.lineTo(this.x - dirX * d1 + perpX * w1, this.y - dirY * d1 + perpY * w1);
         ctx.closePath();
         ctx.fill();
-        ctx.globalAlpha = 0.15;
+        ctx.globalAlpha = 0.08;
         ctx.beginPath();
         const w2 = r * 0.6;
         ctx.moveTo(this.x - dirX * trailLen - perpX * w2, this.y - dirY * trailLen - perpY * w2);
@@ -1017,24 +1031,23 @@ class Bullet extends window.Game.Entity {
         ctx.fill();
         ctx.globalAlpha = 1;
 
-        // === SAME AS ENERGY BOLT: Outer glow ===
-        ctx.fillStyle = this.color;
-        ctx.globalAlpha = 0.3 * pulse * beatBoost;
+        // === Outer glow — v4.17: smaller radius, halved alpha, hostile tint ===
+        ctx.fillStyle = glowColor;
+        ctx.globalAlpha = 0.15 * pulse * beatBoost;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, r + 6 + (this.beatSynced ? 3 : 0), 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, r + 3 + (this.beatSynced ? 2 : 0), 0, Math.PI * 2);
         ctx.fill();
         ctx.globalAlpha = 1;
 
-        // === SAME AS ENERGY BOLT: White ring ===
-        ctx.strokeStyle = Bullet._WHITE_HALF;
+        // === v4.17: Dark hostile ring (was white — looked collectible) ===
+        ctx.strokeStyle = Bullet._HOSTILE_RING;
         ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, r + 3, 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, r + 2, 0, Math.PI * 2);
         ctx.stroke();
 
-        // === DIFFERENT: Spinning ellipse core instead of circle ===
-        // v4.0.4: Increased from 0.8/0.4 to 0.9/0.5 for better visibility
-        const rotation = this.age * 12; // Spin speed
+        // === Spinning ellipse core ===
+        const rotation = this.age * 12;
         const ellipseWidth = Math.abs(Math.cos(rotation)) * r * 0.9 + r * 0.5;
 
         // Main coin body (ellipse)
@@ -1043,8 +1056,8 @@ class Bullet extends window.Game.Entity {
         ctx.ellipse(this.x, this.y, ellipseWidth * pulse, r * pulse, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // White contour
-        ctx.strokeStyle = '#fff';
+        // v4.17: Dark contour (was white)
+        ctx.strokeStyle = Bullet._HOSTILE_CONTOUR;
         ctx.lineWidth = 2;
         ctx.stroke();
 
@@ -1080,6 +1093,7 @@ class Bullet extends window.Game.Entity {
         const beatBoost = this.beatSynced ? 1.5 : 1.0;
         const r = (this.width || 5) * 1.8;
         const pulse = Math.sin(this.age * 25) * 0.15 + 1;
+        const glowColor = this.getHostileGlowColor(); // v4.17: hostile tint
 
         // Calculate direction for trail
         const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy) || 1;
@@ -1089,9 +1103,9 @@ class Bullet extends window.Game.Entity {
         const perpY = dirX;
         const trailLen = Math.min(28, speed * 0.12);
 
-        // === Trail (2 segments) ===
-        ctx.fillStyle = this.color;
-        ctx.globalAlpha = 0.35;
+        // === Trail (2 segments) — v4.17: reduced alpha ===
+        ctx.fillStyle = glowColor;
+        ctx.globalAlpha = 0.20;
         ctx.beginPath();
         const d1 = trailLen * 0.5, w1 = r * 0.45;
         ctx.moveTo(this.x - dirX * d1 - perpX * w1, this.y - dirY * d1 - perpY * w1);
@@ -1099,7 +1113,7 @@ class Bullet extends window.Game.Entity {
         ctx.lineTo(this.x - dirX * d1 + perpX * w1, this.y - dirY * d1 + perpY * w1);
         ctx.closePath();
         ctx.fill();
-        ctx.globalAlpha = 0.15;
+        ctx.globalAlpha = 0.08;
         ctx.beginPath();
         const w2 = r * 0.6;
         ctx.moveTo(this.x - dirX * trailLen - perpX * w2, this.y - dirY * trailLen - perpY * w2);
@@ -1109,46 +1123,44 @@ class Bullet extends window.Game.Entity {
         ctx.fill();
         ctx.globalAlpha = 1;
 
-        // === SAME AS ENERGY BOLT: Outer glow ===
-        ctx.fillStyle = this.color;
-        ctx.globalAlpha = 0.3 * pulse * beatBoost;
+        // === Outer glow — v4.17: smaller, dimmer, hostile tint ===
+        ctx.fillStyle = glowColor;
+        ctx.globalAlpha = 0.15 * pulse * beatBoost;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, r + 6 + (this.beatSynced ? 3 : 0), 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, r + 3 + (this.beatSynced ? 2 : 0), 0, Math.PI * 2);
         ctx.fill();
         ctx.globalAlpha = 1;
 
-        // === SAME AS ENERGY BOLT: White ring ===
-        ctx.strokeStyle = Bullet._WHITE_HALF;
+        // === v4.17: Dark hostile ring (was white) ===
+        ctx.strokeStyle = Bullet._HOSTILE_RING;
         ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, r + 3, 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, r + 2, 0, Math.PI * 2);
         ctx.stroke();
 
-        // === DIFFERENT: Folded paper airplane V-shape ===
-        const flutter = Math.sin(this.age * 18) * 0.15; // Subtle flutter
-        const angle = Math.atan2(this.vy, this.vx); // Direction of travel
+        // === Folded paper airplane V-shape ===
+        const flutter = Math.sin(this.age * 18) * 0.15;
+        const angle = Math.atan2(this.vy, this.vx);
 
         ctx.save();
         ctx.translate(this.x, this.y);
-        ctx.rotate(angle + Math.PI / 2); // Point in direction of travel
+        ctx.rotate(angle + Math.PI / 2);
 
-        // Main paper body (V-shape / folded bill)
-        // v4.0.4: Increased from 1.2/1.4 to 1.4/1.6 for better visibility
         const w = r * 1.4 * pulse;
         const h = r * 1.6;
 
         // Paper body
         ctx.fillStyle = this.color;
         ctx.beginPath();
-        ctx.moveTo(0, -h * 0.6);                          // Nose tip
-        ctx.lineTo(w * (1 + flutter), h * 0.3);           // Right wing
-        ctx.lineTo(0, h * 0.1);                           // Center notch
-        ctx.lineTo(-w * (1 - flutter), h * 0.3);          // Left wing
+        ctx.moveTo(0, -h * 0.6);
+        ctx.lineTo(w * (1 + flutter), h * 0.3);
+        ctx.lineTo(0, h * 0.1);
+        ctx.lineTo(-w * (1 - flutter), h * 0.3);
         ctx.closePath();
         ctx.fill();
 
-        // White contour
-        ctx.strokeStyle = '#fff';
+        // v4.17: Dark contour (was white)
+        ctx.strokeStyle = Bullet._HOSTILE_CONTOUR;
         ctx.lineWidth = 2;
         ctx.stroke();
 
@@ -1188,6 +1200,7 @@ class Bullet extends window.Game.Entity {
         const beatBoost = this.beatSynced ? 1.5 : 1.0;
         const r = (this.width || 5) * 1.8;
         const pulse = Math.sin(this.age * 25) * 0.15 + 1;
+        const glowColor = this.getHostileGlowColor(); // v4.17: hostile tint
 
         // Calculate direction for trail
         const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy) || 1;
@@ -1197,9 +1210,9 @@ class Bullet extends window.Game.Entity {
         const perpY = dirX;
         const trailLen = Math.min(28, speed * 0.12);
 
-        // === Trail (2 segments) ===
-        ctx.fillStyle = this.color;
-        ctx.globalAlpha = 0.35;
+        // === Trail (2 segments) — v4.17: reduced alpha ===
+        ctx.fillStyle = glowColor;
+        ctx.globalAlpha = 0.20;
         ctx.beginPath();
         const d1 = trailLen * 0.5, w1 = r * 0.45;
         ctx.moveTo(this.x - dirX * d1 - perpX * w1, this.y - dirY * d1 - perpY * w1);
@@ -1207,7 +1220,7 @@ class Bullet extends window.Game.Entity {
         ctx.lineTo(this.x - dirX * d1 + perpX * w1, this.y - dirY * d1 + perpY * w1);
         ctx.closePath();
         ctx.fill();
-        ctx.globalAlpha = 0.15;
+        ctx.globalAlpha = 0.08;
         ctx.beginPath();
         const w2 = r * 0.6;
         ctx.moveTo(this.x - dirX * trailLen - perpX * w2, this.y - dirY * trailLen - perpY * w2);
@@ -1217,19 +1230,19 @@ class Bullet extends window.Game.Entity {
         ctx.fill();
         ctx.globalAlpha = 1;
 
-        // === SAME AS ENERGY BOLT: Outer glow ===
-        ctx.fillStyle = this.color;
-        ctx.globalAlpha = 0.3 * pulse * beatBoost;
+        // === Outer glow — v4.17: smaller, dimmer, hostile tint ===
+        ctx.fillStyle = glowColor;
+        ctx.globalAlpha = 0.15 * pulse * beatBoost;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, r + 6 + (this.beatSynced ? 3 : 0), 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, r + 3 + (this.beatSynced ? 2 : 0), 0, Math.PI * 2);
         ctx.fill();
         ctx.globalAlpha = 1;
 
-        // === SAME AS ENERGY BOLT: White ring ===
-        ctx.strokeStyle = Bullet._WHITE_HALF;
+        // === v4.17: Dark hostile ring (was white) ===
+        ctx.strokeStyle = Bullet._HOSTILE_RING;
         ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, r + 3, 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, r + 2, 0, Math.PI * 2);
         ctx.stroke();
 
         // === DIFFERENT: 3D gold ingot (trapezoid) that tumbles ===
@@ -1269,8 +1282,8 @@ class Bullet extends window.Game.Entity {
         ctx.closePath();
         ctx.fill();
 
-        // White contour
-        ctx.strokeStyle = '#fff';
+        // v4.17: Dark contour (was white)
+        ctx.strokeStyle = Bullet._HOSTILE_CONTOUR;
         ctx.lineWidth = 2;
         ctx.stroke();
 
@@ -1315,6 +1328,7 @@ class Bullet extends window.Game.Entity {
         const beatBoost = this.beatSynced ? 1.5 : 1.0;
         const r = (this.width || 5) * 1.8;
         const pulse = Math.sin(this.age * 25) * 0.15 + 1;
+        const glowColor = this.getHostileGlowColor(); // v4.17: hostile tint
 
         // Calculate direction for trail
         const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy) || 1;
@@ -1324,9 +1338,9 @@ class Bullet extends window.Game.Entity {
         const perpY = dirX;
         const trailLen = Math.min(28, speed * 0.12);
 
-        // === Trail (2 segments) ===
-        ctx.fillStyle = this.color;
-        ctx.globalAlpha = 0.35;
+        // === Trail (2 segments) — v4.17: reduced alpha ===
+        ctx.fillStyle = glowColor;
+        ctx.globalAlpha = 0.20;
         ctx.beginPath();
         const d1 = trailLen * 0.5, w1 = r * 0.45;
         ctx.moveTo(this.x - dirX * d1 - perpX * w1, this.y - dirY * d1 - perpY * w1);
@@ -1334,7 +1348,7 @@ class Bullet extends window.Game.Entity {
         ctx.lineTo(this.x - dirX * d1 + perpX * w1, this.y - dirY * d1 + perpY * w1);
         ctx.closePath();
         ctx.fill();
-        ctx.globalAlpha = 0.15;
+        ctx.globalAlpha = 0.08;
         ctx.beginPath();
         const w2 = r * 0.6;
         ctx.moveTo(this.x - dirX * trailLen - perpX * w2, this.y - dirY * trailLen - perpY * w2);
@@ -1344,19 +1358,19 @@ class Bullet extends window.Game.Entity {
         ctx.fill();
         ctx.globalAlpha = 1;
 
-        // === SAME AS ENERGY BOLT: Outer glow ===
-        ctx.fillStyle = this.color;
-        ctx.globalAlpha = 0.3 * pulse * beatBoost;
+        // === Outer glow — v4.17: smaller, dimmer, hostile tint ===
+        ctx.fillStyle = glowColor;
+        ctx.globalAlpha = 0.15 * pulse * beatBoost;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, r + 6 + (this.beatSynced ? 3 : 0), 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, r + 3 + (this.beatSynced ? 2 : 0), 0, Math.PI * 2);
         ctx.fill();
         ctx.globalAlpha = 1;
 
-        // === SAME AS ENERGY BOLT: White ring ===
-        ctx.strokeStyle = Bullet._WHITE_HALF;
+        // === v4.17: Dark hostile ring (was white) ===
+        ctx.strokeStyle = Bullet._HOSTILE_RING;
         ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, r + 3, 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, r + 2, 0, Math.PI * 2);
         ctx.stroke();
 
         // === DIFFERENT: Digital card/chip rectangle ===
@@ -1386,8 +1400,8 @@ class Bullet extends window.Game.Entity {
         ctx.closePath();
         ctx.fill();
 
-        // White contour
-        ctx.strokeStyle = '#fff';
+        // v4.17: Dark contour (was white)
+        ctx.strokeStyle = Bullet._HOSTILE_CONTOUR;
         ctx.lineWidth = 2;
         ctx.stroke();
 
@@ -1442,6 +1456,7 @@ class Bullet extends window.Game.Entity {
         const beatBoost = this.beatSynced ? 1.5 : 1.0;
         const r = (this.width || 5) * 1.8;
         const pulse = Math.sin(this.age * 25) * 0.15 + 1;
+        const glowColor = this.getHostileGlowColor(); // v4.17: hostile tint
 
         // Calculate direction for oriented drawing
         const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy) || 1;
@@ -1453,9 +1468,9 @@ class Bullet extends window.Game.Entity {
         // Trail length based on speed
         const trailLen = Math.min(28, speed * 0.12);
 
-        // v4.11: 2-segment trail (was 4) for perf
-        ctx.fillStyle = this.color;
-        ctx.globalAlpha = 0.35;
+        // v4.17: 2-segment trail with reduced alpha + hostile tint
+        ctx.fillStyle = glowColor;
+        ctx.globalAlpha = 0.20;
         ctx.beginPath();
         const d1 = trailLen * 0.5, w1 = r * 0.45;
         ctx.moveTo(this.x - dirX * d1 - perpX * w1, this.y - dirY * d1 - perpY * w1);
@@ -1463,7 +1478,7 @@ class Bullet extends window.Game.Entity {
         ctx.lineTo(this.x - dirX * d1 + perpX * w1, this.y - dirY * d1 + perpY * w1);
         ctx.closePath();
         ctx.fill();
-        ctx.globalAlpha = 0.15;
+        ctx.globalAlpha = 0.08;
         ctx.beginPath();
         const w2 = r * 0.6;
         ctx.moveTo(this.x - dirX * trailLen - perpX * w2, this.y - dirY * trailLen - perpY * w2);
@@ -1473,35 +1488,34 @@ class Bullet extends window.Game.Entity {
         ctx.fill();
         ctx.globalAlpha = 1;
 
-        // Outer danger glow
-        // Beat-synced bullets have enhanced glow
-        ctx.fillStyle = this.color;
-        ctx.globalAlpha = 0.3 * pulse * beatBoost;
+        // Outer glow — v4.17: smaller, dimmer, hostile tint
+        ctx.fillStyle = glowColor;
+        ctx.globalAlpha = 0.15 * pulse * beatBoost;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, r + 6 + (this.beatSynced ? 3 : 0), 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, r + 3 + (this.beatSynced ? 2 : 0), 0, Math.PI * 2);
         ctx.fill();
         ctx.globalAlpha = 1;
 
-        // Secondary white ring for visibility
-        ctx.strokeStyle = Bullet._WHITE_HALF;
+        // v4.17: Dark hostile ring (was white)
+        ctx.strokeStyle = Bullet._HOSTILE_RING;
         ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, r + 3, 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, r + 2, 0, Math.PI * 2);
         ctx.stroke();
 
-        // Main bolt body + white contour (single path)
+        // Main bolt body + dark contour (was white)
         ctx.fillStyle = this.color;
         ctx.beginPath();
         ctx.arc(this.x, this.y, r * pulse, 0, Math.PI * 2);
         ctx.fill();
-        ctx.strokeStyle = '#fff';
+        ctx.strokeStyle = Bullet._HOSTILE_CONTOUR;
         ctx.lineWidth = 2;
         ctx.stroke();
 
-        // Bright white core center
-        ctx.fillStyle = '#fff';
+        // Dim core center (was bright white)
+        ctx.fillStyle = 'rgba(255,200,180,0.7)';
         ctx.beginPath();
-        ctx.arc(this.x, this.y, r * 0.35, 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, r * 0.3, 0, Math.PI * 2);
         ctx.fill();
     }
 
@@ -1511,6 +1525,9 @@ class Bullet extends window.Game.Entity {
 Bullet._WHITE_HALF = 'rgba(255,255,255,0.50)';
 Bullet._WHITE_15 = 'rgba(255,255,255,0.15)';
 Bullet._WHITE_90 = 'rgba(255,255,255,0.90)';
+// v4.17: Hostile tint for enemy bullets (dark ring instead of white, reduces collectible look)
+Bullet._HOSTILE_RING = 'rgba(80,20,20,0.35)';
+Bullet._HOSTILE_CONTOUR = 'rgba(60,15,15,0.60)';
 
 // Attach to namespace
 window.Game.Bullet = Bullet;

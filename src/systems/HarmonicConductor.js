@@ -50,6 +50,13 @@ window.Game.HarmonicConductor = {
         lastEnemyPauseTimer: 0    // Countdown for last enemy pause
     },
 
+    // v4.17: Fire Budget System (BUG 7 fix — limits bullet density)
+    _fireBudget: {
+        available: 25,            // Current available bullets
+        maxPerSecond: 25,         // Current max bullets per second
+        lastRechargeTime: 0
+    },
+
     init(enemies, player, gameWidth, gameHeight) {
         this.enemies = enemies;
         this.player = player;
@@ -84,6 +91,10 @@ window.Game.HarmonicConductor = {
             lastEnemyPaused: false,
             lastEnemyPauseTimer: 0
         };
+
+        // v4.17: Reset fire budget to full
+        this._recalcFireBudgetMax();
+        this._fireBudget.available = this._fireBudget.maxPerSecond;
     },
 
     // Start a new wave with intensity tracking
@@ -93,6 +104,10 @@ window.Game.HarmonicConductor = {
         this.waveIntensity.fireRateMult = 1.0;
         this.waveIntensity.lastEnemyPaused = false;
         this.waveIntensity.lastEnemyPauseTimer = 0;
+
+        // v4.17: Reset fire budget to full for new wave
+        this._recalcFireBudgetMax();
+        this._fireBudget.available = this._fireBudget.maxPerSecond;
     },
 
     // Get wave progress (0.0 to 1.0)
@@ -183,6 +198,50 @@ window.Game.HarmonicConductor = {
         return this.waveIntensity.fireRateMult;
     },
 
+    // v4.17: Recalculate fire budget max from config + game state
+    _recalcFireBudgetMax() {
+        const cfg = window.Game.Balance?.FIRE_BUDGET;
+        if (!cfg || !cfg.ENABLED) {
+            this._fireBudget.maxPerSecond = 999; // No limit
+            return;
+        }
+
+        const cycle = Math.min((window.marketCycle || 1), 3);
+        const idx = cycle - 1;
+        let max = cfg.BULLETS_PER_SECOND[idx] || 25;
+
+        // Bear Market bonus
+        if (window.isBearMarket) {
+            max += cfg.BEAR_MARKET_BONUS || 0;
+        }
+
+        // PANIC phase bonus
+        if (this.waveIntensity.currentPhase === 'PANIC') {
+            max *= cfg.PANIC_MULTIPLIER || 1.3;
+        }
+
+        // Rank scaling (±15%)
+        const rankSystem = window.Game.RankSystem;
+        if (rankSystem) {
+            const rank = rankSystem.rank || 0; // -1 to +1
+            max *= (1 + rank * (cfg.RANK_SCALE || 0.15));
+        }
+
+        this._fireBudget.maxPerSecond = Math.round(max);
+    },
+
+    // v4.17: Check if fire budget allows spawning N bullets, consume if OK
+    _consumeFireBudget(bulletCount) {
+        const cfg = window.Game.Balance?.FIRE_BUDGET;
+        if (!cfg || !cfg.ENABLED) return true; // No budget system = always allow
+
+        if (this._fireBudget.available >= bulletCount) {
+            this._fireBudget.available -= bulletCount;
+            return true;
+        }
+        return false; // Not enough budget — skip command
+    },
+
     setDifficulty(level, marketCycle, isBearMarket) {
         // Get pattern params from centralized Balance config
         const Balance = window.Game.Balance;
@@ -225,6 +284,16 @@ window.Game.HarmonicConductor = {
 
         // Update wave intensity phase
         this.updateIntensityPhase();
+
+        // v4.17: Recharge fire budget
+        this._recalcFireBudgetMax();
+        const maxBPS = this._fireBudget.maxPerSecond;
+        this._fireBudget.available += maxBPS * dt;
+        // Cap at 1.5x max to prevent excessive accumulation
+        const cap = maxBPS * 1.5;
+        if (this._fireBudget.available > cap) {
+            this._fireBudget.available = cap;
+        }
 
         // Update last enemy pause timer
         if (this.waveIntensity.lastEnemyPauseTimer > 0) {
@@ -280,6 +349,12 @@ window.Game.HarmonicConductor = {
     },
 
     executeCommand(cmd) {
+        // v4.17: Estimate bullet count and check fire budget before executing
+        const estCount = this._estimateBulletCount(cmd);
+        if (estCount > 0 && !this._consumeFireBudget(estCount)) {
+            return; // Budget exhausted — skip this command
+        }
+
         switch (cmd.type) {
             case 'SYNC_FIRE':
                 this.executeSyncFire(cmd.tier, cmd.pattern);
@@ -310,6 +385,41 @@ window.Game.HarmonicConductor = {
             case 'RANDOM_VOLLEY':
                 this.executeRandomVolley(cmd.count || 5);
                 break;
+        }
+    },
+
+    // v4.17: Estimate how many bullets a command will produce
+    _estimateBulletCount(cmd) {
+        switch (cmd.type) {
+            case 'SYNC_FIRE': {
+                const enemies = this.getEnemiesByTier(cmd.tier);
+                return cmd.pattern === 'DOUBLE' ? enemies.length * 2 :
+                       cmd.pattern === 'BURST' ? enemies.length * 3 :
+                       enemies.length;
+            }
+            case 'SWEEP_LEFT':
+            case 'SWEEP_RIGHT':
+                return this.getEnemiesByTier(cmd.tier).length;
+            case 'CASCADE_DOWN':
+            case 'CASCADE_UP': {
+                var count = 0;
+                if (this.enemies) {
+                    for (var i = 0; i < this.enemies.length; i++) {
+                        if (this.enemies[i] && this.enemies[i].active) count++;
+                    }
+                }
+                return count;
+            }
+            case 'PATTERN':
+                return cmd.config?.count || this.difficultyParams.maxBullets || 12;
+            case 'AIMED_VOLLEY':
+                return Math.min(6, this.getEnemiesByTier(cmd.tier).length);
+            case 'RANDOM_SINGLE':
+                return 1;
+            case 'RANDOM_VOLLEY':
+                return cmd.count || 5;
+            default:
+                return 1;
         }
     },
 

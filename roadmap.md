@@ -1,7 +1,7 @@
 # Roadmap: FIAT vs CRYPTO
 
 > [!IMPORTANT]
-> **Versione attuale**: v4.16.0 (2026-02-08)
+> **Versione attuale**: v4.17.0 (2026-02-08)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
 > **Stato**: Gameplay completo, in fase di hardening e bugfix.
 
@@ -55,69 +55,31 @@
 
 ---
 
-## PROSSIMA SESSIONE: v4.17.0 — Balance Pass #2 (Power-Up Economy)
+## v4.17.0 — Unified Balance & Bugfix Patch (COMPLETATO)
 
-> v4.16.0 ha migliorato enormemente boss e mortalità, ma i power-up restano troppi.
-> Dati audit salvati in `tests/console.txt` (v4.15.0) e `tests/console 1.txt` (v4.16.0).
+> Power-up economy fix, enemy bullet distinction, fire budget system.
 
-### Problema centrale: Power-Up Flood
-v4.16.0 ha raccolto **62 power-up in 8:29** (~7.3/min). Target: **30-40 totali** (~4/min).
-Il taglio dal 6/4/2% al 3/2.5/1% ha ridotto solo del 21% perché:
+### Modifiche implementate
 
-1. **Boss drops non sono limitati dalle drop rate** — usano `BOSS.DROP_INTERVAL` (ogni 25 hit)
-   e `BOSS_DROP_COOLDOWN` (1.5s). Con boss fight da 63-79s = ~20-25 drop solo dai boss.
-2. **Pity timer a 45 kills** scatta comunque in C2/C3 dove le horde sono 30-50 nemici.
-3. **DROP_SCALING.CYCLE_BONUS** aggiunge +0.5%/ciclo — a C3 le rate sono ~4.5%/3.5%/2%.
-
-### Interventi proposti (da discutere)
-
-#### A. Boss Drop Economy (impatto alto, rischio zero)
-- `BOSS.DROP_INTERVAL`: 25 → 40 hit (meno drop per boss fight)
-- `DROPS.BOSS_DROP_COOLDOWN`: 1.5s → 3.0s (più distanziati)
-- Nuovo: **BOSS_MAX_DROPS**: cap 5-6 drop per boss fight (impedisce overflow su fight lunghi)
-
-#### B. Pity Timer Ricalibrato (impatto medio, rischio zero)
-- `DROP_SCALING.PITY_BASE`: 45 → 55 (servono più kills senza drop)
-- `DROP_SCALING.PITY_REDUCTION`: 3 → 2 kills/ciclo (scaling più lento)
-- Alternativa: pity timer a conteggio globale, non per-ciclo
-
-#### C. Cycle Scaling Removal (impatto medio, rischio basso)
-- `DROP_SCALING.CYCLE_BONUS`: 0.005 → 0 (nessun aumento rate per ciclo)
-- Razionale: i cicli successivi hanno già più nemici = più opportunità di drop naturali
-
-#### D. Weapon Cooldown Esteso (impatto medio, rischio basso)
-- `DROPS.WEAPON_COOLDOWN`: 5.0s → 8.0s (meno weapon drop in sequenza rapida)
-- Impedisce catene modifier→modifier→modifier in pochi secondi
-
-### Problema secondario: Cicli ancora veloci
-| Ciclo | v4.15.0 | v4.16.0 | Target |
-|-------|---------|---------|--------|
-| C1 | 2:08 | 3:03 | 4-5m |
-| C2 | 2:02 | 3:31 | 5-6m |
-| C3 | 3:11 | morto C3W4 | 6-7m |
-
-Mancano ~1-2 min per ciclo. Opzioni:
-- **Ridurre DPS indirettamente** (meno power-up → già in corso)
-- **Enemy HP scaling** più aggressivo (`ENEMY_HP.SCALE`: 15 → 20-25)
-- **Weapon evolution nerf** (POWER bonus 25/50/75% → 20/40/60%, o RATE cooldown reduction)
-- Non toccare: i cicli veloci possono essere un pregio se il feeling è giusto
-
-### Dati di confronto rapido (per la prossima sessione)
-
-| Metrica | v4.15.0 | v4.16.0 | Target v4.17 |
-|---------|---------|---------|--------------|
-| Power-up totali | 78 | 62 | 30-40 |
-| Morti | 0 | 3 | 2-4 ✅ |
-| Boss FED | 12.7s | 63.3s | 45-75s ✅ |
-| Boss BCE | 9.7s | 79.4s | 45-75s ✅ |
-| HYPER attivazioni | 0 | 1 | 1-3 |
-| Ciclo 1 | 2:08 | 3:03 | 4-5m |
-| Ciclo 2 | 2:02 | 3:31 | 5-6m |
+- [x] **Power-Up Economy Fix** (target 30-40/run, was 62)
+  - Boss: DROP_INTERVAL 25→40, COOLDOWN 1.5→3.0s, MAX_DROPS_PER_BOSS=6
+  - Pity: PITY_BASE 45→55, PITY_REDUCTION 3→2
+  - CYCLE_BONUS 0.5%→0% (flat rate), WEAPON_COOLDOWN 5→8s
+- [x] **BUG 4: Enemy bullet visual distinction**
+  - Glow ridotto (r+6→r+3, alpha dimezzato), hostile tint (70% nemico + 30% rosso)
+  - White ring → dark hostile ring, white contours → dark semi-transparent
+  - Trail alpha 0.35/0.15→0.20/0.08
+- [x] **BUG 7: Fire Budget System** in HarmonicConductor
+  - Per-cycle bullet limits: C1=25, C2=45, C3=70 bullets/sec
+  - Bear Market +10, PANIC +30%, Rank ±15%
+  - Budget recharge per-frame, cap 1.5x, skip commands when exhausted
+- [x] **BUG 5 closed** — 48px confirmed OK (v4.14.0)
 
 ### Protocollo test
 1. `dbg.balanceTest()` → partita BTC Arcade Normal, 3 cicli
-2. `dbg.report()` + `dbg.powerUpReport()` (quest'ultimo cruciale per economia drop)
-3. Confrontare power-up totali, source breakdown (enemy vs boss), weapon timeline
+2. `dbg.report()` + `dbg.powerUpReport()` → confronto power-up totali vs target 30-40
+3. Verificare visivamente proiettili nemici vs power-up
+4. Verificare fire budget limita densità senza rendere il gioco facile
 
 ---
 
@@ -215,22 +177,14 @@ Estratto in `Balance.FORMATION.MAX_Y_RATIO` con fallback 0.65.
 
 ---
 
-### BUG 4: Confusione visiva proiettili nemici ↔ power-up
-**Severità**: Alta | **Rischio**: Medio | **Complessità**: ~100 righe
-**File**: `src/entities/Bullet.js` — `drawEnemyBullet()`
-**Problema**: Proiettili "coin" (rotondi, metallici, brillanti) assomigliano ai power-up.
-**Obiettivo**: Sistema tier-based (WEAK/MEDIUM/STRONG) con visual distinti.
-**Regola**: "Se brilla d'oro → raccoglilo". Mai glow dorato sui nemici.
-**Attenzione**: Due tentativi di riscrittura rifiutati. Il codice shape-based v4.11.0 è il BASELINE di qualità da eguagliare o superare.
+### ~~BUG 4: Confusione visiva proiettili nemici ↔ power-up~~ ✅ FIXATO v4.17.0
+Approccio conservativo (no riscrittura): glow ridotto, hostile tint (rosso), white ring→dark ring, trail dimmed.
+Shape-based system preservato (coin/bill/bar/card). Contorni bianchi→scuri su tutte le forme.
 
 ---
 
-### BUG 5: Entità sovradimensionate (65px nemici)
-**Severità**: Media | **Rischio**: Alto | **Complessità**: Multi-file
-**File**: `src/entities/Enemy.js` riga 5 (`super(x, y, 65, 65)`)
-**Problema**: Nemici 65×65px = 2× power-up (30px). Formazioni dense → muro impenetrabile.
-**Target**: ~36×36px con riduzione proporzionale di spacing, proiettili, power-up.
-**Rischio**: Tocca rendering di tutte le entità. Richiede playtest approfondito.
+### ~~BUG 5: Entità sovradimensionate (65px nemici)~~ ✅ CHIUSO v4.17.0
+Ridimensionamento a 48px completato in v4.14.0. Confermato OK dopo playtest.
 
 ---
 
@@ -239,24 +193,23 @@ Drop rates dimezzati: 3%/2.5%/1%, pity 45. Boss HP +25-40%. Cycle bonus ridotto.
 
 ---
 
-### BUG 7: Firing nemico scala linearmente con conteggio
-**Severità**: Media | **Rischio**: Medio | **Complessità**: Nuovo sistema
-**Problema**: HarmonicConductor beat-driven, ma più nemici = proporzionalmente più proiettili. Con scaling ciclico diventa ingestibile.
-**Soluzione**: Fire budget (3-5 proiettili/sec), distribuito per peso tier.
+### ~~BUG 7: Firing nemico scala linearmente con conteggio~~ ✅ FIXATO v4.17.0
+Fire budget integrato in HarmonicConductor: C1=25, C2=45, C3=70 bullets/sec.
+Bear Market +10, PANIC +30%, Rank ±15%. Budget recharge per-frame, skip se esaurito.
 
 ---
 
-### Priorità rimanente (post-audit v4.16.0)
+### Priorità rimanente — TUTTI I BUG RISOLTI
 
-| # | Bug | Rischio | Complessità | Priorità |
-|---|-----|---------|-------------|----------|
-| ~~1~~ | ~~Boss thresholds~~ | — | — | ✅ v4.16.0 |
-| ~~3~~ | ~~Y-clamp config~~ | — | — | ✅ v4.16.0 |
-| ~~2~~ | ~~CHEVRON overflow~~ | — | — | ✅ v4.16.0 |
-| ~~6~~ | ~~Drop rate~~ | — | — | ✅ v4.16.0 |
-| 4 | Visual proiettili | Medio | ~100 righe | **Alto** (prossimo) |
-| 5 | Entity resize | Alto | Multi-file | **Medio** (dopo 4) |
-| 7 | Fire budget | Medio | Nuovo sistema | **Basso** (rivalutare dopo playtest v4.16) |
+| # | Bug | Stato |
+|---|-----|-------|
+| ~~1~~ | ~~Boss thresholds~~ | ✅ v4.16.0 |
+| ~~2~~ | ~~CHEVRON overflow~~ | ✅ v4.16.0 |
+| ~~3~~ | ~~Y-clamp config~~ | ✅ v4.16.0 |
+| ~~4~~ | ~~Visual proiettili~~ | ✅ v4.17.0 |
+| ~~5~~ | ~~Entity resize~~ | ✅ v4.17.0 (chiuso, 48px OK) |
+| ~~6~~ | ~~Drop rate~~ | ✅ v4.16.0 |
+| ~~7~~ | ~~Fire budget~~ | ✅ v4.17.0 |
 
 ---
 

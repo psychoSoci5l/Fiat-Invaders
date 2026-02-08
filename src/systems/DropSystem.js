@@ -26,6 +26,9 @@
             // WEAPON EVOLUTION v3.0 tracking
             this.totalKills = 0;           // Total kills for UPGRADE pity timer
             this.lastUpgradeKillCount = 0; // Last kill count when UPGRADE was given
+
+            // v4.17: Boss drop cap tracking
+            this.bossDropCount = 0;        // Drops generated in current boss fight
         }
 
         /**
@@ -40,6 +43,9 @@
             // WEAPON EVOLUTION v3.0 reset
             this.totalKills = 0;
             this.lastUpgradeKillCount = 0;
+
+            // v4.17: Boss drop cap reset
+            this.bossDropCount = 0;
         }
 
         /**
@@ -282,6 +288,10 @@
 
             this.bossHitCount++;
 
+            // v4.17: Enforce max drops per boss fight
+            const maxDrops = Balance.BOSS.MAX_DROPS_PER_BOSS || 6;
+            if (this.bossDropCount >= maxDrops) return null;
+
             if (this.bossHitCount >= Balance.BOSS.DROP_INTERVAL && this.bossDropCooldown <= 0) {
                 this.bossHitCount = 0;
                 this.bossDropCooldown = Balance.DROPS.BOSS_DROP_COOLDOWN;
@@ -300,6 +310,7 @@
                 }
 
                 if (dropInfo) {
+                    this.bossDropCount++; // v4.17: Track drops for cap
                     // Randomize position around boss
                     const offsetX = (Math.random() - 0.5) * 160;
                     return {
@@ -319,6 +330,7 @@
         resetBossDrops() {
             this.bossHitCount = 0;
             this.bossDropCooldown = 0;
+            this.bossDropCount = 0; // v4.17: Reset drop cap counter
         }
 
         /**
