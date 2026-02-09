@@ -41,6 +41,10 @@ window.Game.HarmonicConductor = {
     _tempActive: [],
     _tempTier: [],
 
+    // Cached gradient for PANIC vignette (avoids per-frame allocation)
+    _panicGrad: null,
+    _panicGradKey: '',
+
     // Wave Intensity System (Ikeda Choreography)
     waveIntensity: {
         initialCount: 0,          // Enemies at wave start
@@ -739,14 +743,18 @@ window.Game.HarmonicConductor = {
 
         // Wave intensity phase indicator
         if (this.waveIntensity.currentPhase === 'PANIC') {
-            // Subtle red vignette during panic phase
-            const gradient = ctx.createRadialGradient(
-                this.gameWidth / 2, this.gameHeight / 2, this.gameHeight * 0.3,
-                this.gameWidth / 2, this.gameHeight / 2, this.gameHeight * 0.8
-            );
-            gradient.addColorStop(0, 'rgba(255, 0, 0, 0)');
-            gradient.addColorStop(1, 'rgba(255, 0, 0, 0.1)');
-            ctx.fillStyle = gradient;
+            // Subtle red vignette during panic phase (cached gradient)
+            const key = this.gameWidth + '-' + this.gameHeight;
+            if (key !== this._panicGradKey) {
+                this._panicGrad = ctx.createRadialGradient(
+                    this.gameWidth / 2, this.gameHeight / 2, this.gameHeight * 0.3,
+                    this.gameWidth / 2, this.gameHeight / 2, this.gameHeight * 0.8
+                );
+                this._panicGrad.addColorStop(0, 'rgba(255, 0, 0, 0)');
+                this._panicGrad.addColorStop(1, 'rgba(255, 0, 0, 0.1)');
+                this._panicGradKey = key;
+            }
+            ctx.fillStyle = this._panicGrad;
             ctx.fillRect(0, 0, this.gameWidth, this.gameHeight);
         }
 

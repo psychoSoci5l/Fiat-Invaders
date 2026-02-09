@@ -1266,15 +1266,21 @@ class AudioSystem {
         osc2.start(t); osc2.stop(t + duration);
     }
 
-    // Create white noise oscillator
+    // Create white noise oscillator (cached buffers to reduce GC pressure)
     createNoiseOsc(duration) {
         if (!this.ctx) return null;
-        const bufferSize = this.ctx.sampleRate * duration;
-        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-        const data = buffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) { data[i] = Math.random() * 2 - 1; }
+        // Cache noise buffers by rounded duration key (avoids creating new buffer each call)
+        if (!this._noiseBufferCache) this._noiseBufferCache = {};
+        const key = Math.round(duration * 1000); // ms precision
+        if (!this._noiseBufferCache[key]) {
+            const bufferSize = Math.ceil(this.ctx.sampleRate * duration);
+            const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) { data[i] = Math.random() * 2 - 1; }
+            this._noiseBufferCache[key] = buffer;
+        }
         const source = this.ctx.createBufferSource();
-        source.buffer = buffer;
+        source.buffer = this._noiseBufferCache[key];
         return source;
     }
 
@@ -1368,6 +1374,12 @@ class AudioSystem {
         }
 
         const currentTempo = this.getCurrentTempo();
+
+        // Prevent burst catch-up after tab regains focus (caps to 8 beats ahead)
+        const maxLag = currentTempo * 8;
+        if (this.noteTime < this.ctx.currentTime - maxLag) {
+            this.noteTime = this.ctx.currentTime;
+        }
 
         while (this.noteTime < this.ctx.currentTime + 0.2) {
             // Beat tracking for HarmonicConductor

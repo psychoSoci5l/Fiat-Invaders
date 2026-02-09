@@ -1,9 +1,27 @@
 # Roadmap: FIAT vs CRYPTO
 
 > [!IMPORTANT]
-> **Versione attuale**: v4.35.0 (2026-02-09)
+> **Versione attuale**: v4.36.0 (2026-02-09)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
-> **Stato**: Gameplay completo, in fase di hardening e polish grafico.
+> **Stato**: Gameplay completo. Engine Hardening Phase 40 completata.
+
+---
+
+## v4.36.0 — Memory Footprint Audit (COMPLETATO)
+
+> Audit completo memoria per sessioni lunghe (10+ min). 10 fix su 6 file: RankSystem GC per-frame, AudioSystem noise buffer cache + schedule burst guard, rAF loop leak intro ship, bullet pool leak su restart + backToIntro, gradient caching in SkyRenderer/HarmonicConductor, shadowBlur cleanup.
+
+### Implementato
+
+- [x] RankSystem: `.filter()` per-frame → `_pruneOld()` in-place compaction (120 array alloc/sec eliminati)
+- [x] AudioSystem: `createNoiseOsc()` → `_noiseBufferCache` keyed by duration (~600+ buffer alloc/min eliminati)
+- [x] main.js: `Bullet.Pool.release()` prima di reset array in `startGame()` e `backToIntro()` (pool leak su restart)
+- [x] main.js: `animateIntroShip` rAF loop leak — `cancelAnimationFrame` guard + stored ID (N loop dopo N restart)
+- [x] SkyRenderer: horizon glow + bear market overlay gradient cached by key
+- [x] HarmonicConductor: PANIC vignette gradient cached by size key
+- [x] AudioSystem: `schedule()` burst catch-up guard — clamp noteTime (max 8 beats lag) su tab refocus
+- [x] SkyRenderer: `shadowBlur` rimosso da `drawLightning()` (leftover pre-v4.11)
+- [x] Zero cambiamenti gameplay — rendering/audio/collision identici
 
 ---
 
@@ -457,9 +475,9 @@ Target: ~12-14 drops in 4:30 (era 19).
 
 ---
 
-## FASE ATTIVA: Engine Hardening (Phase 40) — Parziale
+## FASE COMPLETATA: Engine Hardening (Phase 40) ✅
 
-> Il gameplay è completo. Focus su solidità, performance e pulizia codice.
+> Il gameplay è completo. Solidità, performance e pulizia codice completati.
 
 ### Completati
 - [x] **GC pressure fix** (v4.10.0): ~1000+ alloc/sec eliminati (HarmonicConductor, EventBus, handler loops)
@@ -480,7 +498,7 @@ Target: ~12-14 drops in 4:30 (era 19).
 - [x] **Off-screen canvas** (C): Pre-rendering per elementi statici/ripetitivi ✅ v4.31.0
 - [x] **main.js Decomposition** (E): CollisionSystem.js, GameStateMachine.js, RunState expansion ✅ v4.28.0
 - [x] **60fps target mobile** (F): iPhone 60 FPS solidi, avg 1.1ms, worst 17ms (1 GC spike), `?perf=1` URL param ✅ v4.31.0
-- [ ] **Memory footprint** (F): Stabilità memoria su sessioni lunghe (10+ minuti)
+- [x] **Memory footprint** (F): Stabilità memoria su sessioni lunghe (10+ minuti) ✅ v4.36.0
 
 ---
 

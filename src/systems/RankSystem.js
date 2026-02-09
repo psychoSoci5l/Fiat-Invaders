@@ -59,10 +59,10 @@
             const windowSize = cfg.WINDOW_SIZE || 30;
             const convergenceSpeed = cfg.CONVERGENCE_SPEED || 0.5;
 
-            // Prune old data outside window
+            // Prune old data outside window (in-place compaction, no allocation)
             const cutoff = now - windowSize;
-            this._killTimes = this._killTimes.filter(t => t > cutoff);
-            this._grazeTimes = this._grazeTimes.filter(t => t > cutoff);
+            this._killTimes = this._pruneOld(this._killTimes, cutoff);
+            this._grazeTimes = this._pruneOld(this._grazeTimes, cutoff);
 
             // Calculate performance metrics
             const killsPerSec = this._killTimes.length / windowSize;
@@ -111,8 +111,25 @@
             const penalty = G.Balance?.RANK?.DEATH_PENALTY || 0.15;
             this.rank = Math.max(-1, this.rank - penalty);
             // Clear recent positive signals (death resets momentum)
-            this._killTimes = [];
-            this._grazeTimes = [];
+            this._killTimes.length = 0;
+            this._grazeTimes.length = 0;
+        },
+
+        /**
+         * In-place prune: remove entries older than cutoff.
+         * Returns same array (no allocation) when possible.
+         */
+        _pruneOld(arr, cutoff) {
+            // Find first element that passes cutoff
+            let start = 0;
+            while (start < arr.length && arr[start] <= cutoff) start++;
+            if (start === 0) return arr; // Nothing to prune
+            if (start === arr.length) { arr.length = 0; return arr; }
+            // Shift remaining entries to front (in-place)
+            const remaining = arr.length - start;
+            for (let i = 0; i < remaining; i++) arr[i] = arr[start + i];
+            arr.length = remaining;
+            return arr;
         },
 
         /**

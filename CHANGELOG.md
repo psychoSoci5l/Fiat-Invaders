@@ -1,5 +1,22 @@
 # Changelog
 
+## v4.36.0 - 2026-02-09
+### Memory Footprint Audit — Long Session Stability (10 fixes)
+
+- **RankSystem per-frame GC fix (HIGH)**: Replaced `.filter()` on `_killTimes`/`_grazeTimes` arrays (called every frame, 120 new array allocations/sec) with in-place `_pruneOld()` write-pointer compaction. Changed `= []` to `.length = 0` in `onDeath()` to reuse existing arrays
+- **AudioSystem noise buffer cache (MEDIUM)**: `createNoiseOsc()` created a new AudioBuffer on every call (~10-20 times/sec during music). Added `_noiseBufferCache` keyed by millisecond-rounded duration — eliminates ~600+ buffer allocations/minute during music playback
+- **Bullet pool leak on restart (MEDIUM)**: `startGame()` reset `bullets`/`enemyBullets` arrays without releasing pooled bullets, causing ObjectPool growth on every game restart. Added `Bullet.Pool.release()` calls before array clear
+- **Intro ship rAF loop leak (HIGH)**: `animateIntroShip()` started a new `requestAnimationFrame` loop on every backToIntro→initIntroShip call without cancelling the previous one. After N restart cycles, N animation loops ran simultaneously. Fixed with `cancelAnimationFrame` guard + stored rAF ID
+- **Bullet pool leak in backToIntro (MEDIUM)**: Added `Bullet.Pool.release()` in `backToIntro()` in addition to `startGame()`, preventing pool objects from being orphaned between menu return and next game start
+- **SkyRenderer gradient caching (LOW)**: Horizon glow and bear market overlay created new `createLinearGradient`/`createRadialGradient` every frame. Cached by key (level+dimensions), invalidated on state change. Bear market pulse uses `globalAlpha` modulation with fixed-alpha cached gradient
+- **HarmonicConductor PANIC gradient cache (LOW)**: PANIC vignette `createRadialGradient` cached by `gameWidth-gameHeight` key, recreated only on resize
+- **Music schedule() burst catch-up guard (MEDIUM)**: After tab loses focus, `ctx.currentTime` advances but `schedule()` doesn't run. On tab refocus, the while loop tried to catch up all missed beats at once, creating potentially hundreds of audio nodes simultaneously. Added `noteTime` clamp (max 8 beats lag) to skip ahead instead of catching up
+- **SkyRenderer lightning shadowBlur removal (LOW)**: Leftover `shadowBlur = 15` from pre-v4.11 cleanup removed from `drawLightning()` — eliminates per-frame GPU shadow computation
+- **Zero gameplay changes**: All optimizations are internal. Rendering, audio, and collision behavior identical pre/post
+- **Files**: RankSystem.js, AudioSystem.js, main.js, SkyRenderer.js, HarmonicConductor.js, Constants.js + sw.js (version bump)
+
+---
+
 ## v4.35.0 - 2026-02-09
 ### Animated Title Screen
 

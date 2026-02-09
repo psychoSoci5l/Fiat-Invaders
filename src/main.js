@@ -917,6 +917,7 @@ function applyRandomPerk() {
 let introShipCanvas = null;
 let introShipCtx = null;
 let introShipTime = 0;
+let introShipAnimId = null;
 let selectedShipIndex = 0;
 let introState = 'SPLASH'; // 'SPLASH' or 'SELECTION'
 const SHIP_KEYS = ['BTC', 'ETH', 'SOL'];
@@ -928,6 +929,8 @@ const SHIP_DISPLAY = {
 };
 
 function initIntroShip() {
+    // Cancel any existing rAF loop before starting a new one (prevents N loops after N restarts)
+    if (introShipAnimId) { cancelAnimationFrame(introShipAnimId); introShipAnimId = null; }
     introShipCanvas = document.getElementById('intro-ship-canvas');
     if (!introShipCanvas) return;
     introShipCtx = introShipCanvas.getContext('2d');
@@ -1389,7 +1392,7 @@ function animateIntroShip() {
 
     ctx.restore();
 
-    requestAnimationFrame(animateIntroShip);
+    introShipAnimId = requestAnimationFrame(animateIntroShip);
 }
 
 // Helper to lighten a hex color (uses ColorUtils)
@@ -2526,6 +2529,10 @@ window.backToIntro = function () {
             introVersion.style.display = '';
         }
 
+        // Release pooled bullets before leaving gameplay (prevents pool leak across restarts)
+        if (typeof bullets !== 'undefined' && bullets.length) { bullets.forEach(b => G.Bullet.Pool.release(b)); bullets.length = 0; }
+        if (typeof enemyBullets !== 'undefined' && enemyBullets.length) { enemyBullets.forEach(b => G.Bullet.Pool.release(b)); enemyBullets.length = 0; }
+
         audioSys.resetState();
         audioSys.init();
         if (G.HarmonicConductor) G.HarmonicConductor.reset();
@@ -2827,6 +2834,9 @@ function startGame() {
     audioSys.setLevel(1, true); // Set music theme for level 1 (instant, no crossfade)
     // Clear particles via ParticleSystem
     if (G.ParticleSystem) G.ParticleSystem.clear();
+    // Release pooled bullets before clearing arrays (prevents pool leak on restart)
+    bullets.forEach(b => G.Bullet.Pool.release(b));
+    enemyBullets.forEach(b => G.Bullet.Pool.release(b));
     bullets = []; enemies = []; enemyBullets = []; powerUps = []; particles = []; floatingTexts = []; muzzleFlashes = []; perkIcons = []; boss = null; miniBoss = null;
     if (G.MessageSystem) G.MessageSystem.reset(); // Reset typed messages
     // Sync all array references after reset

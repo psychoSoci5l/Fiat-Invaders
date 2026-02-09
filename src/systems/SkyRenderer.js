@@ -39,6 +39,14 @@
     // Silhouette cache (per hill layer)
     let hillSilhouettes = [];
 
+    // Horizon glow gradient cache
+    let _horizonGlowGrad = null;
+    let _horizonGlowKey = '';
+
+    // Bear overlay gradient cache
+    let _bearOverlayGrad = null;
+    let _bearOverlayKey = '';
+
     // Lightning state (Bear Market)
     let lightningTimer = 0;
     let lightningFlash = 0;
@@ -325,6 +333,10 @@
         lightningTarget = 0;
         cachedGradient = null;
         cachedGradientKey = '';
+        _horizonGlowKey = '';
+        _horizonGlowGrad = null;
+        _bearOverlayKey = '';
+        _bearOverlayGrad = null;
         // Reset off-screen dirty flags
         _skyBgKey = '';
         _hillsNeedsRedraw = true;
@@ -839,12 +851,17 @@
         }
 
         ctx.globalAlpha = alpha;
-        const grad = ctx.createLinearGradient(0, firstHillY - h, 0, firstHillY + h);
-        grad.addColorStop(0, 'transparent');
-        grad.addColorStop(0.4, color);
-        grad.addColorStop(0.6, color);
-        grad.addColorStop(1, 'transparent');
-        ctx.fillStyle = grad;
+        // Cache horizon glow gradient (recreate only on color/position change)
+        const glowKey = color + '-' + Math.round(firstHillY) + '-' + h;
+        if (glowKey !== _horizonGlowKey) {
+            _horizonGlowGrad = ctx.createLinearGradient(0, firstHillY - h, 0, firstHillY + h);
+            _horizonGlowGrad.addColorStop(0, 'transparent');
+            _horizonGlowGrad.addColorStop(0.4, color);
+            _horizonGlowGrad.addColorStop(0.6, color);
+            _horizonGlowGrad.addColorStop(1, 'transparent');
+            _horizonGlowKey = glowKey;
+        }
+        ctx.fillStyle = _horizonGlowGrad;
         ctx.fillRect(0, firstHillY - h, gameWidth, h * 2);
         ctx.globalAlpha = 1;
     }
@@ -1080,8 +1097,6 @@
         if (lightningFlash > 0.15) {
             ctx.strokeStyle = `rgba(255, 255, 255, ${lightningFlash * 2})`;
             ctx.lineWidth = 3;
-            ctx.shadowColor = '#fff';
-            ctx.shadowBlur = 15;
 
             for (let bolt = 0; bolt < 2; bolt++) {
                 const startX = gameWidth * 0.2 + bolt * gameWidth * 0.5 + Math.random() * 50;
@@ -1106,7 +1121,6 @@
                 }
                 ctx.stroke();
             }
-            ctx.shadowBlur = 0;
         }
     }
 
@@ -1116,16 +1130,23 @@
     function drawBearMarketOverlay(ctx, totalTime) {
         if (!G.Balance?.JUICE?.SCREEN_EFFECTS?.BEAR_VIGNETTE) return;
         const pulse = Math.sin(totalTime * 2) * 0.1 + 0.25;
-        const gradient = ctx.createRadialGradient(
-            gameWidth / 2, gameHeight / 2, gameHeight * 0.3,
-            gameWidth / 2, gameHeight / 2, gameHeight * 0.8
-        );
-        gradient.addColorStop(0, 'transparent');
-        gradient.addColorStop(0.7, `rgba(80, 0, 0, ${pulse * 0.3})`);
-        gradient.addColorStop(1, `rgba(100, 0, 0, ${pulse * 0.6})`);
-
-        ctx.fillStyle = gradient;
+        // Cache radial gradient with fixed alpha stops (recreate only on resize)
+        const bearKey = gameWidth + '-' + gameHeight;
+        if (bearKey !== _bearOverlayKey) {
+            _bearOverlayGrad = ctx.createRadialGradient(
+                gameWidth / 2, gameHeight / 2, gameHeight * 0.3,
+                gameWidth / 2, gameHeight / 2, gameHeight * 0.8
+            );
+            _bearOverlayGrad.addColorStop(0, 'transparent');
+            _bearOverlayGrad.addColorStop(0.7, 'rgba(80, 0, 0, 0.3)');
+            _bearOverlayGrad.addColorStop(1, 'rgba(100, 0, 0, 0.6)');
+            _bearOverlayKey = bearKey;
+        }
+        // Pulse modulated via globalAlpha (avoids recreating gradient each frame)
+        ctx.globalAlpha = pulse;
+        ctx.fillStyle = _bearOverlayGrad;
         ctx.fillRect(0, 0, gameWidth, gameHeight);
+        ctx.globalAlpha = 1;
 
         // Blood rain
         ctx.strokeStyle = 'rgba(150, 20, 20, 0.4)';
