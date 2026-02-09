@@ -125,6 +125,20 @@ class Bullet extends window.Game.Entity {
         }
     }
 
+    // v4.22: Collision radius from centralized BULLET_CONFIG
+    get collisionRadius() {
+        const cfg = window.Game.Balance?.BULLET_CONFIG;
+        if (!cfg) return (this.width || 4) * 0.5;  // fallback
+        if (this.vy <= 0) { // Player bullet (goes up)
+            if (this.special === 'MISSILE' || this.isMissile) return cfg.PLAYER_MISSILE.collisionRadius;
+            if (this.special === 'LASER') return cfg.PLAYER_LASER.collisionRadius;
+            if (this.special === 'PIERCE') return cfg.PLAYER_PIERCE.collisionRadius;
+            if (this.special === 'HOMING' || this.homing) return cfg.PLAYER_HOMING.collisionRadius;
+            return cfg.PLAYER_NORMAL.collisionRadius;
+        }
+        return cfg.ENEMY_DEFAULT.collisionRadius;  // Enemy bullet
+    }
+
     draw(ctx) {
         const CU = window.Game.ColorUtils;
         const isEnemy = this.vy > 0; // Enemy bullets go down

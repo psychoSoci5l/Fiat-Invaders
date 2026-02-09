@@ -709,6 +709,25 @@
             }
         },
 
+        // --- BULLET CONFIG v4.22 (Centralized bullet parameters) ---
+        BULLET_CONFIG: {
+            // Player bullets
+            PLAYER_NORMAL:  { speed: 765, collisionRadius: 5, piercing: false, explosion: null },
+            PLAYER_HOMING:  { speed: 459, collisionRadius: 6, piercing: false, explosion: null },   // 765*0.6
+            PLAYER_PIERCE:  { speed: 765, collisionRadius: 5, piercing: true,  explosion: null },
+            PLAYER_LASER:   { speed: 1071, collisionRadius: 3, piercing: true, explosion: null },   // 765*1.4
+            PLAYER_MISSILE: { speed: 536, collisionRadius: 7, piercing: false,                      // 765*0.7
+                explosion: { radius: 50, damage: 1.5, knockback: 80, particles: 15, shake: 8 }
+            },
+            // Enemy bullets (all shapes)
+            ENEMY_DEFAULT:  { speed: null, collisionRadius: 4, piercing: false, explosion: null },
+            // Boss patterns
+            BOSS_PATTERN:   { speed: null, collisionRadius: 5, piercing: false, explosion: null },
+            // Collision targets
+            ENEMY_HITBOX_RADIUS: 24,     // Half of 48px enemy size
+            PLAYER_CORE_RADIUS: 6        // Default, overridden by stats.coreHitboxSize
+        },
+
         // --- HITBOX / COLLISION ---
         HITBOX: {
             PLAYER_OUTER_BONUS: 15,       // Added to ship hitboxSize for outer collision

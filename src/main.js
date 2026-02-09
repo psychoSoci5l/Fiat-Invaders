@@ -3545,9 +3545,8 @@ function updateBullets(dt) {
             const coreR = player.getCoreHitboxSize ? player.getCoreHitboxSize() : (player.stats.coreHitboxSize || 6);
             // Graze radius - outer zone for grazing points
             const grazeR = coreR + Balance.GRAZE.RADIUS;
-
-            const dx = Math.abs(eb.x - player.x);
-            const dy = Math.abs(eb.y - player.y);
+            // v4.22: Enemy bullet collision radius from config
+            const ebR = eb.collisionRadius || Balance.BULLET_CONFIG.ENEMY_DEFAULT.collisionRadius;
 
             // SACRIFICE MODE: Bullets pass through (total invincibility)
             if (sacrificeState === 'ACTIVE') {
@@ -3555,8 +3554,8 @@ function updateBullets(dt) {
                 continue;
             }
 
-            // Check if within core hitbox (take damage)
-            if (dx < coreR && dy < coreR) {
+            // Check if within core hitbox (take damage) — v4.22: circle collision
+            if (G.BulletSystem.circleCollide(eb.x, eb.y, ebR, player.x, player.y, coreR)) {
                 // HYPER MODE: Instant death if hit (bypass lives/shield)
                 if (player.isHyperActive && player.isHyperActive()) {
                     player.deactivateHyper();
@@ -3594,14 +3593,14 @@ function updateBullets(dt) {
                     killStreakMult = 1.0;
                 }
             }
-            // Check if within graze zone (but not core) - award graze points
-            else if (dx < grazeR && dy < grazeR && !eb.grazed) {
+            // Check if within graze zone (but not core) - award graze points — v4.22: circle collision
+            else if (G.BulletSystem.circleCollide(eb.x, eb.y, ebR, player.x, player.y, grazeR) && !eb.grazed) {
                 eb.grazed = true; // Mark as grazed to prevent double-counting
                 lastGrazeTime = totalTime; // Reset decay timer
 
                 // Close graze: tighter zone, higher reward
                 const closeGrazeR = coreR + Balance.GRAZE.CLOSE_RADIUS;
-                const isCloseGraze = dx < closeGrazeR && dy < closeGrazeR;
+                const isCloseGraze = G.BulletSystem.circleCollide(eb.x, eb.y, ebR, player.x, player.y, closeGrazeR);
                 const grazeBonus = isCloseGraze ? Balance.GRAZE.CLOSE_BONUS : 1;
 
                 // Analytics: Track graze
@@ -3924,7 +3923,7 @@ function checkBulletCollisions(b, bIdx) {
         if (!e) continue; // Safety check: enemy may have been removed during iteration
         // Skip enemies still entering formation (invulnerable until settled)
         if (e.isEntering || !e.hasSettled) continue;
-        if (Math.abs(b.x - e.x) < 30 && Math.abs(b.y - e.y) < 30) { // v4.14: 40→30 for 48px enemies (was 65px)
+        if (G.BulletSystem.bulletHitsEntity(b, e, Balance.BULLET_CONFIG.ENEMY_HITBOX_RADIUS)) { // v4.22: circle collision (was AABB 30px)
             const baseDmg = player.stats.baseDamage || 14;
             const dmgMult = (runState && runState.getMod) ? runState.getMod('damageMult', 1) : 1;
             let dmg = baseDmg * dmgMult;
@@ -4107,6 +4106,11 @@ function checkBulletCollisions(b, bIdx) {
                     if (G.Debug) G.Debug.trackDropSpawned(dropInfo.type, dropInfo.category, 'enemy');
                 }
             }
+            // v4.22: Missile AoE — splash damage to nearby enemies on impact
+            if (b.isMissile && b.aoeRadius > 0) {
+                G.BulletSystem.handleMissileExplosion(b, enemies, boss);
+            }
+
             if (!b.penetration) {
                 b.markedForDeletion = true;
                 G.Bullet.Pool.release(b);
@@ -4592,6 +4596,10 @@ function draw() {
             }
         };
         G.Debug.drawOverlay(ctx, gameState);
+    }
+    // v4.22: Bullet hitbox debug overlay
+    if (G.BulletSystem && G.BulletSystem.debugEnabled) {
+        G.BulletSystem.drawDebugOverlay(ctx, bullets, enemyBullets, enemies, player, boss);
     }
     // v4.10: Perf overlay always draws when perf profiling is active (independent of debug overlay)
     if (G.Debug._perf.overlayEnabled) {
@@ -5378,21 +5386,18 @@ function updatePowerUps(dt) {
         }
     }
 
-    // Player bullets cancel enemy bullets
+    // Player bullets cancel enemy bullets — v4.22: circle collision
     if (bullets.length > 0 && enemyBullets.length > 0) {
         for (let i = bullets.length - 1; i >= 0; i--) {
             const b = bullets[i];
             if (!b || b.markedForDeletion) continue;
-            const bx = b.x, by = b.y;
-            const bHalfW = (b.width || 4) * 0.5;
-            const bHalfH = (b.height || 8) * 0.5;
+            const bR = b.collisionRadius || 4;
 
             for (let j = enemyBullets.length - 1; j >= 0; j--) {
                 const eb = enemyBullets[j];
                 if (!eb || eb.markedForDeletion) continue;
-                const hitX = Math.abs(bx - eb.x) < (bHalfW + (eb.width || 4) * 0.5);
-                const hitY = Math.abs(by - eb.y) < (bHalfH + (eb.height || 8) * 0.5);
-                if (hitX && hitY) {
+                const ebR = eb.collisionRadius || Balance.BULLET_CONFIG.ENEMY_DEFAULT.collisionRadius;
+                if (G.BulletSystem.circleCollide(b.x, b.y, bR, eb.x, eb.y, ebR)) {
                     // Collision spark effect
                     createBulletSpark(eb.x, eb.y);
 

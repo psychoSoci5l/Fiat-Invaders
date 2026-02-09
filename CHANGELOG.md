@@ -1,5 +1,17 @@
 # Changelog
 
+## v4.22.0 - 2026-02-09
+### Bullet System v2.0 — Collision + Explosion + Config
+
+- **Circle-based Collision**: Replaced all AABB (Manhattan distance) collision checks with accurate circle-vs-circle detection. Affects player bullets vs enemies, enemy bullets vs player, and bullet-on-bullet cancellation
+- **Centralized BULLET_CONFIG**: All bullet parameters (collision radius, speed, piercing) now in `Balance.BULLET_CONFIG`. No more hardcoded values scattered across files
+- **Missile AoE Fix**: `isMissile` and `aoeRadius` (set in `Player.fireEvolution()`) now actually trigger splash damage on impact. Radial falloff (full center, half edge), knockback, particles, screen shake
+- **BulletSystem.js**: New module (`G.BulletSystem`) with `circleCollide()`, `bulletHitsEntity()`, `handleMissileExplosion()`, and `drawDebugOverlay()`
+- **Bullet.collisionRadius getter**: Each bullet auto-resolves its collision radius from config based on type (NORMAL/HOMING/PIERCE/LASER/MISSILE/ENEMY)
+- **Debug Hitbox Overlay**: `dbg.hitboxes()` toggles visual overlay showing collision circles for all entities (magenta=player bullet, red=enemy bullet, green=enemy, yellow=player core, cyan=graze zone)
+
+---
+
 ## v4.21.0 - 2026-02-09
 ### Gameplay Flow & Quality of Life
 

@@ -1859,6 +1859,19 @@ window.Game.Debug = {
     },
 
     /**
+     * Toggle hitbox debug overlay (v4.22)
+     * Shows collision circles for all bullets, enemies, and player
+     */
+    hitboxes() {
+        if (!window.Game.BulletSystem) {
+            console.log('[DEBUG] BulletSystem not loaded');
+            return;
+        }
+        window.Game.BulletSystem.debugEnabled = !window.Game.BulletSystem.debugEnabled;
+        console.log(`[DEBUG] Hitbox overlay: ${window.Game.BulletSystem.debugEnabled ? 'ON' : 'OFF'}`);
+    },
+
+    /**
      * Show current weapon evolution state
      */
     weaponStatus() {
@@ -1883,4 +1896,4 @@ window.Game.Debug = {
 window.dbg = window.Game.Debug;
 
 // Console helper message
-console.log('[DEBUG] DebugSystem loaded. Commands: dbg.stats(), dbg.showOverlay(), dbg.perf(), dbg.perfReport(), dbg.debugBoss(), dbg.debugHUD(), dbg.hudStatus(), dbg.toggleHudMsg(key), dbg.maxWeapon(), dbg.weaponStatus(), dbg.godchain(), dbg.godchainStatus(), dbg.powerUpReport()');
+console.log('[DEBUG] DebugSystem loaded. Commands: dbg.stats(), dbg.showOverlay(), dbg.perf(), dbg.perfReport(), dbg.debugBoss(), dbg.debugHUD(), dbg.hudStatus(), dbg.toggleHudMsg(key), dbg.maxWeapon(), dbg.weaponStatus(), dbg.godchain(), dbg.godchainStatus(), dbg.powerUpReport(), dbg.hitboxes()');

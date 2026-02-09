@@ -1,13 +1,13 @@
 # Roadmap: FIAT vs CRYPTO
 
 > [!IMPORTANT]
-> **Versione attuale**: v4.21.0 (2026-02-09)
+> **Versione attuale**: v4.22.0 (2026-02-09)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
 > **Stato**: Gameplay completo, in fase di hardening e bugfix.
 
 ---
 
-## v4.22.0 — Top Bar Message Strip (PROSSIMO)
+## v4.23.0 — Top Bar Message Strip (PROSSIMO)
 
 > Razionalizzare i messaggi in-game su **2 soli punti di comunicazione standardizzati**: il meme popup (bottom, sopra la nave) e una **striscia messaggi** fissa sotto la top bar HUD.
 
@@ -31,6 +31,21 @@ Attualmente i messaggi gameplay (showDanger, showVictory, showGameInfo, wave str
 - [ ] Aggiornare WaveManager/enemy spawn Y-min per rispettare la safe zone
 - [ ] Rimuovere i canali canvas sostituiti da MessageSystem
 - [ ] Verificare leggibilità durante orde dense
+
+---
+
+## v4.22.0 — Bullet System v2.0 (COMPLETATO)
+
+> Circle collision, missile AoE fix, centralized bullet config, debug hitbox overlay.
+
+### Implementato
+
+- [x] **BULLET_CONFIG** in BalanceConfig.js — collision radius, speed, piercing per bullet type
+- [x] **BulletSystem.js** — `circleCollide()`, `bulletHitsEntity()`, `handleMissileExplosion()`, `drawDebugOverlay()`
+- [x] **Circle Collision** — Sostituiti tutti i check AABB con circle-vs-circle (player→enemy, enemy→player, bullet cancel)
+- [x] **Missile AoE** — `isMissile`/`aoeRadius` ora funzionano: danno radiale, knockback, particelle, shake
+- [x] **Bullet.collisionRadius getter** — auto-resolve da config per tipo (NORMAL/HOMING/PIERCE/LASER/MISSILE/ENEMY)
+- [x] **Debug Hitbox Overlay** — `dbg.hitboxes()` toggle visuale, cerchi colorati per entita e zone graze
 
 ---
 

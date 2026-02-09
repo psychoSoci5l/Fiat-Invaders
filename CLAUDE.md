@@ -135,8 +135,11 @@ Sky progression (5 levels + boss). Tiered death explosions. Hit stop & screen fl
 ### Perk System
 Trigger: cancel 5 enemy bullets in 1.5s. Random perk auto-applied. Cooldown 4s. Pool in `Upgrades.js`.
 
+### Bullet System v2.0 (v4.22.0)
+Circle-based collision via `G.BulletSystem`. All bullet params centralized in `Balance.BULLET_CONFIG` (radii, speed, piercing per type). Missile AoE: `handleMissileExplosion()` — radial damage falloff, knockback, particles, shake. `Bullet.collisionRadius` getter auto-resolves from config. Debug: `dbg.hitboxes()` overlay.
+
 ### Debug System
-Console: `dbg.balanceTest()` -> play -> `dbg.report()`. Overlay: `dbg.showOverlay()`. Presets: `dbg.debugBoss()`, `dbg.debugWaves()`. Weapon: `dbg.weaponStatus()`, `dbg.maxWeapon()`. Production: `dbg.setProduction()`. Power-up economy: `dbg.powerUpReport()` (drops spawned/collected/expired, weapon timeline, modifier overlap, GODCHAIN stats, adaptive suppression stats).
+Console: `dbg.balanceTest()` -> play -> `dbg.report()`. Overlay: `dbg.showOverlay()`. Presets: `dbg.debugBoss()`, `dbg.debugWaves()`. Weapon: `dbg.weaponStatus()`, `dbg.maxWeapon()`. Production: `dbg.setProduction()`. Power-up economy: `dbg.powerUpReport()` (drops spawned/collected/expired, weapon timeline, modifier overlap, GODCHAIN stats, adaptive suppression stats). Hitbox debug: `dbg.hitboxes()` (v4.22).
 
 ### Tutorial (v4.12.0, v4.19.2) & Manual v2
 3-step DOM overlay (Controls/Objective/Survival). v4.19.2: mode-aware — Story ("3 atti, FED→BCE→BOJ") vs Arcade ("ondate infinite, record"). Mobile control text dynamic (Swipe/Joystick via `fiat_control_mode`). Per-mode localStorage: `fiat_tutorial_story_seen` / `fiat_tutorial_arcade_seen` (backward compat with `fiat_tutorial_seen`). Manual: 4 scrollable sections replacing 6 tabs.
