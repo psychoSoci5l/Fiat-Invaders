@@ -66,9 +66,9 @@ python -m http.server 8000    # or: npx serve .
 
 ### Namespace Pattern (No Build Step)
 
-All modules attach to `window.Game` (alias `G`). Script load order in `index.html` matters. See PROJECT_SNAPSHOT.md for full 37-script load order.
+All modules attach to `window.Game` (alias `G`). Script load order in `index.html` matters. See PROJECT_SNAPSHOT.md for full 39-script load order.
 
-Key load sequence: Constants -> ColorUtils -> BalanceConfig -> MusicData -> BulletPatterns -> BulletSystem -> CollisionSystem -> DropSystem -> MemeEngine -> EventBus -> GameStateMachine -> RunState/RankSystem/Upgrades -> AudioSystem -> InputSystem -> ObjectPool -> Entities (Entity->Bullet->Player->Enemy->Boss->PowerUp) -> WaveManager -> main.js
+Key load sequence: Constants -> DebugSystem -> ColorUtils -> MathUtils -> BalanceConfig -> MusicData -> BulletPatterns -> BulletSystem -> CollisionSystem -> DropSystem -> MemeEngine -> EventBus -> GameStateMachine -> HarmonicSequences -> HarmonicConductor -> RunState/RankSystem/Upgrades -> AudioSystem -> InputSystem -> ObjectPool -> ParticleSystem -> EffectsRenderer -> SkyRenderer -> TransitionManager -> MessageSystem -> Entities (Entity->Bullet->Player->Enemy->Boss->PowerUp) -> WaveManager -> CampaignState -> Story (StoryScreenData->StoryScreen->DialogueData->StoryManager->DialogueUI) -> main.js
 
 ### Key Globals
 
