@@ -10,7 +10,7 @@
 *   **Responsive**: "Notch-safe" UI design that adapts to all mobile screens.
 *   **Localization**: Fully localized in English (EN) and Italian (IT).
 
-## 🧠 Current Gameplay Rules (v4.26.0)
+## 🧠 Current Gameplay Rules (v4.27.0)
 
 *   **Two Game Modes**: **Story Mode** (3 acts with narrative chapters, boss progression FED→BCE→BOJ) and **Arcade Mode** (endless waves, high scores, mini-bosses).
 *   **Wave System**: 15 unique waves (5 per cycle x 3 cycles) with 16 formation patterns and thematic currency groups.
@@ -140,7 +140,7 @@ All tuning is centralized in `src/config/BalanceConfig.js` via `window.Game.Bala
 * **Difficulty curve**: `Balance.DIFFICULTY` (CYCLE_BASE, WAVE_SCALE, MAX_DIFFICULTY)
 * **Enemy firing**: `Balance.CHOREOGRAPHY` (HarmonicConductor controls all firing)
 * **Wave definitions**: `Balance.WAVE_DEFINITIONS` (15 waves, formations, currencies)
-* **Boss stats**: `Balance.BOSS` (HP, fire rates, movement per boss per phase)
+* **Boss stats**: `Balance.BOSS` (HP, fire rates, movement per boss per phase, attack patterns)
 * **Dynamic difficulty**: `Balance.RANK` (fire rate/enemy count adjustment range)
 * **Graze system**: `Balance.GRAZE` (radius, decay, HYPER meter)
 

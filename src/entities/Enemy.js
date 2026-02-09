@@ -18,7 +18,7 @@ class Enemy extends window.Game.Entity {
         this.burstCount = 0;
         this.burstTimer = 0;
         this.telegraphTimer = 0;
-        this.telegraphLead = 0.12;
+        this.telegraphLead = window.Game.Balance.ENEMY_BEHAVIOR.TELEGRAPH_LEAD;
 
         this.maxHp = this.hp; // Track for damage tint
         this.active = true;
@@ -89,7 +89,7 @@ class Enemy extends window.Game.Entity {
 
         return {
             x: this.x,
-            y: this.y + 29, // v4.25: Adjusted for 58px enemy (was +24 for 48px)
+            y: this.y + Balance.ENEMY_BEHAVIOR.BULLET_SPAWN_Y_OFFSET, // v4.25: Adjusted for 58px enemy
             vx: vx,
             vy: vy,
             color: '#ffffff', // v4.18: All enemy bullets white for visual clarity
@@ -101,9 +101,11 @@ class Enemy extends window.Game.Entity {
 
     update(dt, globalTime, wavePattern, gridSpeed, gridDir, playerX, playerY) {
         // Decrement hit flash
-        if (this.hitFlash > 0) this.hitFlash -= dt * 8; // Fast fade
-        if (this.shieldFlash > 0) this.shieldFlash -= dt * 5;
-        if (this.teleportFlash > 0) this.teleportFlash -= dt * 4;
+        const EB = window.Game.Balance.ENEMY_BEHAVIOR;
+        const ff = EB.FLASH_FADE;
+        if (this.hitFlash > 0) this.hitFlash -= dt * ff.HIT;
+        if (this.shieldFlash > 0) this.shieldFlash -= dt * ff.SHIELD;
+        if (this.teleportFlash > 0) this.teleportFlash -= dt * ff.TELEPORT;
         if (this.teleportCooldown > 0) this.teleportCooldown -= dt;
 
         // v4.5: Hit shake decay
@@ -161,10 +163,11 @@ class Enemy extends window.Game.Entity {
             if (dist > 5) {
                 // Move towards target with slight curve
                 const moveAmount = entrySpeed * dt;
-                const t = 1 - (dist / 400); // Progress factor
+                const entryEB = EB.ENTRY;
+                const t = 1 - (dist / entryEB.MAX_DISTANCE); // Progress factor
 
                 // Add horizontal curve for visual interest (sine wave entry)
-                const curveOffset = Math.sin(t * Math.PI) * curveIntensity * 50;
+                const curveOffset = Math.sin(t * Math.PI) * curveIntensity * entryEB.CURVE_AMPLITUDE;
                 const adjustedDx = dx + curveOffset * (this.targetX > 300 ? -1 : 1);
 
                 const angle = Math.atan2(dy, adjustedDx);
@@ -175,7 +178,7 @@ class Enemy extends window.Game.Entity {
                 this.entryProgress = Math.min(1, t);
 
                 // Slight rotation during entry
-                this.rotation = Math.sin(t * Math.PI * 2) * 0.15;
+                this.rotation = Math.sin(t * Math.PI * 2) * entryEB.ROTATION_WOBBLE;
             } else {
                 // Snap to target position
                 this.x = this.targetX;
@@ -215,7 +218,8 @@ class Enemy extends window.Game.Entity {
             const dy = playerY - this.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
             // Teleport if player bullet might be coming (player below, within range)
-            if (dist < 200 && dy > 0 && Math.random() < 0.01) { // 1% chance per frame
+            const tp = EB.TELEPORT;
+            if (dist < tp.TRIGGER_RANGE && dy > 0 && Math.random() < tp.CHANCE) {
                 this.doTeleport();
             }
         }
@@ -224,11 +228,12 @@ class Enemy extends window.Game.Entity {
         this.x += gridSpeed * gridDir * dt;
 
         // Vertical / Pattern Move
+        const wp = EB.WAVE_PATTERNS;
         if (wavePattern === 'V_SHAPE') {
-            this.y = this.baseY + Math.sin(globalTime * 3) * 20;
+            this.y = this.baseY + Math.sin(globalTime * wp.V_SHAPE.FREQUENCY) * wp.V_SHAPE.AMPLITUDE;
         } else if (wavePattern === 'SINE_WAVE') {
             // Complex snake motion
-            this.y = this.baseY + Math.sin(globalTime * 4 + (this.x / 100)) * 40;
+            this.y = this.baseY + Math.sin(globalTime * wp.SINE_WAVE.FREQUENCY + (this.x * wp.SINE_WAVE.PHASE_SCALE)) * wp.SINE_WAVE.AMPLITUDE;
         } else if (wavePattern === 'COLUMNS') {
             this.y = this.baseY; // Static columns
         } else {
@@ -237,7 +242,7 @@ class Enemy extends window.Game.Entity {
 
         // Rotation (optional, for fun)
         if (wavePattern === 'SINE_WAVE') {
-            this.rotation = Math.cos(globalTime * 4 + (this.x / 100)) * 0.2;
+            this.rotation = Math.cos(globalTime * wp.SINE_WAVE.FREQUENCY + (this.x * wp.SINE_WAVE.PHASE_SCALE)) * 0.2;
         }
     }
 
@@ -250,14 +255,15 @@ class Enemy extends window.Game.Entity {
 
     // Short-range teleport to dodge
     doTeleport() {
-        const offsetX = (Math.random() - 0.5) * 120; // Random horizontal offset
-        const offsetY = (Math.random() * 40) - 20;   // Small vertical offset
+        const tp = window.Game.Balance.ENEMY_BEHAVIOR.TELEPORT;
+        const offsetX = (Math.random() - 0.5) * tp.OFFSET_X;
+        const offsetY = (Math.random() * tp.OFFSET_Y) - (tp.OFFSET_Y / 2);
         this.x += offsetX;
         this.y += offsetY;
-        // Clamp to safe bounds (canvas max 600px, margin 50px)
-        this.x = Math.max(50, Math.min(550, this.x));
-        this.y = Math.max(100, Math.min(500, this.y));
-        this.teleportCooldown = 3 + Math.random() * 2; // 3-5 second cooldown
+        // Clamp to safe bounds
+        this.x = Math.max(tp.BOUNDS_X_MIN, Math.min(tp.BOUNDS_X_MAX, this.x));
+        this.y = Math.max(tp.BOUNDS_Y_MIN, Math.min(tp.BOUNDS_Y_MAX, this.y));
+        this.teleportCooldown = tp.COOLDOWN_MIN + Math.random() * tp.COOLDOWN_RANDOM;
         this.teleportFlash = 1;
         if (window.Game.Audio) window.Game.Audio.play('grazeNearMiss');
     }

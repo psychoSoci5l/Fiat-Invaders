@@ -160,6 +160,8 @@ Console: `dbg.balanceTest()` -> play -> `dbg.report()`. Overlay: `dbg.showOverla
 ### Balance Config is Law
 **Always modify `BalanceConfig.js`**, never hardcode values in entity files. All tuning lives in `G.Balance.*`.
 
+Key config sections (v4.27.0): `PLAYER` (movement, combat, shield), `GAME` (canvas size), `ENEMY_BEHAVIOR` (teleport, wave patterns, entry, flash), `BOSS` (HP, movement per boss/phase, attacks per boss/phase), `WEAPON_EVOLUTION`, `DIFFICULTY`, `CHOREOGRAPHY`, `WAVE_DEFINITIONS`, `GLOW`, `SKY`, `MESSAGE_STRIP`, `MEME_POPUP`, `ADAPTIVE_DROPS`, `BULLET_CONFIG`, `FIRE_BUDGET`, `GRAZE`, `RANK`.
+
 ### z-index Stacking (CRITICAL)
 `#game-container` creates its own CSS stacking context. All overlays above the curtain (z-index 9000) must be **DOM siblings outside `#game-container`**, not children.
 

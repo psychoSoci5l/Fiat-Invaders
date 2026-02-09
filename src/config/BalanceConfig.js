@@ -33,10 +33,33 @@
             MAX: 1.0
         },
 
-        // --- PLAYER PHYSICS ---
+        // --- PLAYER PHYSICS & GAMEPLAY ---
         PLAYER: {
             ACCELERATION: 2500,       // Keyboard acceleration
-            FRICTION: 0.92            // Velocity decay when not moving
+            FRICTION: 0.92,           // Velocity decay when not moving
+            SPAWN_OFFSET_Y: 80,       // Distance from bottom at spawn
+            RESET_Y_OFFSET: 160,      // Y position after reset (above controls)
+            BOUNDARY_MARGIN: 20,      // Screen edge margin
+            TOUCH_SWIPE_MULT: 15,     // Touch input responsiveness
+            SECOND_WIND_DURATION: 0.5,// ETH invulnerability on shield expire
+            INVULN_DURATION: 1.4,     // Post-hit invulnerability seconds
+            MUZZLE_FLASH_DURATION: 0.08, // Muzzle flash display time
+            BULLET_SPAWN_Y_OFFSET: 25,   // Y offset for bullet spawn above ship
+            FIRE_VIBRATION_MS: 5,     // Haptic feedback on fire
+            DANGER_RANGE_SQ: 3600,    // Core hitbox indicator range (60px squared)
+            START_LIVES: 3,           // Starting lives per run
+            SHIELD_COOLDOWN: 10.0,    // Base shield cooldown seconds
+            SPREAD_OFFSETS: {
+                NARROW: 4,            // Narrow pattern X offset
+                FIRE: 10,             // Fire pattern X offset
+                WIDE: 25              // Wide/triple pattern X offset
+            }
+        },
+
+        // --- GAME CANVAS ---
+        GAME: {
+            BASE_WIDTH: 600,          // Default canvas width
+            BASE_HEIGHT: 800          // Default canvas height
         },
 
         // --- ETH SMART CONTRACT BONUS (v4.0.2) ---
@@ -296,7 +319,35 @@
 
         // --- ENEMY BEHAVIORS ---
         ENEMY_BEHAVIOR: {
-            KAMIKAZE_SPEED: 400       // Dive speed for kamikaze enemies
+            KAMIKAZE_SPEED: 400,      // Dive speed for kamikaze enemies
+            TELEGRAPH_LEAD: 0.12,     // Telegraph timer before firing
+            BULLET_SPAWN_Y_OFFSET: 29, // Y offset for bullet spawn below enemy center
+            FLASH_FADE: {
+                HIT: 8,              // Hit flash fade speed (dt multiplier)
+                SHIELD: 5,           // Shield flash fade speed
+                TELEPORT: 4          // Teleport flash fade speed
+            },
+            TELEPORT: {
+                TRIGGER_RANGE: 200,   // Distance threshold to enable teleport
+                CHANCE: 0.01,         // Per-frame teleport probability
+                OFFSET_X: 120,        // Horizontal teleport offset range
+                OFFSET_Y: 40,         // Vertical teleport offset range
+                BOUNDS_X_MIN: 50,     // Min X after teleport
+                BOUNDS_X_MAX: 550,    // Max X after teleport
+                BOUNDS_Y_MIN: 100,    // Min Y after teleport
+                BOUNDS_Y_MAX: 500,    // Max Y after teleport
+                COOLDOWN_MIN: 3,      // Min cooldown between teleports
+                COOLDOWN_RANDOM: 2    // Random additional cooldown (0-2s)
+            },
+            WAVE_PATTERNS: {
+                V_SHAPE: { AMPLITUDE: 20, FREQUENCY: 3 },
+                SINE_WAVE: { AMPLITUDE: 40, FREQUENCY: 4, PHASE_SCALE: 0.01 }
+            },
+            ENTRY: {
+                MAX_DISTANCE: 400,    // Reference distance for entry progress
+                CURVE_AMPLITUDE: 50,  // Entry curve sine amplitude
+                ROTATION_WOBBLE: 0.15 // Max rotation during entry
+            }
         },
 
         // --- PATTERN DENSITY (Per Cycle) ---
@@ -435,6 +486,93 @@
                 COUNT: 5,             // Bullets per burst (was 7)
                 SPEED: 240,           // Bullet speed (was 320)
                 SPREAD: 0.4           // Spread angle in radians
+            },
+
+            // v4.27: Boss entrance and boundary
+            ENTRANCE_SPEED: 80,       // Pixels/sec during entrance
+            BOUNDARY_MARGIN: 20,      // Default edge margin (FED/BCE P3)
+
+            // Minion HP scaling
+            MINION: {
+                HP_MULT_BASE: 5,      // Base HP multiplier
+                HP_MULT_PER_PHASE: 2, // Additional HP per boss phase
+                SPAWN_OFFSET_X: 40,   // X offset from boss edge
+                SPAWN_OFFSET_Y: 80    // Y offset below boss
+            },
+
+            // Movement parameters per boss per phase
+            MOVEMENT: {
+                FEDERAL_RESERVE: {
+                    P1: { MARGIN: 20 },
+                    P2: { MARGIN: 20, OSC_AMP: 20, OSC_FREQ: 3 },
+                    P3: { AMP_X: 150, AMP_Y: 30, FREQ_X: 2, FREQ_Y: 4, LERP: 3, JITTER: 8 }
+                },
+                BCE: {
+                    P1: { MARGIN: 40 },
+                    P2: { MARGIN: 30, OSC_AMP: 15, OSC_FREQ: 1.5 },
+                    P3: { MARGIN: 20, SIN_AMP: 25, SIN_FREQ: 3, COS_AMP: 10, COS_FREQ: 5 }
+                },
+                BOJ: {
+                    P1: { OSC_AMP: 100, OSC_FREQ: 0.8, LERP: 2 },
+                    P2: { WAVE_AMP: 120, WAVE_FREQ: 1.2, LERP: 3, VERT_AMP: 20, VERT_FREQ: 2, INTERVENTION_CHANCE: 0.01, INTERVENTION_COOLDOWN: 3.0 },
+                    P3: { AMP_X: 140, AMP_Y: 25, FREQ_X: 3, FREQ_Y: 2, LERP: 4 }
+                }
+            },
+
+            // Attack pattern parameters per boss per phase
+            ATTACKS: {
+                FEDERAL_RESERVE: {
+                    P1: {
+                        ROTATION_SPEED: 0.15,
+                        RING: { count: 12, speed: 130, size: 10 },
+                        SINE: { count: 10, width: 350, amplitude: 25, speed: 150 }
+                    },
+                    P2: {
+                        ROTATION_SPEED: 0.28,
+                        HOMING: { count: 3, speed: 100, homingStrength: 2.0, maxSpeed: 180 }
+                    },
+                    P3: {
+                        ROTATION_SPEED: 0.25,
+                        LASER: { count: 25, speed: 280, width: 450, gapSize: 65 },
+                        CURTAIN: { count: 16, gapSize: 60, speed: 160 },
+                        HOMING: { count: 4, speed: 110, homingStrength: 2.5, maxSpeed: 200 }
+                    }
+                },
+                BCE: {
+                    P1: {
+                        ROTATION_SPEED: 0.08,
+                        CURTAIN: { count: 11, gapSize: 90, speed: 90 },
+                        BARRIER: { count: 20, radius: 70, speed: 50, gapAngle: 1.047, rotationSpeed: 1.2 }
+                    },
+                    P2: {
+                        ROTATION_SPEED: 0.18,
+                        SPIRAL: { arms: 5, speed: 100 }
+                    },
+                    P3: {
+                        ROTATION_SPEED: 0.22,
+                        BARRIER1: { count: 18, radius: 60, rotationSpeed: 1.8 },
+                        BARRIER2: { count: 16, radius: 90, rotationSpeed: -1.2 }
+                    }
+                },
+                BOJ: {
+                    P1: {
+                        WAVE_PHASE_SPEED: 0.12,
+                        SINE: { count: 12, width: 380, amplitude: 35, speed: 120 },
+                        ZEN: { arms: 2, bulletsPerArm: 1, speed: 110 }
+                    },
+                    P2: {
+                        WAVE_PHASE_SPEED: 0.18,
+                        WIPE: { count: 25, speed: 110, gapSize: 75 },
+                        BURST: { count: 5, speed: 260, spread: 0.35 }
+                    },
+                    P3: {
+                        WAVE_PHASE_SPEED: 0.25,
+                        ANGLE_SPEED: 0.2,
+                        ZEN: { arms: 6, bulletsPerArm: 3, speed: 140, spiralTightness: 0.12 },
+                        WIPE: { count: 22, speed: 140, gapSize: 60 },
+                        WAVE: { count: 7, width: 160, amplitude: 25, speed: 150 }
+                    }
+                }
             }
         },
 

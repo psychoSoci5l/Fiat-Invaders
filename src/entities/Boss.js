@@ -154,7 +154,7 @@ class Boss extends window.Game.Entity {
 
         // Entrance Animation
         if (this.y < this.targetY) {
-            this.y += 80 * dt;
+            this.y += (Balance.BOSS.ENTRANCE_SPEED || 80) * dt;
             return null;
         }
 
@@ -180,36 +180,42 @@ class Boss extends window.Game.Entity {
     }
 
     updateMovementFED(dt) {
+        const Balance = window.Game.Balance;
+        const mv = Balance.BOSS.MOVEMENT.FEDERAL_RESERVE;
         if (this.phase === 1) {
             // Slow patrol
+            const m = mv.P1.MARGIN;
             this.x += this.moveSpeed * this.dir * dt;
-            if (this.x < 20) {
-                this.x = 20;
+            if (this.x < m) {
+                this.x = m;
                 this.dir = 1;
-            } else if (this.x + this.width > this.gameWidth - 20) {
-                this.x = this.gameWidth - 20 - this.width;
+            } else if (this.x + this.width > this.gameWidth - m) {
+                this.x = this.gameWidth - m - this.width;
                 this.dir = -1;
             }
         } else if (this.phase === 2) {
             // Faster, erratic movement (speed from Balance config)
+            const m = mv.P2.MARGIN;
             this.x += this.moveSpeed * this.dir * dt;
-            this.y = this.targetY + Math.sin(this.animTime * 3) * 20;
-            if (this.x < 20) {
-                this.x = 20;
+            this.y = this.targetY + Math.sin(this.animTime * mv.P2.OSC_FREQ) * mv.P2.OSC_AMP;
+            if (this.x < m) {
+                this.x = m;
                 this.dir = 1;
-            } else if (this.x + this.width > this.gameWidth - 20) {
-                this.x = this.gameWidth - 20 - this.width;
+            } else if (this.x + this.width > this.gameWidth - m) {
+                this.x = this.gameWidth - m - this.width;
                 this.dir = -1;
             }
         } else {
             // Phase 3: RAGE - Erratic aggressive movement (speed from Balance config)
+            const p3 = mv.P3;
             const baseX = this.gameWidth / 2 - this.width / 2;
-            const patternX = Math.sin(this.animTime * 2) * 150;
-            const patternY = Math.sin(this.animTime * 4) * 30;
+            const patternX = Math.sin(this.animTime * p3.FREQ_X) * p3.AMP_X;
+            const patternY = Math.sin(this.animTime * p3.FREQ_Y) * p3.AMP_Y;
             const targetX = baseX + patternX;
-            this.x += (targetX - this.x) * 3 * dt + (Math.random() - 0.5) * 8;
+            this.x += (targetX - this.x) * p3.LERP * dt + (Math.random() - 0.5) * p3.JITTER;
             this.y = this.targetY + patternY + (Math.random() - 0.5) * 5;
-            this.x = Math.max(20, Math.min(this.gameWidth - this.width - 20, this.x));
+            const bm = Balance.BOSS.BOUNDARY_MARGIN;
+            this.x = Math.max(bm, Math.min(this.gameWidth - this.width - bm, this.x));
 
             // Spawn minions (rate from Balance config)
             this.printTimer -= dt;
@@ -222,37 +228,42 @@ class Boss extends window.Game.Entity {
     }
 
     updateMovementBCE(dt) {
+        const Balance = window.Game.Balance;
+        const mv = Balance.BOSS.MOVEMENT.BCE;
         // BCE: Slow, methodical, bureaucratic movement (speeds from Balance config)
         if (this.phase === 1) {
             // Very slow patrol - bureaucracy is slow
+            const m = mv.P1.MARGIN;
             this.x += this.moveSpeed * this.dir * dt;
-            if (this.x < 40) {
-                this.x = 40;
+            if (this.x < m) {
+                this.x = m;
                 this.dir = 1;
-            } else if (this.x + this.width > this.gameWidth - 40) {
-                this.x = this.gameWidth - 40 - this.width;
+            } else if (this.x + this.width > this.gameWidth - m) {
+                this.x = this.gameWidth - m - this.width;
                 this.dir = -1;
             }
         } else if (this.phase === 2) {
             // Still slow but with vertical oscillation
+            const m = mv.P2.MARGIN;
             this.x += this.moveSpeed * this.dir * dt;
-            this.y = this.targetY + Math.sin(this.animTime * 1.5) * 15;
-            if (this.x < 30) {
-                this.x = 30;
+            this.y = this.targetY + Math.sin(this.animTime * mv.P2.OSC_FREQ) * mv.P2.OSC_AMP;
+            if (this.x < m) {
+                this.x = m;
                 this.dir = 1;
-            } else if (this.x + this.width > this.gameWidth - 30) {
-                this.x = this.gameWidth - 30 - this.width;
+            } else if (this.x + this.width > this.gameWidth - m) {
+                this.x = this.gameWidth - m - this.width;
                 this.dir = -1;
             }
         } else {
             // Phase 3: Fragmentation - faster, erratic
+            const m = mv.P3.MARGIN;
             this.x += this.moveSpeed * this.dir * dt;
-            this.y = this.targetY + Math.sin(this.animTime * 3) * 25 + Math.cos(this.animTime * 5) * 10;
-            if (this.x < 20) {
-                this.x = 20;
+            this.y = this.targetY + Math.sin(this.animTime * mv.P3.SIN_FREQ) * mv.P3.SIN_AMP + Math.cos(this.animTime * mv.P3.COS_FREQ) * mv.P3.COS_AMP;
+            if (this.x < m) {
+                this.x = m;
                 this.dir = 1;
-            } else if (this.x + this.width > this.gameWidth - 20) {
-                this.x = this.gameWidth - 20 - this.width;
+            } else if (this.x + this.width > this.gameWidth - m) {
+                this.x = this.gameWidth - m - this.width;
                 this.dir = -1;
             }
 
@@ -272,27 +283,32 @@ class Boss extends window.Game.Entity {
     }
 
     updateMovementBOJ(dt) {
+        const Balance = window.Game.Balance;
+        const mv = Balance.BOSS.MOVEMENT.BOJ;
         // BOJ: Zen precision, then sudden interventions (speeds from Balance config)
         if (this.phase === 1) {
             // Smooth, zen-like movement
+            const p1 = mv.P1;
             const centerX = this.gameWidth / 2 - this.width / 2;
-            const offsetX = Math.sin(this.animTime * 0.8) * 100;
-            this.x += (centerX + offsetX - this.x) * 2 * dt;
+            const offsetX = Math.sin(this.animTime * p1.OSC_FREQ) * p1.OSC_AMP;
+            this.x += (centerX + offsetX - this.x) * p1.LERP * dt;
         } else if (this.phase === 2) {
             // Yield curve control - smooth waves
-            const wave = Math.sin(this.animTime * 1.2) * 120;
+            const p2 = mv.P2;
+            const wave = Math.sin(this.animTime * p2.WAVE_FREQ) * p2.WAVE_AMP;
             const targetX = this.gameWidth / 2 - this.width / 2 + wave;
-            this.x += (targetX - this.x) * 3 * dt;
-            this.y = this.targetY + Math.sin(this.animTime * 2) * 20;
+            this.x += (targetX - this.x) * p2.LERP * dt;
+            this.y = this.targetY + Math.sin(this.animTime * p2.VERT_FREQ) * p2.VERT_AMP;
 
             // Sudden intervention bursts
-            if (this.interventionCooldown <= 0 && Math.random() < 0.01) {
-                this.interventionCooldown = 3.0;
+            if (this.interventionCooldown <= 0 && Math.random() < p2.INTERVENTION_CHANCE) {
+                this.interventionCooldown = p2.INTERVENTION_COOLDOWN;
                 // Quick dash to random position
                 this.x = Math.random() * (this.gameWidth - this.width - 40) + 20;
             }
         } else {
             // Phase 3: Full intervention mode
+            const p3 = mv.P3;
 
             // Unpredictable movements with sudden stops
             if (Math.floor(this.animTime * 2) % 3 === 0) {
@@ -300,14 +316,15 @@ class Boss extends window.Game.Entity {
                 this.y = this.targetY;
             } else {
                 // Aggressive movement
-                const patternX = Math.sin(this.animTime * 3) * 140;
-                const patternY = Math.cos(this.animTime * 2) * 25;
+                const patternX = Math.sin(this.animTime * p3.FREQ_X) * p3.AMP_X;
+                const patternY = Math.cos(this.animTime * p3.FREQ_Y) * p3.AMP_Y;
                 const targetX = this.gameWidth / 2 - this.width / 2 + patternX;
-                this.x += (targetX - this.x) * 4 * dt;
+                this.x += (targetX - this.x) * p3.LERP * dt;
                 this.y = this.targetY + patternY;
             }
 
-            this.x = Math.max(20, Math.min(this.gameWidth - this.width - 20, this.x));
+            const bm = Balance.BOSS.BOUNDARY_MARGIN;
+            this.x = Math.max(bm, Math.min(this.gameWidth - this.width - bm, this.x));
 
             // Spawn yen minions (rate from Balance config)
             this.printTimer -= dt;
@@ -339,11 +356,12 @@ class Boss extends window.Game.Entity {
         }
 
         // Scale minion HP with boss phase
-        minionConfig.hp = minionConfig.hp * (5 + this.phase * 2);
+        const mc = G.Balance.BOSS.MINION;
+        minionConfig.hp = minionConfig.hp * (mc.HP_MULT_BASE + this.phase * mc.HP_MULT_PER_PHASE);
 
         // Spawn minions on both sides
-        const minion1 = new G.Enemy(this.x - 40, this.y + 80, minionConfig);
-        const minion2 = new G.Enemy(this.x + this.width + 40, this.y + 80, minionConfig);
+        const minion1 = new G.Enemy(this.x - mc.SPAWN_OFFSET_X, this.y + mc.SPAWN_OFFSET_Y, minionConfig);
+        const minion2 = new G.Enemy(this.x + this.width + mc.SPAWN_OFFSET_X, this.y + mc.SPAWN_OFFSET_Y, minionConfig);
 
         // Mark as minions for special behavior
         minion1.isMinion = true;
@@ -389,26 +407,29 @@ class Boss extends window.Game.Entity {
         }
 
         // FED Signature: Aggressive printer - sineWave + expandingRing → spiral + homingMissiles → laserBeam + curtain + homing
+        const atk = Balance.BOSS.ATTACKS.FEDERAL_RESERVE;
         if (this.phase === 1) {
             // Phase 1: Slow patrol, simple patterns (sineWave + expandingRing)
             this.fireTimer = fireRates[0];
-            this.angle += 0.15;
+            this.angle += atk.P1.ROTATION_SPEED;
 
             if (Math.floor(this.angle * 2) % 2 === 0) {
+                const rp = atk.P1.RING;
                 const ringBullets = Patterns.expandingRing(cx, cy - 20, this.angle, {
-                    count: 12, speed: 130, color: '#2ecc71', size: 10, rotate: true
+                    count: rp.count, speed: rp.speed, color: '#2ecc71', size: rp.size, rotate: true
                 });
                 bullets.push(...ringBullets);
             } else {
+                const sp = atk.P1.SINE;
                 const waveBullets = Patterns.sineWave(cx, cy - 20, this.animTime, {
-                    count: 10, width: 350, amplitude: 25, speed: 150, color: '#27ae60', size: 8
+                    count: sp.count, width: sp.width, amplitude: sp.amplitude, speed: sp.speed, color: '#27ae60', size: 8
                 });
                 bullets.push(...waveBullets);
             }
         } else if (this.phase === 2) {
             // Phase 2: Faster, complex patterns (spiral + HOMING MISSILES)
             this.fireTimer = fireRates[1];
-            this.angle += 0.28;
+            this.angle += atk.P2.ROTATION_SPEED;
 
             // Spiral arms
             const spiralBullets = Patterns.spiral(cx, cy - 20, this.angle, {
@@ -418,8 +439,9 @@ class Boss extends window.Game.Entity {
 
             // Homing missiles every ~1.5 seconds
             if (Math.floor(this.animTime * 0.67) !== Math.floor((this.animTime - fireRates[1]) * 0.67) && player) {
+                const hp = atk.P2.HOMING;
                 const homingBullets = Patterns.homingMissiles(cx, cy - 30, player.x, player.y, {
-                    count: 3, speed: 100, color: '#e74c3c', size: 12, homingStrength: 2.0, maxSpeed: 180
+                    count: hp.count, speed: hp.speed, color: '#e74c3c', size: 12, homingStrength: hp.homingStrength, maxSpeed: hp.maxSpeed
                 });
                 bullets.push(...homingBullets);
             }
@@ -434,29 +456,32 @@ class Boss extends window.Game.Entity {
         } else {
             // Phase 3: RAGE - LASER BEAM + curtain + homing
             this.fireTimer = fireRates[2];
-            this.angle += 0.25;
+            this.angle += atk.P3.ROTATION_SPEED;
             this.laserAngle += 0.08;
 
             // Laser beam sweep (FED signature attack!)
             if (Math.floor(this.animTime * 0.5) !== Math.floor((this.animTime - fireRates[2]) * 0.5) && player) {
+                const lp = atk.P3.LASER;
                 const laserBullets = Patterns.laserBeam(cx, cy - 20, player.x, player.y + 100, {
-                    count: 25, speed: 280, color: '#2ecc71', size: 6, width: 450, gapSize: 65
+                    count: lp.count, speed: lp.speed, color: '#2ecc71', size: 6, width: lp.width, gapSize: lp.gapSize
                 });
                 bullets.push(...laserBullets);
             }
 
             // Curtain with gap
             if (Math.floor(this.animTime * 0.8) !== Math.floor((this.animTime - fireRates[2]) * 0.8) && player) {
+                const cp = atk.P3.CURTAIN;
                 const curtainBullets = Patterns.curtain(cx, cy - 40, player.x, {
-                    width: 420, count: 16, gapSize: 60, speed: 160, color: '#00ffff', size: 9
+                    width: 420, count: cp.count, gapSize: cp.gapSize, speed: cp.speed, color: '#00ffff', size: 9
                 });
                 bullets.push(...curtainBullets);
             }
 
             // Aggressive homing missiles
             if (Math.floor(this.angle * 2) % 4 === 0 && player) {
+                const hp3 = atk.P3.HOMING;
                 const homingBullets = Patterns.homingMissiles(cx, cy - 20, player.x, player.y, {
-                    count: 4, speed: 110, color: '#ff4444', size: 11, homingStrength: 2.5, maxSpeed: 200
+                    count: hp3.count, speed: hp3.speed, color: '#ff4444', size: 11, homingStrength: hp3.homingStrength, maxSpeed: hp3.maxSpeed
                 });
                 bullets.push(...homingBullets);
             }
@@ -497,34 +522,38 @@ class Boss extends window.Game.Entity {
         }
 
         // BCE Signature: Bureaucratic - curtain + rotatingBarrier → spiral + delayedExplosion → rotatingBarrier x2 + star attacks
+        const atkBCE = Balance.BOSS.ATTACKS.BCE;
         if (this.phase === 1) {
             // Phase 1: BUREAUCRACY - Slow walls + ROTATING BARRIER
             this.fireTimer = fireRates[0];
-            this.angle += 0.08;
+            this.angle += atkBCE.P1.ROTATION_SPEED;
 
             // Horizontal curtain (bureaucratic wall)
             if (Math.floor(this.animTime * 0.5) !== Math.floor((this.animTime - fireRates[0]) * 0.5)) {
+                const cp = atkBCE.P1.CURTAIN;
                 const wallBullets = Patterns.curtain(cx, cy - 20, cx, {
-                    width: 380, count: 11, gapSize: 90, speed: 90, color: '#003399', size: 12
+                    width: 380, count: cp.count, gapSize: cp.gapSize, speed: cp.speed, color: '#003399', size: 12
                 });
                 bullets.push(...wallBullets);
             }
 
             // Rotating barrier (BCE signature - find the gap!)
+            const bp = atkBCE.P1.BARRIER;
             const barrierBullets = Patterns.rotatingBarrier(cx, cy - 40, this.animTime, {
-                count: 20, radius: 70, speed: 50, color: '#003399', size: 10,
-                gapAngle: Math.PI / 3, rotationSpeed: 1.2
+                count: bp.count, radius: bp.radius, speed: bp.speed, color: '#003399', size: 10,
+                gapAngle: bp.gapAngle, rotationSpeed: bp.rotationSpeed
             });
             bullets.push(...barrierBullets);
 
         } else if (this.phase === 2) {
             // Phase 2: NEGATIVE RATES - Spiral + DELAYED EXPLOSION (timed bombs)
             this.fireTimer = fireRates[1];
-            this.angle += 0.18;
+            this.angle += atkBCE.P2.ROTATION_SPEED;
 
             // Slow spiral with many arms
+            const sp2 = atkBCE.P2.SPIRAL;
             const spiralBullets = Patterns.spiral(cx, cy - 20, this.angle, {
-                arms: 5, speed: 100, color: '#003399', size: 10
+                arms: sp2.arms, speed: sp2.speed, color: '#003399', size: 10
             });
             bullets.push(...spiralBullets);
 
@@ -570,20 +599,22 @@ class Boss extends window.Game.Entity {
         } else {
             // Phase 3: FRAGMENTATION - Double rotating barriers + all stars attack independently
             this.fireTimer = fireRates[2];
-            this.angle += 0.22;
+            this.angle += atkBCE.P3.ROTATION_SPEED;
 
             // DOUBLE rotating barriers - v4.0.2: gaps aligned PI apart for guaranteed safe corridor
-            const barrier1GapAngle = this.animTime * 1.8; // Track barrier 1 gap position
+            const b1 = atkBCE.P3.BARRIER1;
+            const barrier1GapAngle = this.animTime * b1.rotationSpeed; // Track barrier 1 gap position
             const barrier1 = Patterns.rotatingBarrier(cx, cy - 30, this.animTime, {
-                count: 18, radius: 60, speed: 70, color: '#003399', size: 9,
-                gapAngle: Math.PI / 4, rotationSpeed: 1.8
+                count: b1.count, radius: b1.radius, speed: 70, color: '#003399', size: 9,
+                gapAngle: Math.PI / 4, rotationSpeed: b1.rotationSpeed
             });
             bullets.push(...barrier1);
 
             // v4.0.2: Barrier 2 gap offset by PI from barrier 1 (opposite side = navigable corridor)
+            const b2 = atkBCE.P3.BARRIER2;
             const barrier2 = Patterns.rotatingBarrier(cx, cy - 50, this.animTime + Math.PI, {
-                count: 16, radius: 90, speed: 55, color: '#001a4d', size: 10,
-                gapAngle: Math.PI / 4, rotationSpeed: -1.2  // Counter-rotate
+                count: b2.count || 16, radius: b2.radius || 90, speed: 55, color: '#001a4d', size: 10,
+                gapAngle: Math.PI / 4, rotationSpeed: b2.rotationSpeed
             });
             bullets.push(...barrier2);
 
@@ -655,37 +686,41 @@ class Boss extends window.Game.Entity {
         }
 
         // BOJ Signature: Zen precision - sineWave + zenGarden → screenWipe + aimedBurst → zenGarden x4 + rapid screenWipe
+        const atkBOJ = Balance.BOSS.ATTACKS.BOJ;
         if (this.phase === 1) {
             // Phase 1: YIELD CURVE - Beautiful sine waves + ZEN GARDEN
             this.fireTimer = fireRates[0];
-            this.wavePhase += 0.12;
+            this.wavePhase += atkBOJ.P1.WAVE_PHASE_SPEED;
 
             // Precise sine wave
+            const sp1 = atkBOJ.P1.SINE;
             const waveBullets = Patterns.sineWave(cx, cy - 20, this.wavePhase, {
-                count: 12, width: 380, amplitude: 35, speed: 120, color: '#bc002d', size: 10
+                count: sp1.count, width: sp1.width, amplitude: sp1.amplitude, speed: sp1.speed, color: '#bc002d', size: 10
             });
             bullets.push(...waveBullets);
 
             // Zen garden spirals (BOJ signature - hypnotic)
             // v4.10.2: Fire every 2nd cycle (was every cycle) + reduced arms/bullets to lower Phase 1 density
             if (Math.floor(this.animTime * 0.25) !== Math.floor((this.animTime - fireRates[0]) * 0.25)) {
+                const zp1 = atkBOJ.P1.ZEN;
                 const zenBullets = Patterns.zenGarden(cx, cy - 30, this.wavePhase, {
-                    arms: 2, bulletsPerArm: 1, speed: 110, color1: '#bc002d', color2: '#ffffff', size: 9
+                    arms: zp1.arms, bulletsPerArm: zp1.bulletsPerArm, speed: zp1.speed, color1: '#bc002d', color2: '#ffffff', size: 9
                 });
                 bullets.push(...zenBullets);
             }
 
         } else if (this.phase === 2) {
             // Phase 2: INTERVENTION - SCREEN WIPE + sudden aimedBurst
-            this.wavePhase += 0.18;
+            this.wavePhase += atkBOJ.P2.WAVE_PHASE_SPEED;
             this.fireTimer = fireRates[1];
 
             // Screen wipe (BOJ signature - full-screen wall!)
             if (Math.floor(this.animTime * 0.35) !== Math.floor((this.animTime - fireRates[1]) * 0.35)) {
+                const wp2 = atkBOJ.P2.WIPE;
                 const gapPos = player ? player.x / this.gameWidth : 0.5;
                 const wipeBullets = Patterns.screenWipe('horizontal', cy - 40, {
-                    count: 25, speed: 110, color: '#bc002d', size: 10,
-                    screenWidth: this.gameWidth, gapPosition: gapPos, gapSize: 75
+                    count: wp2.count, speed: wp2.speed, color: '#bc002d', size: 10,
+                    screenWidth: this.gameWidth, gapPosition: gapPos, gapSize: wp2.gapSize
                 });
                 bullets.push(...wipeBullets);
             }
@@ -694,8 +729,9 @@ class Boss extends window.Game.Entity {
             if (!this.zenMode && Math.floor(this.animTime * 2) % 5 === 0) {
                 // INTERVENTION! Fast aimed burst
                 if (player) {
+                    const bp2 = atkBOJ.P2.BURST;
                     const burstBullets = Patterns.aimedBurst(cx, cy - 20, player.x, player.y, {
-                        count: 5, speed: 260, spread: 0.35, color: '#ffffff', size: 11
+                        count: bp2.count, speed: bp2.speed, spread: bp2.spread, color: '#ffffff', size: 11
                     });
                     bullets.push(...burstBullets);
                 }
@@ -712,13 +748,14 @@ class Boss extends window.Game.Entity {
         } else {
             // Phase 3: FULL INTERVENTION - Zen garden x4 + rapid screen wipe + chaos
             this.fireTimer = fireRates[2];
-            this.wavePhase += 0.25;
-            this.angle += 0.2;
+            this.wavePhase += atkBOJ.P3.WAVE_PHASE_SPEED;
+            this.angle += atkBOJ.P3.ANGLE_SPEED;
 
             // QUADRUPLE zen garden (hypnotic chaos!)
+            const zp3 = atkBOJ.P3.ZEN;
             const zenBullets = Patterns.zenGarden(cx, cy - 30, this.wavePhase, {
-                arms: 6, bulletsPerArm: 3, speed: 140, color1: '#bc002d', color2: '#ffffff', size: 9,
-                spiralTightness: 0.12
+                arms: zp3.arms, bulletsPerArm: zp3.bulletsPerArm, speed: zp3.speed, color1: '#bc002d', color2: '#ffffff', size: 9,
+                spiralTightness: zp3.spiralTightness
             });
             bullets.push(...zenBullets);
 
@@ -729,23 +766,25 @@ class Boss extends window.Game.Entity {
                     (wipeDir === 'horizontal' ? player.x / this.gameWidth : player.y / this.gameHeight) :
                     0.5;
 
+                const wp3 = atkBOJ.P3.WIPE;
                 const wipeBullets = Patterns.screenWipe(wipeDir, wipeDir === 'horizontal' ? cy - 50 : cx - 50, {
-                    count: 22, speed: 140, color: '#bc002d', size: 9,
+                    count: wp3.count, speed: wp3.speed, color: '#bc002d', size: 9,
                     screenWidth: this.gameWidth, screenHeight: this.gameHeight,
-                    gapPosition: gapPos, gapSize: 60,
+                    gapPosition: gapPos, gapSize: wp3.gapSize,
                     moveDir: Math.floor(this.animTime) % 2 === 0 ? 1 : -1
                 });
                 bullets.push(...wipeBullets);
             }
 
             // Multi-directional waves
+            const wv3 = atkBOJ.P3.WAVE;
             const wave1 = Patterns.sineWave(cx - 80, cy - 20, this.wavePhase, {
-                count: 7, width: 160, amplitude: 25, speed: 150, color: '#bc002d', size: 8
+                count: wv3.count, width: wv3.width, amplitude: wv3.amplitude, speed: wv3.speed, color: '#bc002d', size: 8
             });
             bullets.push(...wave1);
 
             const wave2 = Patterns.sineWave(cx + 80, cy - 20, this.wavePhase + Math.PI, {
-                count: 7, width: 160, amplitude: 25, speed: 150, color: '#ffffff', size: 8
+                count: wv3.count, width: wv3.width, amplitude: wv3.amplitude, speed: wv3.speed, color: '#ffffff', size: 8
             });
             bullets.push(...wave2);
 

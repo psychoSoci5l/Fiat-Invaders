@@ -20,8 +20,8 @@ window.Game.images = {}; // Placeholder, populated by main.js
 
 // --- GLOBAL STATE ---
 let canvas, ctx, gameContainer;
-let gameWidth = 600;
-let gameHeight = 800;
+let gameWidth = window.Game.Balance.GAME.BASE_WIDTH;
+let gameHeight = window.Game.Balance.GAME.BASE_HEIGHT;
 let gameState = 'VIDEO';
 let userLang = navigator.language || navigator.userLanguage;
 let currentLang = userLang.startsWith('it') ? 'IT' : 'EN';
@@ -132,7 +132,7 @@ function checkWeaponUnlocks(cycle) {
 }
 
 let boss = null;
-let score = 0, level = 1, lives = 3;
+let score = 0, level = 1, lives = window.Game.Balance.PLAYER.START_LIVES;
 let lastScoreMilestone = 0; // Track score milestones for pulse effect
 let shake = 0, gridDir = 1, gridSpeed = 25, totalTime = 0, intermissionTimer = 0;
 let _frameKills = 0;            // v4.5: Multi-kill tracking per frame
@@ -2344,7 +2344,7 @@ function startGame() {
     recentPerks = []; // Reset perk display
     renderPerkBar();
 
-    score = 0; level = 1; lives = 3; setUI('scoreVal', '0'); setUI('lvlVal', '1'); setUI('livesText', lives);
+    score = 0; level = 1; lives = Balance.PLAYER.START_LIVES; setUI('scoreVal', '0'); setUI('lvlVal', '1'); setUI('livesText', lives);
     updateDifficultyCache(); // Initialize difficulty cache for level 1
 
     // Analytics: Start tracking run

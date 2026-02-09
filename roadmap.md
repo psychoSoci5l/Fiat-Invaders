@@ -1,9 +1,27 @@
 # Roadmap: FIAT vs CRYPTO
 
 > [!IMPORTANT]
-> **Versione attuale**: v4.26.0 (2026-02-09)
+> **Versione attuale**: v4.27.0 (2026-02-09)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
 > **Stato**: Gameplay completo, in fase di hardening e polish grafico.
+
+---
+
+## v4.27.0 — Hardcoded Values Audit Tier 1 (COMPLETATO)
+
+> Estratti ~70 magic numbers gameplay-critical da Player.js, Enemy.js, Boss.js e main.js in BalanceConfig.js. Tutto il tuning ora vive in `G.Balance.*`.
+
+### Implementato
+
+- [x] Extended `Balance.PLAYER` con 13 nuovi parametri (spawn, movement, combat, shield)
+- [x] Nuovo `Balance.GAME` (BASE_WIDTH, BASE_HEIGHT)
+- [x] Extended `Balance.ENEMY_BEHAVIOR` con teleport, wave patterns, entry animation, flash fade
+- [x] Extended `Balance.BOSS` con MOVEMENT e ATTACKS per tutti e 3 i boss × 3 fasi
+- [x] Player.js: ~14 literal → config references
+- [x] Enemy.js: ~20 literal → config references
+- [x] Boss.js: ~40 literal → config references
+- [x] main.js: 3 literal → config references (canvas size, lives)
+- [x] Zero cambiamenti gameplay — valori identici pre/post refactor
 
 ---
 
@@ -333,7 +351,7 @@ Target: ~12-14 drops in 4:30 (era 19).
 - [x] **Story Mode bug fixes** (v4.11.0): Campaign persistence, victory score, language, mini-boss guard, skip intermission
 
 ### Aperti
-- [ ] **Hardcoded Values Audit** (A): Magic numbers in main.js, Player.js, Enemy.js, Boss.js → BalanceConfig
+- [x] **Hardcoded Values Audit** (A): Magic numbers in main.js, Player.js, Enemy.js, Boss.js → BalanceConfig ✅ v4.27.0
 - [ ] **Object pool audit** (B): Verificare che tutti gli oggetti ad alta frequenza siano pooled
 - [ ] **Batch rendering** (C): Raggruppare entità simili nel draw call
 - [ ] **Off-screen canvas** (C): Pre-rendering per elementi statici/ripetitivi

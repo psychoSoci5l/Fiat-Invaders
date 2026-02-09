@@ -2,7 +2,8 @@ window.Game = window.Game || {};
 
 class Player extends window.Game.Entity {
     constructor(gameWidth, gameHeight) {
-        super(gameWidth / 2, gameHeight - 80, 30, 30);
+        const P = window.Game.Balance.PLAYER;
+        super(gameWidth / 2, gameHeight - P.SPAWN_OFFSET_Y, 30, 30);
         this.gameWidth = gameWidth;
         this.gameHeight = gameHeight;
 
@@ -92,7 +93,7 @@ class Player extends window.Game.Entity {
 
     resetState() {
         this.x = this.gameWidth / 2;
-        this.y = this.gameHeight - 160; // Standard position above controls
+        this.y = this.gameHeight - window.Game.Balance.PLAYER.RESET_Y_OFFSET; // Standard position above controls
         this.weapon = 'NORMAL';
         this.weaponTimer = 0;
         this.shipPowerUp = null;
@@ -239,7 +240,7 @@ class Player extends window.Game.Entity {
             // Legacy fallback for non-joystick touch
             const targetX = input.touch.xPct * this.gameWidth;
             const d = targetX - this.x;
-            this.vx = d * 15;
+            this.vx = d * Balance.PLAYER.TOUCH_SWIPE_MULT;
         }
         else if (input.isDown('ArrowRight') || input.isDown('KeyD')) {
             this.vx += accel * dt;
@@ -256,7 +257,8 @@ class Player extends window.Game.Entity {
 
         // Apply velocity & Bounds
         this.x += this.vx * dt;
-        this.x = Math.max(20, Math.min(this.gameWidth - 20, this.x));
+        const margin = Balance.PLAYER.BOUNDARY_MARGIN;
+        this.x = Math.max(margin, Math.min(this.gameWidth - margin, this.x));
 
         // Bank angle for visual effect (optional extra juice)
         this.rotation = this.vx * 0.0005;
@@ -270,8 +272,8 @@ class Player extends window.Game.Entity {
                 // v4.0.2: Second Wind perk - brief invuln when shield expires
                 const rs = window.Game.RunState;
                 if (rs && rs.flags && rs.flags.secondWind) {
-                    this.secondWindTimer = 0.5;
-                    this.invulnTimer = Math.max(this.invulnTimer, 0.5);
+                    this.secondWindTimer = Balance.PLAYER.SECOND_WIND_DURATION;
+                    this.invulnTimer = Math.max(this.invulnTimer, Balance.PLAYER.SECOND_WIND_DURATION);
                 }
             }
         }
@@ -366,7 +368,8 @@ class Player extends window.Game.Entity {
     activateShield() {
         this.shieldActive = true;
         this.shieldTimer = 2.0;
-        this.shieldCooldown = 10.0 * this.getRunMod('shieldCooldownMult', 1);
+        const shieldCD = window.Game.Balance?.PLAYER?.SHIELD_COOLDOWN || 10.0;
+        this.shieldCooldown = shieldCD * this.getRunMod('shieldCooldownMult', 1);
         window.Game.Audio.play('shield');
     }
 
@@ -510,8 +513,8 @@ class Player extends window.Game.Entity {
 
         // Play Sound
         window.Game.Audio.play(isHodl ? 'hodl' : 'shoot');
-        window.Game.Input.vibrate(5);
-        this.muzzleFlash = 0.08;
+        window.Game.Input.vibrate(Balance.PLAYER.FIRE_VIBRATION_MS);
+        this.muzzleFlash = Balance.PLAYER.MUZZLE_FLASH_DURATION;
 
         // === NEW WEAPON EVOLUTION SYSTEM ===
         if (WE && this.shotLevel >= 1) {
@@ -1066,7 +1069,7 @@ class Player extends window.Game.Entity {
         // v4.5: Evolved muzzle flash — scales with shot level, weapon color, modifiers
         if (this.muzzleFlash > 0) {
             const vfx = window.Game.Balance?.VFX || {};
-            const flashAlpha = this.muzzleFlash / 0.08;
+            const flashAlpha = this.muzzleFlash / (Balance.PLAYER.MUZZLE_FLASH_DURATION || 0.08);
             const level = this.shotLevel || 1;
             const levelScale = 1 + (level - 1) * (vfx.MUZZLE_SCALE_PER_LEVEL || 0.4);
 
@@ -1175,7 +1178,7 @@ class Player extends window.Game.Entity {
             const eb = enemyBullets[i];
             const dx = eb.x - this.x;
             const dy = eb.y - this.y;
-            if (dx * dx + dy * dy < 3600) { // 60px radius squared
+            if (dx * dx + dy * dy < Balance.PLAYER.DANGER_RANGE_SQ) { // 60px radius squared
                 dangerNear = true;
                 break;
             }
@@ -1217,7 +1220,7 @@ class Player extends window.Game.Entity {
         // 1. LIFE PIPS (below ship)
         if (config.LIFE_PIPS?.ENABLED && typeof this._livesDisplay === 'number') {
             const lp = config.LIFE_PIPS;
-            const totalLives = 3;
+            const totalLives = window.Game.Balance.PLAYER.START_LIVES;
             const startX = -(totalLives - 1) * lp.SPACING / 2;
 
             for (let i = 0; i < totalLives; i++) {
@@ -1251,7 +1254,7 @@ class Player extends window.Game.Entity {
 
             if (!this.shieldActive && this.shieldCooldown > 0) {
                 // Cooldown: partial arc filling clockwise
-                const maxCooldown = 10; // Default shield cooldown
+                const maxCooldown = window.Game.Balance.PLAYER.SHIELD_COOLDOWN; // Shield cooldown from config
                 const progress = 1 - (this.shieldCooldown / maxCooldown);
                 const angle = Math.PI * 2 * Math.min(1, progress);
 
@@ -1283,7 +1286,7 @@ class Player extends window.Game.Entity {
                 const SPECIAL_ICONS = { HOMING: '🎯', PIERCE: '🔥', LASER: '⚡', MISSILE: '🚀', SHIELD: '🛡️', SPEED: '💨' };
                 const icon = SPECIAL_ICONS[this._weaponState.special] || '?';
                 const timer = this._weaponState.specialTimer;
-                const maxTimer = 12; // SPECIAL_DURATION
+                const maxTimer = window.Game.Balance.WEAPON_EVOLUTION.SPECIAL_DURATION; // From config
                 const ratio = Math.min(1, timer / maxTimer);
 
                 // Countdown arc
@@ -1394,7 +1397,7 @@ class Player extends window.Game.Entity {
         if (this.invulnTimer > 0 || this.shieldActive) return false;
 
         this.hp--;
-        this.invulnTimer = 1.4;
+        this.invulnTimer = window.Game.Balance.PLAYER.INVULN_DURATION;
         window.Game.Audio.play('hitPlayer');
         window.Game.Input.vibrate([50, 50, 50]); // heavy shake
         return true;
