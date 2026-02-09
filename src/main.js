@@ -941,11 +941,34 @@ function initSplashShip() {
     initIntroShip();
 }
 
+// --- v4.35: Title animation helpers ---
+let _introActionCooldown = 0;
+
+function _cleanupAnimClasses() {
+    const els = [
+        document.getElementById('mode-selector'),
+        document.getElementById('mode-explanation'),
+        document.querySelector('.primary-action-container'),
+        document.querySelector('.intro-icons'),
+        document.querySelector('.intro-version'),
+        document.getElementById('intro-title')
+    ];
+    els.forEach(el => {
+        if (el) el.classList.remove('anim-hidden', 'anim-show', 'anim-active');
+    });
+    // Also clean subtitle visibility class
+    const sub = document.getElementById('title-subtitle');
+    if (sub) sub.classList.remove('anim-visible');
+}
+
 // --- STATE TRANSITIONS ---
 window.enterSelectionState = function() {
     if (introState === 'SELECTION') return;
     introState = 'SELECTION';
     audioSys.play('coinUI');
+    // v4.35: Hide title animator and clean up anim classes
+    if (G.TitleAnimator) G.TitleAnimator.hide();
+    _cleanupAnimClasses();
 
     // Hide splash elements
     const title = document.getElementById('intro-title');
@@ -991,6 +1014,10 @@ window.goBackToModeSelect = function() {
     if (introState === 'SPLASH') return;
     introState = 'SPLASH';
     audioSys.play('coinUI');
+    // v4.35: Restore title animator in loop state (no replay)
+    if (G.TitleAnimator && !G.TitleAnimator.isActive()) {
+        G.TitleAnimator.start(true);
+    }
 
     // Hide selection elements
     const header = document.getElementById('selection-header');
@@ -1025,7 +1052,15 @@ window.goBackToModeSelect = function() {
 
 // Handle primary action button click (unified for both states)
 window.handlePrimaryAction = function() {
+    // v4.35: Cooldown prevents rapid-fire state transitions
+    if (_introActionCooldown > 0) return;
     if (introState === 'SPLASH') {
+        // v4.35: Skip animation on button tap during ANIMATING
+        if (G.TitleAnimator && G.TitleAnimator.isAnimating()) {
+            G.TitleAnimator.skip();
+            _introActionCooldown = 0.4;
+            return;
+        }
         enterSelectionState();
     } else {
         launchShipAndStart();
@@ -1557,6 +1592,27 @@ function init() {
             // Reset primary button to TAP TO START state
             updatePrimaryButton('SPLASH');
 
+            // v4.35: Title Animation — set subtitle text, init and start animator
+            const subtitleEl = document.getElementById('title-subtitle');
+            if (subtitleEl) subtitleEl.textContent = t('TITLE_SUBTITLE');
+            if (G.TitleAnimator) {
+                G.TitleAnimator.init(gameWidth, gameHeight, {
+                    onControlsReady: function() { /* controls revealed by TitleAnimator */ }
+                });
+                // Add anim-active to title, anim-hidden to controls
+                if (title) title.classList.add('anim-active');
+                const primaryAction = document.querySelector('.primary-action-container');
+                const introIcons = document.querySelector('.intro-icons');
+                const introVersion = document.querySelector('.intro-version');
+                const modeExpl = document.getElementById('mode-explanation');
+                if (modeSelector) modeSelector.classList.add('anim-hidden');
+                if (primaryAction) primaryAction.classList.add('anim-hidden');
+                if (introIcons) introIcons.classList.add('anim-hidden');
+                if (introVersion) introVersion.classList.add('anim-hidden');
+                if (modeExpl) modeExpl.classList.add('anim-hidden');
+                G.TitleAnimator.start(false);
+            }
+
             try { updateUIText(); } catch (e) { }
             initIntroShip();
 
@@ -1638,6 +1694,14 @@ function init() {
             waveMgr.intermissionTimer = 0; // Skip boss-defeat intermission
         }
         else if (gameState === 'INTRO') {
+            // v4.35: Cooldown prevents rapid-fire state transitions (key repeat)
+            if (_introActionCooldown > 0) return;
+            // v4.35: Skip title animation on tap during ANIMATING
+            if (introState === 'SPLASH' && G.TitleAnimator && G.TitleAnimator.isAnimating()) {
+                G.TitleAnimator.skip();
+                _introActionCooldown = 0.4;
+                return;
+            }
             // Two-phase intro: SPLASH -> SELECTION -> PLAY
             if (introState === 'SPLASH') {
                 enterSelectionState();
@@ -1698,6 +1762,24 @@ function init() {
         setGameState('INTRO');
         introState = 'SPLASH';
         initIntroShip();
+
+        // v4.35: Title Animation for no-video path
+        const subtitleEl = document.getElementById('title-subtitle');
+        if (subtitleEl) subtitleEl.textContent = t('TITLE_SUBTITLE');
+        if (G.TitleAnimator) {
+            G.TitleAnimator.init(gameWidth, gameHeight, {});
+            if (title) title.classList.add('anim-active');
+            const primaryAction = document.querySelector('.primary-action-container');
+            const introIcons = document.querySelector('.intro-icons');
+            const introVersion = document.querySelector('.intro-version');
+            const modeExpl = document.getElementById('mode-explanation');
+            if (modeSelector) modeSelector.classList.add('anim-hidden');
+            if (primaryAction) primaryAction.classList.add('anim-hidden');
+            if (introIcons) introIcons.classList.add('anim-hidden');
+            if (introVersion) introVersion.classList.add('anim-hidden');
+            if (modeExpl) modeExpl.classList.add('anim-hidden');
+            G.TitleAnimator.start(false);
+        }
     }
 
     // High score is displayed via updateModeIndicator() in updateUIText()
@@ -1820,6 +1902,10 @@ function resize() {
     if (G.SkyRenderer) {
         G.SkyRenderer.setDimensions(gameWidth, gameHeight);
     }
+    // v4.35: Update TitleAnimator dimensions
+    if (G.TitleAnimator) {
+        G.TitleAnimator.setDimensions(gameWidth, gameHeight);
+    }
 }
 
 function updateUIText() {
@@ -1832,6 +1918,9 @@ function updateUIText() {
     if (ui.memeTicker && !ui.memeTicker.innerText) ui.memeTicker.innerText = getRandomMeme();
 
     // Intro screen
+    // v4.35: Update subtitle text on language change
+    const subtitleEl = document.getElementById('title-subtitle');
+    if (subtitleEl) subtitleEl.textContent = t('TITLE_SUBTITLE');
     // Primary action button text updated via updatePrimaryButton()
     const selectionHeader = document.getElementById('selection-header');
     if (selectionHeader) selectionHeader.innerText = t('CHOOSE_SHIP');
@@ -2441,6 +2530,15 @@ window.backToIntro = function () {
         audioSys.init();
         if (G.HarmonicConductor) G.HarmonicConductor.reset();
         initIntroShip();
+
+        // v4.35: Restart TitleAnimator in skip mode (no replay on return)
+        if (G.TitleAnimator) {
+            _cleanupAnimClasses();
+            const subtitleEl = document.getElementById('title-subtitle');
+            if (subtitleEl) subtitleEl.textContent = t('TITLE_SUBTITLE');
+            G.TitleAnimator.init(gameWidth, gameHeight, {});
+            G.TitleAnimator.start(true);
+        }
 
         // Reopen curtain
         setTimeout(() => {
@@ -4226,6 +4324,11 @@ function draw() {
         G.SkyRenderer.draw(ctx, { level, isBearMarket, bossActive: boss && boss.active });
     }
 
+    // v4.35: Title animation particles (drawn on canvas through transparent intro-screen)
+    if (gameState === 'INTRO' && G.TitleAnimator && G.TitleAnimator.isActive()) {
+        G.TitleAnimator.draw(ctx);
+    }
+
     // Impact Flash via EffectsRenderer
     if (G.EffectsRenderer) {
         G.EffectsRenderer.drawImpactFlash(ctx);
@@ -4993,6 +5096,12 @@ function loop(timestamp) {
 
     // Remove old "delayed game over" check since executeDeath handles it
     // if (player && player.hp <= 0 && hitStopTimer <= 0 && gameState === 'PLAY') { ... }
+
+    // v4.35: Update title animation timeline + cooldown
+    if (_introActionCooldown > 0) _introActionCooldown -= dt;
+    if (gameState === 'INTRO' && G.TitleAnimator && G.TitleAnimator.isActive()) {
+        G.TitleAnimator.update(dt);
+    }
 
     // STORY_SCREEN: Update story display, skip normal game update
     if (gameState === 'STORY_SCREEN' && G.StoryScreen) {

@@ -1,9 +1,26 @@
 # Roadmap: FIAT vs CRYPTO
 
 > [!IMPORTANT]
-> **Versione attuale**: v4.34.0 (2026-02-09)
+> **Versione attuale**: v4.35.0 (2026-02-09)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
 > **Stato**: Gameplay completo, in fase di hardening e polish grafico.
+
+---
+
+## v4.35.0 — Animated Title Screen (COMPLETATO)
+
+> Sequenza animata 2s al primo caricamento. Subtitle "Currencies"/"Valute", bounce-in per FIAT/CRYPTO con particelle canvas e SFX procedurali. Skip su tap, no replay su ritorno da Game Over. Kill-switch `TITLE_ANIM.ENABLED`.
+
+### Implementato
+
+- [x] TitleAnimator.js: state machine IDLE/ANIMATING/LOOPING/HIDDEN
+- [x] CSS keyframes: titleBounceInTop, titleFadeRotate, titleBounceInBottom
+- [x] Subtitle localizzato EN/IT sopra il titolo
+- [x] 2 SFX procedurali: titleBoom (FIAT), titleZap (CRYPTO)
+- [x] Particelle canvas additive (oro FIAT, cyan CRYPTO, max 40)
+- [x] Skip su tap, no replay da Game Over, prefers-reduced-motion
+- [x] Config Balance.TITLE_ANIM con kill-switch
+- [x] 7 punti di integrazione in main.js
 
 ---
 

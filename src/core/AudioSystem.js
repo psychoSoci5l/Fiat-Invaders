@@ -1141,6 +1141,79 @@ class AudioSystem {
             errorGain.gain.exponentialRampToValueAtTime(0.01, t + 0.2);
             error.start(t + 0.05); error.stop(t + 0.2);
         }
+        // === TITLE BOOM (v4.35 — FIAT slam) ===
+        else if (type === 'titleBoom') {
+            const vol = (G.Balance && G.Balance.TITLE_ANIM) ? G.Balance.TITLE_ANIM.SFX.BOOM_VOLUME : 0.7;
+            // Sub bass impact
+            const sub = this.ctx.createOscillator();
+            const subGain = this.ctx.createGain();
+            sub.connect(subGain); subGain.connect(output);
+            sub.type = 'sine';
+            sub.frequency.setValueAtTime(100, t);
+            sub.frequency.exponentialRampToValueAtTime(40, t + 0.3);
+            subGain.gain.setValueAtTime(0.3 * vol, t);
+            subGain.gain.exponentialRampToValueAtTime(0.01, t + 0.35);
+            sub.start(t); sub.stop(t + 0.4);
+            // Metallic ring
+            const ring = this.ctx.createOscillator();
+            const ringGain = this.ctx.createGain();
+            ring.connect(ringGain); ringGain.connect(output);
+            ring.type = 'square';
+            ring.frequency.setValueAtTime(800, t);
+            ring.frequency.exponentialRampToValueAtTime(200, t + 0.25);
+            ringGain.gain.setValueAtTime(0.12 * vol, t);
+            ringGain.gain.exponentialRampToValueAtTime(0.01, t + 0.25);
+            ring.start(t); ring.stop(t + 0.3);
+            // Noise burst
+            const noise = this.createNoiseOsc(0.25);
+            if (noise) {
+                const filter = this.ctx.createBiquadFilter();
+                const nGain = this.ctx.createGain();
+                noise.connect(filter); filter.connect(nGain); nGain.connect(output);
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(1500, t);
+                filter.frequency.exponentialRampToValueAtTime(200, t + 0.2);
+                nGain.gain.setValueAtTime(0.15 * vol, t);
+                nGain.gain.exponentialRampToValueAtTime(0.01, t + 0.2);
+                noise.start(t); noise.stop(t + 0.25);
+            }
+        }
+        // === TITLE ZAP (v4.35 — CRYPTO electric sweep) ===
+        else if (type === 'titleZap') {
+            const vol = (G.Balance && G.Balance.TITLE_ANIM) ? G.Balance.TITLE_ANIM.SFX.ZAP_VOLUME : 0.7;
+            // Electric sweep
+            const sweep = this.ctx.createOscillator();
+            const sweepGain = this.ctx.createGain();
+            sweep.connect(sweepGain); sweepGain.connect(output);
+            sweep.type = 'sawtooth';
+            sweep.frequency.setValueAtTime(2400, t);
+            sweep.frequency.exponentialRampToValueAtTime(400, t + 0.2);
+            sweepGain.gain.setValueAtTime(0.12 * vol, t);
+            sweepGain.gain.exponentialRampToValueAtTime(0.01, t + 0.22);
+            sweep.start(t); sweep.stop(t + 0.25);
+            // Sub punch
+            const sub = this.ctx.createOscillator();
+            const subGain = this.ctx.createGain();
+            sub.connect(subGain); subGain.connect(output);
+            sub.type = 'sine';
+            sub.frequency.setValueAtTime(150, t);
+            sub.frequency.exponentialRampToValueAtTime(60, t + 0.2);
+            subGain.gain.setValueAtTime(0.25 * vol, t);
+            subGain.gain.exponentialRampToValueAtTime(0.01, t + 0.25);
+            sub.start(t); sub.stop(t + 0.3);
+            // High noise crackle
+            const noise = this.createNoiseOsc(0.15);
+            if (noise) {
+                const filter = this.ctx.createBiquadFilter();
+                const nGain = this.ctx.createGain();
+                noise.connect(filter); filter.connect(nGain); nGain.connect(output);
+                filter.type = 'highpass';
+                filter.frequency.value = 3000;
+                nGain.gain.setValueAtTime(0.1 * vol, t);
+                nGain.gain.exponentialRampToValueAtTime(0.01, t + 0.12);
+                noise.start(t); noise.stop(t + 0.15);
+            }
+        }
     }
 
     // Hit sound variants helper

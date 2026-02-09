@@ -1,5 +1,22 @@
 # Changelog
 
+## v4.35.0 - 2026-02-09
+### Animated Title Screen
+
+- **Title animation sequence**: 2-second choreographed intro on first load. "Currencies" subtitle fades in, "FIAT" bounces from top with gold particles, "vs" rotates in, "CRYPTO" bounces from bottom with cyan particles. Mode selector and controls fade in at end
+- **TitleAnimator.js (NEW)**: Self-contained state machine (IDLE/ANIMATING/LOOPING/HIDDEN) with canvas particle system (max 40, additive blending). DOM element positions mapped to canvas coordinates via `getBoundingClientRect()`
+- **CSS keyframes**: `titleBounceInTop`, `titleFadeRotate`, `titleBounceInBottom` with cubic-bezier overshoot. `.anim-active` class hides title spans during sequence, `.anim-hidden`/`.anim-show` for controls fade
+- **2 new SFX**: `titleBoom` (sub bass + metallic ring + noise burst) for FIAT slam, `titleZap` (electric sweep + sub punch + noise crackle) for CRYPTO reveal
+- **Subtitle "Currencies"/"Valute"**: Clarifies that "FIAT" = traditional currencies. Localized EN/IT
+- **Skip on tap**: Tapping during animation skips to loop state with all elements visible
+- **No replay on return**: Coming back from Game Over shows loop state directly (no animation replay)
+- **Kill switch**: `Balance.TITLE_ANIM.ENABLED = false` skips animation entirely
+- **prefers-reduced-motion**: Respects accessibility setting, shows everything immediately
+- **Config**: `Balance.TITLE_ANIM` with timeline, particle, and SFX volume settings
+- **Files**: TitleAnimator.js (NEW), style.css (~80 lines), index.html (subtitle + script), BalanceConfig.js (TITLE_ANIM config), AudioSystem.js (2 SFX), Constants.js (localization + version), main.js (7 integration points), sw.js (version)
+
+---
+
 ## v4.34.0 - 2026-02-09
 ### Audio Overhaul — Music System v2 & Separate Music/SFX Controls
 

@@ -841,6 +841,95 @@ body {
     }
 }
 
+/* ========== TITLE ANIMATION v4.35 ========== */
+
+/* Subtitle above title */
+.title-subtitle {
+    display: block;
+    font-size: 0.25em;
+    letter-spacing: 6px;
+    color: rgba(255, 255, 255, 0.6);
+    text-shadow: none;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+.title-subtitle.anim-visible {
+    opacity: 1;
+}
+
+/* Hide title spans during animation sequence */
+.intro-title.anim-active .title-fiat,
+.intro-title.anim-active .title-vs,
+.intro-title.anim-active .title-crypto {
+    opacity: 0;
+    animation: none !important;
+}
+
+/* Animation classes applied by TitleAnimator */
+.intro-title.anim-active .title-fiat.anim-bounce-in-top {
+    opacity: 1;
+    animation: titleBounceInTop 0.55s cubic-bezier(0.22, 1.6, 0.36, 1) forwards !important;
+}
+.intro-title.anim-active .title-vs.anim-fade-rotate {
+    opacity: 1;
+    animation: titleFadeRotate 0.4s ease-out forwards !important;
+}
+.intro-title.anim-active .title-crypto.anim-bounce-in-bottom {
+    opacity: 1;
+    animation: titleBounceInBottom 0.55s cubic-bezier(0.22, 1.6, 0.36, 1) forwards !important;
+}
+
+@keyframes titleBounceInTop {
+    0% { transform: translateY(-160px) scale(0.3); opacity: 0; }
+    45% { transform: translateY(14px) scale(1.12); opacity: 1; }
+    65% { transform: translateY(-8px) scale(0.95); }
+    82% { transform: translateY(3px) scale(1.03); }
+    100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+@keyframes titleFadeRotate {
+    0% { transform: rotate(-20deg) scale(0.4); opacity: 0; }
+    60% { transform: rotate(3deg) scale(1.05); opacity: 1; }
+    100% { transform: rotate(0deg) scale(1); opacity: 1; }
+}
+@keyframes titleBounceInBottom {
+    0% { transform: translateY(160px) scale(0.3); opacity: 0; }
+    45% { transform: translateY(-14px) scale(1.12); opacity: 1; }
+    65% { transform: translateY(8px) scale(0.95); }
+    82% { transform: translateY(-3px) scale(1.03); }
+    100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+/* Fade in/out for controls during title animation */
+.anim-hidden {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity 0.3s ease !important;
+}
+.anim-show {
+    transition: opacity 0.5s ease;
+}
+
+/* Reduced motion: skip all title animations */
+@media (prefers-reduced-motion: reduce) {
+    .intro-title.anim-active .title-fiat,
+    .intro-title.anim-active .title-vs,
+    .intro-title.anim-active .title-crypto {
+        animation: none !important;
+        opacity: 1 !important;
+    }
+    .title-subtitle {
+        opacity: 1 !important;
+        transition: none !important;
+    }
+    .anim-hidden {
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        transition: none !important;
+    }
+}
+
 /* ========== UNIFIED INTRO SCREEN ========== */
 
 /* Title */

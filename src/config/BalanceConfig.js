@@ -1442,6 +1442,34 @@
             DEFICIT_CARRYOVER: 0.5              // 50% unused budget carried over
         },
 
+        // --- TITLE ANIMATION v4.35 ---
+        TITLE_ANIM: {
+            ENABLED: true,                // false = skip animation, show everything immediately
+            DURATION: 2.4,
+            TIMELINE: {
+                SUBTITLE_IN: 0.24,
+                FIAT_IN: 0.6,
+                VS_IN: 0.96,
+                CRYPTO_IN: 1.32,
+                LOOP_START: 1.8,
+                CONTROLS_IN: 2.4
+            },
+            PARTICLES: {
+                COUNT: 16,
+                SPEED_MIN: 3,
+                SPEED_MAX: 7,
+                DECAY_MIN: 0.5,
+                DECAY_MAX: 1.0,
+                FIAT_COLOR: '#FFD700',
+                CRYPTO_COLOR: '#00FFCC',
+                MAX_TOTAL: 40
+            },
+            SFX: {
+                BOOM_VOLUME: 0.7,
+                ZAP_VOLUME: 0.7
+            }
+        },
+
         // --- AUDIO SYSTEM v4.34 ---
         AUDIO: {
             ENABLED: true,           // Master kill-switch

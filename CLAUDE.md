@@ -68,7 +68,7 @@ python -m http.server 8000    # or: npx serve .
 
 All modules attach to `window.Game` (alias `G`). Script load order in `index.html` matters. See PROJECT_SNAPSHOT.md for full 39-script load order.
 
-Key load sequence: Constants -> DebugSystem -> ColorUtils -> MathUtils -> BalanceConfig -> MusicData -> BulletPatterns -> BulletSystem -> CollisionSystem -> DropSystem -> MemeEngine -> EventBus -> GameStateMachine -> HarmonicSequences -> HarmonicConductor -> RunState/RankSystem/Upgrades -> AudioSystem -> InputSystem -> ObjectPool -> ParticleSystem -> EffectsRenderer -> SkyRenderer -> TransitionManager -> MessageSystem -> Entities (Entity->Bullet->Player->Enemy->Boss->PowerUp) -> WaveManager -> CampaignState -> Story (StoryScreenData->StoryScreen->DialogueData->StoryManager->DialogueUI) -> main.js
+Key load sequence: Constants -> DebugSystem -> ColorUtils -> MathUtils -> BalanceConfig -> MusicData -> BulletPatterns -> BulletSystem -> CollisionSystem -> DropSystem -> MemeEngine -> EventBus -> GameStateMachine -> HarmonicSequences -> HarmonicConductor -> RunState/RankSystem/Upgrades -> AudioSystem -> InputSystem -> ObjectPool -> ParticleSystem -> EffectsRenderer -> SkyRenderer -> TransitionManager -> TitleAnimator -> MessageSystem -> Entities (Entity->Bullet->Player->Enemy->Boss->PowerUp) -> WaveManager -> CampaignState -> Story (StoryScreenData->StoryScreen->DialogueData->StoryManager->DialogueUI) -> main.js
 
 ### Key Globals
 
@@ -149,6 +149,9 @@ Circle-based collision via `G.BulletSystem`. All bullet params centralized in `B
 ### Batch Rendering (v4.30.0)
 Multi-pass draw pipeline reduces ~30% canvas state changes. ParticleSystem: 2-pass (standard source-over → additive lighter). Player bullet glow: `Bullet.drawGlow(ctx)` batched in main.js single additive pass before body loop. Floating text: shared textAlign/strokeStyle setup hoisted. Visually identical to pre-v4.30.
 
+### Animated Title Screen (v4.35.0)
+2-second choreographed intro animation on first load. `TitleAnimator.js` (`G.TitleAnimator`) — state machine IDLE/ANIMATING/LOOPING/HIDDEN. Timeline: subtitle fade (0.2s) → FIAT bounce-in + gold particles + `titleBoom` SFX (0.5s) → vs rotate (0.8s) → CRYPTO bounce-in + cyan particles + `titleZap` SFX (1.1s) → controls fade in (2.0s). CSS keyframes (`titleBounceInTop`/`titleFadeRotate`/`titleBounceInBottom`). Canvas particles (additive, max 40, local array). `.anim-active` hides title spans during sequence, `.anim-hidden`/`.anim-show` for controls. Skip on tap, no replay from Game Over (`start(true)`). `prefers-reduced-motion` → auto-skip. Config: `Balance.TITLE_ANIM` (ENABLED kill-switch, TIMELINE, PARTICLES, SFX).
+
 ### Audio System v2 (v4.34.0)
 Data-driven procedural music with separate Music/SFX routing. `MusicData.js` defines 5 level themes + 3 boss phases + bear market modifier. Each song has sections (A/B/FILL) with 16-beat arrays for bass/melody/arp/drums/pad. `AudioSystem.js` schedule() reads beat-by-beat from data with intensity-gated layers (bass always, arp 30+, pad 40+, drums 50+, melody 60+). Separate `musicGain`/`sfxGain` nodes for independent toggle. `toggleMusic()`/`toggleSfx()` methods. localStorage persistence (`fiat_music_muted`, `fiat_sfx_muted`). Timing always advances when muted (HarmonicConductor sync). Config: `Balance.AUDIO`. Bear market: -1 semitone pitch shift, +10% tempo.
 
@@ -177,7 +180,7 @@ Console: `dbg.balanceTest()` -> play -> `dbg.report()`. Overlay: `dbg.showOverla
 ### Balance Config is Law
 **Always modify `BalanceConfig.js`**, never hardcode values in entity files. All tuning lives in `G.Balance.*`.
 
-Key config sections (v4.34.0): `PLAYER` (movement, combat, shield), `GAME` (canvas size), `ENEMY_BEHAVIOR` (teleport, wave patterns, entry, flash), `BOSS` (HP, movement per boss/phase, attacks per boss/phase), `WEAPON_EVOLUTION`, `DIFFICULTY`, `CHOREOGRAPHY`, `WAVE_DEFINITIONS`, `GLOW`, `SKY`, `MESSAGE_STRIP`, `MEME_POPUP`, `ADAPTIVE_DROPS`, `BULLET_CONFIG`, `FIRE_BUDGET`, `GRAZE`, `RANK`, `AUDIO`.
+Key config sections (v4.35.0): `PLAYER` (movement, combat, shield), `GAME` (canvas size), `ENEMY_BEHAVIOR` (teleport, wave patterns, entry, flash), `BOSS` (HP, movement per boss/phase, attacks per boss/phase), `WEAPON_EVOLUTION`, `DIFFICULTY`, `CHOREOGRAPHY`, `WAVE_DEFINITIONS`, `GLOW`, `SKY`, `MESSAGE_STRIP`, `MEME_POPUP`, `ADAPTIVE_DROPS`, `BULLET_CONFIG`, `FIRE_BUDGET`, `GRAZE`, `RANK`, `AUDIO`, `TITLE_ANIM`.
 
 ### z-index Stacking (CRITICAL)
 `#game-container` creates its own CSS stacking context. All overlays above the curtain (z-index 9000) must be **DOM siblings outside `#game-container`**, not children.
