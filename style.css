@@ -166,6 +166,18 @@
     fill: #c0392b;
 }
 
+/* Music/SFX toggle — muted state for both btn-icon and btn-icon-round */
+.music-toggle.muted,
+.sfx-toggle.muted {
+    background: linear-gradient(180deg, #555, #333);
+    border-color: #c0392b;
+}
+
+.music-toggle.muted .icon-svg,
+.sfx-toggle.muted .icon-svg {
+    fill: #c0392b;
+}
+
 /* Icon Round — 50px circular gold (pause mute) */
 .btn-icon-round {
     width: 50px;
@@ -186,6 +198,13 @@
 .btn-icon-round:active {
     transform: translateY(2px);
     box-shadow: 0 1px 0 #111;
+}
+
+.btn-icon-round .icon-svg {
+    width: 24px;
+    height: 24px;
+    fill: #1a1a1a;
+    pointer-events: none;
 }
 
 /* Size modifiers */

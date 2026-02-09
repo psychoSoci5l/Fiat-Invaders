@@ -1442,6 +1442,15 @@
             DEFICIT_CARRYOVER: 0.5              // 50% unused budget carried over
         },
 
+        // --- AUDIO SYSTEM v4.34 ---
+        AUDIO: {
+            ENABLED: true,           // Master kill-switch
+            MUSIC_VOLUME: 0.7,       // Default music volume (0-1)
+            SFX_VOLUME: 0.8,         // Default SFX volume (0-1)
+            MUSIC_ENABLED: true,     // Music kill-switch
+            SFX_ENABLED: true        // SFX kill-switch
+        },
+
         // --- HELPER FUNCTIONS ---
 
         /**

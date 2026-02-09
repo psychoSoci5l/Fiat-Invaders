@@ -146,7 +146,10 @@
 
         <!-- BOTTOM ICONS (always visible) -->
         <div class="intro-icons">
-            <button class="btn btn-icon mute-toggle" id="intro-mute">
+            <button class="btn btn-icon music-toggle" id="intro-music-toggle">
+                <svg viewBox="0 0 24 24" class="icon-svg"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+            </button>
+            <button class="btn btn-icon sfx-toggle" id="intro-sfx-toggle">
                 <svg viewBox="0 0 24 24" class="icon-svg"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
             </button>
             <button class="btn btn-icon" onclick="toggleSettings()" id="intro-settings">
@@ -261,7 +264,12 @@
         <button class="btn btn-primary btn-block" id="btn-restart" onclick="restartRun()">⟡ RICOMINCIA</button>
         <button class="btn btn-danger btn-block" id="btn-exit-title" onclick="backToIntro()">⟡ ESCI</button>
         <div class="menu-row">
-            <button class="btn btn-icon-round mute-toggle">🔇</button>
+            <button class="btn btn-icon-round music-toggle" id="pause-music-toggle">
+                <svg viewBox="0 0 24 24" class="icon-svg"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+            </button>
+            <button class="btn btn-icon-round sfx-toggle" id="pause-sfx-toggle">
+                <svg viewBox="0 0 24 24" class="icon-svg"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+            </button>
         </div>
     </div>
 
@@ -604,6 +612,7 @@
     <script src="src/utils/ColorUtils.js"></script>
     <script src="src/utils/MathUtils.js"></script>
     <script src="src/config/BalanceConfig.js"></script>
+    <script src="src/audio/MusicData.js"></script>
     <script src="src/systems/BulletPatterns.js"></script>
     <script src="src/systems/BulletSystem.js"></script>
     <script src="src/systems/CollisionSystem.js"></script>

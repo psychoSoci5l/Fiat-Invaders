@@ -5,12 +5,12 @@
 ## 🚀 Features
 
 *   **PWA Ready**: Installable on iOS/Android as a native-like app (Manifest, Service Worker, cache strategy).
-*   **Procedural Audio**: Custom "Synthwave" soundtrack generated in real-time using Web Audio API (No mp3 files required!).
+*   **Procedural Audio**: 5 unique level themes + boss music, generated in real-time using Web Audio API (No mp3 files required!). Separate music/SFX controls.
 *   **Dynamic Visuals**: Code-drawn (Canvas) player, enemies, boss, power-ups, and particle effects.
 *   **Responsive**: "Notch-safe" UI design that adapts to all mobile screens.
 *   **Localization**: Fully localized in English (EN) and Italian (IT).
 
-## 🧠 Current Gameplay Rules (v4.33.0)
+## 🧠 Current Gameplay Rules (v4.34.0)
 
 *   **Two Game Modes**: **Story Mode** (3 acts with narrative chapters, boss progression FED→BCE→BOJ) and **Arcade Mode** (endless waves, high scores, mini-bosses).
 *   **Wave System**: 15 unique waves (5 per cycle x 3 cycles) with 16 formation patterns and thematic currency groups.

@@ -68,7 +68,7 @@ python -m http.server 8000    # or: npx serve .
 
 All modules attach to `window.Game` (alias `G`). Script load order in `index.html` matters. See PROJECT_SNAPSHOT.md for full 37-script load order.
 
-Key load sequence: Constants -> ColorUtils -> BalanceConfig -> BulletPatterns -> BulletSystem -> CollisionSystem -> DropSystem -> MemeEngine -> EventBus -> GameStateMachine -> RunState/RankSystem/Upgrades -> AudioSystem -> InputSystem -> ObjectPool -> Entities (Entity->Bullet->Player->Enemy->Boss->PowerUp) -> WaveManager -> main.js
+Key load sequence: Constants -> ColorUtils -> BalanceConfig -> MusicData -> BulletPatterns -> BulletSystem -> CollisionSystem -> DropSystem -> MemeEngine -> EventBus -> GameStateMachine -> RunState/RankSystem/Upgrades -> AudioSystem -> InputSystem -> ObjectPool -> Entities (Entity->Bullet->Player->Enemy->Boss->PowerUp) -> WaveManager -> main.js
 
 ### Key Globals
 
@@ -149,6 +149,9 @@ Circle-based collision via `G.BulletSystem`. All bullet params centralized in `B
 ### Batch Rendering (v4.30.0)
 Multi-pass draw pipeline reduces ~30% canvas state changes. ParticleSystem: 2-pass (standard source-over → additive lighter). Player bullet glow: `Bullet.drawGlow(ctx)` batched in main.js single additive pass before body loop. Floating text: shared textAlign/strokeStyle setup hoisted. Visually identical to pre-v4.30.
 
+### Audio System v2 (v4.34.0)
+Data-driven procedural music with separate Music/SFX routing. `MusicData.js` defines 5 level themes + 3 boss phases + bear market modifier. Each song has sections (A/B/FILL) with 16-beat arrays for bass/melody/arp/drums/pad. `AudioSystem.js` schedule() reads beat-by-beat from data with intensity-gated layers (bass always, arp 30+, pad 40+, drums 50+, melody 60+). Separate `musicGain`/`sfxGain` nodes for independent toggle. `toggleMusic()`/`toggleSfx()` methods. localStorage persistence (`fiat_music_muted`, `fiat_sfx_muted`). Timing always advances when muted (HarmonicConductor sync). Config: `Balance.AUDIO`. Bear market: -1 semitone pitch shift, +10% tempo.
+
 ### Juice Cleanup (v4.33.0)
 Gameplay effects decluttered for fluid action. All hit stops zeroed during gameplay (streak, graze, player hit). Screen flash disabled for gameplay events. Screen shake removed from enemy contact. Boss cinematic events preserved (BOSS_PHASE 300ms, BOSS_DEFEAT 500ms, boss flashes). 3 master kill-switches in `Balance.JUICE.SCREEN_EFFECTS`: `SCREEN_SHAKE`, `SCREEN_FLASH`, `HIT_STOP` — `=== false` gate (undefined = enabled). New **Damage Vignette**: 4 red border rects (12px), 0.3s ease-out fade on hit — replaces fullscreen flash. All original effect code preserved, disabled via config values. `EffectsRenderer.triggerDamageVignette()` + `drawDamageVignette(ctx)`.
 
@@ -174,7 +177,7 @@ Console: `dbg.balanceTest()` -> play -> `dbg.report()`. Overlay: `dbg.showOverla
 ### Balance Config is Law
 **Always modify `BalanceConfig.js`**, never hardcode values in entity files. All tuning lives in `G.Balance.*`.
 
-Key config sections (v4.27.0): `PLAYER` (movement, combat, shield), `GAME` (canvas size), `ENEMY_BEHAVIOR` (teleport, wave patterns, entry, flash), `BOSS` (HP, movement per boss/phase, attacks per boss/phase), `WEAPON_EVOLUTION`, `DIFFICULTY`, `CHOREOGRAPHY`, `WAVE_DEFINITIONS`, `GLOW`, `SKY`, `MESSAGE_STRIP`, `MEME_POPUP`, `ADAPTIVE_DROPS`, `BULLET_CONFIG`, `FIRE_BUDGET`, `GRAZE`, `RANK`.
+Key config sections (v4.34.0): `PLAYER` (movement, combat, shield), `GAME` (canvas size), `ENEMY_BEHAVIOR` (teleport, wave patterns, entry, flash), `BOSS` (HP, movement per boss/phase, attacks per boss/phase), `WEAPON_EVOLUTION`, `DIFFICULTY`, `CHOREOGRAPHY`, `WAVE_DEFINITIONS`, `GLOW`, `SKY`, `MESSAGE_STRIP`, `MEME_POPUP`, `ADAPTIVE_DROPS`, `BULLET_CONFIG`, `FIRE_BUDGET`, `GRAZE`, `RANK`, `AUDIO`.
 
 ### z-index Stacking (CRITICAL)
 `#game-container` creates its own CSS stacking context. All overlays above the curtain (z-index 9000) must be **DOM siblings outside `#game-container`**, not children.

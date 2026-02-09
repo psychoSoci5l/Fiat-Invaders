@@ -1,9 +1,28 @@
 # Roadmap: FIAT vs CRYPTO
 
 > [!IMPORTANT]
-> **Versione attuale**: v4.33.0 (2026-02-09)
+> **Versione attuale**: v4.34.0 (2026-02-09)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
 > **Stato**: Gameplay completo, in fase di hardening e polish grafico.
+
+---
+
+## v4.34.0 — Audio Overhaul (COMPLETATO)
+
+> Musica procedurale data-driven con 5 temi per livello + boss + bear market. Toggle separati musica/SFX con persistenza localStorage.
+
+### Implementato
+
+- [x] Gain node routing separato: musicGain e sfxGain indipendenti
+- [x] Toggle buttons separati musica/SFX in intro e pause screen
+- [x] Persistenza localStorage: fiat_music_muted, fiat_sfx_muted
+- [x] MusicData.js: 5 temi (Digital Dawn, Deep Liquidity, Dark Protocol, Crypto Winter, Final Hash)
+- [x] Boss theme "Central Authority": 3 fasi con intensita' crescente
+- [x] Bear market modifier: pitch shift -1 semitono, +10% tempo
+- [x] Schedule refactored: sezioni A/B/FILL con struttura, variazione musicale
+- [x] Intensity-gated layers: bass/arp/pad/drums/melody progressivi
+- [x] HarmonicConductor sync preservato (tempo avanza anche con musica muted)
+- [x] Config Balance.AUDIO con kill-switch e volumi configurabili
 
 ---
 
