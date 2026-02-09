@@ -1455,6 +1455,10 @@ function resize() {
     if (G.MessageSystem) {
         G.MessageSystem.setDimensions(gameWidth, gameHeight);
     }
+    // Update SkyRenderer dimensions (fixes gradient cache + hill positions on resize)
+    if (G.SkyRenderer) {
+        G.SkyRenderer.setDimensions(gameWidth, gameHeight);
+    }
 }
 
 function updateUIText() {

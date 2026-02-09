@@ -1,27 +1,15 @@
 # Roadmap: FIAT vs CRYPTO
 
 > [!IMPORTANT]
-> **Versione attuale**: v4.23.1 (2026-02-09)
+> **Versione attuale**: v4.24.0 (2026-02-09)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
 > **Stato**: Gameplay completo, in fase di hardening e polish grafico.
 
 ---
 
-## v4.24.0 — Top Bar Message Strip (PROSSIMO)
+## v4.25.0 — Top Bar Message Strip (PROSSIMO)
 
 > Razionalizzare i messaggi in-game su **2 soli punti di comunicazione standardizzati**: il meme popup (bottom, sopra la nave) e una **striscia messaggi** fissa sotto la top bar HUD.
-
-### Obiettivo
-
-Attualmente i messaggi gameplay (showDanger, showVictory, showGameInfo, wave strip, floating text) usano canali canvas sovrapposti, spesso illeggibili durante le orde. La proposta:
-
-- **Striscia fissa** posizionata subito sotto gli indicatori vita/livello (sotto la top bar 45px), altezza dedicata
-- **Nessuna sovrapposizione**: nemici e proiettili non devono coprire la striscia — safe zone rispettata dalle formazioni
-- **2 canali unici** per tutta la comunicazione player:
-  1. **Top strip** (sotto HUD): wave announce, danger, victory, game info — messaggi di stato/contesto
-  2. **Bottom popup** (sopra nave): meme, boss dialogue, streak, power-up — feedback immediato/flavor
-- Stile coerente con il meme popup (whisper aesthetic o variante)
-- Queue/priorità come il meme popup per evitare overlap
 
 ### TODO
 
@@ -31,6 +19,25 @@ Attualmente i messaggi gameplay (showDanger, showVictory, showGameInfo, wave str
 - [ ] Aggiornare WaveManager/enemy spawn Y-min per rispettare la safe zone
 - [ ] Rimuovere i canali canvas sostituiti da MessageSystem
 - [ ] Verificare leggibilità durante orde dense
+
+---
+
+## v4.24.0 — Sky & Background Enhancement (COMPLETATO)
+
+> Cell-shading premium sky: gradienti smooth, 90 stelle + shooting stars, 5 layer colline con silhouette, particelle atmosferiche tematiche, nuvole multi-lobe, horizon glow.
+
+### Implementato
+
+- [x] Gradient sky smooth (cached, invalidate on resize)
+- [x] Enhanced star field (90 stars, L3+ visible, parallax drift, shooting stars)
+- [x] 5-layer parallax hills (distant atmospheric, configurable freq/amp)
+- [x] Hill silhouettes (trees + buildings on layers 0-2, cell-shaded outline)
+- [x] Atmospheric particles (dust/pollen/firefly/ember per level, cell-shaded outline)
+- [x] Multi-lobe clouds (2-4 lobes, shadow/main/highlight/outline)
+- [x] Horizon glow band (pulsing, level-matched color)
+- [x] Draw pipeline reordered (particles + glow before hills)
+- [x] `Balance.SKY` config with master + per-feature toggles
+- [x] Resize fix: SkyRenderer.setDimensions() in main.js resize()
 
 ---
 

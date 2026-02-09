@@ -1081,6 +1081,133 @@
             }
         },
 
+        // --- SKY & BACKGROUND v4.24 (Cell-Shading Enhancement) ---
+        SKY: {
+            ENABLED: true,              // Master toggle — false = legacy flat bands
+
+            // A. Gradient sky (smooth cached linear gradient)
+            GRADIENTS: {
+                ENABLED: true,
+                LEVELS: {
+                    1: ['#3a80c9', '#5a9fd9', '#7bbfeb', '#9dd5f5'],
+                    2: ['#2a6bb8', '#4a8bc8', '#7ab5d8', '#d4c87c'],
+                    3: ['#3a4558', '#8b49a6', '#d74c3c', '#e38c22'],
+                    4: ['#15152e', '#2a2a4e', '#3a2f5b', '#2d1b4e'],
+                    5: ['#080812', '#101025', '#151535', '#1a1a40']
+                },
+                BOSS: ['#000008', '#05051a', '#0a0a20', '#0f0f28'],
+                BEAR: ['#1a0000', '#2a0505', '#3a0a0a', '#2a0000']
+            },
+
+            // B. Star field
+            STARS: {
+                ENABLED: true,
+                COUNT: 90,
+                MIN_SIZE: 1.5,
+                MAX_SIZE: 3.5,
+                MIN_VISIBLE_LEVEL: 3,      // Stars appear from L3
+                ALPHA_BY_LEVEL: { 3: 0.25, 4: 0.55, 5: 1.0 },
+                DRIFT_SPEED: 3,            // px/sec base drift
+                SHOOTING_STARS: {
+                    ENABLED: true,
+                    MAX_ACTIVE: 2,
+                    SPAWN_INTERVAL_MIN: 4,
+                    SPAWN_INTERVAL_MAX: 12,
+                    SPEED: 350,
+                    LENGTH: 40
+                }
+            },
+
+            // C. Parallax hills
+            HILLS: {
+                ENABLED: true,
+                LAYERS: [
+                    { yRatio: 0.65, height: 60,  speed: 2,  amp1: 12, freq1: 0.015, amp2: 6,  freq2: 0.008 },
+                    { yRatio: 0.70, height: 80,  speed: 4,  amp1: 16, freq1: 0.018, amp2: 8,  freq2: 0.010 },
+                    { yRatio: 0.75, height: 100, speed: 5,  amp1: 20, freq1: 0.020, amp2: 12, freq2: 0.010 },
+                    { yRatio: 0.80, height: 110, speed: 12, amp1: 25, freq1: 0.020, amp2: 15, freq2: 0.010 },
+                    { yRatio: 0.85, height: 90,  speed: 20, amp1: 25, freq1: 0.020, amp2: 15, freq2: 0.010 }
+                ],
+                COLORS: {
+                    1: ['#8ab8d0', '#6a9ab8', '#4a7da0', '#3a6888', '#2a5470'],
+                    2: ['#7aa0c0', '#5a88a8', '#4a7090', '#3a6080', '#2a5070'],
+                    3: ['#7a5a70', '#6a4860', '#5a3850', '#4a3040', '#3a2030'],
+                    4: ['#2a2a50', '#222244', '#1c1c3c', '#181834', '#14142c'],
+                    5: ['#1a1a3a', '#161632', '#12122a', '#0e0e22', '#0a0a1a']
+                },
+                BEAR_COLORS: ['#2a0808', '#220606', '#1e0505', '#1a0404', '#160303'],
+                SILHOUETTES: {
+                    ENABLED: true,
+                    MAX_LAYER: 2,           // Only on distant layers (0-2)
+                    DENSITY: 0.02,          // Chance per pixel-step
+                    TREE_HEIGHT_MIN: 6,
+                    TREE_HEIGHT_MAX: 18,
+                    BUILDING_WIDTH_MIN: 8,
+                    BUILDING_WIDTH_MAX: 16,
+                    BUILDING_HEIGHT_MIN: 10,
+                    BUILDING_HEIGHT_MAX: 25
+                }
+            },
+
+            // D. Atmospheric particles
+            PARTICLES: {
+                ENABLED: true,
+                COUNT: 20,
+                MIN_SIZE: 1.5,
+                MAX_SIZE: 3.5,
+                MIN_ALPHA: 0.06,
+                MAX_ALPHA: 0.20,
+                DRIFT_SPEED: 12,
+                WOBBLE_SPEED: 1.5,
+                WOBBLE_AMP: 15,
+                OUTLINE_THRESHOLD: 3.0,    // px — particles >= this get #111 outline
+                THEMES: {
+                    1: { color: '#c8b888', type: 'dust' },
+                    2: { color: '#aad488', type: 'pollen' },
+                    3: { color: '#ddaa55', type: 'dust' },
+                    4: { color: '#88ddaa', type: 'firefly' },
+                    5: { color: '#66ccff', type: 'firefly' }
+                },
+                BEAR_THEME: { color: '#ff6622', type: 'ember' },
+                FIREFLY_BLINK_SPEED: 3.0
+            },
+
+            // E. Multi-lobe clouds
+            CLOUDS: {
+                ENABLED: true,
+                COUNT: 12,
+                LOBES_MIN: 2,
+                LOBES_MAX: 4,
+                LAYER_SCALE: { back: 1.3, front: 0.7 },
+                HIGHLIGHT_OFFSET: -0.25,   // Y ratio offset for highlight lobe
+                SHADOW_OFFSET_Y: 4,
+                OUTLINE_WIDTH: 2,
+                COLORS: {
+                    NORMAL: { shadow: '#b0c0d0', main: '#e8f0f8', highlight: '#ffffff', outline: '#7888a0' },
+                    BEAR: { shadow: '#200808', main: '#301010', highlight: '#401818', outline: '#401515' },
+                    NIGHT: { shadow: '#181830', main: '#282848', highlight: '#383860', outline: '#101028' }
+                }
+            },
+
+            // F. Horizon glow
+            HORIZON_GLOW: {
+                ENABLED: true,
+                HEIGHT: 8,
+                ALPHA_MIN: 0.12,
+                ALPHA_MAX: 0.28,
+                PULSE_SPEED: 1.5,
+                COLORS: {
+                    1: '#9dd5f5',
+                    2: '#d4c87c',
+                    3: '#e38c22',
+                    4: '#3a2f5b',
+                    5: '#1a1a40'
+                },
+                BEAR_COLOR: '#4a0000',
+                BOSS_COLOR: '#0f0f28'
+            }
+        },
+
         // --- ADDITIVE GLOW SYSTEM (v4.23, boosted v4.23.1) ---
         GLOW: {
             ENABLED: true,
