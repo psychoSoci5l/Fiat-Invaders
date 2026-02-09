@@ -123,8 +123,8 @@ Activates when shotLevel=3 + rate>=2 + power>=2 + spread>=1. Red ship, fire trai
 ### Power-Up & Drop System
 Managed by `DropSystem.js`. Drop rates: 3%/2.5%/1% by tier + pity timer (55 kills). Weapon cooldown 8s. Boss drops capped at 6 per fight (DROP_INTERVAL 40, cooldown 3s). No cycle scaling (CYCLE_BONUS=0). Categories: UPGRADE, MODIFIER, SPECIAL. v4.15: Visual distinction — UPGRADE=Star, MODIFIER=Diamond (was hexagon), SPECIAL=Circle+Ring. Glow + light sweep on all power-ups. v4.19: Adaptive Drops — suppression gate based on Player Power Score (0.0→1.0), need-based category selection. Config: `Balance.ADAPTIVE_DROPS`.
 
-### HUD & Messages (v4.4.0)
-5 canvas channels: WAVE_STRIP, ALERT, MEME_WHISPER, SHIP_STATUS, FLOATING_TEXT. Diegetic ship HUD (life pips, shield ring, weapon pips). Reactive HUD (streak colors, HYPER glow, danger pulse).
+### HUD & Messages (v4.4.0, v4.26.0)
+2 DOM message points + 2 canvas channels. **Message Strip** (`#message-strip`): DOM element under HUD top bar (45px), 4 types (DANGER/VICTORY/WAVE/INFO), priority queue, CSS animations. Replaces canvas WAVE_STRIP + ALERT channels. **Meme Popup** (`#meme-popup`): DOM popup above player ship. **SHIP_STATUS**: canvas above player (unchanged). **WAVE_SWEEP**: canvas horizontal line (unchanged). Config: `Balance.MESSAGE_STRIP`. Diegetic ship HUD (life pips, shield ring, weapon pips). Reactive HUD (streak colors, HYPER glow, danger pulse).
 
 ### Visual & VFX (v4.5.0)
 Sky progression (5 levels + boss). Tiered death explosions. Hit stop & screen flash via `Balance.JUICE`. VFX config via `Balance.VFX`. Screen effects toggles via `Balance.JUICE.SCREEN_EFFECTS`.

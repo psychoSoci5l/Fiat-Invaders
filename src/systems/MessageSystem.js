@@ -1,14 +1,12 @@
 /**
- * MessageSystem.js v4.4 - 5-Channel Message System
+ * MessageSystem.js v4.26.0 - DOM Message Strip + Canvas Ship Status
  *
  * Channels:
- * 1. WAVE_STRIP   - Full-width transparent strip for wave/horde info
- * 2. ALERT        - Colored center box (danger=red, victory=gold) - unchanged
- * 3. MEME_WHISPER - Tiny italic canvas text, decorative flavor
- * 4. SHIP_STATUS  - Icon+text above player ship
- * 5. FLOATING_TEXT - Opt-in score numbers (managed externally, toggle only)
+ * 1. MESSAGE_STRIP (DOM) - Top bar strip for wave/danger/victory/info
+ * 2. SHIP_STATUS (canvas) - Icon+text above player ship
+ * 3. WAVE_SWEEP (canvas)  - Horizontal line sweep on wave start
  *
- * All rendering is canvas-based (no DOM popups).
+ * Removed (v4.26): canvas WAVE_STRIP, ALERT DANGER, ALERT VICTORY, MEME_WHISPER
  */
 
 (function() {
@@ -20,21 +18,16 @@
     let gameWidth = 0;
     let gameHeight = 0;
 
-    // Meme colors for whispers
-    const MEME_COLORS = ['#00FFFF', '#FF00FF', '#00FF00', '#FFD700', '#FF6B6B', '#4ECDC4'];
+    // === DOM STRIP STATE ===
+    let stripEl = null;
+    let stripTextEl = null;
+    let isStripShowing = false;
+    let currentStripItem = null;
+    let stripHideTimer = null;
+    let lastStripShowTime = 0;
+    let stripQueue = [];
 
-    // === CHANNEL STATE ===
-
-    // WAVE_STRIP: single active strip
-    let waveStrip = null;
-    // { primaryText, subtitleText, life, maxLife }
-
-    // ALERT: danger + victory (same as before)
-    let dangerMessages = [];
-    let victoryMessages = [];
-
-    // MEME_WHISPER: array of floating whispers
-    let whispers = [];
+    // === CANVAS STATE ===
 
     // SHIP_STATUS: array of status messages near player
     let shipStatuses = [];
@@ -47,6 +40,11 @@
     let onShake = null;
     let onPlaySound = null;
 
+    // === CONFIG HELPER ===
+    function getConfig() {
+        return G.Balance?.MESSAGE_STRIP || {};
+    }
+
     /**
      * Initialize message system
      */
@@ -56,6 +54,16 @@
         onShake = callbacks.onShake || null;
         onPlaySound = callbacks.onPlaySound || null;
         reset();
+    }
+
+    /**
+     * Cache DOM refs for strip element
+     */
+    function initDOM() {
+        stripEl = document.getElementById('message-strip');
+        if (stripEl) {
+            stripTextEl = stripEl.querySelector('.strip-text');
+        }
     }
 
     /**
@@ -70,20 +78,161 @@
      * Reset all message state
      */
     function reset() {
-        waveStrip = null;
-        dangerMessages = [];
-        victoryMessages = [];
-        whispers = [];
         shipStatuses = [];
         waveSweepTimer = 0;
+        stripQueue = [];
+        if (stripHideTimer) {
+            clearTimeout(stripHideTimer);
+            stripHideTimer = null;
+        }
+        isStripShowing = false;
+        currentStripItem = null;
+        if (stripEl) {
+            stripEl.className = '';
+            stripEl.style.visibility = 'hidden';
+            stripEl.style.opacity = '0';
+        }
     }
 
     // ========================================
-    // CHANNEL 1: WAVE_STRIP
+    // DOM MESSAGE STRIP
+    // ========================================
+
+    function _getTypePriority(type) {
+        const cfg = getConfig();
+        const priorities = cfg.PRIORITIES || { DANGER: 3, VICTORY: 3, WAVE: 2, INFO: 1 };
+        return priorities[type.toUpperCase()] || 0;
+    }
+
+    function _getTypeDuration(type) {
+        const cfg = getConfig();
+        const durations = cfg.DURATIONS || { DANGER: 2500, VICTORY: 3000, WAVE: 2500, INFO: 2000 };
+        return durations[type.toUpperCase()] || 2000;
+    }
+
+    function _queueStripMessage(text, type, opts = {}) {
+        const cfg = getConfig();
+        if (cfg.ENABLED === false) return;
+        if (!stripEl || !stripTextEl) return;
+
+        const priority = _getTypePriority(type);
+        const duration = _getTypeDuration(type);
+        const item = { text, type, priority, duration, opts };
+
+        if (isStripShowing && currentStripItem) {
+            if (priority > currentStripItem.priority) {
+                // Higher priority: interrupt immediately
+                _interruptStrip(item);
+                return;
+            }
+            // Same or lower priority: queue (replace same type in queue)
+            const maxQueue = cfg.MAX_QUEUE_SIZE || 3;
+            const sameIdx = stripQueue.findIndex(q => q.type === type);
+            if (sameIdx >= 0) {
+                stripQueue[sameIdx] = item;
+            } else if (stripQueue.length < maxQueue) {
+                stripQueue.push(item);
+            }
+            return;
+        }
+
+        // Cooldown check
+        const cooldown = cfg.COOLDOWN || 300;
+        const now = Date.now();
+        if (now - lastStripShowTime < cooldown) {
+            const maxQueue = cfg.MAX_QUEUE_SIZE || 3;
+            if (stripQueue.length < maxQueue) {
+                stripQueue.push(item);
+            }
+            // Schedule processing after cooldown
+            setTimeout(() => _processStripQueue(), cooldown - (now - lastStripShowTime));
+            return;
+        }
+
+        _showStrip(item);
+    }
+
+    function _showStrip(item) {
+        if (!stripEl || !stripTextEl) return;
+
+        isStripShowing = true;
+        currentStripItem = item;
+        lastStripShowTime = Date.now();
+
+        // Set text
+        stripTextEl.textContent = item.text;
+
+        // Reset className and force reflow
+        stripEl.className = '';
+        void stripEl.offsetWidth;
+
+        // Apply type + show
+        stripEl.className = 'type-' + item.type + ' show';
+
+        // Screen shake for danger
+        if (item.type === 'danger' && item.opts.shakeIntensity && onShake) {
+            onShake(item.opts.shakeIntensity);
+        }
+
+        // Auto-hide
+        if (stripHideTimer) clearTimeout(stripHideTimer);
+        stripHideTimer = setTimeout(() => _hideStrip(), item.duration);
+    }
+
+    function _hideStrip() {
+        if (!stripEl) return;
+
+        const cfg = getConfig();
+        const exitMs = cfg.EXIT_MS || 300;
+
+        // Replace show with hide
+        const typeClass = currentStripItem ? 'type-' + currentStripItem.type : '';
+        stripEl.className = typeClass + ' hide';
+
+        stripHideTimer = setTimeout(() => {
+            stripEl.className = '';
+            stripEl.style.visibility = 'hidden';
+            stripEl.style.opacity = '0';
+            isStripShowing = false;
+            currentStripItem = null;
+            stripHideTimer = null;
+
+            // Reset inline styles in case animation didn't clear
+            stripEl.style.removeProperty('visibility');
+            stripEl.style.removeProperty('opacity');
+
+            // Process queue
+            _processStripQueue();
+        }, exitMs);
+    }
+
+    function _interruptStrip(item) {
+        if (stripHideTimer) {
+            clearTimeout(stripHideTimer);
+            stripHideTimer = null;
+        }
+        // Reset and show new immediately
+        stripEl.className = '';
+        void stripEl.offsetWidth;
+        _showStrip(item);
+    }
+
+    function _processStripQueue() {
+        if (stripQueue.length === 0) return;
+        if (isStripShowing) return;
+
+        // Sort by priority desc
+        stripQueue.sort((a, b) => b.priority - a.priority);
+        const next = stripQueue.shift();
+        _showStrip(next);
+    }
+
+    // ========================================
+    // PUBLIC API: WAVE STRIP (now DOM)
     // ========================================
 
     /**
-     * Show wave strip (replaces showWaveInfo + showGameInfo)
+     * Show wave strip
      * @param {string} primaryText - e.g. "CYCLE 1 • WAVE 3/5" or "HORDE 2"
      * @param {string} subtitleText - Optional flavor text
      */
@@ -91,15 +240,8 @@
         const Balance = G.Balance;
         if (!Balance?.HUD_MESSAGES?.WAVE_STRIP) return;
 
-        const config = Balance.HUD_MESSAGES.WAVE_STRIP_CONFIG || {};
-        const duration = config.DURATION || 2.5;
-
-        waveStrip = {
-            primaryText: primaryText,
-            subtitleText: subtitleText,
-            life: duration,
-            maxLife: duration
-        };
+        const combined = subtitleText ? primaryText + '  ' + subtitleText : primaryText;
+        _queueStripMessage(combined, 'wave');
 
         // Trigger wave sweep effect
         const reactive = Balance.REACTIVE_HUD;
@@ -117,82 +259,47 @@
     }
 
     /**
-     * Legacy compatibility: showGameInfo maps to showWaveStrip
+     * Legacy compatibility: showGameInfo maps to strip info
      */
     function showGameInfo(text) {
-        showWaveStrip(text);
+        _queueStripMessage(text, 'info');
     }
 
     // ========================================
-    // CHANNEL 2: ALERT (danger + victory)
+    // PUBLIC API: ALERT (now DOM strip)
     // ========================================
 
     /**
-     * Show danger alert (red, center, pulsing)
+     * Show danger alert (red strip, pulse, shake)
      */
     function showDanger(text, shakeIntensity = 20) {
         const Balance = G.Balance;
         if (!Balance?.HUD_MESSAGES?.ALERT_DANGER) return;
-        dangerMessages = [{ text, life: 2.5, maxLife: 2.5 }];
-        if (onShake && shakeIntensity > 0) onShake(shakeIntensity);
+        _queueStripMessage(text, 'danger', { shakeIntensity });
     }
 
     /**
-     * Show victory alert (gold, center)
+     * Show victory alert (gold strip)
      */
     function showVictory(text) {
         const Balance = G.Balance;
         if (!Balance?.HUD_MESSAGES?.ALERT_VICTORY) return;
-        victoryMessages = [{ text, life: 3.0, maxLife: 3.0 }];
+        _queueStripMessage(text, 'victory');
     }
 
     // ========================================
-    // CHANNEL 3: MEME_WHISPER
+    // MEME_WHISPER: no-op (dead code since v4.20)
     // ========================================
 
-    /**
-     * Show a meme whisper (small italic drifting text)
-     * Replaces showMemeFun / showMemePopup
-     */
-    function showMemeWhisper(text) {
-        const Balance = G.Balance;
-        if (!Balance?.HUD_MESSAGES?.MEME_WHISPER) return;
+    function showMemeWhisper() {}
+    function showMemeFun() {}
+    function showMemePopup() {}
 
-        const config = Balance.HUD_MESSAGES.MEME_WHISPER_CONFIG || {};
-        const maxOnScreen = config.MAX_ON_SCREEN || 2;
+    // ========================================
+    // SHIP_STATUS (canvas, unchanged)
+    // ========================================
 
-        // Cap whispers on screen
-        if (whispers.length >= maxOnScreen) {
-            // Remove oldest
-            whispers.shift();
-        }
-
-        const margin = 60;
-        const spawnX = margin + Math.random() * (gameWidth - margin * 2);
-        const spawnY = gameHeight * (config.SPAWN_Y_RATIO || 0.60);
-
-        whispers.push({
-            text: text,
-            x: spawnX,
-            y: spawnY,
-            life: config.LIFETIME || 3.0,
-            maxLife: config.LIFETIME || 3.0,
-            color: MEME_COLORS[Math.floor(Math.random() * MEME_COLORS.length)],
-            alpha: config.ALPHA || 0.45,
-            driftSpeed: config.DRIFT_SPEED || 15
-        });
-    }
-
-    /**
-     * Legacy compatibility aliases
-     */
-    function showMemeFun(text, duration) { showMemeWhisper(text); }
-    function showMemePopup(text, duration) { showMemeWhisper(text); }
     function showPowerUp(text) { showShipStatus(text); }
-
-    // ========================================
-    // CHANNEL 4: SHIP_STATUS
-    // ========================================
 
     /**
      * Show status message above player ship
@@ -217,39 +324,13 @@
     // ========================================
 
     /**
-     * Update all message timers
+     * Update timers (only canvas channels need per-frame update)
      */
     function update(dt) {
-        // Wave strip
-        if (waveStrip) {
-            waveStrip.life -= dt;
-            if (waveStrip.life <= 0) waveStrip = null;
-        }
-
         // Wave sweep
         if (waveSweepTimer > 0) {
             waveSweepTimer -= dt;
             if (waveSweepTimer < 0) waveSweepTimer = 0;
-        }
-
-        // Danger
-        for (let i = dangerMessages.length - 1; i >= 0; i--) {
-            dangerMessages[i].life -= dt;
-            if (dangerMessages[i].life <= 0) dangerMessages.splice(i, 1);
-        }
-
-        // Victory
-        for (let i = victoryMessages.length - 1; i >= 0; i--) {
-            victoryMessages[i].life -= dt;
-            if (victoryMessages[i].life <= 0) victoryMessages.splice(i, 1);
-        }
-
-        // Whispers
-        for (let i = whispers.length - 1; i >= 0; i--) {
-            const w = whispers[i];
-            w.life -= dt;
-            w.y -= w.driftSpeed * dt; // Drift upward
-            if (w.life <= 0) whispers.splice(i, 1);
         }
 
         // Ship status
@@ -260,58 +341,11 @@
     }
 
     /**
-     * Draw all message channels
-     * @param {CanvasRenderingContext2D} ctx
-     * @param {number} totalTime - For animations
-     * @param {Object} playerPos - {x, y} player position for SHIP_STATUS
+     * Draw canvas channels only: WAVE_SWEEP + SHIP_STATUS
      */
     function draw(ctx, totalTime = 0, playerPos = null) {
         const w = gameWidth || 600;
         const h = gameHeight || 800;
-        const cx = w / 2;
-
-        // --- WAVE_STRIP ---
-        if (waveStrip) {
-            const config = G.Balance?.HUD_MESSAGES?.WAVE_STRIP_CONFIG || {};
-            const stripY = config.Y || 95;
-            const stripH = config.HEIGHT || 28;
-            const fontSize = config.FONT_SIZE || 14;
-            const subSize = config.SUBTITLE_SIZE || 10;
-            const bgAlpha = config.BG_ALPHA || 0.5;
-
-            // Fade in/out
-            const fadeIn = Math.min(1, (waveStrip.maxLife - waveStrip.life) / 0.3);
-            const fadeOut = Math.min(1, waveStrip.life / 0.5);
-            const alpha = Math.min(fadeIn, fadeOut);
-
-            ctx.save();
-            ctx.globalAlpha = alpha;
-
-            // Transparent strip background (no border)
-            ctx.fillStyle = `rgba(0, 0, 0, ${bgAlpha})`;
-            ctx.fillRect(0, stripY - stripH / 2, w, stripH);
-
-            // Primary text (white/gold)
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.font = `bold ${fontSize}px "Press Start 2P", monospace`;
-            ctx.fillStyle = '#FFD700';
-
-            let textY = stripY;
-            if (waveStrip.subtitleText) {
-                textY = stripY - 4;
-            }
-            ctx.fillText(waveStrip.primaryText, cx, textY);
-
-            // Subtitle (lighter, smaller)
-            if (waveStrip.subtitleText) {
-                ctx.font = `${subSize}px "Press Start 2P", monospace`;
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-                ctx.fillText(waveStrip.subtitleText, cx, stripY + 9);
-            }
-
-            ctx.restore();
-        }
 
         // --- WAVE SWEEP (reactive) ---
         if (waveSweepTimer > 0) {
@@ -329,102 +363,6 @@
             ctx.stroke();
             ctx.restore();
         }
-
-        // --- ALERT: DANGER ---
-        dangerMessages.forEach(m => {
-            const alpha = Math.min(1, m.life);
-            const pulse = Math.sin(totalTime * 10) * 0.3 + 0.7;
-            const y = h / 2 - 30;
-
-            ctx.save();
-            ctx.globalAlpha = alpha;
-
-            const maxBoxWidth = w - 40;
-            let fontSize = 28;
-            ctx.font = `bold ${fontSize}px "Press Start 2P", monospace`;
-            let textWidth = ctx.measureText(m.text).width || 300;
-
-            while (textWidth + 60 > maxBoxWidth && fontSize > 14) {
-                fontSize -= 2;
-                ctx.font = `bold ${fontSize}px "Press Start 2P", monospace`;
-                textWidth = ctx.measureText(m.text).width;
-            }
-
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-
-            const boxWidth = Math.min(textWidth + 60, maxBoxWidth);
-            const boxHeight = fontSize + 22;
-
-            ctx.fillStyle = `rgba(80, 0, 0, ${0.9 * pulse})`;
-            ctx.strokeStyle = '#FF0000';
-            ctx.lineWidth = 4 + pulse * 2;
-            ctx.fillRect(cx - boxWidth / 2, y - boxHeight / 2, boxWidth, boxHeight);
-            ctx.strokeRect(cx - boxWidth / 2, y - boxHeight / 2, boxWidth, boxHeight);
-
-            ctx.fillStyle = '#FF4444';
-            ctx.shadowColor = '#FF0000';
-            ctx.shadowBlur = 15;
-            ctx.fillText(m.text, cx, y);
-            ctx.restore();
-        });
-
-        // --- ALERT: VICTORY ---
-        victoryMessages.forEach(m => {
-            const alpha = Math.min(1, m.life);
-            const scale = 1 + Math.sin(totalTime * 5) * 0.05;
-            const y = h / 2;
-
-            ctx.save();
-            ctx.globalAlpha = alpha;
-
-            const maxBoxWidth = w - 40;
-            let fontSize = 32;
-            ctx.font = `bold ${fontSize}px "Press Start 2P", monospace`;
-            let textWidth = ctx.measureText(m.text).width || 300;
-
-            while (textWidth + 60 > maxBoxWidth && fontSize > 16) {
-                fontSize -= 2;
-                ctx.font = `bold ${fontSize}px "Press Start 2P", monospace`;
-                textWidth = ctx.measureText(m.text).width;
-            }
-
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-
-            const boxWidth = Math.min(textWidth + 60, maxBoxWidth);
-            const boxHeight = fontSize + 28;
-
-            ctx.translate(cx, y);
-            ctx.scale(scale, scale);
-
-            ctx.fillStyle = 'rgba(50, 40, 0, 0.9)';
-            ctx.strokeStyle = '#FFD700';
-            ctx.lineWidth = 3;
-            ctx.fillRect(-boxWidth / 2, -boxHeight / 2, boxWidth, boxHeight);
-            ctx.strokeRect(-boxWidth / 2, -boxHeight / 2, boxWidth, boxHeight);
-
-            ctx.fillStyle = '#FFD700';
-            ctx.shadowColor = '#FFD700';
-            ctx.shadowBlur = 20;
-            ctx.fillText(m.text, 0, 0);
-            ctx.restore();
-        });
-
-        // --- MEME_WHISPER ---
-        whispers.forEach(w => {
-            const lifeRatio = w.life / w.maxLife;
-            const alpha = w.alpha * lifeRatio;
-
-            ctx.save();
-            ctx.globalAlpha = alpha;
-            ctx.font = `italic ${G.Balance?.HUD_MESSAGES?.MEME_WHISPER_CONFIG?.FONT_SIZE || 13}px "Courier New", monospace`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillStyle = w.color;
-            ctx.fillText(w.text, w.x, w.y);
-            ctx.restore();
-        });
 
         // --- SHIP_STATUS (above player) ---
         if (playerPos) {
@@ -460,29 +398,28 @@
      * Check if any messages are active
      */
     function hasActiveMessages() {
-        return !!waveStrip || dangerMessages.length > 0 || victoryMessages.length > 0 ||
-               whispers.length > 0 || shipStatuses.length > 0;
+        return isStripShowing || stripQueue.length > 0 || shipStatuses.length > 0;
     }
 
     // Export to namespace
     G.MessageSystem = {
         init,
+        initDOM,
         setDimensions,
         reset,
         update,
         draw,
-        // Channel 1: Wave Strip
+        // DOM Strip
         showWaveStrip,
         showWaveInfo,      // Legacy compat
         showGameInfo,      // Legacy compat
-        // Channel 2: Alert
         showDanger,
         showVictory,
-        // Channel 3: Meme Whisper
+        // Meme (no-op)
         showMemeWhisper,
-        showMemeFun,       // Legacy compat
-        showMemePopup,     // Legacy compat
-        // Channel 4: Ship Status
+        showMemeFun,
+        showMemePopup,
+        // Canvas: Ship Status
         showShipStatus,
         showPowerUp,       // Legacy compat
         // State

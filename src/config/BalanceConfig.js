@@ -506,6 +506,17 @@
             }
         },
 
+        // --- MESSAGE STRIP v4.26.0 ---
+        MESSAGE_STRIP: {
+            ENABLED: true,
+            PRIORITIES: { DANGER: 3, VICTORY: 3, WAVE: 2, INFO: 1 },
+            DURATIONS: { DANGER: 2500, VICTORY: 3000, WAVE: 2500, INFO: 2000 },
+            COOLDOWN: 300,
+            MAX_QUEUE_SIZE: 3,
+            ENTRANCE_MS: 200,
+            EXIT_MS: 300
+        },
+
         // --- TIMING SYSTEM (all durations in seconds unless noted) ---
         TIMING: {
             // State transitions

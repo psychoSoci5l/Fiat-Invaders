@@ -1,24 +1,26 @@
 # Roadmap: FIAT vs CRYPTO
 
 > [!IMPORTANT]
-> **Versione attuale**: v4.25.0 (2026-02-09)
+> **Versione attuale**: v4.26.0 (2026-02-09)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
 > **Stato**: Gameplay completo, in fase di hardening e polish grafico.
 
 ---
 
-## v4.26.0 — Top Bar Message Strip (PROSSIMO)
+## v4.26.0 — Top Bar Message Strip (COMPLETATO)
 
-> Razionalizzare i messaggi in-game su **2 soli punti di comunicazione standardizzati**: il meme popup (bottom, sopra la nave) e una **striscia messaggi** fissa sotto la top bar HUD.
+> Consolidato i messaggi in-game su **2 soli punti di comunicazione**: Message Strip DOM (sotto HUD top bar) + Meme Popup DOM (sopra nave).
 
-### TODO
+### Implementato
 
-- [ ] Definire altezza e safe zone della striscia (es. 45-65px Y range)
-- [ ] Creare DOM element `#message-strip` dentro `#game-container`
-- [ ] Migrare showDanger, showVictory, showGameInfo, wave strip al nuovo elemento
-- [ ] Aggiornare WaveManager/enemy spawn Y-min per rispettare la safe zone
-- [ ] Rimuovere i canali canvas sostituiti da MessageSystem
-- [ ] Verificare leggibilità durante orde dense
+- [x] DOM element `#message-strip` dentro `#game-container`, z-index 110
+- [x] 4 varianti tipo: DANGER (rosso), VICTORY (oro), WAVE (nero/oro), INFO (nero/cyan)
+- [x] Priority queue (3 livelli) con interrupt, cooldown 300ms, coda max 3
+- [x] Animazioni CSS: entrance 200ms bounce, exit 300ms fade-up, danger pulse
+- [x] Rimossi ~130 righe canvas rendering (WAVE_STRIP, ALERT DANGER/VICTORY, MEME_WHISPER)
+- [x] SHIP_STATUS e WAVE_SWEEP canvas preservati
+- [x] Config `Balance.MESSAGE_STRIP` in BalanceConfig.js
+- [x] Mobile responsive (font 10px @ 380px, 9px @ 320px)
 
 ---
 

@@ -1629,6 +1629,7 @@ window.goToHangar = function () {
         onPlaySound: (sound) => { if (audioSys) audioSys.play(sound); }
     });
     if (G.MemeEngine) G.MemeEngine.initDOM();
+    if (G.MessageSystem) G.MessageSystem.initDOM();
 }
 
 // Ship launch animation - goes directly to game (skips hangar)
@@ -2327,6 +2328,8 @@ function startGame() {
     if (runState && runState.reset) runState.reset();
     // v4.20.0: Ensure meme popup DOM refs are cached
     if (G.MemeEngine) G.MemeEngine.initDOM();
+    // v4.26.0: Ensure message strip DOM refs are cached
+    if (G.MessageSystem) G.MessageSystem.initDOM();
     // v4.1.0: Initialize rank system
     if (G.RankSystem) G.RankSystem.init();
     // 1-hit = 1-life system: ignore stats.hp and bonuses
