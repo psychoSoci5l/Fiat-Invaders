@@ -1,9 +1,24 @@
 # Roadmap: FIAT vs CRYPTO
 
 > [!IMPORTANT]
-> **Versione attuale**: v4.30.0 (2026-02-09)
+> **Versione attuale**: v4.31.0 (2026-02-09)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
 > **Stato**: Gameplay completo, in fase di hardening e polish grafico.
+
+---
+
+## v4.31.0 — Off-Screen Canvas (COMPLETATO)
+
+> Sky gradient e hills su off-screen canvas separati. Blit con singolo `drawImage` per frame. Hills ridisegnate ogni N frame (throttled).
+
+### Implementato
+
+- [x] Sky gradient off-screen canvas (`alpha: false`), redraw solo su cambio level/bear/boss
+- [x] Hills off-screen canvas con throttle configurabile (default: ogni 2 frame)
+- [x] Invalidazione automatica su cambio livello, bear market, boss transition
+- [x] Config `Balance.SKY.OFFSCREEN` con kill-switch + intervallo redraw
+- [x] Fallback: `ENABLED: false` → pipeline originale identica (pre-v4.31)
+- [x] Zero cambiamenti gameplay — rendering visivamente identico
 
 ---
 

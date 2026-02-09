@@ -1354,6 +1354,12 @@
                 },
                 BEAR_COLOR: '#4a0000',
                 BOSS_COLOR: '#0f0f28'
+            },
+
+            // G. Off-screen canvas caching (v4.31)
+            OFFSCREEN: {
+                ENABLED: true,            // false = direct-draw (pre-v4.31)
+                HILLS_REDRAW_INTERVAL: 2  // frames between hills redraw (1 = every frame)
             }
         },
 

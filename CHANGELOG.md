@@ -1,5 +1,18 @@
 # Changelog
 
+## v4.31.0 - 2026-02-09
+### Off-Screen Canvas — Sky & Hills Caching
+
+- **Sky gradient off-screen canvas**: Sky background (gradient `fillRect` full-screen) rendered onto a dedicated off-screen canvas (`{ alpha: false }` for GPU fast-path). Blitted via single `drawImage` per frame. Redrawn only on level/bear market/boss state change (~5 times per game session vs 60/sec)
+- **Hills off-screen canvas**: 5-layer parallax hills (sin() wave, fill+stroke, silhouettes) rendered onto transparent off-screen canvas. Throttled redraw every N frames (default: 2, configurable). Automatic invalidation on level change, bear market toggle, and boss→normal transition
+- **Config**: `Balance.SKY.OFFSCREEN` with `ENABLED` toggle (master kill-switch, `false` = pre-v4.31 direct-draw fallback) and `HILLS_REDRAW_INTERVAL` (frames between hill redraws)
+- **Memory**: 2 extra canvases at ~400x700 = ~2.2 MB total. Acceptable for mobile
+- **Fallback**: `OFFSCREEN.ENABLED: false` produces pixel-identical output to pre-v4.31 (original pipeline preserved as else branch)
+- **Zero gameplay changes**: All collision, scoring, visual behavior identical pre/post optimization
+- **Files**: SkyRenderer.js (off-screen pipeline + helpers), BalanceConfig.js (OFFSCREEN config), Constants.js + sw.js (version bump)
+
+---
+
 ## v4.30.0 - 2026-02-09
 ### Batch Rendering — Canvas State Change Optimization
 

@@ -44,8 +44,57 @@
     let lightningFlash = 0;
     let lightningTarget = 0;
 
+    // Off-screen canvas cache (v4.31)
+    let _skyBgCanvas = null, _skyBgCtx = null;
+    let _skyBgKey = '';
+    let _hillsCanvas = null, _hillsCtx = null;
+    let _hillsFrameCount = 0;
+    let _hillsNeedsRedraw = true;
+    let _hillsColorKey = '';
+    let _hillsBossWas = false;
+    let _offscreenW = 0, _offscreenH = 0;
+
     // Shorthand
     const CU = () => G.ColorUtils;
+
+    /**
+     * Create/resize off-screen canvases, or dispose if disabled
+     */
+    function _ensureOffscreen() {
+        const cfg = G.Balance?.SKY?.OFFSCREEN;
+        if (!cfg?.ENABLED) {
+            // Dispose
+            _skyBgCanvas = _skyBgCtx = null;
+            _hillsCanvas = _hillsCtx = null;
+            _offscreenW = _offscreenH = 0;
+            return;
+        }
+        if (gameWidth <= 0 || gameHeight <= 0) return;
+        if (_offscreenW === gameWidth && _offscreenH === gameHeight) return;
+
+        // Sky background canvas (opaque — no alpha needed)
+        _skyBgCanvas = document.createElement('canvas');
+        _skyBgCanvas.width = gameWidth;
+        _skyBgCanvas.height = gameHeight;
+        _skyBgCtx = _skyBgCanvas.getContext('2d', { alpha: false });
+
+        // Hills canvas (transparent — hills drawn over sky)
+        _hillsCanvas = document.createElement('canvas');
+        _hillsCanvas.width = gameWidth;
+        _hillsCanvas.height = gameHeight;
+        _hillsCtx = _hillsCanvas.getContext('2d');
+
+        _offscreenW = gameWidth;
+        _offscreenH = gameHeight;
+
+        // Invalidate caches — gradient created on one context can't be reused on another
+        cachedGradient = null;
+        cachedGradientKey = '';
+        _skyBgKey = '';
+        _hillsNeedsRedraw = true;
+        _hillsColorKey = '';
+        _hillsFrameCount = 0;
+    }
 
     /**
      * Initialize sky system with canvas dimensions
@@ -65,6 +114,7 @@
         lightningTarget = 0;
         cachedGradient = null;
         cachedGradientKey = '';
+        _ensureOffscreen();
     }
 
     /**
@@ -77,6 +127,10 @@
         // Invalidate gradient cache on resize
         cachedGradient = null;
         cachedGradientKey = '';
+        // Recreate off-screen canvases at new size
+        _offscreenW = 0;
+        _offscreenH = 0;
+        _ensureOffscreen();
     }
 
     /**
@@ -271,6 +325,12 @@
         lightningTarget = 0;
         cachedGradient = null;
         cachedGradientKey = '';
+        // Reset off-screen dirty flags
+        _skyBgKey = '';
+        _hillsNeedsRedraw = true;
+        _hillsColorKey = '';
+        _hillsFrameCount = 0;
+        _hillsBossWas = false;
     }
 
     /**
@@ -391,24 +451,90 @@
     }
 
     /**
+     * Render sky gradient onto off-screen canvas (only on key change)
+     */
+    function _renderSkyBg(level, isBearMarket, bossActive) {
+        const key = level + '-' + (isBearMarket ? 1 : 0) + '-' + (bossActive ? 1 : 0) + '-' + gameHeight;
+        if (key === _skyBgKey) return;
+        drawBands(_skyBgCtx, level, isBearMarket, bossActive);
+        _skyBgKey = key;
+    }
+
+    /**
+     * Render hills onto off-screen canvas (throttled + invalidation)
+     */
+    function _renderHills(level, isBearMarket) {
+        // Color invalidation: level or bear market changed
+        const colorKey = level + '-' + (isBearMarket ? 1 : 0);
+        if (colorKey !== _hillsColorKey) {
+            _hillsNeedsRedraw = true;
+            _hillsColorKey = colorKey;
+        }
+
+        // Boss transition: was boss, now not → force redraw
+        if (_hillsBossWas) {
+            _hillsNeedsRedraw = true;
+            _hillsBossWas = false;
+        }
+
+        // Throttle check
+        const interval = G.Balance?.SKY?.OFFSCREEN?.HILLS_REDRAW_INTERVAL || 2;
+        _hillsFrameCount++;
+        if (!_hillsNeedsRedraw && (_hillsFrameCount % interval !== 0)) return;
+
+        // Redraw
+        _hillsCtx.clearRect(0, 0, gameWidth, gameHeight);
+        drawHills(_hillsCtx, level, isBearMarket, false);
+        _hillsNeedsRedraw = false;
+    }
+
+    /**
      * Draw the complete sky background
      */
     function draw(ctx, context = {}) {
         const { level = 1, isBearMarket = false, bossActive = false } = context;
         const skyEnabled = G.Balance?.SKY?.ENABLED !== false;
+        const useOffscreen = G.Balance?.SKY?.OFFSCREEN?.ENABLED && _skyBgCanvas && _hillsCanvas;
 
-        drawBands(ctx, level, isBearMarket, bossActive);
-        drawFloatingSymbols(ctx, level, isBearMarket, bossActive);
-        drawStars(ctx, level, isBearMarket, bossActive);
-        if (skyEnabled && G.Balance?.SKY?.PARTICLES?.ENABLED !== false) {
-            drawAtmosphericParticles(ctx, level, isBearMarket, bossActive);
+        if (useOffscreen) {
+            // Sky BG: blit cached gradient (redrawn only on level/bear/boss change)
+            _renderSkyBg(level, isBearMarket, bossActive);
+            ctx.drawImage(_skyBgCanvas, 0, 0);
+
+            // Animated elements: draw direct every frame
+            drawFloatingSymbols(ctx, level, isBearMarket, bossActive);
+            drawStars(ctx, level, isBearMarket, bossActive);
+            if (skyEnabled && G.Balance?.SKY?.PARTICLES?.ENABLED !== false) {
+                drawAtmosphericParticles(ctx, level, isBearMarket, bossActive);
+            }
+            if (skyEnabled && G.Balance?.SKY?.HORIZON_GLOW?.ENABLED !== false) {
+                drawHorizonGlow(ctx, level, isBearMarket, bossActive);
+            }
+
+            // Hills: throttled off-screen redraw
+            if (!bossActive) {
+                _renderHills(level, isBearMarket);
+                ctx.drawImage(_hillsCanvas, 0, 0);
+            }
+            if (bossActive) _hillsBossWas = true;
+
+            drawClouds(ctx, level, isBearMarket);
+            drawLightning(ctx);
+        } else {
+            // Fallback: original direct-draw pipeline (pre-v4.31)
+            drawBands(ctx, level, isBearMarket, bossActive);
+            drawFloatingSymbols(ctx, level, isBearMarket, bossActive);
+            drawStars(ctx, level, isBearMarket, bossActive);
+            if (skyEnabled && G.Balance?.SKY?.PARTICLES?.ENABLED !== false) {
+                drawAtmosphericParticles(ctx, level, isBearMarket, bossActive);
+            }
+            if (skyEnabled && G.Balance?.SKY?.HORIZON_GLOW?.ENABLED !== false) {
+                drawHorizonGlow(ctx, level, isBearMarket, bossActive);
+            }
+            drawHills(ctx, level, isBearMarket, bossActive);
+            drawClouds(ctx, level, isBearMarket);
+            drawLightning(ctx);
         }
-        if (skyEnabled && G.Balance?.SKY?.HORIZON_GLOW?.ENABLED !== false) {
-            drawHorizonGlow(ctx, level, isBearMarket, bossActive);
-        }
-        drawHills(ctx, level, isBearMarket, bossActive);
-        drawClouds(ctx, level, isBearMarket);
-        drawLightning(ctx);
     }
 
     /**
