@@ -315,7 +315,13 @@ function updateHyperButton(player, grazeMeter) {
     var btn = _hyperBtn;
     if (!btn) return;
 
-    // Show only on touch devices
+    // v4.21: Hide HYPER button when auto-activate is enabled (no manual input needed)
+    if (Balance.HYPER.AUTO_ACTIVATE) {
+        btn.classList.remove('visible');
+        return;
+    }
+
+    // Show only on touch devices (legacy manual mode)
     if ('ontouchstart' in window && gameState === 'PLAY') {
         btn.classList.add('visible');
     } else {
@@ -609,6 +615,8 @@ window.enterSelectionState = function() {
     if (modeSelector) modeSelector.classList.add('hidden');
     if (introVersion) introVersion.style.display = 'none';
     if (modeExpl) modeExpl.classList.add('hidden');
+    // Hide PWA install banner when entering selection
+    setStyle('pwa-install-banner', 'display', 'none');
 
     // Show selection elements
     const header = document.getElementById('selection-header');
@@ -1268,7 +1276,7 @@ function init() {
         if (gameState === 'VIDEO') startApp();
         else if (gameState === 'STORY_SCREEN' && G.StoryScreen) G.StoryScreen.handleTap();
         else if (gameState === 'INTERMISSION' && waveMgr && waveMgr.intermissionTimer > 0) {
-            waveMgr.intermissionTimer = 0; // Skip intermission countdown
+            waveMgr.intermissionTimer = 0; // Skip boss-defeat intermission
         }
         else if (gameState === 'INTRO') {
             // Two-phase intro: SPLASH -> SELECTION -> PLAY
@@ -1975,14 +1983,25 @@ window.backToIntro = function () {
     if (curtain) curtain.classList.remove('open');
 
     setTimeout(() => {
+        // v4.21: Comprehensive cleanup of ALL game overlays
         setStyle('pause-screen', 'display', 'none');
         setStyle('gameover-screen', 'display', 'none');
         setStyle('hangar-screen', 'display', 'none');
+        setStyle('perk-modal', 'display', 'none');
         if (ui.uiLayer) ui.uiLayer.style.display = 'none'; // HIDE HUD
         if (ui.touchControls) {
             ui.touchControls.classList.remove('visible');
             ui.touchControls.style.display = 'none';
         }
+        // Hide meme popup
+        const memePopup = document.getElementById('meme-popup');
+        if (memePopup) { memePopup.classList.remove('show'); memePopup.classList.remove('hide'); }
+        // Hide dialogue overlay (story mode leaves it with pointer-events)
+        const dialogueContainer = document.getElementById('dialogue-container');
+        if (dialogueContainer) dialogueContainer.classList.remove('visible');
+        // Hide campaign victory screen if exists
+        const victoryScreen = document.getElementById('campaign-victory-screen');
+        if (victoryScreen) victoryScreen.style.display = 'none';
         closePerkChoice();
 
         // Show intro screen and reset styles from launch animation
@@ -2351,11 +2370,10 @@ function startGame() {
         player.resetState();
     }
 
-    // Reset campaign if already complete (allow fresh start after victory)
+    // v4.21: Always reset campaign boss defeats on new game (fresh cycle every run)
     const campaignState = G.CampaignState;
-    if (campaignState && campaignState.isEnabled() && campaignState.isCampaignComplete()) {
+    if (campaignState && campaignState.isEnabled()) {
         campaignState.resetCampaign();
-        updateCampaignProgressUI();
     }
 
     if (isBearMarket) {
@@ -2565,16 +2583,9 @@ function startHorde2() {
 
 function startBossWarning() {
     console.log(`[BOSS WARNING] Called. level=${level}, cycle=${marketCycle}, wave=${waveMgr.wave}`);
-    // Determine boss type for warning display
-    const campaignState = G.CampaignState;
-    if (campaignState && campaignState.isEnabled()) {
-        // Campaign mode: use next unlocked boss
-        bossWarningType = campaignState.getNextBoss() || 'FEDERAL_RESERVE';
-    } else {
-        // Arcade mode: cycle through bosses
-        const bossRotation = G.BOSS_ROTATION || ['FEDERAL_RESERVE', 'BCE', 'BOJ'];
-        bossWarningType = bossRotation[(marketCycle - 1) % bossRotation.length];
-    }
+    // v4.21: Unified boss rotation for both Story and Arcade (FED→BCE→BOJ cycle)
+    const bossRotation = G.BOSS_ROTATION || ['FEDERAL_RESERVE', 'BCE', 'BOJ'];
+    bossWarningType = bossRotation[(marketCycle - 1) % bossRotation.length];
     console.log(`[BOSS WARNING] Type: ${bossWarningType}, timer=${Balance.BOSS.WARNING_DURATION}s`);
     // Start warning timer
     bossWarningTimer = Balance.BOSS.WARNING_DURATION;
@@ -2598,18 +2609,10 @@ function startBossWarning() {
 
 function spawnBoss() {
     console.log(`[SPAWN BOSS] Called. level=${level}, cycle=${marketCycle}`);
-    // Determine boss type based on game mode
-    const campaignState = G.CampaignState;
-    let bossType;
-
-    if (campaignState && campaignState.isEnabled()) {
-        // Campaign mode: fight next unlocked boss
-        bossType = campaignState.getNextBoss() || 'FEDERAL_RESERVE';
-    } else {
-        // Arcade mode: cycle through bosses
-        const bossRotation = G.BOSS_ROTATION || ['FEDERAL_RESERVE', 'BCE', 'BOJ'];
-        bossType = bossRotation[(marketCycle - 1) % bossRotation.length];
-    }
+    // v4.21: Unified boss rotation for both Story and Arcade (FED→BCE→BOJ cycle)
+    const bossRotation = G.BOSS_ROTATION || ['FEDERAL_RESERVE', 'BCE', 'BOJ'];
+    let bossType = bossRotation[(marketCycle - 1) % bossRotation.length];
+    const campaignState = G.CampaignState; // Still needed for NG+ multiplier
 
     const bossConfig = G.BOSSES[bossType] || G.BOSSES.FEDERAL_RESERVE;
 
@@ -3163,8 +3166,31 @@ function update(dt) {
         } else if (waveAction.action === 'START_HORDE_2') {
             startHorde2();
         } else if (waveAction.action === 'START_INTERMISSION') {
-            startIntermission();
-        } else if (waveAction.action === 'SPAWN_BOSS') {
+            // v4.21: Seamless wave transition — no blocking countdown
+            // Inline cleanup (was in startIntermission)
+            G.Debug.trackIntermission(level, waveMgr.wave);
+            if (enemyBullets.length > 0) {
+                const bulletBonus = enemyBullets.length * 10;
+                enemyBullets.forEach(eb => createExplosion(eb.x, eb.y, eb.color || '#ff0', 6));
+                if (bulletBonus > 0) {
+                    score += bulletBonus;
+                    updateScore(score);
+                    addText(`+${bulletBonus} ${t('BULLET_BONUS')}`, gameWidth / 2, gameHeight / 2 + 50, '#0ff', 18);
+                }
+            }
+            bullets.forEach(b => G.Bullet.Pool.release(b));
+            enemyBullets.forEach(b => G.Bullet.Pool.release(b));
+            bullets = []; enemyBullets = [];
+            window.enemyBullets = enemyBullets;
+            audioSys.play('waveComplete');
+            // Queue meme via popup (non-blocking)
+            const waveMeme = G.MemeEngine.getIntermissionMeme();
+            if (waveMeme) G.MemeEngine.queueMeme('STREAK', '\u201C' + waveMeme + '\u201D', '');
+            emitEvent('intermission_start', { level: level, wave: waveMgr.wave });
+            // Immediately start next wave (fall through to START_WAVE)
+            waveAction.action = 'START_WAVE';
+        }
+        if (waveAction.action === 'SPAWN_BOSS') {
             startBossWarning(); // Start warning instead of immediate spawn
         } else if (waveAction.action === 'START_WAVE') {
             gameState = 'PLAY';
@@ -3247,12 +3273,12 @@ function update(dt) {
             G.Debug.trackModifierFrame(activeCount);
         }
 
-        // HYPER MODE activation (H key or touch button)
-        if ((inputSys.isDown('KeyH') || inputSys.touch.hyper) && player.canActivateHyper && player.canActivateHyper(grazeMeter)) {
+        // HYPER MODE: manual activation removed in v4.21 (now auto-activates when meter is full)
+        // Legacy manual trigger kept as fallback if AUTO_ACTIVATE is disabled
+        if (!Balance.HYPER.AUTO_ACTIVATE && (inputSys.isDown('KeyH') || inputSys.touch.hyper) && player.canActivateHyper && player.canActivateHyper(grazeMeter)) {
             player.activateHyper();
-            grazeMeter = 0; // Reset meter on activation
+            grazeMeter = 0;
             updateGrazeUI();
-            // HYPER activation juice
             triggerScreenFlash('HYPER_ACTIVATE');
         }
 
@@ -3454,13 +3480,9 @@ function updateBullets(dt) {
                         G.HarmonicConductor.setDifficulty(level, marketCycle, isBearMarket);
                     }
 
-                    // Campaign mode: track boss defeat and check for completion
+                    // v4.21: Campaign completion based on boss rotation (BOJ = last boss in cycle)
                     const campaignState = G.CampaignState;
-                    let campaignComplete = false;
-                    if (campaignState && campaignState.isEnabled()) {
-                        campaignComplete = campaignState.defeatBoss(defeatedBossType);
-                        updateCampaignProgressUI();
-                    }
+                    const campaignComplete = !!(campaignState && campaignState.isEnabled() && defeatedBossType === 'BOJ');
 
                     // Story Mode: Show chapter after boss defeat
                     const chapterId = G.BOSS_TO_CHAPTER && G.BOSS_TO_CHAPTER[defeatedBossType];
@@ -3659,9 +3681,16 @@ function updateBullets(dt) {
                         }
                     }
 
-                    // Check if meter is now full (can activate HYPER)
+                    // Check if meter is now full
                     if (grazeMeter >= Balance.HYPER.METER_THRESHOLD && player.hyperCooldown <= 0) {
-                        if (!player.hyperAvailable) {
+                        if (Balance.HYPER.AUTO_ACTIVATE && player.canActivateHyper && player.canActivateHyper(grazeMeter)) {
+                            // v4.21: Auto-activate HYPER when meter is full
+                            player.activateHyper();
+                            grazeMeter = 0;
+                            updateGrazeUI();
+                            triggerScreenFlash('HYPER_ACTIVATE');
+                        } else if (!player.hyperAvailable) {
+                            // Legacy manual mode fallback
                             player.hyperAvailable = true;
                             showGameInfo(t('HYPER_READY') + " [H]");
                             audioSys.play('hyperReady');
@@ -4493,61 +4522,9 @@ function draw() {
         // SACRIFICE UI (decision button or active countdown)
         drawSacrificeUI(ctx);
 
-        // Intermission countdown overlay (blur effect + transparent text)
-        if (gameState === 'INTERMISSION' && waveMgr.intermissionTimer > 0) {
-            const timer = waveMgr.intermissionTimer;
-            const countdown = Math.min(3, Math.ceil(timer)); // Cap at 3 for clean 3-2-1 countdown
-            const centerX = gameWidth / 2;
-            const centerY = gameHeight / 2;
-            const progress = timer % 1; // 0→1 within each second
-
-            // Trigger audio on number change (ascending pitch: 3=low, 2=mid, 1=high)
-            if (countdown !== lastCountdownNumber && countdown >= 1 && countdown <= 3) {
-                lastCountdownNumber = countdown;
-                const pitch = countdown === 3 ? 0.7 : countdown === 2 ? 0.85 : 1.0;
-                audioSys.play('countdownTick', { pitch });
-            }
-
-            // v4.11: Dark overlay instead of GPU-expensive blur filter
-            ctx.save();
-            ctx.fillStyle = 'rgba(0,0,0,0.6)';
-            ctx.fillRect(0, 0, gameWidth, gameHeight);
-            ctx.restore();
-
-            // Scale-in animation: number appears large and shrinks
-            const scale = 1 + (1 - progress) * 0.25;
-            const alpha = Math.min(1, progress * 4);
-
-            ctx.save();
-            ctx.translate(centerX, centerY);
-            ctx.scale(scale, scale);
-            ctx.globalAlpha = alpha;
-
-            // "GET READY" text (top, green) - no background, just text with outline
-            const readyText = t('GET_READY') || 'GET READY';
-            ctx.font = 'bold 18px "Press Start 2P", monospace';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillStyle = '#00FF00';
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 4;
-            ctx.strokeText(readyText, 0, -55);
-            ctx.fillText(readyText, 0, -55);
-
-            // Countdown number (center, gold with bold outline)
-            ctx.font = 'bold 72px "Press Start 2P", monospace';
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 10;
-            ctx.fillStyle = '#F7931A';
-            ctx.strokeText(countdown.toString(), 0, 0);
-            ctx.fillText(countdown.toString(), 0, 0);
-
-            ctx.restore();
-
-            // Meme text — now shown via DOM popup (v4.20.0)
-        }
-
-        // Reset countdown tracker when leaving intermission
+        // v4.21: Intermission countdown removed (seamless wave transitions)
+        // Boss-defeat intermission still uses timer but no visual countdown overlay
+        // (boss defeat has its own celebration via showVictory/showDanger)
         if (gameState !== 'INTERMISSION') {
             lastCountdownNumber = 0;
         }

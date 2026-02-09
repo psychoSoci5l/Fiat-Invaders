@@ -20,8 +20,12 @@ class InputSystem {
         window.addEventListener('keyup', e => this.keys[e.code] = false);
 
         const handleTouch = (e) => {
-            // Allow UI interactions (Buttons)
+            // Allow UI interactions (Buttons, modals, scrollable panels)
             if (e.target.tagName === 'BUTTON' || e.target.closest('button') || e.target.classList.contains('btn-coin')) {
+                return;
+            }
+            // v4.21: Don't intercept touches on modals/overlays or intro screen
+            if (e.target.closest('#manual-modal') || e.target.closest('#settings-modal') || e.target.closest('#help-panel') || e.target.closest('#tutorial-overlay') || e.target.closest('#intro-screen')) {
                 return;
             }
 

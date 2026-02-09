@@ -10,13 +10,13 @@
 *   **Responsive**: "Notch-safe" UI design that adapts to all mobile screens.
 *   **Localization**: Fully localized in English (EN) and Italian (IT).
 
-## 🧠 Current Gameplay Rules (v4.20.0)
+## 🧠 Current Gameplay Rules (v4.21.0)
 
 *   **Two Game Modes**: **Story Mode** (3 acts with narrative chapters, boss progression FED→BCE→BOJ) and **Arcade Mode** (endless waves, high scores, mini-bosses).
 *   **Wave System**: 15 unique waves (5 per cycle x 3 cycles) with 16 formation patterns and thematic currency groups.
-*   **Horde System**: Each wave has 2 hordes with complementary formations and escalating difficulty.
+*   **Seamless Flow**: Waves transition instantly — no countdown between waves. Boss-defeat celebrations preserved.
 *   **HarmonicConductor**: Beat-synced enemy firing with wave intensity phases (Setup → Build → Panic).
-*   **HYPER Mode**: Fill graze meter to 100%, activate for 5x score + 50% bigger hitbox (high risk/reward).
+*   **HYPER Mode**: Graze meter auto-triggers HYPER at 100% — 5x score + 50% bigger hitbox (high risk/reward).
 *   **Satoshi's Sacrifice**: At 1 life, sacrifice all score for 10s invincibility and 10x multiplier.
 *   **Weapon Evolution**: Progressive shot levels (1-3) + stackable modifiers + exclusive specials.
 *   **GODCHAIN Mode**: Max all weapon modifiers simultaneously for ultimate ship form (red aura, fire trails, speed boost).
@@ -25,7 +25,6 @@
 *   **10 Fiat Currencies**: Each with unique shape, tier, and fire pattern.
 *   **Compact HUD**: Minimal 45px top bar with diegetic ship indicators (life pips, shield ring, weapon pips, graze glow).
 *   **Reactive Feedback**: Score colors on streaks, danger pulse at low HP, wave sweep transitions.
-*   **Skippable Intermissions**: Tap/click/spacebar to skip the 3-2-1 countdown between waves.
 *   **Meme Popup System**: Full-width neon cartoon popup above player ship with 3-tier priority queue (CRITICAL/HIGH/NORMAL), spring-pop animation, 10 event types.
 *   **First-Run Tutorial**: 3-step mode-aware onboarding (Controls, Objective, Survival) — separate content for Story vs Arcade, dynamic mobile control text (Swipe/Joystick).
 *   **Accessibility**: WCAG 2.1 AA+ contrast ratios, 48px+ touch targets, `prefers-reduced-motion` support.
@@ -35,7 +34,7 @@
 *   **Move**: Arrow Keys (Desktop) or Virtual Joystick (Mobile).
 *   **Shoot**: Auto-fire / Spacebar.
 *   **Shield**: Down Arrow or Tap Shield Button.
-*   **HYPER**: H Key or Tap HYPER Button (when meter full).
+*   **HYPER**: Auto-activates when graze meter fills to 100%.
 *   **HODL Mode**: Stop moving to charge "Diamond Hands" for 2x score multiplier.
 
 ## 🛠️ Development & Running Locally

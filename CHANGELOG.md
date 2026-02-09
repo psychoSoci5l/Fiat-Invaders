@@ -1,5 +1,17 @@
 # Changelog
 
+## v4.21.0 - 2026-02-09
+### Gameplay Flow & Quality of Life
+
+- **HYPER Auto-Activate**: Graze meter now auto-triggers HYPER mode when reaching 100% — no manual activation needed. Controlled via `Balance.HYPER.AUTO_ACTIVATE`. HYPER button hidden when auto-activate is enabled
+- **Seamless Wave Transitions**: Removed blocking 3-2-1 countdown between waves. Waves now flow continuously with inline cleanup (bullet bonus, clear bullets, audio, meme). Boss-defeat intermissions preserved
+- **Bug Fix: Menu Buttons**: Fixed settings/icon buttons becoming unresponsive after returning from game. Root cause: `.dialogue-container` (DialogueUI) had `pointer-events: auto` even when invisible (`opacity: 0`), blocking all taps on the bottom of the screen. Fix: `pointer-events: none` by default, `auto` only when `.visible`. Also added `#intro-screen` z-index 250, InputSystem touch exclusion for intro screen, and dialogue cleanup in `backToIntro()`
+- **Bug Fix: iPhone Manual Scroll**: Fixed player manual not scrollable on iOS Safari. Changes: `overflow-y: scroll` (iOS requires explicit), `overscroll-behavior: contain`, `100dvh` height on mobile, safe-area insets for notch/home bar, InputSystem touch exclusion for modals
+- **Unified Boss Rotation**: Deprecated CampaignState boss tracking across sessions. Boss rotation always follows `marketCycle % 3` (FED→BCE→BOJ) for both Story and Arcade modes. Campaign always resets on new game
+- **PWA Banner Polish**: Banner now hides when entering ship selection screen (no more persistence across screens). Improved centering and spacing to avoid overlap with CTA button
+
+---
+
 ## v4.20.0 - 2026-02-09
 ### Meme Popup System
 

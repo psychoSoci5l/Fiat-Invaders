@@ -90,6 +90,7 @@
         // Design: Ikeda Philosophy - the decision to risk everything for glory.
         HYPER: {
             METER_THRESHOLD: 100,     // Graze meter value to enable HYPER activation
+            AUTO_ACTIVATE: true,      // v4.21: Auto-trigger HYPER when meter is full (no manual input needed)
             BASE_DURATION: 5.0,       // Seconds of HYPER mode
             GRAZE_EXTENSION: 0.3,     // Seconds added per graze during HYPER
             MAX_DURATION: 12.0,       // Cap on total HYPER time (prevents infinite)

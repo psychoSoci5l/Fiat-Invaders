@@ -704,6 +704,7 @@ body {
     align-items: center;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    z-index: 250; /* v4.21: Above all game elements (touchControls=200, ui-layer=120) */
 }
 
 #gameover-screen {
@@ -3238,7 +3239,7 @@ body.bear-mode .toggle-switch#bear-toggle .switch-label {
     right: 0;
     padding: 20px;
     padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
-    pointer-events: auto;
+    pointer-events: none;
     z-index: 200;
     opacity: 0;
     transform: translateY(20px);
@@ -3248,6 +3249,7 @@ body.bear-mode .toggle-switch#bear-toggle .switch-label {
 .dialogue-container.visible {
     opacity: 1;
     transform: translateY(0);
+    pointer-events: auto;
 }
 
 .dialogue-box {
@@ -3863,13 +3865,17 @@ body.is-touch p.mobile-only { display: block; }
         max-height: 100vh;
         max-height: 100dvh;
         max-width: 100%;
+        height: 100vh; /* v4.21: explicit height for iOS flex scroll */
+        height: 100dvh;
         border-radius: 0;
         border: none;
+        overflow: visible; /* v4.21: override hidden on mobile — no border-radius to clip */
     }
 
     .manual-title {
         font-size: 18px;
         padding: 14px 15px 10px;
+        padding-top: calc(14px + env(safe-area-inset-top, 0px)); /* v4.21: iPhone notch */
     }
 
     .manual-v2 .manual-scroll {
@@ -3879,6 +3885,11 @@ body.is-touch p.mobile-only { display: block; }
     .manual-content {
         padding: 15px;
     }
+
+    .manual-close {
+        margin: 15px 20px;
+        margin-bottom: calc(20px + env(safe-area-inset-bottom, 0px)); /* v4.21: iPhone home bar */
+    }
 }
 
 /* --- PWA INSTALL BANNER --- */
@@ -3887,7 +3898,10 @@ body.is-touch p.mobile-only { display: block; }
     width: 90%;
     max-width: 380px;
     margin-top: 8px;
+    margin-bottom: 70px;
     z-index: 200;
+    display: flex;
+    justify-content: center;
     animation: pwaFadeIn 0.4s ease-out;
 }
 
@@ -3899,7 +3913,9 @@ body.is-touch p.mobile-only { display: block; }
 .pwa-banner-content {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 10px;
+    width: 100%;
     background: rgba(0, 0, 0, 0.9);
     border: 1px solid #f39c12;
     border-radius: 10px;
@@ -3947,12 +3963,13 @@ body.is-touch p.mobile-only { display: block; }
 .manual-v2 .manual-scroll {
     flex: 1;
     min-height: 0;
-    overflow-y: auto;
+    overflow-y: scroll; /* v4.21: explicit scroll (iOS needs 'scroll' not 'auto') */
     padding: 20px;
     scrollbar-width: thin;
     scrollbar-color: #F7931A #1a1a2e;
     -webkit-overflow-scrolling: touch;
     touch-action: pan-y;
+    overscroll-behavior: contain; /* v4.21: Prevent scroll chaining to parent on iOS */
 }
 
 .manual-v2 .manual-scroll::-webkit-scrollbar {

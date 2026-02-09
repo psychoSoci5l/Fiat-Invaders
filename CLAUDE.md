@@ -88,7 +88,7 @@ Key load sequence: Constants -> ColorUtils -> BalanceConfig -> BulletPatterns ->
 
 ### Game States
 
-`gameState` in main.js: `VIDEO` -> `INTRO` -> `HANGAR` -> `STORY_SCREEN` -> `PLAY` / `INTERMISSION` / `PAUSE` -> `GAMEOVER`
+`gameState` in main.js: `VIDEO` -> `INTRO` -> `HANGAR` -> `STORY_SCREEN` -> `PLAY` / `PAUSE` -> `GAMEOVER` (v4.21: INTERMISSION state only for boss defeats, waves transition seamlessly)
 
 `introState`: `SPLASH` (title + mode tabs) -> `SELECTION` (ship carousel + LAUNCH)
 
@@ -118,7 +118,7 @@ Activates when shotLevel=3 + rate>=2 + power>=2 + spread>=1. Red ship, fire trai
 15 unique waves (5 per cycle x 3 cycles) with thematic currency assignments. 16 formation types. 2 hordes per wave. Bear Market: +25% count. Legacy fallback cycles 4+.
 
 ### Boss System
-3 bosses: FEDERAL_RESERVE ($), BCE (euro), BOJ (yen). 3 phases each. HP: `3000 + level*65 + (cycle-1)*1400`. Phase thresholds from `Balance.BOSS.PHASE_THRESHOLDS`. 6 exclusive patterns. Mini-boss triggers via per-currency kill counters. v4.19.1: Dir-based movement (FED P1/P2, BCE P1/P2/P3) uses boundary clamp to prevent oscillation after phase transition shake.
+3 bosses: FEDERAL_RESERVE ($), BCE (euro), BOJ (yen). 3 phases each. HP: `3000 + level*65 + (cycle-1)*1400`. Phase thresholds from `Balance.BOSS.PHASE_THRESHOLDS`. 6 exclusive patterns. Mini-boss triggers via per-currency kill counters. v4.19.1: Dir-based movement (FED P1/P2, BCE P1/P2/P3) uses boundary clamp to prevent oscillation after phase transition shake. v4.21: Boss rotation always `marketCycle % 3` (FED→BCE→BOJ), CampaignState boss tracking deprecated (campaign resets every new game).
 
 ### Power-Up & Drop System
 Managed by `DropSystem.js`. Drop rates: 3%/2.5%/1% by tier + pity timer (55 kills). Weapon cooldown 8s. Boss drops capped at 6 per fight (DROP_INTERVAL 40, cooldown 3s). No cycle scaling (CYCLE_BONUS=0). Categories: UPGRADE, MODIFIER, SPECIAL. v4.15: Visual distinction — UPGRADE=Star, MODIFIER=Diamond (was hexagon), SPECIAL=Circle+Ring. Glow + light sweep on all power-ups. v4.19: Adaptive Drops — suppression gate based on Player Power Score (0.0→1.0), need-based category selection. Config: `Balance.ADAPTIVE_DROPS`.
@@ -157,6 +157,7 @@ Console: `dbg.balanceTest()` -> play -> `dbg.report()`. Overlay: `dbg.showOverla
 | `#tutorial-overlay` | 9500 | Outside game-container |
 | `#curtain-overlay` | 9000 | Outside game-container |
 | Modals | 1000-1100 | Outside game-container |
+| `#intro-screen` | 250 | Inside game-container |
 | `#touchControls` | 200 | Inside game-container |
 | `#ui-layer` | 120 | Inside game-container |
 

@@ -1,13 +1,13 @@
 # Roadmap: FIAT vs CRYPTO
 
 > [!IMPORTANT]
-> **Versione attuale**: v4.20.0 (2026-02-08)
+> **Versione attuale**: v4.21.0 (2026-02-09)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
 > **Stato**: Gameplay completo, in fase di hardening e bugfix.
 
 ---
 
-## v4.21.0 — Top Bar Message Strip (PROSSIMO)
+## v4.22.0 — Top Bar Message Strip (PROSSIMO)
 
 > Razionalizzare i messaggi in-game su **2 soli punti di comunicazione standardizzati**: il meme popup (bottom, sopra la nave) e una **striscia messaggi** fissa sotto la top bar HUD.
 
@@ -31,6 +31,21 @@ Attualmente i messaggi gameplay (showDanger, showVictory, showGameInfo, wave str
 - [ ] Aggiornare WaveManager/enemy spawn Y-min per rispettare la safe zone
 - [ ] Rimuovere i canali canvas sostituiti da MessageSystem
 - [ ] Verificare leggibilità durante orde dense
+
+---
+
+## v4.21.0 — Gameplay Flow & Quality of Life (COMPLETATO)
+
+> Playtest v4.20.0: HYPER sottoutilizzato (82 graze, solo 2 attivazioni), countdown inter-wave spezza il ritmo, bug menu buttons post-game-over, manual non scrollabile su iPhone.
+
+### Implementato
+
+- [x] **HYPER Auto-Activate** — `Balance.HYPER.AUTO_ACTIVATE: true`. Graze meter al 100% triggera HYPER automaticamente. Pulsante HYPER nascosto quando auto-activate attivo
+- [x] **Seamless Wave Transitions** — Rimosso countdown 3-2-1 bloccante. `START_INTERMISSION` ora fa cleanup inline (bullet bonus, clear, audio, meme) e cade through a `START_WAVE`. Boss-defeat intermission preservata
+- [x] **Bug Fix: Menu Buttons** — Root cause: `.dialogue-container` con `pointer-events: auto` quando invisibile bloccava i tap. Fix: `pointer-events: none` di default, `auto` solo su `.visible`. Anche: `#intro-screen` z-index 250, InputSystem esclude intro, dialogue cleanup in `backToIntro()`
+- [x] **Bug Fix: iPhone Manual** — `overflow-y: scroll` (iOS esplicito), `overscroll-behavior: contain`, `100dvh`, safe-area insets. InputSystem esclude touch su modali (#manual-modal, #settings-modal, #help-panel, #tutorial-overlay)
+- [x] **Unified Boss Rotation** — Deprecato CampaignState boss tracking. Rotazione sempre `marketCycle % 3` (FED→BCE→BOJ). Campaign reset a ogni nuova partita
+- [x] **PWA Banner Polish** — Nascosto in selezione nave, centramento migliorato, spacing corretto con CTA
 
 ---
 
