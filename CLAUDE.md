@@ -149,6 +149,9 @@ Circle-based collision via `G.BulletSystem`. All bullet params centralized in `B
 ### Batch Rendering (v4.30.0)
 Multi-pass draw pipeline reduces ~30% canvas state changes. ParticleSystem: 2-pass (standard source-over → additive lighter). Player bullet glow: `Bullet.drawGlow(ctx)` batched in main.js single additive pass before body loop. Floating text: shared textAlign/strokeStyle setup hoisted. Visually identical to pre-v4.30.
 
+### Juice Cleanup (v4.33.0)
+Gameplay effects decluttered for fluid action. All hit stops zeroed during gameplay (streak, graze, player hit). Screen flash disabled for gameplay events. Screen shake removed from enemy contact. Boss cinematic events preserved (BOSS_PHASE 300ms, BOSS_DEFEAT 500ms, boss flashes). 3 master kill-switches in `Balance.JUICE.SCREEN_EFFECTS`: `SCREEN_SHAKE`, `SCREEN_FLASH`, `HIT_STOP` — `=== false` gate (undefined = enabled). New **Damage Vignette**: 4 red border rects (12px), 0.3s ease-out fade on hit — replaces fullscreen flash. All original effect code preserved, disabled via config values. `EffectsRenderer.triggerDamageVignette()` + `drawDamageVignette(ctx)`.
+
 ### Responsive Formation System (v4.32.0)
 Formation spacing and positioning scale with screen dimensions. `widthRatio = gameWidth / BASE_WIDTH` (e.g. 430/600 = 0.717 on iPhone). Spacing: `max(SPACING_MIN, round(SPACING * widthRatio))`. startY scales with `gameHeight / 800`. Legacy `spawnWaveLegacy()` aligned to same responsive logic. Enemy teleport bounds clamped to actual screen size. Kamikaze trigger proportional (`gameHeight * 0.33`). Config: `Balance.FORMATION.RESPONSIVE` (master toggle), `SPACING_MIN` (62px floor), `START_Y_RESPONSIVE`. Kill-switch: `RESPONSIVE: false` = pre-v4.32 fixed spacing. Desktop 600px: widthRatio=1.0, zero changes.
 

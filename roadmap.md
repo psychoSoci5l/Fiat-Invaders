@@ -1,9 +1,25 @@
 # Roadmap: FIAT vs CRYPTO
 
 > [!IMPORTANT]
-> **Versione attuale**: v4.32.0 (2026-02-09)
+> **Versione attuale**: v4.33.0 (2026-02-09)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
 > **Stato**: Gameplay completo, in fase di hardening e polish grafico.
+
+---
+
+## v4.33.0 — Juice Cleanup (COMPLETATO)
+
+> Effetti di gioco resi non-intrusivi. Zero freeze/flash/shake durante il gameplay — preservati per cinematiche boss. Nuovo feedback danno leggero (damage vignette).
+
+### Implementato
+
+- [x] Hit Stop azzerato durante gameplay (streak, graze, player hit → 0)
+- [x] Screen Flash disabilitato durante gameplay (player hit, streak, graze, score pulse)
+- [x] Screen Shake rimosso da contatto nemico (solo morte giocatore)
+- [x] 3 master kill-switch: `SCREEN_SHAKE`, `SCREEN_FLASH`, `HIT_STOP` in SCREEN_EFFECTS
+- [x] Damage Vignette: bordi rossi 12px, fade 0.3s (sostituisce flash fullscreen)
+- [x] Tutto il codice effetti preservato, disabilitato via config
+- [x] Boss events preservati: BOSS_PHASE (300ms), BOSS_DEFEAT (500ms), flash boss
 
 ---
 

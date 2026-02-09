@@ -170,14 +170,16 @@
         JUICE: {
             // Hit stop durations (seconds) - game freezes briefly on impact
             HIT_STOP: {
-                ENEMY_KILL: 0,            // Disabled — was 25ms freeze on every kill, caused perceived stuttering
-                STREAK_10: 0.12,          // 120ms on 10-kill streak
-                STREAK_25: 0.18,          // 180ms on 25-kill streak
-                STREAK_50: 0.25,          // 250ms on 50-kill streak
+                // Gameplay — all zero (fluid action, no perceived stutter)
+                ENEMY_KILL: 0,
+                STREAK_10: 0,
+                STREAK_25: 0,
+                STREAK_50: 0,
+                CLOSE_GRAZE: 0,
+                PLAYER_HIT: 0,
+                // Non-gameplay — preserved (boss cinematic moments)
                 BOSS_PHASE: 0.30,         // 300ms on boss phase transition
                 BOSS_DEFEAT: 0.50,        // 500ms on boss death
-                CLOSE_GRAZE: 0.02,        // 20ms micro-freeze on close graze
-                PLAYER_HIT: 0.08          // 80ms on player taking damage
             },
 
             // Screen flash effects (values used when enabled)
@@ -196,25 +198,30 @@
 
             // Master toggles for screen effects (modularity)
             SCREEN_EFFECTS: {
-                // Critical feedback (recommended ON)
-                PLAYER_HIT_FLASH: true,       // Red flash when hit
-                BOSS_DEFEAT_FLASH: true,      // White flash on boss kill
-                BOSS_PHASE_FLASH: true,       // Orange flash on phase change
+                // Master toggles (set false to disable entire category)
+                SCREEN_SHAKE: true,            // ON — only fires on death (non-gameplay)
+                SCREEN_FLASH: true,            // ON — granular control below
+                HIT_STOP: true,                // ON — granular control via durations below
 
-                // Optional feedback (default OFF - can feel like lag)
-                STREAK_FLASH: true,           // Flash on kill streaks (v4.0.1: enabled)
-                GRAZE_FLASH: false,           // Flash on close graze
-                SCORE_PULSE: true,            // Edge glow every 10k points (v4.0.1: enabled)
-                SCREEN_DIMMING: false,        // Darken screen with many bullets
+                // Gameplay flashes — OFF (perceived as lag during action)
+                PLAYER_HIT_FLASH: false,       // Red flash when hit — OFF, replaced by vignette
+                STREAK_FLASH: false,           // Flash on kill streaks — OFF
+                GRAZE_FLASH: false,            // Flash on close graze — OFF
+                SCORE_PULSE: false,            // Edge glow every 10k — OFF
+                SCREEN_DIMMING: false,         // Darken screen with many bullets — OFF
 
-                // Mode-specific overlays
-                HYPER_OVERLAY: true,          // Golden tint during HYPER
-                SACRIFICE_OVERLAY: true,      // White tint during sacrifice
-                HYPER_ACTIVATE_FLASH: true,   // Flash when HYPER activates
+                // Non-gameplay flashes — ON (boss events, transitions)
+                BOSS_DEFEAT_FLASH: true,       // White flash on boss kill
+                BOSS_PHASE_FLASH: true,        // Orange flash on phase change
+                HYPER_ACTIVATE_FLASH: true,    // Flash when HYPER activates
+
+                // Mode-specific overlays — ON (tints, not interruptions)
+                HYPER_OVERLAY: true,           // Golden tint during HYPER
+                SACRIFICE_OVERLAY: true,       // White tint during sacrifice
 
                 // Bear Market atmosphere
-                LIGHTNING: true,              // Purple lightning flashes
-                BEAR_VIGNETTE: true           // Pulsing red vignette
+                LIGHTNING: true,               // Purple lightning flashes
+                BEAR_VIGNETTE: true            // Pulsing red vignette
             },
 
             // Score pulse effect (screen edge glow on milestones)

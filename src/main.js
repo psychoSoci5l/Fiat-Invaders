@@ -165,6 +165,7 @@ function initCollisionSystem() {
                 } else {
                     applyHitStop('PLAYER_HIT', false);
                     triggerScreenFlash('PLAYER_HIT');
+                    G.EffectsRenderer.triggerDamageVignette();
                 }
                 streak = 0;
                 killStreak = 0;
@@ -3968,9 +3969,9 @@ function updateEnemies(dt) {
         if (Math.abs(e.x - playerX) < hitR && Math.abs(e.y - playerY) < hitR) {
             if (player.takeDamage()) {
                 updateLivesUI(true); // Hit animation
-                shake = 40; // Heavy shake
                 applyHitStop('PLAYER_HIT', false); // Contact hit slowmo
                 triggerScreenFlash('PLAYER_HIT');
+                G.EffectsRenderer.triggerDamageVignette();
                 emitEvent('player_hit', { hp: player.hp, maxHp: player.maxHp });
                 if (player.hp <= 0) {
                     startDeathSequence();
@@ -4368,6 +4369,7 @@ function draw() {
     if (G.EffectsRenderer) {
         G.EffectsRenderer.drawScreenFlash(ctx);
         G.EffectsRenderer.drawScorePulse(ctx);
+        G.EffectsRenderer.drawDamageVignette(ctx);
         // v4.4: Low-HP danger vignette
         G.EffectsRenderer.drawLowHPVignette(ctx, lives, totalTime);
     }

@@ -27,6 +27,10 @@
     let screenFlashMaxOpacity = 0;
     let screenFlashDuration = 0;
 
+    // Damage vignette (edge-only red flash, non-intrusive feedback)
+    let damageVignetteTimer = 0;
+    const DAMAGE_VIGNETTE_DURATION = 0.3;
+
     // Score pulse system (JUICE)
     let scorePulseTimer = 0;
     let lastScorePulseThreshold = 0;
@@ -61,6 +65,7 @@
         screenFlashTimer = 0;
         screenFlashOpacity = 0;
         scorePulseTimer = 0;
+        damageVignetteTimer = 0;
         lastScorePulseThreshold = 0;
         hitStopTimer = 0;
         hitStopFreeze = false;
@@ -71,6 +76,7 @@
      * @param {number} intensity - Shake intensity (pixels)
      */
     function applyShake(intensity) {
+        if (G.Balance?.JUICE?.SCREEN_EFFECTS?.SCREEN_SHAKE === false) return;
         shake = Math.max(shake, intensity);
     }
 
@@ -79,7 +85,15 @@
      * @param {number} intensity - Flash intensity (0-1)
      */
     function applyImpactFlash(intensity) {
+        if (G.Balance?.JUICE?.SCREEN_EFFECTS?.SCREEN_FLASH === false) return;
         flashRed = Math.max(flashRed, intensity);
+    }
+
+    /**
+     * Trigger damage vignette (red border flash, non-intrusive)
+     */
+    function triggerDamageVignette() {
+        damageVignetteTimer = DAMAGE_VIGNETTE_DURATION;
     }
 
     /**
@@ -88,6 +102,7 @@
      * @param {boolean} freeze - True for complete freeze, false for slowmo
      */
     function applyHitStop(type, freeze = true) {
+        if (G.Balance?.JUICE?.SCREEN_EFFECTS?.HIT_STOP === false) return;
         const Balance = G.Balance;
         const duration = Balance?.JUICE?.HIT_STOP?.[type] || 0.02;
         if (duration > hitStopTimer) {
@@ -103,6 +118,9 @@
     function triggerScreenFlash(type) {
         const Balance = G.Balance;
         const effects = Balance?.JUICE?.SCREEN_EFFECTS;
+
+        // Master kill-switch for all flashes
+        if (effects?.SCREEN_FLASH === false) return;
 
         // Check if this flash type is enabled
         if (effects) {
@@ -153,6 +171,7 @@
      * @param {boolean} freeze - True for freeze, false for slowmo
      */
     function setHitStop(duration, freeze = true) {
+        if (G.Balance?.JUICE?.SCREEN_EFFECTS?.HIT_STOP === false) return;
         hitStopTimer = duration;
         hitStopFreeze = freeze;
     }
@@ -193,6 +212,12 @@
         if (scorePulseTimer > 0) {
             scorePulseTimer -= dt;
             if (scorePulseTimer < 0) scorePulseTimer = 0;
+        }
+
+        // Damage vignette decay
+        if (damageVignetteTimer > 0) {
+            damageVignetteTimer -= dt;
+            if (damageVignetteTimer < 0) damageVignetteTimer = 0;
         }
 
         // Hit stop processing
@@ -273,6 +298,26 @@
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, gameWidth, gameHeight);
         ctx.globalAlpha = 1;
+    }
+
+    /**
+     * Draw damage vignette (red border flash on player hit)
+     * @param {CanvasRenderingContext2D} ctx
+     */
+    function drawDamageVignette(ctx) {
+        if (damageVignetteTimer <= 0) return;
+        const progress = damageVignetteTimer / DAMAGE_VIGNETTE_DURATION;
+        const alpha = 0.4 * progress * progress; // ease-out
+        const thickness = 12;
+        ctx.fillStyle = G.ColorUtils.rgba(255, 0, 0, alpha);
+        // Top
+        ctx.fillRect(0, 0, gameWidth, thickness);
+        // Bottom
+        ctx.fillRect(0, gameHeight - thickness, gameWidth, thickness);
+        // Left
+        ctx.fillRect(0, 0, thickness, gameHeight);
+        // Right
+        ctx.fillRect(gameWidth - thickness, 0, thickness, gameHeight);
     }
 
     /**
@@ -369,6 +414,9 @@
         drawImpactFlash,
         drawScreenFlash,
         drawScorePulse,
+        drawDamageVignette,
+        // Triggers (new)
+        triggerDamageVignette,
         drawHyperOverlay,
         drawSacrificeOverlay,
         drawVignette,
