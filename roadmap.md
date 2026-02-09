@@ -1,9 +1,35 @@
 # Roadmap: FIAT vs CRYPTO
 
 > [!IMPORTANT]
-> **Versione attuale**: v4.27.0 (2026-02-09)
+> **Versione attuale**: v4.29.0 (2026-02-09)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
 > **Stato**: Gameplay completo, in fase di hardening e polish grafico.
+
+---
+
+## v4.29.0 — Object Pool Audit (COMPLETATO)
+
+> Ottimizzazione GC pressure e allocazioni per-frame. Zero cambiamenti gameplay.
+
+### Implementato
+
+- [x] ObjectPool.release: `indexOf` O(n) → `_inPool` flag O(1) (~150-300 confronti/frame eliminati)
+- [x] Pre-allocazione oggetti hot-path: `_playerState`, `_stateObj`, `_sparkOpts` (~10-20 allocazioni/frame eliminate)
+- [x] ParticleSystem.update: backward+splice → forward write-pointer compaction (1 passo O(n) vs ~15 splice O(n))
+- [x] Rimosso dead code: `ParticlePool.getActive()` (mai chiamato, faceva `.slice()`)
+
+---
+
+## v4.28.0 — main.js Decomposition (COMPLETATO)
+
+> Estratti CollisionSystem, GameStateMachine, espanso RunState. main.js ridotto ~400+ righe.
+
+### Implementato
+
+- [x] CollisionSystem.js: 4 collision loop estratti con callback pattern
+- [x] GameStateMachine.js: transition table con validazione
+- [x] RunState.js espanso: ~30 variabili per-run migrate da main.js
+- [x] Zero cambiamenti gameplay
 
 ---
 

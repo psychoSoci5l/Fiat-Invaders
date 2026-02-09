@@ -1,5 +1,17 @@
 # Changelog
 
+## v4.29.0 - 2026-02-09
+### Object Pool Audit — GC & Per-Frame Allocation Optimization
+
+- **ObjectPool.release O(1)**: Replaced `indexOf` O(n) duplicate check with `_inPool` boolean flag. Eliminates ~150-300 comparisons/frame during active combat
+- **Pre-allocated hot-path objects**: `buildPlayerState()`, `getState()` lambda, and `onEnemyHit` spark opts now reuse pre-allocated objects instead of creating fresh ones per call. Eliminates ~10-20 object allocations/frame
+- **ParticleSystem compaction**: Replaced backward-iterate + `.splice()` pattern (O(n) per removal × ~15 removals/frame) with single-pass forward write-pointer compaction (1× O(n) total). Eliminates micro-array allocations from splice return values
+- **Dead code removal**: Removed unused `ParticlePool.getActive()` method (called `.slice()` on every invocation, never used)
+- **Zero gameplay changes**: All collision, scoring, particle behavior identical pre/post optimization
+- **Files**: ObjectPool.js (refactored), main.js (pre-allocated objects), ParticleSystem.js (compaction), Constants.js + sw.js (version bump)
+
+---
+
 ## v4.28.0 - 2026-02-09
 ### main.js Decomposition — CollisionSystem, RunState, GameStateMachine
 

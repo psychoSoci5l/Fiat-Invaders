@@ -495,11 +495,15 @@
 
     /**
      * Update all particles
+     * v4.29: Forward-iterate with write-pointer compaction (1 pass O(n))
+     * instead of backward-iterate + splice O(n) per removal
      * @param {number} dt - Delta time in seconds
      */
     function update(dt) {
-        for (let i = particles.length - 1; i >= 0; i--) {
-            const p = particles[i];
+        let writeIdx = 0;
+        for (let readIdx = 0; readIdx < particles.length; readIdx++) {
+            const p = particles[readIdx];
+            let remove = false;
 
             if (p.target) {
                 // Homing Logic (Score Particles)
@@ -508,18 +512,16 @@
                 const dist = Math.sqrt(dx * dx + dy * dy);
 
                 if (dist < 30) {
-                    releaseParticle(p);
-                    particles.splice(i, 1);
-                    continue;
+                    remove = true;
+                } else {
+                    // Steer towards target
+                    const accel = 1500 * dt / dist;
+                    p.vx += dx * accel;
+                    p.vy += dy * accel;
+                    p.x += p.vx * dt;
+                    p.y += p.vy * dt;
+                    p.size = Math.max(1, p.size * 0.95);
                 }
-
-                // Steer towards target
-                const accel = 1500 * dt / dist;
-                p.vx += dx * accel;
-                p.vy += dy * accel;
-                p.x += p.vx * dt;
-                p.y += p.vy * dt;
-                p.size = Math.max(1, p.size * 0.95);
             } else {
                 // Standard Physics
                 p.x += p.vx * dt;
@@ -534,11 +536,18 @@
 
                 // Remove dead or offscreen particles
                 if (p.life <= 0 || p.x < -50 || p.x > gameWidth + 50 || p.y > gameHeight + 50) {
-                    releaseParticle(p);
-                    particles.splice(i, 1);
+                    remove = true;
                 }
             }
+
+            if (remove) {
+                releaseParticle(p);
+            } else {
+                if (writeIdx !== readIdx) particles[writeIdx] = p;
+                writeIdx++;
+            }
         }
+        particles.length = writeIdx;
     }
 
     /**

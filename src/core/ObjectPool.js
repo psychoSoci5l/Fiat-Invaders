@@ -8,7 +8,9 @@ class ObjectPool {
 
         // Pre-populate
         for (let i = 0; i < initialSize; i++) {
-            this.reserve.push(this.createFn());
+            const obj = this.createFn();
+            obj._inPool = true;
+            this.reserve.push(obj);
         }
     }
 
@@ -21,19 +23,19 @@ class ObjectPool {
             obj = this.createFn();
         }
 
+        obj._inPool = false;
+
         // Reset object state if it has a reset method
         if (obj.reset) {
             obj.reset(...args);
         }
 
-        // We generally don't track 'active' inside the pool for game loops 
-        // because the game loop manages its own list (e.g. bullets array),
-        // but for some use cases we might. Here we just return it.
         return obj;
     }
 
     release(obj) {
-        if (this.reserve.indexOf(obj) === -1) {
+        if (!obj._inPool) {
+            obj._inPool = true;
             this.reserve.push(obj);
         }
     }
@@ -109,11 +111,6 @@ window.Game.ParticlePool = {
             lastActive._poolIndex = idx;
             p._poolIndex = particleStackPtr;
         }
-    },
-
-    // O(1) - returns view of active particles (indices 0 to stackPtr-1)
-    getActive() {
-        return particlePool.slice(0, particleStackPtr);
     },
 
     // O(1) - direct count from stackPtr

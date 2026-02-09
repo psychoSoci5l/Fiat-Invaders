@@ -110,18 +110,32 @@ function getUnlockedWeapons() {
 }
 
 // v4.19: Build player state snapshot for adaptive drop system
+// v4.29: Pre-allocated to avoid per-call GC allocations
+const _playerState = {
+    shotLevel: 1,
+    modifiers: { rate: 0, power: 0, spread: 0 },
+    hasSpecial: false
+};
 function buildPlayerState() {
-    if (!player) return { shotLevel: 1, modifiers: { rate: 0, power: 0, spread: 0 }, hasSpecial: false };
-    return {
-        shotLevel: player.shotLevel || 1,
-        modifiers: {
-            rate: player.modifiers ? player.modifiers.rate.level : 0,
-            power: player.modifiers ? player.modifiers.power.level : 0,
-            spread: player.modifiers ? player.modifiers.spread.level : 0
-        },
-        hasSpecial: !!player.special
-    };
+    if (!player) {
+        _playerState.shotLevel = 1;
+        _playerState.modifiers.rate = 0;
+        _playerState.modifiers.power = 0;
+        _playerState.modifiers.spread = 0;
+        _playerState.hasSpecial = false;
+        return _playerState;
+    }
+    _playerState.shotLevel = player.shotLevel || 1;
+    _playerState.modifiers.rate = player.modifiers ? player.modifiers.rate.level : 0;
+    _playerState.modifiers.power = player.modifiers ? player.modifiers.power.level : 0;
+    _playerState.modifiers.spread = player.modifiers ? player.modifiers.spread.level : 0;
+    _playerState.hasSpecial = !!player.special;
+    return _playerState;
 }
+
+// v4.29: Pre-allocated objects for CollisionSystem callbacks — avoids per-call allocation
+const _stateObj = { sacrificeState: null };
+const _sparkOpts = { shotLevel: 1, hasPower: false, isKill: false, isHyper: false };
 
 // v4.28.0: CollisionSystem initialization with callbacks
 function initCollisionSystem() {
@@ -133,7 +147,7 @@ function initCollisionSystem() {
         getEnemies: () => enemies,
         getBoss: () => boss,
         getMiniBoss: () => miniBoss,
-        getState: () => ({ sacrificeState }),
+        getState: () => { _stateObj.sacrificeState = sacrificeState; return _stateObj; },
         callbacks: {
             // Player hit by enemy bullet (normal — not HYPER)
             onPlayerHit(eb, ebIdx, ebArr) {
@@ -234,13 +248,11 @@ function initCollisionSystem() {
             onEnemyHit(e, bullet, shouldDie) {
                 audioSys.play('hitEnemy');
                 const sparkColor = bullet.color || player.stats?.color || '#fff';
-                const sparkOpts = {
-                    shotLevel: player.shotLevel || 1,
-                    hasPower: player.modifiers?.power?.level > 0,
-                    isKill: shouldDie,
-                    isHyper: player.isHyperActive && player.isHyperActive()
-                };
-                createBulletSpark(e.x, e.y, sparkColor, sparkOpts);
+                _sparkOpts.shotLevel = player.shotLevel || 1;
+                _sparkOpts.hasPower = player.modifiers?.power?.level > 0;
+                _sparkOpts.isKill = shouldDie;
+                _sparkOpts.isHyper = player.isHyperActive && player.isHyperActive();
+                createBulletSpark(e.x, e.y, sparkColor, _sparkOpts);
             },
             // Enemy killed
             onEnemyKilled(e, bullet, enemyIdx, enemies) {
