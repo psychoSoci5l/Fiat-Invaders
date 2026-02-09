@@ -146,6 +146,9 @@ Circle-based collision via `G.BulletSystem`. All bullet params centralized in `B
 ### Additive Glow System (v4.23.0, boosted v4.23.1)
 `globalCompositeOperation: 'lighter'` on player bullets, engine flame, muzzle flash, HYPER/GODCHAIN auras, power-ups, and explosion ring particles. All config in `Balance.GLOW` with per-element ENABLED toggles. Master kill-switch: `GLOW.ENABLED = false` reverts to pre-v4.23 rendering. Enemy bullets explicitly excluded (hostile tint v4.17 preserved). Visual language: "glow = collect/player, dark = avoid/enemy". v4.23.1: All glow values boosted (bullet alpha 0.45, radius 18px), bullet trail sections additive, player afterimage additive (threshold 50 vx, alpha 0.4), death glow particle (`DEATH_FLASH` config), spark additive rendering.
 
+### Batch Rendering (v4.30.0)
+Multi-pass draw pipeline reduces ~30% canvas state changes. ParticleSystem: 2-pass (standard source-over → additive lighter). Player bullet glow: `Bullet.drawGlow(ctx)` batched in main.js single additive pass before body loop. Floating text: shared textAlign/strokeStyle setup hoisted. Visually identical to pre-v4.30.
+
 ### Entity Resize (v4.25.0)
 Enemies resized from 48×48 to 58×58px (+20%). All internal shape dimensions, collision radii, formation spacing, and fonts scaled proportionally. Enemy bullets unchanged (4×4px). Off-screen culling margin 65→80px.
 

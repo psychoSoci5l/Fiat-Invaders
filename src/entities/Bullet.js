@@ -217,23 +217,7 @@ class Bullet extends window.Game.Entity {
                 }
             }
 
-            // === ADDITIVE GLOW v4.23 ===
-            const glowCfg = window.Game.Balance?.GLOW;
-            if (glowCfg?.ENABLED && glowCfg?.BULLET?.ENABLED) {
-                const gc = glowCfg.BULLET;
-                const glowAlpha = gc.ALPHA + Math.sin(this.age * gc.PULSE_SPEED) * gc.PULSE_AMOUNT;
-                ctx.save();
-                ctx.globalCompositeOperation = 'lighter';
-                ctx.globalAlpha = glowAlpha;
-                const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, gc.RADIUS);
-                gradient.addColorStop(0, this.color || '#ff8c00');
-                gradient.addColorStop(1, 'transparent');
-                ctx.fillStyle = gradient;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, gc.RADIUS, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.restore();
-            }
+            // v4.30: Glow moved to drawGlow() — batched in main.js additive pass
 
             // Check for WEAPON EVOLUTION special first (overrides weaponType)
             if (this.special) {
@@ -284,6 +268,26 @@ class Bullet extends window.Game.Entity {
             }
         }
     }
+    // ═══════════════════════════════════════════════════════════════════
+    // GLOW: Additive radial glow for player bullets (v4.30 batch pass)
+    // Called from main.js batched additive pass — ctx already in 'lighter'
+    // ═══════════════════════════════════════════════════════════════════
+    drawGlow(ctx) {
+        if (this.vy > 0) return; // Enemy bullets: no glow
+        const glowCfg = window.Game.Balance?.GLOW;
+        if (!glowCfg?.ENABLED || !glowCfg?.BULLET?.ENABLED) return;
+        const gc = glowCfg.BULLET;
+        const glowAlpha = gc.ALPHA + Math.sin(this.age * gc.PULSE_SPEED) * gc.PULSE_AMOUNT;
+        ctx.globalAlpha = glowAlpha;
+        const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, gc.RADIUS);
+        gradient.addColorStop(0, this.color || '#ff8c00');
+        gradient.addColorStop(1, 'transparent');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, gc.RADIUS, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
     // ═══════════════════════════════════════════════════════════════════
     // NORMAL: BTC Orange Bolt - Clean iconic crypto projectile
     // ═══════════════════════════════════════════════════════════════════

@@ -552,6 +552,9 @@
 
     /**
      * Draw all particles
+     * v4.30: Multi-pass rendering — standard particles first (source-over),
+     * then additive particles (isGlow, isRing, isSpark) in one lighter pass.
+     * Reduces ~40-60 composite switches per frame to 2.
      * @param {CanvasRenderingContext2D} ctx - Canvas context
      */
     function draw(ctx) {
@@ -562,43 +565,18 @@
         ctx.lineWidth = 2;
         ctx.strokeStyle = '#111';
 
-        // === ADDITIVE RING GLOW v4.23 ===
         const _ringGlow = window.Game.Balance?.GLOW;
-        const _useAdditiveRings = _ringGlow?.ENABLED && _ringGlow?.PARTICLES?.ENABLED;
+        const _useAdditive = _ringGlow?.ENABLED && _ringGlow?.PARTICLES?.ENABLED;
 
+        // === Pass 1: Standard particles (source-over) — circles, symbols ===
         for (let i = 0; i < len; i++) {
             const p = particles[i];
-
-            // Skip offscreen particles (culling)
+            if (p.isGlow || p.isRing || p.isSpark) continue; // Additive → Pass 2
             if (p.x < -20 || p.x > gameWidth + 20 || p.y < -20 || p.y > gameHeight + 20) continue;
 
             ctx.globalAlpha = p.life / p.maxLife;
 
-            if (p.isGlow) {
-                // v4.23.1: Lingering death glow — additive radial gradient
-                ctx.globalCompositeOperation = 'lighter';
-                const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
-                gradient.addColorStop(0, p.color);
-                gradient.addColorStop(1, 'transparent');
-                ctx.fillStyle = gradient;
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.globalCompositeOperation = 'source-over';
-            } else if (p.isRing) {
-                // Expanding ring
-                if (_useAdditiveRings) ctx.globalCompositeOperation = 'lighter';
-                const expand = (1 - p.life / p.maxLife) * 35;
-                ctx.strokeStyle = p.color;
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.size + expand, 0, Math.PI * 2);
-                ctx.stroke();
-                if (_useAdditiveRings) ctx.globalCompositeOperation = 'source-over';
-                ctx.strokeStyle = '#111';
-                ctx.lineWidth = 2;
-            } else if (p.symbol) {
-                // Symbol particle (flying currency symbols)
+            if (p.symbol) {
                 ctx.fillStyle = p.color;
                 ctx.strokeStyle = '#111';
                 ctx.lineWidth = 2;
@@ -612,18 +590,54 @@
                 ctx.fillText(p.symbol, 0, 0);
                 ctx.restore();
             } else {
-                // Circle particles with outline
-                // v4.23.1: sparks rendered additive for brighter impact
-                if (p.isSpark && _useAdditiveRings) ctx.globalCompositeOperation = 'lighter';
                 ctx.fillStyle = p.color;
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
                 ctx.fill();
                 if (p.size > 2) ctx.stroke();
-                if (p.isSpark && _useAdditiveRings) ctx.globalCompositeOperation = 'source-over';
             }
         }
 
+        // === Pass 2: Additive particles (lighter) — rings, sparks, glow ===
+        if (_useAdditive) ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 2;
+
+        for (let i = 0; i < len; i++) {
+            const p = particles[i];
+            if (!p.isGlow && !p.isRing && !p.isSpark) continue; // Standard → Pass 1
+            if (p.x < -20 || p.x > gameWidth + 20 || p.y < -20 || p.y > gameHeight + 20) continue;
+
+            ctx.globalAlpha = p.life / p.maxLife;
+
+            if (p.isGlow) {
+                const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
+                gradient.addColorStop(0, p.color);
+                gradient.addColorStop(1, 'transparent');
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (p.isRing) {
+                const expand = (1 - p.life / p.maxLife) * 35;
+                ctx.strokeStyle = p.color;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size + expand, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.strokeStyle = '#111';
+                ctx.lineWidth = 2;
+            } else {
+                // isSpark
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+                if (p.size > 2) ctx.stroke();
+            }
+        }
+
+        if (_useAdditive) ctx.globalCompositeOperation = 'source-over';
         ctx.globalAlpha = 1;
         ctx.restore();
     }

@@ -4257,7 +4257,20 @@ function draw() {
             drawMiniBoss(ctx);
         }
 
-        // Bullets with culling (for loop)
+        // v4.30: Batched glow pass (additive) — all player bullet glows in one composite switch
+        const _glowCfg = G.Balance?.GLOW;
+        if (_glowCfg?.ENABLED && _glowCfg?.BULLET?.ENABLED) {
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            for (let i = 0; i < bullets.length; i++) {
+                const b = bullets[i];
+                if (b.x < -20 || b.x > gameWidth + 20 || b.y < -20 || b.y > gameHeight + 20) continue;
+                b.drawGlow(ctx);
+            }
+            ctx.restore();
+        }
+
+        // Bullet bodies with culling (for loop)
         for (let i = 0; i < bullets.length; i++) {
             const b = bullets[i];
             // Off-screen culling (X and Y)
@@ -4296,33 +4309,27 @@ function draw() {
 
         drawParticles(ctx);
 
-        // Floating texts (with fade and custom size)
+        // v4.30: Floating texts — shared setup hoisted before loop
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 3;
         for (let i = 0; i < floatingTexts.length; i++) {
             const t = floatingTexts[i];
-            if (!t || t.life <= 0) continue; // Skip empty/expired slots
-            // Calculate alpha based on life (fade out at end)
+            if (!t || t.life <= 0) continue;
             const maxLife = t.maxLife || 1.0;
-            const fadeStart = maxLife * 0.3; // Start fading in last 30%
+            const fadeStart = maxLife * 0.3;
             const alpha = t.life < fadeStart ? t.life / fadeStart : 1;
-
             ctx.font = G.ColorUtils.font('bold', t.size || 20, 'Courier New');
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
             ctx.globalAlpha = alpha;
-
-            // Clamp X to screen bounds (with padding for text width)
             const padding = 80;
             const clampedX = Math.max(padding, Math.min(gameWidth - padding, t.x));
-
-            // Black outline for readability
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 3;
             ctx.strokeText(t.text, clampedX, t.y);
             ctx.fillStyle = t.c;
             ctx.fillText(t.text, clampedX, t.y);
         }
         ctx.globalAlpha = 1;
-        ctx.textAlign = 'left'; // Reset to default
+        ctx.textAlign = 'left';
 
         // Perk icons (glow above player)
         drawPerkIcons(ctx);

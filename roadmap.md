@@ -1,9 +1,22 @@
 # Roadmap: FIAT vs CRYPTO
 
 > [!IMPORTANT]
-> **Versione attuale**: v4.29.0 (2026-02-09)
+> **Versione attuale**: v4.30.0 (2026-02-09)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
 > **Stato**: Gameplay completo, in fase di hardening e polish grafico.
+
+---
+
+## v4.30.0 — Batch Rendering (COMPLETATO)
+
+> Riduzione ~30% dei canvas state changes per frame tramite batching delle draw call per composite operation.
+
+### Implementato
+
+- [x] ParticleSystem multi-pass draw: standard (source-over) → additive (lighter) in 2 pass separati
+- [x] Player bullet glow batching: `drawGlow(ctx)` estratto, singolo pass additive in main.js
+- [x] Floating text shared setup: textAlign/textBaseline/strokeStyle/lineWidth hoistati prima del loop
+- [x] Zero cambiamenti gameplay — rendering visivamente identico
 
 ---
 
