@@ -1081,44 +1081,50 @@
             }
         },
 
-        // --- ADDITIVE GLOW SYSTEM (v4.23) ---
+        // --- ADDITIVE GLOW SYSTEM (v4.23, boosted v4.23.1) ---
         GLOW: {
             ENABLED: true,
 
             BULLET: {
                 ENABLED: true,
-                RADIUS: 12,
-                ALPHA: 0.25,
+                RADIUS: 18,              // v4.23.1: 12→18 for visible halo
+                ALPHA: 0.45,             // v4.23.1: 0.25→0.45
                 PULSE_SPEED: 8,
-                PULSE_AMOUNT: 0.08
+                PULSE_AMOUNT: 0.15       // v4.23.1: 0.08→0.15 stronger pulse
             },
 
             ENGINE: {
                 ENABLED: true,
-                RADIUS: 18,
-                ALPHA: 0.35
+                RADIUS: 24,              // v4.23.1: 18→24
+                ALPHA: 0.55              // v4.23.1: 0.35→0.55
             },
 
             MUZZLE: {
                 ENABLED: true,
-                RADIUS_MULT: 1.4,
-                ALPHA: 0.4
+                RADIUS_MULT: 1.8,        // v4.23.1: 1.4→1.8
+                ALPHA: 0.6               // v4.23.1: 0.4→0.6
             },
 
             AURA: {
                 ENABLED: true,
-                ALPHA_MULT: 0.8
+                ALPHA_MULT: 1.0           // v4.23.1: 0.8→1.0
             },
 
             POWERUP: {
                 ENABLED: true,
-                RADIUS_MULT: 1.2,
-                ALPHA: 0.35
+                RADIUS_MULT: 1.5,        // v4.23.1: 1.2→1.5
+                ALPHA: 0.5               // v4.23.1: 0.35→0.5
             },
 
             PARTICLES: {
                 ENABLED: true,
-                RING_ALPHA_MULT: 1.0
+                RING_ALPHA_MULT: 1.3     // v4.23.1: 1.0→1.3
+            },
+
+            DEATH_FLASH: {               // v4.23.1: lingering glow on enemy death
+                ENABLED: true,
+                RADIUS: 30,
+                DURATION: 0.4
             }
         },
 

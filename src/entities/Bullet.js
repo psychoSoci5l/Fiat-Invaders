@@ -291,7 +291,10 @@ class Bullet extends window.Game.Entity {
         const w = this.width * 2.0;  // Scaled up for visibility
         const h = this.height * 1.3;
 
-        // Outer glow trail
+        // Outer glow trail — v4.23.1: additive
+        const _gc = window.Game.Balance?.GLOW;
+        const _addTrail = _gc?.ENABLED && _gc?.BULLET?.ENABLED;
+        if (_addTrail) ctx.globalCompositeOperation = 'lighter';
         ctx.fillStyle = this.color;
         ctx.globalAlpha = 0.3;
         ctx.beginPath();
@@ -301,6 +304,7 @@ class Bullet extends window.Game.Entity {
         ctx.closePath();
         ctx.fill();
         ctx.globalAlpha = 1;
+        if (_addTrail) ctx.globalCompositeOperation = 'source-over';
 
         // Main bolt body (elongated hexagon)
         ctx.fillStyle = this.color;
@@ -348,7 +352,10 @@ class Bullet extends window.Game.Entity {
         ctx.fill();
         ctx.globalAlpha = 1;
 
-        // Energy trail (multiple fading segments)
+        // Energy trail (multiple fading segments) — v4.23.1: additive
+        const _gc = window.Game.Balance?.GLOW;
+        const _addTrail = _gc?.ENABLED && _gc?.BULLET?.ENABLED;
+        if (_addTrail) ctx.globalCompositeOperation = 'lighter';
         for (let i = 3; i > 0; i--) {
             ctx.fillStyle = '#9b59b6';
             ctx.globalAlpha = 0.15 * i;
@@ -357,6 +364,7 @@ class Bullet extends window.Game.Entity {
             ctx.fill();
         }
         ctx.globalAlpha = 1;
+        if (_addTrail) ctx.globalCompositeOperation = 'source-over';
 
         // Main crescent body
         ctx.fillStyle = '#9b59b6';
@@ -401,7 +409,10 @@ class Bullet extends window.Game.Entity {
         ctx.fill();
         ctx.globalAlpha = 1;
 
-        // Speed lines (motion blur effect)
+        // Speed lines (motion blur effect) — v4.23.1: additive
+        const _gc = window.Game.Balance?.GLOW;
+        const _addTrail = _gc?.ENABLED && _gc?.BULLET?.ENABLED;
+        if (_addTrail) ctx.globalCompositeOperation = 'lighter';
         ctx.strokeStyle = '#3498db';
         ctx.globalAlpha = 0.4;
         ctx.lineWidth = 1;
@@ -413,6 +424,7 @@ class Bullet extends window.Game.Entity {
         ctx.stroke();
         ctx.globalAlpha = 1;
         ctx.lineWidth = 2;
+        if (_addTrail) ctx.globalCompositeOperation = 'source-over';
 
         // Main needle body
         ctx.fillStyle = '#3498db';
@@ -454,7 +466,10 @@ class Bullet extends window.Game.Entity {
         const r = this.width * 2.0 * pulse;  // Scaled up for visibility
         const flicker = Math.sin(this.age * 30) * 2;
 
-        // Fire trail (multiple flame tongues)
+        // Fire trail (multiple flame tongues) — v4.23.1: additive
+        const _gc = window.Game.Balance?.GLOW;
+        const _addTrail = _gc?.ENABLED && _gc?.BULLET?.ENABLED;
+        if (_addTrail) ctx.globalCompositeOperation = 'lighter';
         ctx.globalAlpha = 0.6;
         for (let i = 0; i < 3; i++) {
             const offset = Math.sin(this.age * 25 + i * 2) * 3;
@@ -472,6 +487,7 @@ class Bullet extends window.Game.Entity {
             ctx.fill();
         }
         ctx.globalAlpha = 1;
+        if (_addTrail) ctx.globalCompositeOperation = 'source-over';
 
         // Main fireball outer (dark red)
         ctx.fillStyle = '#c0392b';
@@ -599,7 +615,10 @@ class Bullet extends window.Game.Entity {
         ctx.translate(this.x, this.y);
         ctx.rotate(angle);
 
-        // Exhaust flame trail
+        // Exhaust flame trail — v4.23.1: additive
+        const _gc = window.Game.Balance?.GLOW;
+        const _addTrail = _gc?.ENABLED && _gc?.BULLET?.ENABLED;
+        if (_addTrail) ctx.globalCompositeOperation = 'lighter';
         const flicker = Math.sin(this.age * 40) * 3;
         ctx.globalAlpha = 0.8;
         for (let i = 3; i > 0; i--) {
@@ -613,6 +632,7 @@ class Bullet extends window.Game.Entity {
             ctx.fill();
         }
         ctx.globalAlpha = 1;
+        if (_addTrail) ctx.globalCompositeOperation = 'source-over';
 
         // Missile body (elongated diamond)
         ctx.fillStyle = '#e67e22';
@@ -692,7 +712,10 @@ class Bullet extends window.Game.Entity {
         ctx.fill();
         ctx.globalAlpha = 1;
 
-        // Electric trail (multiple segments)
+        // Electric trail (multiple segments) — v4.23.1: additive
+        const _gc = window.Game.Balance?.GLOW;
+        const _addTrail = _gc?.ENABLED && _gc?.BULLET?.ENABLED;
+        if (_addTrail) ctx.globalCompositeOperation = 'lighter';
         ctx.strokeStyle = '#00ffff';
         ctx.globalAlpha = 0.5;
         ctx.lineWidth = 1;
@@ -706,6 +729,7 @@ class Bullet extends window.Game.Entity {
         }
         ctx.globalAlpha = 1;
         ctx.lineWidth = 2;
+        if (_addTrail) ctx.globalCompositeOperation = 'source-over';
 
         // Main beam body (elongated rectangle with pointed ends)
         ctx.fillStyle = '#00ffff';
@@ -757,7 +781,10 @@ class Bullet extends window.Game.Entity {
         const h = this.height * 1.4;
         const flicker = Math.sin(this.age * 30) * 2;
 
-        // Intense flame trail (longer than FIRE)
+        // Intense flame trail (longer than FIRE) — v4.23.1: additive
+        const _gc = window.Game.Balance?.GLOW;
+        const _addTrail = _gc?.ENABLED && _gc?.BULLET?.ENABLED;
+        if (_addTrail) ctx.globalCompositeOperation = 'lighter';
         ctx.globalAlpha = 0.7;
         for (let i = 0; i < 5; i++) {
             const offset = Math.sin(this.age * 25 + i * 1.5) * 2;
@@ -777,6 +804,7 @@ class Bullet extends window.Game.Entity {
             ctx.fill();
         }
         ctx.globalAlpha = 1;
+        if (_addTrail) ctx.globalCompositeOperation = 'source-over';
 
         // Outer glow
         ctx.fillStyle = '#e74c3c';
@@ -838,7 +866,10 @@ class Bullet extends window.Game.Entity {
         ctx.translate(this.x, this.y);
         ctx.rotate(angle);
 
-        // Exhaust trail (blue-white)
+        // Exhaust trail (blue-white) — v4.23.1: additive
+        const _gc = window.Game.Balance?.GLOW;
+        const _addTrail = _gc?.ENABLED && _gc?.BULLET?.ENABLED;
+        if (_addTrail) ctx.globalCompositeOperation = 'lighter';
         const flicker = Math.sin(this.age * 40) * 3;
         ctx.globalAlpha = 0.8;
         for (let i = 3; i > 0; i--) {
@@ -860,6 +891,7 @@ class Bullet extends window.Game.Entity {
         ctx.closePath();
         ctx.fill();
         ctx.globalAlpha = 1;
+        if (_addTrail) ctx.globalCompositeOperation = 'source-over';
 
         // Missile body (chunky warhead)
         ctx.fillStyle = '#3498db';
@@ -943,7 +975,10 @@ class Bullet extends window.Game.Entity {
             ctx.globalAlpha = 1;
         }
 
-        // Outer glow trail
+        // Outer glow trail — v4.23.1: additive
+        const _gc = window.Game.Balance?.GLOW;
+        const _addTrail = _gc?.ENABLED && _gc?.BULLET?.ENABLED;
+        if (_addTrail) ctx.globalCompositeOperation = 'lighter';
         ctx.fillStyle = this.color;
         ctx.globalAlpha = 0.3;
         ctx.beginPath();
@@ -953,6 +988,7 @@ class Bullet extends window.Game.Entity {
         ctx.closePath();
         ctx.fill();
         ctx.globalAlpha = 1;
+        if (_addTrail) ctx.globalCompositeOperation = 'source-over';
 
         // Main bolt body (elongated hexagon)
         ctx.fillStyle = this.color;

@@ -223,7 +223,7 @@ class Player extends window.Game.Entity {
         for (let i = 0; i < 6; i++) {
             const t = this._trailBuffer[i];
             t.age += dt;
-            if (t.age < 0.12) {
+            if (t.age < 0.18) { // v4.23.1: 0.12→0.18 longer afterimage visibility
                 this.trail.push(t); // Push reference, not new object
             }
         }
@@ -844,15 +844,19 @@ class Player extends window.Game.Entity {
         }
 
         // Enhanced trail effect - multiple afterimages when moving fast
-        if (this.trail.length > 0 && Math.abs(this.vx) > 80) {
+        // v4.23.1: lower threshold (80→50), higher alpha (0.25→0.4), additive mode
+        if (this.trail.length > 0 && Math.abs(this.vx) > 50) {
+            const _glowTrail = window.Game.Balance?.GLOW;
+            const _additiveTrail = _glowTrail?.ENABLED && _glowTrail?.BULLET?.ENABLED;
             const trailCount = Math.min(this.trail.length, 4);
             for (let i = 0; i < trailCount; i++) {
                 const t = this.trail[i];
-                const alpha = 0.25 * (1 - i / trailCount) * (1 - t.age / 0.15);
+                const alpha = 0.4 * (1 - i / trailCount) * (1 - t.age / 0.22);
                 if (alpha <= 0) continue;
 
-                // Afterimage silhouette
+                // Afterimage silhouette — v4.23.1: additive
                 ctx.save();
+                if (_additiveTrail) ctx.globalCompositeOperation = 'lighter';
                 ctx.globalAlpha = alpha;
                 ctx.translate(t.x, t.y);
 

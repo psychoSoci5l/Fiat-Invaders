@@ -86,7 +86,8 @@
                 vy: Math.sin(angle) * speed,
                 life: lifetime, maxLife: lifetime,
                 color: i < 2 ? '#fff' : color, // First 2 white, rest colored
-                size: (Math.random() * 3 + 2) * sizeMult
+                size: (Math.random() * 3 + 2) * sizeMult,
+                isSpark: i < 2 // v4.23.1: white sparks rendered additive
             });
         }
 
@@ -385,6 +386,19 @@
                 isRing: true
             });
         }
+
+        // v4.23.1: Lingering death glow — additive flash that fades at death point
+        const _dfCfg = G.Balance?.GLOW?.DEATH_FLASH;
+        if (_dfCfg?.ENABLED && G.Balance?.GLOW?.ENABLED) {
+            const dfDur = _dfCfg.DURATION || 0.4;
+            addParticle({
+                x: x, y: y, vx: 0, vy: 0,
+                life: dfDur, maxLife: dfDur,
+                color: color,
+                size: _dfCfg.RADIUS || 30,
+                isGlow: true
+            });
+        }
     }
 
     /**
@@ -551,7 +565,18 @@
 
             ctx.globalAlpha = p.life / p.maxLife;
 
-            if (p.isRing) {
+            if (p.isGlow) {
+                // v4.23.1: Lingering death glow — additive radial gradient
+                ctx.globalCompositeOperation = 'lighter';
+                const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
+                gradient.addColorStop(0, p.color);
+                gradient.addColorStop(1, 'transparent');
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalCompositeOperation = 'source-over';
+            } else if (p.isRing) {
                 // Expanding ring
                 if (_useAdditiveRings) ctx.globalCompositeOperation = 'lighter';
                 const expand = (1 - p.life / p.maxLife) * 35;
@@ -579,11 +604,14 @@
                 ctx.restore();
             } else {
                 // Circle particles with outline
+                // v4.23.1: sparks rendered additive for brighter impact
+                if (p.isSpark && _useAdditiveRings) ctx.globalCompositeOperation = 'lighter';
                 ctx.fillStyle = p.color;
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
                 ctx.fill();
                 if (p.size > 2) ctx.stroke();
+                if (p.isSpark && _useAdditiveRings) ctx.globalCompositeOperation = 'source-over';
             }
         }
 

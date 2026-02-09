@@ -138,8 +138,8 @@ Trigger: cancel 5 enemy bullets in 1.5s. Random perk auto-applied. Cooldown 4s. 
 ### Bullet System v2.0 (v4.22.0)
 Circle-based collision via `G.BulletSystem`. All bullet params centralized in `Balance.BULLET_CONFIG` (radii, speed, piercing per type). Missile AoE: `handleMissileExplosion()` — radial damage falloff, knockback, particles, shake. `Bullet.collisionRadius` getter auto-resolves from config. Debug: `dbg.hitboxes()` overlay.
 
-### Additive Glow System (v4.23.0)
-`globalCompositeOperation: 'lighter'` on player bullets, engine flame, muzzle flash, HYPER/GODCHAIN auras, power-ups, and explosion ring particles. All config in `Balance.GLOW` with per-element ENABLED toggles. Master kill-switch: `GLOW.ENABLED = false` reverts to pre-v4.23 rendering. Enemy bullets explicitly excluded (hostile tint v4.17 preserved). Visual language: "glow = collect/player, dark = avoid/enemy".
+### Additive Glow System (v4.23.0, boosted v4.23.1)
+`globalCompositeOperation: 'lighter'` on player bullets, engine flame, muzzle flash, HYPER/GODCHAIN auras, power-ups, and explosion ring particles. All config in `Balance.GLOW` with per-element ENABLED toggles. Master kill-switch: `GLOW.ENABLED = false` reverts to pre-v4.23 rendering. Enemy bullets explicitly excluded (hostile tint v4.17 preserved). Visual language: "glow = collect/player, dark = avoid/enemy". v4.23.1: All glow values boosted (bullet alpha 0.45, radius 18px), bullet trail sections additive, player afterimage additive (threshold 50 vx, alpha 0.4), death glow particle (`DEATH_FLASH` config), spark additive rendering.
 
 ### Debug System
 Console: `dbg.balanceTest()` -> play -> `dbg.report()`. Overlay: `dbg.showOverlay()`. Presets: `dbg.debugBoss()`, `dbg.debugWaves()`. Weapon: `dbg.weaponStatus()`, `dbg.maxWeapon()`. Production: `dbg.setProduction()`. Power-up economy: `dbg.powerUpReport()` (drops spawned/collected/expired, weapon timeline, modifier overlap, GODCHAIN stats, adaptive suppression stats). Hitbox debug: `dbg.hitboxes()` (v4.22).

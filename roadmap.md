@@ -1,7 +1,7 @@
 # Roadmap: FIAT vs CRYPTO
 
 > [!IMPORTANT]
-> **Versione attuale**: v4.23.0 (2026-02-09)
+> **Versione attuale**: v4.23.1 (2026-02-09)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
 > **Stato**: Gameplay completo, in fase di hardening e polish grafico.
 
@@ -31,6 +31,21 @@ Attualmente i messaggi gameplay (showDanger, showVictory, showGameInfo, wave str
 - [ ] Aggiornare WaveManager/enemy spawn Y-min per rispettare la safe zone
 - [ ] Rimuovere i canali canvas sostituiti da MessageSystem
 - [ ] Verificare leggibilità durante orde dense
+
+---
+
+## v4.23.1 — Glow Boost + Trail & Motion (COMPLETATO)
+
+> Boost dei valori glow per impatto visivo reale + trail additivi sui proiettili + afterimage potenziata + death glow + spark additive.
+
+### Implementato
+
+- [x] Boost tutti i valori `Balance.GLOW` (alpha, radius, pulse)
+- [x] Trail additivi su tutti i 9 metodi draw player bullet
+- [x] Player afterimage: soglia 80→50, alpha 0.25→0.4, age 0.12→0.18, additive mode
+- [x] `DEATH_FLASH` config + lingering glow particle su enemy death
+- [x] `isSpark` flag + rendering additive per white sparks d'impatto
+- [x] Enemy bullets invariati
 
 ---
 
