@@ -406,11 +406,11 @@ Target: ~12-14 drops in 4:30 (era 19).
 
 ### Aperti
 - [x] **Hardcoded Values Audit** (A): Magic numbers in main.js, Player.js, Enemy.js, Boss.js → BalanceConfig ✅ v4.27.0
-- [ ] **Object pool audit** (B): Verificare che tutti gli oggetti ad alta frequenza siano pooled
-- [ ] **Batch rendering** (C): Raggruppare entità simili nel draw call
-- [ ] **Off-screen canvas** (C): Pre-rendering per elementi statici/ripetitivi
+- [x] **Object pool audit** (B): Verificare che tutti gli oggetti ad alta frequenza siano pooled ✅ v4.29.0
+- [x] **Batch rendering** (C): Raggruppare entità simili nel draw call ✅ v4.30.0
+- [x] **Off-screen canvas** (C): Pre-rendering per elementi statici/ripetitivi ✅ v4.31.0
 - [x] **main.js Decomposition** (E): CollisionSystem.js, GameStateMachine.js, RunState expansion ✅ v4.28.0
-- [ ] **60fps target mobile** (F): Test su device reale durante fasi intensive (boss P3, Cycle 3)
+- [x] **60fps target mobile** (F): iPhone 60 FPS solidi, avg 1.1ms, worst 17ms (1 GC spike), `?perf=1` URL param ✅ v4.31.0
 - [ ] **Memory footprint** (F): Stabilità memoria su sessioni lunghe (10+ minuti)
 
 ---
@@ -489,8 +489,8 @@ Bear Market +10, PANIC +30%, Rank ±15%. Budget recharge per-frame, skip se esau
 
 ### Performance (ex Sprint 25)
 - [ ] Spatial partitioning: collisioni grid-based O(n) vs O(n²)
-- [ ] Draw call batching per tipo entità
-- [ ] Off-screen canvas per elementi statici
+- [x] Draw call batching per tipo entità ✅ v4.30.0
+- [x] Off-screen canvas per elementi statici ✅ v4.31.0
 
 ### Content & Polish
 - [ ] Formation entry paths (curve, loop-de-loops, split)

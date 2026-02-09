@@ -5208,3 +5208,8 @@ function updatePowerUps(dt) {
 }
 
 init();
+
+// URL parameter: ?perf=1 auto-enables FPS overlay (for mobile testing)
+if (new URLSearchParams(window.location.search).has('perf')) {
+    if (window.dbg && window.dbg.perf) window.dbg.perf();
+}
