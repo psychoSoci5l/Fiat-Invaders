@@ -514,7 +514,9 @@ window.Game.HarmonicConductor = {
 
             setTimeout(() => {
                 if (this.generation !== gen) return; // v2.22.3: Abort if reset occurred
-                this.addTelegraph(this.gameWidth / 2, rowY, 'fullbar', delay, '#ff8c00');
+                rowEnemies.forEach(e => {
+                    if (e && e.active) this.addTelegraph(e.x, e.y, 'ring', delay, '#ff8c00');
+                });
             }, i * delay * 500);
 
             setTimeout(() => {

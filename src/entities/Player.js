@@ -731,6 +731,9 @@ class Player extends window.Game.Entity {
             const hyperSize = HYPER.AURA_SIZE_BASE + Math.sin(this.animTime * 6) * HYPER.AURA_SIZE_PULSE;
 
             // Outer intense golden glow
+            const _glowCfg = window.Game.Balance?.GLOW;
+            const _useAdditiveAura = _glowCfg?.ENABLED && _glowCfg?.AURA?.ENABLED;
+            if (_useAdditiveAura) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; }
             const hyperGradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, hyperSize);
             hyperGradient.addColorStop(0, CU.rgba(255, 215, 0, hyperPulse * 0.9));
             hyperGradient.addColorStop(0.3, CU.rgba(255, 180, 0, hyperPulse * 0.6));
@@ -740,6 +743,7 @@ class Player extends window.Game.Entity {
             ctx.beginPath();
             ctx.arc(this.x, this.y, hyperSize, 0, Math.PI * 2);
             ctx.fill();
+            if (_useAdditiveAura) { ctx.restore(); }
 
             // Inner blazing ring
             ctx.strokeStyle = CU.rgba(255, 255, 150, hyperPulse);
@@ -911,6 +915,19 @@ class Player extends window.Game.Entity {
         ctx.closePath();
         ctx.fill();
 
+        // === ADDITIVE ENGINE GLOW v4.23 ===
+        const _engineGlow = window.Game.Balance?.GLOW;
+        if (_engineGlow?.ENABLED && _engineGlow?.ENGINE?.ENABLED) {
+            const ec = _engineGlow.ENGINE;
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.fillStyle = CU.rgba(255, 140, 0, ec.ALPHA);
+            ctx.beginPath();
+            ctx.arc(0, 14, ec.RADIUS, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
         // Side thrusters (small flames on fins when moving)
         if (Math.abs(this.vx) > 50) {
             const sideFlameH = 8 + Math.sin(this.animTime * 15) * 3;
@@ -1067,6 +1084,19 @@ class Player extends window.Game.Entity {
             ctx.beginPath();
             ctx.arc(0, -30, flashSize, 0, Math.PI * 2);
             ctx.fill();
+
+            // === ADDITIVE MUZZLE GLOW v4.23 ===
+            const _muzzleGlow = window.Game.Balance?.GLOW;
+            if (_muzzleGlow?.ENABLED && _muzzleGlow?.MUZZLE?.ENABLED) {
+                const mc = _muzzleGlow.MUZZLE;
+                ctx.save();
+                ctx.globalCompositeOperation = 'lighter';
+                ctx.fillStyle = CU.rgba(255, 255, 220, flashAlpha * mc.ALPHA);
+                ctx.beginPath();
+                ctx.arc(0, -30, flashSize * mc.RADIUS_MULT, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
 
             // Colored inner core
             const wParsed = CU.parseHex(wColor);
@@ -1309,6 +1339,9 @@ class Player extends window.Game.Entity {
         if (this._godchainActive) {
             const gcCfg = window.Game.Balance?.GODCHAIN?.AURA;
             if (gcCfg) {
+                const _glowCfgGC = window.Game.Balance?.GLOW;
+                const _useAdditiveGC = _glowCfgGC?.ENABLED && _glowCfgGC?.AURA?.ENABLED;
+                if (_useAdditiveGC) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; }
                 const pulse = Math.sin(this.animTime * gcCfg.PULSE_SPEED) * 0.05 + gcCfg.ALPHA;
                 const gradient = ctx.createRadialGradient(0, 0, gcCfg.INNER_RADIUS, 0, 0, gcCfg.OUTER_RADIUS);
                 gradient.addColorStop(0, CU.rgba(255, 68, 0, pulse));
@@ -1318,6 +1351,7 @@ class Player extends window.Game.Entity {
                 ctx.beginPath();
                 ctx.arc(0, 0, gcCfg.OUTER_RADIUS, 0, Math.PI * 2);
                 ctx.fill();
+                if (_useAdditiveGC) { ctx.restore(); }
             }
         }
 

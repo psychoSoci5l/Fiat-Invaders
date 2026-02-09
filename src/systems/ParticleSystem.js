@@ -539,6 +539,10 @@
         ctx.lineWidth = 2;
         ctx.strokeStyle = '#111';
 
+        // === ADDITIVE RING GLOW v4.23 ===
+        const _ringGlow = window.Game.Balance?.GLOW;
+        const _useAdditiveRings = _ringGlow?.ENABLED && _ringGlow?.PARTICLES?.ENABLED;
+
         for (let i = 0; i < len; i++) {
             const p = particles[i];
 
@@ -549,12 +553,14 @@
 
             if (p.isRing) {
                 // Expanding ring
+                if (_useAdditiveRings) ctx.globalCompositeOperation = 'lighter';
                 const expand = (1 - p.life / p.maxLife) * 35;
                 ctx.strokeStyle = p.color;
                 ctx.lineWidth = 3;
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, p.size + expand, 0, Math.PI * 2);
                 ctx.stroke();
+                if (_useAdditiveRings) ctx.globalCompositeOperation = 'source-over';
                 ctx.strokeStyle = '#111';
                 ctx.lineWidth = 2;
             } else if (p.symbol) {

@@ -217,6 +217,24 @@ class Bullet extends window.Game.Entity {
                 }
             }
 
+            // === ADDITIVE GLOW v4.23 ===
+            const glowCfg = window.Game.Balance?.GLOW;
+            if (glowCfg?.ENABLED && glowCfg?.BULLET?.ENABLED) {
+                const gc = glowCfg.BULLET;
+                const glowAlpha = gc.ALPHA + Math.sin(this.age * gc.PULSE_SPEED) * gc.PULSE_AMOUNT;
+                ctx.save();
+                ctx.globalCompositeOperation = 'lighter';
+                ctx.globalAlpha = glowAlpha;
+                const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, gc.RADIUS);
+                gradient.addColorStop(0, this.color || '#ff8c00');
+                gradient.addColorStop(1, 'transparent');
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, gc.RADIUS, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
             // Check for WEAPON EVOLUTION special first (overrides weaponType)
             if (this.special) {
                 switch (this.special) {

@@ -147,7 +147,7 @@
         JUICE: {
             // Hit stop durations (seconds) - game freezes briefly on impact
             HIT_STOP: {
-                ENEMY_KILL: 0.025,        // 25ms freeze on every kill (2 frames at 60fps)
+                ENEMY_KILL: 0,            // Disabled — was 25ms freeze on every kill, caused perceived stuttering
                 STREAK_10: 0.12,          // 120ms on 10-kill streak
                 STREAK_25: 0.18,          // 180ms on 25-kill streak
                 STREAK_50: 0.25,          // 250ms on 50-kill streak
@@ -1078,6 +1078,47 @@
                 LENGTH: 12,
                 ALPHA: 0.7,
                 COLORS: ['#ff4400', '#ff6600', '#ffaa00']
+            }
+        },
+
+        // --- ADDITIVE GLOW SYSTEM (v4.23) ---
+        GLOW: {
+            ENABLED: true,
+
+            BULLET: {
+                ENABLED: true,
+                RADIUS: 12,
+                ALPHA: 0.25,
+                PULSE_SPEED: 8,
+                PULSE_AMOUNT: 0.08
+            },
+
+            ENGINE: {
+                ENABLED: true,
+                RADIUS: 18,
+                ALPHA: 0.35
+            },
+
+            MUZZLE: {
+                ENABLED: true,
+                RADIUS_MULT: 1.4,
+                ALPHA: 0.4
+            },
+
+            AURA: {
+                ENABLED: true,
+                ALPHA_MULT: 0.8
+            },
+
+            POWERUP: {
+                ENABLED: true,
+                RADIUS_MULT: 1.2,
+                ALPHA: 0.35
+            },
+
+            PARTICLES: {
+                ENABLED: true,
+                RING_ALPHA_MULT: 1.0
             }
         },
 

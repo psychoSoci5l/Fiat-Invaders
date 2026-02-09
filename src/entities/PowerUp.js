@@ -59,16 +59,20 @@ class PowerUp extends window.Game.Entity {
         ctx.save();
 
         // Outer animated glow
-        const gradient = ctx.createRadialGradient(x, y, 0, x, y, 28 * pulse);
+        const _puGlow = window.Game.Balance?.GLOW;
+        const _useAdditivePU = _puGlow?.ENABLED && _puGlow?.POWERUP?.ENABLED;
+        const _puRadius = 28 * pulse * (_useAdditivePU ? _puGlow.POWERUP.RADIUS_MULT : 1);
+        if (_useAdditivePU) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; }
+        const gradient = ctx.createRadialGradient(x, y, 0, x, y, _puRadius);
         gradient.addColorStop(0, cfg.color);
         gradient.addColorStop(0.5, window.Game.ColorUtils.withAlpha(cfg.color, 0.3));
         gradient.addColorStop(1, 'transparent');
         ctx.fillStyle = gradient;
-        ctx.globalAlpha = glowPulse;
+        ctx.globalAlpha = _useAdditivePU ? _puGlow.POWERUP.ALPHA : glowPulse;
         ctx.beginPath();
-        ctx.arc(x, y, 28 * pulse, 0, Math.PI * 2);
+        ctx.arc(x, y, _puRadius, 0, Math.PI * 2);
         ctx.fill();
-        ctx.globalAlpha = 1;
+        if (_useAdditivePU) { ctx.restore(); } else { ctx.globalAlpha = 1; }
 
         // Draw based on category (WEAPON EVOLUTION v3.0)
         switch (cfg.category) {
