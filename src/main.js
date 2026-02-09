@@ -4438,8 +4438,8 @@ function draw() {
         for (let i = 0; i < enemies.length; i++) {
             const e = enemies[i];
             if (!e) continue; // Safety check
-            // Skip draw if completely off-screen (65px is enemy size)
-            if (e.x > -65 && e.x < gameWidth + 65 && e.y > -65 && e.y < gameHeight + 65) {
+            // Skip draw if completely off-screen (80px margin for 58px enemies + shadow)
+            if (e.x > -80 && e.x < gameWidth + 80 && e.y > -80 && e.y < gameHeight + 80) {
                 e.draw(ctx);
             }
         }

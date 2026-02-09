@@ -326,7 +326,7 @@
         GRID: {
             SPEED_BASE: 12,           // Base grid scroll speed
             SPEED_SCALE: 20,          // Additional speed at max difficulty
-            SPACING: 60,              // v4.14: 75→60 (48px enemies, was 65px)
+            SPACING: 72,              // v4.25: 60→72 (58px enemies, was 48px)
             START_Y: 80,              // Initial Y position (v4.4: 150→80 for compact HUD)
             MAX_Y: 380                // Maximum Y before descent stops
         },
@@ -724,7 +724,7 @@
             // Boss patterns
             BOSS_PATTERN:   { speed: null, collisionRadius: 5, piercing: false, explosion: null },
             // Collision targets
-            ENEMY_HITBOX_RADIUS: 24,     // Half of 48px enemy size
+            ENEMY_HITBOX_RADIUS: 29,     // Half of 58px enemy size (v4.25)
             PLAYER_CORE_RADIUS: 6        // Default, overridden by stats.coreHitboxSize
         },
 
@@ -986,15 +986,15 @@
 
         // --- FORMATION LAYOUT (v4.0.3: extracted from WaveManager hardcodes) ---
         FORMATION: {
-            SPACING: 65,              // v4.14: 85→65 (48px enemies, was 65px enemies)
+            SPACING: 78,              // v4.25: 65→78 (58px enemies, was 48px)
             START_Y: 80,              // Initial Y position (v4.4: 150→80 for compact HUD)
             MARGIN: 60,               // Left/right margin for scatter/wall
             MAX_Y_RATIO: 0.65,        // v4.16: extracted from WaveManager hardcode (max Y as ratio of gameHeight)
             CHEVRON_Y_MULT: 0.55,     // v4.16: Y-spacing multiplier for CHEVRON (was 0.75, caused overflow with high counts)
             SPIRAL_CENTER_Y_OFFSET: 100, // Spiral center Y offset from startY
             SPIRAL_ANGLE_STEP: 0.5,   // Radians per enemy in spiral
-            SPIRAL_BASE_RADIUS: 30,   // Starting radius for spiral
-            SPIRAL_RADIUS_STEP: 16,   // Radius increase per enemy (+33% from 12, prevents spiral overlap)
+            SPIRAL_BASE_RADIUS: 36,   // v4.25: 30→36 (58px enemies)
+            SPIRAL_RADIUS_STEP: 19,   // v4.25: 16→19 (58px enemies, prevents spiral overlap)
             SPIRAL_Y_SQUEEZE: 0.6,    // Y axis compression for spiral
             ROW_TOLERANCE: 25,        // Y tolerance for grouping positions into rows (currency assignment)
             SAFE_EDGE_MARGIN: 30      // Min X margin from screen edge (must be > 20px edge-detect threshold)

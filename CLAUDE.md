@@ -112,7 +112,7 @@ Scaling via `Balance.DIFFICULTY`: +8%/level, +20%/cycle, cap 85%, Bear Market 1.
 Activates when shotLevel=3 + rate>=2 + power>=2 + spread>=1. Red ship, fire trails, +5% speed. Deactivates on modifier expiry or death. Config: `Balance.GODCHAIN`.
 
 ### Enemy System
-10 fiat currencies in 3 tiers (Weak/Medium/Strong). 4 visual shapes: coin, bill, bar, card. Enemy bullets inherit shape from parent enemy. v4.14: Enemies 48×48px (was 65), bullets 4×4 (was 6×6), bullet speed -40%. v4.17: Enemy bullets have hostile tint (70% color + 30% red), dark rings/contours (no white glow), dimmed trails — visually distinct from power-ups. Fire budget limits bullet density: C1=25, C2=45, C3=70 bullets/sec.
+10 fiat currencies in 3 tiers (Weak/Medium/Strong). 4 visual shapes: coin, bill, bar, card. Enemy bullets inherit shape from parent enemy. v4.25: Enemies 58×58px (was 48, +20%), bullets 4×4, bullet speed -40%. v4.17: Enemy bullets have hostile tint (70% color + 30% red), dark rings/contours (no white glow), dimmed trails — visually distinct from power-ups. Fire budget limits bullet density: C1=25, C2=45, C3=70 bullets/sec.
 
 ### Wave System (v4.0)
 15 unique waves (5 per cycle x 3 cycles) with thematic currency assignments. 16 formation types. 2 hordes per wave. Bear Market: +25% count. Legacy fallback cycles 4+.
@@ -140,6 +140,9 @@ Circle-based collision via `G.BulletSystem`. All bullet params centralized in `B
 
 ### Additive Glow System (v4.23.0, boosted v4.23.1)
 `globalCompositeOperation: 'lighter'` on player bullets, engine flame, muzzle flash, HYPER/GODCHAIN auras, power-ups, and explosion ring particles. All config in `Balance.GLOW` with per-element ENABLED toggles. Master kill-switch: `GLOW.ENABLED = false` reverts to pre-v4.23 rendering. Enemy bullets explicitly excluded (hostile tint v4.17 preserved). Visual language: "glow = collect/player, dark = avoid/enemy". v4.23.1: All glow values boosted (bullet alpha 0.45, radius 18px), bullet trail sections additive, player afterimage additive (threshold 50 vx, alpha 0.4), death glow particle (`DEATH_FLASH` config), spark additive rendering.
+
+### Entity Resize (v4.25.0)
+Enemies resized from 48×48 to 58×58px (+20%). All internal shape dimensions, collision radii, formation spacing, and fonts scaled proportionally. Enemy bullets unchanged (4×4px). Off-screen culling margin 65→80px.
 
 ### Sky & Background System (v4.24.0)
 Cell-shading sky enhancement in SkyRenderer.js with config in `Balance.SKY`. Master toggle + per-feature toggles (same pattern as `Balance.GLOW`). Features: A) Smooth gradient sky (cached `createLinearGradient`, invalidated on level change/resize); B) Enhanced star field (90 stars with parallax drift, L3+ visible with progressive alpha, shooting stars); C) 5-layer parallax hills with atmospheric perspective + deterministic silhouettes (trees/buildings on distant layers, #111 outline); D) Atmospheric particles (dust/pollen/firefly/ember themed per level, cell-shaded outline on >= 3px); E) Multi-lobe clouds (2-4 ellipse lobes, shadow+main+highlight+outline layers, depth-based scaling); F) Horizon glow (8px band at first hill Y, pulsing alpha). Draw pipeline: bands → symbols → stars → atmo particles → horizon glow → hills → clouds → lightning.

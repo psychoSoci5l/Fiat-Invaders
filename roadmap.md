@@ -1,13 +1,13 @@
 # Roadmap: FIAT vs CRYPTO
 
 > [!IMPORTANT]
-> **Versione attuale**: v4.24.0 (2026-02-09)
+> **Versione attuale**: v4.25.0 (2026-02-09)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
 > **Stato**: Gameplay completo, in fase di hardening e polish grafico.
 
 ---
 
-## v4.25.0 — Top Bar Message Strip (PROSSIMO)
+## v4.26.0 — Top Bar Message Strip (PROSSIMO)
 
 > Razionalizzare i messaggi in-game su **2 soli punti di comunicazione standardizzati**: il meme popup (bottom, sopra la nave) e una **striscia messaggi** fissa sotto la top bar HUD.
 
@@ -19,6 +19,22 @@
 - [ ] Aggiornare WaveManager/enemy spawn Y-min per rispettare la safe zone
 - [ ] Rimuovere i canali canvas sostituiti da MessageSystem
 - [ ] Verificare leggibilità durante orde dense
+
+---
+
+## v4.25.0 — Enemy Resize (COMPLETATO)
+
+> Nemici +20% (48→58px). Drop shadows testate e rimosse (nel cielo gli oggetti non proiettano ombra).
+
+### Implementato
+
+- [x] Enemy resize 48→58px (+20%) — tutte le 4 shape + minion
+- [x] Collision radius aggiornato (24→29), hitbox/flash/telegraph/shield
+- [x] Formation spacing scalato (65→78, grid 60→72, spiral proporzionale)
+- [x] Font scaling su tutti i simboli nemici
+- [x] Off-screen culling margin 65→80px
+- [x] Proiettili nemici invariati (4×4px)
+- [x] Drop shadows testate e rimosse (feedback playtesting)
 
 ---
 

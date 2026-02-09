@@ -2,7 +2,7 @@ window.Game = window.Game || {};
 
 class Enemy extends window.Game.Entity {
     constructor(x, y, typeConf) {
-        super(x, y, 48, 48); // v4.14: Rebalanced -25% size (was 65)
+        super(x, y, 58, 58); // v4.25: +20% size (was 48), cell-shaded scale-up
 
         this.baseY = y;
         this.symbol = typeConf.s;
@@ -89,7 +89,7 @@ class Enemy extends window.Game.Entity {
 
         return {
             x: this.x,
-            y: this.y + 24, // v4.14: Adjusted for 48px enemy (was +32 for 65px)
+            y: this.y + 29, // v4.25: Adjusted for 58px enemy (was +24 for 48px)
             vx: vx,
             vy: vy,
             color: '#ffffff', // v4.18: All enemy bullets white for visual clarity
@@ -330,7 +330,7 @@ class Enemy extends window.Game.Entity {
             ctx.globalAlpha = ctx._damageTint * 0.3; // Max 30% red overlay
             ctx.fillStyle = '#cc0000';
             ctx.beginPath();
-            ctx.arc(x, y, 21, 0, Math.PI * 2);
+            ctx.arc(x, y, 25, 0, Math.PI * 2);
             ctx.fill();
             ctx.globalAlpha = 1;
         }
@@ -340,7 +340,7 @@ class Enemy extends window.Game.Entity {
             ctx.globalAlpha = Math.min(1, this.hitFlash * 0.8);
             ctx.fillStyle = '#fff';
             ctx.beginPath();
-            ctx.arc(x, y, 21, 0, Math.PI * 2);
+            ctx.arc(x, y, 25, 0, Math.PI * 2);
             ctx.fill();
             ctx.globalAlpha = 1;
         }
@@ -352,7 +352,7 @@ class Enemy extends window.Game.Entity {
             ctx.strokeStyle = (this.pattern === 'BURST') ? '#ff6b6b' : (this.pattern === 'DOUBLE' ? '#4ecdc4' : '#fff');
             ctx.lineWidth = 3;
             ctx.beginPath();
-            ctx.arc(x, y, 25, 0, Math.PI * 2);
+            ctx.arc(x, y, 30, 0, Math.PI * 2);
             ctx.stroke();
             ctx.globalAlpha = 1;
         }
@@ -366,8 +366,8 @@ class Enemy extends window.Game.Entity {
             ctx.beginPath();
             for (let i = 0; i < 6; i++) {
                 const angle = (Math.PI / 3) * i - Math.PI / 2;
-                const px = x + Math.cos(angle) * 26;
-                const py = y + Math.sin(angle) * 26;
+                const px = x + Math.cos(angle) * 31;
+                const py = y + Math.sin(angle) * 31;
                 if (i === 0) ctx.moveTo(px, py);
                 else ctx.lineTo(px, py);
             }
@@ -413,7 +413,7 @@ class Enemy extends window.Game.Entity {
     }
 
     drawCoin(ctx, x, y) {
-        const r = 19; // v4.14: 25→19 (-25% rebalance)
+        const r = 23; // v4.25: 19→23 (+20% resize)
 
         // Shadow side (bottom-left arc) - cell-shading
         ctx.fillStyle = this._colorDark35;
@@ -466,14 +466,14 @@ class Enemy extends window.Game.Entity {
 
         // Symbol
         ctx.fillStyle = '#fff';
-        ctx.font = 'bold 15px Arial';
+        ctx.font = 'bold 18px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(this.symbol, x, y);
     }
 
     drawBill(ctx, x, y) {
-        const w = 36, h = 21; // v4.14: 48×28→36×21 (-25% rebalance)
+        const w = 44, h = 25; // v4.25: 36×21→44×25 (+20% resize)
 
         // Shadow side (bottom-left triangle) - cell-shading
         ctx.fillStyle = this._colorDark35;
@@ -501,14 +501,14 @@ class Enemy extends window.Game.Entity {
         // Inner border
         ctx.strokeStyle = this._colorDark50;
         ctx.lineWidth = 1.5;
-        ctx.strokeRect(x - w/2 + 3, y - h/2 + 3, w - 6, h - 6);
+        ctx.strokeRect(x - w/2 + 4, y - h/2 + 4, w - 8, h - 8);
 
         // Corner decorations
         ctx.fillStyle = this._colorDark40;
-        ctx.fillRect(x - w/2 + 2, y - h/2 + 2, 5, 5);
-        ctx.fillRect(x + w/2 - 7, y - h/2 + 2, 5, 5);
-        ctx.fillRect(x - w/2 + 2, y + h/2 - 7, 5, 5);
-        ctx.fillRect(x + w/2 - 7, y + h/2 - 7, 5, 5);
+        ctx.fillRect(x - w/2 + 2, y - h/2 + 2, 6, 6);
+        ctx.fillRect(x + w/2 - 8, y - h/2 + 2, 6, 6);
+        ctx.fillRect(x - w/2 + 2, y + h/2 - 8, 6, 6);
+        ctx.fillRect(x + w/2 - 8, y + h/2 - 8, 6, 6);
 
         // Rim lighting (top and right edge)
         ctx.strokeStyle = this._colorLight50;
@@ -521,31 +521,31 @@ class Enemy extends window.Game.Entity {
 
         // Symbol
         ctx.fillStyle = '#fff';
-        ctx.font = 'bold 14px Arial';
+        ctx.font = 'bold 17px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(this.symbol, x, y);
     }
 
     drawBar(ctx, x, y) {
-        // v4.14: Gold bar scaled -25% (was 52×34, now ~39×25)
+        // v4.25: Gold bar scaled +20% (was ±20/±14/±10/±15, now ±24/±17/±12/±18)
         // Shadow side (left half)
         ctx.fillStyle = this._colorDark30;
         ctx.beginPath();
-        ctx.moveTo(x - 20, y + 10);
-        ctx.lineTo(x - 14, y - 10);
-        ctx.lineTo(x, y - 10);
-        ctx.lineTo(x, y + 10);
+        ctx.moveTo(x - 24, y + 12);
+        ctx.lineTo(x - 17, y - 12);
+        ctx.lineTo(x, y - 12);
+        ctx.lineTo(x, y + 12);
         ctx.closePath();
         ctx.fill();
 
         // Light side (right half)
         ctx.fillStyle = this.color;
         ctx.beginPath();
-        ctx.moveTo(x, y + 10);
-        ctx.lineTo(x, y - 10);
-        ctx.lineTo(x + 14, y - 10);
-        ctx.lineTo(x + 20, y + 10);
+        ctx.moveTo(x, y + 12);
+        ctx.lineTo(x, y - 12);
+        ctx.lineTo(x + 17, y - 12);
+        ctx.lineTo(x + 24, y + 12);
         ctx.closePath();
         ctx.fill();
 
@@ -553,20 +553,20 @@ class Enemy extends window.Game.Entity {
         ctx.strokeStyle = '#111';
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.moveTo(x - 20, y + 10);
-        ctx.lineTo(x - 14, y - 10);
-        ctx.lineTo(x + 14, y - 10);
-        ctx.lineTo(x + 20, y + 10);
+        ctx.moveTo(x - 24, y + 12);
+        ctx.lineTo(x - 17, y - 12);
+        ctx.lineTo(x + 17, y - 12);
+        ctx.lineTo(x + 24, y + 12);
         ctx.closePath();
         ctx.stroke();
 
         // Top face (lighter) - cell-shading highlight
         ctx.fillStyle = this._colorLight35;
         ctx.beginPath();
-        ctx.moveTo(x - 14, y - 10);
-        ctx.lineTo(x - 10, y - 15);
-        ctx.lineTo(x + 10, y - 15);
-        ctx.lineTo(x + 14, y - 10);
+        ctx.moveTo(x - 17, y - 12);
+        ctx.lineTo(x - 12, y - 18);
+        ctx.lineTo(x + 12, y - 18);
+        ctx.lineTo(x + 17, y - 12);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
@@ -576,21 +576,21 @@ class Enemy extends window.Game.Entity {
         ctx.lineWidth = 2;
         ctx.globalAlpha = 0.7;
         ctx.beginPath();
-        ctx.moveTo(x - 8, y - 13);
-        ctx.lineTo(x + 8, y - 13);
+        ctx.moveTo(x - 10, y - 16);
+        ctx.lineTo(x + 10, y - 16);
         ctx.stroke();
         ctx.globalAlpha = 1;
 
         // Symbol
         ctx.fillStyle = '#111';
-        ctx.font = 'bold 14px Arial';
+        ctx.font = 'bold 17px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(this.symbol, x, y + 1);
     }
 
     drawCard(ctx, x, y) {
-        const w = 33, h = 22; // v4.14: 44×30→33×22 (-25% rebalance)
+        const w = 40, h = 27; // v4.25: 33×22→40×27 (+20% resize)
 
         // Shadow side (bottom-left) - cell-shading
         ctx.fillStyle = this._colorDark35;
@@ -619,28 +619,28 @@ class Enemy extends window.Game.Entity {
         // Full outline
         ctx.strokeStyle = '#111';
         ctx.lineWidth = 3;
-        this.roundRect(ctx, x - w/2, y - h/2, w, h, 4);
+        this.roundRect(ctx, x - w/2, y - h/2, w, h, 5);
         ctx.stroke();
 
         // Chip (scaled)
         ctx.fillStyle = '#f1c40f';
-        ctx.fillRect(x - w/2 + 4, y - 5, 9, 9);
+        ctx.fillRect(x - w/2 + 5, y - 6, 11, 11);
         ctx.strokeStyle = '#b8860b';
         ctx.lineWidth = 1.5;
-        ctx.strokeRect(x - w/2 + 4, y - 5, 9, 9);
+        ctx.strokeRect(x - w/2 + 5, y - 6, 11, 11);
         // Chip lines
         ctx.strokeStyle = '#c9a007';
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(x - w/2 + 6, y - 2);
-        ctx.lineTo(x - w/2 + 11, y - 2);
-        ctx.moveTo(x - w/2 + 6, y + 2);
-        ctx.lineTo(x - w/2 + 11, y + 2);
+        ctx.moveTo(x - w/2 + 7, y - 3);
+        ctx.lineTo(x - w/2 + 14, y - 3);
+        ctx.moveTo(x - w/2 + 7, y + 2);
+        ctx.lineTo(x - w/2 + 14, y + 2);
         ctx.stroke();
 
         // Magnetic stripe
         ctx.fillStyle = '#222';
-        ctx.fillRect(x - w/2, y + h/2 - 6, w, 4);
+        ctx.fillRect(x - w/2, y + h/2 - 7, w, 5);
 
         // Rim lighting (top and right edge)
         ctx.strokeStyle = this._colorLight50;
@@ -654,15 +654,15 @@ class Enemy extends window.Game.Entity {
 
         // Symbol
         ctx.fillStyle = '#fff';
-        ctx.font = 'bold 12px Arial';
+        ctx.font = 'bold 14px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(this.symbol, x + 6, y - 2);
     }
 
     drawMinion(ctx, x, y) {
-        // Boss minions: smaller, flying money with glow
-        const r = 18; // Smaller than regular enemies
+        // Boss minions: slightly smaller than regular enemies
+        const r = 22; // v4.25: 18→22 (+20% resize)
         const pulse = Math.sin(Date.now() * 0.01) * 0.15 + 1;
 
         // Flying animation - minions bob up and down
@@ -717,7 +717,7 @@ class Enemy extends window.Game.Entity {
 
         // Symbol (smaller)
         ctx.fillStyle = '#fff';
-        ctx.font = 'bold 14px Arial';
+        ctx.font = 'bold 17px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(this.symbol, x, y);
