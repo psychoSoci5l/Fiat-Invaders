@@ -1146,7 +1146,11 @@
             SPIRAL_RADIUS_STEP: 19,   // v4.25: 16→19 (58px enemies, prevents spiral overlap)
             SPIRAL_Y_SQUEEZE: 0.6,    // Y axis compression for spiral
             ROW_TOLERANCE: 25,        // Y tolerance for grouping positions into rows (currency assignment)
-            SAFE_EDGE_MARGIN: 30      // Min X margin from screen edge (must be > 20px edge-detect threshold)
+            SAFE_EDGE_MARGIN: 30,     // Min X margin from screen edge (must be > 20px edge-detect threshold)
+            // v4.32: Responsive formation scaling
+            RESPONSIVE: true,         // Master toggle (false = pre-v4.32 fixed spacing)
+            SPACING_MIN: 62,          // Min spacing (58px enemy + 4px gap, prevents overlap)
+            START_Y_RESPONSIVE: true  // Scale startY with height ratio
         },
 
         // --- ENEMY FORMATION ENTRY ---

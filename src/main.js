@@ -1777,6 +1777,8 @@ function resize() {
 
     // v4.0.1: Expose gameWidth for Bullet horizontal bounds check
     G._gameWidth = gameWidth;
+    // v4.32: Expose gameHeight for responsive formations, teleport bounds, HYPER particles
+    G._gameHeight = gameHeight;
 
     if (player) {
         player.gameWidth = gameWidth;
@@ -3958,7 +3960,7 @@ function updateEnemies(dt) {
         if (allSettled && ((gridDir === 1 && e.x > gameWidth - 20) || (gridDir === -1 && e.x < 20))) hitEdge = true;
 
         // Kamikaze trigger - weak tier enemies occasionally dive at player
-        if (e.isKamikaze && !e.kamikazeDiving && e.y > 250 && Math.random() < 0.0005) {
+        if (e.isKamikaze && !e.kamikazeDiving && e.y > gameHeight * 0.33 && Math.random() < 0.0005) {
             e.triggerKamikaze();
         }
 

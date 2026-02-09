@@ -357,8 +357,23 @@ window.Game.WaveManager = {
         const safeOffset = window.safeAreaInsets?.top || 0;
         // v4.0.3: Read from BalanceConfig instead of hardcoded values
         const FC = window.Game.Balance?.FORMATION || {};
-        const startY = (FC.START_Y || 150) + safeOffset;
-        const spacing = FC.SPACING || 75;
+        const Balance = window.Game.Balance;
+        const baseWidth = Balance?.GAME?.BASE_WIDTH || 600;
+        const gameH = window.Game._gameHeight || 700;
+        const baseHeight = 800;
+
+        // v4.32: Responsive spacing — scales with screen width ratio
+        let spacing = FC.SPACING || 75;
+        if (FC.RESPONSIVE) {
+            const widthRatio = gameWidth / baseWidth;
+            spacing = Math.max(FC.SPACING_MIN || 62, Math.round(spacing * widthRatio));
+        }
+
+        let startY = (FC.START_Y || 150) + safeOffset;
+        if (FC.RESPONSIVE && FC.START_Y_RESPONSIVE) {
+            const heightRatio = gameH / baseHeight;
+            startY = Math.round(((FC.START_Y || 150) * heightRatio)) + safeOffset;
+        }
 
         let positions;
         switch (formationName) {
@@ -1076,12 +1091,24 @@ window.Game.WaveManager = {
         }
 
         const rows = pattern === 'COLUMNS' ? 5 : (pattern === 'V_SHAPE' ? 5 : 4);
-        const spacing = 75;
+        // v4.32: Use FORMATION config + responsive scaling (was hardcoded 75/150/380)
+        const FC = Balance?.FORMATION || {};
+        const baseWidth = Balance?.GAME?.BASE_WIDTH || 600;
+        const gameH = G._gameHeight || 700;
+        let spacing = FC.SPACING || 75;
+        if (FC.RESPONSIVE) {
+            const widthRatio = gameWidth / baseWidth;
+            spacing = Math.max(FC.SPACING_MIN || 62, Math.round(spacing * widthRatio));
+        }
         const cols = Math.floor((gameWidth - 40) / spacing);
         const startX = (gameWidth - (cols * spacing)) / 2 + (spacing / 2);
         const safeOffset = window.safeAreaInsets?.top || 0;
-        const startY = 150 + safeOffset;
-        const maxY = 380;
+        let startY = (FC.START_Y || 80) + safeOffset;
+        if (FC.RESPONSIVE && FC.START_Y_RESPONSIVE) {
+            const heightRatio = gameH / 800;
+            startY = Math.round(((FC.START_Y || 80) * heightRatio)) + safeOffset;
+        }
+        const maxY = Math.round(gameH * (FC.MAX_Y_RATIO || 0.65));
         const maxRows = Math.min(rows, Math.floor((maxY - startY) / spacing) + 1);
 
         const strongRows = 1;

@@ -260,9 +260,11 @@ class Enemy extends window.Game.Entity {
         const offsetY = (Math.random() * tp.OFFSET_Y) - (tp.OFFSET_Y / 2);
         this.x += offsetX;
         this.y += offsetY;
-        // Clamp to safe bounds
-        this.x = Math.max(tp.BOUNDS_X_MIN, Math.min(tp.BOUNDS_X_MAX, this.x));
-        this.y = Math.max(tp.BOUNDS_Y_MIN, Math.min(tp.BOUNDS_Y_MAX, this.y));
+        // v4.32: Clamp to safe bounds — responsive to actual screen size
+        const gw = window.Game._gameWidth || 600;
+        const gh = window.Game._gameHeight || 700;
+        this.x = Math.max(tp.BOUNDS_X_MIN, Math.min(Math.min(tp.BOUNDS_X_MAX, gw - tp.BOUNDS_X_MIN), this.x));
+        this.y = Math.max(tp.BOUNDS_Y_MIN, Math.min(Math.min(tp.BOUNDS_Y_MAX, gh * 0.65), this.y));
         this.teleportCooldown = tp.COOLDOWN_MIN + Math.random() * tp.COOLDOWN_RANDOM;
         this.teleportFlash = 1;
         if (window.Game.Audio) window.Game.Audio.play('grazeNearMiss');

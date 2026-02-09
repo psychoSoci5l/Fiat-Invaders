@@ -1,9 +1,26 @@
 # Roadmap: FIAT vs CRYPTO
 
 > [!IMPORTANT]
-> **Versione attuale**: v4.31.0 (2026-02-09)
+> **Versione attuale**: v4.32.0 (2026-02-09)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
 > **Stato**: Gameplay completo, in fase di hardening e polish grafico.
+
+---
+
+## v4.32.0 — Responsive Formation System (COMPLETATO)
+
+> Formazioni nemiche proporzionali alla dimensione dello schermo. Fix layout compresso su iPhone e dispositivi stretti.
+
+### Implementato
+
+- [x] Bug fix: `G._gameHeight` esposto in `resize()` (era sempre undefined)
+- [x] Spacing responsivo: `SPACING * (gameWidth / BASE_WIDTH)`, minimo 62px
+- [x] startY responsivo: scala con `gameHeight / 800` (toggle separato)
+- [x] Legacy horde fix: `spawnWaveLegacy()` allineato a config FORMATION + scaling
+- [x] Teleport bounds responsivi: clamp a dimensioni reali dello schermo
+- [x] Kamikaze trigger proporzionale: `gameHeight * 0.33` (era hardcoded 250px)
+- [x] Kill-switch: `FORMATION.RESPONSIVE: false` → comportamento pre-v4.32
+- [x] Invariante desktop 600px: zero cambiamenti visivi (widthRatio = 1.0)
 
 ---
 
