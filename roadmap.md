@@ -355,7 +355,7 @@ Target: ~12-14 drops in 4:30 (era 19).
 - [ ] **Object pool audit** (B): Verificare che tutti gli oggetti ad alta frequenza siano pooled
 - [ ] **Batch rendering** (C): Raggruppare entità simili nel draw call
 - [ ] **Off-screen canvas** (C): Pre-rendering per elementi statici/ripetitivi
-- [ ] **main.js Decomposition** (E): CollisionSystem.js extraction, state machine, global cleanup
+- [x] **main.js Decomposition** (E): CollisionSystem.js, GameStateMachine.js, RunState expansion ✅ v4.28.0
 - [ ] **60fps target mobile** (F): Test su device reale durante fasi intensive (boss P3, Cycle 3)
 - [ ] **Memory footprint** (F): Stabilità memoria su sessioni lunghe (10+ minuti)
 
@@ -428,10 +428,10 @@ Bear Market +10, PANIC +30%, Rank ±15%. Budget recharge per-frame, skip se esau
 - [ ] Tuning spaziatura/fattori per formazione
 - [ ] Verifica a tutti i conteggi (8-24) e larghezze schermo
 
-### main.js Decomposition (ex Sprint 23.4)
-- [ ] CollisionSystem.js (~400 righe estraibili)
-- [ ] State machine formale (eliminare if/else chains)
-- [ ] Global variable cleanup → RunState o manager dedicati
+### main.js Decomposition (ex Sprint 23.4) ✅ v4.28.0
+- [x] CollisionSystem.js (~350 righe estratte, callback pattern)
+- [x] GameStateMachine.js (transition table, validation, setGameState wrapper)
+- [x] RunState expansion (~30 per-run variables moved, syncFromRunState bridge)
 
 ### Performance (ex Sprint 25)
 - [ ] Spatial partitioning: collisioni grid-based O(n) vs O(n²)

@@ -23,6 +23,12 @@ let canvas, ctx, gameContainer;
 let gameWidth = window.Game.Balance.GAME.BASE_WIDTH;
 let gameHeight = window.Game.Balance.GAME.BASE_HEIGHT;
 let gameState = 'VIDEO';
+// v4.28.0: Sync local gameState with GameStateMachine on every transition
+function setGameState(newState) {
+    gameState = newState;
+    if (G.GameState) G.GameState.transition(newState);
+}
+if (G.GameState) G.GameState.forceSet('VIDEO');
 let userLang = navigator.language || navigator.userLanguage;
 let currentLang = userLang.startsWith('it') ? 'IT' : 'EN';
 G._currentLang = currentLang; // v4.11.0: Expose for StoryScreen localization
@@ -117,6 +123,317 @@ function buildPlayerState() {
     };
 }
 
+// v4.28.0: CollisionSystem initialization with callbacks
+function initCollisionSystem() {
+    if (!G.CollisionSystem) return;
+    G.CollisionSystem.init({
+        player: player,
+        getBullets: () => bullets,
+        getEnemyBullets: () => enemyBullets,
+        getEnemies: () => enemies,
+        getBoss: () => boss,
+        getMiniBoss: () => miniBoss,
+        getState: () => ({ sacrificeState }),
+        callbacks: {
+            // Player hit by enemy bullet (normal — not HYPER)
+            onPlayerHit(eb, ebIdx, ebArr) {
+                updateLivesUI(true);
+                G.Bullet.Pool.release(eb);
+                ebArr.splice(ebIdx, 1);
+                shake = 20;
+                bulletCancelStreak = 0;
+                bulletCancelTimer = 0;
+                grazeCount = 0;
+                grazeMeter = Math.max(0, grazeMeter - 30);
+                emitEvent('player_hit', { hp: player.hp, maxHp: player.maxHp });
+                if (player.hp <= 0) {
+                    startDeathSequence();
+                } else {
+                    applyHitStop('PLAYER_HIT', false);
+                    triggerScreenFlash('PLAYER_HIT');
+                }
+                streak = 0;
+                killStreak = 0;
+                killStreakMult = 1.0;
+            },
+            // HYPER mode instant death
+            onPlayerHyperDeath(eb, ebIdx, ebArr) {
+                player.deactivateHyper();
+                player.hp = 0;
+                if (G.Debug) G.Debug.trackPlayerDeath(lives, level, 'hyper');
+                deathAlreadyTracked = true;
+                G.Bullet.Pool.release(eb);
+                ebArr.splice(ebIdx, 1);
+                shake = 60;
+                showDanger(t('HYPER_FAILED'));
+                startDeathSequence();
+            },
+            // Graze (near miss)
+            onGraze(eb, isCloseGraze, isHyperActive) {
+                lastGrazeTime = totalTime;
+                const grazeBonus = isCloseGraze ? Balance.GRAZE.CLOSE_BONUS : 1;
+                if (G.Debug) G.Debug.trackGraze(isCloseGraze);
+
+                if (isHyperActive) {
+                    player.extendHyper();
+                    const hyperMult = Balance.HYPER.SCORE_MULT;
+                    const grazePoints = Math.floor(Balance.GRAZE.POINTS_BASE * hyperMult * grazeBonus);
+                    score += grazePoints;
+                    updateScore(score);
+                    createGrazeSpark(eb.x, eb.y, player.x, player.y, true);
+                    createGrazeSpark(eb.x, eb.y, player.x, player.y, true);
+                    if (totalTime - lastGrazeSoundTime > Balance.GRAZE.SOUND_THROTTLE) {
+                        audioSys.play('hyperGraze');
+                        lastGrazeSoundTime = totalTime;
+                    }
+                } else {
+                    grazeCount += grazeBonus;
+                    if (G.RankSystem) G.RankSystem.onGraze();
+                    const meterGain = isCloseGraze ? Balance.GRAZE.METER_GAIN_CLOSE : Balance.GRAZE.METER_GAIN;
+                    grazeMeter = Math.min(100, grazeMeter + meterGain);
+                    grazeMultiplier = 1 + (grazeMeter / Balance.GRAZE.MULT_DIVISOR) * (Balance.GRAZE.MULT_MAX - 1);
+                    const grazePoints = Math.floor(Balance.GRAZE.POINTS_BASE * grazeMultiplier * grazeBonus);
+                    score += grazePoints;
+                    updateScore(score);
+                    createGrazeSpark(eb.x, eb.y, player.x, player.y, isCloseGraze);
+                    if (isCloseGraze) applyHitStop('CLOSE_GRAZE', true);
+                    const soundThrottle = Balance.GRAZE.SOUND_THROTTLE || 0.1;
+                    if (totalTime - lastGrazeSoundTime > soundThrottle) {
+                        audioSys.play(isCloseGraze ? 'grazeNearMiss' : 'graze');
+                        lastGrazeSoundTime = totalTime;
+                    }
+                    if (grazeCount > 0 && grazeCount % 10 === 0) audioSys.play('grazeStreak');
+                    if (grazeCount > 0 && grazeCount % Balance.GRAZE.PERK_THRESHOLD === 0) {
+                        if (grazePerksThisLevel < Balance.GRAZE.MAX_PERKS_PER_LEVEL) {
+                            applyRandomPerk();
+                            audioSys.play('grazePerk');
+                            G.MemeEngine.queueMeme('GRAZE', t('GRAZE_BONUS'), 'GRAZE');
+                            grazePerksThisLevel++;
+                        } else {
+                            score += 500;
+                            updateScore(score);
+                            showGameInfo("+500 " + t('GRAZE_MASTER'));
+                        }
+                    }
+                    if (grazeMeter >= Balance.HYPER.METER_THRESHOLD && player.hyperCooldown <= 0) {
+                        if (Balance.HYPER.AUTO_ACTIVATE && player.canActivateHyper && player.canActivateHyper(grazeMeter)) {
+                            player.activateHyper();
+                            grazeMeter = 0;
+                            updateGrazeUI();
+                            triggerScreenFlash('HYPER_ACTIVATE');
+                        } else if (!player.hyperAvailable) {
+                            player.hyperAvailable = true;
+                            showGameInfo(t('HYPER_READY') + " [H]");
+                            audioSys.play('hyperReady');
+                        }
+                    }
+                }
+                updateGrazeUI();
+            },
+            // Enemy hit (but not killed)
+            onEnemyHit(e, bullet, shouldDie) {
+                audioSys.play('hitEnemy');
+                const sparkColor = bullet.color || player.stats?.color || '#fff';
+                const sparkOpts = {
+                    shotLevel: player.shotLevel || 1,
+                    hasPower: player.modifiers?.power?.level > 0,
+                    isKill: shouldDie,
+                    isHyper: player.isHyperActive && player.isHyperActive()
+                };
+                createBulletSpark(e.x, e.y, sparkColor, sparkOpts);
+            },
+            // Enemy killed
+            onEnemyKilled(e, bullet, enemyIdx, enemies) {
+                audioSys.play('coinScore');
+                applyHitStop('ENEMY_KILL', true);
+                if (G.RankSystem) G.RankSystem.onKill();
+
+                // Kill streak
+                const now = totalTime;
+                if (now - lastKillTime < Balance.SCORE.STREAK_TIMEOUT) {
+                    killStreak++;
+                    killStreakMult = Math.min(Balance.SCORE.STREAK_MULT_MAX, 1 + killStreak * Balance.SCORE.STREAK_MULT_PER_KILL);
+                    if (killStreak === 10) { applyHitStop('STREAK_10', false); triggerScreenFlash('STREAK_10'); triggerScoreStreakColor(10); }
+                    else if (killStreak === 25) { applyHitStop('STREAK_25', false); triggerScreenFlash('STREAK_25'); triggerScoreStreakColor(25); }
+                    else if (killStreak === 50) { applyHitStop('STREAK_50', false); triggerScreenFlash('STREAK_50'); triggerScoreStreakColor(50); }
+                } else {
+                    killStreak = 1;
+                    killStreakMult = 1.0;
+                }
+                lastKillTime = now;
+
+                // Score calculation
+                const perkMult = (runState && runState.getMod) ? runState.getMod('scoreMult', 1) : 1;
+                const bearMult = isBearMarket ? Balance.SCORE.BEAR_MARKET_MULT : 1;
+                const grazeKillBonus = grazeMeter >= Balance.SCORE.GRAZE_KILL_THRESHOLD ? Balance.SCORE.GRAZE_KILL_BONUS : 1;
+                const hyperMult = (player.isHyperActive && player.isHyperActive()) ? Balance.HYPER.SCORE_MULT : 1;
+                const isLastEnemy = enemies.length === 0;
+                const lastEnemyMult = isLastEnemy && G.HarmonicConductor ? G.HarmonicConductor.getLastEnemyBonus() : 1;
+                const sacrificeMult = sacrificeState === 'ACTIVE' ? Balance.SACRIFICE.SCORE_MULT : 1;
+                const killScore = Math.floor(e.scoreVal * bearMult * perkMult * killStreakMult * grazeKillBonus * hyperMult * lastEnemyMult * sacrificeMult);
+                score += killScore;
+                updateScore(score);
+                if (sacrificeState === 'ACTIVE') sacrificeScoreEarned += killScore;
+                createFloatingScore(killScore, e.x, e.y - 20);
+
+                if (isLastEnemy && lastEnemyMult > 1) {
+                    applyHitStop('STREAK_25', false);
+                    triggerScreenFlash('STREAK_25');
+                    showGameInfo("💀 " + t('LAST_FIAT') + " x" + lastEnemyMult.toFixed(0));
+                }
+
+                createEnemyDeathExplosion(e.x, e.y, e.color, e.symbol || '$', e.shape);
+                createScoreParticles(e.x, e.y, e.color);
+
+                // Multi-kill
+                _frameKills++;
+                if (_frameKills >= 2) {
+                    triggerScreenFlash('MULTI_KILL');
+                    applyHitStop('STREAK_10', false);
+                }
+                if (Balance?.isStrongTier && Balance.isStrongTier(e.symbol)) {
+                    const vfx = Balance?.VFX || {};
+                    shake = Math.max(shake, vfx.STRONG_KILL_SHAKE || 3);
+                }
+
+                killCount++;
+                streak++;
+                if (streak > bestStreak) bestStreak = streak;
+                if (G.Debug) G.Debug.trackKillStreak(streak);
+                updateKillCounter();
+                checkStreakMeme();
+                emitEvent('enemy_killed', { score: killScore, x: e.x, y: e.y });
+
+                // Mini-boss trigger
+                if (!(G.CampaignState && G.CampaignState.isEnabled()) && e.symbol && fiatKillCounter[e.symbol] !== undefined && !miniBoss && !boss && !e.isMinion && bossWarningTimer <= 0 && (totalTime - lastMiniBossSpawnTime) >= Balance.MINI_BOSS.COOLDOWN && miniBossThisWave < (Balance.MINI_BOSS.MAX_PER_WAVE || 2)) {
+                    fiatKillCounter[e.symbol]++;
+                    const mapping = Balance.MINI_BOSS.CURRENCY_BOSS_MAP?.[e.symbol];
+                    const threshold = mapping?.threshold || Balance.MINI_BOSS.KILL_THRESHOLD;
+                    G.Debug.log('MINIBOSS', `Kill ${e.symbol}: ${fiatKillCounter[e.symbol]}/${threshold}`);
+                    if (fiatKillCounter[e.symbol] >= threshold) {
+                        let bossType = mapping?.boss || 'FEDERAL_RESERVE';
+                        if (bossType === 'RANDOM') {
+                            const rotation = G.BOSS_ROTATION || ['FEDERAL_RESERVE', 'BCE', 'BOJ'];
+                            bossType = rotation[Math.floor(Math.random() * rotation.length)];
+                        } else if (bossType === 'CYCLE_BOSS') {
+                            const rotation = G.BOSS_ROTATION || ['FEDERAL_RESERVE', 'BCE', 'BOJ'];
+                            bossType = rotation[(marketCycle - 1) % rotation.length];
+                        }
+                        G.Debug.trackMiniBossSpawn(bossType, e.symbol, fiatKillCounter[e.symbol]);
+                        G.Debug._miniBossStartInfo = { type: bossType, trigger: e.symbol, killCount: fiatKillCounter[e.symbol], startTime: Date.now() };
+                        lastMiniBossSpawnTime = totalTime;
+                        miniBossThisWave++;
+                        spawnMiniBoss(bossType, e.color);
+                        Object.keys(fiatKillCounter).forEach(k => fiatKillCounter[k] = 0);
+                    }
+                }
+
+                // Drop logic
+                const useEvolution = !!(Balance.WEAPON_EVOLUTION && player.shotLevel);
+                const dropInfo = G.DropSystem.tryEnemyDrop(e.symbol, e.x, e.y, totalTime, useEvolution ? buildPlayerState() : getUnlockedWeapons, useEvolution);
+                if (dropInfo) {
+                    powerUps.push(new G.PowerUp(dropInfo.x, dropInfo.y, dropInfo.type));
+                    if (G.Debug) G.Debug.trackDropSpawned(dropInfo.type, dropInfo.category, 'enemy');
+                }
+            },
+            // Boss hit by player bullet
+            onBossHit(bullet, dmg, boss, bIdx, bArr) {
+                audioSys.play('hitEnemy');
+                // Boss drops
+                const useEvolutionBoss = !!(Balance.WEAPON_EVOLUTION && player.shotLevel);
+                const bossDropInfo = G.DropSystem.tryBossDrop(
+                    boss.x + boss.width / 2, boss.y + boss.height, totalTime,
+                    useEvolutionBoss ? buildPlayerState() : getUnlockedWeapons,
+                    useEvolutionBoss
+                );
+                if (bossDropInfo) {
+                    powerUps.push(new G.PowerUp(bossDropInfo.x, bossDropInfo.y, bossDropInfo.type));
+                    audioSys.play('coinPerk');
+                    if (G.Debug) G.Debug.trackDropSpawned(bossDropInfo.type, bossDropInfo.category, 'boss');
+                }
+            },
+            // Boss killed
+            onBossDeath(deadBoss) {
+                const defeatedBossType = deadBoss.bossType || 'FEDERAL_RESERVE';
+                const defeatedBossName = deadBoss.name || 'THE FED';
+                const bossX = deadBoss.x + deadBoss.width / 2;
+                const bossY = deadBoss.y + deadBoss.height / 2;
+                createBossDeathExplosion(bossX, bossY);
+                applyHitStop('BOSS_DEFEAT', false);
+                triggerScreenFlash('BOSS_DEFEAT');
+                if (G.TransitionManager) G.TransitionManager.startFadeOut(0.8, '#ffffff');
+                const bossBonus = Balance.SCORE.BOSS_DEFEAT_BASE + (marketCycle * Balance.SCORE.BOSS_DEFEAT_PER_CYCLE);
+                score += bossBonus;
+                createFloatingScore(bossBonus, bossX, bossY - 50);
+                boss.active = false; boss = null; window.boss = null; shake = 60; audioSys.play('explosion');
+                audioSys.setBossPhase(0);
+                enemyBullets.forEach(b => G.Bullet.Pool.release(b));
+                enemyBullets.length = 0;
+                window.enemyBullets = enemyBullets;
+                bossJustDefeated = true;
+                enemies.length = 0;
+                G.enemies = enemies;
+                if (G.HarmonicConductor) G.HarmonicConductor.enemies = enemies;
+                if (miniBoss) { miniBoss.active = false; miniBoss = null; if (waveMgr) waveMgr.miniBossActive = false; }
+                updateScore(score);
+                showVictory("🏆 " + defeatedBossName + ' ' + t('DEFEATED'));
+                const victoryMemes = { 'FEDERAL_RESERVE': "💥 INFLATION CANCELLED!", 'BCE': "💥 FRAGMENTATION COMPLETE!", 'BOJ': "💥 YEN LIBERATED!" };
+                G.MemeEngine.queueMeme('BOSS_DEFEATED', victoryMemes[defeatedBossType] || "CENTRAL BANK DESTROYED!", defeatedBossName);
+                console.log(`[BOSS DEFEATED] ${defeatedBossType} at level=${level}, cycle=${marketCycle}, wave=${waveMgr.wave}`);
+                G.Debug.trackBossDefeat(defeatedBossType, level, marketCycle);
+                if (G.Debug) { G.Debug.trackBossFightEnd(defeatedBossType, marketCycle); G.Debug.trackCycleEnd(marketCycle, Math.floor(score)); }
+                marketCycle++;
+                window.marketCycle = marketCycle;
+                console.log(`[BOSS DEFEATED] Cycle incremented to ${marketCycle}, calling waveMgr.reset()`);
+                G.Debug.trackCycleUp(marketCycle);
+                if (G.Debug) G.Debug.trackCycleStart(marketCycle);
+                checkWeaponUnlocks(marketCycle);
+                waveMgr.reset();
+                fiatKillCounter = { '¥': 0, '₽': 0, '₹': 0, '€': 0, '£': 0, '₣': 0, '₺': 0, '$': 0, '元': 0, 'Ⓒ': 0 };
+                if (G.HarmonicConductor) { G.HarmonicConductor.reset(); G.HarmonicConductor.setDifficulty(level, marketCycle, isBearMarket); }
+                const campaignState2 = G.CampaignState;
+                const campaignComplete = !!(campaignState2 && campaignState2.isEnabled() && defeatedBossType === 'BOJ');
+                const chapterId = G.BOSS_TO_CHAPTER && G.BOSS_TO_CHAPTER[defeatedBossType];
+                const shouldShowChapter = chapterId && shouldShowStory(chapterId);
+                if (campaignComplete && shouldShowChapter) {
+                    showStoryScreen(chapterId, () => { showCampaignVictory(); });
+                } else if (campaignComplete) {
+                    showCampaignVictory();
+                } else if (shouldShowChapter) {
+                    showStoryScreen(chapterId, () => { startIntermission(t('CYCLE') + ' ' + marketCycle + ' ' + t('BEGINS')); });
+                } else {
+                    startIntermission(t('CYCLE') + ' ' + marketCycle + ' ' + t('BEGINS'));
+                }
+                emitEvent('boss_killed', { level: level, cycle: marketCycle, bossType: defeatedBossType, campaignComplete: campaignComplete });
+                const bossDefeatPool = G.DIALOGUES && G.DIALOGUES.BOSS_DEFEAT && G.DIALOGUES.BOSS_DEFEAT[defeatedBossType];
+                if (bossDefeatPool && bossDefeatPool.length > 0) {
+                    const bossQuote = bossDefeatPool[Math.floor(Math.random() * bossDefeatPool.length)];
+                    const quoteText = (typeof bossQuote === 'string' ? bossQuote : (bossQuote && bossQuote.text)) || '';
+                    if (quoteText) G.MemeEngine.queueMeme('BOSS_DEFEATED', '\u201C' + quoteText + '\u201D', defeatedBossName);
+                }
+            },
+            // Bullet cancel (player bullet vs enemy bullet)
+            onBulletCancel(pb, eb, pbIdx, ebIdx, pbArr, ebArr) {
+                createBulletSpark(eb.x, eb.y);
+                eb.markedForDeletion = true;
+                G.Bullet.Pool.release(eb);
+                ebArr.splice(ebIdx, 1);
+                bulletCancelStreak += 1;
+                bulletCancelTimer = Balance.PERK.CANCEL_WINDOW;
+                if (bulletCancelStreak >= Balance.PERK.BULLET_CANCEL_COUNT) {
+                    bulletCancelStreak = 0;
+                    applyRandomPerk();
+                }
+                if (!pb.penetration) {
+                    pb.markedForDeletion = true;
+                    G.Bullet.Pool.release(pb);
+                    pbArr.splice(pbIdx, 1);
+                }
+            }
+        }
+    });
+}
+
 function checkWeaponUnlocks(cycle) {
     if (cycle > maxCycleReached) {
         maxCycleReached = cycle;
@@ -132,11 +449,8 @@ function checkWeaponUnlocks(cycle) {
 }
 
 let boss = null;
-let score = 0, level = 1, lives = window.Game.Balance.PLAYER.START_LIVES;
-let lastScoreMilestone = 0; // Track score milestones for pulse effect
-let shake = 0, gridDir = 1, gridSpeed = 25, totalTime = 0, intermissionTimer = 0;
-let _frameKills = 0;            // v4.5: Multi-kill tracking per frame
-let _hyperAmbientTimer = 0;     // v4.5: HYPER sparkle timer
+let lives = window.Game.Balance.PLAYER.START_LIVES;
+let shake = 0, gridDir = 1, gridSpeed = 25, intermissionTimer = 0;
 // Screen transition moved to TransitionManager.js
 let currentShipIdx = 0;
 let lastWavePattern = 'RECT';
@@ -147,22 +461,7 @@ let debugMode = false; // F3 toggle for performance stats
 let fpsHistory = []; // For smooth FPS display
 let perkOffers = [];
 let volatilityTimer = 0;
-
-// Satoshi's Sacrifice system
-let sacrificeState = 'NONE'; // NONE, DECISION, ACTIVE
-let sacrificeDecisionTimer = 0;
-let sacrificeActiveTimer = 0;
-let sacrificeScoreAtStart = 0; // Score when sacrifice activated
-let sacrificesUsedThisRun = 0; // Limit: 1 sacrifice per run
-let sacrificeScoreEarned = 0; // Score earned during sacrifice
-let sacrificeGhostTrail = []; // Ghost position history for trail effect
 let memeSwapTimer = 0;
-let killCount = 0;
-let streak = 0;
-let bestStreak = 0;
-let marketCycle = 1; // Track completed boss cycles for difficulty scaling
-window.marketCycle = marketCycle; // Expose for WaveManager
-window.currentLevel = level; // Expose for WaveManager difficulty calculation
 // v2.22.5: Expose boss and miniBoss for debug overlay
 window.boss = null;
 window.miniBoss = null;
@@ -170,12 +469,6 @@ window.miniBoss = null;
 let bossJustDefeated = false;
 // --- BALANCE CONFIG ALIASES (for cleaner code) ---
 const Balance = window.Game.Balance;
-
-let bulletCancelStreak = 0;
-let bulletCancelTimer = 0;
-
-// --- PERK COOLDOWN ---
-let perkCooldown = 0;         // Cooldown timer between perks
 
 // --- PERK PAUSE SYSTEM ---
 let perkPauseTimer = 0;       // When > 0, game is paused for perk display
@@ -185,31 +478,66 @@ let perkPauseData = null;     // Data about the perk being displayed
 let bossWarningTimer = 0;     // When > 0, showing boss warning
 let bossWarningType = null;   // Boss type to spawn after warning
 
-// --- GRAZING SYSTEM ---
-let grazeCount = 0;           // Total graze count this run
-let grazeMeter = 0;           // 0-100 meter fill
-let grazeMultiplier = 1.0;    // Score multiplier from grazing
-let grazePerksThisLevel = 0;  // Track graze perks awarded this level
-let lastGrazeSoundTime = 0;   // Throttle graze sound
-let lastGrazeTime = 0;        // For decay calculation
-
-// --- KILL STREAK SYSTEM ---
-let killStreak = 0;           // Consecutive kills
-let killStreakMult = 1.0;     // Current streak multiplier
-let lastKillTime = 0;         // Time of last kill (for timeout)
-
-// Wave timing (waveStartTime kept for potential future use)
-let waveStartTime = 0;
-
-// Fiat Kill Counter System - Mini Boss every N kills of same type
-let fiatKillCounter = { '¥': 0, '₽': 0, '₹': 0, '€': 0, '£': 0, '₣': 0, '₺': 0, '$': 0, '元': 0, 'Ⓒ': 0 };
-window.fiatKillCounter = fiatKillCounter; // Expose for debug
 let miniBoss = null; // Special boss spawned from kill counter
-let lastMiniBossSpawnTime = 0; // v2.24.4: Cooldown tracking for mini-boss spawns
-let miniBossThisWave = 0; // v4.10.2: Per-wave mini-boss counter to prevent spam
 
 // Drop system now managed by G.DropSystem singleton
 // Boss fight drops also managed by G.DropSystem
+
+// --- v4.28.0: Per-run variables now live in RunState ---
+// Aliases for backward compat (avoid massive find-replace in all logic)
+// These properties delegate to runState.xxx
+let score, level, totalTime, killCount, streak, bestStreak;
+let killStreak, killStreakMult, lastKillTime, lastScoreMilestone;
+let grazeCount, grazeMeter, grazeMultiplier, grazePerksThisLevel, lastGrazeSoundTime, lastGrazeTime;
+let bulletCancelStreak, bulletCancelTimer, perkCooldown;
+let sacrificeState, sacrificeDecisionTimer, sacrificeActiveTimer, sacrificeScoreAtStart;
+let sacrificesUsedThisRun, sacrificeScoreEarned, sacrificeGhostTrail;
+let fiatKillCounter, lastMiniBossSpawnTime, miniBossThisWave;
+let waveStartTime, _frameKills, _hyperAmbientTimer, marketCycle;
+
+// Sync local aliases FROM RunState (call after runState.reset())
+function syncFromRunState() {
+    score = runState.score;
+    level = runState.level;
+    totalTime = runState.totalTime;
+    killCount = runState.killCount;
+    streak = runState.streak;
+    bestStreak = runState.bestStreak;
+    killStreak = runState.killStreak;
+    killStreakMult = runState.killStreakMult;
+    lastKillTime = runState.lastKillTime;
+    lastScoreMilestone = runState.lastScoreMilestone;
+    grazeCount = runState.grazeCount;
+    grazeMeter = runState.grazeMeter;
+    grazeMultiplier = runState.grazeMultiplier;
+    grazePerksThisLevel = runState.grazePerksThisLevel;
+    lastGrazeSoundTime = runState.lastGrazeSoundTime;
+    lastGrazeTime = runState.lastGrazeTime;
+    bulletCancelStreak = runState.bulletCancelStreak;
+    bulletCancelTimer = runState.bulletCancelTimer;
+    perkCooldown = runState.perkCooldown;
+    sacrificeState = runState.sacrificeState;
+    sacrificeDecisionTimer = runState.sacrificeDecisionTimer;
+    sacrificeActiveTimer = runState.sacrificeActiveTimer;
+    sacrificeScoreAtStart = runState.sacrificeScoreAtStart;
+    sacrificesUsedThisRun = runState.sacrificesUsedThisRun;
+    sacrificeScoreEarned = runState.sacrificeScoreEarned;
+    sacrificeGhostTrail = runState.sacrificeGhostTrail;
+    fiatKillCounter = runState.fiatKillCounter;
+    lastMiniBossSpawnTime = runState.lastMiniBossSpawnTime;
+    miniBossThisWave = runState.miniBossThisWave;
+    waveStartTime = runState.waveStartTime;
+    _frameKills = runState._frameKills;
+    _hyperAmbientTimer = runState._hyperAmbientTimer;
+    marketCycle = runState.marketCycle;
+    // Expose globals for WaveManager & debug
+    window.marketCycle = marketCycle;
+    window.currentLevel = level;
+    window.fiatKillCounter = fiatKillCounter;
+}
+
+// Initial sync
+syncFromRunState();
 
 // --- DIFFICULTY SYSTEM ---
 // Single unified difficulty multiplier (0.0 = Level 1, capped at MAX_DIFFICULTY)
@@ -1168,7 +1496,7 @@ function init() {
         const splash = document.getElementById('splash-layer');
         if (!splash || splash.style.opacity === '0') return;
         // App startup (log removed for production)
-        gameState = 'INTRO';
+        setGameState('INTRO');
         introState = 'SPLASH';
         splash.style.opacity = '0';
         audioSys.init();
@@ -1336,7 +1664,7 @@ function init() {
         updatePrimaryButton('SPLASH');
 
         updateUIText();
-        gameState = 'INTRO';
+        setGameState('INTRO');
         introState = 'SPLASH';
         initIntroShip();
     }
@@ -1622,7 +1950,7 @@ window.goToHangar = function () {
     window.scrollTo(0, 0);
     setStyle('intro-screen', 'display', 'none');
     setStyle('hangar-screen', 'display', 'flex');
-    gameState = 'HANGAR';
+    setGameState('HANGAR');
     if (G.SkyRenderer) G.SkyRenderer.init(gameWidth, gameHeight); // Start BG effect early
     if (G.MessageSystem) G.MessageSystem.init(gameWidth, gameHeight, {
         onShake: (intensity) => { shake = Math.max(shake, intensity); },
@@ -1969,8 +2297,8 @@ function completeTutorial() {
 }
 
 window.togglePause = function () {
-    if (gameState === 'PLAY' || gameState === 'INTERMISSION') { gameState = 'PAUSE'; setStyle('pause-screen', 'display', 'flex'); setStyle('pause-btn', 'display', 'none'); }
-    else if (gameState === 'PAUSE') { gameState = 'PLAY'; setStyle('pause-screen', 'display', 'none'); setStyle('pause-btn', 'display', 'block'); }
+    if (gameState === 'PLAY' || gameState === 'INTERMISSION') { setGameState('PAUSE'); setStyle('pause-screen', 'display', 'flex'); setStyle('pause-btn', 'display', 'none'); }
+    else if (gameState === 'PAUSE') { setGameState('PLAY'); setStyle('pause-screen', 'display', 'none'); setStyle('pause-btn', 'display', 'block'); }
 };
 window.restartRun = function () {
     setStyle('pause-screen', 'display', 'none');
@@ -2017,7 +2345,7 @@ window.backToIntro = function () {
             introScreen.style.pointerEvents = 'auto';
         }
 
-        gameState = 'INTRO';
+        setGameState('INTRO');
         introState = 'SPLASH';
 
         // Reset to splash state (unified intro v4.8.1)
@@ -2194,14 +2522,14 @@ function showStoryScreen(storyId, onComplete) {
         campaignState.save();
     }
 
-    gameState = 'STORY_SCREEN';
+    setGameState('STORY_SCREEN');
 
     // Hide HUD during story
     if (ui.uiLayer) ui.uiLayer.style.display = 'none';
     if (ui.touchControls) ui.touchControls.style.display = 'none';
 
     G.StoryScreen.show(storyId, () => {
-        gameState = 'PLAY';
+        setGameState('PLAY');
         // Restore HUD after story screen (was hidden at line 2048-2049)
         if (ui.uiLayer) ui.uiLayer.style.display = 'flex';
         if (ui.touchControls) {
@@ -2325,7 +2653,10 @@ function startGame() {
         });
     }
 
+    // v4.28.0: RunState handles all per-run variable resets
     if (runState && runState.reset) runState.reset();
+    syncFromRunState();
+
     // v4.20.0: Ensure meme popup DOM refs are cached
     if (G.MemeEngine) G.MemeEngine.initDOM();
     // v4.26.0: Ensure message strip DOM refs are cached
@@ -2336,15 +2667,12 @@ function startGame() {
     player.maxHp = 1;
     player.hp = 1;
     volatilityTimer = 0;
-    bulletCancelStreak = 0;
-    bulletCancelTimer = 0;
-    perkCooldown = 0;
     memeSwapTimer = Balance.MEMES.TICKER_SWAP_INTERVAL;
     closePerkChoice();
     recentPerks = []; // Reset perk display
     renderPerkBar();
 
-    score = 0; level = 1; lives = Balance.PLAYER.START_LIVES; setUI('scoreVal', '0'); setUI('lvlVal', '1'); setUI('livesText', lives);
+    lives = Balance.PLAYER.START_LIVES; setUI('scoreVal', '0'); setUI('lvlVal', '1'); setUI('livesText', lives);
     updateDifficultyCache(); // Initialize difficulty cache for level 1
 
     // Analytics: Start tracking run
@@ -2362,13 +2690,13 @@ function startGame() {
     window.enemyBullets = enemyBullets;
     window.boss = null; window.miniBoss = null; // v2.22.5: Sync for debug overlay
     if (G.HarmonicConductor) G.HarmonicConductor.enemies = enemies;
-    grazeCount = 0; grazeMeter = 0; grazeMultiplier = 1.0; updateGrazeUI(); // Reset grazing
+    updateGrazeUI(); // Reset grazing UI
 
     waveMgr.reset();
     gridDir = 1;
     // gridSpeed now computed dynamically via getGridSpeed()
 
-    gameState = 'PLAY';
+    setGameState('PLAY');
 
     // WEAPON EVOLUTION v3.0: Full reset on new game (resets shot level to 1)
     if (player.fullReset) {
@@ -2389,38 +2717,17 @@ function startGame() {
         showDanger("🩸 " + t('SURVIVE_CRASH') + " 🩸");
     }
 
-    killCount = 0;
-    streak = 0;
-    bestStreak = 0;
-    killStreak = 0;
-    killStreakMult = 1.0;
-    lastKillTime = 0;
-    marketCycle = 1; // Reset cycle
-    window.marketCycle = marketCycle;
-    window.currentLevel = level; // Reset for WaveManager
     updateKillCounter(); // Reset display
-
-    // Reset fiat kill counter and mini-boss
-    fiatKillCounter = { '¥': 0, '₽': 0, '₹': 0, '€': 0, '£': 0, '₣': 0, '₺': 0, '$': 0, '元': 0, 'Ⓒ': 0 };
     miniBoss = null;
-    lastMiniBossSpawnTime = 0; // v2.24.4: Reset cooldown
-    miniBossThisWave = 0; // v4.10.2: Reset per-wave counter
     G.DropSystem.reset(); // Reset drop system (pity timer, weapon cooldown, boss drops)
     G.MemeEngine.reset(); // Reset meme engine (ticker timer, popup cooldown)
-    grazePerksThisLevel = 0; // Reset graze perk cap
-    lastGrazeTime = totalTime; // Reset graze decay to current time
     perkPauseTimer = 0; // Reset perk pause
     perkPauseData = null;
     bossWarningTimer = 0; // Reset boss warning
     bossWarningType = null;
-    sacrificesUsedThisRun = 0; // Reset sacrifice limit (max 1 per run)
-
-    // Reset wave timing
-    waveStartTime = 0;
 
     // Reset visual effects
     shake = 0;
-    totalTime = 0;
     deathAlreadyTracked = false; // Reset death tracking flag
     if (G.SkyRenderer) G.SkyRenderer.reset(); // Reset sky state (lightning, etc.)
     if (G.TransitionManager) G.TransitionManager.reset();
@@ -2433,6 +2740,9 @@ function startGame() {
         G.HarmonicConductor.setDifficulty(level, marketCycle, isBearMarket);
         G.HarmonicConductor.enabled = true;
     }
+
+    // v4.28.0: Initialize CollisionSystem with game context
+    initCollisionSystem();
 
     emitEvent('run_start', { bear: isBearMarket });
 
@@ -2450,7 +2760,7 @@ function highlightShip(idx) {
 }
 
 function startIntermission(msgOverride) {
-    gameState = 'INTERMISSION';
+    setGameState('INTERMISSION');
     waveMgr.intermissionTimer = Balance.TIMING.INTERMISSION_DURATION;
     waveMgr.waveInProgress = false; // Safety reset
 
@@ -2552,7 +2862,7 @@ function startHordeTransition() {
 
 function startHorde2() {
     // Spawn horde 2 for current wave
-    gameState = 'PLAY';
+    setGameState('PLAY');
     waveMgr.waveInProgress = false;
 
     // v4.4: Horde 2 notification via WAVE_STRIP
@@ -3200,7 +3510,7 @@ function update(dt) {
         if (waveAction.action === 'SPAWN_BOSS') {
             startBossWarning(); // Start warning instead of immediate spawn
         } else if (waveAction.action === 'START_WAVE') {
-            gameState = 'PLAY';
+            setGameState('PLAY');
             triggerScreenFlash('WAVE_START'); // Brief white flash at wave start
             // Increment level for every wave EXCEPT the very first one (level=1, wave=1)
             const isFirstWaveEver = (level === 1 && waveMgr.wave === 1);
@@ -3363,352 +3673,36 @@ function update(dt) {
 }
 
 function updateBullets(dt) {
-    // Player Bullets
+    // Player Bullets — update + collision via CollisionSystem
     for (let i = bullets.length - 1; i >= 0; i--) {
         let b = bullets[i];
-        if (!b) { bullets.splice(i, 1); continue; } // Safety check
-        b.update(dt, enemies, boss); // Pass enemies and boss for homing tracking
+        if (!b) { bullets.splice(i, 1); continue; }
+        b.update(dt, enemies, boss);
         if (b.markedForDeletion) {
             G.Bullet.Pool.release(b);
             bullets.splice(i, 1);
         } else {
-            if (boss && boss.active && b.x > boss.x && b.x < boss.x + boss.width && b.y > boss.y && b.y < boss.y + boss.height) {
-                const baseBossDmg = Math.ceil((player.stats.baseDamage || 14) / 4);
-                const dmgMult = (runState && runState.getMod) ? runState.getMod('damageMult', 1) : 1;
-                let dmg = baseBossDmg * dmgMult;
-                if (b.isHodl) dmg = Math.ceil(dmg * Balance.SCORE.HODL_MULT_BOSS); // HODL bonus vs boss
-                if (runState && runState.flags && runState.flags.hodlBonus && b.isHodl) dmg = Math.ceil(dmg * 1.15);
-                boss.damage(dmg);
-                audioSys.play('hitEnemy');
-
-                // Boss drops power-ups every N hits - delegated to DropSystem
-                // WEAPON EVOLUTION v3.0: Use new evolution drop system
-                const useEvolutionBoss = !!(Balance.WEAPON_EVOLUTION && player.shotLevel);
-                const bossDropInfo = G.DropSystem.tryBossDrop(
-                    boss.x + boss.width / 2, boss.y + boss.height, totalTime,
-                    useEvolutionBoss ? buildPlayerState() : getUnlockedWeapons,
-                    useEvolutionBoss
-                );
-                if (bossDropInfo) {
-                    powerUps.push(new G.PowerUp(bossDropInfo.x, bossDropInfo.y, bossDropInfo.type));
-                    audioSys.play('coinPerk');
-                    if (G.Debug) G.Debug.trackDropSpawned(bossDropInfo.type, bossDropInfo.category, 'boss');
+            // v4.28.0: Boss collision delegated to CollisionSystem
+            if (boss && boss.active) {
+                if (G.CollisionSystem.processPlayerBulletVsBoss(b, i, bullets)) {
+                    continue; // Hit or killed boss, bullet handled
                 }
-
-                if (!b.penetration) {
-                    b.markedForDeletion = true;
-                    G.Bullet.Pool.release(b);
-                    bullets.splice(i, 1);
-                }
-                if (boss.hp <= 0) {
-                    // Save boss info before clearing
-                    const defeatedBossType = boss.bossType || 'FEDERAL_RESERVE';
-                    const defeatedBossName = boss.name || 'THE FED';
-
-                    // Epic boss death explosion!
-                    const bossX = boss.x + boss.width / 2;
-                    const bossY = boss.y + boss.height / 2;
-                    createBossDeathExplosion(bossX, bossY);
-
-                    // Boss defeat juice (Ikeda philosophy - maximum impact)
-                    applyHitStop('BOSS_DEFEAT', false); // Long slowmo for epic death
-                    triggerScreenFlash('BOSS_DEFEAT');
-
-                    // Victory flash via TransitionManager
-                    if (G.TransitionManager) G.TransitionManager.startFadeOut(0.8, '#ffffff');
-
-                    const bossBonus = Balance.SCORE.BOSS_DEFEAT_BASE + (marketCycle * Balance.SCORE.BOSS_DEFEAT_PER_CYCLE);
-                    score += bossBonus;
-                    createFloatingScore(bossBonus, bossX, bossY - 50); // Boss bonus floating score
-                    boss.active = false; boss = null; window.boss = null; shake = 60; audioSys.play('explosion');
-                    audioSys.setBossPhase(0); // Reset boss music
-
-                    // v2.22.4: Clear all boss bullets AND minions to prevent ghost entities after death
-                    enemyBullets.forEach(b => G.Bullet.Pool.release(b));
-                    enemyBullets.length = 0;
-                    window.enemyBullets = enemyBullets;
-
-                    // v2.22.6: Set defensive flag to catch any edge-case ghost bullets on next frame
-                    bossJustDefeated = true;
-
-                    // Clear boss minions (spawned by printMoney() in phase 3)
-                    enemies.length = 0;
-                    G.enemies = enemies;
-                    if (G.HarmonicConductor) G.HarmonicConductor.enemies = enemies;
-
-                    // v2.22.4: Clear any active miniBoss
-                    if (miniBoss) {
-                        miniBoss.active = false;
-                        miniBoss = null;
-                        if (waveMgr) waveMgr.miniBossActive = false;
-                    }
-
-                    updateScore(score);
-                    showVictory("🏆 " + defeatedBossName + ' ' + t('DEFEATED'));
-
-                    // Boss-specific victory meme
-                    const victoryMemes = {
-                        'FEDERAL_RESERVE': "💥 INFLATION CANCELLED!",
-                        'BCE': "💥 FRAGMENTATION COMPLETE!",
-                        'BOJ': "💥 YEN LIBERATED!"
-                    };
-                    G.MemeEngine.queueMeme('BOSS_DEFEATED', victoryMemes[defeatedBossType] || "CENTRAL BANK DESTROYED!", defeatedBossName);
-
-                    // New cycle - increase difficulty (level will increment on next wave start)
-                    console.log(`[BOSS DEFEATED] ${defeatedBossType} at level=${level}, cycle=${marketCycle}, wave=${waveMgr.wave}`);
-
-                    // v2.22.5: Track boss defeat event
-                    G.Debug.trackBossDefeat(defeatedBossType, level, marketCycle);
-
-                    // Analytics: Track boss fight end and cycle end
-                    if (G.Debug) {
-                        G.Debug.trackBossFightEnd(defeatedBossType, marketCycle);
-                        G.Debug.trackCycleEnd(marketCycle, Math.floor(score));
-                    }
-
-                    marketCycle++;
-                    window.marketCycle = marketCycle; // Update global
-                    console.log(`[BOSS DEFEATED] Cycle incremented to ${marketCycle}, calling waveMgr.reset()`);
-
-                    // v2.22.5: Track cycle up event
-                    G.Debug.trackCycleUp(marketCycle);
-
-                    // Analytics: Track new cycle start
-                    if (G.Debug) G.Debug.trackCycleStart(marketCycle);
-                    checkWeaponUnlocks(marketCycle); // Check for new weapon unlocks
-                    waveMgr.reset();
-
-                    // v2.22.3: Reset fiat kill counter to prevent mini-boss cascade in new cycle
-                    fiatKillCounter = { '¥': 0, '₽': 0, '₹': 0, '€': 0, '£': 0, '₣': 0, '₺': 0, '$': 0, '元': 0, 'Ⓒ': 0 };
-
-                    // Reset Harmonic Conductor for new wave cycle
-                    if (G.HarmonicConductor) {
-                        G.HarmonicConductor.reset(); // Full reset to clear any pending patterns
-                        G.HarmonicConductor.setDifficulty(level, marketCycle, isBearMarket);
-                    }
-
-                    // v4.21: Campaign completion based on boss rotation (BOJ = last boss in cycle)
-                    const campaignState = G.CampaignState;
-                    const campaignComplete = !!(campaignState && campaignState.isEnabled() && defeatedBossType === 'BOJ');
-
-                    // Story Mode: Show chapter after boss defeat
-                    const chapterId = G.BOSS_TO_CHAPTER && G.BOSS_TO_CHAPTER[defeatedBossType];
-                    const shouldShowChapter = chapterId && shouldShowStory(chapterId);
-
-                    if (campaignComplete && shouldShowChapter) {
-                        // Final chapter + victory: show Chapter 3 with victory screen after
-                        showStoryScreen(chapterId, () => {
-                            showCampaignVictory();
-                        });
-                    } else if (campaignComplete) {
-                        // Campaign complete, chapter already shown - go to victory
-                        showCampaignVictory();
-                    } else if (shouldShowChapter) {
-                        // Show chapter, then intermission
-                        showStoryScreen(chapterId, () => {
-                            startIntermission(t('CYCLE') + ' ' + marketCycle + ' ' + t('BEGINS'));
-                        });
-                    } else {
-                        // Arcade mode or chapter already shown
-                        startIntermission(t('CYCLE') + ' ' + marketCycle + ' ' + t('BEGINS'));
-                    }
-
-                    emitEvent('boss_killed', { level: level, cycle: marketCycle, bossType: defeatedBossType, campaignComplete: campaignComplete });
-
-                    // Override intermission meme with boss-specific defeat quote (v4.20.0: via popup)
-                    const bossDefeatPool = G.DIALOGUES && G.DIALOGUES.BOSS_DEFEAT && G.DIALOGUES.BOSS_DEFEAT[defeatedBossType];
-                    if (bossDefeatPool && bossDefeatPool.length > 0) {
-                        const bossQuote = bossDefeatPool[Math.floor(Math.random() * bossDefeatPool.length)];
-                        const quoteText = (typeof bossQuote === 'string' ? bossQuote : (bossQuote && bossQuote.text)) || '';
-                        if (quoteText) {
-                            G.MemeEngine.queueMeme('BOSS_DEFEATED', '\u201C' + quoteText + '\u201D', defeatedBossName);
-                        }
-                    }
-                }
-            } else if (miniBoss && miniBoss.active && checkMiniBossHit(b)) {
-                // Mini-boss was hit
+            }
+            if (miniBoss && miniBoss.active && checkMiniBossHit(b)) {
                 if (!b.penetration) {
                     b.markedForDeletion = true;
                     G.Bullet.Pool.release(b);
                     bullets.splice(i, 1);
                 }
             } else {
-                checkBulletCollisions(b, i);
+                // v4.28.0: Enemy collision delegated to CollisionSystem
+                G.CollisionSystem.processPlayerBulletVsEnemy(b, i, bullets);
             }
         }
     }
 
-    // Enemy Bullets - dual hitbox system: tiny core for damage, larger zone for grazing
-    for (let i = enemyBullets.length - 1; i >= 0; i--) {
-        let eb = enemyBullets[i];
-        if (!eb) { enemyBullets.splice(i, 1); continue; }
-        eb.update(dt);
-        if (eb.markedForDeletion) {
-            G.Bullet.Pool.release(eb);
-            enemyBullets.splice(i, 1);
-        } else {
-            // Core hitbox for actual damage (tiny)
-            // Use dynamic hitbox (larger during HYPER)
-            const coreR = player.getCoreHitboxSize ? player.getCoreHitboxSize() : (player.stats.coreHitboxSize || 6);
-            // Graze radius - outer zone for grazing points
-            const grazeR = coreR + Balance.GRAZE.RADIUS;
-            // v4.22: Enemy bullet collision radius from config
-            const ebR = eb.collisionRadius || Balance.BULLET_CONFIG.ENEMY_DEFAULT.collisionRadius;
-
-            // SACRIFICE MODE: Bullets pass through (total invincibility)
-            if (sacrificeState === 'ACTIVE') {
-                // No collision, no graze - just walk through bullets
-                continue;
-            }
-
-            // Check if within core hitbox (take damage) — v4.22: circle collision
-            if (G.BulletSystem.circleCollide(eb.x, eb.y, ebR, player.x, player.y, coreR)) {
-                // HYPER MODE: Instant death if hit (bypass lives/shield)
-                if (player.isHyperActive && player.isHyperActive()) {
-                    player.deactivateHyper();
-                    player.hp = 0;
-                    // Track HYPER death specially (set flag to prevent double tracking)
-                    if (G.Debug) G.Debug.trackPlayerDeath(lives, level, 'hyper');
-                    deathAlreadyTracked = true;
-                    G.Bullet.Pool.release(eb);
-                    enemyBullets.splice(i, 1);
-                    shake = 60;
-                    showDanger(t('HYPER_FAILED'));
-                    startDeathSequence();
-                    return; // Exit collision check
-                }
-
-                if (player.takeDamage()) {
-                    updateLivesUI(true); // Hit animation
-                    G.Bullet.Pool.release(eb);
-                    enemyBullets.splice(i, 1);
-                    shake = 20;
-                    bulletCancelStreak = 0;
-                    bulletCancelTimer = 0;
-                    grazeCount = 0; // Reset graze on hit
-                    grazeMeter = Math.max(0, grazeMeter - 30); // Lose graze meter
-                    emitEvent('player_hit', { hp: player.hp, maxHp: player.maxHp });
-
-                    if (player.hp <= 0) {
-                        startDeathSequence();
-                    } else {
-                        applyHitStop('PLAYER_HIT', false); // Slowmo on hit
-                        triggerScreenFlash('PLAYER_HIT');
-                    }
-                    streak = 0;
-                    killStreak = 0;
-                    killStreakMult = 1.0;
-                }
-            }
-            // Check if within graze zone (but not core) - award graze points — v4.22: circle collision
-            else if (G.BulletSystem.circleCollide(eb.x, eb.y, ebR, player.x, player.y, grazeR) && !eb.grazed) {
-                eb.grazed = true; // Mark as grazed to prevent double-counting
-                lastGrazeTime = totalTime; // Reset decay timer
-
-                // Close graze: tighter zone, higher reward
-                const closeGrazeR = coreR + Balance.GRAZE.CLOSE_RADIUS;
-                const isCloseGraze = G.BulletSystem.circleCollide(eb.x, eb.y, ebR, player.x, player.y, closeGrazeR);
-                const grazeBonus = isCloseGraze ? Balance.GRAZE.CLOSE_BONUS : 1;
-
-                // Analytics: Track graze
-                if (G.Debug) G.Debug.trackGraze(isCloseGraze);
-
-                // Check if HYPER is active
-                const isHyperActive = player.isHyperActive && player.isHyperActive();
-
-                if (isHyperActive) {
-                    // HYPER MODE: Extend timer instead of building meter
-                    player.extendHyper();
-
-                    // HYPER score multiplier (stacks with graze bonus)
-                    const hyperMult = Balance.HYPER.SCORE_MULT;
-                    const grazePoints = Math.floor(Balance.GRAZE.POINTS_BASE * hyperMult * grazeBonus);
-                    score += grazePoints;
-                    updateScore(score);
-
-                    // Intense visual effect during HYPER graze
-                    createGrazeSpark(eb.x, eb.y, player.x, player.y, true); // Always golden
-                    createGrazeSpark(eb.x, eb.y, player.x, player.y, true); // Double particles
-
-                    // HYPER graze sound (higher pitch)
-                    if (totalTime - lastGrazeSoundTime > Balance.GRAZE.SOUND_THROTTLE) {
-                        audioSys.play('hyperGraze');
-                        lastGrazeSoundTime = totalTime;
-                    }
-                } else {
-                    // Normal graze mode
-                    grazeCount += grazeBonus;
-                    if (G.RankSystem) G.RankSystem.onGraze(); // v4.1.0: Rank signal
-                    const meterGain = isCloseGraze ? Balance.GRAZE.METER_GAIN_CLOSE : Balance.GRAZE.METER_GAIN;
-                    grazeMeter = Math.min(100, grazeMeter + meterGain);
-                    grazeMultiplier = 1 + (grazeMeter / Balance.GRAZE.MULT_DIVISOR) * (Balance.GRAZE.MULT_MAX - 1);
-
-                    // Award graze points (primary score source)
-                    const grazePoints = Math.floor(Balance.GRAZE.POINTS_BASE * grazeMultiplier * grazeBonus);
-                    score += grazePoints;
-                    updateScore(score);
-
-                    // Graze visual effect (bigger for close graze)
-                    createGrazeSpark(eb.x, eb.y, player.x, player.y, isCloseGraze);
-
-                    // Close graze hit stop (Ikeda juice - micro-freeze on near miss)
-                    if (isCloseGraze) {
-                        applyHitStop('CLOSE_GRAZE', true);
-                    }
-
-                    // Play graze sound (throttled - using new config value)
-                    const soundThrottle = Balance.GRAZE.SOUND_THROTTLE || 0.1;
-                    if (totalTime - lastGrazeSoundTime > soundThrottle) {
-                        if (isCloseGraze) {
-                            audioSys.play('grazeNearMiss'); // Whoosh for close calls
-                        } else {
-                            audioSys.play('graze'); // Crystalline shimmer with pitch scaling
-                        }
-                        lastGrazeSoundTime = totalTime;
-                    }
-
-                    // Graze streak every 10
-                    if (grazeCount > 0 && grazeCount % 10 === 0) {
-                        audioSys.play('grazeStreak');
-                    }
-
-                    // Perk bonus every Balance.GRAZE.PERK_THRESHOLD (capped per level)
-                    if (grazeCount > 0 && grazeCount % Balance.GRAZE.PERK_THRESHOLD === 0) {
-                        if (grazePerksThisLevel < Balance.GRAZE.MAX_PERKS_PER_LEVEL) {
-                            applyRandomPerk();
-                            audioSys.play('grazePerk'); // Triumphant fanfare
-                            G.MemeEngine.queueMeme('GRAZE', t('GRAZE_BONUS'), 'GRAZE');
-                            grazePerksThisLevel++;
-                        } else {
-                            // Max graze perks reached, give score instead
-                            score += 500;
-                            updateScore(score);
-                            showGameInfo("+500 " + t('GRAZE_MASTER'));
-                        }
-                    }
-
-                    // Check if meter is now full
-                    if (grazeMeter >= Balance.HYPER.METER_THRESHOLD && player.hyperCooldown <= 0) {
-                        if (Balance.HYPER.AUTO_ACTIVATE && player.canActivateHyper && player.canActivateHyper(grazeMeter)) {
-                            // v4.21: Auto-activate HYPER when meter is full
-                            player.activateHyper();
-                            grazeMeter = 0;
-                            updateGrazeUI();
-                            triggerScreenFlash('HYPER_ACTIVATE');
-                        } else if (!player.hyperAvailable) {
-                            // Legacy manual mode fallback
-                            player.hyperAvailable = true;
-                            showGameInfo(t('HYPER_READY') + " [H]");
-                            audioSys.play('hyperReady');
-                        }
-                    }
-                }
-
-                // Update graze HUD
-                updateGrazeUI();
-            }
-        }
-    }
+    // v4.28.0: Enemy bullet vs player delegated to CollisionSystem
+    G.CollisionSystem.processEnemyBulletsVsPlayer(dt);
 }
 
 // Graze spark effect - particles flying toward player
@@ -3924,210 +3918,7 @@ function drawSacrificeUI(ctx) {
     }
 }
 
-function checkBulletCollisions(b, bIdx) {
-    for (let j = enemies.length - 1; j >= 0; j--) {
-        let e = enemies[j];
-        if (!e) continue; // Safety check: enemy may have been removed during iteration
-        // Skip enemies still entering formation (invulnerable until settled)
-        if (e.isEntering || !e.hasSettled) continue;
-        if (G.BulletSystem.bulletHitsEntity(b, e, Balance.BULLET_CONFIG.ENEMY_HITBOX_RADIUS)) { // v4.22: circle collision (was AABB 30px)
-            const baseDmg = player.stats.baseDamage || 14;
-            const dmgMult = (runState && runState.getMod) ? runState.getMod('damageMult', 1) : 1;
-            let dmg = baseDmg * dmgMult;
-
-            // WEAPON EVOLUTION v3.0: Apply bullet's POWER modifier damage bonus
-            if (b.damageMult && b.damageMult > 1) {
-                dmg *= b.damageMult;
-            }
-
-            if (b.isHodl) dmg *= Balance.SCORE.HODL_MULT_ENEMY; // HODL bonus vs enemies
-            if (runState && runState.flags && runState.flags.hodlBonus && b.isHodl) dmg *= 1.15; // Stacks with perk
-
-            // v4.0.2: ETH Smart Contract - consecutive hit bonus
-            if (player.getSmartContractMult) {
-                dmg *= player.getSmartContractMult(e);
-            }
-
-            // Use takeDamage which handles shields
-            const shouldDie = e.takeDamage(dmg);
-            audioSys.play('hitEnemy');
-
-            // v4.5: Impact spark on every hit (colored by bullet)
-            const sparkColor = b.color || player.stats?.color || '#fff';
-            const sparkOpts = {
-                shotLevel: player.shotLevel || 1,
-                hasPower: player.modifiers?.power?.level > 0,
-                isKill: shouldDie,
-                isHyper: player.isHyperActive && player.isHyperActive()
-            };
-            createBulletSpark(e.x, e.y, sparkColor, sparkOpts);
-
-            if (shouldDie) {
-                enemies.splice(j, 1);
-                audioSys.play('coinScore');
-                applyHitStop('ENEMY_KILL', true); // Micro-freeze on kill
-                if (G.RankSystem) G.RankSystem.onKill(); // v4.1.0: Rank signal
-
-                // Update kill streak
-                const now = totalTime;
-                if (now - lastKillTime < Balance.SCORE.STREAK_TIMEOUT) {
-                    killStreak++;
-                    killStreakMult = Math.min(
-                        Balance.SCORE.STREAK_MULT_MAX,
-                        1 + killStreak * Balance.SCORE.STREAK_MULT_PER_KILL
-                    );
-
-                    // Streak milestone effects (Ikeda juice)
-                    if (killStreak === 10) {
-                        applyHitStop('STREAK_10', false); // Slowmo for milestone
-                        triggerScreenFlash('STREAK_10');
-                        triggerScoreStreakColor(10);
-                    } else if (killStreak === 25) {
-                        applyHitStop('STREAK_25', false);
-                        triggerScreenFlash('STREAK_25');
-                        triggerScoreStreakColor(25);
-                    } else if (killStreak === 50) {
-                        applyHitStop('STREAK_50', false);
-                        triggerScreenFlash('STREAK_50');
-                        triggerScoreStreakColor(50);
-                    }
-                } else {
-                    killStreak = 1;
-                    killStreakMult = 1.0;
-                }
-                lastKillTime = now;
-
-                // Calculate score with all multipliers
-                const perkMult = (runState && runState.getMod) ? runState.getMod('scoreMult', 1) : 1;
-                const bearMult = isBearMarket ? Balance.SCORE.BEAR_MARKET_MULT : 1;
-                const grazeKillBonus = grazeMeter >= Balance.SCORE.GRAZE_KILL_THRESHOLD
-                    ? Balance.SCORE.GRAZE_KILL_BONUS : 1;
-                const hyperMult = (player.isHyperActive && player.isHyperActive()) ? Balance.HYPER.SCORE_MULT : 1;
-
-                // Last enemy bonus (Ikeda choreography - dramatic finale)
-                const isLastEnemy = enemies.length === 1; // This enemy is being removed, so if length is 1, it's the last
-                const lastEnemyMult = isLastEnemy && G.HarmonicConductor
-                    ? G.HarmonicConductor.getLastEnemyBonus() : 1;
-
-                // Satoshi's Sacrifice multiplier (10x during sacrifice mode)
-                const sacrificeMult = sacrificeState === 'ACTIVE' ? Balance.SACRIFICE.SCORE_MULT : 1;
-
-                const killScore = Math.floor(e.scoreVal * bearMult * perkMult * killStreakMult * grazeKillBonus * hyperMult * lastEnemyMult * sacrificeMult);
-                score += killScore;
-                updateScore(score);
-
-                // Track sacrifice earnings
-                if (sacrificeState === 'ACTIVE') {
-                    sacrificeScoreEarned += killScore;
-                }
-
-                createFloatingScore(killScore, e.x, e.y - 20);
-
-                // Last enemy special effects (Ikeda choreography finale)
-                if (isLastEnemy && lastEnemyMult > 1) {
-                    applyHitStop('STREAK_25', false); // Dramatic slowmo
-                    triggerScreenFlash('STREAK_25'); // Gold flash
-                    showGameInfo("💀 " + t('LAST_FIAT') + " x" + lastEnemyMult.toFixed(0));
-                }
-
-                createEnemyDeathExplosion(e.x, e.y, e.color, e.symbol || '$', e.shape);
-                createScoreParticles(e.x, e.y, e.color);
-
-                // v4.5: Multi-kill detection & strong-tier shake
-                _frameKills++;
-                if (_frameKills >= 2) {
-                    const vfx = Balance?.VFX || {};
-                    const mkFlash = vfx.MULTI_KILL_FLASH || { duration: 0.08, opacity: 0.20, color: '#FFFFFF' };
-                    triggerScreenFlash('MULTI_KILL');
-                    applyHitStop('STREAK_10', false); // Satisfying slowmo
-                }
-                // Strong tier: extra shake on kill
-                if (Balance?.isStrongTier && Balance.isStrongTier(e.symbol)) {
-                    const vfx = Balance?.VFX || {};
-                    shake = Math.max(shake, vfx.STRONG_KILL_SHAKE || 3);
-                }
-
-                killCount++;
-                streak++;
-                if (streak > bestStreak) bestStreak = streak;
-                // Analytics: Track kill streak
-                if (G.Debug) G.Debug.trackKillStreak(streak);
-                updateKillCounter();
-                checkStreakMeme();
-                emitEvent('enemy_killed', { score: killScore, x: e.x, y: e.y });
-
-                // Mini-boss trigger: Arcade only (v4.11.0: disabled in Story Mode)
-                // v2.18.0: Currency-specific boss mapping | v2.22.1: No trigger during boss/warning/minions
-                if (!(G.CampaignState && G.CampaignState.isEnabled()) && e.symbol && fiatKillCounter[e.symbol] !== undefined && !miniBoss && !boss && !e.isMinion && bossWarningTimer <= 0 && (totalTime - lastMiniBossSpawnTime) >= Balance.MINI_BOSS.COOLDOWN && miniBossThisWave < (Balance.MINI_BOSS.MAX_PER_WAVE || 2)) {
-                    fiatKillCounter[e.symbol]++;
-
-                    // Look up currency-specific boss mapping
-                    const mapping = Balance.MINI_BOSS.CURRENCY_BOSS_MAP?.[e.symbol];
-                    const threshold = mapping?.threshold || Balance.MINI_BOSS.KILL_THRESHOLD;
-
-                    // Debug: Log counter progress for MINIBOSS category
-                    G.Debug.log('MINIBOSS', `Kill ${e.symbol}: ${fiatKillCounter[e.symbol]}/${threshold}`);
-
-                    if (fiatKillCounter[e.symbol] >= threshold) {
-                        // Determine boss type based on mapping
-                        let bossType = mapping?.boss || 'FEDERAL_RESERVE';
-
-                        if (bossType === 'RANDOM') {
-                            // Random boss from rotation
-                            const rotation = G.BOSS_ROTATION || ['FEDERAL_RESERVE', 'BCE', 'BOJ'];
-                            bossType = rotation[Math.floor(Math.random() * rotation.length)];
-                        } else if (bossType === 'CYCLE_BOSS') {
-                            // Boss of current cycle
-                            const rotation = G.BOSS_ROTATION || ['FEDERAL_RESERVE', 'BCE', 'BOJ'];
-                            bossType = rotation[(marketCycle - 1) % rotation.length];
-                        }
-
-                        // v2.22.5: Track mini-boss spawn
-                        G.Debug.trackMiniBossSpawn(bossType, e.symbol, fiatKillCounter[e.symbol]);
-                        // Store spawn info for duration tracking
-                        G.Debug._miniBossStartInfo = {
-                            type: bossType,
-                            trigger: e.symbol,
-                            killCount: fiatKillCounter[e.symbol],
-                            startTime: Date.now()
-                        };
-
-                        lastMiniBossSpawnTime = totalTime; // v2.24.4: Track spawn time for cooldown
-                        miniBossThisWave++; // v4.10.2: Increment per-wave counter
-                        spawnMiniBoss(bossType, e.color);
-                        // v2.24.4: Reset ALL counters to prevent cascade spawns (was only resetting triggered symbol)
-                        Object.keys(fiatKillCounter).forEach(k => fiatKillCounter[k] = 0);
-                    }
-                }
-
-                // DROP LOGIC - Delegated to DropSystem
-                // WEAPON EVOLUTION v3.0: Use new evolution drop system
-                const useEvolution = !!(Balance.WEAPON_EVOLUTION && player.shotLevel);
-                const dropInfo = G.DropSystem.tryEnemyDrop(
-                    e.symbol, e.x, e.y, totalTime,
-                    useEvolution ? buildPlayerState() : getUnlockedWeapons,
-                    useEvolution
-                );
-                if (dropInfo) {
-                    powerUps.push(new G.PowerUp(dropInfo.x, dropInfo.y, dropInfo.type));
-                    if (G.Debug) G.Debug.trackDropSpawned(dropInfo.type, dropInfo.category, 'enemy');
-                }
-            }
-            // v4.22: Missile AoE — splash damage to nearby enemies on impact
-            if (b.isMissile && b.aoeRadius > 0) {
-                G.BulletSystem.handleMissileExplosion(b, enemies, boss);
-            }
-
-            if (!b.penetration) {
-                b.markedForDeletion = true;
-                G.Bullet.Pool.release(b);
-                bullets.splice(bIdx, 1);
-                return; // Non-penetrating bullets stop after first hit
-            }
-            // Penetrating bullets continue checking other enemies (no return)
-        }
-    }
-}
+// v4.28.0: checkBulletCollisions removed — logic moved to CollisionSystem.processPlayerBulletVsEnemy
 
 function updateEnemies(dt) {
     let hitEdge = false;
@@ -5227,7 +5018,7 @@ function showCampaignVictory() {
     if (G.TransitionManager) G.TransitionManager.startFadeOut(1.0, '#ffd700'); // Gold!
 
     // Show campaign complete screen
-    gameState = 'CAMPAIGN_VICTORY';
+    setGameState('CAMPAIGN_VICTORY');
 
     // Create victory overlay if doesn't exist
     let victoryOverlay = document.getElementById('campaign-victory-screen');
@@ -5345,7 +5136,7 @@ function triggerGameOver() {
         if (badgeScore) badgeScore.innerText = highScore.toLocaleString();
         submitToGameCenter(highScore); // Game Center hook
     }
-    gameState = 'GAMEOVER';
+    setGameState('GAMEOVER');
     setStyle('gameover-screen', 'display', 'flex');
     setUI('finalScore', Math.floor(score));
     if (ui.gameoverMeme) ui.gameoverMeme.innerText = getRandomMeme();
@@ -5393,42 +5184,8 @@ function updatePowerUps(dt) {
         }
     }
 
-    // Player bullets cancel enemy bullets — v4.22: circle collision
-    if (bullets.length > 0 && enemyBullets.length > 0) {
-        for (let i = bullets.length - 1; i >= 0; i--) {
-            const b = bullets[i];
-            if (!b || b.markedForDeletion) continue;
-            const bR = b.collisionRadius || 4;
-
-            for (let j = enemyBullets.length - 1; j >= 0; j--) {
-                const eb = enemyBullets[j];
-                if (!eb || eb.markedForDeletion) continue;
-                const ebR = eb.collisionRadius || Balance.BULLET_CONFIG.ENEMY_DEFAULT.collisionRadius;
-                if (G.BulletSystem.circleCollide(b.x, b.y, bR, eb.x, eb.y, ebR)) {
-                    // Collision spark effect
-                    createBulletSpark(eb.x, eb.y);
-
-                    eb.markedForDeletion = true;
-                    G.Bullet.Pool.release(eb);
-                    enemyBullets.splice(j, 1);
-
-                    bulletCancelStreak += 1;
-                    bulletCancelTimer = Balance.PERK.CANCEL_WINDOW;
-                    if (bulletCancelStreak >= Balance.PERK.BULLET_CANCEL_COUNT) {
-                        bulletCancelStreak = 0;
-                        applyRandomPerk();
-                    }
-
-                    if (!b.penetration) {
-                        b.markedForDeletion = true;
-                        G.Bullet.Pool.release(b);
-                        bullets.splice(i, 1);
-                    }
-                    break;
-                }
-            }
-        }
-    }
+    // v4.28.0: Bullet cancellation delegated to CollisionSystem
+    G.CollisionSystem.processBulletCancellation();
 }
 
 init();

@@ -130,6 +130,7 @@ class Boss extends window.Game.Entity {
     }
 
     update(dt, player) {
+        const Balance = window.Game.Balance;
         this.animTime += dt;
         if (this.hitTimer > 0) this.hitTimer -= dt;
         if (this.eyeGlow > 0) this.eyeGlow -= dt * 0.5;

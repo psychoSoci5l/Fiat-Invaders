@@ -68,14 +68,16 @@ python -m http.server 8000    # or: npx serve .
 
 All modules attach to `window.Game` (alias `G`). Script load order in `index.html` matters. See PROJECT_SNAPSHOT.md for full 37-script load order.
 
-Key load sequence: Constants -> ColorUtils -> BalanceConfig -> BulletPatterns -> DropSystem -> MemeEngine -> EventBus -> RunState/RankSystem/Upgrades -> AudioSystem -> InputSystem -> ObjectPool -> Entities (Entity->Bullet->Player->Enemy->Boss->PowerUp) -> WaveManager -> main.js
+Key load sequence: Constants -> ColorUtils -> BalanceConfig -> BulletPatterns -> BulletSystem -> CollisionSystem -> DropSystem -> MemeEngine -> EventBus -> GameStateMachine -> RunState/RankSystem/Upgrades -> AudioSystem -> InputSystem -> ObjectPool -> Entities (Entity->Bullet->Player->Enemy->Boss->PowerUp) -> WaveManager -> main.js
 
 ### Key Globals
 
 - `window.Game` (G) - Main namespace
 - `G.Balance` - **Single source of truth for ALL tuning** (BalanceConfig.js)
 - `G.Audio`, `G.Input`, `G.Events` - Singletons (AudioSystem, InputSystem, EventBus)
-- `G.RunState` - Per-run state (perks, modifiers)
+- `G.RunState` - Per-run state (perks, modifiers, score, level, streaks, graze, sacrifice, etc.)
+- `G.GameState` - State machine (transition table, validation, `.is()` helper)
+- `G.CollisionSystem` - Collision detection loops (enemy→player, player→enemy, player→boss, bullet cancel)
 - `G.Debug` (alias `window.dbg`) - Debug system
 - `G.DropSystem`, `G.MemeEngine`, `G.RankSystem` - Systems
 - `G.Bullet.Pool`, `G.ParticlePool`, `G.ParticleSystem` - Pooling & particles
@@ -88,7 +90,7 @@ Key load sequence: Constants -> ColorUtils -> BalanceConfig -> BulletPatterns ->
 
 ### Game States
 
-`gameState` in main.js: `VIDEO` -> `INTRO` -> `HANGAR` -> `STORY_SCREEN` -> `PLAY` / `PAUSE` -> `GAMEOVER` (v4.21: INTERMISSION state only for boss defeats, waves transition seamlessly)
+`G.GameState` (GameStateMachine.js): `VIDEO` -> `INTRO` -> `HANGAR` -> `STORY_SCREEN` -> `PLAY` / `PAUSE` -> `GAMEOVER` (v4.21: INTERMISSION state only for boss defeats, waves transition seamlessly). v4.28: Transition table with validation. `setGameState('X')` wrapper in main.js syncs local `gameState` variable + `G.GameState.transition()`.
 
 `introState`: `SPLASH` (title + mode tabs) -> `SELECTION` (ship carousel + LAUNCH)
 
@@ -134,6 +136,9 @@ Sky progression (5 levels + boss). Tiered death explosions. Hit stop & screen fl
 
 ### Perk System
 Trigger: cancel 5 enemy bullets in 1.5s. Random perk auto-applied. Cooldown 4s. Pool in `Upgrades.js`.
+
+### Collision System (v4.28.0)
+`G.CollisionSystem` (CollisionSystem.js) — extracted from main.js. 4 collision loops: enemy bullets→player (core hit + graze), player bullets→enemies, player bullets→boss, bullet cancellation. Callback pattern: CollisionSystem handles iteration + circle-based detection, side-effects (score, meme, drop, VFX) stay in main.js as named callbacks passed via `init(context)`. Context object provides getters for game entities (player, bullets, enemies, boss). Initialized in `startGame()` via `initCollisionSystem()`.
 
 ### Bullet System v2.0 (v4.22.0)
 Circle-based collision via `G.BulletSystem`. All bullet params centralized in `Balance.BULLET_CONFIG` (radii, speed, piercing per type). Missile AoE: `handleMissileExplosion()` — radial damage falloff, knockback, particles, shake. `Bullet.collisionRadius` getter auto-resolves from config. Debug: `dbg.hitboxes()` overlay.
