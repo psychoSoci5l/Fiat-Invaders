@@ -139,7 +139,7 @@
         SACRIFICE: {
             // Trigger conditions
             TRIGGER_HP: 1,                    // HP threshold to enable sacrifice option
-            ENABLED: true,                    // Can be disabled for easier modes
+            ENABLED: false,                   // v4.37: disabled — confuses new players
 
             // Decision window
             DECISION_WINDOW: 2.0,             // Seconds to decide (press SPACE/tap)
@@ -1014,7 +1014,7 @@
 
             // v4.6.1: Cycle-based enemy count multiplier (player is stronger in later cycles)
             // v4.18: +20% C1, +10% C2, +5% C3 — slow down early cycles, more targets to clear
-            CYCLE_COUNT_MULT: [1.2, 1.375, 1.575],  // C1: 1.0×1.2, C2: 1.25×1.1, C3: 1.5×1.05
+            CYCLE_COUNT_MULT: [1.0, 1.375, 1.575],  // v4.37: C1 1.2→1.0 (no bonus enemies in tutorial cycle)
 
             // Bear Market scaling
             BEAR_MARKET: {
@@ -1029,28 +1029,28 @@
                 // === CYCLE 1: "AWAKENING" (Tutorial) ===
                 {
                     cycle: 1, wave: 1, name: 'First Contact',
-                    horde1: { count: 15, formation: 'DIAMOND', currencies: ['¥', '₽', '₹'] },
-                    horde2: { count: 13, formation: 'DIAMOND', currencies: ['¥', '₽', '₹'] }
+                    horde1: { count: 12, formation: 'DIAMOND', currencies: ['¥', '₽', '₹'] },
+                    horde2: { count: 10, formation: 'DIAMOND', currencies: ['¥', '₽', '₹'] }
                 },
                 {
                     cycle: 1, wave: 2, name: 'European Dawn',
-                    horde1: { count: 18, formation: 'ARROW', currencies: ['¥', '₽', '€'] },
-                    horde2: { count: 15, formation: 'CHEVRON', currencies: ['₹', '£'] }
+                    horde1: { count: 14, formation: 'ARROW', currencies: ['¥', '₽', '€'] },
+                    horde2: { count: 12, formation: 'CHEVRON', currencies: ['₹', '£'] }
                 },
                 {
                     cycle: 1, wave: 3, name: 'Old World',
-                    horde1: { count: 15, formation: 'PINCER', currencies: ['€', '£', '₣'] },
-                    horde2: { count: 13, formation: 'DIAMOND', currencies: ['₺', '€', '£'] }
+                    horde1: { count: 12, formation: 'PINCER', currencies: ['€', '£', '₣'] },
+                    horde2: { count: 10, formation: 'DIAMOND', currencies: ['₺', '€', '£'] }
                 },
                 {
                     cycle: 1, wave: 4, name: 'Dollar Emerges',
-                    horde1: { count: 18, formation: 'CHEVRON', currencies: ['€', '₣', '$'] },
-                    horde2: { count: 13, formation: 'ARROW', currencies: ['£', '₺', '元'] }
+                    horde1: { count: 14, formation: 'CHEVRON', currencies: ['€', '₣', '$'] },
+                    horde2: { count: 10, formation: 'ARROW', currencies: ['£', '₺', '元'] }
                 },
                 {
                     cycle: 1, wave: 5, name: 'Global Alliance',
-                    horde1: { count: 20, formation: 'FORTRESS', currencies: ['¥', '€', '$', '元'] },
-                    horde2: { count: 15, formation: 'SCATTER', currencies: ['₽', '£', '₣', 'Ⓒ'] }
+                    horde1: { count: 16, formation: 'FORTRESS', currencies: ['¥', '€', '$', '元'] },
+                    horde2: { count: 12, formation: 'SCATTER', currencies: ['₽', '£', '₣', 'Ⓒ'] }
                 },
 
                 // === CYCLE 2: "CONFLICT" (Learning) ===
@@ -1145,7 +1145,7 @@
             SPACING: 78,              // v4.25: 65→78 (58px enemies, was 48px)
             START_Y: 80,              // Initial Y position (v4.4: 150→80 for compact HUD)
             MARGIN: 60,               // Left/right margin for scatter/wall
-            MAX_Y_RATIO: 0.65,        // v4.16: extracted from WaveManager hardcode (max Y as ratio of gameHeight)
+            MAX_Y_RATIO: 0.55,        // v4.37: 0.65→0.55, enemies don't descend past 55% — more breathing room
             CHEVRON_Y_MULT: 0.55,     // v4.16: Y-spacing multiplier for CHEVRON (was 0.75, caused overflow with high counts)
             SPIRAL_CENTER_Y_OFFSET: 100, // Spiral center Y offset from startY
             SPIRAL_ANGLE_STEP: 0.5,   // Radians per enemy in spiral
@@ -1435,7 +1435,8 @@
         // Limits total enemy bullets/sec to prevent screen flooding with many enemies
         FIRE_BUDGET: {
             ENABLED: true,
-            BULLETS_PER_SECOND: [20, 36, 56],  // Per cycle [C1, C2, C3] — v4.18: -20% flat
+            BULLETS_PER_SECOND: [12, 36, 56],  // v4.37: C1 20→12 (gentler first cycle)
+            WAVE_GRACE_PERIOD: 2.5,             // v4.37: seconds of silence at wave start (no enemy fire)
             BEAR_MARKET_BONUS: 10,              // +10 bullets/sec in Bear Market
             PANIC_MULTIPLIER: 1.3,              // +30% during PANIC phase
             RANK_SCALE: 0.15,                   // ±15% from rank

@@ -2961,13 +2961,13 @@ body.bear-mode .neon-title {
     position: absolute;
     left: 10px;
     top: calc(72px + var(--pwa-top-inset, env(safe-area-inset-top, 0px)));
-    width: 50px;
-    height: 26px;
-    border-radius: 4px;
+    width: 72px;
+    height: 40px;
+    border-radius: 8px;
     border: 2px solid #000;
     background: linear-gradient(180deg, #FFD700 0%, #D4A500 100%);
     color: #000;
-    font-size: 12px;
+    font-size: 16px;
     font-weight: bold;
     pointer-events: auto;
     z-index: 150;
@@ -4288,7 +4288,7 @@ body.is-touch p.mobile-only { display: block; }
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.85);
+    background: rgba(0, 0, 0, 0.75);
     z-index: 9500;
     display: flex;
     justify-content: center;
@@ -4314,45 +4314,38 @@ body.is-touch p.mobile-only { display: block; }
         inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
-.tutorial-progress {
+.tutorial-unified {
     display: flex;
+    flex-direction: column;
+    align-items: center;
     justify-content: center;
-    gap: 10px;
-    margin-bottom: 25px;
+    gap: 16px;
+    padding: 24px 20px;
+    max-width: 400px;
+    margin: auto;
 }
 
-.tutorial-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.2);
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    transition: all 0.3s ease;
+.tutorial-section {
+    width: 100%;
+    text-align: center;
 }
 
-.tutorial-dot.active {
-    background: #F7931A;
-    border-color: #F7931A;
-    box-shadow: 0 0 10px rgba(247, 147, 26, 0.5);
+.tutorial-tips {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.6);
 }
 
-.tutorial-dot.done {
-    background: rgba(247, 147, 26, 0.4);
-    border-color: rgba(247, 147, 26, 0.6);
-}
-
-.tutorial-step {
-    display: none;
-    animation: tutStepIn 0.3s ease-out;
-}
-
-.tutorial-step.active {
-    display: block;
-}
-
-@keyframes tutStepIn {
-    from { opacity: 0; transform: translateX(20px); }
-    to { opacity: 1; transform: translateX(0); }
+/* Control zone hint — grey area below graze meter, always visible during gameplay */
+#control-zone-hint {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: calc(105px + env(safe-area-inset-bottom, 0px));
+    background: rgba(255, 255, 255, 0.07);
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    z-index: 10;
+    pointer-events: none;
 }
 
 .tutorial-title {
@@ -4373,7 +4366,7 @@ body.is-touch p.mobile-only { display: block; }
 
 .tutorial-actions {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     gap: 15px;
     margin-top: 25px;
 }
@@ -4419,3 +4412,4 @@ body.is-touch p.mobile-only { display: block; }
         transition-duration: 0.01s !important;
     }
 }
+

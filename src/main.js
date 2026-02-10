@@ -467,6 +467,7 @@ let shake = 0, gridDir = 1, gridSpeed = 25, intermissionTimer = 0;
 // Screen transition moved to TransitionManager.js
 let currentShipIdx = 0;
 let lastWavePattern = 'RECT';
+let warmupShown = false; // v4.37: warmup phase shown once per session
 let perkChoiceActive = false;
 let intermissionMeme = ""; // Meme shown during countdown
 let lastCountdownNumber = 0; // Track countdown to trigger audio once per number
@@ -1633,8 +1634,8 @@ function init() {
                 setTimeout(() => curtain.classList.add('open'), 100);
             }
 
-            // PWA install prompt (first visit only)
-            checkPWAInstallPrompt();
+            // PWA install prompt — delay until after title animation (2.4s)
+            setTimeout(checkPWAInstallPrompt, 3000);
         }, 1000);
     };
 
@@ -1686,7 +1687,7 @@ function init() {
     inputSys.on('escape', () => {
         if (gameState === 'VIDEO') startApp();
         else if (gameState === 'STORY_SCREEN' && G.StoryScreen) G.StoryScreen.handleTap();
-        else if (gameState === 'PLAY' || gameState === 'PAUSE') togglePause();
+        else if (gameState === 'PLAY' || gameState === 'WARMUP' || gameState === 'PAUSE') togglePause();
         else if (gameState === 'SETTINGS') backToIntro();
     });
 
@@ -2309,36 +2310,29 @@ window.launchShipAndStart = function () {
         audioSys.startMusic();
         if (G.SkyRenderer) G.SkyRenderer.init(gameWidth, gameHeight);
 
-        // Tutorial check (v4.12.0): show tutorial on first launch
-        function afterTutorial() {
-            // Story Mode: Show Prologue before first game
+        // v4.37: Unified tutorial — first game goes to WARMUP with tutorial overlay
+        if (!warmupShown) {
+            // First game: skip old tutorial + prologue, go straight to startGame → WARMUP + tutorial overlay
+            startGame();
+            setTimeout(() => {
+                if (curtain) curtain.classList.add('open');
+            }, 100);
+        } else {
+            // Retry: existing flow — prologue if needed, then PLAY
             const campaignState = G.CampaignState;
             if (campaignState && campaignState.isEnabled() && shouldShowStory('PROLOGUE')) {
-                // Open curtain first, then show story
                 setTimeout(() => {
                     if (curtain) curtain.classList.add('open');
                 }, 100);
-
                 showStoryScreen('PROLOGUE', () => {
                     startGame();
                 });
             } else {
-                // Arcade mode or Prologue already seen - start directly
                 startGame();
                 setTimeout(() => {
                     if (curtain) curtain.classList.add('open');
                 }, 100);
             }
-        }
-
-        // v4.19.2: per-mode tutorial with backward compat
-        const isStory = !!(G.CampaignState && G.CampaignState.isEnabled());
-        const tutMode = isStory ? 'story' : 'arcade';
-        const tutKey = 'fiat_tutorial_' + tutMode + '_seen';
-        if (!localStorage.getItem(tutKey) && !localStorage.getItem('fiat_tutorial_seen')) {
-            showTutorial(afterTutorial, tutMode);
-        } else {
-            afterTutorial();
         }
     }
 
@@ -2346,88 +2340,42 @@ window.launchShipAndStart = function () {
     requestAnimationFrame(animateLaunch);
 }
 
-// === Tutorial System (v4.12.0, v4.19.2: mode-aware) ===
-let tutorialStep = 0;
+// === Tutorial System (v4.37 unified) ===
 let tutorialCallback = null;
-let tutorialMode = 'arcade';
 
-function showTutorial(callback, gameMode) {
-    tutorialStep = 0;
-    tutorialCallback = callback;
-    tutorialMode = gameMode || 'arcade';
+function showTutorialOverlay() {
     const overlay = document.getElementById('tutorial-overlay');
-    if (!overlay) { callback(); return; }
-
-    // v4.19.2: Dynamic mobile control text based on current control mode
-    const controlMode = localStorage.getItem('fiat_control_mode') || 'SWIPE';
-    const mobileEl = overlay.querySelector('.mobile-only .tutorial-text');
-    if (mobileEl) mobileEl.setAttribute('data-i18n',
-        controlMode === 'JOYSTICK' ? 'TUT_CONTROLS_MOBILE_JOY' : 'TUT_CONTROLS_MOBILE_SWIPE');
-
-    // v4.19.2: Mode-specific objective text
-    const objEl = overlay.querySelector('#tut-step-1 .tutorial-text');
-    if (objEl) objEl.setAttribute('data-i18n',
-        tutorialMode === 'story' ? 'TUT_OBJECTIVE_STORY' : 'TUT_OBJECTIVE_ARCADE');
-
-    overlay.style.display = 'flex';
-    updateTutorialStep();
-    updateTutorialText();
-}
-
-function updateTutorialStep() {
-    const dots = document.querySelectorAll('.tutorial-dot');
-    const steps = document.querySelectorAll('.tutorial-step');
-    const nextBtn = document.getElementById('tut-next');
+    if (!overlay) { endWarmup(); return; }
+    // Localize texts
     const T = G.TEXTS[G._currentLang || 'EN'] || G.TEXTS.EN;
-
-    dots.forEach((dot, i) => {
-        dot.classList.toggle('active', i === tutorialStep);
-        dot.classList.toggle('done', i < tutorialStep);
-    });
-    steps.forEach((step, i) => {
-        step.classList.toggle('active', i === tutorialStep);
-    });
-
-    if (nextBtn) {
-        nextBtn.textContent = tutorialStep === 2 ? (T.TUT_GOT_IT || 'GOT IT!') : (T.TUT_NEXT || 'NEXT');
-    }
-}
-
-function updateTutorialText() {
-    const T = G.TEXTS[G._currentLang || 'EN'] || G.TEXTS.EN;
-    const overlay = document.getElementById('tutorial-overlay');
-    if (!overlay) return;
     overlay.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.getAttribute('data-i18n');
         if (T[key]) el.textContent = T[key];
     });
+    overlay.style.display = 'flex';
+    tutorialCallback = endWarmup;
 }
 
-window.nextTutorialStep = function() {
-    tutorialStep++;
-    if (tutorialStep > 2) {
-        completeTutorial();
-    } else {
-        updateTutorialStep();
-    }
-};
-
-window.skipTutorial = function() {
-    completeTutorial();
-};
-
-function completeTutorial() {
-    // v4.19.2: per-mode tutorial flag (backward compat via fiat_tutorial_seen at call site)
-    localStorage.setItem('fiat_tutorial_' + tutorialMode + '_seen', '1');
+window.completeTutorial = function() {
+    const tutMode = (G.CampaignState && G.CampaignState.isEnabled()) ? 'story' : 'arcade';
+    localStorage.setItem('fiat_tutorial_' + tutMode + '_seen', '1');
     const overlay = document.getElementById('tutorial-overlay');
     if (overlay) overlay.style.display = 'none';
     if (tutorialCallback) tutorialCallback();
     tutorialCallback = null;
-}
+};
 
 window.togglePause = function () {
-    if (gameState === 'PLAY' || gameState === 'INTERMISSION') { setGameState('PAUSE'); setStyle('pause-screen', 'display', 'flex'); setStyle('pause-btn', 'display', 'none'); }
-    else if (gameState === 'PAUSE') { setGameState('PLAY'); setStyle('pause-screen', 'display', 'none'); setStyle('pause-btn', 'display', 'block'); }
+    if (gameState === 'PLAY' || gameState === 'WARMUP' || gameState === 'INTERMISSION') {
+        const wasWarmup = gameState === 'WARMUP';
+        setGameState('PAUSE'); setStyle('pause-screen', 'display', 'flex'); setStyle('pause-btn', 'display', 'none');
+        if (wasWarmup) window._pausedFromWarmup = true;
+    }
+    else if (gameState === 'PAUSE') {
+        if (window._pausedFromWarmup) { setGameState('WARMUP'); window._pausedFromWarmup = false; }
+        else { setGameState('PLAY'); }
+        setStyle('pause-screen', 'display', 'none'); setStyle('pause-btn', 'display', 'block');
+    }
 };
 window.restartRun = function () {
     setStyle('pause-screen', 'display', 'none');
@@ -2450,6 +2398,8 @@ window.backToIntro = function () {
         setStyle('gameover-screen', 'display', 'none');
         setStyle('hangar-screen', 'display', 'none');
         setStyle('perk-modal', 'display', 'none');
+        // v4.37: Hide tutorial overlay
+        setStyle('tutorial-overlay', 'display', 'none');
         if (ui.uiLayer) ui.uiLayer.style.display = 'none'; // HIDE HUD
         if (ui.touchControls) {
             ui.touchControls.classList.remove('visible');
@@ -2850,7 +2800,15 @@ function startGame() {
     gridDir = 1;
     // gridSpeed now computed dynamically via getGridSpeed()
 
-    setGameState('PLAY');
+    // v4.37: First game → WARMUP + tutorial overlay. Retry → straight to PLAY.
+    if (!warmupShown) {
+        setGameState('WARMUP');
+        warmupShown = true;
+        showTutorialOverlay();
+    } else {
+        setGameState('PLAY');
+        showShipIntroMeme();
+    }
 
     // WEAPON EVOLUTION v3.0: Full reset on new game (resets shot level to 1)
     if (player.fullReset) {
@@ -2899,12 +2857,29 @@ function startGame() {
     initCollisionSystem();
 
     emitEvent('run_start', { bear: isBearMarket });
-
-    // Story: Ship selection dialogue
-    if (G.Story) {
-        G.Story.onShipSelect(player.type);
-    }
 }
+
+// Ship intro meme (non-blocking popup from DIALOGUES.SHIP_INTRO)
+function showShipIntroMeme() {
+    const dialogues = window.Game.DIALOGUES && window.Game.DIALOGUES.SHIP_INTRO;
+    if (!dialogues || !player) return;
+    const lines = dialogues[player.type];
+    if (!lines || !lines.length) return;
+    const text = lines[Math.floor(Math.random() * lines.length)];
+    if (G.MemeEngine) G.MemeEngine.queueMeme('SHIP_INTRO', text, player.type);
+}
+
+// v4.37: End warmup — transition from tutorial overlay to PLAY
+window.endWarmup = function() {
+    const overlay = document.getElementById('tutorial-overlay');
+    if (overlay) overlay.style.display = 'none';
+    // Cleanup legacy warmup-overlay if present (old cached code)
+    const legacyWarmup = document.getElementById('warmup-overlay');
+    if (legacyWarmup) legacyWarmup.remove();
+    setGameState('PLAY');
+    // Ship intro as meme popup (non-blocking)
+    showShipIntroMeme();
+};
 
 function highlightShip(idx) {
     document.querySelectorAll('.ship-card').forEach((el, i) => {
@@ -3724,11 +3699,12 @@ function update(dt) {
         }
     }
 
-    if (gameState === 'PLAY') {
-        // Always update player for movement, but block firing while enemies enter formation
-        const enemiesEntering = G.HarmonicConductor && G.HarmonicConductor.areEnemiesEntering();
-        const newBullets = player.update(dt, enemiesEntering);
-        if (newBullets && newBullets.length > 0) {
+    if (gameState === 'PLAY' || gameState === 'WARMUP') {
+        const inWarmup = gameState === 'WARMUP';
+        // Always update player for movement, but block firing during warmup or enemy entrance
+        const enemiesEntering = !inWarmup && G.HarmonicConductor && G.HarmonicConductor.areEnemiesEntering();
+        const newBullets = player.update(dt, inWarmup || enemiesEntering);
+        if (!inWarmup && newBullets && newBullets.length > 0) {
             bullets.push(...newBullets);
             createMuzzleFlashParticles(player.x, player.y - 25, player.stats.color, {
                 shotLevel: player.shotLevel || 1,
@@ -3737,6 +3713,7 @@ function update(dt) {
             });
         }
 
+      if (!inWarmup) {
         // Power-up economy tracking: modifier overlap per frame
         if (G.Debug?.analytics?.runStart) {
             const mods = player.modifiers;
@@ -3818,6 +3795,7 @@ function update(dt) {
             }
             window.nearDeathTimer = 0;
         }
+      } // end !inWarmup
     }
     updateFloatingTexts(dt);
     updateTypedMessages(dt);
@@ -4356,7 +4334,7 @@ function draw() {
         ctx.fillRect(-20, -20, gameWidth + 40, gameHeight + 40);
     }
 
-    if (gameState === 'PLAY' || gameState === 'PAUSE' || gameState === 'GAMEOVER' || gameState === 'INTERMISSION') {
+    if (gameState === 'PLAY' || gameState === 'WARMUP' || gameState === 'PAUSE' || gameState === 'GAMEOVER' || gameState === 'INTERMISSION') {
         // Draw sacrifice ghost trail (before player)
         if (sacrificeState === 'ACTIVE' && sacrificeGhostTrail.length > 0) {
             ctx.save();

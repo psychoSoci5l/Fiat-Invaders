@@ -300,6 +300,9 @@
         </div>
     </div>
 
+    <!-- Control zone hint — grey area below graze meter -->
+    <div id="control-zone-hint"></div>
+
     <div id="touchControls">
         <div class="touch-zone-left" id="t-left"></div>
         <div class="touch-zone-right" id="t-right"></div>
@@ -341,34 +344,26 @@
 
     </div><!-- /game-container -->
 
-    <!-- TUTORIAL OVERLAY (v4.12.0) - Outside game-container for proper stacking above curtain -->
+    <!-- TUTORIAL OVERLAY (v4.37 unified) - Outside game-container for proper stacking above curtain -->
     <div id="tutorial-overlay" style="display: none;">
-        <div class="tutorial-container">
-            <div class="tutorial-progress">
-                <span class="tutorial-dot active"></span>
-                <span class="tutorial-dot"></span>
-                <span class="tutorial-dot"></span>
-            </div>
-            <div class="tutorial-step active" id="tut-step-0">
-                <h3 class="tutorial-title" data-i18n="TUT_CONTROLS_TITLE">CONTROLS</h3>
+        <div class="tutorial-container tutorial-unified">
+            <h2 class="tutorial-title" data-i18n="TUT_TITLE">HOW TO PLAY</h2>
+            <div class="tutorial-section">
                 <div class="desktop-only">
-                    <p class="tutorial-text" data-i18n="TUT_CONTROLS_PC">A/D or Arrows to move. Space to fire. S or Down for Shield.</p>
+                    <p class="tutorial-text" data-i18n="TUT_CONTROLS_PC">A/D or Arrows to move. Space to fire. S for Shield.</p>
                 </div>
                 <div class="mobile-only">
-                    <p class="tutorial-text" data-i18n="TUT_CONTROLS_MOBILE">Use the joystick to move. Auto-fire is ON. Tap the shield icon for defense.</p>
+                    <p class="tutorial-text" data-i18n="TUT_CONTROLS_UNIFIED">SWIPE LEFT & RIGHT TO MOVE</p>
                 </div>
             </div>
-            <div class="tutorial-step" id="tut-step-1">
-                <h3 class="tutorial-title" data-i18n="TUT_OBJECTIVE_TITLE">OBJECTIVE</h3>
-                <p class="tutorial-text" data-i18n="TUT_OBJECTIVE_TEXT">Destroy fiat enemies across 5 waves, then defeat the Boss. Collect power-ups to upgrade your weapons!</p>
+            <div class="tutorial-section">
+                <p class="tutorial-text" data-i18n="TUT_OBJECTIVE_UNIFIED">Destroy 5 waves, then defeat the Boss!</p>
             </div>
-            <div class="tutorial-step" id="tut-step-2">
-                <h3 class="tutorial-title" data-i18n="TUT_SURVIVAL_TITLE">SURVIVAL</h3>
-                <p class="tutorial-text" data-i18n="TUT_SURVIVAL_TEXT">You have 3 lives. 1 hit = 1 life lost. Use your Shield (10s cooldown) to survive!</p>
+            <div class="tutorial-section">
+                <p class="tutorial-text tutorial-tips" data-i18n="TUT_SURVIVAL_UNIFIED">3 lives &#8226; 1 hit = 1 life &#8226; Shield = your defense</p>
             </div>
             <div class="tutorial-actions">
-                <button class="btn btn-secondary" id="tut-skip" onclick="skipTutorial()" data-i18n="TUT_SKIP">SKIP</button>
-                <button class="btn btn-primary" id="tut-next" onclick="nextTutorialStep()" data-i18n="TUT_NEXT">NEXT</button>
+                <button class="btn btn-primary btn-lg" id="tut-go-btn" onclick="completeTutorial()" data-i18n="GO">GO!</button>
             </div>
         </div>
     </div>

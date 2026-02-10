@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v4.36.0 FIAT vs CRYPTO";
+window.Game.VERSION = "v4.37.0 FIAT vs CRYPTO";
 
 window.Game.TEXTS = {
     EN: {
@@ -129,21 +129,12 @@ window.Game.TEXTS = {
         PWA_INSTALL_IOS: 'Install: tap <svg class="pwa-share-icon" viewBox="0 0 24 24" fill="none" stroke="#f39c12" stroke-width="2"><path d="M12 3v12M5 10l7-7 7 7"/><path d="M5 21h14a1 1 0 001-1v-6H4v6a1 1 0 001 1z"/></svg> then "Add to Home Screen"',
         PWA_INSTALL_ANDROID: "Install the app for the best experience",
         PWA_INSTALL_BTN: "INSTALL",
-        // Tutorial (v4.12.0)
-        TUT_CONTROLS_TITLE: "CONTROLS",
-        TUT_CONTROLS_PC: "A/D or Arrows to move. Space to fire. S or Down for Shield.",
-        TUT_CONTROLS_MOBILE: "Use the joystick to move. Auto-fire is ON. Tap the shield icon for defense.",
-        TUT_CONTROLS_MOBILE_SWIPE: "Swipe to move. Auto-fire is ON. Tap the shield icon for defense.",
-        TUT_CONTROLS_MOBILE_JOY: "Use the joystick to move. Auto-fire is ON. Tap the shield icon for defense.",
-        TUT_OBJECTIVE_TITLE: "OBJECTIVE",
-        TUT_OBJECTIVE_TEXT: "Destroy fiat enemies across 5 waves, then defeat the Boss. Collect power-ups to upgrade your weapons!",
-        TUT_OBJECTIVE_STORY: "Fight through 3 acts against the central banks. Each act: 5 waves + a final Boss (FED \u2192 BCE \u2192 BOJ). Collect power-ups to upgrade your weapons!",
-        TUT_OBJECTIVE_ARCADE: "Survive endless waves and beat your high score! A boss appears every 5 waves. Collect power-ups to upgrade your weapons!",
-        TUT_SURVIVAL_TITLE: "SURVIVAL",
-        TUT_SURVIVAL_TEXT: "You have 3 lives. 1 hit = 1 life lost. Use your Shield (10s cooldown) to survive!",
-        TUT_SKIP: "SKIP",
-        TUT_NEXT: "NEXT",
-        TUT_GOT_IT: "GOT IT!",
+        // Tutorial (v4.37 unified)
+        TUT_TITLE: "HOW TO PLAY",
+        TUT_CONTROLS_PC: "A/D or Arrows to move. Space to fire. S for Shield.",
+        TUT_CONTROLS_UNIFIED: "SWIPE LEFT & RIGHT TO MOVE",
+        TUT_OBJECTIVE_UNIFIED: "Destroy 5 waves, then defeat the Boss!",
+        TUT_SURVIVAL_UNIFIED: "3 lives \u2022 1 hit = 1 life \u2022 Shield = your defense",
         // Manual v2 condensed (v4.12.0)
         MAN_OBJECTIVES: "OBJECTIVES",
         MAN_OBJ_TEXT: "Destroy waves of fiat enemies, collect power-ups, survive 5 waves per level, then defeat the Boss. Each cycle increases difficulty and rewards.",
@@ -169,7 +160,8 @@ window.Game.TEXTS = {
         MODE_STORY_DESC: "Experience Bitcoin's story through 3 epic chapters",
         MODE_ARCADE_DESC: "Endless high-score challenge",
         CHANGE_MODE: "tap to change",
-        TITLE_SUBTITLE: "Currencies"
+        TITLE_SUBTITLE: "Currencies",
+        GO: "GO!"
     },
     IT: {
         SCORE: "PUNTI", LEVEL: "LIVELLO", LIVES: "VITE", NORMAL: "NORMALE",
@@ -295,21 +287,12 @@ window.Game.TEXTS = {
         PWA_INSTALL_IOS: 'Installa: tap <svg class="pwa-share-icon" viewBox="0 0 24 24" fill="none" stroke="#f39c12" stroke-width="2"><path d="M12 3v12M5 10l7-7 7 7"/><path d="M5 21h14a1 1 0 001-1v-6H4v6a1 1 0 001 1z"/></svg> poi "Aggiungi a Home"',
         PWA_INSTALL_ANDROID: "Installa l'app per la migliore esperienza",
         PWA_INSTALL_BTN: "INSTALLA",
-        // Tutorial (v4.12.0)
-        TUT_CONTROLS_TITLE: "CONTROLLI",
-        TUT_CONTROLS_PC: "A/D o Frecce per muoverti. Spazio per sparare. S o Gi\u00F9 per lo Scudo.",
-        TUT_CONTROLS_MOBILE: "Usa il joystick per muoverti. Auto-fuoco attivo. Tocca l'icona scudo per difenderti.",
-        TUT_CONTROLS_MOBILE_SWIPE: "Swipe per muoverti. Auto-fuoco attivo. Tocca l'icona scudo per difenderti.",
-        TUT_CONTROLS_MOBILE_JOY: "Usa il joystick per muoverti. Auto-fuoco attivo. Tocca l'icona scudo per difenderti.",
-        TUT_OBJECTIVE_TITLE: "OBIETTIVO",
-        TUT_OBJECTIVE_TEXT: "Distruggi i nemici fiat in 5 ondate, poi sconfiggi il Boss. Raccogli i power-up per potenziare le armi!",
-        TUT_OBJECTIVE_STORY: "Combatti in 3 atti contro le banche centrali. Ogni atto: 5 ondate + Boss finale (FED \u2192 BCE \u2192 BOJ). Raccogli i power-up per potenziare le armi!",
-        TUT_OBJECTIVE_ARCADE: "Sopravvivi a ondate infinite e batti il tuo record! Ogni 5 ondate appare un boss. Raccogli i power-up per potenziare le armi!",
-        TUT_SURVIVAL_TITLE: "SOPRAVVIVENZA",
-        TUT_SURVIVAL_TEXT: "Hai 3 vite. 1 colpo = 1 vita persa. Usa lo Scudo (cooldown 10s) per sopravvivere!",
-        TUT_SKIP: "SALTA",
-        TUT_NEXT: "AVANTI",
-        TUT_GOT_IT: "CAPITO!",
+        // Tutorial (v4.37 unified)
+        TUT_TITLE: "COME SI GIOCA",
+        TUT_CONTROLS_PC: "A/D o Frecce per muoverti. Spazio per sparare. S per lo Scudo.",
+        TUT_CONTROLS_UNIFIED: "SCORRI A SINISTRA E DESTRA PER MUOVERTI",
+        TUT_OBJECTIVE_UNIFIED: "Distruggi 5 ondate, poi sconfiggi il Boss!",
+        TUT_SURVIVAL_UNIFIED: "3 vite \u2022 1 colpo = 1 vita \u2022 Lo scudo \u00E8 la tua difesa",
         // Manual v2 condensed (v4.12.0)
         MAN_OBJECTIVES: "OBIETTIVI",
         MAN_OBJ_TEXT: "Distruggi ondate di nemici fiat, raccogli power-up, sopravvivi a 5 ondate per livello, poi sconfiggi il Boss. Ogni ciclo aumenta difficolt\u00E0 e ricompense.",
@@ -335,7 +318,8 @@ window.Game.TEXTS = {
         MODE_STORY_DESC: "Vivi la storia di Bitcoin attraverso 3 capitoli epici",
         MODE_ARCADE_DESC: "Sfida infinita per il punteggio",
         CHANGE_MODE: "tocca per cambiare",
-        TITLE_SUBTITLE: "Valute"
+        TITLE_SUBTITLE: "Valute",
+        GO: "VIA!"
     }
 };
 
@@ -528,15 +512,15 @@ window.Game.SHIP_POWERUPS = {
 // shape: 'coin' | 'bill' | 'card' | 'bar' determines draw style
 window.Game.FIAT_TYPES = [
     // Tier 1 - Weak (rows 4-5)
-    { s: '¥', name: 'YEN', c: '#e74c3c', val: 20, hp: 0.8, fireMin: 3.5, fireMax: 5.0, aimSpread: 0.35, pattern: 'SINGLE', shape: 'coin' },
-    { s: '₽', name: 'RUBLE', c: '#95a5a6', val: 25, hp: 0.8, fireMin: 3.2, fireMax: 4.5, aimSpread: 0.30, pattern: 'SINGLE', shape: 'bill' },
-    { s: '₹', name: 'RUPEE', c: '#f39c12', val: 25, hp: 0.9, fireMin: 3.0, fireMax: 4.2, aimSpread: 0.28, pattern: 'SINGLE', shape: 'coin' },
+    { s: '¥', name: 'YEN', c: '#e74c3c', val: 20, hp: 0.8, fireMin: 4.5, fireMax: 6.5, aimSpread: 0.35, pattern: 'SINGLE', shape: 'coin' },
+    { s: '₽', name: 'RUBLE', c: '#95a5a6', val: 25, hp: 0.8, fireMin: 4.5, fireMax: 6.5, aimSpread: 0.30, pattern: 'SINGLE', shape: 'bill' },
+    { s: '₹', name: 'RUPEE', c: '#f39c12', val: 25, hp: 0.9, fireMin: 4.5, fireMax: 6.5, aimSpread: 0.28, pattern: 'SINGLE', shape: 'coin' },
 
-    // Tier 2 - Medium (rows 2-3)
-    { s: '€', name: 'EURO', c: '#3498db', val: 40, hp: 1.0, fireMin: 2.6, fireMax: 3.8, aimSpread: 0.22, pattern: 'BURST', shape: 'bill' },
-    { s: '£', name: 'POUND', c: '#9b59b6', val: 45, hp: 1.0, fireMin: 2.4, fireMax: 3.5, aimSpread: 0.20, pattern: 'SINGLE', shape: 'coin' },
-    { s: '₣', name: 'FRANC', c: '#1abc9c', val: 50, hp: 1.1, fireMin: 2.2, fireMax: 3.2, aimSpread: 0.18, pattern: 'DOUBLE', shape: 'bar' },
-    { s: '₺', name: 'LIRA', c: '#e67e22', val: 55, hp: 1.2, fireMin: 2.0, fireMax: 3.0, aimSpread: 0.16, pattern: 'BURST', shape: 'bill' },
+    // Tier 2 - Medium (rows 2-3) — v4.37: slower cooldowns
+    { s: '€', name: 'EURO', c: '#3498db', val: 40, hp: 1.0, fireMin: 3.2, fireMax: 5.0, aimSpread: 0.22, pattern: 'BURST', shape: 'bill' },
+    { s: '£', name: 'POUND', c: '#9b59b6', val: 45, hp: 1.0, fireMin: 3.0, fireMax: 4.5, aimSpread: 0.20, pattern: 'SINGLE', shape: 'coin' },
+    { s: '₣', name: 'FRANC', c: '#1abc9c', val: 50, hp: 1.1, fireMin: 2.8, fireMax: 4.0, aimSpread: 0.18, pattern: 'DOUBLE', shape: 'bar' },
+    { s: '₺', name: 'LIRA', c: '#e67e22', val: 55, hp: 1.2, fireMin: 2.8, fireMax: 4.0, aimSpread: 0.16, pattern: 'BURST', shape: 'bill' },
 
     // Tier 3 - Strong (row 1)
     { s: '$', name: 'DOLLAR', c: '#2ecc71', val: 80, hp: 1.3, fireMin: 1.8, fireMax: 2.8, aimSpread: 0.14, pattern: 'DOUBLE', shape: 'bill' },

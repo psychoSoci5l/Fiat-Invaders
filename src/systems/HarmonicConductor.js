@@ -109,6 +109,10 @@ window.Game.HarmonicConductor = {
         this.waveIntensity.lastEnemyPaused = false;
         this.waveIntensity.lastEnemyPauseTimer = 0;
 
+        // v4.37: Grace period — no enemy fire at wave start
+        const graceCfg = window.Game.Balance?.FIRE_BUDGET?.WAVE_GRACE_PERIOD;
+        this._graceTimer = graceCfg || 0;
+
         // v4.17: Reset fire budget to full for new wave
         this._recalcFireBudgetMax();
         this._fireBudget.available = this._fireBudget.maxPerSecond;
@@ -304,9 +308,17 @@ window.Game.HarmonicConductor = {
             this.waveIntensity.lastEnemyPauseTimer -= dt;
         }
 
+        // v4.37: Grace period — suppress all firing at wave start
+        if (this._graceTimer > 0) {
+            this._graceTimer -= dt;
+        }
+
         // Don't process beats if not enabled or no sequence
         if (!this.enabled || !this.currentSequence) return;
         if (!this.enemies || this.enemies.length === 0) return;
+
+        // Skip firing during grace period
+        if (this._graceTimer > 0) return;
 
         // Skip firing during last enemy pause (dramatic silence)
         if (this.isInLastEnemyPause()) return;

@@ -1,5 +1,20 @@
 # Changelog
 
+## v4.37.0 - 2026-02-10
+### Difficulty Rebalance + Unified Tutorial Level + UI Polish
+
+- **Unified tutorial level**: Replaced 3-step tutorial + separate warmup with a single tutorial overlay shown during WARMUP state. Sky and ship visible underneath semi-transparent overlay. Shows controls (PC/mobile-specific), animated swipe zone (mobile), objective, survival tips, and a GO! button. Story dialogue appears only after pressing GO
+- **Reduced Cycle 1 enemy counts**: All 5 waves reduced by 3-4 enemies per horde (e.g. Wave 1: 15→12, Wave 2: 18→14). `CYCLE_COUNT_MULT[0]` reduced from 1.2 to 1.0 (no bonus enemies in tutorial cycle)
+- **Flatter formations**: `MAX_Y_RATIO` reduced from 0.65 to 0.55 — enemies don't descend past 55% of screen height, giving players more breathing room
+- **Slower enemy fire**: Cycle 1 fire budget reduced from 20→12 bullets/sec. Tier 1 cooldowns 3.0-3.5→4.5s min, 4.2-5.0→6.5s max. Tier 2 cooldowns increased ~30%
+- **Wave grace period**: 2.5 seconds of silence at the start of each wave — no enemy fire while formations settle
+- **Satoshi's Sacrifice disabled**: `SACRIFICE.ENABLED = false` — mechanic confused new players. All code remains but never activates
+- **Larger pause button**: 50×26px → 72×40px with 8px border-radius, meets Apple 44pt touch target guideline
+- **Localization**: Added TUT_TITLE, TUT_CONTROLS_UNIFIED, TUT_SWIPE_HERE, TUT_OBJECTIVE_UNIFIED, TUT_SURVIVAL_UNIFIED strings (EN/IT). Removed WARMUP_HINT
+- **Files**: Constants.js, main.js, style.css, index.html
+
+---
+
 ## v4.36.0 - 2026-02-09
 ### Memory Footprint Audit — Long Session Stability (10 fixes)
 
