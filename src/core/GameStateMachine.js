@@ -12,7 +12,7 @@ window.Game = window.Game || {};
         // Valid transition map — only listed transitions are allowed
         VALID_TRANSITIONS: {
             'VIDEO':            ['INTRO'],
-            'INTRO':            ['HANGAR', 'SETTINGS', 'WARMUP'],
+            'INTRO':            ['HANGAR', 'SETTINGS', 'WARMUP', 'STORY_SCREEN'],
             'HANGAR':           ['PLAY', 'WARMUP', 'INTRO', 'STORY_SCREEN'],
             'STORY_SCREEN':     ['PLAY', 'WARMUP', 'INTERMISSION', 'INTRO'],
             'WARMUP':           ['PLAY', 'PAUSE', 'INTRO'],

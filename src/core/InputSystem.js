@@ -81,8 +81,8 @@ class InputSystem {
         const joy = document.getElementById('joystick');
         const joyStick = document.getElementById('joystick-stick');
         if (joy && joyStick) {
-            const radius = 40;
-            const center = { x: 60, y: 60 };
+            const radius = 25;
+            const center = { x: 37.5, y: 37.5 };
             const saved = localStorage.getItem('fiat_control_mode') || 'SWIPE';
             this.touch.useJoystick = (saved === 'JOYSTICK');
             joy.style.display = this.touch.useJoystick ? 'block' : 'none';

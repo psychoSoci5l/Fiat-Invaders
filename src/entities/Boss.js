@@ -127,6 +127,11 @@ class Boss extends window.Game.Entity {
         if (window.Game.triggerScreenFlash) {
             window.Game.triggerScreenFlash('BOSS_PHASE');
         }
+        // Proximity Kill Meter: boss phase change fills meter
+        if (window.Game.addProximityMeter) {
+            const gain = window.Game.Balance?.PROXIMITY_KILL?.BOSS_PHASE_GAIN || 15;
+            window.Game.addProximityMeter(gain);
+        }
     }
 
     update(dt, player) {

@@ -322,8 +322,8 @@ class Player extends window.Game.Entity {
             if (window.Game.Debug) window.Game.Debug.trackGodchainDeactivate();
         }
 
-        // HYPER mode timer
-        if (this.hyperActive) {
+        // HYPER mode timer (frozen during non-combat states)
+        if (this.hyperActive && !this.hyperFrozen) {
             this.hyperTimer -= dt;
 
             // Warning sound when about to end
@@ -456,12 +456,13 @@ class Player extends window.Game.Entity {
     /**
      * Extend HYPER timer (called on graze during HYPER)
      */
-    extendHyper() {
+    extendHyper(duration) {
         if (!this.hyperActive) return;
 
         const HYPER = window.Game.Balance.HYPER;
+        const ext = duration || HYPER.GRAZE_EXTENSION;
         this.hyperTimer = Math.min(
-            this.hyperTimer + HYPER.GRAZE_EXTENSION,
+            this.hyperTimer + ext,
             HYPER.MAX_DURATION
         );
 
@@ -539,6 +540,8 @@ class Player extends window.Game.Entity {
         const spawnBullet = (x, y, vx, vy) => {
             const b = window.Game.Bullet.Pool.acquire(x, y, vx, vy, color, bulletW, bulletH, isHodl);
             b.weaponType = weaponType;
+            const BP = Balance.BULLET_PIERCE;
+            b.pierceHP = BP.BASE_HP + (isHodl ? BP.HODL_BONUS : 0);
             bullets.push(b);
         };
 
@@ -693,6 +696,16 @@ class Player extends window.Game.Entity {
             if (this.special === 'MISSILE') {
                 b.isMissile = true;
                 b.aoeRadius = 50; // Explosion radius on impact
+            }
+
+            // Bullet pierce HP
+            const BP = Balance.BULLET_PIERCE;
+            if (b.isMissile) {
+                b.pierceHP = BP.MISSILE_HP;
+            } else {
+                b.pierceHP = BP.BASE_HP
+                    + (this.modifiers.power.level * BP.POWER_BONUS)
+                    + (isHodl ? BP.HODL_BONUS : 0);
             }
 
             b.weaponType = this.special || 'EVOLUTION';

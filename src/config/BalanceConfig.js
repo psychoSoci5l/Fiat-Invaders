@@ -865,6 +865,25 @@
             }
         },
 
+        // --- BULLET PIERCE (Player bullets survive multiple enemy-bullet hits) ---
+        BULLET_PIERCE: {
+            BASE_HP: 1,            // Each base bullet passes through 1 enemy bullet
+            POWER_BONUS: 1,        // +1 per POWER modifier level
+            MISSILE_HP: 3,         // Missiles are tougher
+            HODL_BONUS: 1,         // HODL bullets +1 pierce
+        },
+
+        // --- PROXIMITY KILL METER (replaces graze as meter source) ---
+        PROXIMITY_KILL: {
+            MAX_DISTANCE: 450,     // Vertical distance beyond which 0 meter gain
+            CLOSE_DISTANCE: 150,   // Vertical distance for max meter gain
+            METER_GAIN_MAX: 7,     // Meter gain at close distance
+            METER_GAIN_MIN: 1,     // Meter gain at max distance
+            BOSS_PHASE_GAIN: 15,   // Gain per boss phase completed
+            BOSS_HIT_GAIN: 0.4,    // Small meter gain per boss hit
+            HYPER_KILL_EXTENSION: 0.4, // Seconds added per kill during HYPER
+        },
+
         // --- BULLET CONFIG v4.22 (Centralized bullet parameters) ---
         BULLET_CONFIG: {
             // Player bullets
@@ -1029,28 +1048,28 @@
                 // === CYCLE 1: "AWAKENING" (Tutorial) ===
                 {
                     cycle: 1, wave: 1, name: 'First Contact',
-                    horde1: { count: 12, formation: 'DIAMOND', currencies: ['¥', '₽', '₹'] },
-                    horde2: { count: 10, formation: 'DIAMOND', currencies: ['¥', '₽', '₹'] }
+                    horde1: { count: 14, formation: 'DIAMOND', currencies: ['¥', '₽', '₹'] },
+                    horde2: { count: 12, formation: 'DIAMOND', currencies: ['¥', '₽', '₹'] }
                 },
                 {
                     cycle: 1, wave: 2, name: 'European Dawn',
-                    horde1: { count: 14, formation: 'ARROW', currencies: ['¥', '₽', '€'] },
-                    horde2: { count: 12, formation: 'CHEVRON', currencies: ['₹', '£'] }
+                    horde1: { count: 16, formation: 'ARROW', currencies: ['¥', '₽', '€'] },
+                    horde2: { count: 14, formation: 'CHEVRON', currencies: ['₹', '£'] }
                 },
                 {
                     cycle: 1, wave: 3, name: 'Old World',
-                    horde1: { count: 12, formation: 'PINCER', currencies: ['€', '£', '₣'] },
-                    horde2: { count: 10, formation: 'DIAMOND', currencies: ['₺', '€', '£'] }
+                    horde1: { count: 15, formation: 'PINCER', currencies: ['€', '£', '₣'] },
+                    horde2: { count: 13, formation: 'DIAMOND', currencies: ['₺', '€', '£'] }
                 },
                 {
                     cycle: 1, wave: 4, name: 'Dollar Emerges',
-                    horde1: { count: 14, formation: 'CHEVRON', currencies: ['€', '₣', '$'] },
-                    horde2: { count: 10, formation: 'ARROW', currencies: ['£', '₺', '元'] }
+                    horde1: { count: 17, formation: 'CHEVRON', currencies: ['€', '₣', '$'] },
+                    horde2: { count: 13, formation: 'ARROW', currencies: ['£', '₺', '元'] }
                 },
                 {
                     cycle: 1, wave: 5, name: 'Global Alliance',
-                    horde1: { count: 16, formation: 'FORTRESS', currencies: ['¥', '€', '$', '元'] },
-                    horde2: { count: 12, formation: 'SCATTER', currencies: ['₽', '£', '₣', 'Ⓒ'] }
+                    horde1: { count: 19, formation: 'FORTRESS', currencies: ['¥', '€', '$', '元'] },
+                    horde2: { count: 15, formation: 'SCATTER', currencies: ['₽', '£', '₣', 'Ⓒ'] }
                 },
 
                 // === CYCLE 2: "CONFLICT" (Learning) ===
@@ -1435,7 +1454,7 @@
         // Limits total enemy bullets/sec to prevent screen flooding with many enemies
         FIRE_BUDGET: {
             ENABLED: true,
-            BULLETS_PER_SECOND: [12, 36, 56],  // v4.37: C1 20→12 (gentler first cycle)
+            BULLETS_PER_SECOND: [12, 31, 56],  // v4.38: C2 36→31 (-15%, smoother C1→C2 transition)
             WAVE_GRACE_PERIOD: 2.5,             // v4.37: seconds of silence at wave start (no enemy fire)
             BEAR_MARKET_BONUS: 10,              // +10 bullets/sec in Bear Market
             PANIC_MULTIPLIER: 1.3,              // +30% during PANIC phase

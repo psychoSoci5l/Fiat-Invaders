@@ -109,7 +109,8 @@ Detailed tables, parameters, and implementation specifics → **SYSTEM_REFERENCE
 - **Boss System** — `Balance.BOSS`. FED/BCE/BOJ, 3 phases each, HP formula in config, rotation `marketCycle % 3`
 - **Drop System** — `Balance.ADAPTIVE_DROPS`. Rates 3%/2.5%/1% by tier, pity 55 kills, adaptive suppression
 - **Collision** — `CollisionSystem.js`. 4 loops, callback pattern, init via `initCollisionSystem()`
-- **Bullet System** — `Balance.BULLET_CONFIG`. Circle-based collision, missile AoE. Debug: `dbg.hitboxes()`
+- **Bullet System** — `Balance.BULLET_CONFIG` + `Balance.BULLET_PIERCE`. Circle-based collision, missile AoE, pierce HP (bullets survive N enemy-bullet hits). Debug: `dbg.hitboxes()`
+- **Proximity Kill Meter** — `Balance.PROXIMITY_KILL`. Vertical-distance kills fill DIP meter (replaces graze as HYPER source). Boss hits +0.4, phase transitions +15. `Game.addProximityMeter(gain)` API
 - **Perk System** — `Upgrades.js`. Cancel 5 enemy bullets in 1.5s → random perk, cooldown 4s
 
 ### UI & Presentation

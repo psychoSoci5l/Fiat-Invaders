@@ -1,5 +1,22 @@
 # Changelog
 
+## v4.38.0 - 2026-02-10
+### Bullet Pierce + Proximity Kill Meter ("Buy the Dip")
+
+- **Bullet Pierce**: Player bullets now have `pierceHP` — they survive multiple enemy-bullet collisions instead of being destroyed on first contact. Base HP=1 (passes through 1 enemy bullet), +1 per POWER modifier level, +1 for HODL stance, missiles get 3 HP. Solves the late-game bullet wall problem
+- **Proximity Kill Meter** (replaces Graze as meter source): Killing enemies close to the player fills the DIP meter. Uses vertical distance — closer kills give more meter (up to 7 at ≤150px, minimum 1 at ≤450px). Boss hits give +0.4, boss phase transitions +15. HYPER auto-activates at 100
+- **Graze simplified**: Graze (near-miss) still gives score/audio/sparks but no longer fills meter or grants perks
+- **HYPER clean countdown**: Once activated, HYPER counts down from 5s to 0 without extensions. Timer freezes during non-combat states (boss warning, enemy entrance). Graze no longer resets meter decay timer
+- **Boss meter fill**: Boss hits give small meter gain (+0.4 per hit), boss phase transitions give +15. Exposed `Game.addProximityMeter()` API for Boss.js
+- **Game loop HYPER fallback**: Auto-activation check runs every frame as fallback, catching meter reaching threshold between kills
+- **Prologue on first play**: Fixed story screen not showing on first launch — added INTRO→STORY_SCREEN state transition
+- **Tutorial fade-out**: Smooth 0.2s opacity transition instead of instant disappear (eliminates visual glitch)
+- **Joystick resized**: 120px→75px, repositioned to bottom: 5px to reduce overlap with meter bar
+- **UI**: Meter label "GRAZE"→"DIP", removed graze count display, `restoreGameUI()` helper for post-story HUD restore
+- **Files**: BalanceConfig.js, Bullet.js, Player.js, CollisionSystem.js, main.js, Boss.js, index.html, style.css, InputSystem.js, GameStateMachine.js
+
+---
+
 ## v4.37.0 - 2026-02-10
 ### Difficulty Rebalance + Unified Tutorial Level + UI Polish
 

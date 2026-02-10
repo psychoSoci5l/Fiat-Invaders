@@ -185,12 +185,11 @@ function initCollisionSystem() {
             },
             // Graze (near miss)
             onGraze(eb, isCloseGraze, isHyperActive) {
-                lastGrazeTime = totalTime;
+                // Note: lastGrazeTime NOT reset here — meter decay is tied to proximity kills only
                 const grazeBonus = isCloseGraze ? Balance.GRAZE.CLOSE_BONUS : 1;
                 if (G.Debug) G.Debug.trackGraze(isCloseGraze);
 
                 if (isHyperActive) {
-                    player.extendHyper();
                     const hyperMult = Balance.HYPER.SCORE_MULT;
                     const grazePoints = Math.floor(Balance.GRAZE.POINTS_BASE * hyperMult * grazeBonus);
                     score += grazePoints;
@@ -204,8 +203,7 @@ function initCollisionSystem() {
                 } else {
                     grazeCount += grazeBonus;
                     if (G.RankSystem) G.RankSystem.onGraze();
-                    const meterGain = isCloseGraze ? Balance.GRAZE.METER_GAIN_CLOSE : Balance.GRAZE.METER_GAIN;
-                    grazeMeter = Math.min(100, grazeMeter + meterGain);
+                    // Graze gives score + VFX but NOT meter (meter from proximity kills)
                     grazeMultiplier = 1 + (grazeMeter / Balance.GRAZE.MULT_DIVISOR) * (Balance.GRAZE.MULT_MAX - 1);
                     const grazePoints = Math.floor(Balance.GRAZE.POINTS_BASE * grazeMultiplier * grazeBonus);
                     score += grazePoints;
@@ -218,30 +216,6 @@ function initCollisionSystem() {
                         lastGrazeSoundTime = totalTime;
                     }
                     if (grazeCount > 0 && grazeCount % 10 === 0) audioSys.play('grazeStreak');
-                    if (grazeCount > 0 && grazeCount % Balance.GRAZE.PERK_THRESHOLD === 0) {
-                        if (grazePerksThisLevel < Balance.GRAZE.MAX_PERKS_PER_LEVEL) {
-                            applyRandomPerk();
-                            audioSys.play('grazePerk');
-                            G.MemeEngine.queueMeme('GRAZE', t('GRAZE_BONUS'), 'GRAZE');
-                            grazePerksThisLevel++;
-                        } else {
-                            score += 500;
-                            updateScore(score);
-                            showGameInfo("+500 " + t('GRAZE_MASTER'));
-                        }
-                    }
-                    if (grazeMeter >= Balance.HYPER.METER_THRESHOLD && player.hyperCooldown <= 0) {
-                        if (Balance.HYPER.AUTO_ACTIVATE && player.canActivateHyper && player.canActivateHyper(grazeMeter)) {
-                            player.activateHyper();
-                            grazeMeter = 0;
-                            updateGrazeUI();
-                            triggerScreenFlash('HYPER_ACTIVATE');
-                        } else if (!player.hyperAvailable) {
-                            player.hyperAvailable = true;
-                            showGameInfo(t('HYPER_READY') + " [H]");
-                            audioSys.play('hyperReady');
-                        }
-                    }
                 }
                 updateGrazeUI();
             },
@@ -317,6 +291,30 @@ function initCollisionSystem() {
                 checkStreakMeme();
                 emitEvent('enemy_killed', { score: killScore, x: e.x, y: e.y });
 
+                // Proximity Kill Meter — closer kills (vertically) fill meter faster
+                const dist = Math.abs(e.y - player.y);
+                const proxCfg = Balance.PROXIMITY_KILL;
+                if (dist < proxCfg.MAX_DISTANCE) {
+                    const t2 = 1 - Math.max(0, (dist - proxCfg.CLOSE_DISTANCE)) / (proxCfg.MAX_DISTANCE - proxCfg.CLOSE_DISTANCE);
+                    const gain = proxCfg.METER_GAIN_MIN + t2 * (proxCfg.METER_GAIN_MAX - proxCfg.METER_GAIN_MIN);
+                    lastGrazeTime = totalTime;
+                    grazeMeter = Math.min(100, grazeMeter + gain);
+                    if (grazeMeter >= Balance.HYPER.METER_THRESHOLD && player.hyperCooldown <= 0) {
+                        if (Balance.HYPER.AUTO_ACTIVATE && player.canActivateHyper && player.canActivateHyper(grazeMeter)) {
+                            player.activateHyper();
+                            grazeMeter = 0;
+                            updateGrazeUI();
+                            triggerScreenFlash('HYPER_ACTIVATE');
+                        } else if (!player.hyperAvailable) {
+                            player.hyperAvailable = true;
+                            showGameInfo(t('HYPER_READY') + " [H]");
+                            audioSys.play('hyperReady');
+                        }
+                    }
+                    updateGrazeUI();
+                }
+
+
                 // Mini-boss trigger
                 if (!(G.CampaignState && G.CampaignState.isEnabled()) && e.symbol && fiatKillCounter[e.symbol] !== undefined && !miniBoss && !boss && !e.isMinion && bossWarningTimer <= 0 && (totalTime - lastMiniBossSpawnTime) >= Balance.MINI_BOSS.COOLDOWN && miniBossThisWave < (Balance.MINI_BOSS.MAX_PER_WAVE || 2)) {
                     fiatKillCounter[e.symbol]++;
@@ -352,6 +350,13 @@ function initCollisionSystem() {
             // Boss hit by player bullet
             onBossHit(bullet, dmg, boss, bIdx, bArr) {
                 audioSys.play('hitEnemy');
+                // Proximity Kill Meter: boss hits give small meter gain
+                const bossGain = Balance.PROXIMITY_KILL.BOSS_HIT_GAIN;
+                if (bossGain > 0) {
+                    lastGrazeTime = totalTime;
+                    grazeMeter = Math.min(100, grazeMeter + bossGain);
+                    updateGrazeUI();
+                }
                 // Boss drops
                 const useEvolutionBoss = !!(Balance.WEAPON_EVOLUTION && player.shotLevel);
                 const bossDropInfo = G.DropSystem.tryBossDrop(
@@ -413,7 +418,7 @@ function initCollisionSystem() {
                 } else if (campaignComplete) {
                     showCampaignVictory();
                 } else if (shouldShowChapter) {
-                    showStoryScreen(chapterId, () => { startIntermission(t('CYCLE') + ' ' + marketCycle + ' ' + t('BEGINS')); });
+                    showStoryScreen(chapterId, () => { restoreGameUI(); startIntermission(t('CYCLE') + ' ' + marketCycle + ' ' + t('BEGINS')); });
                 } else {
                     startIntermission(t('CYCLE') + ' ' + marketCycle + ' ' + t('BEGINS'));
                 }
@@ -438,9 +443,12 @@ function initCollisionSystem() {
                     applyRandomPerk();
                 }
                 if (!pb.penetration) {
-                    pb.markedForDeletion = true;
-                    G.Bullet.Pool.release(pb);
-                    pbArr.splice(pbIdx, 1);
+                    pb.pierceHP = (pb.pierceHP || 1) - 1;
+                    if (pb.pierceHP <= 0) {
+                        pb.markedForDeletion = true;
+                        G.Bullet.Pool.release(pb);
+                        pbArr.splice(pbIdx, 1);
+                    }
                 }
             }
         }
@@ -2310,29 +2318,20 @@ window.launchShipAndStart = function () {
         audioSys.startMusic();
         if (G.SkyRenderer) G.SkyRenderer.init(gameWidth, gameHeight);
 
-        // v4.37: Unified tutorial — first game goes to WARMUP with tutorial overlay
-        if (!warmupShown) {
-            // First game: skip old tutorial + prologue, go straight to startGame → WARMUP + tutorial overlay
+        // Show prologue if needed, then start game (WARMUP + tutorial on first play)
+        const campaignState = G.CampaignState;
+        if (campaignState && campaignState.isEnabled() && shouldShowStory('PROLOGUE')) {
+            setTimeout(() => {
+                if (curtain) curtain.classList.add('open');
+            }, 100);
+            showStoryScreen('PROLOGUE', () => {
+                startGame();
+            });
+        } else {
             startGame();
             setTimeout(() => {
                 if (curtain) curtain.classList.add('open');
             }, 100);
-        } else {
-            // Retry: existing flow — prologue if needed, then PLAY
-            const campaignState = G.CampaignState;
-            if (campaignState && campaignState.isEnabled() && shouldShowStory('PROLOGUE')) {
-                setTimeout(() => {
-                    if (curtain) curtain.classList.add('open');
-                }, 100);
-                showStoryScreen('PROLOGUE', () => {
-                    startGame();
-                });
-            } else {
-                startGame();
-                setTimeout(() => {
-                    if (curtain) curtain.classList.add('open');
-                }, 100);
-            }
         }
     }
 
@@ -2360,7 +2359,15 @@ window.completeTutorial = function() {
     const tutMode = (G.CampaignState && G.CampaignState.isEnabled()) ? 'story' : 'arcade';
     localStorage.setItem('fiat_tutorial_' + tutMode + '_seen', '1');
     const overlay = document.getElementById('tutorial-overlay');
-    if (overlay) overlay.style.display = 'none';
+    if (overlay) {
+        overlay.style.transition = 'opacity 0.2s ease-out';
+        overlay.style.opacity = '0';
+        setTimeout(() => {
+            overlay.style.display = 'none';
+            overlay.style.transition = '';
+            overlay.style.opacity = '';
+        }, 200);
+    }
     if (tutorialCallback) tutorialCallback();
     tutorialCallback = null;
 };
@@ -2388,6 +2395,12 @@ window.restartFromGameOver = function () {
     startGame();
 };
 window.backToIntro = function () {
+    // Immediately hide touch controls (before curtain animation)
+    if (ui.touchControls) {
+        ui.touchControls.classList.remove('visible');
+        ui.touchControls.style.display = 'none';
+    }
+
     // Close curtain first
     const curtain = document.getElementById('curtain-overlay');
     if (curtain) curtain.classList.remove('open');
@@ -2604,6 +2617,17 @@ function updateLevelUI() {
     window.currentLevel = level;
 }
 
+/** Restore HUD + touchControls after story screen */
+function restoreGameUI() {
+    if (ui.uiLayer) ui.uiLayer.style.display = 'flex';
+    if (ui.touchControls) {
+        ui.touchControls.style.display = 'block';
+        requestAnimationFrame(() => {
+            if (ui.touchControls) ui.touchControls.classList.add('visible');
+        });
+    }
+}
+
 /**
  * Show story screen and transition to callback when complete
  * @param {string} storyId - ID from STORY_CONTENT (PROLOGUE, CHAPTER_1, etc.)
@@ -2630,15 +2654,7 @@ function showStoryScreen(storyId, onComplete) {
     if (ui.touchControls) ui.touchControls.style.display = 'none';
 
     G.StoryScreen.show(storyId, () => {
-        setGameState('PLAY');
-        // Restore HUD after story screen (was hidden at line 2048-2049)
-        if (ui.uiLayer) ui.uiLayer.style.display = 'flex';
-        if (ui.touchControls) {
-            ui.touchControls.style.display = 'block';
-            requestAnimationFrame(() => {
-                if (ui.touchControls) ui.touchControls.classList.add('visible');
-            });
-        }
+        // Let onComplete handle state transition and UI — don't force PLAY or show controls here
         if (onComplete) onComplete();
     });
 }
@@ -3572,11 +3588,18 @@ function update(dt) {
         updateGrazeUI();
     }
 
-    // HYPER cooldown finished - can now rebuild meter
-    if (player && player.hyperCooldown <= 0 && grazeMeter >= Balance.HYPER.METER_THRESHOLD && !player.hyperAvailable && !isHyperActive) {
-        player.hyperAvailable = true;
-        showGameInfo(t('HYPER_READY') + " [H]");
-        audioSys.play('hyperReady');
+    // HYPER activation check (game loop fallback — catches meter reaching threshold between kills)
+    if (player && player.hyperCooldown <= 0 && grazeMeter >= Balance.HYPER.METER_THRESHOLD && !isHyperActive) {
+        if (Balance.HYPER.AUTO_ACTIVATE && player.canActivateHyper && player.canActivateHyper(grazeMeter)) {
+            player.activateHyper();
+            grazeMeter = 0;
+            updateGrazeUI();
+            triggerScreenFlash('HYPER_ACTIVATE');
+        } else if (!player.hyperAvailable) {
+            player.hyperAvailable = true;
+            showGameInfo(t('HYPER_READY') + " [H]");
+            audioSys.play('hyperReady');
+        }
     }
 
     // Boss meme rotation via popup (v4.20.0: replaces ticker)
@@ -3703,6 +3726,8 @@ function update(dt) {
         const inWarmup = gameState === 'WARMUP';
         // Always update player for movement, but block firing during warmup or enemy entrance
         const enemiesEntering = !inWarmup && G.HarmonicConductor && G.HarmonicConductor.areEnemiesEntering();
+        // Freeze HYPER timer during non-combat states (warmup, boss warning)
+        player.hyperFrozen = gameState !== 'PLAY' || bossWarningTimer > 0;
         const newBullets = player.update(dt, inWarmup || enemiesEntering);
         if (!inWarmup && newBullets && newBullets.length > 0) {
             bullets.push(...newBullets);
@@ -3856,10 +3881,6 @@ function updateGrazeUI() {
         } else {
             meter.classList.remove('graze-full');
         }
-    }
-    const count = document.getElementById('graze-count');
-    if (count) {
-        count.textContent = grazeCount;
     }
 }
 
@@ -4991,6 +5012,23 @@ function triggerScreenFlash(type) {
 // Expose juice functions globally for entity classes to use
 window.Game.applyHitStop = applyHitStop;
 window.Game.triggerScreenFlash = triggerScreenFlash;
+
+// Expose proximity meter gain for boss phase transitions
+window.Game.addProximityMeter = function(gain) {
+    lastGrazeTime = totalTime;
+    grazeMeter = Math.min(100, grazeMeter + gain);
+    const Balance = window.Game.Balance;
+    if (grazeMeter >= Balance.HYPER.METER_THRESHOLD && player && player.hyperCooldown <= 0) {
+        if (Balance.HYPER.AUTO_ACTIVATE && player.canActivateHyper && player.canActivateHyper(grazeMeter)) {
+            player.activateHyper();
+            grazeMeter = 0;
+            updateGrazeUI();
+            triggerScreenFlash('HYPER_ACTIVATE');
+            return;
+        }
+    }
+    updateGrazeUI();
+};
 
 function loop(timestamp) {
     const realDt = (timestamp - lastTime) / 1000; // Save real delta before modifying lastTime

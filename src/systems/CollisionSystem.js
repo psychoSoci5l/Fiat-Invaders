@@ -191,7 +191,8 @@ window.Game = window.Game || {};
 
                     if (G.BulletSystem.circleCollide(b.x, b.y, bR, eb.x, eb.y, ebR)) {
                         cb.onBulletCancel(b, eb, i, j, bullets, enemyBullets);
-                        break;
+                        // Pierce: if bullet still alive, continue hitting more enemy bullets
+                        if (b.markedForDeletion) break;
                     }
                 }
             }

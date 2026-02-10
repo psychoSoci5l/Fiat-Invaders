@@ -20,6 +20,7 @@ class Bullet extends window.Game.Entity {
         this.special = null;      // 'HOMING'|'PIERCE'|'LASER'|'MISSILE'|null
         this.isMissile = false;   // MISSILE special flag
         this.aoeRadius = 0;       // MISSILE explosion radius
+        this.pierceHP = 1;        // Bullet pierce: survives N enemy-bullet hits
     }
 
     reset(x, y, vx, vy, color, w, h, isHodl) {
@@ -46,6 +47,7 @@ class Bullet extends window.Game.Entity {
         this.special = null;
         this.isMissile = false;
         this.aoeRadius = 0;
+        this.pierceHP = 1;
     }
 
     update(dt, enemies, boss) {
