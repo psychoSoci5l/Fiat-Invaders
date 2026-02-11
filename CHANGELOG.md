@@ -1,5 +1,16 @@
 # Changelog
 
+## v4.43.0 - 2026-02-11
+### Paper Tear Effect
+
+- **Paper tear intro**: Sky "tears open" revealing a dark void behind the title — canvas-drawn jagged edges with highlight strokes
+- **Smooth animation**: 1.4s easeOutQuart opening, 0.7s easeInQuart closing, asymmetric top/bottom stagger
+- **Title opacity sync**: DOM title fades in/out synchronized with tear progress
+- **Reverse on tap**: Tapping "TOCCA PER INIZIARE" closes the tear before transitioning to ship selection
+- **Title repositioned**: `flex-start` + `padding-top: 12%` pushes title to upper zone (box-sizing: border-box)
+- **Config**: `Balance.PAPER_TEAR` with ENABLED kill-switch, durations, edge params, shadow
+- **PWA banner fix**: Animation keyframes now preserve `translateX(-50%)` centering
+
 ## v4.42.0 - 2026-02-11
 ### Ambient Weather System
 

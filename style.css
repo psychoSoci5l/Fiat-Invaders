@@ -716,12 +716,14 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
+    box-sizing: border-box;
     background: transparent;
     /* Show the Sky! */
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: center;
+    padding-top: 12%;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     z-index: 250; /* v4.21: Above all game elements (touchControls=200, ui-layer=120) */
@@ -4150,11 +4152,12 @@ body.is-touch p.mobile-only { display: block; }
 
 /* --- PWA INSTALL BANNER --- */
 #pwa-install-banner {
-    align-self: center;
+    position: absolute;
+    bottom: calc(180px + env(safe-area-inset-bottom, 0px));
+    left: 50%;
+    transform: translateX(-50%);
     width: 90%;
     max-width: 380px;
-    margin-top: 8px;
-    margin-bottom: 70px;
     z-index: 200;
     display: flex;
     justify-content: center;
@@ -4162,8 +4165,8 @@ body.is-touch p.mobile-only { display: block; }
 }
 
 @keyframes pwaFadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
 .pwa-banner-content {

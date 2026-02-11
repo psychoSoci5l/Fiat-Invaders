@@ -1499,7 +1499,21 @@
                     5: ['snow', 'distant_lightning']
                 },
                 BEAR_MARKET: ['distant_lightning'],
-                BOSS_ACTIVE: ['drizzle']
+                BOSS_ACTIVE: ['drizzle'],
+
+                // Bird silhouettes (v4.43: intro screen ambient)
+                BIRDS: {
+                    ENABLED: true,
+                    COUNT: 4,
+                    SPEED_MIN: 30,
+                    SPEED_MAX: 55,
+                    WING_SPAN: 6,
+                    FLAP_SPEED: 3,
+                    FLAP_AMP: 4,
+                    COLOR: '#333344',
+                    LINE_WIDTH: 1.5
+                },
+                INTRO: ['birds']
             }
         },
 
@@ -1570,6 +1584,28 @@
             PANIC_MULTIPLIER: 1.3,              // +30% during PANIC phase
             RANK_SCALE: 0.15,                   // ±15% from rank
             DEFICIT_CARRYOVER: 0.5              // 50% unused budget carried over
+        },
+
+        // --- PAPER TEAR v4.43 ---
+        PAPER_TEAR: {
+            ENABLED: true,
+            OPEN_DURATION: 1.4,
+            CLOSE_DURATION: 0.7,
+            CENTER_Y_RATIO: 0.32,
+            VOID_HALF_HEIGHT_RATIO: 0.30,
+            VOID_COLOR: [5, 5, 15],
+            VOID_ALPHA: 0.92,
+            EDGE: {
+                SEG_MIN: 8, SEG_MAX: 25,
+                DEPTH_MIN: 6, DEPTH_MAX: 22,
+                HIGHLIGHT_COLOR: '#e8e0d0',
+                HIGHLIGHT_WIDTH: 1.5,
+                HIGHLIGHT_ALPHA: 0.85
+            },
+            SHADOW: {
+                ENABLED: true,
+                BLUR: 12, OFFSET_Y: 4, ALPHA: 0.4
+            }
         },
 
         // --- TITLE ANIMATION v4.35 ---

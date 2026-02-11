@@ -980,13 +980,15 @@ function _cleanupAnimClasses() {
 }
 
 // --- STATE TRANSITIONS ---
-window.enterSelectionState = function() {
+// v4.43: Inner selection logic (called after paper tear closes or directly)
+function _doEnterSelection() {
     if (introState === 'SELECTION') return;
     introState = 'SELECTION';
     audioSys.play('coinUI');
     // v4.35: Hide title animator and clean up anim classes
     if (G.TitleAnimator) G.TitleAnimator.hide();
     _cleanupAnimClasses();
+    if (G.PaperTear) G.PaperTear.reset();
 
     // Hide splash elements
     const title = document.getElementById('intro-title');
@@ -1027,6 +1029,17 @@ window.enterSelectionState = function() {
     updateShipUI();
 }
 
+window.enterSelectionState = function() {
+    if (introState === 'SELECTION') return;
+    // v4.43: Close paper tear first, then transition
+    if (G.PaperTear && G.PaperTear.isOpen()) {
+        _introActionCooldown = 0.8;
+        G.PaperTear.close(_doEnterSelection);
+        return;
+    }
+    _doEnterSelection();
+}
+
 // Go back to mode selection from ship selection
 window.goBackToModeSelect = function() {
     if (introState === 'SPLASH') return;
@@ -1036,6 +1049,8 @@ window.goBackToModeSelect = function() {
     if (G.TitleAnimator && !G.TitleAnimator.isActive()) {
         G.TitleAnimator.start(true);
     }
+    // v4.43: Reopen paper tear
+    if (G.PaperTear) G.PaperTear.open();
 
     // Hide selection elements
     const header = document.getElementById('selection-header');
@@ -1072,6 +1087,8 @@ window.goBackToModeSelect = function() {
 window.handlePrimaryAction = function() {
     // v4.35: Cooldown prevents rapid-fire state transitions
     if (_introActionCooldown > 0) return;
+    // v4.43: Block during paper tear closing
+    if (G.PaperTear && G.PaperTear.isAnimating() && !G.PaperTear.isOpen()) return;
     if (introState === 'SPLASH') {
         // v4.35: Skip animation on button tap during ANIMATING
         if (G.TitleAnimator && G.TitleAnimator.isAnimating()) {
@@ -1638,6 +1655,8 @@ function init() {
             // Initialize sky background for INTRO state
             if (G.SkyRenderer) G.SkyRenderer.init(gameWidth, gameHeight);
     if (G.WeatherController) G.WeatherController.init(gameWidth, gameHeight);
+    if (G.WeatherController) G.WeatherController.setIntroMode();
+    if (G.PaperTear) { G.PaperTear.init(gameWidth, gameHeight); G.PaperTear.open(); }
 
             // Restore campaign mode UI state (v4.8: sync UI with stored preference)
             if (G.CampaignState) {
@@ -1716,6 +1735,8 @@ function init() {
         else if (gameState === 'INTRO') {
             // v4.35: Cooldown prevents rapid-fire state transitions (key repeat)
             if (_introActionCooldown > 0) return;
+            // v4.43: Block tap during paper tear closing animation
+            if (G.PaperTear && G.PaperTear.isAnimating() && !G.PaperTear.isOpen()) return;
             // v4.35: Skip title animation on tap during ANIMATING
             if (introState === 'SPLASH' && G.TitleAnimator && G.TitleAnimator.isAnimating()) {
                 G.TitleAnimator.skip();
@@ -1782,6 +1803,7 @@ function init() {
         setGameState('INTRO');
         introState = 'SPLASH';
         initIntroShip();
+        if (G.WeatherController) G.WeatherController.setIntroMode();
 
         // v4.35: Title Animation for no-video path
         const subtitleEl = document.getElementById('title-subtitle');
@@ -2451,6 +2473,7 @@ window.backToIntro = function () {
 
         setGameState('INTRO');
         introState = 'SPLASH';
+        if (G.WeatherController) G.WeatherController.setIntroMode();
 
         // Reset to splash state (unified intro v4.8.1)
         const title = document.getElementById('intro-title');
@@ -2521,6 +2544,8 @@ window.backToIntro = function () {
             G.TitleAnimator.init(gameWidth, gameHeight, {});
             G.TitleAnimator.start(true);
         }
+        // v4.43: Reinit and reopen paper tear
+        if (G.PaperTear) { G.PaperTear.init(gameWidth, gameHeight); G.PaperTear.open(); }
 
         // Reopen curtain
         setTimeout(() => {
@@ -4369,6 +4394,11 @@ function draw() {
         G.WeatherController.draw(ctx, { isBearMarket, level, bossActive: boss && boss.active });
     }
 
+    // v4.43: Paper tear void (drawn on canvas, visible through transparent intro-screen DOM)
+    if (gameState === 'INTRO' && G.PaperTear && G.PaperTear.isActive()) {
+        G.PaperTear.draw(ctx);
+    }
+
     // v4.35: Title animation particles (drawn on canvas through transparent intro-screen)
     if (gameState === 'INTRO' && G.TitleAnimator && G.TitleAnimator.isActive()) {
         G.TitleAnimator.draw(ctx);
@@ -5163,6 +5193,15 @@ function loop(timestamp) {
     if (_introActionCooldown > 0) _introActionCooldown -= dt;
     if (gameState === 'INTRO' && G.TitleAnimator && G.TitleAnimator.isActive()) {
         G.TitleAnimator.update(dt);
+    }
+
+    // v4.43: Paper tear animation + DOM title opacity sync
+    if (gameState === 'INTRO' && G.PaperTear) {
+        var tp = G.PaperTear.update(dt);
+        if (G.PaperTear.isActive() || G.PaperTear.isAnimating()) {
+            var titleEl = document.getElementById('intro-title');
+            if (titleEl && introState === 'SPLASH') titleEl.style.opacity = tp;
+        }
     }
 
     // STORY_SCREEN: Update story display, skip normal game update

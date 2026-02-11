@@ -34,6 +34,7 @@
     let snowParticles = [];
     let fogWisps = [];
     let drizzleDrops = [];
+    let birdParticles = [];
     let distantLightningTimer = 0;
     let distantLightningFlash = 0;
     let distantLightningColor = '#ffcc66';
@@ -79,6 +80,7 @@
         snowParticles = [];
         fogWisps = [];
         drizzleDrops = [];
+        birdParticles = [];
         distantLightningTimer = 0;
         distantLightningFlash = 0;
         currentLevel = 1;
@@ -228,6 +230,33 @@
         var cfg = amb.DISTANT_LIGHTNING;
         distantLightningTimer = cfg.INTERVAL_MIN + Math.random() * (cfg.INTERVAL_MAX - cfg.INTERVAL_MIN);
         distantLightningFlash = 0;
+    }
+
+    // --- Birds (v4.43: intro ambient) ---
+
+    function _spawnBirds() {
+        birdParticles = [];
+        var amb = G.Balance && G.Balance.SKY && G.Balance.SKY.AMBIENT;
+        if (!amb || !amb.BIRDS || !amb.BIRDS.ENABLED) return;
+        var cfg = amb.BIRDS;
+        for (var i = 0; i < cfg.COUNT; i++) {
+            birdParticles.push({
+                x: Math.random() * gameWidth,
+                y: 20 + Math.random() * (gameHeight * 0.3),
+                spd: cfg.SPEED_MIN + Math.random() * (cfg.SPEED_MAX - cfg.SPEED_MIN),
+                phase: Math.random() * Math.PI * 2
+            });
+        }
+    }
+
+    function setIntroMode() {
+        reset();
+        var amb = G.Balance && G.Balance.SKY && G.Balance.SKY.AMBIENT;
+        if (!amb || !amb.ENABLED) return;
+        ambientEffects = (amb.INTRO || []).slice();
+        if (ambientEffects.indexOf('birds') !== -1 && amb.BIRDS && amb.BIRDS.ENABLED) {
+            _spawnBirds();
+        }
     }
 
     // --- setLevel (v4.42) ---
@@ -428,6 +457,23 @@
             }
         }
 
+        // Birds: horizontal drift + flap
+        if (birdParticles.length > 0) {
+            var bCfg = amb.BIRDS;
+            if (bCfg) {
+                for (var i = 0; i < birdParticles.length; i++) {
+                    var b = birdParticles[i];
+                    b.x += b.spd * dt;
+                    b.phase += bCfg.FLAP_SPEED * Math.PI * 2 * dt;
+                    // Wrap: re-enter from left with random y
+                    if (b.x > gameWidth + 20) {
+                        b.x = -20;
+                        b.y = 20 + Math.random() * (gameHeight * 0.3);
+                    }
+                }
+            }
+        }
+
         // Distant lightning: timer + flash decay
         if (ambientEffects.indexOf('distant_lightning') !== -1 && amb.DISTANT_LIGHTNING.ENABLED) {
             var dlCfg = amb.DISTANT_LIGHTNING;
@@ -561,6 +607,25 @@
             }
             ctx.globalAlpha = 1;
         }
+
+        // Birds (v4.43: V-shape silhouettes)
+        if (birdParticles.length > 0) {
+            var bCfg = amb.BIRDS;
+            if (bCfg) {
+                ctx.strokeStyle = bCfg.COLOR || '#333344';
+                ctx.lineWidth = bCfg.LINE_WIDTH || 1.5;
+                ctx.globalAlpha = 1;
+                for (var i = 0; i < birdParticles.length; i++) {
+                    var b = birdParticles[i];
+                    var flapY = Math.sin(b.phase) * bCfg.FLAP_AMP;
+                    ctx.beginPath();
+                    ctx.moveTo(b.x - bCfg.WING_SPAN, b.y - flapY);
+                    ctx.lineTo(b.x, b.y);
+                    ctx.lineTo(b.x + bCfg.WING_SPAN, b.y - flapY);
+                    ctx.stroke();
+                }
+            }
+        }
     }
 
     function getWindMultiplier() {
@@ -588,6 +653,7 @@
         lines.push('Snow: ' + snowParticles.length);
         lines.push('Fog: ' + fogWisps.length);
         lines.push('Drizzle: ' + drizzleDrops.length);
+        lines.push('Birds: ' + birdParticles.length);
         lines.push('Distant lightning: flash=' + distantLightningFlash.toFixed(3) + ', timer=' + distantLightningTimer.toFixed(1) + 's');
         // Draw call estimate
         var drawCalls = 0;
@@ -598,11 +664,12 @@
         drawCalls += fogWisps.length;
         drawCalls += drizzleDrops.length;
         drawCalls += snowParticles.length;
+        drawCalls += birdParticles.length;
         lines.push('Est. draw calls: ' + drawCalls);
         console.log(lines.join('\n'));
         return {
             effects: activeEffects.length, rain: raindrops.length, meteors: meteorBurst.length,
-            wind: windMultiplier, drawCalls: drawCalls,
+            wind: windMultiplier, drawCalls: drawCalls, birds: birdParticles.length,
             snow: snowParticles.length, fog: fogWisps.length, drizzle: drizzleDrops.length,
             distantLightning: distantLightningFlash, ambientEffects: ambientEffects
         };
@@ -617,6 +684,7 @@
         draw: draw,
         getWindMultiplier: getWindMultiplier,
         setLevel: setLevel,
+        setIntroMode: setIntroMode,
         triggerLevelTransition: triggerLevelTransition,
         status: status
     };
