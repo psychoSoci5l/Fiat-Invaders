@@ -34,9 +34,7 @@ class Enemy extends window.Game.Entity {
         this.kamikazeDiving = false;  // Currently diving
         this.kamikazeSpeed = window.Game.Balance.ENEMY_BEHAVIOR.KAMIKAZE_SPEED;
 
-        this.hasShield = false;       // Medium tier: absorbs first hit
-        this.shieldActive = false;    // Shield currently up
-        this.shieldFlash = 0;         // Visual feedback
+        // v4.45: Enemy shield removed (non-intuitive, HP is the only defense now)
 
         this.canTeleport = false;     // Strong tier: can teleport
         this.teleportCooldown = 0;    // Time until next teleport
@@ -104,7 +102,6 @@ class Enemy extends window.Game.Entity {
         const EB = window.Game.Balance.ENEMY_BEHAVIOR;
         const ff = EB.FLASH_FADE;
         if (this.hitFlash > 0) this.hitFlash -= dt * ff.HIT;
-        if (this.shieldFlash > 0) this.shieldFlash -= dt * ff.SHIELD;
         if (this.teleportFlash > 0) this.teleportFlash -= dt * ff.TELEPORT;
         if (this.teleportCooldown > 0) this.teleportCooldown -= dt;
 
@@ -272,31 +269,16 @@ class Enemy extends window.Game.Entity {
 
     // Take damage - returns true if enemy should die
     takeDamage(amount) {
-        // Shield absorbs first hit
-        if (this.shieldActive) {
-            this.shieldActive = false;
-            this.shieldFlash = 1;
-            if (window.Game.Audio) window.Game.Audio.play('shieldDeactivate');
-            return false; // Don't reduce HP
-        }
-
         this.hp -= amount;
         this.hitFlash = 1;
         this._hitShakeTimer = window.Game.Balance?.VFX?.HIT_SHAKE_DURATION || 0.06;
         return this.hp <= 0;
     }
 
-    // Activate shield (called by spawner)
-    activateShield() {
-        if (this.hasShield) {
-            this.shieldActive = true;
-        }
-    }
-
     draw(ctx) {
         // v4.5: Apply hit shake offset
-        const x = this.x + this._hitShakeX;
-        const y = this.y + this._hitShakeY;
+        const x = this.x + Math.round(this._hitShakeX);
+        const y = this.y + Math.round(this._hitShakeY);
 
         ctx.save();
         if (this.rotation) ctx.translate(x, y), ctx.rotate(this.rotation), ctx.translate(-x, -y);
@@ -343,67 +325,9 @@ class Enemy extends window.Game.Entity {
             ctx.globalAlpha = 1;
         }
 
-        // Hit flash effect (white overlay) — v4.5: sharper, shorter
-        if (this.hitFlash > 0) {
-            ctx.globalAlpha = Math.min(1, this.hitFlash * 0.8);
-            ctx.fillStyle = '#fff';
-            ctx.beginPath();
-            ctx.arc(x, y, 25, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.globalAlpha = 1;
-        }
+        // v4.45: Hit flash REMOVED (visual noise, HP is the only feedback now)
 
-        // Telegraph indicator (larger for bigger enemies)
-        if (this.telegraphTimer > 0) {
-            const mult = (this.pattern === 'BURST') ? 5 : (this.pattern === 'DOUBLE' ? 5.5 : 6);
-            ctx.globalAlpha = Math.min(1, this.telegraphTimer * mult);
-            ctx.strokeStyle = (this.pattern === 'BURST') ? '#ff6b6b' : (this.pattern === 'DOUBLE' ? '#4ecdc4' : '#fff');
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.arc(x, y, 30, 0, Math.PI * 2);
-            ctx.stroke();
-            ctx.globalAlpha = 1;
-        }
-
-        // SHIELD indicator (blue hexagonal barrier)
-        if (this.shieldActive) {
-            const shieldPulse = Math.sin(Date.now() * 0.01) * 0.2 + 0.8;
-            ctx.strokeStyle = '#00ffff';
-            ctx.lineWidth = 3;
-            ctx.globalAlpha = shieldPulse;
-            ctx.beginPath();
-            for (let i = 0; i < 6; i++) {
-                const angle = (Math.PI / 3) * i - Math.PI / 2;
-                const px = x + Math.cos(angle) * 31;
-                const py = y + Math.sin(angle) * 31;
-                if (i === 0) ctx.moveTo(px, py);
-                else ctx.lineTo(px, py);
-            }
-            ctx.closePath();
-            ctx.stroke();
-            ctx.globalAlpha = 1;
-        }
-
-        // Shield break flash
-        if (this.shieldFlash > 0) {
-            ctx.globalAlpha = this.shieldFlash;
-            ctx.strokeStyle = '#00ffff';
-            ctx.lineWidth = 4;
-            ctx.beginPath();
-            ctx.arc(x, y, 30 + (1 - this.shieldFlash) * 15, 0, Math.PI * 2);
-            ctx.stroke();
-            ctx.globalAlpha = 1;
-        }
-
-        // Teleport flash effect
-        if (this.teleportFlash > 0) {
-            ctx.globalAlpha = this.teleportFlash * 0.6;
-            ctx.fillStyle = '#9b59b6';
-            ctx.beginPath();
-            ctx.arc(x, y, 30, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.globalAlpha = 1;
-        }
+        // v4.45: Telegraph circles and teleport flash REMOVED (confusing, not intuitive)
 
         // Kamikaze dive indicator (red trailing flames)
         if (this.kamikazeDiving) {

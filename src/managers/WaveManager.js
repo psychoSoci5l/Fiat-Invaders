@@ -210,7 +210,7 @@ window.Game.WaveManager = {
 
         // Scale HP based on difficulty
         const diff = Balance.calculateDifficulty(level, cycle);
-        const scaledHP = Balance.calculateEnemyHP(diff);
+        const scaledHP = Balance.calculateEnemyHP(diff, cycle);
         const scaledType = Object.assign({}, currencyType, {
             hp: currencyType.hp * scaledHP
         });
@@ -247,9 +247,6 @@ window.Game.WaveManager = {
         const symbol = currencyType.s;
         if (Balance.TIERS.WEAK.includes(symbol)) {
             enemy.isKamikaze = Math.random() < behaviorChance * 0.5;
-        } else if (Balance.TIERS.MEDIUM.includes(symbol)) {
-            enemy.hasShield = Math.random() < behaviorChance;
-            if (enemy.hasShield) enemy.activateShield();
         } else if (Balance.TIERS.STRONG.includes(symbol)) {
             enemy.canTeleport = Math.random() < behaviorChance;
         }
@@ -1163,7 +1160,7 @@ window.Game.WaveManager = {
                     const cycle = window.marketCycle || 1;
                     const level = window.currentLevel || 1;
                     const diff = Balance.calculateDifficulty(level, cycle);
-                    const scaledHP = Balance.calculateEnemyHP(diff);
+                    const scaledHP = Balance.calculateEnemyHP(diff, cycle);
                     const baseType = G.FIAT_TYPES[typeIdx];
                     const scaledType = Object.assign({}, baseType, { hp: baseType.hp * scaledHP });
 
@@ -1191,8 +1188,7 @@ window.Game.WaveManager = {
 
                     const behaviorChance = Math.min(0.5, 0.1 + cycle * 0.1);
                     if (typeIdx <= 2) enemy.isKamikaze = Math.random() < behaviorChance * 0.5;
-                    else if (typeIdx <= 6) { enemy.hasShield = Math.random() < behaviorChance; if (enemy.hasShield) enemy.activateShield(); }
-                    else enemy.canTeleport = Math.random() < behaviorChance;
+                    else if (typeIdx > 6) enemy.canTeleport = Math.random() < behaviorChance;
 
                     enemy.fireTimer = enemies.length === 0 ? 0 : (enemies.length * 0.15) + (Math.random() * 0.2);
                     enemies.push(enemy);

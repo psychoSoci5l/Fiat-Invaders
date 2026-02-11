@@ -61,6 +61,12 @@ window.Game.HarmonicConductor = {
         lastRechargeTime: 0
     },
 
+    // v4.44: Burst/pause cycle — creates dodgeable gaps in enemy fire
+    _burstCycle: {
+        timer: 0,
+        isFiring: true
+    },
+
     init(enemies, player, gameWidth, gameHeight) {
         this.enemies = enemies;
         this.player = player;
@@ -112,6 +118,10 @@ window.Game.HarmonicConductor = {
         // v4.37: Grace period — no enemy fire at wave start
         const graceCfg = window.Game.Balance?.FIRE_BUDGET?.WAVE_GRACE_PERIOD;
         this._graceTimer = graceCfg || 0;
+
+        // v4.44: Reset burst/pause cycle
+        this._burstCycle.timer = 0;
+        this._burstCycle.isFiring = true;
 
         // v4.17: Reset fire budget to full for new wave
         this._recalcFireBudgetMax();
@@ -319,6 +329,18 @@ window.Game.HarmonicConductor = {
 
         // Skip firing during grace period
         if (this._graceTimer > 0) return;
+
+        // v4.44: Burst/pause cycle — creates dodgeable gaps
+        const burstCfg = window.Game.Balance?.FIRE_BUDGET;
+        if (burstCfg && burstCfg.BURST_DURATION && burstCfg.PAUSE_DURATION) {
+            this._burstCycle.timer += dt;
+            const cycleDuration = this._burstCycle.isFiring ? burstCfg.BURST_DURATION : burstCfg.PAUSE_DURATION;
+            if (this._burstCycle.timer >= cycleDuration) {
+                this._burstCycle.timer = 0;
+                this._burstCycle.isFiring = !this._burstCycle.isFiring;
+            }
+            if (!this._burstCycle.isFiring) return; // Pause phase — no firing
+        }
 
         // Skip firing during last enemy pause (dramatic silence)
         if (this.isInLastEnemyPause()) return;

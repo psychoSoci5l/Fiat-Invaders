@@ -269,6 +269,12 @@ function initCollisionSystem() {
                     showGameInfo("💀 " + t('LAST_FIAT') + " x" + lastEnemyMult.toFixed(0));
                 }
 
+                // v4.44: Clear player bullets when last enemy dies (prevent pre-damage on incoming boss/wave)
+                if (isLastEnemy) {
+                    bullets.forEach(b => { b.markedForDeletion = true; G.Bullet.Pool.release(b); });
+                    bullets.length = 0;
+                }
+
                 createEnemyDeathExplosion(e.x, e.y, e.color, e.symbol || '$', e.shape);
                 createScoreParticles(e.x, e.y, e.color);
 
@@ -350,6 +356,10 @@ function initCollisionSystem() {
             // Boss hit by player bullet
             onBossHit(bullet, dmg, boss, bIdx, bArr) {
                 audioSys.play('hitEnemy');
+                // v4.45: Score per boss hit (was 0 — score stayed frozen during boss fight)
+                const hitScore = Math.floor(dmg * 2);
+                score += hitScore;
+                updateScore(score);
                 // Proximity Kill Meter: boss hits give small meter gain
                 const bossGain = Balance.PROXIMITY_KILL.BOSS_HIT_GAIN;
                 if (bossGain > 0) {
@@ -392,6 +402,8 @@ function initCollisionSystem() {
                 enemyBullets.length = 0;
                 window.enemyBullets = enemyBullets;
                 bossJustDefeated = true;
+                // v4.44: Deactivate HYPER on boss defeat (prevents carry-over into next cycle)
+                if (player && player.hyperActive) player.deactivateHyper();
                 // v4.40: Reset proximity meter on boss defeat (clean slate for next cycle)
                 grazeMeter = 0;
                 updateGrazeUI();
@@ -607,6 +619,7 @@ function canSpawnEnemyBullet() {
 function updateScore(newScore) {
     const oldScore = score;
     score = newScore;
+    window.score = score;
     const el = document.getElementById('scoreVal');
     if (el) {
         el.textContent = Math.floor(score);
@@ -4581,6 +4594,9 @@ function draw() {
         G.EffectsRenderer.drawDamageVignette(ctx);
         // v4.4: Low-HP danger vignette
         G.EffectsRenderer.drawLowHPVignette(ctx, lives, totalTime);
+        // v4.45: GODCHAIN screen border glow
+        const gcActive = player && player._godchainActive;
+        G.EffectsRenderer.drawGodchainVignette(ctx, gcActive, totalTime);
     }
 
     ctx.restore(); // Restore shake

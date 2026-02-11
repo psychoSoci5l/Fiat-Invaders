@@ -174,12 +174,15 @@ class Player extends window.Game.Entity {
      * Check if GODCHAIN conditions are met (all modifiers at max with active timers)
      */
     isGodchainActive() {
-        // v4.6.1: Use GODCHAIN.REQUIREMENTS config (lowered from max levels)
-        const req = window.Game.Balance?.GODCHAIN?.REQUIREMENTS || { RATE: 3, POWER: 3, SPREAD: 2 };
-        return this.shotLevel >= 3 &&
-               this.modifiers.rate.level >= req.RATE && this.modifiers.rate.timer > 0 &&
-               this.modifiers.power.level >= req.POWER && this.modifiers.power.timer > 0 &&
-               this.modifiers.spread.level >= req.SPREAD && this.modifiers.spread.timer > 0;
+        // v4.44: Require any 2 of 3 modifiers active (3 simultaneous is mathematically
+        // impossible with 6s min drop interval + 12s duration)
+        const req = window.Game.Balance?.GODCHAIN?.REQUIREMENTS || { RATE: 1, POWER: 1, SPREAD: 1 };
+        if (this.shotLevel < 2) return false;
+        let activeCount = 0;
+        if (this.modifiers.rate.level >= req.RATE && this.modifiers.rate.timer > 0) activeCount++;
+        if (this.modifiers.power.level >= req.POWER && this.modifiers.power.timer > 0) activeCount++;
+        if (this.modifiers.spread.level >= req.SPREAD && this.modifiers.spread.timer > 0) activeCount++;
+        return activeCount >= 2;
     }
 
     update(dt, blockFiring = false) {

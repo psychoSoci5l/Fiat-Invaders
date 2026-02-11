@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.44.0 - 2026-02-11
+### Boss HP Scaling + Pixel Glitch Fix
+
+- **Boss HP cycle multiplier**: Added `CYCLE_MULT: [1.0, 2.0, 3.0]` to `BOSS.HP` — C2 boss HP doubled, C3 tripled, matching player GODCHAIN power scaling
+- **calculateBossHP() updated**: Now applies cycle multiplier after additive formula (C1 unchanged, C2 ~27k, C3 ~40k+)
+- **Enemy hit shake pixel fix**: `Math.round()` on `_hitShakeX`/`_hitShakeY` in `Enemy.draw()` — eliminates sub-pixel anti-alias flickering on currency symbols
+- **Enemy HP tuning**: Base 15→18, scale 25→30, cycle multipliers [1.0, 1.6, 2.2] for tankier hordes in later cycles
+
 ## v4.43.0 - 2026-02-11
 ### Paper Tear Effect
 

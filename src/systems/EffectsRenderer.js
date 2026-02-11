@@ -390,6 +390,24 @@
         ctx.fillRect(0, 0, gameWidth, gameHeight);
     }
 
+    /**
+     * v4.45: GODCHAIN vignette — persistent orange border glow while active
+     */
+    function drawGodchainVignette(ctx, isActive, totalTime) {
+        if (!isActive) return;
+        if (!G.Balance?.GODCHAIN?.VIGNETTE) return;
+        const pulse = Math.sin(totalTime * 6) * 0.06 + 0.18;
+        const thickness = 18;
+        const CU = G.ColorUtils;
+        // Top + bottom orange bars
+        ctx.fillStyle = CU.rgba(255, 68, 0, pulse);
+        ctx.fillRect(0, 0, gameWidth, thickness);
+        ctx.fillRect(0, gameHeight - thickness, gameWidth, thickness);
+        // Left + right
+        ctx.fillRect(0, 0, thickness, gameHeight);
+        ctx.fillRect(gameWidth - thickness, 0, thickness, gameHeight);
+    }
+
     // Getters for state inspection
     function getShake() { return shake; }
     function getHitStopTimer() { return hitStopTimer; }
@@ -421,6 +439,7 @@
         drawSacrificeOverlay,
         drawVignette,
         drawLowHPVignette,
+        drawGodchainVignette,
         // State
         getShake,
         getHitStopTimer,

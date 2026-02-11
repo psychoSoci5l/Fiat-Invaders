@@ -81,7 +81,7 @@
         // Grazing is the primary skill expression. Close to danger = maximum reward.
         GRAZE: {
             RADIUS: 25,               // Pixels outside core hitbox for graze
-            CLOSE_RADIUS: 18,         // Close graze radius for 4x bonus (v4.0.2: 23→18 for 7px gap, more distinct)
+            CLOSE_RADIUS: 22,         // Close graze radius for 4x bonus (v4.44: 18→22, 7px gap was too tight — 2% hit rate)
 
             // Scoring (grazing = primary score source)
             POINTS_BASE: 25,          // Base points per graze
@@ -117,17 +117,17 @@
             BASE_DURATION: 5.0,       // Seconds of HYPER mode
             GRAZE_EXTENSION: 0.3,     // Seconds added per graze during HYPER
             MAX_DURATION: 12.0,       // Cap on total HYPER time (prevents infinite)
-            SCORE_MULT: 5.0,          // Score multiplier during HYPER (stacks with other mults)
+            SCORE_MULT: 3.0,          // Score multiplier during HYPER (v4.44: 5.0→3.0, less score distortion between cycles)
             HITBOX_PENALTY: 1.5,      // Core hitbox size multiplier (50% larger = more risk)
             COOLDOWN: 8.0,            // Seconds after HYPER ends before meter can refill
-            TIME_SCALE: 0.92,         // Game speed during HYPER (slight slow-mo for readability)
+            TIME_SCALE: 0.82,         // Game speed during HYPER (stronger slow-mo for readability)
             INSTANT_DEATH: true,      // If hit during HYPER, instant game over (bypass lives)
 
             // Visual settings
             AURA_PULSE_SPEED: 8,      // Aura animation speed
-            AURA_SIZE_BASE: 55,       // Base aura radius
-            AURA_SIZE_PULSE: 10,      // Aura size oscillation
-            PARTICLE_BURST: 12,       // Particles per graze during HYPER
+            AURA_SIZE_BASE: 28,       // Base aura radius (reduced — clean border glow)
+            AURA_SIZE_PULSE: 4,       // Aura size oscillation (subtle)
+            PARTICLE_BURST: 3,        // Particles per graze during HYPER (minimal clutter)
 
             // Audio settings
             WARNING_TIME: 2.0         // Seconds before HYPER ends to play warning
@@ -216,7 +216,7 @@
                 HYPER_ACTIVATE_FLASH: true,    // Flash when HYPER activates
 
                 // Mode-specific overlays — ON (tints, not interruptions)
-                HYPER_OVERLAY: true,           // Golden tint during HYPER
+                HYPER_OVERLAY: false,          // Golden tint during HYPER (disabled — obscures bullets)
                 SACRIFICE_OVERLAY: true,       // White tint during sacrifice
 
                 // Bear Market atmosphere
@@ -320,8 +320,9 @@
 
         // --- ENEMY HP SCALING ---
         ENEMY_HP: {
-            BASE: 10,                 // Base HP at difficulty 0
-            SCALE: 15                 // Additional HP at max difficulty
+            BASE: 18,                 // Base HP at difficulty 0 (v4.45: 15→18, extend C1 horde clear time ~20%)
+            SCALE: 30,                // Additional HP at max difficulty (v4.45: 25→30, later waves tankier)
+            CYCLE_MULT: [1.0, 1.6, 2.2]  // v4.45: Per-cycle HP multiplier (C2 enemies 60% tankier, C3 120% tankier)
         },
 
         // --- ENEMY BEHAVIORS ---
@@ -458,7 +459,8 @@
             HP: {
                 BASE: 3000,           // Base HP for all bosses (v4.16: 2400→3000)
                 PER_LEVEL: 65,        // +65 HP per level (v4.16: 50→65)
-                PER_CYCLE: 3000,      // +3000 HP per cycle (v4.18: 1400→3000, BCE C2 was 26.4s)
+                PER_CYCLE: 4000,      // +4000 HP per cycle (v4.45: 3000→4000, BCE C2 26.5s still fast)
+                CYCLE_MULT: [1.0, 2.0, 3.0], // v4.44: Per-cycle HP multiplier (C2 2×, C3 3×) — matches player GODCHAIN scaling
                 PERK_SCALE: 0.10,     // +10% per player perk
                 MIN_FLOOR: 2500       // Minimum HP (v4.16: 2000→2500)
             },
@@ -892,7 +894,7 @@
             PLAYER_PIERCE:  { speed: 765, collisionRadius: 5, piercing: true,  explosion: null },
             PLAYER_LASER:   { speed: 1071, collisionRadius: 3, piercing: true, explosion: null },   // 765*1.4
             PLAYER_MISSILE: { speed: 536, collisionRadius: 7, piercing: false,                      // 765*0.7
-                explosion: { radius: 50, damage: 1.5, knockback: 80, particles: 15, shake: 8 }
+                explosion: { radius: 35, damage: 1.2, knockback: 60, particles: 12, shake: 6 }  // v4.45: nerfed AoE 50→35, dmg 1.5→1.2
             },
             // Enemy bullets (all shapes)
             ENEMY_DEFAULT:  { speed: null, collisionRadius: 4, piercing: false, explosion: null },
@@ -932,7 +934,7 @@
             KILLS_FOR_UPGRADE: 30,        // Guaranteed UPGRADE drop every N kills
 
             // Modifier durations (seconds)
-            MODIFIER_DURATION: 12,
+            MODIFIER_DURATION: 12,    // v4.44: reverted to 12s (16s caused power spike overlap)
 
             // Modifier effects per level (index = level - 1)
             RATE: {
@@ -988,7 +990,7 @@
             MOD_WEIGHT: 0.35,           // Weight of modifiers in power score
             SPECIAL_WEIGHT: 0.25,       // Weight of special in power score
             // Suppression
-            SUPPRESSION_FLOOR: 0.15,    // Below this power score, no suppression
+            SUPPRESSION_FLOOR: 0.50,    // Below this power score, no suppression (v4.45: 0.15→0.50, was blocking GODCHAIN)
             // Need-based category selection weights
             CATEGORY_WEIGHTS: {
                 UPGRADE: 1.5,           // Base weight for upgrade need
@@ -1206,7 +1208,7 @@
             SPARK_COUNT_PER_LEVEL: 2,         // +2 per shot level
             SPARK_POWER_SCALE: 1.5,           // Size mult with POWER modifier
             SPARK_KILL_RING: true,            // Expanding ring on kill hit
-            SPARK_HYPER_RING: true,           // Golden ring during HYPER
+            SPARK_HYPER_RING: false,          // Golden ring during HYPER (disabled — clean readability)
 
             // Muzzle flash evolution
             MUZZLE_SCALE_PER_LEVEL: 0.4,     // +40% per shot level
@@ -1221,21 +1223,21 @@
 
             // Trail enhancement
             TRAIL_POWER_GLOW: 0.25,           // Outer glow alpha with POWER mod
-            TRAIL_HYPER_SPARKLE: true,        // Golden sparkles during HYPER
+            TRAIL_HYPER_SPARKLE: false,       // Golden sparkles during HYPER (disabled — clean readability)
 
             // Screen juice
             MULTI_KILL_WINDOW: 0.05,          // Seconds to count as multi-kill (3 frames)
             MULTI_KILL_FLASH: { duration: 0.08, opacity: 0.20, color: '#FFFFFF' },
             STRONG_KILL_SHAKE: 3,             // Shake px on strong-tier kill
             STRONG_KILL_SHAKE_DURATION: 0.06, // Shake duration
-            HYPER_AMBIENT_INTERVAL: 0.12,     // Seconds between HYPER sparkles
+            HYPER_AMBIENT_INTERVAL: 0.5,      // Seconds between HYPER sparkles (slower — less clutter)
             COMBO_SCORE_SCALE: true           // Float score size scales with streak
         },
 
         // --- GODCHAIN MODE v4.6 (All modifiers maxed simultaneously) ---
         GODCHAIN: {
-            // v4.6.1: Lowered from 3/3/2 — original was near-impossible in normal play
-            REQUIREMENTS: { RATE: 2, POWER: 2, SPREAD: 1 },
+            // v4.44: Lowered from 2/2/1 — was still impossible (0 activations in all playtests)
+            REQUIREMENTS: { RATE: 1, POWER: 1, SPREAD: 1 },
             SPEED_BONUS: 1.05,          // +5% movement speed
             SHIP_COLORS: {
                 BODY: '#cc2222',        // Deep red body
@@ -1249,17 +1251,18 @@
                 ENGINE: '#ff4400'       // Engine glow
             },
             AURA: {
-                INNER_RADIUS: 28,
-                OUTER_RADIUS: 52,
-                ALPHA: 0.18,
-                PULSE_SPEED: 3.0
+                INNER_RADIUS: 20,
+                OUTER_RADIUS: 70,       // v4.45: 52→70 (much larger glow)
+                ALPHA: 0.45,            // v4.45: 0.18→0.45 (clearly visible)
+                PULSE_SPEED: 5.0        // v4.45: 3→5 (faster pulsing, more dramatic)
             },
             FIRE_TRAIL: {
-                TONGUE_COUNT: 3,
-                LENGTH: 12,
-                ALPHA: 0.7,
+                TONGUE_COUNT: 5,        // v4.45: 3→5
+                LENGTH: 20,             // v4.45: 12→20
+                ALPHA: 0.85,            // v4.45: 0.7→0.85
                 COLORS: ['#ff4400', '#ff6600', '#ffaa00']
-            }
+            },
+            VIGNETTE: true              // v4.45: Enable screen-edge orange glow
         },
 
         // --- SKY & BACKGROUND v4.24 (Cell-Shading Enhancement) ---
@@ -1578,12 +1581,15 @@
         // Limits total enemy bullets/sec to prevent screen flooding with many enemies
         FIRE_BUDGET: {
             ENABLED: true,
-            BULLETS_PER_SECOND: [12, 31, 56],  // v4.38: C2 36→31 (-15%, smoother C1→C2 transition)
+            BULLETS_PER_SECOND: [12, 31, 56],  // v4.44: reverted C1 to 12 (HP increase already extends wave duration)
             WAVE_GRACE_PERIOD: 2.5,             // v4.37: seconds of silence at wave start (no enemy fire)
             BEAR_MARKET_BONUS: 10,              // +10 bullets/sec in Bear Market
             PANIC_MULTIPLIER: 1.3,              // +30% during PANIC phase
             RANK_SCALE: 0.15,                   // ±15% from rank
-            DEFICIT_CARRYOVER: 0.5              // 50% unused budget carried over
+            DEFICIT_CARRYOVER: 0.5,             // 50% unused budget carried over
+            // v4.44: Burst/pause cycle — creates dodgeable gaps in enemy fire
+            BURST_DURATION: 2.0,                // Seconds of firing
+            PAUSE_DURATION: 1.2                 // Seconds of silence (creates bullet gaps)
         },
 
         // --- PAPER TEAR v4.43 ---
@@ -1692,8 +1698,12 @@
          * @param {number} difficulty - Current difficulty (0 to MAX_DIFFICULTY)
          * @returns {number} Enemy HP multiplier
          */
-        calculateEnemyHP(difficulty) {
-            return this.ENEMY_HP.BASE + Math.floor(difficulty * this.ENEMY_HP.SCALE);
+        calculateEnemyHP(difficulty, cycle) {
+            const baseHP = this.ENEMY_HP.BASE + Math.floor(difficulty * this.ENEMY_HP.SCALE);
+            // v4.45: Per-cycle multiplier — player power grows faster than linear HP scaling
+            const cm = this.ENEMY_HP.CYCLE_MULT;
+            const cycleMult = cm ? cm[Math.min((cycle || 1) - 1, cm.length - 1)] : 1;
+            return Math.floor(baseHP * cycleMult);
         },
 
         /**
@@ -1839,7 +1849,9 @@
          */
         calculateBossHP(level, cycle) {
             const hp = this.BOSS.HP;
-            return hp.BASE + (level * hp.PER_LEVEL) + ((cycle - 1) * hp.PER_CYCLE);
+            const raw = hp.BASE + (level * hp.PER_LEVEL) + ((cycle - 1) * hp.PER_CYCLE);
+            const cycleMult = hp.CYCLE_MULT ? hp.CYCLE_MULT[Math.min(cycle, 3) - 1] : 1.0;
+            return raw * cycleMult;
         },
 
         /**

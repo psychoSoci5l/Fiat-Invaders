@@ -327,8 +327,8 @@
             this.killsSinceLastDrop++;
             this.totalKills++;
 
-            // v4.40: Anti-cluster — enforce minimum 3s between enemy drops (pity bypasses)
-            const MIN_DROP_INTERVAL = 3.0;
+            // v4.44: Anti-cluster — enforce minimum 6s between enemy drops (pity bypasses)
+            const MIN_DROP_INTERVAL = 6.0;
             const timeSinceLastDrop = totalTime - this.lastEnemyDropTime;
 
             // Base drop chance from enemy tier
