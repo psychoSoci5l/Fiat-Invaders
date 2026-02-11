@@ -23,14 +23,14 @@
         PARA_FADE_SPEED: 2.0,
         STAR_COUNT: 80,
         HINT_BLINK_SPEED: 1.5,
-        FONT_SIZE_PERIOD: 22,
-        FONT_SIZE_TITLE: 32,
-        FONT_SIZE_TEXT: 17,
+        FONT_SIZE_PERIOD: 18,
+        FONT_SIZE_TITLE: 26,
+        FONT_SIZE_TEXT: 15,
         FONT_SIZE_HINT: 12,
-        LINE_HEIGHT: 1.65,
-        PARAGRAPH_GAP: 1.0,
-        MAX_WIDTH_RATIO: 0.85,
-        PADDING_TOP: 80,
+        LINE_HEIGHT: 1.5,
+        PARAGRAPH_GAP: 0.5,
+        MAX_WIDTH_RATIO: 0.88,
+        PADDING_TOP: 55,
         COLOR_PERIOD: '#FFD700',
         COLOR_TITLE: '#FFFFFF',
         COLOR_TEXT: '#CCCCCC',
@@ -424,7 +424,7 @@
             ctx.fillStyle = CONFIG.COLOR_TITLE;
             ctx.textAlign = 'center';
             ctx.fillText(title, centerX, y, maxWidth);
-            y += CONFIG.FONT_SIZE_TITLE * 1.6;
+            y += CONFIG.FONT_SIZE_TITLE * 1.3;
 
             // Subtle gold separator
             ctx.save();
@@ -438,7 +438,7 @@
             ctx.restore();
             ctx.globalAlpha = fadeAlpha;
 
-            y += CONFIG.FONT_SIZE_TITLE * 0.8;
+            y += CONFIG.FONT_SIZE_TITLE * 0.5;
         }
 
         // Completed paragraphs
