@@ -1,5 +1,19 @@
 # Changelog
 
+## v4.40.0 - 2026-02-11
+### Formation Overhaul + Balance Tuning
+
+- **Top-heavy formations (C1+C2)**: Enemies spawn in upper 38% of screen with simple shapes (RECT, WALL, ARROW, DIAMOND)
+- **Spiazzante formations (C3)**: Formations expand to 55% — surprise effect entering cycle 3
+- **Monotonic enemy counts**: All wave counts strictly non-decreasing across levels (no dips)
+- **RECT/WALL generators**: Even row distribution — no incomplete last rows
+- **Per-cycle Y-clamping**: Enemy drop on edge-hit respects MAX_Y_RATIO_BY_CYCLE
+- **SPIRAL/CROSS/CHEVRON caps**: Radius, arm length, and rows capped to prevent overflow
+- **Proximity Kill Meter**: MAX_DISTANCE 450→600 (covers top-heavy formations), reset on boss defeat
+- **Boss hit meter gain**: 0.4→0.15 per hit (gradual buildup, no sudden HYPER)
+- **Drop anti-cluster**: 3s minimum between enemy drops, reroll on consecutive duplicate type
+- **CYCLE_COUNT_MULT**: C2 1.375→1.25, C3 1.575→1.45 (less enemy inflation)
+
 ## v4.39.0 - 2026-02-11
 ### Sky Overhaul + UI Polish
 

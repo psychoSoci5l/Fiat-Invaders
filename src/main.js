@@ -389,6 +389,9 @@ function initCollisionSystem() {
                 enemyBullets.length = 0;
                 window.enemyBullets = enemyBullets;
                 bossJustDefeated = true;
+                // v4.40: Reset proximity meter on boss defeat (clean slate for next cycle)
+                grazeMeter = 0;
+                updateGrazeUI();
                 enemies.length = 0;
                 G.enemies = enemies;
                 if (G.HarmonicConductor) G.HarmonicConductor.enemies = enemies;
@@ -4128,8 +4131,13 @@ function updateEnemies(dt) {
     if (hitEdge) {
         gridDir *= -1;
         const dropAmount = isBearMarket ? 35 : 20;
+        // v4.40: clamp drop to per-cycle MAX_Y_RATIO (enemies can't descend past limit)
+        const cycle = window.marketCycle || 1;
+        const ratios = Balance.FORMATION?.MAX_Y_RATIO_BY_CYCLE;
+        const maxYRatio = ratios ? (ratios[Math.min(cycle - 1, ratios.length - 1)] || 0.55) : (Balance.FORMATION?.MAX_Y_RATIO || 0.55);
+        const maxBaseY = gameHeight * maxYRatio;
         for (let i = 0, len = enemies.length; i < len; i++) {
-            enemies[i].baseY += dropAmount;
+            enemies[i].baseY = Math.min(enemies[i].baseY + dropAmount, maxBaseY);
         }
     }
 }

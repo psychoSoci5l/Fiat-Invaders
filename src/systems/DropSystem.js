@@ -33,6 +33,10 @@
 
             // v4.19: Adaptive drop suppression tracking
             this.suppressedDrops = 0;
+
+            // v4.40: Anti-cluster — minimum time between drops + no consecutive duplicates
+            this.lastEnemyDropTime = 0;
+            this.lastDropType = null;
         }
 
         /**
@@ -53,6 +57,10 @@
 
             // v4.19: Adaptive drop suppression reset
             this.suppressedDrops = 0;
+
+            // v4.40: Anti-cluster reset
+            this.lastEnemyDropTime = 0;
+            this.lastDropType = null;
         }
 
         /**
@@ -319,6 +327,10 @@
             this.killsSinceLastDrop++;
             this.totalKills++;
 
+            // v4.40: Anti-cluster — enforce minimum 3s between enemy drops (pity bypasses)
+            const MIN_DROP_INTERVAL = 3.0;
+            const timeSinceLastDrop = totalTime - this.lastEnemyDropTime;
+
             // Base drop chance from enemy tier
             let dropChance = Balance.getDropChance(enemySymbol);
 
@@ -352,6 +364,8 @@
                 if (this.shouldForceUpgrade(currentShotLevel)) {
                     this.killsSinceLastDrop = 0;
                     this.lastUpgradeKillCount = this.totalKills;
+                    this.lastEnemyDropTime = totalTime;
+                    this.lastDropType = 'UPGRADE';
                     return {
                         type: 'UPGRADE',
                         category: 'upgrade',
@@ -362,6 +376,11 @@
 
                 // Normal drop chance check
                 if (pityDrop || Math.random() < dropChance) {
+                    // v4.40: Anti-cluster — skip non-pity drops if too soon after last drop
+                    if (!pityDrop && timeSinceLastDrop < MIN_DROP_INTERVAL) {
+                        return null;
+                    }
+
                     // v4.19: Adaptive suppression gate
                     if (playerState && this.shouldSuppressDrop(playerState, pityDrop)) {
                         this.suppressedDrops++;
@@ -373,9 +392,15 @@
                         return null;
                     }
 
-                    const dropInfo = this.selectEvolutionDropType(playerState || currentShotLevel);
+                    let dropInfo = this.selectEvolutionDropType(playerState || currentShotLevel);
+                    // v4.40: Anti-duplicate — if same type as last drop, reroll once
+                    if (dropInfo && dropInfo.type === this.lastDropType) {
+                        dropInfo = this.selectEvolutionDropType(playerState || currentShotLevel);
+                    }
                     if (dropInfo) {
                         this.killsSinceLastDrop = 0;
+                        this.lastEnemyDropTime = totalTime;
+                        this.lastDropType = dropInfo.type;
                         return {
                             ...dropInfo,
                             x: enemyX,
@@ -389,9 +414,13 @@
 
             // === LEGACY SYSTEM ===
             if (pityDrop || Math.random() < dropChance) {
+                // v4.40: Anti-cluster for legacy path
+                if (!pityDrop && timeSinceLastDrop < MIN_DROP_INTERVAL) return null;
                 const dropInfo = this.selectDropType(totalTime, getUnlockedWeaponsOrShotLevel);
                 if (dropInfo) {
                     this.killsSinceLastDrop = 0;
+                    this.lastEnemyDropTime = totalTime;
+                    this.lastDropType = dropInfo.type;
                     return {
                         ...dropInfo,
                         x: enemyX,

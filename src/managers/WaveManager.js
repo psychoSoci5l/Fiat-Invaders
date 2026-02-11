@@ -519,7 +519,10 @@ window.Game.WaveManager = {
         if (positions.length > 0) {
             const gameH = window.Game._gameHeight || 700;
             const minYBound = startY;
-            const maxYRatio = window.Game.Balance?.FORMATION?.MAX_Y_RATIO || 0.65;
+            // v4.40: per-cycle Y ratio — C1+C2 top-heavy, C3 expands
+            const cycle = window.marketCycle || 1;
+            const ratios = window.Game.Balance?.FORMATION?.MAX_Y_RATIO_BY_CYCLE;
+            const maxYRatio = ratios ? (ratios[Math.min(cycle - 1, ratios.length - 1)] || 0.55) : (window.Game.Balance?.FORMATION?.MAX_Y_RATIO || 0.55);
             const maxYBound = gameH * maxYRatio; // v4.16: from config (was hardcoded 0.65)
 
             const minY = positions.reduce((m, p) => Math.min(m, p.y), Infinity);
@@ -680,6 +683,7 @@ window.Game.WaveManager = {
         // Find rows where capacity >= count
         let rows = 1;
         while (2 * rows - 1 < count) rows++;
+        rows = Math.min(rows, 7); // v4.40: cap rows to prevent excessive vertical spread
 
         // Generate full chevron shape (no early cutoff)
         for (let row = 0; row < rows; row++) {
@@ -777,9 +781,13 @@ window.Game.WaveManager = {
         const radiusStep = FC.SPIRAL_RADIUS_STEP || 12;
         const ySqueeze = FC.SPIRAL_Y_SQUEEZE || 0.6;
 
+        // v4.40: cap radius growth to prevent spiral exceeding screen bounds
+        const maxRadius = (gameWidth / 2) - (FC.SAFE_EDGE_MARGIN || 30) - 10;
+        const effectiveRadiusStep = Math.min(radiusStep, count > 1 ? (maxRadius - baseRadius) / (count - 1) : radiusStep);
+
         for (let i = 0; i < count; i++) {
             const angle = i * angleStep;
-            const radius = baseRadius + i * radiusStep;
+            const radius = baseRadius + i * effectiveRadiusStep;
             positions.push({
                 x: centerX + Math.cos(angle) * radius,
                 y: centerY + Math.sin(angle) * radius * ySqueeze
@@ -799,7 +807,7 @@ window.Game.WaveManager = {
     generateCross(count, gameWidth, startY, spacing) {
         const positions = [];
         const centerX = gameWidth / 2;
-        const armLength = Math.ceil(count / 4);
+        const armLength = Math.min(Math.ceil(count / 4), 5); // v4.40: cap arm length
 
         // Generate full cross shape (no early cutoff)
         // Horizontal arm
@@ -829,15 +837,23 @@ window.Game.WaveManager = {
     generateWall(count, gameWidth, startY, spacing) {
         const positions = [];
         const margin = 50;
-        const cols = Math.min(8, Math.floor((gameWidth - 2 * margin) / spacing) + 1);
+        const maxCols = Math.min(8, Math.floor((gameWidth - 2 * margin) / spacing) + 1);
+        // v4.40: find cols that divides count evenly (no incomplete last row)
+        let cols = maxCols;
+        for (let c = maxCols; c >= 3; c--) {
+            if (count % c === 0) { cols = c; break; }
+        }
         const rows = Math.ceil(count / cols);
 
+        let placed = 0;
         for (let row = 0; row < rows; row++) {
-            for (let col = 0; col < cols && positions.length < count; col++) {
+            const rowCount = Math.ceil((count - placed) / (rows - row));
+            for (let col = 0; col < rowCount; col++) {
                 positions.push({
-                    x: margin + col * ((gameWidth - 2 * margin) / (cols - 1)),
+                    x: margin + col * ((gameWidth - 2 * margin) / Math.max(rowCount - 1, 1)),
                     y: startY + row * spacing * 0.8
                 });
+                placed++;
             }
         }
         return positions;
@@ -1021,16 +1037,31 @@ window.Game.WaveManager = {
 
     generateRect(count, gameWidth, startY, spacing) {
         const positions = [];
-        const cols = Math.min(6, Math.ceil(Math.sqrt(count)));
+        // v4.40: find cols that divides count evenly (no incomplete last row)
+        let idealCols = Math.min(7, Math.max(3, Math.ceil(Math.sqrt(count))));
+        // Search for even divisor in range [idealCols-1 .. idealCols+2]
+        let cols = idealCols;
+        for (let c = idealCols; c >= 3; c--) {
+            if (count % c === 0) { cols = c; break; }
+        }
+        if (count % cols !== 0) {
+            for (let c = idealCols + 1; c <= 8; c++) {
+                if (count % c === 0) { cols = c; break; }
+            }
+        }
+        // Fallback: distribute evenly across rows (variable cols per row)
         const rows = Math.ceil(count / cols);
-        const startX = (gameWidth - (cols - 1) * spacing) / 2;
 
+        let placed = 0;
         for (let r = 0; r < rows; r++) {
-            for (let c = 0; c < cols && positions.length < count; c++) {
+            const rowCount = Math.ceil((count - placed) / (rows - r));
+            const rowStartX = (gameWidth - (rowCount - 1) * spacing) / 2;
+            for (let c = 0; c < rowCount; c++) {
                 positions.push({
-                    x: startX + c * spacing,
+                    x: rowStartX + c * spacing,
                     y: startY + r * spacing
                 });
+                placed++;
             }
         }
         return positions;
