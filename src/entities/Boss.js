@@ -27,7 +27,7 @@ class Boss extends window.Game.Entity {
         this.phaseTransitionTimer = 0;
 
         const safeOffset = window.safeAreaInsets?.top || 0;
-        this.targetY = 65 + safeOffset; // v4.4: Below compact HUD (was 145)
+        this.targetY = 100 + safeOffset; // v4.41: Below HUD + HP bar clearance (was 65)
         this.dir = 1;
 
         // Movement speed from Balance config (phase 1 default)

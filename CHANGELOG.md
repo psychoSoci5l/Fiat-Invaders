@@ -1,5 +1,18 @@
 # Changelog
 
+## v4.42.0 - 2026-02-11
+### Ambient Weather System
+
+- **Ambient weather per level**: Atmosphere evolves L1→L5 with progressive effects
+- **Snow (L5)**: 15 white flakes with sinusoidal wobble, slow fall 80-120px/s
+- **Fog (L4)**: 4 translucent wisps (150-250px) with horizontal drift
+- **Drizzle (L4 + Boss)**: 10 thin vertical drops, lighter than event rain
+- **Distant lightning (L3+)**: Subtle sky flash every 10-25s, color by level (amber/violet/blue)
+- **Bear Market**: Red distant lightning layered on existing blood rain/ember
+- **Level transition burst**: Wind gust + flash on every level-up
+- **Performance**: +15 draw calls max (L5), 0 jank frames at 118 FPS avg
+- **Config**: `Balance.SKY.AMBIENT` with per-effect ENABLED kill-switches
+
 ## v4.40.0 - 2026-02-11
 ### Formation Overhaul + Balance Tuning
 

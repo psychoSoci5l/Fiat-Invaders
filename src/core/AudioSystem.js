@@ -1,4 +1,5 @@
 window.Game = window.Game || {};
+const G = window.Game;
 
 class AudioSystem {
     constructor() {

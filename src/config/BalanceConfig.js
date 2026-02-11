@@ -1392,6 +1392,114 @@
             OFFSCREEN: {
                 ENABLED: true,            // false = direct-draw (pre-v4.31)
                 HILLS_REDRAW_INTERVAL: 2  // frames between hills redraw (1 = every frame)
+            },
+
+            // H. Weather events (v4.41)
+            WEATHER: {
+                ENABLED: true,
+                SHEET_LIGHTNING: {
+                    COLOR: '#b4a0ff',
+                    BEAR_COLOR: '#ff4444',
+                    ALPHA: 0.5
+                },
+                RAIN: {
+                    COLOR: '#8899bb',
+                    BEAR_COLOR: '#882222',
+                    WIDTH: 1.5
+                },
+                TRIGGERS: {
+                    boss_spawn: [
+                        { type: 'sheet_lightning', duration: 0.5, intensity: 0.35 },
+                        { type: 'wind_gust', duration: 5, intensity: 2.5 },
+                        { type: 'rain', duration: 14, count: 30 }
+                    ],
+                    boss_defeat: [
+                        { type: 'meteor_shower', duration: 3, count: 10 },
+                        { type: 'wind_gust', duration: 2.5, intensity: 3.0 }
+                    ],
+                    wave_clear: [
+                        { type: 'wind_gust', duration: 2, intensity: 1.8 }
+                    ],
+                    godchain: [
+                        { type: 'meteor_shower', duration: 2, count: 6 },
+                        { type: 'sheet_lightning', duration: 0.3, intensity: 0.25 }
+                    ]
+                }
+            },
+
+            // I. Ambient weather per level (v4.42)
+            AMBIENT: {
+                ENABLED: true,
+
+                SNOW: {
+                    ENABLED: true,
+                    COUNT: 15,
+                    SPEED_MIN: 80,
+                    SPEED_MAX: 120,
+                    SIZE_MIN: 1.5,
+                    SIZE_MAX: 3.5,
+                    WOBBLE_AMP: 25,       // horizontal wobble px
+                    WOBBLE_FREQ: 1.2,     // wobble cycles/sec
+                    ALPHA: 0.7
+                },
+
+                FOG: {
+                    ENABLED: true,
+                    COUNT: 4,
+                    WIDTH_MIN: 150,
+                    WIDTH_MAX: 250,
+                    HEIGHT_RATIO: 0.4,    // height = width * ratio
+                    DRIFT_SPEED: 15,      // px/sec horizontal
+                    ALPHA_MIN: 0.04,
+                    ALPHA_MAX: 0.08,
+                    COLOR: '#8888cc',
+                    BEAR_COLOR: '#aa4444'
+                },
+
+                DRIZZLE: {
+                    ENABLED: true,
+                    COUNT: 10,
+                    SPEED_MIN: 200,
+                    SPEED_MAX: 320,
+                    LENGTH_MIN: 6,
+                    LENGTH_MAX: 12,
+                    ALPHA: 0.12,
+                    COLOR: '#7788aa',
+                    BEAR_COLOR: '#664444',
+                    WIDTH: 1
+                },
+
+                DISTANT_LIGHTNING: {
+                    ENABLED: true,
+                    INTERVAL_MIN: 10,     // seconds
+                    INTERVAL_MAX: 25,
+                    ALPHA_MIN: 0.08,
+                    ALPHA_MAX: 0.15,
+                    DECAY_SPEED: 1.5,     // alpha/sec
+                    COLORS: {
+                        3: '#ffcc66',     // amber
+                        4: '#aa77ff',     // violet
+                        5: '#6688ff'      // blue
+                    },
+                    BEAR_COLOR: '#ff4444' // red
+                },
+
+                LEVEL_TRANSITION: {
+                    WIND_INTENSITY: 3.0,
+                    WIND_DURATION: 2.0,
+                    FLASH_INTENSITY: 0.12
+                },
+
+                // Which effects are active per level
+                LEVELS: {
+                    1: [],
+                    2: [],
+                    3: ['distant_lightning'],
+                    4: ['drizzle', 'fog', 'distant_lightning'],
+                    5: ['snow', 'distant_lightning']
+                },
+                BEAR_MARKET: ['distant_lightning'],
+                BOSS_ACTIVE: ['drizzle']
             }
         },
 

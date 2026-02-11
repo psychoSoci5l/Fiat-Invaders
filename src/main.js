@@ -385,6 +385,9 @@ function initCollisionSystem() {
                 createFloatingScore(bossBonus, bossX, bossY - 50);
                 boss.active = false; boss = null; window.boss = null; shake = 60; audioSys.play('explosion');
                 audioSys.setBossPhase(0);
+                if (G.Events) G.Events.emit('weather:boss_defeat');
+                // v4.42: Restore ambient without boss
+                if (G.WeatherController) G.WeatherController.setLevel(level, isBearMarket, false);
                 enemyBullets.forEach(b => G.Bullet.Pool.release(b));
                 enemyBullets.length = 0;
                 window.enemyBullets = enemyBullets;
@@ -1489,8 +1492,9 @@ function init() {
         btn.addEventListener('touchstart', handleSfx);
     });
 
-    // Sync initial state from localStorage
-    const musicMuted = localStorage.getItem('fiat_music_muted') === '1';
+    // Sync initial state from localStorage (music OFF by default, SFX ON by default)
+    const musicPref = localStorage.getItem('fiat_music_muted');
+    const musicMuted = musicPref === null ? true : musicPref === '1';
     const sfxMuted = localStorage.getItem('fiat_sfx_muted') === '1';
     audioSys.applyMuteStates(musicMuted, sfxMuted);
     updateMusicUI(musicMuted);
@@ -1633,6 +1637,7 @@ function init() {
 
             // Initialize sky background for INTRO state
             if (G.SkyRenderer) G.SkyRenderer.init(gameWidth, gameHeight);
+    if (G.WeatherController) G.WeatherController.init(gameWidth, gameHeight);
 
             // Restore campaign mode UI state (v4.8: sync UI with stored preference)
             if (G.CampaignState) {
@@ -1916,6 +1921,7 @@ function resize() {
     // Update SkyRenderer dimensions (fixes gradient cache + hill positions on resize)
     if (G.SkyRenderer) {
         G.SkyRenderer.setDimensions(gameWidth, gameHeight);
+        if (G.WeatherController) G.WeatherController.setDimensions(gameWidth, gameHeight);
     }
     // v4.35: Update TitleAnimator dimensions
     if (G.TitleAnimator) {
@@ -2088,7 +2094,8 @@ window.goToHangar = function () {
     setStyle('intro-screen', 'display', 'none');
     setStyle('hangar-screen', 'display', 'flex');
     setGameState('HANGAR');
-    if (G.SkyRenderer) G.SkyRenderer.init(gameWidth, gameHeight); // Start BG effect early
+    if (G.SkyRenderer) G.SkyRenderer.init(gameWidth, gameHeight);
+    if (G.WeatherController) G.WeatherController.init(gameWidth, gameHeight); // Start BG effect early
     if (G.MessageSystem) G.MessageSystem.init(gameWidth, gameHeight, {
         onShake: (intensity) => { shake = Math.max(shake, intensity); },
         onPlaySound: (sound) => { if (audioSys) audioSys.play(sound); }
@@ -2320,6 +2327,7 @@ window.launchShipAndStart = function () {
 
         audioSys.startMusic();
         if (G.SkyRenderer) G.SkyRenderer.init(gameWidth, gameHeight);
+    if (G.WeatherController) G.WeatherController.init(gameWidth, gameHeight);
 
         // Show prologue if needed, then start game (WARMUP + tutorial on first play)
         const campaignState = G.CampaignState;
@@ -2864,7 +2872,8 @@ function startGame() {
     // Reset visual effects
     shake = 0;
     deathAlreadyTracked = false; // Reset death tracking flag
-    if (G.SkyRenderer) G.SkyRenderer.reset(); // Reset sky state (lightning, etc.)
+    if (G.SkyRenderer) G.SkyRenderer.reset();
+    if (G.WeatherController) { G.WeatherController.reset(); G.WeatherController.setLevel(1, false, false); }
     if (G.TransitionManager) G.TransitionManager.reset();
 
     updateLivesUI();
@@ -2944,6 +2953,7 @@ function startIntermission(msgOverride) {
     // Play wave complete jingle (unless boss defeat which has its own sound)
     if (!msgOverride) {
         audioSys.play('waveComplete');
+        if (G.Events) G.Events.emit('weather:wave_clear');
         // Note: No showVictory() here - the countdown overlay provides visual feedback
     }
 
@@ -3120,6 +3130,9 @@ function spawnBoss() {
     // v2.22.5: Track boss spawn event
     G.Debug.trackBossSpawn(bossType, boss.hp, level, marketCycle);
 
+    // v4.42: Ambient weather with boss active
+    if (G.WeatherController) G.WeatherController.setLevel(level, isBearMarket, true);
+
     // Reset boss drop tracking for new boss fight
     G.DropSystem.resetBossDrops();
 
@@ -3146,6 +3159,7 @@ function spawnBoss() {
     G.MemeEngine.queueMeme('BOSS_SPAWN', getBossMeme(bossType), bossConfig.name);
     audioSys.play('bossSpawn');
     audioSys.setBossPhase(1); // Start boss music phase 1
+    if (G.Events) G.Events.emit('weather:boss_spawn');
 
     // Set Harmonic Conductor to boss sequence
     // IMPORTANT: Share same reference to prevent desync (v2.22.3 fix)
@@ -3659,6 +3673,7 @@ function update(dt) {
             bullets = []; enemyBullets = [];
             window.enemyBullets = enemyBullets;
             audioSys.play('waveComplete');
+            if (G.Events) G.Events.emit('weather:wave_clear');
             // Queue meme via popup (non-blocking)
             const waveMeme = G.MemeEngine.getIntermissionMeme();
             if (waveMeme) G.MemeEngine.queueMeme('STREAK', '\u201C' + waveMeme + '\u201D', '');
@@ -3698,6 +3713,12 @@ function update(dt) {
 
             // Update global level BEFORE spawnWave so enemy HP scaling is correct
             window.currentLevel = level;
+
+            // v4.42: Update ambient weather for new level
+            if (G.WeatherController) {
+                G.WeatherController.setLevel(level, isBearMarket, !!(boss && boss.active));
+                G.WeatherController.triggerLevelTransition();
+            }
 
             // Reset horde state for new wave
             waveMgr.currentHorde = 1;
@@ -4343,6 +4364,9 @@ function draw() {
     // Sky via SkyRenderer
     if (G.SkyRenderer) {
         G.SkyRenderer.draw(ctx, { level, isBearMarket, bossActive: boss && boss.active });
+    }
+    if (G.WeatherController) {
+        G.WeatherController.draw(ctx, { isBearMarket, level, bossActive: boss && boss.active });
     }
 
     // v4.35: Title animation particles (drawn on canvas through transparent intro-screen)
@@ -5175,6 +5199,7 @@ function loop(timestamp) {
         if (skyEffects.shake > 0) shake = Math.max(shake, skyEffects.shake);
         if (skyEffects.playSound) audioSys.play(skyEffects.playSound);
     }
+    if (G.WeatherController) G.WeatherController.update(dt);
 
     if (G.Debug._perf.enabled) _perfT1 = performance.now();
 

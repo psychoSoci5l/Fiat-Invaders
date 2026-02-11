@@ -352,7 +352,8 @@
      */
     function update(dt, context = {}) {
         const { isBearMarket = false, gameState = 'PLAY' } = context;
-        const speedMult = isBearMarket ? 5.0 : 1.0;
+        const weatherWind = G.WeatherController ? G.WeatherController.getWindMultiplier() : 1.0;
+        const speedMult = (isBearMarket ? 5.0 : 1.0) * weatherWind;
         skyTime += dt;
 
         let effects = { shake: 0, playSound: null };
