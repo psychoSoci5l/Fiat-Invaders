@@ -194,7 +194,7 @@
 
             clouds.push({
                 x: Math.random() * gameWidth,
-                y: Math.random() * gameHeight * 0.5,
+                y: Math.random() * gameHeight,
                 w: baseW,
                 h: baseH,
                 speed: Math.random() * 20 + 10,
@@ -259,7 +259,9 @@
                         seed = (seed * 1103515245 + 12345) & 0x7fffffff;
                         const h = (cfg.TREE_HEIGHT_MIN || 6) +
                             (seed % ((cfg.TREE_HEIGHT_MAX || 18) - (cfg.TREE_HEIGHT_MIN || 6)));
-                        layerSils.push({ type: 'tree', x: x, h: h });
+                        seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+                        const treeShape = seed % 3; // 0=round, 1=pine, 2=bush
+                        layerSils.push({ type: 'tree', x: x, h: h, shape: treeShape });
                     } else {
                         seed = (seed * 1103515245 + 12345) & 0x7fffffff;
                         const w = (cfg.BUILDING_WIDTH_MIN || 8) +
@@ -355,22 +357,17 @@
 
         let effects = { shake: 0, playSound: null };
 
-        // Update clouds
+        // Update clouds — vertical drift (ascending through sky)
         for (let i = 0; i < clouds.length; i++) {
             const c = clouds[i];
-            c.x -= c.speed * (c.layer + 1) * 0.5 * speedMult * dt;
-            if (c.x + c.w < -50) {
-                c.x = gameWidth + 50 + Math.random() * 100;
-                c.y = Math.random() * gameHeight * 0.5;
+            c.y += c.speed * (c.layer + 1) * 0.4 * speedMult * dt;
+            if (c.y - c.h > gameHeight + 50) {
+                c.y = -c.h - 30 - Math.random() * 80;
+                c.x = Math.random() * gameWidth;
             }
         }
 
-        // Update parallax hills offset
-        for (let i = 0; i < hills.length; i++) {
-            const h = hills[i];
-            h.offset += h.speed * speedMult * dt;
-            if (h.offset > 628) h.offset -= 628;
-        }
+        // Hills are static terrain — no horizontal scroll
 
         // Update floating crypto symbols
         for (let i = 0; i < floatingSymbols.length; i++) {
@@ -519,18 +516,8 @@
             if (skyEnabled && G.Balance?.SKY?.PARTICLES?.ENABLED !== false) {
                 drawAtmosphericParticles(ctx, level, isBearMarket, bossActive);
             }
-            if (skyEnabled && G.Balance?.SKY?.HORIZON_GLOW?.ENABLED !== false) {
-                drawHorizonGlow(ctx, level, isBearMarket, bossActive);
-            }
-
-            // Hills: throttled off-screen redraw
-            if (!bossActive) {
-                _renderHills(level, isBearMarket);
-                ctx.drawImage(_hillsCanvas, 0, 0);
-            }
-            if (bossActive) _hillsBossWas = true;
-
             drawClouds(ctx, level, isBearMarket);
+            drawGroundFog(ctx, level, isBearMarket, bossActive);
             drawLightning(ctx);
         } else {
             // Fallback: original direct-draw pipeline (pre-v4.31)
@@ -540,13 +527,22 @@
             if (skyEnabled && G.Balance?.SKY?.PARTICLES?.ENABLED !== false) {
                 drawAtmosphericParticles(ctx, level, isBearMarket, bossActive);
             }
-            if (skyEnabled && G.Balance?.SKY?.HORIZON_GLOW?.ENABLED !== false) {
-                drawHorizonGlow(ctx, level, isBearMarket, bossActive);
-            }
-            drawHills(ctx, level, isBearMarket, bossActive);
             drawClouds(ctx, level, isBearMarket);
+            drawGroundFog(ctx, level, isBearMarket, bossActive);
             drawLightning(ctx);
         }
+    }
+
+    /**
+     * Draw solid ground strip at screen bottom (control zone visual separator)
+     * Only during PLAY state
+     */
+    function drawGroundFog(ctx, level, isBearMarket, bossActive) {
+        if (bossActive) return;
+        if (!G.GameState || !G.GameState.is('PLAY')) return;
+        const fogH = 80;
+        ctx.fillStyle = isBearMarket ? '#0d0000' : level >= 4 ? '#060612' : '#06101e';
+        ctx.fillRect(0, gameHeight - fogH, gameWidth, fogH);
     }
 
     /**
@@ -894,7 +890,7 @@
                         : ['#3a6080', '#4a7090', '#5a80a0'];
         }
 
-        ctx.lineWidth = 3;
+        ctx.lineWidth = 1.5;
 
         for (let idx = 0; idx < hills.length; idx++) {
             const h = hills[idx];
@@ -902,13 +898,13 @@
             const y = h.y;
 
             ctx.fillStyle = color;
-            ctx.strokeStyle = '#111';
+            ctx.strokeStyle = 'rgba(0,0,0,0.4)';
             ctx.beginPath();
             ctx.moveTo(-10, gameHeight + 10);
 
             // Store wave Y values for silhouette placement
             const waveYs = [];
-            const step = 30;
+            const step = 15;
             for (let x = -10; x <= gameWidth + 10; x += step) {
                 const waveY = y + Math.sin((x + h.offset) * h.freq1) * h.amp1
                             + Math.sin((x + h.offset) * h.freq2 + idx) * h.amp2;
@@ -925,8 +921,6 @@
             if (useEnhanced && hillSilhouettes[idx]) {
                 const sils = hillSilhouettes[idx];
                 ctx.fillStyle = color;
-                ctx.strokeStyle = '#111';
-                ctx.lineWidth = 1.5;
 
                 for (let si = 0; si < sils.length; si++) {
                     const sil = sils[si];
@@ -939,22 +933,51 @@
                                + Math.sin((screenX + h.offset) * h.freq2 + idx) * h.amp2;
 
                     if (sil.type === 'tree') {
-                        // Triangle tree
-                        const tw = sil.h * 0.6;
-                        ctx.beginPath();
-                        ctx.moveTo(screenX, silY - sil.h);
-                        ctx.lineTo(screenX - tw / 2, silY);
-                        ctx.lineTo(screenX + tw / 2, silY);
-                        ctx.closePath();
-                        ctx.fill();
-                        ctx.stroke();
+                        const shape = sil.shape || 0;
+                        if (shape === 0) {
+                            // Round deciduous tree
+                            const canopyR = sil.h * 0.38;
+                            const trunkW = sil.h * 0.15;
+                            const trunkH = sil.h * 0.35;
+                            const canopyY = silY - trunkH - canopyR * 0.6;
+                            ctx.fillRect(screenX - trunkW / 2, silY - trunkH, trunkW, trunkH);
+                            ctx.beginPath();
+                            ctx.arc(screenX, canopyY, canopyR, 0, Math.PI * 2);
+                            ctx.fill();
+                        } else if (shape === 1) {
+                            // Pine tree — 2 stacked triangles
+                            const trunkW = sil.h * 0.12;
+                            const trunkH = sil.h * 0.25;
+                            ctx.fillRect(screenX - trunkW / 2, silY - trunkH, trunkW, trunkH);
+                            // Lower wider tier
+                            const bw = sil.h * 0.55;
+                            const bh = sil.h * 0.5;
+                            ctx.beginPath();
+                            ctx.moveTo(screenX, silY - trunkH - bh);
+                            ctx.lineTo(screenX - bw / 2, silY - trunkH + 2);
+                            ctx.lineTo(screenX + bw / 2, silY - trunkH + 2);
+                            ctx.fill();
+                            // Upper narrower tier
+                            const tw = bw * 0.6;
+                            const th = bh * 0.7;
+                            ctx.beginPath();
+                            ctx.moveTo(screenX, silY - trunkH - bh - th * 0.5);
+                            ctx.lineTo(screenX - tw / 2, silY - trunkH - bh * 0.3);
+                            ctx.lineTo(screenX + tw / 2, silY - trunkH - bh * 0.3);
+                            ctx.fill();
+                        } else {
+                            // Bush — low wide semicircle
+                            const bushW = sil.h * 0.7;
+                            const bushH = sil.h * 0.45;
+                            ctx.beginPath();
+                            ctx.ellipse(screenX, silY, bushW, bushH, 0, Math.PI, 0);
+                            ctx.fill();
+                        }
                     } else {
                         // Rectangle building
                         ctx.fillRect(screenX - sil.w / 2, silY - sil.h, sil.w, sil.h);
-                        ctx.strokeRect(screenX - sil.w / 2, silY - sil.h, sil.w, sil.h);
                     }
                 }
-                ctx.lineWidth = 3;
             }
         }
     }
@@ -1002,9 +1025,10 @@
             const scale = c.layer === 0 ? layerScale.back : c.layer === 2 ? layerScale.front : 1.0;
 
             if (useEnhanced && c.lobes && c.lobes.length > 1) {
-                // Multi-lobe cloud
+                // Multi-lobe cloud (fat-border technique — no internal lobe outlines)
                 const sw = c.w * scale;
                 const sh = c.h * scale;
+                const border = outlineWidth + 1;
 
                 // Shadow layer
                 ctx.fillStyle = colors.shadow;
@@ -1021,7 +1045,22 @@
                     ctx.fill();
                 }
 
-                // Main body
+                // Outline border (slightly larger lobes in outline color)
+                ctx.fillStyle = colors.outline;
+                for (let l = 0; l < c.lobes.length; l++) {
+                    const lb = c.lobes[l];
+                    ctx.beginPath();
+                    ctx.ellipse(
+                        c.x + lb.ox * scale,
+                        c.y + lb.oy * scale,
+                        sw / 2 * lb.wMult + border,
+                        sh / 2.2 * lb.hMult + border,
+                        0, 0, Math.PI * 2
+                    );
+                    ctx.fill();
+                }
+
+                // Main body (covers outline interiors — clean exterior border only)
                 ctx.fillStyle = colors.main;
                 for (let l = 0; l < c.lobes.length; l++) {
                     const lb = c.lobes[l];
@@ -1038,7 +1077,7 @@
 
                 // Highlight lobe (top, lighter)
                 ctx.fillStyle = colors.highlight;
-                const hl = c.lobes[Math.floor(c.lobes.length / 2)]; // center lobe
+                const hl = c.lobes[Math.floor(c.lobes.length / 2)];
                 ctx.beginPath();
                 ctx.ellipse(
                     c.x + hl.ox * scale,
@@ -1048,22 +1087,6 @@
                     0, 0, Math.PI * 2
                 );
                 ctx.fill();
-
-                // Outline per lobe
-                ctx.strokeStyle = colors.outline;
-                ctx.lineWidth = outlineWidth;
-                for (let l = 0; l < c.lobes.length; l++) {
-                    const lb = c.lobes[l];
-                    ctx.beginPath();
-                    ctx.ellipse(
-                        c.x + lb.ox * scale,
-                        c.y + lb.oy * scale,
-                        sw / 2 * lb.wMult,
-                        sh / 2.2 * lb.hMult,
-                        0, 0, Math.PI * 2
-                    );
-                    ctx.stroke();
-                }
             } else {
                 // Legacy single-ellipse cloud
                 ctx.fillStyle = colors.shadow;

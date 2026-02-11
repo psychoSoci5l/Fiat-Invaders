@@ -2400,6 +2400,7 @@ window.backToIntro = function () {
         ui.touchControls.classList.remove('visible');
         ui.touchControls.style.display = 'none';
     }
+    setStyle('control-zone-hint', 'display', 'none');
 
     // Close curtain first
     const curtain = document.getElementById('curtain-overlay');
@@ -2626,6 +2627,7 @@ function restoreGameUI() {
             if (ui.touchControls) ui.touchControls.classList.add('visible');
         });
     }
+    setStyle('control-zone-hint', 'display', 'block');
 }
 
 /**
@@ -2652,6 +2654,7 @@ function showStoryScreen(storyId, onComplete) {
     // Hide HUD during story
     if (ui.uiLayer) ui.uiLayer.style.display = 'none';
     if (ui.touchControls) ui.touchControls.style.display = 'none';
+    setStyle('control-zone-hint', 'display', 'none');
 
     G.StoryScreen.show(storyId, () => {
         // Let onComplete handle state transition and UI — don't force PLAY or show controls here
@@ -2769,6 +2772,7 @@ function startGame() {
             });
         });
     }
+    setStyle('control-zone-hint', 'display', 'block');
 
     // v4.28.0: RunState handles all per-run variable resets
     if (runState && runState.reset) runState.reset();

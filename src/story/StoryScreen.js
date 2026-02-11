@@ -271,13 +271,13 @@
         canvasWidth = width;
         canvasHeight = height;
 
-        // Apply fade
+        // Background always fully opaque (no bleed-through from previous frame)
         ctx.save();
-        ctx.globalAlpha = fadeAlpha;
-
-        // Draw background
         ctx.fillStyle = CONFIG.COLOR_BG;
         ctx.fillRect(0, 0, width, height);
+
+        // Apply fade to content only
+        ctx.globalAlpha = fadeAlpha;
 
         // Draw stars
         for (const star of stars) {
