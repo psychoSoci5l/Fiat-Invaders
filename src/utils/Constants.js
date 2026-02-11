@@ -536,9 +536,9 @@ window.Game.MINION_TYPE = {
 };
 
 window.Game.SHIPS = {
-    BTC: { speed: 420, hp: 3, fireRate: 0.26, baseDamage: 14, color: '#F7931A', hitboxSize: 30, coreHitboxSize: 6 },
-    ETH: { speed: 320, hp: 4, fireRate: 0.40, baseDamage: 28, color: '#8c7ae6', hitboxSize: 38, coreHitboxSize: 7 }, // v4.0.2: Tank rebalance
-    SOL: { speed: 560, hp: 2, fireRate: 0.20, baseDamage: 10, color: '#00d2d3', hitboxSize: 18, coreHitboxSize: 4 }
+    BTC: { speed: 420, hp: 3, fireRate: 0.22, baseDamage: 14, color: '#F7931A', hitboxSize: 30, coreHitboxSize: 6 }, // v4.40: 0.26→0.22 (+20% fire rate)
+    ETH: { speed: 320, hp: 4, fireRate: 0.33, baseDamage: 28, color: '#8c7ae6', hitboxSize: 38, coreHitboxSize: 7 }, // v4.40: 0.40→0.33 (+20% fire rate)
+    SOL: { speed: 560, hp: 2, fireRate: 0.17, baseDamage: 10, color: '#00d2d3', hitboxSize: 18, coreHitboxSize: 4 } // v4.40: 0.20→0.17 (+20% fire rate)
 };
 
 // High-contrast projectile color palette

@@ -1037,15 +1037,15 @@ window.Game.WaveManager = {
 
     generateRect(count, gameWidth, startY, spacing) {
         const positions = [];
-        // v4.40: find cols that divides count evenly (no incomplete last row)
+        // v4.40: find cols that divides count evenly — prefer WIDE grids (search UP first)
         let idealCols = Math.min(7, Math.max(3, Math.ceil(Math.sqrt(count))));
-        // Search for even divisor in range [idealCols-1 .. idealCols+2]
         let cols = idealCols;
-        for (let c = idealCols; c >= 3; c--) {
-            if (count % c === 0) { cols = c; break; }
+        let found = false;
+        for (let c = idealCols; c <= 8; c++) {
+            if (count % c === 0) { cols = c; found = true; break; }
         }
-        if (count % cols !== 0) {
-            for (let c = idealCols + 1; c <= 8; c++) {
+        if (!found) {
+            for (let c = idealCols - 1; c >= 3; c--) {
                 if (count % c === 0) { cols = c; break; }
             }
         }

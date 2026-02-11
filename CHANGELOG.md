@@ -13,6 +13,9 @@
 - **Boss hit meter gain**: 0.4→0.15 per hit (gradual buildup, no sudden HYPER)
 - **Drop anti-cluster**: 3s minimum between enemy drops, reroll on consecutive duplicate type
 - **CYCLE_COUNT_MULT**: C2 1.375→1.25, C3 1.575→1.45 (less enemy inflation)
+- **+1 row enemies**: All waves +4 enemies/horde for denser formations
+- **Player fire rate +20%**: BTC 0.26→0.22s, ETH 0.40→0.33s, SOL 0.20→0.17s
+- **RECT generator**: Prefer wide grids (search UP for column divisor, not down)
 
 ## v4.39.0 - 2026-02-11
 ### Sky Overhaul + UI Polish
