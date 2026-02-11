@@ -1,5 +1,20 @@
 # Changelog
 
+## v4.39.0 - 2026-02-11
+### Sky Overhaul + UI Polish
+
+- **Vertical cloud motion**: Clouds drift downward (player ascends through sky)
+- **Cloud rendering overhauled**: Fat-border technique replaces per-lobe outlines
+- **Tree silhouettes**: 3 shapes (round, pine, bush) replace uniform triangles
+- **Hill outlines softened**: Thinner lines, semi-transparent stroke, smoother curves
+- **Ground fog**: Fixed 80px strip at bottom during PLAY, aligned to control hint zone
+- **Control zone hint**: Hidden by default, visible only during PLAY (fixes light band in story/intro)
+- **Story screen fix**: Background always fully opaque — sky no longer bleeds through fade-in
+- **Intro version text**: Dark backdrop + higher opacity for readability without hills
+- **Shield button**: Larger (72px) and repositioned above hint zone
+- **Pause button**: Compact (58×32px), moved closer to HUD top bar
+- **CLS fix**: `tapShine` animation uses `transform: translateX` (zero layout shift)
+
 ## v4.38.0 - 2026-02-10
 ### Bullet Pierce + Proximity Kill Meter ("Buy the Dip")
 
