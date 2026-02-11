@@ -1,5 +1,16 @@
 # Changelog
 
+## v4.45.0 - 2026-02-11
+### Cinematic Story Screens
+
+- **Gradient background**: Deep blue→black gradient replaces flat black, radial vignette at edges
+- **Star glow**: 80 stars with soft blue halo, twinkling animation
+- **Keyword highlighting**: Key terms (Bitcoin, FIAT, Nixon, Bretton Woods, etc.) in gold, years/percentages in amber — auto-detected with word-boundary check
+- **Per-paragraph fade-in**: Each paragraph fades from transparent to opaque as it appears
+- **Typography**: Larger title (32px) and period (22px), more line spacing (1.65), gold separator line under title
+- **Closing emphasis**: Last paragraph of each chapter rendered in italic + brighter white
+- **Narrative rewrite**: All 4 chapters rewritten with flowing, explanatory prose — fewer choppy sentences, more connective tissue and human context
+
 ## v4.44.0 - 2026-02-11
 ### Boss HP Scaling + Pixel Glitch Fix
 

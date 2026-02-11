@@ -20,18 +20,16 @@ window.Game.STORY_CONTENT = {
         },
         paragraphs: {
             EN: [
-                "August 15, 1971. President Nixon closes the 'gold window'.",
-                "The dollar is no longer backed by gold. The Bretton Woods system collapses.",
-                "For the first time in history, all major currencies become pure FIAT money — backed by nothing but government decree.",
-                "The printing presses start running. In 50 years, the money supply explodes by 3000%.",
-                "But in the depths of the digital frontier, a new challenger is about to emerge..."
+                "On August 15, 1971, President Nixon makes a decision that will change the world: he closes the 'gold window', severing the last link between the dollar and gold.",
+                "With that single act, the Bretton Woods system collapses, and for the first time in history all major currencies become pure FIAT money — backed by nothing but government trust and decree.",
+                "Free from any constraint, the printing presses begin to run. Over the next 50 years, the global money supply will explode by over 3000%, quietly eroding the value of every paycheck and every saving.",
+                "But somewhere, in the depths of the digital frontier, a new challenger is about to emerge..."
             ],
             IT: [
-                "15 agosto 1971. Il presidente Nixon chiude la 'finestra dell'oro'.",
-                "Il dollaro non è più ancorato all'oro. Il sistema di Bretton Woods crolla.",
-                "Per la prima volta nella storia, tutte le principali valute diventano pura moneta FIAT — sostenute solo da decreti governativi.",
-                "Le stampanti iniziano a girare. In 50 anni, l'offerta di moneta esplode del 3000%.",
-                "Ma nelle profondità della frontiera digitale, un nuovo sfidante sta per emergere..."
+                "Il 15 agosto 1971, il presidente Nixon prende una decisione che cambierà il mondo: chiude la 'finestra dell'oro', recidendo l'ultimo legame tra il dollaro e l'oro.",
+                "Con quel singolo atto, il sistema di Bretton Woods crolla, e per la prima volta nella storia tutte le principali valute diventano pura moneta FIAT — sostenute solo dalla fiducia e dai decreti governativi.",
+                "Libere da ogni vincolo, le stampanti iniziano a girare. Nei 50 anni successivi, l'offerta globale di moneta esploderà di oltre il 3000%, erodendo silenziosamente il valore di ogni stipendio e di ogni risparmio.",
+                "Ma da qualche parte, nelle profondità della frontiera digitale, un nuovo sfidante sta per emergere..."
             ]
         },
         nextChapter: 'CHAPTER_1'
@@ -50,18 +48,16 @@ window.Game.STORY_CONTENT = {
         },
         paragraphs: {
             EN: [
-                "2008. The global financial system teeters on the edge of collapse.",
-                "As banks are bailed out with freshly printed money, an anonymous figure known as Satoshi Nakamoto publishes a whitepaper describing peer-to-peer electronic cash.",
-                "January 3, 2009. The first Bitcoin block is mined, inscribed with a message denouncing bank bailouts.",
-                "Bitcoin emerges as a response to broken trust: a system without intermediaries, based on mathematics, consensus, and transparency.",
-                "In its early days it is fragile, experimental — sustained by a few pioneers who believe in a radical idea: money can exist without authority."
+                "In 2008, the global financial system teeters on the edge of collapse. Banks are bailed out with freshly printed money, and ordinary people watch their savings vanish while those responsible face no consequences.",
+                "In the midst of this chaos, an anonymous figure known as Satoshi Nakamoto quietly publishes a whitepaper describing something radical: a form of electronic cash that doesn't need banks, governments, or any middleman at all.",
+                "On January 3, 2009, the first Bitcoin block is mined. Hidden inside it is a newspaper headline about bank bailouts — a permanent reminder of why this technology was created.",
+                "In its early days, Bitcoin is fragile and experimental, sustained only by a handful of pioneers who share a radical conviction: that money can exist without authority, built on nothing but mathematics, consensus, and transparency."
             ],
             IT: [
-                "2008. Il sistema finanziario globale vacilla sull'orlo del collasso.",
-                "Mentre le banche vengono salvate con denaro appena stampato, una figura anonima nota come Satoshi Nakamoto pubblica un documento che descrive denaro elettronico peer-to-peer.",
-                "3 gennaio 2009. Viene minato il primo blocco Bitcoin, inciso con un messaggio che denuncia i salvataggi bancari.",
-                "Bitcoin emerge come risposta alla fiducia tradita: un sistema senza intermediari, basato su matematica, consenso e trasparenza.",
-                "Nei suoi primi giorni è fragile, sperimentale — sostenuto da pochi pionieri che credono in un'idea radicale: il denaro può esistere senza autorità."
+                "Nel 2008, il sistema finanziario globale vacilla sull'orlo del collasso. Le banche vengono salvate con denaro appena stampato, e la gente comune vede i propri risparmi svanire mentre i responsabili non subiscono conseguenze.",
+                "Nel mezzo di questo caos, una figura anonima nota come Satoshi Nakamoto pubblica in silenzio un documento che descrive qualcosa di radicale: una forma di denaro elettronico che non ha bisogno di banche, governi, né di alcun intermediario.",
+                "Il 3 gennaio 2009 viene minato il primo blocco Bitcoin. Al suo interno è nascosto il titolo di un giornale sui salvataggi bancari — un promemoria permanente del motivo per cui questa tecnologia è stata creata.",
+                "Nei suoi primi giorni, Bitcoin è fragile e sperimentale, sostenuto solo da una manciata di pionieri che condividono una convinzione radicale: che il denaro possa esistere senza autorità, costruito su nient'altro che matematica, consenso e trasparenza."
             ]
         },
         bossDefeated: 'FEDERAL_RESERVE',
@@ -81,18 +77,16 @@ window.Game.STORY_CONTENT = {
         },
         paragraphs: {
             EN: [
-                "With growth come conflicts. Bitcoin becomes more than an experiment.",
-                "The debate over its future divides the community: big blocks or small, speed or decentralization.",
-                "Scaling Bitcoin conferences become ideological battlefields.",
-                "A key concept emerges with force: decisions are not made by power, but by consensus.",
-                "Solutions like Segregated Witness seek a balance between opposing visions, proving that Bitcoin evolves not by command, but by collective agreement."
+                "As Bitcoin grows, so do the conflicts around it. What started as a small experiment is now a movement, and the community finds itself divided over a fundamental question: how should the network scale?",
+                "Some push for bigger blocks and faster transactions, while others insist that decentralization must come first, even at the cost of speed. Scaling conferences turn into ideological battlefields.",
+                "But through the turmoil, a powerful idea takes shape: no single entity gets to decide Bitcoin's future. Changes happen only through consensus — the collective agreement of thousands of independent participants.",
+                "Solutions like Segregated Witness emerge from this process, proving that Bitcoin doesn't evolve by command, but by the slow, deliberate will of its community."
             ],
             IT: [
-                "Con la crescita arrivano i conflitti. Bitcoin diventa più di un esperimento.",
-                "Il dibattito sul suo futuro divide la comunità: blocchi grandi o piccoli, velocità o decentralizzazione.",
-                "Le conferenze di Scaling Bitcoin diventano campi di battaglia ideologici.",
-                "Un concetto chiave emerge con forza: le decisioni non sono prese dal potere, ma dal consenso.",
-                "Soluzioni come Segregated Witness cercano un equilibrio tra visioni opposte, dimostrando che Bitcoin evolve non per comando, ma per accordo collettivo."
+                "Man mano che Bitcoin cresce, crescono anche i conflitti attorno ad esso. Quello che era iniziato come un piccolo esperimento è ora un movimento, e la comunità si trova divisa su una domanda fondamentale: come dovrebbe scalare la rete?",
+                "Alcuni spingono per blocchi più grandi e transazioni più veloci, mentre altri insistono che la decentralizzazione debba venire prima di tutto, anche a costo della velocità. Le conferenze diventano veri e propri campi di battaglia ideologici.",
+                "Ma attraverso le turbolenze, un'idea potente prende forma: nessuna singola entità può decidere il futuro di Bitcoin. I cambiamenti avvengono solo attraverso il consenso — l'accordo collettivo di migliaia di partecipanti indipendenti.",
+                "Soluzioni come Segregated Witness emergono da questo processo, dimostrando che Bitcoin non evolve per comando, ma per la volontà lenta e deliberata della sua comunità."
             ]
         },
         bossDefeated: 'BCE',
@@ -116,20 +110,16 @@ window.Game.STORY_CONTENT = {
         },
         paragraphs: {
             EN: [
-                "Bitcoin survives the internal wars and consolidates as global infrastructure.",
-                "Attempts at control, aggressive forks, and economic pressures fail against a network that refuses imposed compromises.",
-                "Lightning Network and new tools emerge, making Bitcoin usable on a global scale.",
-                "Today Bitcoin is not just a technology: it is a living organism, resistant, that continues to evolve while maintaining its founding principle intact.",
-                "No one commands. Everyone verifies.",
-                "VICTORY. The FIAT system has been defeated. But the battle for sound money continues..."
+                "Bitcoin survives its internal wars and emerges stronger than ever. Attempts at control, aggressive forks, and relentless economic pressure all fail against a network that simply refuses to accept imposed compromises.",
+                "With Lightning Network and a new generation of tools, Bitcoin becomes usable on a truly global scale — fast, accessible, and still fundamentally decentralized.",
+                "Today, Bitcoin is more than a technology: it is a living, resilient organism that continues to evolve while keeping its founding principle intact. No one commands. Everyone verifies.",
+                "VICTORY. The FIAT system has been defeated — but the battle for sound money is far from over..."
             ],
             IT: [
-                "Bitcoin sopravvive alle guerre interne e si consolida come infrastruttura globale.",
-                "Tentativi di controllo, fork aggressivi e pressioni economiche falliscono di fronte a una rete che rifiuta compromessi imposti.",
-                "Lightning Network e nuovi strumenti emergono, rendendo Bitcoin utilizzabile su scala globale.",
-                "Oggi Bitcoin non è solo una tecnologia: è un organismo vivo, resistente, che continua a evolversi mantenendo intatto il suo principio fondante.",
-                "Nessuno comanda. Tutti verificano.",
-                "VITTORIA. Il sistema FIAT è stato sconfitto. Ma la battaglia per il denaro solido continua..."
+                "Bitcoin sopravvive alle sue guerre interne e ne esce più forte che mai. Tentativi di controllo, fork aggressivi e pressioni economiche implacabili falliscono tutti di fronte a una rete che semplicemente rifiuta compromessi imposti.",
+                "Con Lightning Network e una nuova generazione di strumenti, Bitcoin diventa utilizzabile su scala davvero globale — veloce, accessibile, e ancora fondamentalmente decentralizzato.",
+                "Oggi, Bitcoin è più di una tecnologia: è un organismo vivo e resiliente, che continua a evolversi mantenendo intatto il suo principio fondante. Nessuno comanda. Tutti verificano.",
+                "VITTORIA. Il sistema FIAT è stato sconfitto — ma la battaglia per il denaro solido è tutt'altro che finita..."
             ]
         },
         bossDefeated: 'BOJ',
