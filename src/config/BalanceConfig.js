@@ -1581,6 +1581,14 @@
                 ENABLED: true,
                 RADIUS: 40,              // v4.52: 30→40 for neon flash
                 DURATION: 0.4
+            },
+
+            ENEMY: {                     // v4.56: Neon halo on enemies
+                ENABLED: true,
+                RADIUS: 20,              // Halo glow radius beyond enemy body
+                ALPHA: 0.35,             // Base halo alpha
+                PULSE_SPEED: 4,          // Sin pulse speed
+                PULSE_AMOUNT: 0.1        // Pulse amplitude
             }
         },
 

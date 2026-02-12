@@ -60,6 +60,7 @@ class Enemy extends window.Game.Entity {
         this._colorLight35 = CU.lighten(this.color, 0.35);
         this._colorLight40 = CU.lighten(this.color, 0.4);
         this._colorLight50 = CU.lighten(this.color, 0.5);
+        this._colorBright = CU.lighten(this.color, 0.25); // v4.56: neon outline color
     }
 
     // Note: attemptFire() removed in v2.13.0 - all firing now handled by HarmonicConductor
@@ -93,7 +94,8 @@ class Enemy extends window.Game.Entity {
             color: '#ffffff', // v4.18: All enemy bullets white for visual clarity
             w: size.w,
             h: size.h,
-            shape: this.shape  // Pass enemy shape for visual differentiation
+            shape: this.shape,  // Pass enemy shape for visual differentiation
+            ownerColor: this.color  // v4.56: Tint bullet core with enemy color
         };
     }
 
@@ -323,8 +325,8 @@ class Enemy extends window.Game.Entity {
             ctx._damageTint = 0;
         }
 
-        ctx.strokeStyle = this._colorDark50 || '#111';
-        ctx.lineWidth = 3; // Bold cell-shaded outline (neon tinted)
+        ctx.strokeStyle = this._colorBright;
+        ctx.lineWidth = 2.5; // v4.56: neon outline
 
         // Draw based on shape type
         if (this.isMinion) {
@@ -372,45 +374,62 @@ class Enemy extends window.Game.Entity {
         }
     }
 
+    // v4.56: Additive neon halo (called from batched glow pass in main.js)
+    drawGlow(ctx) {
+        const cfg = window.Game.Balance?.GLOW?.ENEMY;
+        if (!cfg?.ENABLED) return;
+        const x = this.x, y = this.y;
+        const r = 25; // approximate enemy body radius
+        const pulse = Math.sin(Date.now() * cfg.PULSE_SPEED * 0.001) * cfg.PULSE_AMOUNT;
+        const alpha = cfg.ALPHA + pulse;
+        const CU = window.Game.ColorUtils;
+        const grad = ctx.createRadialGradient(x, y, r * 0.4, x, y, r + cfg.RADIUS);
+        grad.addColorStop(0, CU.withAlpha(this.color, alpha));
+        grad.addColorStop(1, CU.withAlpha(this.color, 0));
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(x, y, r + cfg.RADIUS, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
     drawCoin(ctx, x, y) {
-        const r = 23; // v4.25: 19→23 (+20% resize)
+        const r = 23;
 
-        // Shadow side (bottom-left arc) - cell-shading
-        ctx.fillStyle = this._colorDark35;
-        ctx.beginPath();
-        ctx.arc(x, y, r, Math.PI * 0.4, Math.PI * 1.4);
-        ctx.lineTo(x, y);
-        ctx.closePath();
-        ctx.fill();
-
-        // Light side (top-right arc)
-        ctx.fillStyle = this.color;
-        ctx.beginPath();
-        ctx.arc(x, y, r, Math.PI * 1.4, Math.PI * 0.4);
-        ctx.lineTo(x, y);
-        ctx.closePath();
-        ctx.fill();
-
-        // Full outline
+        // v4.56: Dark body fill (single tone, no cell-shading)
+        ctx.fillStyle = this._colorDark40;
         ctx.beginPath();
         ctx.arc(x, y, r, 0, Math.PI * 2);
-        ctx.stroke();
+        ctx.fill();
 
-        // Inner circle (darker)
-        ctx.fillStyle = this._colorDark40;
+        // Inner ring (darker center)
+        ctx.fillStyle = this._colorDark50;
         ctx.beginPath();
         ctx.arc(x, y, r * 0.65, 0, Math.PI * 2);
         ctx.fill();
 
-        // Rim lighting (top-right arc highlight)
+        // Neon outline
+        ctx.strokeStyle = this._colorBright;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Inner ring neon stroke
+        ctx.strokeStyle = this._colorDark30;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(x, y, r * 0.65, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Rim highlight (top arc, lighter)
         ctx.strokeStyle = this._colorLight50;
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.arc(x, y, r - 2, -Math.PI * 0.6, Math.PI * 0.1);
         ctx.stroke();
 
-        // Edge notches (6 for smaller coin)
-        ctx.strokeStyle = this._colorDark50;
+        // Edge notches
+        ctx.strokeStyle = this._colorBright;
         ctx.lineWidth = 1.5;
         for (let i = 0; i < 6; i++) {
             const angle = (Math.PI * 2 / 6) * i;
@@ -424,104 +443,87 @@ class Enemy extends window.Game.Entity {
             ctx.stroke();
         }
 
-        // Symbol
+        // Symbol with neon glow
+        ctx.shadowColor = this.color;
+        ctx.shadowBlur = 6;
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 18px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(this.symbol, x, y);
+        ctx.shadowBlur = 0;
     }
 
     drawBill(ctx, x, y) {
-        const w = 44, h = 25; // v4.25: 36×21→44×25 (+20% resize)
+        const w = 44, h = 25;
 
-        // Shadow side (bottom-left triangle) - cell-shading
-        ctx.fillStyle = this._colorDark35;
-        ctx.beginPath();
-        ctx.moveTo(x - w/2, y - h/2);
-        ctx.lineTo(x + w/2, y + h/2);
-        ctx.lineTo(x - w/2, y + h/2);
-        ctx.closePath();
-        ctx.fill();
+        // v4.56: Dark body fill (single tone)
+        ctx.fillStyle = this._colorDark40;
+        ctx.fillRect(x - w/2, y - h/2, w, h);
 
-        // Light side (top-right triangle)
-        ctx.fillStyle = this.color;
-        ctx.beginPath();
-        ctx.moveTo(x - w/2, y - h/2);
-        ctx.lineTo(x + w/2, y - h/2);
-        ctx.lineTo(x + w/2, y + h/2);
-        ctx.closePath();
-        ctx.fill();
-
-        // Full outline
-        ctx.strokeStyle = this._colorDark50 || '#111';
-        ctx.lineWidth = 3;
+        // Neon outline
+        ctx.strokeStyle = this._colorBright;
+        ctx.lineWidth = 2.5;
         ctx.strokeRect(x - w/2, y - h/2, w, h);
 
-        // Inner border
-        ctx.strokeStyle = this._colorDark50;
-        ctx.lineWidth = 1.5;
+        // Inner border (neon subtle)
+        ctx.strokeStyle = this._colorDark30;
+        ctx.lineWidth = 1;
         ctx.strokeRect(x - w/2 + 4, y - h/2 + 4, w - 8, h - 8);
 
-        // Corner decorations
-        ctx.fillStyle = this._colorDark40;
-        ctx.fillRect(x - w/2 + 2, y - h/2 + 2, 6, 6);
-        ctx.fillRect(x + w/2 - 8, y - h/2 + 2, 6, 6);
-        ctx.fillRect(x - w/2 + 2, y + h/2 - 8, 6, 6);
-        ctx.fillRect(x + w/2 - 8, y + h/2 - 8, 6, 6);
+        // Circuit-like decorative lines (top & bottom)
+        ctx.strokeStyle = this._colorBright;
+        ctx.lineWidth = 1;
+        ctx.globalAlpha = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(x - w/2 + 3, y - h/2 + 3);
+        ctx.lineTo(x - w/2 + 12, y - h/2 + 3);
+        ctx.moveTo(x + w/2 - 12, y - h/2 + 3);
+        ctx.lineTo(x + w/2 - 3, y - h/2 + 3);
+        ctx.moveTo(x - w/2 + 3, y + h/2 - 3);
+        ctx.lineTo(x - w/2 + 12, y + h/2 - 3);
+        ctx.moveTo(x + w/2 - 12, y + h/2 - 3);
+        ctx.lineTo(x + w/2 - 3, y + h/2 - 3);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
 
-        // Rim lighting (top and right edge)
+        // Rim highlight (top edge)
         ctx.strokeStyle = this._colorLight50;
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.moveTo(x - w/2 + 3, y - h/2);
-        ctx.lineTo(x + w/2, y - h/2);
-        ctx.lineTo(x + w/2, y + h/2 - 3);
+        ctx.lineTo(x + w/2 - 3, y - h/2);
         ctx.stroke();
 
-        // Symbol
+        // Symbol with neon glow
+        ctx.shadowColor = this.color;
+        ctx.shadowBlur = 6;
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 17px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(this.symbol, x, y);
+        ctx.shadowBlur = 0;
     }
 
     drawBar(ctx, x, y) {
-        // v4.25: Gold bar scaled +20% (was ±20/±14/±10/±15, now ±24/±17/±12/±18)
-        // Shadow side (left half)
-        ctx.fillStyle = this._colorDark30;
-        ctx.beginPath();
-        ctx.moveTo(x - 24, y + 12);
-        ctx.lineTo(x - 17, y - 12);
-        ctx.lineTo(x, y - 12);
-        ctx.lineTo(x, y + 12);
-        ctx.closePath();
-        ctx.fill();
-
-        // Light side (right half)
-        ctx.fillStyle = this.color;
-        ctx.beginPath();
-        ctx.moveTo(x, y + 12);
-        ctx.lineTo(x, y - 12);
-        ctx.lineTo(x + 17, y - 12);
-        ctx.lineTo(x + 24, y + 12);
-        ctx.closePath();
-        ctx.fill();
-
-        // Full outline
-        ctx.strokeStyle = this._colorDark50 || '#111';
-        ctx.lineWidth = 3;
+        // v4.56: Dark body fill (single tone trapezoid)
+        ctx.fillStyle = this._colorDark40;
         ctx.beginPath();
         ctx.moveTo(x - 24, y + 12);
         ctx.lineTo(x - 17, y - 12);
         ctx.lineTo(x + 17, y - 12);
         ctx.lineTo(x + 24, y + 12);
         ctx.closePath();
+        ctx.fill();
+
+        // Neon outline
+        ctx.strokeStyle = this._colorBright;
+        ctx.lineWidth = 2.5;
         ctx.stroke();
 
-        // Top face (lighter) - cell-shading highlight
-        ctx.fillStyle = this._colorLight35;
+        // Top face (lighter neon tint)
+        ctx.fillStyle = this._colorDark30;
         ctx.beginPath();
         ctx.moveTo(x - 17, y - 12);
         ctx.lineTo(x - 12, y - 18);
@@ -529,10 +531,12 @@ class Enemy extends window.Game.Entity {
         ctx.lineTo(x + 17, y - 12);
         ctx.closePath();
         ctx.fill();
+        ctx.strokeStyle = this._colorBright;
+        ctx.lineWidth = 2;
         ctx.stroke();
 
-        // Shine line
-        ctx.strokeStyle = '#fff';
+        // Shine line (neon color instead of white)
+        ctx.strokeStyle = this._colorLight50;
         ctx.lineWidth = 2;
         ctx.globalAlpha = 0.7;
         ctx.beginPath();
@@ -541,54 +545,37 @@ class Enemy extends window.Game.Entity {
         ctx.stroke();
         ctx.globalAlpha = 1;
 
-        // Symbol
-        ctx.fillStyle = '#111';
+        // Symbol with neon glow (white, not black)
+        ctx.shadowColor = this.color;
+        ctx.shadowBlur = 6;
+        ctx.fillStyle = '#fff';
         ctx.font = 'bold 17px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(this.symbol, x, y + 1);
+        ctx.shadowBlur = 0;
     }
 
     drawCard(ctx, x, y) {
-        const w = 40, h = 27; // v4.25: 33×22→40×27 (+20% resize)
+        const w = 40, h = 27;
 
-        // Shadow side (bottom-left) - cell-shading
-        ctx.fillStyle = this._colorDark35;
-        ctx.beginPath();
-        ctx.moveTo(x - w/2 + 4, y - h/2);
-        ctx.lineTo(x + w/2, y + h/2);
-        ctx.lineTo(x - w/2, y + h/2);
-        ctx.lineTo(x - w/2, y - h/2 + 4);
-        ctx.quadraticCurveTo(x - w/2, y - h/2, x - w/2 + 4, y - h/2);
-        ctx.closePath();
+        // v4.56: Dark body fill (rounded rect)
+        ctx.fillStyle = this._colorDark40;
+        this.roundRect(ctx, x - w/2, y - h/2, w, h, 5);
         ctx.fill();
 
-        // Light side (top-right)
-        ctx.fillStyle = this.color;
-        ctx.beginPath();
-        ctx.moveTo(x - w/2 + 4, y - h/2);
-        ctx.lineTo(x + w/2 - 4, y - h/2);
-        ctx.quadraticCurveTo(x + w/2, y - h/2, x + w/2, y - h/2 + 4);
-        ctx.lineTo(x + w/2, y + h/2 - 4);
-        ctx.quadraticCurveTo(x + w/2, y + h/2, x + w/2 - 4, y + h/2);
-        ctx.lineTo(x + w/2, y + h/2);
-        ctx.lineTo(x - w/2 + 4, y - h/2);
-        ctx.closePath();
-        ctx.fill();
-
-        // Full outline
-        ctx.strokeStyle = this._colorDark50 || '#111';
-        ctx.lineWidth = 3;
+        // Neon outline
+        ctx.strokeStyle = this._colorBright;
+        ctx.lineWidth = 2.5;
         this.roundRect(ctx, x - w/2, y - h/2, w, h, 5);
         ctx.stroke();
 
-        // Chip (scaled)
+        // Chip (gold stays)
         ctx.fillStyle = '#ffcc00';
         ctx.fillRect(x - w/2 + 5, y - 6, 11, 11);
         ctx.strokeStyle = '#cc9900';
         ctx.lineWidth = 1.5;
         ctx.strokeRect(x - w/2 + 5, y - 6, 11, 11);
-        // Chip lines
         ctx.strokeStyle = '#ddaa00';
         ctx.lineWidth = 1;
         ctx.beginPath();
@@ -598,26 +585,43 @@ class Enemy extends window.Game.Entity {
         ctx.lineTo(x - w/2 + 14, y + 2);
         ctx.stroke();
 
-        // Magnetic stripe
-        ctx.fillStyle = '#222';
-        ctx.fillRect(x - w/2, y + h/2 - 7, w, 5);
+        // Circuit traces (replace magnetic stripe)
+        ctx.strokeStyle = this._colorBright;
+        ctx.lineWidth = 1;
+        ctx.globalAlpha = 0.4;
+        ctx.beginPath();
+        ctx.moveTo(x - w/2 + 3, y + h/2 - 5);
+        ctx.lineTo(x - w/2 + 10, y + h/2 - 5);
+        ctx.lineTo(x - w/2 + 13, y + h/2 - 3);
+        ctx.lineTo(x + w/2 - 3, y + h/2 - 3);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
 
-        // Rim lighting (top and right edge)
+        // Rim highlight (top edge)
         ctx.strokeStyle = this._colorLight50;
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.moveTo(x - w/2 + 6, y - h/2);
-        ctx.lineTo(x + w/2 - 4, y - h/2);
-        ctx.quadraticCurveTo(x + w/2, y - h/2, x + w/2, y - h/2 + 4);
-        ctx.lineTo(x + w/2, y + h/2 - 8);
+        ctx.lineTo(x + w/2 - 6, y - h/2);
         ctx.stroke();
 
-        // Symbol
+        // Holographic shimmer (subtle pulse)
+        const shimmer = Math.sin(Date.now() * 0.004 + x * 0.1) * 0.08 + 0.08;
+        ctx.fillStyle = this._colorBright;
+        ctx.globalAlpha = shimmer;
+        this.roundRect(ctx, x - w/2 + 2, y - h/2 + 2, w - 4, h - 4, 3);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        // Symbol with neon glow
+        ctx.shadowColor = this.color;
+        ctx.shadowBlur = 6;
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 14px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(this.symbol, x + 6, y - 2);
+        ctx.shadowBlur = 0;
     }
 
     drawMinion(ctx, x, y) {

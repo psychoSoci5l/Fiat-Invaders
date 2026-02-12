@@ -41,6 +41,7 @@ class Bullet extends window.Game.Entity {
         this.homing = false; // Homing missile tracking
         this.homingSpeed = 0; // Turn rate for homing
         this.shape = null; // Enemy shape for visual differentiation
+        this.ownerColor = null; // v4.56: Enemy color for bullet core tint
 
         // === WEAPON EVOLUTION v3.0 reset ===
         this.damageMult = 1;
@@ -1043,8 +1044,8 @@ class Bullet extends window.Game.Entity {
         const rotation = this.age * 12;
         const ellipseWidth = Math.abs(Math.cos(rotation)) * r * 0.9 + r * 0.5;
 
-        // Main coin body (ellipse)
-        ctx.fillStyle = this.color;
+        // Main coin body (ellipse) — v4.56: ownerColor tint
+        ctx.fillStyle = this.ownerColor || this.color;
         ctx.beginPath();
         ctx.ellipse(this.x, this.y, ellipseWidth * pulse, r * pulse, 0, 0, Math.PI * 2);
         ctx.fill();
@@ -1055,7 +1056,7 @@ class Bullet extends window.Game.Entity {
         ctx.stroke();
 
         // Inner ring (coin groove)
-        ctx.strokeStyle = window.Game.ColorUtils.darken(this.color, 0.3);
+        ctx.strokeStyle = window.Game.ColorUtils.darken(this.ownerColor || this.color, 0.3);
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.ellipse(this.x, this.y, ellipseWidth * 0.6, r * 0.6, 0, 0, Math.PI * 2);
@@ -1071,8 +1072,8 @@ class Bullet extends window.Game.Entity {
             ctx.globalAlpha = 1;
         }
 
-        // Center bright spot
-        ctx.fillStyle = '#fff';
+        // Center bright spot (v4.56: tinted with enemy color)
+        ctx.fillStyle = this.ownerColor || '#fff';
         ctx.beginPath();
         ctx.arc(this.x, this.y, r * 0.2, 0, Math.PI * 2);
         ctx.fill();
@@ -1142,8 +1143,8 @@ class Bullet extends window.Game.Entity {
         const w = r * 1.4 * pulse;
         const h = r * 1.6;
 
-        // Paper body
-        ctx.fillStyle = this.color;
+        // Paper body — v4.56: ownerColor tint
+        ctx.fillStyle = this.ownerColor || this.color;
         ctx.beginPath();
         ctx.moveTo(0, -h * 0.6);
         ctx.lineTo(w * (1 + flutter), h * 0.3);
@@ -1158,7 +1159,7 @@ class Bullet extends window.Game.Entity {
         ctx.stroke();
 
         // Center fold line (paper crease)
-        ctx.strokeStyle = window.Game.ColorUtils.darken(this.color, 0.3);
+        ctx.strokeStyle = window.Game.ColorUtils.darken(this.ownerColor || this.color, 0.3);
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.moveTo(0, -h * 0.5);
@@ -1166,7 +1167,7 @@ class Bullet extends window.Game.Entity {
         ctx.stroke();
 
         // Highlight on one wing (3D paper effect)
-        ctx.fillStyle = window.Game.ColorUtils.lighten(this.color, 0.4);
+        ctx.fillStyle = window.Game.ColorUtils.lighten(this.ownerColor || this.color, 0.4);
         ctx.globalAlpha = 0.6;
         ctx.beginPath();
         ctx.moveTo(0, -h * 0.5);
@@ -1178,8 +1179,8 @@ class Bullet extends window.Game.Entity {
 
         ctx.restore();
 
-        // Center bright spot
-        ctx.fillStyle = '#fff';
+        // Center bright spot (v4.56: tinted with enemy color)
+        ctx.fillStyle = this.ownerColor || '#fff';
         ctx.beginPath();
         ctx.arc(this.x, this.y, r * 0.15, 0, Math.PI * 2);
         ctx.fill();
@@ -1255,8 +1256,8 @@ class Bullet extends window.Game.Entity {
         // Calculate 3D offset based on tumble
         const depthOffset = Math.sin(tumble) * 3;
 
-        // Bottom face (darker, back)
-        ctx.fillStyle = window.Game.ColorUtils.darken(this.color, 0.4);
+        // Bottom face (darker, back) — v4.56: ownerColor tint
+        ctx.fillStyle = window.Game.ColorUtils.darken(this.ownerColor || this.color, 0.4);
         ctx.beginPath();
         ctx.moveTo(-w + depthOffset, h * 0.3);
         ctx.lineTo(w + depthOffset, h * 0.3);
@@ -1265,8 +1266,8 @@ class Bullet extends window.Game.Entity {
         ctx.closePath();
         ctx.fill();
 
-        // Main face (front)
-        ctx.fillStyle = this.color;
+        // Main face (front) — v4.56: ownerColor tint
+        ctx.fillStyle = this.ownerColor || this.color;
         ctx.beginPath();
         ctx.moveTo(-w, h * 0.4);           // Bottom left
         ctx.lineTo(w, h * 0.4);            // Bottom right
@@ -1282,7 +1283,7 @@ class Bullet extends window.Game.Entity {
 
         // Top face (lighter, shows during tumble)
         if (Math.cos(tumble) > 0) {
-            ctx.fillStyle = window.Game.ColorUtils.lighten(this.color, 0.3);
+            ctx.fillStyle = window.Game.ColorUtils.lighten(this.ownerColor || this.color, 0.3);
             ctx.globalAlpha = Math.cos(tumble) * 0.8;
             ctx.beginPath();
             ctx.moveTo(-topW, -h * 0.4);
@@ -1306,8 +1307,8 @@ class Bullet extends window.Game.Entity {
 
         ctx.restore();
 
-        // Center bright spot
-        ctx.fillStyle = '#fff';
+        // Center bright spot (v4.56: tinted with enemy color)
+        ctx.fillStyle = this.ownerColor || '#fff';
         ctx.beginPath();
         ctx.arc(this.x, this.y, r * 0.15, 0, Math.PI * 2);
         ctx.fill();
@@ -1377,8 +1378,8 @@ class Bullet extends window.Game.Entity {
         const w = r * 1.25 * pulse;
         const h = r * 0.95 * pulse;
 
-        // Main card body (rounded rectangle)
-        ctx.fillStyle = this.color;
+        // Main card body (rounded rectangle) — v4.56: ownerColor tint
+        ctx.fillStyle = this.ownerColor || this.color;
         ctx.beginPath();
         const cornerR = 2;
         ctx.moveTo(-w + cornerR, -h);
@@ -1399,14 +1400,14 @@ class Bullet extends window.Game.Entity {
         ctx.stroke();
 
         // Chip square (top-left corner)
-        ctx.fillStyle = window.Game.ColorUtils.lighten(this.color, 0.4);
+        ctx.fillStyle = window.Game.ColorUtils.lighten(this.ownerColor || this.color, 0.4);
         ctx.fillRect(-w * 0.7, -h * 0.6, w * 0.5, h * 0.7);
-        ctx.strokeStyle = window.Game.ColorUtils.darken(this.color, 0.3);
+        ctx.strokeStyle = window.Game.ColorUtils.darken(this.ownerColor || this.color, 0.3);
         ctx.lineWidth = 1;
         ctx.strokeRect(-w * 0.7, -h * 0.6, w * 0.5, h * 0.7);
 
         // Chip circuit lines
-        ctx.strokeStyle = window.Game.ColorUtils.darken(this.color, 0.2);
+        ctx.strokeStyle = window.Game.ColorUtils.darken(this.ownerColor || this.color, 0.2);
         ctx.lineWidth = 1;
         ctx.beginPath();
         // Horizontal lines from chip
@@ -1431,8 +1432,8 @@ class Bullet extends window.Game.Entity {
 
         ctx.restore();
 
-        // Digital pulse at center
-        ctx.fillStyle = '#fff';
+        // Digital pulse at center (v4.56: tinted with enemy color)
+        ctx.fillStyle = this.ownerColor || '#fff';
         ctx.globalAlpha = 0.5 + Math.sin(this.age * 40) * 0.3;
         ctx.beginPath();
         ctx.arc(this.x, this.y, r * 0.12, 0, Math.PI * 2);
@@ -1496,8 +1497,8 @@ class Bullet extends window.Game.Entity {
         ctx.arc(this.x, this.y, r + 2, 0, Math.PI * 2);
         ctx.stroke();
 
-        // Main bolt body + dark contour (was white)
-        ctx.fillStyle = this.color;
+        // Main bolt body + dark contour — v4.56: ownerColor tint
+        ctx.fillStyle = this.ownerColor || this.color;
         ctx.beginPath();
         ctx.arc(this.x, this.y, r * pulse, 0, Math.PI * 2);
         ctx.fill();
@@ -1505,11 +1506,13 @@ class Bullet extends window.Game.Entity {
         ctx.lineWidth = 2;
         ctx.stroke();
 
-        // Dim core center (was bright white)
-        ctx.fillStyle = 'rgba(255,200,180,0.7)';
+        // Core center (v4.56: tinted with enemy color)
+        ctx.fillStyle = this.ownerColor || 'rgba(255,200,180,0.7)';
+        ctx.globalAlpha = this.ownerColor ? 0.9 : 0.7;
         ctx.beginPath();
         ctx.arc(this.x, this.y, r * 0.3, 0, Math.PI * 2);
         ctx.fill();
+        ctx.globalAlpha = 1;
     }
 
 }

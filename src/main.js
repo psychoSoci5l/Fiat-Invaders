@@ -1481,6 +1481,7 @@ function init() {
                 var bullet = G.Bullet.Pool.acquire(bd.x, bd.y, bd.vx, bd.vy, bd.color, bd.w || 8, bd.h || 8, false);
                 bullet.beatSynced = true;
                 bullet.shape = bd.shape || null;
+                bullet.ownerColor = bd.ownerColor || null; // v4.56: enemy color for core tint
                 enemyBullets.push(bullet);
             }
         });
@@ -4178,6 +4179,19 @@ function draw() {
             ctx.restore();
         }
 
+        // v4.56: Batched enemy glow pass (additive)
+        const _glowCfg = G.Balance?.GLOW;
+        if (_glowCfg?.ENABLED && _glowCfg?.ENEMY?.ENABLED) {
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            for (let i = 0; i < enemies.length; i++) {
+                const e = enemies[i];
+                if (!e || e.x < -80 || e.x > gameWidth + 80 || e.y < -80 || e.y > gameHeight + 80) continue;
+                e.drawGlow(ctx);
+            }
+            ctx.restore();
+        }
+
         // Enemies (for loop instead of forEach) with off-screen culling
         for (let i = 0; i < enemies.length; i++) {
             const e = enemies[i];
@@ -4196,7 +4210,6 @@ function draw() {
         }
 
         // v4.30: Batched glow pass (additive) — all player bullet glows in one composite switch
-        const _glowCfg = G.Balance?.GLOW;
         if (_glowCfg?.ENABLED && _glowCfg?.BULLET?.ENABLED) {
             ctx.save();
             ctx.globalCompositeOperation = 'lighter';

@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v4.55.0 FIAT vs CRYPTO";
+window.Game.VERSION = "v4.56.0 FIAT vs CRYPTO";
 
 window.Game.TEXTS = {
     EN: {
@@ -522,7 +522,7 @@ window.Game.SHIP_POWERUPS = {
 window.Game.FIAT_TYPES = [
     // Tier 1 - Weak (rows 4-5)
     { s: '¥', name: 'YEN', c: '#ff3355', val: 20, hp: 0.8, fireMin: 4.5, fireMax: 6.5, aimSpread: 0.35, pattern: 'SINGLE', shape: 'coin' },
-    { s: '₽', name: 'RUBLE', c: '#8899bb', val: 25, hp: 0.8, fireMin: 4.5, fireMax: 6.5, aimSpread: 0.30, pattern: 'SINGLE', shape: 'bill' },
+    { s: '₽', name: 'RUBLE', c: '#6699dd', val: 25, hp: 0.8, fireMin: 4.5, fireMax: 6.5, aimSpread: 0.30, pattern: 'SINGLE', shape: 'bill' },
     { s: '₹', name: 'RUPEE', c: '#ffaa00', val: 25, hp: 0.9, fireMin: 4.5, fireMax: 6.5, aimSpread: 0.28, pattern: 'SINGLE', shape: 'coin' },
 
     // Tier 2 - Medium (rows 2-3) — v4.37: slower cooldowns

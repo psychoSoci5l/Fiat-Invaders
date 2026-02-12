@@ -1,5 +1,16 @@
 # Changelog
 
+## v4.56.0 - 2026-02-12
+### Enemy Neon Cyberpunk Restyling + Colored Enemy Bullets
+
+- **Enemy neon restyling**: All 4 enemy shapes (coin, bill, bar, card) redesigned — removed flat cell-shading, replaced with dark body + neon bright outline + additive glow halo
+- **Enemy glow halo**: Batched additive radial gradient per enemy with sin-pulse animation (configurable via `GLOW.ENEMY`)
+- **Symbol neon glow**: Currency symbols now have `shadowBlur` glow matching enemy color
+- **Card holographic shimmer**: Credit card enemies have subtle alpha-pulsing holographic overlay
+- **Bar symbol fix**: Symbol changed from black (#111) to white with glow for consistency
+- **Colored enemy bullets**: Enemy bullet body now uses the color of the enemy that fired it — instantly shows which tier enemy shot where
+- **Ruble color update**: `#8899bb` → `#6699dd` (more electric blue, less grey)
+
 ## v4.55.0 - 2026-02-12
 ### Ship Evolution + BTC Lock
 
