@@ -1290,14 +1290,14 @@
             GRADIENTS: {
                 ENABLED: true,
                 LEVELS: {
-                    1: ['#3a80c9', '#5a9fd9', '#7bbfeb', '#9dd5f5'],
-                    2: ['#2a6bb8', '#4a8bc8', '#7ab5d8', '#d4c87c'],
-                    3: ['#3a4558', '#8b49a6', '#d74c3c', '#e38c22'],
-                    4: ['#15152e', '#2a2a4e', '#3a2f5b', '#2d1b4e'],
-                    5: ['#080812', '#101025', '#151535', '#1a1a40']
+                    1: ['#0a0825', '#121040', '#1a1555', '#201a60'],
+                    2: ['#080620', '#0f0d38', '#161250', '#1c1660'],
+                    3: ['#060518', '#0a0a30', '#120e42', '#180f50'],
+                    4: ['#040410', '#080820', '#0c0c30', '#100e38'],
+                    5: ['#020208', '#050515', '#08081a', '#0a0a22']
                 },
-                BOSS: ['#000008', '#05051a', '#0a0a20', '#0f0f28'],
-                BEAR: ['#1a0000', '#2a0505', '#3a0a0a', '#2a0000']
+                BOSS: ['#000005', '#030312', '#06061a', '#080820'],
+                BEAR: ['#1a0008', '#200010', '#280015', '#200010']
             },
 
             // B. Star field
@@ -1306,8 +1306,8 @@
                 COUNT: 90,
                 MIN_SIZE: 1.5,
                 MAX_SIZE: 3.5,
-                MIN_VISIBLE_LEVEL: 3,      // Stars appear from L3
-                ALPHA_BY_LEVEL: { 3: 0.25, 4: 0.55, 5: 1.0 },
+                MIN_VISIBLE_LEVEL: 1,      // Stars visible from L1 (dark sky)
+                ALPHA_BY_LEVEL: { 1: 0.15, 2: 0.30, 3: 0.50, 4: 0.75, 5: 1.0 },
                 DRIFT_SPEED: 3,            // px/sec base drift
                 SHOOTING_STARS: {
                     ENABLED: true,
@@ -1330,13 +1330,13 @@
                     { yRatio: 0.85, height: 90,  speed: 20, amp1: 25, freq1: 0.020, amp2: 15, freq2: 0.010 }
                 ],
                 COLORS: {
-                    1: ['#8ab8d0', '#6a9ab8', '#4a7da0', '#3a6888', '#2a5470'],
-                    2: ['#7aa0c0', '#5a88a8', '#4a7090', '#3a6080', '#2a5070'],
-                    3: ['#7a5a70', '#6a4860', '#5a3850', '#4a3040', '#3a2030'],
-                    4: ['#2a2a50', '#222244', '#1c1c3c', '#181834', '#14142c'],
-                    5: ['#1a1a3a', '#161632', '#12122a', '#0e0e22', '#0a0a1a']
+                    1: ['#141030', '#100c28', '#0c0a22', '#0a081c', '#080616'],
+                    2: ['#120e28', '#0e0a22', '#0a081c', '#080616', '#060510'],
+                    3: ['#100c22', '#0c081c', '#0a0618', '#080514', '#06040e'],
+                    4: ['#0a0818', '#080614', '#060510', '#05040c', '#040308'],
+                    5: ['#080614', '#060510', '#05040c', '#040308', '#030206']
                 },
-                BEAR_COLORS: ['#2a0808', '#220606', '#1e0505', '#1a0404', '#160303'],
+                BEAR_COLORS: ['#1a0408', '#160306', '#120205', '#0e0204', '#0a0103'],
                 SILHOUETTES: {
                     ENABLED: true,
                     MAX_LAYER: 2,           // Only on distant layers (0-2)
@@ -1363,13 +1363,13 @@
                 WOBBLE_AMP: 15,
                 OUTLINE_THRESHOLD: 3.0,    // px — particles >= this get #111 outline
                 THEMES: {
-                    1: { color: '#c8b888', type: 'dust' },
-                    2: { color: '#aad488', type: 'pollen' },
-                    3: { color: '#ddaa55', type: 'dust' },
-                    4: { color: '#88ddaa', type: 'firefly' },
-                    5: { color: '#66ccff', type: 'firefly' }
+                    1: { color: '#00f0ff', type: 'firefly' },
+                    2: { color: '#ff2d95', type: 'firefly' },
+                    3: { color: '#bb44ff', type: 'firefly' },
+                    4: { color: '#00f0ff', type: 'firefly' },
+                    5: { color: '#ff2d95', type: 'firefly' }
                 },
-                BEAR_THEME: { color: '#ff6622', type: 'ember' },
+                BEAR_THEME: { color: '#ff2244', type: 'ember' },
                 FIREFLY_BLINK_SPEED: 3.0
             },
 
@@ -1384,9 +1384,9 @@
                 SHADOW_OFFSET_Y: 4,
                 OUTLINE_WIDTH: 2,
                 COLORS: {
-                    NORMAL: { shadow: '#b0c0d0', main: '#e8f0f8', highlight: '#ffffff', outline: '#7888a0' },
-                    BEAR: { shadow: '#200808', main: '#301010', highlight: '#401818', outline: '#401515' },
-                    NIGHT: { shadow: '#181830', main: '#282848', highlight: '#383860', outline: '#101028' }
+                    NORMAL: { shadow: '#1a1035', main: '#251848', highlight: '#352060', outline: '#0e0820' },
+                    BEAR: { shadow: '#200008', main: '#300010', highlight: '#400018', outline: '#180006' },
+                    NIGHT: { shadow: '#0c0820', main: '#141030', highlight: '#1c1840', outline: '#080515' }
                 }
             },
 
@@ -1398,14 +1398,14 @@
                 ALPHA_MAX: 0.28,
                 PULSE_SPEED: 1.5,
                 COLORS: {
-                    1: '#9dd5f5',
-                    2: '#d4c87c',
-                    3: '#e38c22',
-                    4: '#3a2f5b',
-                    5: '#1a1a40'
+                    1: '#201a60',
+                    2: '#1c1660',
+                    3: '#180f50',
+                    4: '#100e38',
+                    5: '#0a0a22'
                 },
-                BEAR_COLOR: '#4a0000',
-                BOSS_COLOR: '#0f0f28'
+                BEAR_COLOR: '#200010',
+                BOSS_COLOR: '#080820'
             },
 
             // G. Off-screen canvas caching (v4.31)
@@ -1418,12 +1418,12 @@
             WEATHER: {
                 ENABLED: true,
                 SHEET_LIGHTNING: {
-                    COLOR: '#b4a0ff',
-                    BEAR_COLOR: '#ff4444',
+                    COLOR: '#bb66ff',
+                    BEAR_COLOR: '#ff2244',
                     ALPHA: 0.5
                 },
                 RAIN: {
-                    COLOR: '#8899bb',
+                    COLOR: '#6666aa',
                     BEAR_COLOR: '#882222',
                     WIDTH: 1.5
                 },
@@ -1472,8 +1472,8 @@
                     DRIFT_SPEED: 15,      // px/sec horizontal
                     ALPHA_MIN: 0.04,
                     ALPHA_MAX: 0.08,
-                    COLOR: '#8888cc',
-                    BEAR_COLOR: '#aa4444'
+                    COLOR: '#4444aa',
+                    BEAR_COLOR: '#aa2244'
                 },
 
                 DRIZZLE: {
@@ -1484,7 +1484,7 @@
                     LENGTH_MIN: 6,
                     LENGTH_MAX: 12,
                     ALPHA: 0.12,
-                    COLOR: '#7788aa',
+                    COLOR: '#5566aa',
                     BEAR_COLOR: '#664444',
                     WIDTH: 1
                 },
@@ -1497,11 +1497,11 @@
                     ALPHA_MAX: 0.15,
                     DECAY_SPEED: 1.5,     // alpha/sec
                     COLORS: {
-                        3: '#ffcc66',     // amber
-                        4: '#aa77ff',     // violet
-                        5: '#6688ff'      // blue
+                        3: '#bb66ff',     // violet
+                        4: '#aa44ff',     // deep violet
+                        5: '#6644ff'      // indigo
                     },
-                    BEAR_COLOR: '#ff4444' // red
+                    BEAR_COLOR: '#ff2244' // neon red
                 },
 
                 LEVEL_TRANSITION: {
@@ -1530,7 +1530,7 @@
                     WING_SPAN: 6,
                     FLAP_SPEED: 3,
                     FLAP_AMP: 4,
-                    COLOR: '#333344',
+                    COLOR: '#1a1a30',
                     LINE_WIDTH: 1.5
                 },
                 INTRO: ['birds']
@@ -1543,8 +1543,8 @@
 
             BULLET: {
                 ENABLED: true,
-                RADIUS: 18,              // v4.23.1: 12→18 for visible halo
-                ALPHA: 0.45,             // v4.23.1: 0.25→0.45
+                RADIUS: 24,              // v4.52: 18→24 for neon halo
+                ALPHA: 0.6,              // v4.52: 0.45→0.6
                 PULSE_SPEED: 8,
                 PULSE_AMOUNT: 0.15       // v4.23.1: 0.08→0.15 stronger pulse
             },
@@ -1579,7 +1579,7 @@
 
             DEATH_FLASH: {               // v4.23.1: lingering glow on enemy death
                 ENABLED: true,
-                RADIUS: 30,
+                RADIUS: 40,              // v4.52: 30→40 for neon flash
                 DURATION: 0.4
             }
         },

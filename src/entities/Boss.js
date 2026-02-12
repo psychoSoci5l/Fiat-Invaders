@@ -351,13 +351,13 @@ class Boss extends window.Game.Entity {
 
         // Color based on boss type
         if (this.bossType === 'BCE') {
-            minionConfig.c = '#3498db'; // Euro blue
+            minionConfig.c = '#2288ff'; // Euro blue
             minionConfig.s = '€';
         } else if (this.bossType === 'BOJ') {
-            minionConfig.c = '#e74c3c'; // Yen red
+            minionConfig.c = '#ff3355'; // Yen red
             minionConfig.s = '¥';
         } else {
-            minionConfig.c = '#2ecc71'; // Dollar green
+            minionConfig.c = '#00ff66'; // Dollar green
             minionConfig.s = '$';
         }
 
@@ -406,7 +406,7 @@ class Boss extends window.Game.Entity {
                     x: cx, y: cy - 20,
                     vx: Math.cos(angle) * 180,
                     vy: Math.sin(angle) * 180,
-                    color: '#2ecc71', w: 10, h: 10
+                    color: '#00ff66', w: 10, h: 10
                 });
             }
             return bullets;
@@ -422,13 +422,13 @@ class Boss extends window.Game.Entity {
             if (Math.floor(this.angle * 2) % 2 === 0) {
                 const rp = atk.P1.RING;
                 const ringBullets = Patterns.expandingRing(cx, cy - 20, this.angle, {
-                    count: rp.count, speed: rp.speed, color: '#2ecc71', size: rp.size, rotate: true
+                    count: rp.count, speed: rp.speed, color: '#00ff66', size: rp.size, rotate: true
                 });
                 bullets.push(...ringBullets);
             } else {
                 const sp = atk.P1.SINE;
                 const waveBullets = Patterns.sineWave(cx, cy - 20, this.animTime, {
-                    count: sp.count, width: sp.width, amplitude: sp.amplitude, speed: sp.speed, color: '#27ae60', size: 8
+                    count: sp.count, width: sp.width, amplitude: sp.amplitude, speed: sp.speed, color: '#00cc55', size: 8
                 });
                 bullets.push(...waveBullets);
             }
@@ -439,7 +439,7 @@ class Boss extends window.Game.Entity {
 
             // Spiral arms
             const spiralBullets = Patterns.spiral(cx, cy - 20, this.angle, {
-                arms: 3, speed: 180, color: '#f39c12', size: 10
+                arms: 3, speed: 180, color: '#ffaa00', size: 10
             });
             bullets.push(...spiralBullets);
 
@@ -447,7 +447,7 @@ class Boss extends window.Game.Entity {
             if (Math.floor(this.animTime * 0.67) !== Math.floor((this.animTime - fireRates[1]) * 0.67) && player) {
                 const hp = atk.P2.HOMING;
                 const homingBullets = Patterns.homingMissiles(cx, cy - 30, player.x, player.y, {
-                    count: hp.count, speed: hp.speed, color: '#e74c3c', size: 12, homingStrength: hp.homingStrength, maxSpeed: hp.maxSpeed
+                    count: hp.count, speed: hp.speed, color: '#ff3344', size: 12, homingStrength: hp.homingStrength, maxSpeed: hp.maxSpeed
                 });
                 bullets.push(...homingBullets);
             }
@@ -455,7 +455,7 @@ class Boss extends window.Game.Entity {
             // Occasional flower burst
             if (Math.floor(this.animTime * 0.4) !== Math.floor((this.animTime - fireRates[1]) * 0.4)) {
                 const flowerBullets = Patterns.flower(cx, cy - 25, this.animTime, {
-                    petals: 5, bulletsPerPetal: 2, speed: 160, color: '#ff8c00', size: 9
+                    petals: 5, bulletsPerPetal: 2, speed: 160, color: '#ff8800', size: 9
                 });
                 bullets.push(...flowerBullets);
             }
@@ -469,7 +469,7 @@ class Boss extends window.Game.Entity {
             if (Math.floor(this.animTime * 0.5) !== Math.floor((this.animTime - fireRates[2]) * 0.5) && player) {
                 const lp = atk.P3.LASER;
                 const laserBullets = Patterns.laserBeam(cx, cy - 20, player.x, player.y + 100, {
-                    count: lp.count, speed: lp.speed, color: '#2ecc71', size: 6, width: lp.width, gapSize: lp.gapSize
+                    count: lp.count, speed: lp.speed, color: '#00ff66', size: 6, width: lp.width, gapSize: lp.gapSize
                 });
                 bullets.push(...laserBullets);
             }
@@ -487,19 +487,19 @@ class Boss extends window.Game.Entity {
             if (Math.floor(this.angle * 2) % 4 === 0 && player) {
                 const hp3 = atk.P3.HOMING;
                 const homingBullets = Patterns.homingMissiles(cx, cy - 20, player.x, player.y, {
-                    count: hp3.count, speed: hp3.speed, color: '#ff4444', size: 11, homingStrength: hp3.homingStrength, maxSpeed: hp3.maxSpeed
+                    count: hp3.count, speed: hp3.speed, color: '#ff2244', size: 11, homingStrength: hp3.homingStrength, maxSpeed: hp3.maxSpeed
                 });
                 bullets.push(...homingBullets);
             }
 
             // Double helix from cannons
             const helixBullets = Patterns.doubleHelix(this.x + 10, cy - 30, this.laserAngle, {
-                speed: 190, color1: '#2ecc71', color2: '#00ffff', size: 8
+                speed: 190, color1: '#00ff66', color2: '#00ffff', size: 8
             });
             bullets.push(...helixBullets);
 
             const helixBullets2 = Patterns.doubleHelix(this.x + this.width - 10, cy - 30, this.laserAngle + Math.PI, {
-                speed: 190, color1: '#00ffff', color2: '#2ecc71', size: 8
+                speed: 190, color1: '#00ffff', color2: '#00ff66', size: 8
             });
             bullets.push(...helixBullets2);
         }
@@ -581,7 +581,7 @@ class Boss extends window.Game.Entity {
                     );
                 }
                 const explosionBullets = Patterns.delayedExplosion(bombPositions, 0, {
-                    bulletsPerExplosion: 6, speed: 120, color: '#ffcc00', size: 8
+                    bulletsPerExplosion: 6, speed: 120, color: '#ffdd00', size: 8
                 });
                 bullets.push(...explosionBullets);
             }
@@ -595,7 +595,7 @@ class Boss extends window.Game.Entity {
 
                     if (player) {
                         const aimedBullets = Patterns.aimedBurst(sx, sy, player.x, player.y, {
-                            count: 2, speed: 150, spread: 0.12, color: '#ffcc00', size: 9
+                            count: 2, speed: 150, spread: 0.12, color: '#ffdd00', size: 9
                         });
                         bullets.push(...aimedBullets);
                     }
@@ -648,7 +648,7 @@ class Boss extends window.Game.Entity {
                         x: sx, y: sy,
                         vx: Math.cos(outAngle) * 130,
                         vy: Math.sin(outAngle) * 80 + 100,
-                        color: '#ffcc00', w: 8, h: 8
+                        color: '#ffdd00', w: 8, h: 8
                     });
                 }
             }
@@ -660,7 +660,7 @@ class Boss extends window.Game.Entity {
                     { x: player.x + 40, y: player.y - 80 }
                 ];
                 const explosionBullets = Patterns.delayedExplosion(bombPositions, 0, {
-                    bulletsPerExplosion: 8, speed: 140, color: '#ffcc00', size: 7
+                    bulletsPerExplosion: 8, speed: 140, color: '#ffdd00', size: 7
                 });
                 bullets.push(...explosionBullets);
             }
@@ -838,8 +838,8 @@ class Boss extends window.Game.Entity {
 
         // MEGA-BILL Design - Giant banknote shape
         // Phase colors: Green → Cracked → Burning red
-        const baseGreen = this.phase === 3 ? '#1a3a1a' : (this.phase === 2 ? '#1e5631' : '#2ecc71');
-        const accentColor = this.phase === 3 ? '#ff4444' : (this.phase === 2 ? '#f39c12' : '#27ae60');
+        const baseGreen = this.phase === 3 ? '#003311' : (this.phase === 2 ? '#005522' : '#00ff66');
+        const accentColor = this.phase === 3 ? '#ff2244' : (this.phase === 2 ? '#ffaa00' : '#00cc55');
 
         // Aura (money printing energy)
         const auraPulse = Math.sin(this.animTime * 4) * 0.15 + 0.25;
@@ -857,14 +857,14 @@ class Boss extends window.Game.Entity {
         const billH = h - 30;
 
         // Bill shadow/3D effect
-        ctx.fillStyle = '#0a1f0a';
+        ctx.fillStyle = '#002208';
         ctx.beginPath();
         ctx.roundRect(billX + 4, billY + 4, billW, billH, 6);
         ctx.fill();
 
         // Bill main body
         ctx.fillStyle = isHit ? '#ffffff' : baseGreen;
-        ctx.strokeStyle = '#0a1f0a';
+        ctx.strokeStyle = '#002208';
         ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.roundRect(billX, billY, billW, billH, 6);
@@ -913,7 +913,7 @@ class Boss extends window.Game.Entity {
         }
 
         // Seal background
-        ctx.fillStyle = '#0a1f0a';
+        ctx.fillStyle = '#002208';
         ctx.beginPath();
         ctx.arc(cx, sealY, sealRadius, 0, Math.PI * 2);
         ctx.fill();
@@ -948,7 +948,7 @@ class Boss extends window.Game.Entity {
             pupilOffsetY = Math.sin(this.animTime * 6) * 2;
         }
 
-        ctx.fillStyle = this.phase === 3 ? '#ff0000' : '#111';
+        ctx.fillStyle = this.phase === 3 ? '#39ff14' : '#111';
         ctx.beginPath();
         ctx.arc(cx - eyeSpacing + pupilOffsetX, eyeY + pupilOffsetY, eyeSize * 0.5, 0, Math.PI * 2);
         ctx.arc(cx + eyeSpacing + pupilOffsetX, eyeY + pupilOffsetY, eyeSize * 0.5, 0, Math.PI * 2);
@@ -969,7 +969,7 @@ class Boss extends window.Game.Entity {
         // Phase 2: OVERPRINTED watermark effect
         if (this.phase >= 2) {
             ctx.globalAlpha = 0.2 + Math.sin(this.animTime * 2) * 0.1;
-            ctx.fillStyle = '#ff6600';
+            ctx.fillStyle = '#ff8800';
             ctx.font = 'bold 12px Arial';
             ctx.save();
             ctx.translate(cx, cy + 20);
@@ -979,7 +979,7 @@ class Boss extends window.Game.Entity {
             ctx.globalAlpha = 1;
 
             // Cracks at edges
-            ctx.strokeStyle = '#4a2a00';
+            ctx.strokeStyle = '#003300';
             ctx.lineWidth = 1.5;
             ctx.globalAlpha = 0.6;
             // Left crack
@@ -1018,7 +1018,7 @@ class Boss extends window.Game.Entity {
             ctx.fill();
 
             // Sparks
-            ctx.strokeStyle = '#ffff00';
+            ctx.strokeStyle = '#39ff14';
             ctx.lineWidth = 2;
             for (let i = 0; i < 3; i++) {
                 const sparkAngle = this.animTime * 10 + i * Math.PI * 2 / 3;
@@ -1038,8 +1038,8 @@ class Boss extends window.Game.Entity {
 
         // Side cannons (Phase 2+)
         if (this.phase >= 2) {
-            ctx.fillStyle = '#1a3a1a';
-            ctx.strokeStyle = '#0a1f0a';
+            ctx.fillStyle = '#003311';
+            ctx.strokeStyle = '#002208';
             ctx.lineWidth = 2;
             // Left cannon
             ctx.beginPath();
@@ -1079,7 +1079,7 @@ class Boss extends window.Game.Entity {
 
         // MEGA-COIN Design - Giant Euro coin
         const baseBlue = this.phase === 3 ? '#001133' : (this.phase === 2 ? '#001a4d' : '#003399');
-        const goldColor = '#ffcc00';
+        const goldColor = '#ffdd00';
         const coinRadius = 60;
 
         // Phase 3: Fragmented - stars orbit erratically
@@ -1131,14 +1131,14 @@ class Boss extends window.Game.Entity {
         const edgeWidth = 12 + (this.phase >= 2 ? Math.abs(Math.sin(this.animTime * 2)) * 8 : 0);
 
         // Coin edge (3D effect)
-        ctx.fillStyle = '#8b7500';
+        ctx.fillStyle = '#997700';
         ctx.beginPath();
         ctx.ellipse(cx, cy + 8, coinRadius, coinRadius * 0.3, tiltAngle, 0, Math.PI * 2);
         ctx.fill();
 
         // Coin face - outer ring (gold/silver bi-metal style)
         ctx.fillStyle = isHit ? '#ffffff' : goldColor;
-        ctx.strokeStyle = '#8b7500';
+        ctx.strokeStyle = '#997700';
         ctx.lineWidth = 4;
         ctx.beginPath();
         ctx.arc(cx, cy, coinRadius, 0, Math.PI * 2);
@@ -1152,7 +1152,7 @@ class Boss extends window.Game.Entity {
         ctx.fill();
 
         // Decorative ridges around edge
-        ctx.strokeStyle = '#b8960b';
+        ctx.strokeStyle = '#cc9900';
         ctx.lineWidth = 1;
         for (let i = 0; i < 36; i++) {
             const angle = (i / 36) * Math.PI * 2;
@@ -1201,7 +1201,7 @@ class Boss extends window.Game.Entity {
         // Phase 2: Coin tilts showing thickness
         if (this.phase >= 2) {
             // Show coin edge more prominently
-            ctx.strokeStyle = '#6b5900';
+            ctx.strokeStyle = '#775500';
             ctx.lineWidth = 3;
             const edgeY = cy + coinRadius * 0.9;
             ctx.globalAlpha = 0.5;
@@ -1213,7 +1213,7 @@ class Boss extends window.Game.Entity {
 
         // Phase 3: Fragmentation cracks
         if (this.phase === 3) {
-            ctx.strokeStyle = '#ff3333';
+            ctx.strokeStyle = '#ff2244';
             ctx.lineWidth = 2;
             ctx.globalAlpha = 0.5 + Math.sin(this.animTime * 10) * 0.3;
 
@@ -1527,7 +1527,7 @@ class Boss extends window.Game.Entity {
         ctx.fillRect(barX, barY, barW, barH);
 
         // HP fill with phase colors
-        const hpColor = this.phase === 3 ? '#ff0000' : (this.phase === 2 ? '#f39c12' : this.accentColor || '#2ecc71');
+        const hpColor = this.phase === 3 ? '#ff0000' : (this.phase === 2 ? '#ffaa00' : this.accentColor || '#00ff66');
         ctx.fillStyle = hpColor;
         ctx.fillRect(barX, barY, barW * hpPct, barH);
 

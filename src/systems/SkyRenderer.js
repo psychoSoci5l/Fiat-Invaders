@@ -542,7 +542,7 @@
         if (bossActive) return;
         if (!G.GameState || !G.GameState.is('PLAY')) return;
         const fogH = 80;
-        ctx.fillStyle = isBearMarket ? '#0d0000' : level >= 4 ? '#060612' : '#06101e';
+        ctx.fillStyle = isBearMarket ? '#0d0005' : level >= 4 ? '#020210' : '#020215';
         ctx.fillRect(0, gameHeight - fogH, gameWidth, fogH);
     }
 
@@ -582,54 +582,54 @@
             let bands = [];
             if (isBearMarket) {
                 bands = [
-                    { color: '#1a0000', height: 0.2 },
-                    { color: '#2a0505', height: 0.25 },
-                    { color: '#3a0a0a', height: 0.25 },
-                    { color: '#2a0000', height: 0.3 }
+                    { color: '#1a0008', height: 0.2 },
+                    { color: '#200010', height: 0.25 },
+                    { color: '#280015', height: 0.25 },
+                    { color: '#200010', height: 0.3 }
                 ];
             } else if (bossActive) {
                 bands = [
-                    { color: '#000008', height: 0.25 },
-                    { color: '#05051a', height: 0.25 },
-                    { color: '#0a0a20', height: 0.25 },
-                    { color: '#0f0f28', height: 0.25 }
+                    { color: '#000005', height: 0.25 },
+                    { color: '#030312', height: 0.25 },
+                    { color: '#06061a', height: 0.25 },
+                    { color: '#080820', height: 0.25 }
                 ];
             } else {
                 const skyLevel = Math.min(5, level);
                 if (skyLevel === 1) {
                     bands = [
-                        { color: '#3a80c9', height: 0.2 },
-                        { color: '#5a9fd9', height: 0.25 },
-                        { color: '#7bbfeb', height: 0.25 },
-                        { color: '#9dd5f5', height: 0.3 }
+                        { color: '#0a0825', height: 0.2 },
+                        { color: '#121040', height: 0.25 },
+                        { color: '#1a1555', height: 0.25 },
+                        { color: '#201a60', height: 0.3 }
                     ];
                 } else if (skyLevel === 2) {
                     bands = [
-                        { color: '#2a6bb8', height: 0.2 },
-                        { color: '#4a8bc8', height: 0.25 },
-                        { color: '#7ab5d8', height: 0.25 },
-                        { color: '#d4c87c', height: 0.3 }
+                        { color: '#080620', height: 0.2 },
+                        { color: '#0f0d38', height: 0.25 },
+                        { color: '#161250', height: 0.25 },
+                        { color: '#1c1660', height: 0.3 }
                     ];
                 } else if (skyLevel === 3) {
                     bands = [
-                        { color: '#3a4558', height: 0.2 },
-                        { color: '#8b49a6', height: 0.2 },
-                        { color: '#d74c3c', height: 0.25 },
-                        { color: '#e38c22', height: 0.35 }
+                        { color: '#060518', height: 0.2 },
+                        { color: '#0a0a30', height: 0.2 },
+                        { color: '#120e42', height: 0.25 },
+                        { color: '#180f50', height: 0.35 }
                     ];
                 } else if (skyLevel === 4) {
                     bands = [
-                        { color: '#15152e', height: 0.25 },
-                        { color: '#2a2a4e', height: 0.25 },
-                        { color: '#3a2f5b', height: 0.25 },
-                        { color: '#2d1b4e', height: 0.25 }
+                        { color: '#040410', height: 0.25 },
+                        { color: '#080820', height: 0.25 },
+                        { color: '#0c0c30', height: 0.25 },
+                        { color: '#100e38', height: 0.25 }
                     ];
                 } else {
                     bands = [
-                        { color: '#080812', height: 0.25 },
-                        { color: '#101025', height: 0.25 },
-                        { color: '#151535', height: 0.25 },
-                        { color: '#1a1a40', height: 0.25 }
+                        { color: '#020208', height: 0.25 },
+                        { color: '#050515', height: 0.25 },
+                        { color: '#08081a', height: 0.25 },
+                        { color: '#0a0a22', height: 0.25 }
                     ];
                 }
             }
@@ -656,7 +656,7 @@
             const wobbleY = Math.sin(s.wobble) * 5;
             ctx.globalAlpha = s.alpha;
             ctx.font = `bold ${s.size}px Arial`;
-            ctx.fillStyle = level >= 4 ? '#8888aa' : '#aabbcc';
+            ctx.fillStyle = level >= 4 ? '#6666aa' : '#8888cc';
             ctx.fillText(s.symbol, s.x, s.y + wobbleY);
         }
         ctx.globalAlpha = 1;
@@ -687,7 +687,7 @@
             baseAlpha = alphaMap[Math.min(level, 5)] || 1.0;
         }
 
-        ctx.fillStyle = '#ffffcc';
+        ctx.fillStyle = '#ccccff';
         for (let i = 0; i < stars.length; i++) {
             const s = stars[i];
             const twinkle = Math.sin(skyTime * s.twinkleSpeed + s.twinklePhase);
@@ -726,7 +726,7 @@
             const ny = ss.vy / Math.sqrt(ss.vx * ss.vx + ss.vy * ss.vy);
 
             ctx.globalAlpha = ss.alpha * baseAlpha;
-            ctx.strokeStyle = '#ffffee';
+            ctx.strokeStyle = '#bbbbff';
             ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.moveTo(ss.x, ss.y);
@@ -751,7 +751,7 @@
         const isNight = level >= 5 || bossActive;
         if (!isNight || isBearMarket) return;
 
-        ctx.fillStyle = '#ffffcc';
+        ctx.fillStyle = '#ccccff';
         for (let i = 0; i < 40; i++) {
             const sx = (i * 137 + level * 50) % gameWidth;
             const sy = (i * 89 + level * 30) % (gameHeight * 0.6);
@@ -883,12 +883,12 @@
         } else {
             // Legacy 3 colors
             hillColors = isBearMarket
-                ? ['#1a0808', '#250c0c', '#301010']
+                ? ['#1a0408', '#160306', '#120205']
                 : level >= 4
-                    ? ['#151530', '#1a1a40', '#202050']
+                    ? ['#0a0818', '#080614', '#060510']
                     : level >= 3
-                        ? ['#4a3040', '#5a3848', '#6a4050']
-                        : ['#3a6080', '#4a7090', '#5a80a0'];
+                        ? ['#100c22', '#0c081c', '#0a0618']
+                        : ['#141030', '#100c28', '#0c0a22'];
         }
 
         ctx.lineWidth = 1.5;
@@ -1008,10 +1008,10 @@
             }
         } else {
             colors = {
-                shadow: isBearMarket ? '#200808' : '#c8d8e8',
-                main: isBearMarket ? '#301010' : '#f0f8ff',
-                highlight: isBearMarket ? '#401818' : '#ffffff',
-                outline: isBearMarket ? '#401515' : '#8090a0'
+                shadow: isBearMarket ? '#200008' : '#1a1035',
+                main: isBearMarket ? '#300010' : '#251848',
+                highlight: isBearMarket ? '#400018' : '#352060',
+                outline: isBearMarket ? '#180006' : '#0e0820'
             };
         }
 

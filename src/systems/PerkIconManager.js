@@ -8,10 +8,10 @@
     const Balance = G.Balance;
 
     const RARITY_COLORS = {
-        common: '#95a5a6',
-        uncommon: '#3498db',
-        rare: '#9b59b6',
-        epic: '#f39c12'
+        common: '#8899bb',
+        uncommon: '#00aaff',
+        rare: '#bb44ff',
+        epic: '#ffaa00'
     };
 
     let icons = [];

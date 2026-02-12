@@ -233,7 +233,7 @@ window.Game.BulletPatterns = {
         const count = config.count || 5;
         const speed = config.speed || 220;
         const spread = config.spread || 0.4; // Radians
-        const color = config.color || '#e74c3c'; // Red
+        const color = config.color || '#ff3344'; // Red
         const size = config.size || 10;
 
         const dx = playerX - cx;
@@ -273,7 +273,7 @@ window.Game.BulletPatterns = {
         const bullets = [];
         const count = config.count || 20;
         const speed = config.speed || 300;
-        const color = config.color || '#2ecc71'; // Dollar green
+        const color = config.color || '#00ff66'; // Dollar green
         const size = config.size || 6;
         const width = config.width || 400; // Beam width
         const gapSize = config.gapSize || 60; // Safe gap
@@ -322,7 +322,7 @@ window.Game.BulletPatterns = {
         const bullets = [];
         const count = config.count || 4;
         const speed = config.speed || 120;
-        const color = config.color || '#e74c3c'; // Warning red
+        const color = config.color || '#ff3344'; // Warning red
         const size = config.size || 12;
         const spreadAngle = config.spreadAngle || 0.8; // Initial spread
 

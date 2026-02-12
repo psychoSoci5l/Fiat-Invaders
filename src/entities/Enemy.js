@@ -323,8 +323,8 @@ class Enemy extends window.Game.Entity {
             ctx._damageTint = 0;
         }
 
-        ctx.strokeStyle = '#111';
-        ctx.lineWidth = 3; // Bold cell-shaded outline
+        ctx.strokeStyle = this._colorDark50 || '#111';
+        ctx.lineWidth = 3; // Bold cell-shaded outline (neon tinted)
 
         // Draw based on shape type
         if (this.isMinion) {
@@ -454,7 +454,7 @@ class Enemy extends window.Game.Entity {
         ctx.fill();
 
         // Full outline
-        ctx.strokeStyle = '#111';
+        ctx.strokeStyle = this._colorDark50 || '#111';
         ctx.lineWidth = 3;
         ctx.strokeRect(x - w/2, y - h/2, w, h);
 
@@ -510,7 +510,7 @@ class Enemy extends window.Game.Entity {
         ctx.fill();
 
         // Full outline
-        ctx.strokeStyle = '#111';
+        ctx.strokeStyle = this._colorDark50 || '#111';
         ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.moveTo(x - 24, y + 12);
@@ -577,19 +577,19 @@ class Enemy extends window.Game.Entity {
         ctx.fill();
 
         // Full outline
-        ctx.strokeStyle = '#111';
+        ctx.strokeStyle = this._colorDark50 || '#111';
         ctx.lineWidth = 3;
         this.roundRect(ctx, x - w/2, y - h/2, w, h, 5);
         ctx.stroke();
 
         // Chip (scaled)
-        ctx.fillStyle = '#f1c40f';
+        ctx.fillStyle = '#ffcc00';
         ctx.fillRect(x - w/2 + 5, y - 6, 11, 11);
-        ctx.strokeStyle = '#b8860b';
+        ctx.strokeStyle = '#cc9900';
         ctx.lineWidth = 1.5;
         ctx.strokeRect(x - w/2 + 5, y - 6, 11, 11);
         // Chip lines
-        ctx.strokeStyle = '#c9a007';
+        ctx.strokeStyle = '#ddaa00';
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(x - w/2 + 7, y - 3);
@@ -653,7 +653,7 @@ class Enemy extends window.Game.Entity {
         ctx.fill();
 
         // Outline
-        ctx.strokeStyle = '#111';
+        ctx.strokeStyle = this._colorDark50 || '#111';
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.arc(x, y, r, 0, Math.PI * 2);

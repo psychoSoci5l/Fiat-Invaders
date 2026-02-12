@@ -9,19 +9,19 @@ const POWERUP_CONFIG = {
     UPGRADE: { color: '#FFD700', symbol: '⬆', category: 'upgrade', name: 'UPGRADE' },
 
     // Specials (exclusive weapon effects, temporary 12s)
-    HOMING:  { color: '#E67E22', symbol: '🎯', category: 'special', name: 'HOMING' },
-    PIERCE:  { color: '#E74C3C', symbol: '🔥', category: 'special', name: 'PIERCE' },
-    MISSILE: { color: '#3498DB', symbol: '🚀', category: 'special', name: 'MISSILE' },
+    HOMING:  { color: '#ff8800', symbol: '🎯', category: 'special', name: 'HOMING' },
+    PIERCE:  { color: '#ff3344', symbol: '🔥', category: 'special', name: 'PIERCE' },
+    MISSILE: { color: '#2288ff', symbol: '🚀', category: 'special', name: 'MISSILE' },
 
     // Utilities (non-weapon, distinct visual)
-    SHIELD:  { color: '#2ECC71', symbol: '🛡', category: 'utility', name: 'SHIELD' },
-    SPEED:   { color: '#F1C40F', symbol: '💨', category: 'utility', name: 'SPEED' },
+    SHIELD:  { color: '#00ff66', symbol: '🛡', category: 'utility', name: 'SHIELD' },
+    SPEED:   { color: '#ffcc00', symbol: '💨', category: 'utility', name: 'SPEED' },
 
     // === LEGACY TYPES (backward compatibility) ===
-    WIDE:   { color: '#9b59b6', symbol: '🔱', category: 'weapon', name: 'WIDE' },
-    NARROW: { color: '#3498db', symbol: '🎯', category: 'weapon', name: 'NARROW' },
-    FIRE:   { color: '#e74c3c', symbol: '🔥', category: 'weapon', name: 'FIRE' },
-    RAPID:  { color: '#e91e63', symbol: '⚡', category: 'ship', name: 'RAPID' }
+    WIDE:   { color: '#bb44ff', symbol: '🔱', category: 'weapon', name: 'WIDE' },
+    NARROW: { color: '#2288ff', symbol: '🎯', category: 'weapon', name: 'NARROW' },
+    FIRE:   { color: '#ff3344', symbol: '🔥', category: 'weapon', name: 'FIRE' },
+    RAPID:  { color: '#ff2d95', symbol: '⚡', category: 'ship', name: 'RAPID' }
 };
 
 class PowerUp extends window.Game.Entity {

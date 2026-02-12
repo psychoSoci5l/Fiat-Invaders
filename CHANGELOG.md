@@ -1,5 +1,18 @@
 # Changelog
 
+## v4.52.0 - 2026-02-12
+### Visual Overhaul — Dark Cyberpunk Neon
+
+- **New palette**: Deep space violet-black backgrounds, neon magenta (#ff2d95), cyan (#00f0ff), gold (#ffaa00), green (#39ff14)
+- **Sky system**: All 5 level gradients reworked from bright blue to nebula violet→void progression. Stars visible from L1. Firefly particles (cyan/magenta) replace dust/pollen. Clouds now dark nebula wisps
+- **Title**: FIAT → neon magenta glow, CRYPTO → neon cyan glow, VS → cyan flash
+- **CSS overhaul**: ~100 color replacements across buttons, modals (dark bg + cyan borders), message strips, curtain overlays, manual/whatsnew panels
+- **Enemies**: 10 fiat currencies with neon-saturated colors, outlines now tinted per-enemy color (not flat black)
+- **Weapons**: All 7 bullet types recolored neon (WIDE purple, NARROW blue, FIRE red, SPREAD green, HOMING orange, PIERCE red, MISSILE blue)
+- **Bosses**: FED → neon green (#00ff66), eye pupils phase 3 → green glow (#39ff14). BCE gold intensified. Identity colors preserved
+- **PowerUps/Perks/Particles**: All aligned to neon palette. Boss death explosions, perk rarity colors, powerup config updated
+- **Preserved**: Ship BTC/ETH/SOL colors, enemy bullets (white), currency symbols (white), all gameplay/audio unchanged
+
 ## v4.51.0 - 2026-02-12
 ### What's New iOS Fix + Update Notification
 

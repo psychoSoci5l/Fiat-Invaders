@@ -406,10 +406,10 @@
      */
     function createBossDeathExplosion(x, y) {
         // Multiple explosion waves
-        createExplosion(x, y, '#ff0000', 20);
-        createExplosion(x - 40, y - 30, '#f39c12', 12);
-        createExplosion(x + 40, y - 30, '#f39c12', 12);
-        createExplosion(x, y + 40, '#2ecc71', 10);
+        createExplosion(x, y, '#ff2244', 20);
+        createExplosion(x - 40, y - 30, '#ffaa00', 12);
+        createExplosion(x + 40, y - 30, '#ffaa00', 12);
+        createExplosion(x, y + 40, '#00ff66', 10);
 
         const available = MAX_PARTICLES - particles.length;
         if (available <= 5) return;
@@ -427,7 +427,7 @@
                 vy: Math.sin(angle) * speed - 80,
                 life: 1.2,
                 maxLife: 1.2,
-                color: ['#2ecc71', '#f39c12', '#e74c3c', '#fff'][i % 4],
+                color: ['#00ff66', '#ffaa00', '#ff3344', '#fff'][i % 4],
                 size: 24 + Math.random() * 12,
                 symbol: symbols[i % symbols.length],
                 rotation: Math.random() * Math.PI * 2,
@@ -445,13 +445,13 @@
         addParticle({
             x: x, y: y, vx: 0, vy: 0,
             life: 0.3, maxLife: 0.3,
-            color: '#ff0000', size: 80,
+            color: '#ff2244', size: 80,
             isRing: true
         });
         addParticle({
             x: x, y: y, vx: 0, vy: 0,
             life: 0.5, maxLife: 0.5,
-            color: '#f39c12', size: 100,
+            color: '#ffaa00', size: 100,
             isRing: true
         });
 
@@ -467,7 +467,7 @@
                 vy: Math.sin(angle) * speed,
                 life: 0.6,
                 maxLife: 0.6,
-                color: ['#ff0000', '#f39c12', '#2ecc71', '#fff'][i % 4],
+                color: ['#ff2244', '#ffaa00', '#00ff66', '#fff'][i % 4],
                 size: Math.random() * 8 + 4
             });
         }

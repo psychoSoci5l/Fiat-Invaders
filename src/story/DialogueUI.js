@@ -144,17 +144,17 @@ class DialogueUI {
             'BTC': '#F7931A',
             'ETH': '#8c7ae6',
             'SOL': '#00d2d3',
-            'POWELL': '#e74c3c',
-            'FED': '#c0392b',
+            'POWELL': '#ff2d95',
+            'FED': '#00ff66',
             'LAGARDE': '#003399',
             'BCE': '#003399',
             'KURODA': '#bc002d',
             'UEDA': '#bc002d',
             'BOJ': '#bc002d',
-            'SYSTEM': '#3498db',
-            'PLAYER': '#2ecc71'
+            'SYSTEM': '#00f0ff',
+            'PLAYER': '#00ff66'
         };
-        return colors[speaker] || '#F7931A';
+        return colors[speaker] || '#ffaa00';
     }
 
     /**

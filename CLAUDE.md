@@ -123,8 +123,9 @@ Detailed tables, parameters, and implementation specifics → **SYSTEM_REFERENCE
 - **Arcade Records** — Persistent best cycle/level/kills in localStorage, NEW BEST badge on gameover, displayed in intro selection
 
 ### Rendering & VFX
+- **Color Palette (v4.52 Cyberpunk)** — Neon Magenta `#ff2d95` (FIAT/danger), Neon Cyan `#00f0ff` (CRYPTO/info/shield), Neon Gold `#ffaa00` (score/upgrade), Neon Green `#39ff14` (boss eyes/success), Deep Space `#030308→#0a0825` (backgrounds). Enemy outlines use `_colorDark50` (tinted, not flat black)
 - **Additive Glow** — `Balance.GLOW`. `'lighter'` on player elements. Kill-switch: `GLOW.ENABLED = false`. Visual rule: "glow = collect, dark = avoid"
-- **Sky & Background** — `Balance.SKY`. Gradient + stars + hills + clouds + particles. Off-screen caching via `Balance.SKY.OFFSCREEN`
+- **Sky & Background** — `Balance.SKY`. Nebula violet→void gradients, stars from L1, firefly particles (cyan/magenta). Off-screen caching via `Balance.SKY.OFFSCREEN`
 - **Batch Rendering** — Multi-pass pipeline (standard → additive), ~30% less canvas state changes
 - **Responsive Formations** — `Balance.FORMATION.RESPONSIVE`. Spacing scales with screen width. Kill-switch: `RESPONSIVE: false`
 - **Juice & VFX** — `Balance.JUICE` / `Balance.VFX`. Damage vignette, boss cinematics. Kill-switches in `JUICE.SCREEN_EFFECTS`

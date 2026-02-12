@@ -344,7 +344,7 @@ class Bullet extends window.Game.Entity {
         const h = this.height * 1.0;
 
         // Outer ethereal glow
-        ctx.fillStyle = '#9b59b6';
+        ctx.fillStyle = '#bb44ff';
         ctx.globalAlpha = 0.25;
         ctx.beginPath();
         ctx.ellipse(this.x, this.y, w + 6, h * 0.6, 0, 0, Math.PI * 2);
@@ -356,7 +356,7 @@ class Bullet extends window.Game.Entity {
         const _addTrail = _gc?.ENABLED && _gc?.BULLET?.ENABLED;
         if (_addTrail) ctx.globalCompositeOperation = 'lighter';
         for (let i = 3; i > 0; i--) {
-            ctx.fillStyle = '#9b59b6';
+            ctx.fillStyle = '#bb44ff';
             ctx.globalAlpha = 0.15 * i;
             ctx.beginPath();
             ctx.ellipse(this.x, this.y + (i * 6), w - i * 2, h * 0.3, 0, 0, Math.PI * 2);
@@ -366,18 +366,18 @@ class Bullet extends window.Game.Entity {
         if (_addTrail) ctx.globalCompositeOperation = 'source-over';
 
         // Main crescent body
-        ctx.fillStyle = '#9b59b6';
+        ctx.fillStyle = '#bb44ff';
         ctx.beginPath();
         ctx.moveTo(this.x - w, this.y + 4);       // Left wing
         ctx.quadraticCurveTo(this.x, this.y - h, this.x + w, this.y + 4); // Top arc
         ctx.quadraticCurveTo(this.x, this.y + 2, this.x - w, this.y + 4); // Bottom arc
         ctx.closePath();
         ctx.fill();
-        ctx.strokeStyle = '#6c3483';
+        ctx.strokeStyle = '#8822cc';
         ctx.stroke();
 
         // Inner energy core
-        ctx.fillStyle = '#d4a5ff';
+        ctx.fillStyle = '#dd88ff';
         ctx.beginPath();
         ctx.ellipse(this.x, this.y - 2, w * 0.5, h * 0.25, 0, 0, Math.PI * 2);
         ctx.fill();
@@ -397,7 +397,7 @@ class Bullet extends window.Game.Entity {
         const h = this.height * 1.8;
 
         // Outer laser glow
-        ctx.fillStyle = '#3498db';
+        ctx.fillStyle = '#2288ff';
         ctx.globalAlpha = 0.3;
         ctx.beginPath();
         ctx.moveTo(this.x, this.y - 12);
@@ -412,7 +412,7 @@ class Bullet extends window.Game.Entity {
         const _gc = window.Game.Balance?.GLOW;
         const _addTrail = _gc?.ENABLED && _gc?.BULLET?.ENABLED;
         if (_addTrail) ctx.globalCompositeOperation = 'lighter';
-        ctx.strokeStyle = '#3498db';
+        ctx.strokeStyle = '#2288ff';
         ctx.globalAlpha = 0.4;
         ctx.lineWidth = 1;
         ctx.beginPath();
@@ -426,7 +426,7 @@ class Bullet extends window.Game.Entity {
         if (_addTrail) ctx.globalCompositeOperation = 'source-over';
 
         // Main needle body
-        ctx.fillStyle = '#3498db';
+        ctx.fillStyle = '#2288ff';
         ctx.beginPath();
         ctx.moveTo(this.x, this.y - 10);          // Sharp tip
         ctx.lineTo(this.x + w, this.y + 2);       // Right edge
@@ -435,11 +435,11 @@ class Bullet extends window.Game.Entity {
         ctx.lineTo(this.x - w, this.y + 2);       // Left edge
         ctx.closePath();
         ctx.fill();
-        ctx.strokeStyle = '#1a5276';
+        ctx.strokeStyle = '#114488';
         ctx.stroke();
 
         // Inner plasma core
-        ctx.fillStyle = '#85c1e9';
+        ctx.fillStyle = '#66bbff';
         ctx.beginPath();
         ctx.moveTo(this.x, this.y - 6);
         ctx.lineTo(this.x + w * 0.3, this.y + 2);
@@ -475,7 +475,7 @@ class Bullet extends window.Game.Entity {
             const trailH = 12 + i * 4 + flicker;
 
             // Outer red
-            ctx.fillStyle = '#c0392b';
+            ctx.fillStyle = '#cc2222';
             ctx.beginPath();
             ctx.moveTo(this.x - 4 + offset + i * 2 - 3, this.y + 4);
             ctx.quadraticCurveTo(
@@ -489,25 +489,25 @@ class Bullet extends window.Game.Entity {
         if (_addTrail) ctx.globalCompositeOperation = 'source-over';
 
         // Main fireball outer (dark red)
-        ctx.fillStyle = '#c0392b';
+        ctx.fillStyle = '#cc2222';
         ctx.beginPath();
         ctx.arc(this.x, this.y, r + 3, 0, Math.PI * 2);
         ctx.fill();
 
         // Middle layer (orange)
-        ctx.fillStyle = '#e67e22';
+        ctx.fillStyle = '#ff8800';
         ctx.beginPath();
         ctx.arc(this.x, this.y - 1, r + 1, 0, Math.PI * 2);
         ctx.fill();
 
         // Core (bright orange-yellow)
-        ctx.fillStyle = '#f39c12';
+        ctx.fillStyle = '#ffaa00';
         ctx.beginPath();
         ctx.arc(this.x, this.y - 2, r - 1, 0, Math.PI * 2);
         ctx.fill();
 
         // Hot center (yellow-white)
-        ctx.fillStyle = '#f9e79f';
+        ctx.fillStyle = '#ffee88';
         ctx.beginPath();
         ctx.arc(this.x, this.y - 2, r * 0.4, 0, Math.PI * 2);
         ctx.fill();
@@ -540,7 +540,7 @@ class Bullet extends window.Game.Entity {
         const rotation = this.age * 8; // Spinning star
 
         // Outer glow
-        ctx.fillStyle = '#2ecc71';
+        ctx.fillStyle = '#00ff66';
         ctx.globalAlpha = 0.3;
         ctx.beginPath();
         ctx.arc(this.x, this.y, r + 6, 0, Math.PI * 2);
@@ -548,7 +548,7 @@ class Bullet extends window.Game.Entity {
         ctx.globalAlpha = 1;
 
         // Sparkle trail
-        ctx.fillStyle = '#2ecc71';
+        ctx.fillStyle = '#00ff66';
         ctx.globalAlpha = 0.5;
         for (let i = 1; i <= 3; i++) {
             const trailY = this.y + i * 6;
@@ -564,7 +564,7 @@ class Bullet extends window.Game.Entity {
         ctx.translate(this.x, this.y);
         ctx.rotate(rotation);
 
-        ctx.fillStyle = '#2ecc71';
+        ctx.fillStyle = '#00ff66';
         ctx.beginPath();
         for (let i = 0; i < 5; i++) {
             const outerAngle = (Math.PI * 2 / 5) * i - Math.PI / 2;
@@ -586,7 +586,7 @@ class Bullet extends window.Game.Entity {
         ctx.stroke();
 
         // Inner bright core
-        ctx.fillStyle = '#82e0aa';
+        ctx.fillStyle = '#66ffaa';
         ctx.beginPath();
         ctx.arc(0, 0, r * 0.35, 0, Math.PI * 2);
         ctx.fill();
@@ -623,7 +623,7 @@ class Bullet extends window.Game.Entity {
         for (let i = 3; i > 0; i--) {
             const trailLen = 8 + i * 5 + flicker;
             const trailWidth = w * (0.3 + i * 0.1);
-            ctx.fillStyle = i === 3 ? '#c0392b' : (i === 2 ? '#e67e22' : '#f39c12');
+            ctx.fillStyle = i === 3 ? '#cc2222' : (i === 2 ? '#ff8800' : '#ffaa00');
             ctx.beginPath();
             ctx.moveTo(-trailWidth, h * 0.4);
             ctx.quadraticCurveTo(0, h * 0.4 + trailLen, trailWidth, h * 0.4);
@@ -634,7 +634,7 @@ class Bullet extends window.Game.Entity {
         if (_addTrail) ctx.globalCompositeOperation = 'source-over';
 
         // Missile body (elongated diamond)
-        ctx.fillStyle = '#e67e22';
+        ctx.fillStyle = '#ff8800';
         ctx.beginPath();
         ctx.moveTo(0, -h * 0.6);          // Nose
         ctx.lineTo(w * 0.5, 0);           // Right side
@@ -650,7 +650,7 @@ class Bullet extends window.Game.Entity {
         ctx.stroke();
 
         // Fins (small triangles)
-        ctx.fillStyle = '#d35400';
+        ctx.fillStyle = '#cc4400';
         // Left fin
         ctx.beginPath();
         ctx.moveTo(-w * 0.4, h * 0.2);
@@ -669,7 +669,7 @@ class Bullet extends window.Game.Entity {
         ctx.stroke();
 
         // Nose cone (brighter)
-        ctx.fillStyle = '#f39c12';
+        ctx.fillStyle = '#ffaa00';
         ctx.beginPath();
         ctx.moveTo(0, -h * 0.6);
         ctx.lineTo(w * 0.25, -h * 0.2);
@@ -687,7 +687,7 @@ class Bullet extends window.Game.Entity {
         ctx.fill();
 
         // Target seeker (red dot)
-        ctx.fillStyle = '#e74c3c';
+        ctx.fillStyle = '#ff3344';
         ctx.beginPath();
         ctx.arc(0, -h * 0.3, 2, 0, Math.PI * 2);
         ctx.fill();
@@ -715,7 +715,7 @@ class Bullet extends window.Game.Entity {
             const trailW = 3 - i * 0.4;
 
             // Outer red to yellow gradient
-            const colors = ['#8B0000', '#c0392b', '#e67e22', '#f39c12', '#f9e79f'];
+            const colors = ['#880000', '#cc2222', '#ff8800', '#ffaa00', '#ffee88'];
             ctx.fillStyle = colors[i];
             ctx.beginPath();
             ctx.moveTo(this.x - trailW + offset, this.y + 4);
@@ -730,7 +730,7 @@ class Bullet extends window.Game.Entity {
         if (_addTrail) ctx.globalCompositeOperation = 'source-over';
 
         // Outer glow
-        ctx.fillStyle = '#e74c3c';
+        ctx.fillStyle = '#ff3344';
         ctx.globalAlpha = 0.3;
         ctx.beginPath();
         ctx.arc(this.x, this.y, w + 6, 0, Math.PI * 2);
@@ -738,7 +738,7 @@ class Bullet extends window.Game.Entity {
         ctx.globalAlpha = 1;
 
         // Main arrow body (elongated diamond)
-        ctx.fillStyle = '#e74c3c';
+        ctx.fillStyle = '#ff3344';
         ctx.beginPath();
         ctx.moveTo(this.x, this.y - h * 0.6);           // Sharp tip
         ctx.lineTo(this.x + w * 0.5, this.y - h * 0.1);
@@ -755,7 +755,7 @@ class Bullet extends window.Game.Entity {
         ctx.stroke();
 
         // Inner hot core
-        ctx.fillStyle = '#f39c12';
+        ctx.fillStyle = '#ffaa00';
         ctx.beginPath();
         ctx.moveTo(this.x, this.y - h * 0.4);
         ctx.lineTo(this.x + w * 0.2, this.y);
@@ -798,7 +798,7 @@ class Bullet extends window.Game.Entity {
         for (let i = 3; i > 0; i--) {
             const trailLen = 10 + i * 6 + flicker;
             const trailWidth = w * (0.25 + i * 0.08);
-            const colors = ['#1a5276', '#3498db', '#85c1e9'];
+            const colors = ['#114488', '#2288ff', '#66bbff'];
             ctx.fillStyle = colors[i - 1];
             ctx.beginPath();
             ctx.moveTo(-trailWidth, h * 0.4);
@@ -817,7 +817,7 @@ class Bullet extends window.Game.Entity {
         if (_addTrail) ctx.globalCompositeOperation = 'source-over';
 
         // Missile body (chunky warhead)
-        ctx.fillStyle = '#3498db';
+        ctx.fillStyle = '#2288ff';
         ctx.beginPath();
         ctx.moveTo(0, -h * 0.55);          // Nose
         ctx.lineTo(w * 0.5, -h * 0.15);    // Right shoulder
@@ -835,7 +835,7 @@ class Bullet extends window.Game.Entity {
         ctx.stroke();
 
         // Large fins (bigger than homing)
-        ctx.fillStyle = '#1a5276';
+        ctx.fillStyle = '#114488';
         // Left fin
         ctx.beginPath();
         ctx.moveTo(-w * 0.5, h * 0.15);
@@ -854,7 +854,7 @@ class Bullet extends window.Game.Entity {
         ctx.stroke();
 
         // Warhead tip (brighter blue)
-        ctx.fillStyle = '#5dade2';
+        ctx.fillStyle = '#44ccff';
         ctx.beginPath();
         ctx.moveTo(0, -h * 0.55);
         ctx.lineTo(w * 0.3, -h * 0.2);
@@ -872,7 +872,7 @@ class Bullet extends window.Game.Entity {
         ctx.fill();
 
         // Explosive indicator (red band)
-        ctx.fillStyle = '#e74c3c';
+        ctx.fillStyle = '#ff3344';
         ctx.fillRect(-w * 0.45, h * 0.05, w * 0.9, h * 0.12);
         ctx.strokeRect(-w * 0.45, h * 0.05, w * 0.9, h * 0.12);
 

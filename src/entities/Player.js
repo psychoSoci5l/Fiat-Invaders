@@ -1027,7 +1027,7 @@ class Player extends window.Game.Entity {
         ctx.stroke();
 
         // Nose cone - two-tone
-        ctx.fillStyle = gcColors ? gcColors.NOSE : '#c47d3a'; // Shadow side
+        ctx.fillStyle = gcColors ? gcColors.NOSE : '#b08030'; // Shadow side
         ctx.beginPath();
         ctx.moveTo(0, -28);
         ctx.lineTo(-10, -6);
@@ -1035,7 +1035,7 @@ class Player extends window.Game.Entity {
         ctx.closePath();
         ctx.fill();
 
-        ctx.fillStyle = gcColors ? gcColors.NOSE_LIGHT : '#f6b26b'; // Light side
+        ctx.fillStyle = gcColors ? gcColors.NOSE_LIGHT : '#eebb55'; // Light side
         ctx.beginPath();
         ctx.moveTo(0, -28);
         ctx.lineTo(0, -6);
@@ -1052,7 +1052,7 @@ class Player extends window.Game.Entity {
         ctx.stroke();
 
         // Left fin - shadow (left fin is in shadow)
-        ctx.fillStyle = gcColors ? gcColors.FIN : '#2d8a91';
+        ctx.fillStyle = gcColors ? gcColors.FIN : '#00bbcc';
         ctx.beginPath();
         ctx.moveTo(-22, 8);
         ctx.lineTo(-34, 16);
@@ -1062,7 +1062,7 @@ class Player extends window.Game.Entity {
         ctx.stroke();
 
         // Right fin - light
-        ctx.fillStyle = gcColors ? gcColors.FIN_LIGHT : '#4bc0c8';
+        ctx.fillStyle = gcColors ? gcColors.FIN_LIGHT : '#00eeff';
         ctx.beginPath();
         ctx.moveTo(22, 8);
         ctx.lineTo(34, 16);
@@ -1080,14 +1080,14 @@ class Player extends window.Game.Entity {
         ctx.stroke();
 
         // Rim light on nose
-        ctx.strokeStyle = gcColors ? gcColors.NOSE_LIGHT : '#ffd699';
+        ctx.strokeStyle = gcColors ? gcColors.NOSE_LIGHT : '#ffdd88';
         ctx.beginPath();
         ctx.moveTo(2, -26);
         ctx.lineTo(8, -8);
         ctx.stroke();
 
         // Window
-        ctx.fillStyle = gcColors ? gcColors.WINDOW : '#9fe8ff';
+        ctx.fillStyle = gcColors ? gcColors.WINDOW : '#00f0ff';
         ctx.beginPath();
         ctx.arc(0, -8, 6, 0, Math.PI * 2);
         ctx.fill();

@@ -116,7 +116,7 @@
 
             // Explosion particles
             if (G.ParticleSystem && G.ParticleSystem.createExplosion) {
-                G.ParticleSystem.createExplosion(cx, cy, cfg.particles, '#3498db');
+                G.ParticleSystem.createExplosion(cx, cy, cfg.particles, '#2288ff');
             }
 
             // Screen shake

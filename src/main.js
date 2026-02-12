@@ -3766,7 +3766,7 @@ function drawSacrificeUI(ctx) {
         // Button background
         const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, btnSize);
         gradient.addColorStop(0, '#FFD700');
-        gradient.addColorStop(0.7, '#F7931A');
+        gradient.addColorStop(0.7, '#ffaa00');
         gradient.addColorStop(1, '#996600');
         ctx.fillStyle = gradient;
         ctx.beginPath();
@@ -4362,10 +4362,10 @@ function drawPerkPauseOverlay(ctx) {
 
     // Rarity colors
     const rarityColors = {
-        common: '#888',
-        uncommon: '#2ecc71',
-        rare: '#3498db',
-        epic: '#9b59b6'
+        common: '#8899bb',
+        uncommon: '#00ff66',
+        rare: '#00aaff',
+        epic: '#bb44ff'
     };
     const rarityColor = rarityColors[perkPauseData.rarity] || '#888';
 
@@ -4477,7 +4477,7 @@ function drawBossWarningOverlay(ctx) {
     // Countdown (shows seconds remaining)
     const countdown = Math.ceil(bossWarningTimer);
     ctx.font = G.ColorUtils.font('bold', 60 + pulse * 10, '"Courier New", monospace');
-    ctx.fillStyle = '#F7931A';
+    ctx.fillStyle = '#ffaa00';
     ctx.strokeStyle = '#000';
     ctx.lineWidth = 5;
     ctx.strokeText(countdown, centerX, centerY + 110);

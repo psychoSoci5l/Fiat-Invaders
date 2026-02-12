@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v4.51.0 FIAT vs CRYPTO";
+window.Game.VERSION = "v4.52.0 FIAT vs CRYPTO";
 
 window.Game.TEXTS = {
     EN: {
@@ -126,7 +126,7 @@ window.Game.TEXTS = {
         LAUNCH: "LAUNCH",
         HORDE_2_INCOMING: "HORDE 2!",
         GET_READY: "GET READY",
-        PWA_INSTALL_IOS: 'Install: tap <svg class="pwa-share-icon" viewBox="0 0 24 24" fill="none" stroke="#f39c12" stroke-width="2"><path d="M12 3v12M5 10l7-7 7 7"/><path d="M5 21h14a1 1 0 001-1v-6H4v6a1 1 0 001 1z"/></svg> then "Add to Home Screen"',
+        PWA_INSTALL_IOS: 'Install: tap <svg class="pwa-share-icon" viewBox="0 0 24 24" fill="none" stroke="#ffaa00" stroke-width="2"><path d="M12 3v12M5 10l7-7 7 7"/><path d="M5 21h14a1 1 0 001-1v-6H4v6a1 1 0 001 1z"/></svg> then "Add to Home Screen"',
         PWA_INSTALL_ANDROID: "Install the app for the best experience",
         PWA_INSTALL_BTN: "INSTALL",
         // Tutorial (v4.37 unified)
@@ -291,7 +291,7 @@ window.Game.TEXTS = {
         LAUNCH: "LANCIA",
         HORDE_2_INCOMING: "ORDA 2!",
         GET_READY: "PREPARATI",
-        PWA_INSTALL_IOS: 'Installa: tap <svg class="pwa-share-icon" viewBox="0 0 24 24" fill="none" stroke="#f39c12" stroke-width="2"><path d="M12 3v12M5 10l7-7 7 7"/><path d="M5 21h14a1 1 0 001-1v-6H4v6a1 1 0 001 1z"/></svg> poi "Aggiungi a Home"',
+        PWA_INSTALL_IOS: 'Installa: tap <svg class="pwa-share-icon" viewBox="0 0 24 24" fill="none" stroke="#ffaa00" stroke-width="2"><path d="M12 3v12M5 10l7-7 7 7"/><path d="M5 21h14a1 1 0 001-1v-6H4v6a1 1 0 001 1z"/></svg> poi "Aggiungi a Home"',
         PWA_INSTALL_ANDROID: "Installa l'app per la migliore esperienza",
         PWA_INSTALL_BTN: "INSTALLA",
         // Tutorial (v4.37 unified)
@@ -501,45 +501,45 @@ window.Game.POWERUP_TYPES = {
 // Legacy weapon types (kept for backward compatibility during transition)
 // TODO: Remove after full migration to WEAPON_EVOLUTION system
 window.Game.WEAPONS = {
-    NORMAL: { color: '#F7931A', rate: 0.18, bullets: 2 },                           // Twin shot base
-    WIDE:   { color: '#9b59b6', rate: 0.40, bullets: 3, spread: 0.18, icon: '🔱' },
-    NARROW: { color: '#3498db', rate: 0.38, bullets: 3, spread: 0.08, icon: '🎯' },
-    FIRE:   { color: '#e74c3c', rate: 0.44, bullets: 3, spread: 0, icon: '🔥' },    // Penetration utility
-    SPREAD: { color: '#2ecc71', rate: 0.55, bullets: 5, spread: 0.35, icon: '🌟' }, // 5-shot wide fan
-    HOMING: { color: '#e67e22', rate: 0.50, bullets: 2, icon: '🎯' }                // Tracking missiles
+    NORMAL: { color: '#ffaa00', rate: 0.18, bullets: 2 },                           // Twin shot base
+    WIDE:   { color: '#bb44ff', rate: 0.40, bullets: 3, spread: 0.18, icon: '🔱' },
+    NARROW: { color: '#2288ff', rate: 0.38, bullets: 3, spread: 0.08, icon: '🎯' },
+    FIRE:   { color: '#ff3344', rate: 0.44, bullets: 3, spread: 0, icon: '🔥' },    // Penetration utility
+    SPREAD: { color: '#00ff66', rate: 0.55, bullets: 5, spread: 0.35, icon: '🌟' }, // 5-shot wide fan
+    HOMING: { color: '#ff8800', rate: 0.50, bullets: 2, icon: '🎯' }                // Tracking missiles
 };
 
 // Legacy ship power-ups (kept for backward compatibility during transition)
 // TODO: Remove after full migration to WEAPON_EVOLUTION system
 window.Game.SHIP_POWERUPS = {
-    SPEED:  { speedMult: 1.25, icon: '⚡', color: '#f1c40f' },
-    RAPID:  { rateMult: 0.80, icon: '🚀', color: '#3498db' },
-    SHIELD: { instant: true, icon: '🛡️', color: '#2ecc71' }
+    SPEED:  { speedMult: 1.25, icon: '⚡', color: '#ffcc00' },
+    RAPID:  { rateMult: 0.80, icon: '🚀', color: '#2288ff' },
+    SHIELD: { instant: true, icon: '🛡️', color: '#00ff66' }
 };
 
 // 10 Fiat currencies with unique stats and visual styles
 // shape: 'coin' | 'bill' | 'card' | 'bar' determines draw style
 window.Game.FIAT_TYPES = [
     // Tier 1 - Weak (rows 4-5)
-    { s: '¥', name: 'YEN', c: '#e74c3c', val: 20, hp: 0.8, fireMin: 4.5, fireMax: 6.5, aimSpread: 0.35, pattern: 'SINGLE', shape: 'coin' },
-    { s: '₽', name: 'RUBLE', c: '#95a5a6', val: 25, hp: 0.8, fireMin: 4.5, fireMax: 6.5, aimSpread: 0.30, pattern: 'SINGLE', shape: 'bill' },
-    { s: '₹', name: 'RUPEE', c: '#f39c12', val: 25, hp: 0.9, fireMin: 4.5, fireMax: 6.5, aimSpread: 0.28, pattern: 'SINGLE', shape: 'coin' },
+    { s: '¥', name: 'YEN', c: '#ff3355', val: 20, hp: 0.8, fireMin: 4.5, fireMax: 6.5, aimSpread: 0.35, pattern: 'SINGLE', shape: 'coin' },
+    { s: '₽', name: 'RUBLE', c: '#8899bb', val: 25, hp: 0.8, fireMin: 4.5, fireMax: 6.5, aimSpread: 0.30, pattern: 'SINGLE', shape: 'bill' },
+    { s: '₹', name: 'RUPEE', c: '#ffaa00', val: 25, hp: 0.9, fireMin: 4.5, fireMax: 6.5, aimSpread: 0.28, pattern: 'SINGLE', shape: 'coin' },
 
     // Tier 2 - Medium (rows 2-3) — v4.37: slower cooldowns
-    { s: '€', name: 'EURO', c: '#3498db', val: 40, hp: 1.0, fireMin: 3.2, fireMax: 5.0, aimSpread: 0.22, pattern: 'BURST', shape: 'bill' },
-    { s: '£', name: 'POUND', c: '#9b59b6', val: 45, hp: 1.0, fireMin: 3.0, fireMax: 4.5, aimSpread: 0.20, pattern: 'SINGLE', shape: 'coin' },
-    { s: '₣', name: 'FRANC', c: '#1abc9c', val: 50, hp: 1.1, fireMin: 2.8, fireMax: 4.0, aimSpread: 0.18, pattern: 'DOUBLE', shape: 'bar' },
-    { s: '₺', name: 'LIRA', c: '#e67e22', val: 55, hp: 1.2, fireMin: 2.8, fireMax: 4.0, aimSpread: 0.16, pattern: 'BURST', shape: 'bill' },
+    { s: '€', name: 'EURO', c: '#2288ff', val: 40, hp: 1.0, fireMin: 3.2, fireMax: 5.0, aimSpread: 0.22, pattern: 'BURST', shape: 'bill' },
+    { s: '£', name: 'POUND', c: '#bb44ff', val: 45, hp: 1.0, fireMin: 3.0, fireMax: 4.5, aimSpread: 0.20, pattern: 'SINGLE', shape: 'coin' },
+    { s: '₣', name: 'FRANC', c: '#00ddbb', val: 50, hp: 1.1, fireMin: 2.8, fireMax: 4.0, aimSpread: 0.18, pattern: 'DOUBLE', shape: 'bar' },
+    { s: '₺', name: 'LIRA', c: '#ff8800', val: 55, hp: 1.2, fireMin: 2.8, fireMax: 4.0, aimSpread: 0.16, pattern: 'BURST', shape: 'bill' },
 
     // Tier 3 - Strong (row 1)
-    { s: '$', name: 'DOLLAR', c: '#2ecc71', val: 80, hp: 1.3, fireMin: 1.8, fireMax: 2.8, aimSpread: 0.14, pattern: 'DOUBLE', shape: 'bill' },
-    { s: '元', name: 'YUAN', c: '#c0392b', val: 90, hp: 1.4, fireMin: 1.6, fireMax: 2.5, aimSpread: 0.12, pattern: 'BURST', shape: 'bar' },
-    { s: 'Ⓒ', name: 'CBDC', c: '#8e44ad', val: 100, hp: 1.5, fireMin: 1.4, fireMax: 2.2, aimSpread: 0.10, pattern: 'DOUBLE', shape: 'card' }
+    { s: '$', name: 'DOLLAR', c: '#00ff66', val: 80, hp: 1.3, fireMin: 1.8, fireMax: 2.8, aimSpread: 0.14, pattern: 'DOUBLE', shape: 'bill' },
+    { s: '元', name: 'YUAN', c: '#ff2244', val: 90, hp: 1.4, fireMin: 1.6, fireMax: 2.5, aimSpread: 0.12, pattern: 'BURST', shape: 'bar' },
+    { s: 'Ⓒ', name: 'CBDC', c: '#aa33ff', val: 100, hp: 1.5, fireMin: 1.4, fireMax: 2.2, aimSpread: 0.10, pattern: 'DOUBLE', shape: 'card' }
 ];
 
 // Boss minion type - spawned during boss fights
 window.Game.MINION_TYPE = {
-    s: '💵', name: 'MINION', c: '#e74c3c', val: 15, hp: 0.5,
+    s: '💵', name: 'MINION', c: '#ff3355', val: 15, hp: 0.5,
     fireMin: 2.0, fireMax: 3.0, aimSpread: 0.25, pattern: 'SINGLE', shape: 'coin',
     isMinion: true
 };
@@ -552,12 +552,12 @@ window.Game.SHIPS = {
 
 // High-contrast projectile color palette
 window.Game.PROJECTILE_COLORS = {
-    PINK: '#ff69b4',
-    CYAN: '#00ffff',
+    PINK: '#ff2d95',
+    CYAN: '#00f0ff',
     MAGENTA: '#ff00ff',
     YELLOW: '#ffff00',
     WHITE: '#ffffff',
-    ORANGE: '#ff8c00'
+    ORANGE: '#ffaa00'
 };
 // Alias for backwards compatibility
 window.Game.BULLET_HELL_COLORS = window.Game.PROJECTILE_COLORS;
@@ -572,9 +572,9 @@ window.Game.BOSSES = {
     FEDERAL_RESERVE: {
         name: 'THE FED',
         fullName: 'FEDERAL RESERVE',
-        color: '#2ecc71',           // Dollar green
-        accentColor: '#27ae60',
-        darkColor: '#1a5a3a',
+        color: '#00ff66',           // Dollar green neon
+        accentColor: '#00cc55',
+        darkColor: '#004422',
         symbol: '$',
         country: '🇺🇸',
         personality: 'arrogant',
