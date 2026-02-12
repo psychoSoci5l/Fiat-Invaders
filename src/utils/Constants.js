@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v4.46.0 FIAT vs CRYPTO";
+window.Game.VERSION = "v4.47.0 FIAT vs CRYPTO";
 
 window.Game.TEXTS = {
     EN: {
@@ -72,7 +72,7 @@ window.Game.TEXTS = {
         // Specials
         PU_HOMING: "🎯 HOMING - Bullets track enemies",
         PU_PIERCE: "🔥 PIERCE - Bullets penetrate",
-        PU_LASER: "⚡ LASER - Continuous beam",
+        // PU_LASER removed in v4.47
         PU_MISSILE: "🚀 MISSILE - AoE explosions",
         PU_SHIELD: "🛡️ SHIELD - Instant activation",
         PU_SPEED: "💨 SPEED - Movement +50%",
@@ -145,7 +145,7 @@ window.Game.TEXTS = {
         MAN_PU_SPREAD: "Wider shot angle (stacks x2, 12s)",
         MAN_PU_HOMING: "Auto-tracking bullets (12s)",
         MAN_PU_PIERCE: "Penetrating bullets (12s)",
-        MAN_PU_LASER: "Continuous beam (12s)",
+        // MAN_PU_LASER removed in v4.47
         MAN_PU_MISSILE: "AoE explosive shots (12s)",
         MAN_PU_SHIELD: "Instant shield activation",
         MAN_PU_SPEED: "Movement speed +50% (12s)",
@@ -230,7 +230,7 @@ window.Game.TEXTS = {
         // Specials
         PU_HOMING: "🎯 HOMING - Proiettili auto-guidati",
         PU_PIERCE: "🔥 PIERCE - Proiettili penetranti",
-        PU_LASER: "⚡ LASER - Raggio continuo",
+        // PU_LASER rimosso in v4.47
         PU_MISSILE: "🚀 MISSILE - Esplosioni ad area",
         PU_SHIELD: "🛡️ SHIELD - Attivazione istantanea",
         PU_SPEED: "💨 SPEED - Movimento +50%",
@@ -303,7 +303,7 @@ window.Game.TEXTS = {
         MAN_PU_SPREAD: "Angolo colpi pi\u00F9 ampio (cumula x2, 12s)",
         MAN_PU_HOMING: "Proiettili auto-guidati (12s)",
         MAN_PU_PIERCE: "Proiettili penetranti (12s)",
-        MAN_PU_LASER: "Raggio continuo (12s)",
+        // MAN_PU_LASER rimosso in v4.47
         MAN_PU_MISSILE: "Esplosioni ad area (12s)",
         MAN_PU_SHIELD: "Attivazione scudo istantanea",
         MAN_PU_SPEED: "Velocit\u00E0 +50% (12s)",
@@ -464,28 +464,24 @@ window.Game.MEMES = {
     ]
 };
 
-// === WEAPON EVOLUTION SYSTEM v3.0 ===
-// New progressive power-up system:
-// - UPGRADE: permanent shot level (1→2→3), death = -1 level
-// - Modifiers: stackable temp buffs (RATE/POWER/SPREAD), death = -1 level
-// - Specials: exclusive temp effects (HOMING/PIERCE/LASER/MISSILE/SHIELD/SPEED), death = lost
+// === WEAPON EVOLUTION v4.47 ===
+// Linear 5-level weapon progression:
+// - UPGRADE: permanent weapon level (1→5), death = -1 level
+// - Specials: exclusive weapon effects (HOMING/PIERCE/MISSILE), death = lost
+// - Utilities: non-weapon drops (SHIELD/SPEED), distinct visual
 
 window.Game.POWERUP_TYPES = {
-    // Upgrade (permanent shot level)
+    // Upgrade (permanent weapon level)
     UPGRADE: { icon: '⬆️', color: '#FFD700', category: 'upgrade', name: 'UPGRADE', symbol: '↑' },
 
-    // Modifiers (stackable, temporary with timer)
-    RATE:   { icon: '⚡', color: '#00FFFF', category: 'modifier', name: 'RATE', symbol: 'R' },
-    POWER:  { icon: '💥', color: '#FF4444', category: 'modifier', name: 'POWER', symbol: 'P' },
-    SPREAD: { icon: '🔱', color: '#9B59B6', category: 'modifier', name: 'SPREAD', symbol: 'S' },
-
-    // Specials (exclusive, temporary - replace each other)
+    // Specials (exclusive weapon effects, temporary 12s)
     HOMING:  { icon: '🎯', color: '#E67E22', category: 'special', name: 'HOMING', symbol: 'H' },
     PIERCE:  { icon: '🔥', color: '#E74C3C', category: 'special', name: 'PIERCE', symbol: 'X' },
-    LASER:   { icon: '⚡', color: '#00FFFF', category: 'special', name: 'LASER', symbol: 'L' },
     MISSILE: { icon: '🚀', color: '#3498DB', category: 'special', name: 'MISSILE', symbol: 'M' },
-    SHIELD:  { icon: '🛡️', color: '#2ECC71', category: 'special', name: 'SHIELD', symbol: '🛡' },
-    SPEED:   { icon: '💨', color: '#F1C40F', category: 'special', name: 'SPEED', symbol: '>' }
+
+    // Utilities (non-weapon, distinct capsule shape)
+    SHIELD:  { icon: '🛡️', color: '#2ECC71', category: 'utility', name: 'SHIELD', symbol: '🛡' },
+    SPEED:   { icon: '💨', color: '#F1C40F', category: 'utility', name: 'SPEED', symbol: '>' }
 };
 
 // Legacy weapon types (kept for backward compatibility during transition)
@@ -496,8 +492,7 @@ window.Game.WEAPONS = {
     NARROW: { color: '#3498db', rate: 0.38, bullets: 3, spread: 0.08, icon: '🎯' },
     FIRE:   { color: '#e74c3c', rate: 0.44, bullets: 3, spread: 0, icon: '🔥' },    // Penetration utility
     SPREAD: { color: '#2ecc71', rate: 0.55, bullets: 5, spread: 0.35, icon: '🌟' }, // 5-shot wide fan
-    HOMING: { color: '#e67e22', rate: 0.50, bullets: 2, icon: '🎯' },               // Tracking missiles
-    LASER:  { color: '#00ffff', rate: 0.06, bullets: 1, icon: '⚡' }                 // Rapid beam (penetrating)
+    HOMING: { color: '#e67e22', rate: 0.50, bullets: 2, icon: '🎯' }                // Tracking missiles
 };
 
 // Legacy ship power-ups (kept for backward compatibility during transition)

@@ -17,7 +17,7 @@ class Bullet extends window.Game.Entity {
 
         // === WEAPON EVOLUTION v3.0 properties ===
         this.damageMult = 1;      // From POWER modifier
-        this.special = null;      // 'HOMING'|'PIERCE'|'LASER'|'MISSILE'|null
+        this.special = null;      // 'HOMING'|'PIERCE'|'MISSILE'|null
         this.isMissile = false;   // MISSILE special flag
         this.aoeRadius = 0;       // MISSILE explosion radius
         this.pierceHP = 1;        // Bullet pierce: survives N enemy-bullet hits
@@ -133,7 +133,6 @@ class Bullet extends window.Game.Entity {
         if (!cfg) return (this.width || 4) * 0.5;  // fallback
         if (this.vy <= 0) { // Player bullet (goes up)
             if (this.special === 'MISSILE' || this.isMissile) return cfg.PLAYER_MISSILE.collisionRadius;
-            if (this.special === 'LASER') return cfg.PLAYER_LASER.collisionRadius;
             if (this.special === 'PIERCE') return cfg.PLAYER_PIERCE.collisionRadius;
             if (this.special === 'HOMING' || this.homing) return cfg.PLAYER_HOMING.collisionRadius;
             return cfg.PLAYER_NORMAL.collisionRadius;
@@ -230,9 +229,6 @@ class Bullet extends window.Game.Entity {
                     case 'PIERCE':
                         this.drawPierceBullet(ctx, pulse);
                         break;
-                    case 'LASER':
-                        this.drawLaserBullet(ctx, pulse);
-                        break;
                     case 'MISSILE':
                         this.drawMissileBullet(ctx, pulse);
                         break;
@@ -257,9 +253,6 @@ class Bullet extends window.Game.Entity {
                         break;
                     case 'HOMING':
                         this.drawHomingBullet(ctx, pulse);
-                        break;
-                    case 'LASER':
-                        this.drawLaserBullet(ctx, pulse);
                         break;
                     case 'EVOLUTION':
                         this.drawEvolutionBullet(ctx, pulse);
@@ -700,82 +693,6 @@ class Bullet extends window.Game.Entity {
         ctx.fill();
 
         ctx.restore();
-    }
-
-    // ═══════════════════════════════════════════════════════════════════
-    // LASER: Cyan Energy Beam - Rapid continuous penetrating shot
-    // ═══════════════════════════════════════════════════════════════════
-    drawLaserBullet(ctx, pulse) {
-        const w = this.width * 2.5;
-        const h = this.height * 1.2;
-        const flicker = Math.sin(this.age * 50) * 0.2 + 0.8;
-
-        // Outer glow (wide, soft)
-        ctx.fillStyle = '#00ffff';
-        ctx.globalAlpha = 0.2 * flicker;
-        ctx.beginPath();
-        ctx.ellipse(this.x, this.y, w + 8, h * 0.6, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.globalAlpha = 1;
-
-        // Electric trail (multiple segments) — v4.23.1: additive
-        const _gc = window.Game.Balance?.GLOW;
-        const _addTrail = _gc?.ENABLED && _gc?.BULLET?.ENABLED;
-        if (_addTrail) ctx.globalCompositeOperation = 'lighter';
-        ctx.strokeStyle = '#00ffff';
-        ctx.globalAlpha = 0.5;
-        ctx.lineWidth = 1;
-        for (let i = 1; i <= 4; i++) {
-            const trailY = this.y + i * 8;
-            const offset = Math.sin(this.age * 40 + i * 2) * 3;
-            ctx.beginPath();
-            ctx.moveTo(this.x + offset, trailY - 4);
-            ctx.lineTo(this.x - offset, trailY + 4);
-            ctx.stroke();
-        }
-        ctx.globalAlpha = 1;
-        ctx.lineWidth = 2;
-        if (_addTrail) ctx.globalCompositeOperation = 'source-over';
-
-        // Main beam body (elongated rectangle with pointed ends)
-        ctx.fillStyle = '#00ffff';
-        ctx.beginPath();
-        ctx.moveTo(this.x, this.y - h * 0.7);          // Top point
-        ctx.lineTo(this.x + w * 0.4, this.y - h * 0.3); // Upper right
-        ctx.lineTo(this.x + w * 0.3, this.y + h * 0.5); // Lower right
-        ctx.lineTo(this.x, this.y + h * 0.3);           // Bottom point
-        ctx.lineTo(this.x - w * 0.3, this.y + h * 0.5); // Lower left
-        ctx.lineTo(this.x - w * 0.4, this.y - h * 0.3); // Upper left
-        ctx.closePath();
-        ctx.fill();
-
-        // Bold outline
-        ctx.strokeStyle = '#111';
-        ctx.stroke();
-
-        // Inner bright core (white-cyan gradient effect)
-        ctx.fillStyle = '#80ffff';
-        ctx.beginPath();
-        ctx.moveTo(this.x, this.y - h * 0.5);
-        ctx.lineTo(this.x + w * 0.2, this.y);
-        ctx.lineTo(this.x, this.y + h * 0.2);
-        ctx.lineTo(this.x - w * 0.2, this.y);
-        ctx.closePath();
-        ctx.fill();
-
-        // Hot white center
-        ctx.fillStyle = '#fff';
-        ctx.globalAlpha = flicker;
-        ctx.beginPath();
-        ctx.ellipse(this.x, this.y - h * 0.2, w * 0.15, h * 0.25, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.globalAlpha = 1;
-
-        // Tip spark
-        ctx.fillStyle = '#fff';
-        ctx.beginPath();
-        ctx.arc(this.x, this.y - h * 0.6, 2 * pulse, 0, Math.PI * 2);
-        ctx.fill();
     }
 
     // ═══════════════════════════════════════════════════════════════════

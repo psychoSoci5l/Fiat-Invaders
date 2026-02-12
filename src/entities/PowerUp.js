@@ -1,25 +1,21 @@
 window.Game = window.Game || {};
 
-// === WEAPON EVOLUTION v3.0 POWER-UP CONFIG ===
-// New categories: upgrade, modifier, special
-// Legacy categories: weapon, ship (for backward compatibility)
+// === WEAPON EVOLUTION v4.47 POWER-UP CONFIG ===
+// Categories: upgrade (permanent weapon level), special (weapon effect),
+//             utility (non-weapon), weapon/ship (legacy)
 const POWERUP_CONFIG = {
-    // === WEAPON EVOLUTION v3.0 TYPES ===
-    // Upgrade (permanent shot level)
+    // === WEAPON EVOLUTION v4.47 TYPES ===
+    // Upgrade (permanent weapon level)
     UPGRADE: { color: '#FFD700', symbol: '⬆', category: 'upgrade', name: 'UPGRADE' },
 
-    // Modifiers (stackable, temporary)
-    RATE:   { color: '#00FFFF', symbol: '⚡', category: 'modifier', name: 'RATE' },
-    POWER:  { color: '#FF4444', symbol: '💥', category: 'modifier', name: 'POWER' },
-    SPREAD: { color: '#9B59B6', symbol: '🔱', category: 'modifier', name: 'SPREAD' },
-
-    // Specials (exclusive, temporary)
+    // Specials (exclusive weapon effects, temporary 12s)
     HOMING:  { color: '#E67E22', symbol: '🎯', category: 'special', name: 'HOMING' },
     PIERCE:  { color: '#E74C3C', symbol: '🔥', category: 'special', name: 'PIERCE' },
-    LASER:   { color: '#00FFFF', symbol: '⚡', category: 'special', name: 'LASER' },
     MISSILE: { color: '#3498DB', symbol: '🚀', category: 'special', name: 'MISSILE' },
-    SHIELD:  { color: '#2ECC71', symbol: '🛡', category: 'special', name: 'SHIELD' },
-    SPEED:   { color: '#F1C40F', symbol: '💨', category: 'special', name: 'SPEED' },
+
+    // Utilities (non-weapon, distinct visual)
+    SHIELD:  { color: '#2ECC71', symbol: '🛡', category: 'utility', name: 'SHIELD' },
+    SPEED:   { color: '#F1C40F', symbol: '💨', category: 'utility', name: 'SPEED' },
 
     // === LEGACY TYPES (backward compatibility) ===
     WIDE:   { color: '#9b59b6', symbol: '🔱', category: 'weapon', name: 'WIDE' },
@@ -74,16 +70,16 @@ class PowerUp extends window.Game.Entity {
         ctx.fill();
         if (_useAdditivePU) { ctx.restore(); } else { ctx.globalAlpha = 1; }
 
-        // Draw based on category (WEAPON EVOLUTION v3.0)
+        // Draw based on category
         switch (cfg.category) {
             case 'upgrade':
                 this.drawUpgradePowerUp(ctx, x, y, cfg, pulse);
                 break;
-            case 'modifier':
-                this.drawModifierPowerUp(ctx, x, y, cfg, pulse);
-                break;
             case 'special':
                 this.drawSpecialPowerUp(ctx, x, y, cfg, pulse);
+                break;
+            case 'utility':
+                this.drawUtilityPowerUp(ctx, x, y, cfg, pulse);
                 break;
             case 'weapon':
                 this.drawWeaponPowerUp(ctx, x, y, cfg, pulse);
@@ -192,41 +188,50 @@ class PowerUp extends window.Game.Entity {
     }
 
     /**
-     * MODIFIER power-up: 4-pointed DIAMOND (stackable buff)
-     * Changed from hexagon to diamond for clear visual distinction from UPGRADE star
+     * UTILITY power-up: Rounded capsule shape (non-weapon, distinct from specials)
+     * SHIELD = green capsule, SPEED = yellow capsule
      */
-    drawModifierPowerUp(ctx, x, y, cfg, pulse) {
-        const size = 18 * pulse;
+    drawUtilityPowerUp(ctx, x, y, cfg, pulse) {
+        const w = 14 * pulse;
+        const h = 20 * pulse;
 
         ctx.save();
         ctx.translate(x, y);
-        ctx.rotate(this.rotation * 0.3);
 
         // Glow shadow
         ctx.shadowColor = cfg.color;
         ctx.shadowBlur = 6;
 
-        // 4-pointed DIAMOND body (clearly different from UPGRADE star)
+        // Capsule body (rounded rectangle)
+        const radius = w * 0.6;
         ctx.fillStyle = window.Game.ColorUtils.darken(cfg.color, 0.3);
         ctx.beginPath();
-        ctx.moveTo(0, -size);         // Top point
-        ctx.lineTo(size * 0.7, 0);    // Right point
-        ctx.lineTo(0, size);          // Bottom point
-        ctx.lineTo(-size * 0.7, 0);   // Left point
+        ctx.moveTo(-w + radius, -h);
+        ctx.lineTo(w - radius, -h);
+        ctx.arcTo(w, -h, w, -h + radius, radius);
+        ctx.lineTo(w, h - radius);
+        ctx.arcTo(w, h, w - radius, h, radius);
+        ctx.lineTo(-w + radius, h);
+        ctx.arcTo(-w, h, -w, h - radius, radius);
+        ctx.lineTo(-w, -h + radius);
+        ctx.arcTo(-w, -h, -w + radius, -h, radius);
         ctx.closePath();
         ctx.fill();
 
-        // Remove shadow for detail work
+        // Remove shadow
         ctx.shadowColor = 'transparent';
         ctx.shadowBlur = 0;
 
-        // Light side overlay (right facet)
+        // Light side overlay
         ctx.fillStyle = cfg.color;
-        ctx.globalAlpha = 0.8;
+        ctx.globalAlpha = 0.7;
         ctx.beginPath();
-        ctx.moveTo(0, -size);
-        ctx.lineTo(size * 0.7, 0);
-        ctx.lineTo(0, size * 0.3);
+        ctx.moveTo(0, -h);
+        ctx.lineTo(w - radius, -h);
+        ctx.arcTo(w, -h, w, -h + radius, radius);
+        ctx.lineTo(w, h - radius);
+        ctx.arcTo(w, h, w - radius, h, radius);
+        ctx.lineTo(0, h);
         ctx.closePath();
         ctx.fill();
         ctx.globalAlpha = 1;
@@ -235,21 +240,26 @@ class PowerUp extends window.Game.Entity {
         ctx.strokeStyle = '#111';
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.moveTo(0, -size);
-        ctx.lineTo(size * 0.7, 0);
-        ctx.lineTo(0, size);
-        ctx.lineTo(-size * 0.7, 0);
+        ctx.moveTo(-w + radius, -h);
+        ctx.lineTo(w - radius, -h);
+        ctx.arcTo(w, -h, w, -h + radius, radius);
+        ctx.lineTo(w, h - radius);
+        ctx.arcTo(w, h, w - radius, h, radius);
+        ctx.lineTo(-w + radius, h);
+        ctx.arcTo(-w, h, -w, h - radius, radius);
+        ctx.lineTo(-w, -h + radius);
+        ctx.arcTo(-w, -h, -w + radius, -h, radius);
         ctx.closePath();
         ctx.stroke();
 
-        // Stack indicator lines (shows it's stackable)
-        ctx.strokeStyle = window.Game.ColorUtils.lighten(cfg.color, 0.4);
-        ctx.lineWidth = 2;
+        // Cross/plus indicator (utility symbol)
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2.5;
         ctx.beginPath();
-        ctx.moveTo(-size * 0.35, -size * 0.3);
-        ctx.lineTo(size * 0.35, -size * 0.3);
-        ctx.moveTo(-size * 0.35, size * 0.3);
-        ctx.lineTo(size * 0.35, size * 0.3);
+        ctx.moveTo(0, -h * 0.5);
+        ctx.lineTo(0, h * 0.5);
+        ctx.moveTo(-w * 0.5, 0);
+        ctx.lineTo(w * 0.5, 0);
         ctx.stroke();
 
         // Center icon
@@ -476,21 +486,6 @@ class PowerUp extends window.Game.Entity {
             ctx.lineTo(-iconSize * 0.6, iconSize * 0.7);  // Left fin
             ctx.lineTo(-iconSize * 0.4, iconSize * 0.2);  // Left
             ctx.closePath();
-            ctx.fill();
-        } else if (this.type === 'LASER') {
-            // Lightning bolt / beam shape
-            ctx.lineWidth = 2.5;
-            ctx.beginPath();
-            ctx.moveTo(0, -iconSize);
-            ctx.lineTo(-iconSize * 0.3, -iconSize * 0.2);
-            ctx.lineTo(iconSize * 0.2, -iconSize * 0.1);
-            ctx.lineTo(-iconSize * 0.2, iconSize * 0.5);
-            ctx.lineTo(iconSize * 0.1, iconSize * 0.3);
-            ctx.lineTo(0, iconSize);
-            ctx.stroke();
-            // Center glow dot
-            ctx.beginPath();
-            ctx.arc(0, 0, iconSize * 0.2, 0, Math.PI * 2);
             ctx.fill();
         }
 

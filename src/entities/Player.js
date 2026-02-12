@@ -20,18 +20,12 @@ class Player extends window.Game.Entity {
         this.shipPowerUp = null;
         this.shipPowerUpTimer = 0;
 
-        // === WEAPON EVOLUTION SYSTEM v3.0 ===
-        // Shot level (1-3): permanent until death (-1 per death)
-        this.shotLevel = 1;
+        // === WEAPON EVOLUTION v4.47 (Linear 5-Level) ===
+        // Weapon level (1-5): permanent until death (-1 per death)
+        // HYPER adds +2 temporary levels (max effective LV7)
+        this.weaponLevel = 1;
 
-        // Modifiers (stackable, temp timer): rate/power/spread
-        this.modifiers = {
-            rate:   { level: 0, timer: 0 },
-            power:  { level: 0, timer: 0 },
-            spread: { level: 0, timer: 0 }
-        };
-
-        // Special (exclusive, temp): HOMING/PIERCE/LASER/MISSILE/SHIELD/SPEED
+        // Special (exclusive, temp): HOMING/PIERCE/MISSILE
         this.special = null;
         this.specialTimer = 0;
 
@@ -120,44 +114,26 @@ class Player extends window.Game.Entity {
         // GODCHAIN reset
         this._godchainActive = false;
 
-        // Weapon Evolution reset (soft reset - keep shotLevel on normal reset)
+        // Weapon Evolution reset (soft reset - keep weaponLevel on normal reset)
         // Note: applyDeathPenalty() handles death penalty separately
-        this.modifiers = {
-            rate:   { level: 0, timer: 0 },
-            power:  { level: 0, timer: 0 },
-            spread: { level: 0, timer: 0 }
-        };
         this.special = null;
         this.specialTimer = 0;
     }
 
     /**
-     * Full reset for new game (resets shot level too)
+     * Full reset for new game (resets weapon level too)
      */
     fullReset() {
-        this.shotLevel = 1;
+        this.weaponLevel = 1;
         this.resetState();
     }
 
     /**
-     * Update weapon evolution state (modifiers and special timers)
+     * Update weapon evolution state (special timer only — modifiers removed in v4.47)
      */
     updateWeaponState(dt) {
         const WE = window.Game.Balance.WEAPON_EVOLUTION;
-        if (!WE) return; // Guard for missing config
-
-        // Update modifier timers
-        for (const modKey of ['rate', 'power', 'spread']) {
-            const mod = this.modifiers[modKey];
-            if (mod.timer > 0) {
-                mod.timer -= dt;
-                if (mod.timer <= 0) {
-                    if (window.Game.Debug) window.Game.Debug.trackWeaponEvent('MODIFIER_EXPIRED', modKey.toUpperCase());
-                    mod.level = 0;
-                    mod.timer = 0;
-                }
-            }
-        }
+        if (!WE) return;
 
         // Update special timer
         if (this.special && this.specialTimer > 0) {
@@ -171,18 +147,12 @@ class Player extends window.Game.Entity {
     }
 
     /**
-     * Check if GODCHAIN conditions are met (all modifiers at max with active timers)
+     * Check if GODCHAIN conditions are met (weapon level 5)
      */
     isGodchainActive() {
-        // v4.44: Require any 2 of 3 modifiers active (3 simultaneous is mathematically
-        // impossible with 6s min drop interval + 12s duration)
-        const req = window.Game.Balance?.GODCHAIN?.REQUIREMENTS || { RATE: 1, POWER: 1, SPREAD: 1 };
-        if (this.shotLevel < 2) return false;
-        let activeCount = 0;
-        if (this.modifiers.rate.level >= req.RATE && this.modifiers.rate.timer > 0) activeCount++;
-        if (this.modifiers.power.level >= req.POWER && this.modifiers.power.timer > 0) activeCount++;
-        if (this.modifiers.spread.level >= req.SPREAD && this.modifiers.spread.timer > 0) activeCount++;
-        return activeCount >= 2;
+        const req = window.Game.Balance?.GODCHAIN?.REQUIREMENTS;
+        if (!req) return false;
+        return this.weaponLevel >= (req.WEAPON_LEVEL || 5);
     }
 
     update(dt, blockFiring = false) {
@@ -190,12 +160,10 @@ class Player extends window.Game.Entity {
         const Balance = window.Game.Balance;
         const WE = Balance.WEAPON_EVOLUTION;
 
-        // Speed calculation: check both legacy and new systems
+        // Speed calculation: check both legacy and utility systems
         let speedMult = 1;
         if (this.shipPowerUp === 'SPEED') {
-            speedMult = 1.5; // Legacy system
-        } else if (this.special === 'SPEED' && WE) {
-            speedMult = WE.SPEED_MULTIPLIER || 1.4; // New system
+            speedMult = WE?.SPEED_MULTIPLIER || 1.4; // Utility system
         }
         // GODCHAIN speed bonus
         if (this._godchainActive && Balance.GODCHAIN) {
@@ -520,8 +488,8 @@ class Player extends window.Game.Entity {
         window.Game.Input.vibrate(Balance.PLAYER.FIRE_VIBRATION_MS);
         this.muzzleFlash = Balance.PLAYER.MUZZLE_FLASH_DURATION;
 
-        // === NEW WEAPON EVOLUTION SYSTEM ===
-        if (WE && this.shotLevel >= 1) {
+        // === WEAPON EVOLUTION v4.47 ===
+        if (WE && this.weaponLevel >= 1) {
             return this.fireEvolution(isHodl);
         }
 
@@ -609,34 +577,33 @@ class Player extends window.Game.Entity {
     }
 
     /**
-     * New Weapon Evolution fire system
-     * Shot patterns based on shotLevel (1-3), modifiers, and specials
+     * Weapon Evolution v4.47 fire system
+     * Linear 5-level progression, HYPER adds +2 temporary levels
      */
     fireEvolution(isHodl) {
         const Balance = window.Game.Balance;
         const WE = Balance.WEAPON_EVOLUTION;
         const bullets = [];
 
-        // Calculate fire rate with RATE modifier
-        let cooldown = this.stats.fireRate;
-        if (this.modifiers.rate.level > 0) {
-            const reduction = WE.RATE.COOLDOWN_REDUCTION[this.modifiers.rate.level - 1] || 0;
-            cooldown *= (1 - reduction);
+        // Effective weapon level: base + HYPER boost (capped at 7)
+        let effectiveLevel = this.weaponLevel;
+        if (this.hyperActive) {
+            effectiveLevel = Math.min(7, effectiveLevel + (WE.HYPER_LEVEL_BOOST || 2));
         }
+
+        // Lookup level data from table
+        const levelData = WE.LEVELS[effectiveLevel] || WE.LEVELS[1];
+
+        // Calculate fire rate from level table
+        let cooldown = this.stats.fireRate * levelData.cooldownMult;
         cooldown *= this.getRunMod('fireRateMult', 1);
         this.cooldown = cooldown;
 
-        // Calculate damage multiplier for POWER modifier (stored on bullet)
-        let damageMult = 1;
-        if (this.modifiers.power.level > 0) {
-            damageMult += WE.POWER.DAMAGE_BONUS[this.modifiers.power.level - 1] || 0;
-        }
+        // Damage multiplier from level table
+        const damageMult = levelData.damageMult;
 
-        // Calculate spread angle for SPREAD modifier
-        let spreadAngle = 0;
-        if (this.modifiers.spread.level > 0) {
-            spreadAngle = (WE.SPREAD.ANGLE_BONUS[this.modifiers.spread.level - 1] || 0) * (Math.PI / 180);
-        }
+        // Spread angle from level table
+        const spreadAngle = levelData.spreadDeg * (Math.PI / 180);
 
         // Bullet setup
         const color = this.stats.color;
@@ -647,19 +614,13 @@ class Player extends window.Game.Entity {
         // Special-specific spawn function
         const spawnBullet = (offsetX, angleOffset) => {
             const angle = -Math.PI / 2 + angleOffset;
-            const vx = Math.cos(angle) * bulletSpeed;
-            const vy = Math.sin(angle) * bulletSpeed;
 
             let w = bulletW;
             let h = bulletH;
             let bSpeed = bulletSpeed;
 
             // Adjust for special types
-            if (this.special === 'LASER') {
-                w = 3;
-                h = 30;
-                bSpeed = bulletSpeed * 1.4;
-            } else if (this.special === 'MISSILE') {
+            if (this.special === 'MISSILE') {
                 w = 8;
                 h = 16;
                 bSpeed = bulletSpeed * 0.7;
@@ -689,7 +650,7 @@ class Player extends window.Game.Entity {
             // Apply special properties
             b.special = this.special;
 
-            if (this.special === 'PIERCE' || this.special === 'LASER') {
+            if (this.special === 'PIERCE') {
                 b.penetration = true;
             }
             if (this.special === 'HOMING') {
@@ -698,37 +659,33 @@ class Player extends window.Game.Entity {
             }
             if (this.special === 'MISSILE') {
                 b.isMissile = true;
-                b.aoeRadius = 50; // Explosion radius on impact
+                b.aoeRadius = 50;
             }
 
-            // Bullet pierce HP
+            // Bullet pierce HP (scales with weapon level)
             const BP = Balance.BULLET_PIERCE;
             if (b.isMissile) {
                 b.pierceHP = BP.MISSILE_HP;
             } else {
                 b.pierceHP = BP.BASE_HP
-                    + (this.modifiers.power.level * BP.POWER_BONUS)
+                    + Math.floor(effectiveLevel * (BP.LEVEL_BONUS || 0.5))
                     + (isHodl ? BP.HODL_BONUS : 0);
             }
 
             b.weaponType = this.special || 'EVOLUTION';
-            // v4.5: Flag for HYPER trail effect
             if (this.hyperActive) b._isHyper = true;
-            // v4.6: Flag for GODCHAIN fire trail
             if (this._godchainActive) b._isGodchain = true;
             bullets.push(b);
         };
 
-        // Shot patterns based on shotLevel (1-3)
-        if (this.shotLevel === 1) {
-            // Single center shot
+        // Shot patterns based on levelData.bullets (1/2/3)
+        if (levelData.bullets === 1) {
             spawnBullet(0, 0);
-        } else if (this.shotLevel === 2) {
-            // Double shot
+        } else if (levelData.bullets === 2) {
             spawnBullet(-6, -spreadAngle / 2);
             spawnBullet(+6, +spreadAngle / 2);
         } else {
-            // Triple shot (shotLevel === 3)
+            // 3 bullets
             spawnBullet(-10, -spreadAngle);
             spawnBullet(0, 0);
             spawnBullet(+10, +spreadAngle);
@@ -1082,19 +1039,14 @@ class Player extends window.Game.Entity {
         ctx.textBaseline = 'middle';
         ctx.fillText('₿', 0, 6);
 
-        // v4.5: Evolved muzzle flash — scales with shot level, weapon color, modifiers
+        // v4.5: Evolved muzzle flash — scales with weapon level
         if (this.muzzleFlash > 0) {
             const vfx = window.Game.Balance?.VFX || {};
             const flashAlpha = this.muzzleFlash / (Balance.PLAYER.MUZZLE_FLASH_DURATION || 0.08);
-            const level = this.shotLevel || 1;
+            const level = this.weaponLevel || 1;
             const levelScale = 1 + (level - 1) * (vfx.MUZZLE_SCALE_PER_LEVEL || 0.4);
 
-            // Modifier scaling
-            let modScale = 1;
-            if (this.modifiers?.power?.level > 0) modScale = vfx.MUZZLE_POWER_SCALE || 1.3;
-            else if (this.modifiers?.rate?.level > 0) modScale = vfx.MUZZLE_RATE_SCALE || 0.6;
-
-            const scale = levelScale * modScale;
+            const scale = levelScale;
             const flashSize = (10 + (1 - flashAlpha) * 8) * scale;
 
             // Weapon color for flash
@@ -1289,20 +1241,20 @@ class Player extends window.Game.Entity {
             }
         }
 
-        // 3. WEAPON LEVEL PIPS (above ship)
+        // 3. WEAPON LEVEL PIPS (above ship) — v4.47: 5 pips, HYPER pulsing
         if (config.WEAPON_PIPS?.ENABLED && this._weaponState) {
             const wp = config.WEAPON_PIPS;
-            const shotLevel = this._weaponState.shotLevel || 1;
-            const maxLevel = 3;
+            const weaponLevel = this._weaponState.weaponLevel || 1;
+            const maxLevel = 5;
             const startX = -(maxLevel - 1) * wp.SPACING / 2;
 
             // Check for special override
             if (this._weaponState.special && this._weaponState.specialTimer > 0) {
                 // Show special icon with countdown arc instead of pips
-                const SPECIAL_ICONS = { HOMING: '🎯', PIERCE: '🔥', LASER: '⚡', MISSILE: '🚀', SHIELD: '🛡️', SPEED: '💨' };
+                const SPECIAL_ICONS = { HOMING: '🎯', PIERCE: '🔥', MISSILE: '🚀' };
                 const icon = SPECIAL_ICONS[this._weaponState.special] || '?';
                 const timer = this._weaponState.specialTimer;
-                const maxTimer = window.Game.Balance.WEAPON_EVOLUTION.SPECIAL_DURATION; // From config
+                const maxTimer = window.Game.Balance.WEAPON_EVOLUTION.SPECIAL_DURATION;
                 const ratio = Math.min(1, timer / maxTimer);
 
                 // Countdown arc
@@ -1319,19 +1271,15 @@ class Player extends window.Game.Entity {
                 ctx.fillStyle = CU.rgba(255, 255, 255, 0.8);
                 ctx.fillText(icon, 0, wp.Y_OFFSET);
             } else {
-                // Normal: shot level triangles
+                // Normal: weapon level triangles (5 pips)
                 for (let i = 0; i < maxLevel; i++) {
                     const px = startX + i * wp.SPACING;
                     const py = wp.Y_OFFSET;
-                    const isFull = i < shotLevel;
+                    const isFull = i < weaponLevel;
                     const s = wp.SIZE;
 
-                    // Check modifier glow
-                    let glowColor = null;
-                    const mods = this._weaponState.modifiers;
-                    if (mods?.rate?.level > 0 && i === 0) glowColor = 'rgba(0, 255, 255, 0.6)';
-                    if (mods?.power?.level > 0 && i === 1) glowColor = 'rgba(255, 68, 68, 0.6)';
-                    if (mods?.spread?.level > 0 && i === 2) glowColor = 'rgba(155, 89, 182, 0.6)';
+                    // HYPER-boosted pips pulse gold
+                    const isHyperPip = this.hyperActive && i >= weaponLevel && i < weaponLevel + 2;
 
                     ctx.beginPath();
                     ctx.moveTo(px, py - s);
@@ -1340,16 +1288,13 @@ class Player extends window.Game.Entity {
                     ctx.closePath();
 
                     if (isFull) {
-                        ctx.fillStyle = glowColor || CU.rgba(255, 255, 255, wp.FULL_ALPHA);
+                        ctx.fillStyle = CU.rgba(255, 255, 255, wp.FULL_ALPHA);
                         ctx.fill();
-                        if (glowColor) {
-                            // v4.11: Double-fill with color instead of shadowBlur (GPU-heavy)
-                            ctx.globalAlpha = 0.4;
-                            ctx.beginPath();
-                            ctx.arc(px, py, wp.SIZE * 1.5, 0, Math.PI * 2);
-                            ctx.fill();
-                            ctx.globalAlpha = 1;
-                        }
+                    } else if (isHyperPip) {
+                        // Pulsing gold for HYPER-boosted levels
+                        const pulse = Math.sin(this.animTime * 8) * 0.3 + 0.7;
+                        ctx.fillStyle = CU.rgba(255, 215, 0, pulse);
+                        ctx.fill();
                     } else {
                         ctx.fillStyle = CU.rgba(128, 128, 128, wp.EMPTY_ALPHA);
                         ctx.fill();
@@ -1437,7 +1382,7 @@ class Player extends window.Game.Entity {
 
         const baseWeapons = ['WIDE', 'NARROW', 'FIRE'];
         const advWeapons = ['SPREAD', 'HOMING'];
-        const eliteWeapons = ['LASER'];
+        const eliteWeapons = [];
         const shipTypes = ['SPEED', 'RAPID', 'SHIELD'];
 
         if (baseWeapons.includes(type)) {
@@ -1467,84 +1412,60 @@ class Player extends window.Game.Entity {
     // === WEAPON EVOLUTION v3.0 METHODS ===
 
     /**
-     * Apply a new-style power-up (UPGRADE, modifier, or special)
-     * @param {string} type - Power-up type from POWERUP_TYPES
+     * Apply a power-up (UPGRADE, special, or utility)
+     * v4.47: Modifiers removed, linear weapon levels
+     * @param {string} type - Power-up type
      */
     applyPowerUp(type) {
         const WE = window.Game.Balance.WEAPON_EVOLUTION;
         if (!WE) {
-            // Fallback to legacy system
             this.upgrade(type);
             return;
         }
 
         const Audio = window.Game.Audio;
 
-        // UPGRADE: permanent shot level increase
+        // UPGRADE: permanent weapon level increase
         if (type === 'UPGRADE') {
-            if (this.shotLevel < WE.MAX_SHOT_LEVEL) {
-                this.shotLevel++;
+            if (this.weaponLevel < WE.MAX_WEAPON_LEVEL) {
+                this.weaponLevel++;
                 if (Audio) Audio.play('levelUp');
-                if (window.Game.Debug) window.Game.Debug.trackWeaponEvent('UPGRADE', 'SHOT_LV' + this.shotLevel);
+                if (window.Game.Debug) window.Game.Debug.trackWeaponEvent('UPGRADE', 'WPN_LV' + this.weaponLevel);
 
-                // Emit event for UI feedback
                 if (window.Game.Events) {
-                    window.Game.Events.emit('SHOT_LEVEL_UP', { level: this.shotLevel });
+                    window.Game.Events.emit('WEAPON_LEVEL_UP', { level: this.weaponLevel });
                 }
             }
             return;
         }
 
-        // Modifiers: RATE, POWER, SPREAD (stackable with timer refresh)
-        if (type === 'RATE' || type === 'POWER' || type === 'SPREAD') {
-            const modKey = type.toLowerCase();
-            const modConfig = WE[type];
-            const mod = this.modifiers[modKey];
+        // Specials: HOMING, PIERCE, MISSILE (exclusive weapon effects)
+        const specials = ['HOMING', 'PIERCE', 'MISSILE'];
+        if (specials.includes(type)) {
+            this.special = type;
+            this.specialTimer = WE.SPECIAL_DURATION;
+            if (window.Game.Debug) window.Game.Debug.trackWeaponEvent('SPECIAL', type);
+            if (Audio) Audio.play('powerUp');
 
-            // Stack level (up to max), refresh timer
-            mod.level = Math.min(modConfig.MAX_LEVEL, mod.level + 1);
-            mod.timer = WE.MODIFIER_DURATION;
-            if (window.Game.Debug) window.Game.Debug.trackWeaponEvent('MODIFIER', type + '_LV' + mod.level);
-
-            if (Audio) Audio.play('coinPerk');
-
-            // Emit event for UI
             if (window.Game.Events) {
-                window.Game.Events.emit('MODIFIER_APPLIED', {
-                    type: type,
-                    level: mod.level,
-                    timer: mod.timer
-                });
+                window.Game.Events.emit('SPECIAL_APPLIED', { type: type, timer: this.specialTimer });
             }
             return;
         }
 
-        // Specials: HOMING, PIERCE, LASER, MISSILE, SHIELD, SPEED (exclusive, replace each other)
-        const specials = ['HOMING', 'PIERCE', 'LASER', 'MISSILE', 'SHIELD', 'SPEED'];
-        if (specials.includes(type)) {
-            // SHIELD special = instant activation, not timed special
-            if (type === 'SHIELD') {
-                this.activateShield();
-                this.shieldCooldown = 0;
-                this.shieldTimer = 3.0; // Longer duration from power-up
-                if (Audio) Audio.play('shield');
-                return;
-            }
+        // Utilities: SHIELD, SPEED (non-weapon effects)
+        if (type === 'SHIELD') {
+            this.activateShield();
+            this.shieldCooldown = 0;
+            this.shieldTimer = 3.0;
+            if (Audio) Audio.play('shield');
+            return;
+        }
 
-            // Other specials: set as active special with timer
-            this.special = type;
-            this.specialTimer = WE.SPECIAL_DURATION;
-            if (window.Game.Debug) window.Game.Debug.trackWeaponEvent('SPECIAL', type);
-
+        if (type === 'SPEED') {
+            this.shipPowerUp = 'SPEED';
+            this.shipPowerUpTimer = WE.UTILITY_DURATION || 12;
             if (Audio) Audio.play('powerUp');
-
-            // Emit event for UI
-            if (window.Game.Events) {
-                window.Game.Events.emit('SPECIAL_APPLIED', {
-                    type: type,
-                    timer: this.specialTimer
-                });
-            }
             return;
         }
 
@@ -1553,7 +1474,7 @@ class Player extends window.Game.Entity {
     }
 
     /**
-     * Apply death penalty: reduce levels in all categories
+     * Apply death penalty: reduce weapon level, clear special
      * Called when player loses a life
      */
     applyDeathPenalty() {
@@ -1562,33 +1483,18 @@ class Player extends window.Game.Entity {
 
         const penalty = WE.DEATH_PENALTY || 1;
 
-        // Shot level: min 1
-        this.shotLevel = Math.max(1, this.shotLevel - penalty);
-
-        // Modifiers: reduce level, clear timer if level becomes 0
-        for (const modKey of ['rate', 'power', 'spread']) {
-            const mod = this.modifiers[modKey];
-            mod.level = Math.max(0, mod.level - penalty);
-            if (mod.level === 0) {
-                mod.timer = 0;
-            }
-        }
+        // Weapon level: min 1
+        this.weaponLevel = Math.max(1, this.weaponLevel - penalty);
 
         // Special: lost completely on death
         this.special = null;
         this.specialTimer = 0;
 
-        if (window.Game.Debug) window.Game.Debug.trackWeaponEvent('DEATH_PENALTY', 'SHOT_LV' + this.shotLevel);
+        if (window.Game.Debug) window.Game.Debug.trackWeaponEvent('DEATH_PENALTY', 'WPN_LV' + this.weaponLevel);
 
-        // Emit event for UI update
         if (window.Game.Events) {
             window.Game.Events.emit('DEATH_PENALTY_APPLIED', {
-                shotLevel: this.shotLevel,
-                modifiers: {
-                    rate: this.modifiers.rate.level,
-                    power: this.modifiers.power.level,
-                    spread: this.modifiers.spread.level
-                }
+                weaponLevel: this.weaponLevel
             });
         }
     }
@@ -1599,12 +1505,7 @@ class Player extends window.Game.Entity {
      */
     getWeaponState() {
         return {
-            shotLevel: this.shotLevel,
-            modifiers: {
-                rate: { level: this.modifiers.rate.level, timer: this.modifiers.rate.timer },
-                power: { level: this.modifiers.power.level, timer: this.modifiers.power.timer },
-                spread: { level: this.modifiers.spread.level, timer: this.modifiers.spread.timer }
-            },
+            weaponLevel: this.weaponLevel,
             special: this.special,
             specialTimer: this.specialTimer
         };

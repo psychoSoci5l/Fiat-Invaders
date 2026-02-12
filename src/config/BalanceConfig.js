@@ -870,7 +870,7 @@
         // --- BULLET PIERCE (Player bullets survive multiple enemy-bullet hits) ---
         BULLET_PIERCE: {
             BASE_HP: 1,            // Each base bullet passes through 1 enemy bullet
-            POWER_BONUS: 1,        // +1 per POWER modifier level
+            LEVEL_BONUS: 0.5,      // +0.5 per weapon level (LV5 = +2)
             MISSILE_HP: 3,         // Missiles are tougher
             HODL_BONUS: 1,         // HODL bullets +1 pierce
         },
@@ -892,7 +892,6 @@
             PLAYER_NORMAL:  { speed: 765, collisionRadius: 5, piercing: false, explosion: null },
             PLAYER_HOMING:  { speed: 459, collisionRadius: 6, piercing: false, explosion: null },   // 765*0.6
             PLAYER_PIERCE:  { speed: 765, collisionRadius: 5, piercing: true,  explosion: null },
-            PLAYER_LASER:   { speed: 1071, collisionRadius: 3, piercing: true, explosion: null },   // 765*1.4
             PLAYER_MISSILE: { speed: 536, collisionRadius: 7, piercing: false,                      // 765*0.7
                 explosion: { radius: 35, damage: 1.2, knockback: 60, particles: 12, shake: 6 }  // v4.45: nerfed AoE 50→35, dmg 1.5→1.2
             },
@@ -923,50 +922,48 @@
             AUTO_DELETE_Y: 1000           // Y position to auto-remove
         },
 
-        // --- WEAPON EVOLUTION SYSTEM (v3.0) ---
-        // Progressive weapon upgrade system:
-        // - Shot level (1-3): permanent, lost on death (-1)
-        // - Modifiers (RATE/POWER/SPREAD): stackable, temp timer, lost on death (-1)
-        // - Specials (HOMING/PIERCE/LASER/MISSILE/SHIELD/SPEED): exclusive, temp, lost completely on death
+        // --- WEAPON EVOLUTION SYSTEM (v4.47 Redesign) ---
+        // Linear 5-level weapon progression (permanent, -1 on death)
+        // HYPER adds +2 temporary levels (max effective LV7)
+        // Specials: 3 weapon types (HOMING/PIERCE/MISSILE), exclusive, 12s
+        // Utilities: SHIELD/SPEED (separate non-weapon drops)
         WEAPON_EVOLUTION: {
-            // Shot levels (permanent until death)
-            MAX_SHOT_LEVEL: 3,
+            // Weapon levels (permanent until death, -1 per death)
+            MAX_WEAPON_LEVEL: 5,
             KILLS_FOR_UPGRADE: 30,        // Guaranteed UPGRADE drop every N kills
 
-            // Modifier durations (seconds)
-            MODIFIER_DURATION: 12,    // v4.44: reverted to 12s (16s caused power spike overlap)
+            // HYPER mode weapon boost
+            HYPER_LEVEL_BOOST: 2,         // +2 weapon levels during HYPER
 
-            // Modifier effects per level (index = level - 1)
-            RATE: {
-                MAX_LEVEL: 3,
-                COOLDOWN_REDUCTION: [0.15, 0.30, 0.45]  // -15%, -30%, -45%
-            },
-            POWER: {
-                MAX_LEVEL: 3,
-                DAMAGE_BONUS: [0.25, 0.50, 0.75]        // +25%, +50%, +75%
-            },
-            SPREAD: {
-                MAX_LEVEL: 2,
-                ANGLE_BONUS: [12, 24]                    // +12°, +24° in degrees
+            // Level table: stats lookup by weapon level (1-7)
+            // LV 6-7 only reachable during HYPER
+            LEVELS: {
+                1: { name: 'Single',     bullets: 1, cooldownMult: 1.00, damageMult: 1.00, spreadDeg: 0 },
+                2: { name: 'Dual',       bullets: 2, cooldownMult: 1.00, damageMult: 1.00, spreadDeg: 0 },
+                3: { name: 'Dual+',      bullets: 2, cooldownMult: 0.85, damageMult: 1.25, spreadDeg: 0 },
+                4: { name: 'Triple',     bullets: 3, cooldownMult: 0.70, damageMult: 1.50, spreadDeg: 12 },
+                5: { name: 'Triple MAX', bullets: 3, cooldownMult: 0.55, damageMult: 1.75, spreadDeg: 24 },
+                6: { name: 'HYPER+',     bullets: 3, cooldownMult: 0.40, damageMult: 2.00, spreadDeg: 30 },
+                7: { name: 'HYPER++',    bullets: 3, cooldownMult: 0.30, damageMult: 2.25, spreadDeg: 36 }
             },
 
-            // Special duration
+            // Special duration (HOMING/PIERCE/MISSILE)
             SPECIAL_DURATION: 12,
 
+            // Utility duration (SHIELD/SPEED)
+            UTILITY_DURATION: 12,
+
             // Death penalty
-            DEATH_PENALTY: 1,             // Levels lost per category on death
+            DEATH_PENALTY: 1,             // Weapon levels lost on death
 
-            // Speed special effect
-            SPEED_MULTIPLIER: 1.4,        // Movement speed during SPEED special
+            // Speed utility effect
+            SPEED_MULTIPLIER: 1.4,        // Movement speed during SPEED utility
 
-            // Drop weights for specials (higher = more common)
+            // Drop weights for specials (weapon-type only)
             SPECIAL_WEIGHTS: {
-                HOMING: 20,
-                PIERCE: 20,
-                SPEED: 20,
-                MISSILE: 15,
-                LASER: 15,
-                SHIELD: 10                // Rarest
+                HOMING: 25,
+                PIERCE: 25,
+                MISSILE: 20
             }
         },
 
@@ -981,21 +978,20 @@
             PITY_REDUCTION: 2           // -2 kills per cycle (min 15) (v4.17: 3→2)
         },
 
-        // --- ADAPTIVE DROPS v4.19 ---
+        // --- ADAPTIVE DROPS v4.47 (Redesigned) ---
         // Dynamic suppression based on player power state
         ADAPTIVE_DROPS: {
             ENABLED: true,
-            // Power score weights (sum = 1.0)
-            SHOT_WEIGHT: 0.40,          // Weight of shot level in power score
-            MOD_WEIGHT: 0.35,           // Weight of modifiers in power score
-            SPECIAL_WEIGHT: 0.25,       // Weight of special in power score
+            // Power score weights (sum = 1.0) — 2-axis: weapon + special
+            WEAPON_WEIGHT: 0.65,        // Weight of weapon level in power score
+            SPECIAL_WEIGHT: 0.35,       // Weight of special in power score
             // Suppression
-            SUPPRESSION_FLOOR: 0.50,    // Below this power score, no suppression (v4.45: 0.15→0.50, was blocking GODCHAIN)
+            SUPPRESSION_FLOOR: 0.50,    // Below this power score, no suppression
             // Need-based category selection weights
             CATEGORY_WEIGHTS: {
-                UPGRADE: 1.5,           // Base weight for upgrade need
-                MODIFIER: 1.0,          // Base weight for modifier need
-                SPECIAL: 0.8            // Base weight for special need
+                UPGRADE: 1.5,           // Base weight for weapon upgrade need
+                SPECIAL: 1.0,           // Base weight for special need
+                UTILITY: 0.8            // Base weight for utility need
             },
             MIN_CATEGORY_WEIGHT: 0.05   // Minimum weight to prevent zero-chance
         },
@@ -1250,8 +1246,8 @@
 
         // --- GODCHAIN MODE v4.6 (All modifiers maxed simultaneously) ---
         GODCHAIN: {
-            // v4.44: Lowered from 2/2/1 — was still impossible (0 activations in all playtests)
-            REQUIREMENTS: { RATE: 1, POWER: 1, SPREAD: 1 },
+            // v4.47: GODCHAIN = weapon level 5 (no modifier check needed)
+            REQUIREMENTS: { WEAPON_LEVEL: 5 },
             SPEED_BONUS: 1.05,          // +5% movement speed
             SHIP_COLORS: {
                 BODY: '#cc2222',        // Deep red body

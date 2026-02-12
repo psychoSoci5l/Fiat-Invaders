@@ -1,5 +1,18 @@
 # Changelog
 
+## v4.47.0 - 2026-02-12
+### Weapon Evolution Redesign
+
+- **Linear 5-level weapon system**: Replaced 3 shot levels + 3 modifier layers with a clean 1→5 progression (Single → Dual → Dual+ → Triple → Triple MAX). Each level has fixed cooldown, damage, and spread stats
+- **HYPER weapon boost**: HYPER mode now adds +2 temporary weapon levels (LV6 HYPER+, LV7 HYPER++), replacing the old modifier-stacking approach
+- **GODCHAIN simplified**: Activates at weapon level 5 (was: need 2 of 3 overlapping modifiers — mathematically near-impossible)
+- **Specials reduced to 3**: HOMING, PIERCE, MISSILE only. LASER removed (absorbed into PIERCE). Exclusive, 12s duration
+- **Utility drops**: SHIELD and SPEED are now "utility" category with distinct capsule-shaped visual, separate from weapon specials
+- **Adaptive drops simplified**: 2-axis power score (weapon level + special) instead of 3-axis (shot + modifiers + special). Categories: UPGRADE/SPECIAL/UTILITY
+- **Removed**: RATE/POWER/SPREAD modifiers, LASER weapon/bullet, modifier diamond power-up visual, modifier timer tracking, modifier overlap analytics
+- **Bullet pierce scales with level**: +0.5 pierce HP per weapon level (replaces POWER modifier bonus)
+- **Diegetic HUD**: 5 weapon pips (was 3), HYPER-boosted pips pulse gold, no modifier glow indicators
+
 ## v4.46.0 - 2026-02-12
 ### Backlog Closure — Formations, Collisions, Polish
 

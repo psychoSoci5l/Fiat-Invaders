@@ -357,7 +357,7 @@ window.Game.Debug = {
             dropsSpawned: [],          // [{ time, type, category, source:'enemy'|'boss', wave, cycle }]
             dropsExpired: 0,           // counter di drop non raccolti
             // v4.19: Adaptive drop suppression tracking
-            dropsSuppressed: [],       // [{ time, powerScore, shotLevel, modLevels, hasSpecial }]
+            dropsSuppressed: [],       // [{ time, powerScore, weaponLevel, hasSpecial }]
             weaponTimeline: [],        // [{ time, event, detail }]
             godchainActivations: 0,
             godchainTotalDuration: 0,
@@ -539,7 +539,7 @@ window.Game.Debug = {
 
     /**
      * Track a drop suppressed by adaptive system (v4.19)
-     * @param {Object} playerState - { shotLevel, modifiers: { rate, power, spread }, hasSpecial }
+     * @param {Object} playerState - { weaponLevel, hasSpecial }
      */
     trackDropSuppressed(playerState) {
         const a = this.analytics;
@@ -549,8 +549,7 @@ window.Game.Debug = {
         a.dropsSuppressed.push({
             time: Date.now() - a.runStart,
             powerScore: powerScore,
-            shotLevel: playerState.shotLevel,
-            modLevels: (playerState.modifiers.rate || 0) + (playerState.modifiers.power || 0) + (playerState.modifiers.spread || 0),
+            weaponLevel: playerState.weaponLevel,
             hasSpecial: playerState.hasSpecial
         });
     },
@@ -707,12 +706,7 @@ window.Game.Debug = {
         console.log('%c╠══ WEAPON STATE (final) ═══════════════════════════════════╣', 'color: #0ff');
         const p = window.player;
         if (p) {
-            console.log(`%c║   Shot Level: ${p.shotLevel || 1}`, 'color: #fff');
-            if (p.modifiers) {
-                console.log(`%c║   RATE:   Lv${p.modifiers.rate.level} (${p.modifiers.rate.timer.toFixed(1)}s)`, 'color: #fff');
-                console.log(`%c║   POWER:  Lv${p.modifiers.power.level} (${p.modifiers.power.timer.toFixed(1)}s)`, 'color: #fff');
-                console.log(`%c║   SPREAD: Lv${p.modifiers.spread.level} (${p.modifiers.spread.timer.toFixed(1)}s)`, 'color: #fff');
-            }
+            console.log(`%c║   Weapon Level: ${p.weaponLevel || 1}`, 'color: #fff');
             console.log(`%c║   Special: ${p.special || 'none'} (${(p.specialTimer || 0).toFixed(1)}s)`, 'color: #fff');
             console.log(`%c║   GODCHAIN: ${p._godchainActive ? 'ACTIVE' : 'inactive'}`, p._godchainActive ? 'color: #f80; font-weight: bold' : 'color: #888');
         } else {
@@ -733,7 +727,7 @@ window.Game.Debug = {
         if (suppCount > 0) {
             const last5 = suppressed.slice(-5);
             for (const s of last5) {
-                console.log(`%c║     @${formatTime(s.time)} score=${s.powerScore.toFixed(2)} shot=${s.shotLevel} mods=${s.modLevels} spc=${s.hasSpecial}`, 'color: #888');
+                console.log(`%c║     @${formatTime(s.time)} score=${s.powerScore.toFixed(2)} wpn=${s.weaponLevel} spc=${s.hasSpecial}`, 'color: #888');
             }
         }
 
@@ -1228,7 +1222,7 @@ window.Game.Debug = {
                 ctx.fillText(`Shield: ${shieldTxt}`, 12, y); y += lineHeight;
                 const hyperTxt = p.isHyper ? `ON ${p.hyperTimer.toFixed(1)}s` : (p.hyperAvailable ? 'READY' : 'charging');
                 ctx.fillText(`HYPER: ${hyperTxt}`, 12, y); y += lineHeight;
-                ctx.fillText(`Shot:${p.shotLevel} Spc:${p.special || '-'}`, 12, y); y += lineHeight;
+                ctx.fillText(`Wpn:${p.weaponLevel} Spc:${p.special || '-'}`, 12, y); y += lineHeight;
                 if (p.special) {
                     ctx.fillText(`  Timer: ${p.specialTimer.toFixed(1)}s`, 12, y); y += lineHeight;
                 }
@@ -1369,7 +1363,7 @@ window.Game.Debug = {
             console.log(`%c  Player: ${p.type} at [${p.x}, ${p.y}]`, 'color: #F7931A; font-weight: bold');
             console.log(`    Shield: ${p.shieldActive ? 'ACTIVE' : (p.shieldCooldown > 0 ? 'cooldown ' + p.shieldCooldown.toFixed(1) + 's' : 'ready')}`);
             console.log(`    HYPER: ${p.isHyper ? 'ACTIVE ' + p.hyperTimer.toFixed(1) + 's' : (p.hyperAvailable ? 'READY' : 'charging')}`);
-            console.log(`    Weapon: Shot Lv${p.shotLevel}  Special: ${p.special || 'none'}${p.special ? ' (' + p.specialTimer.toFixed(1) + 's)' : ''}`);
+            console.log(`    Weapon: Lv${p.weaponLevel}  Special: ${p.special || 'none'}${p.special ? ' (' + p.specialTimer.toFixed(1) + 's)' : ''}`);
         } else {
             console.log(`%c  Player: NOT FOUND`, 'color: #f00');
         }
@@ -1434,37 +1428,14 @@ window.Game.Debug = {
             console.log('[DEBUG] No player found');
             return;
         }
-        const max = window.Game.Balance?.WEAPON_EVOLUTION?.MAX_SHOT_LEVEL || 3;
-        player.shotLevel = Math.max(1, Math.min(max, level));
-        console.log(`[DEBUG] Shot level set to ${player.shotLevel}`);
-    },
-
-    /**
-     * Set modifier level and timer
-     * @param {string} type - 'rate', 'power', or 'spread'
-     * @param {number} level - Level to set (0 to disable)
-     */
-    setMod(type, level) {
-        const player = window.player;
-        if (!player || !player.modifiers) {
-            console.log('[DEBUG] No player or modifiers found');
-            return;
-        }
-        const modKey = type.toLowerCase();
-        if (!player.modifiers[modKey]) {
-            console.log(`[DEBUG] Unknown modifier: ${type}`);
-            return;
-        }
-        const WE = window.Game.Balance?.WEAPON_EVOLUTION;
-        const maxLevel = WE?.[type.toUpperCase()]?.MAX_LEVEL || 3;
-        player.modifiers[modKey].level = Math.max(0, Math.min(maxLevel, level));
-        player.modifiers[modKey].timer = level > 0 ? (WE?.MODIFIER_DURATION || 12) : 0;
-        console.log(`[DEBUG] ${type} modifier set to level ${player.modifiers[modKey].level}`);
+        const max = window.Game.Balance?.WEAPON_EVOLUTION?.MAX_WEAPON_LEVEL || 5;
+        player.weaponLevel = Math.max(1, Math.min(max, level));
+        console.log(`[DEBUG] Weapon level set to ${player.weaponLevel}`);
     },
 
     /**
      * Set active special
-     * @param {string} type - 'HOMING', 'PIERCE', 'LASER', 'MISSILE', 'SPEED', or null to clear
+     * @param {string} type - 'HOMING', 'PIERCE', 'MISSILE', or null to clear
      */
     setSpecial(type) {
         const player = window.player;
@@ -1485,7 +1456,7 @@ window.Game.Debug = {
     },
 
     /**
-     * Max out all weapon evolution stats (for testing)
+     * Max out weapon level (for testing)
      */
     maxWeapon() {
         const player = window.player;
@@ -1494,23 +1465,12 @@ window.Game.Debug = {
             return;
         }
         const WE = window.Game.Balance?.WEAPON_EVOLUTION;
-
-        // Max shot level
-        player.shotLevel = WE?.MAX_SHOT_LEVEL || 3;
-
-        // Max all modifiers with long timer
-        player.modifiers.rate.level = WE?.RATE?.MAX_LEVEL || 3;
-        player.modifiers.rate.timer = 999;
-        player.modifiers.power.level = WE?.POWER?.MAX_LEVEL || 3;
-        player.modifiers.power.timer = 999;
-        player.modifiers.spread.level = WE?.SPREAD?.MAX_LEVEL || 2;
-        player.modifiers.spread.timer = 999;
-
-        console.log('[DEBUG] Weapon maxed: Shot=3, Rate=3, Power=3, Spread=2');
+        player.weaponLevel = WE?.MAX_WEAPON_LEVEL || 5;
+        console.log(`[DEBUG] Weapon maxed: Level=${player.weaponLevel}`);
     },
 
     /**
-     * Force GODCHAIN mode ON (set all modifiers to max with long timer)
+     * Force GODCHAIN mode ON (set weapon level to 5)
      */
     godchain() {
         const player = window.player;
@@ -1519,11 +1479,11 @@ window.Game.Debug = {
             return;
         }
         this.maxWeapon();
-        console.log('[DEBUG] GODCHAIN forced ON — all modifiers maxed');
+        console.log('[DEBUG] GODCHAIN forced ON — weapon level 5');
     },
 
     /**
-     * Show GODCHAIN status (modifier levels and timers)
+     * Show GODCHAIN status
      */
     godchainStatus() {
         const player = window.player;
@@ -1533,12 +1493,7 @@ window.Game.Debug = {
         }
         const active = player._godchainActive ? 'ACTIVE' : 'INACTIVE';
         console.log(`[DEBUG] GODCHAIN: ${active}`);
-        console.log(`  Shot Level: ${player.shotLevel || 1} (need 3)`);
-        if (player.modifiers) {
-            console.log(`  RATE:   Lv${player.modifiers.rate.level} / ${player.modifiers.rate.timer.toFixed(1)}s (need max+timer)`);
-            console.log(`  POWER:  Lv${player.modifiers.power.level} / ${player.modifiers.power.timer.toFixed(1)}s (need max+timer)`);
-            console.log(`  SPREAD: Lv${player.modifiers.spread.level} / ${player.modifiers.spread.timer.toFixed(1)}s (need max+timer)`);
-        }
+        console.log(`  Weapon Level: ${player.weaponLevel || 1} (need 5)`);
     },
 
     // ========== PERFORMANCE PROFILER v4.10 ==========
@@ -1881,13 +1836,10 @@ window.Game.Debug = {
             return;
         }
         console.log('[DEBUG] Weapon Evolution State:');
-        console.log(`  Shot Level: ${player.shotLevel || 1}`);
+        console.log(`  Weapon Level: ${player.weaponLevel || 1}`);
         console.log(`  Modifiers:`);
-        if (player.modifiers) {
-            console.log(`    RATE:   Lv${player.modifiers.rate.level} (${player.modifiers.rate.timer.toFixed(1)}s)`);
-            console.log(`    POWER:  Lv${player.modifiers.power.level} (${player.modifiers.power.timer.toFixed(1)}s)`);
-            console.log(`    SPREAD: Lv${player.modifiers.spread.level} (${player.modifiers.spread.timer.toFixed(1)}s)`);
-        }
+        console.log(`    Special: ${player.special || 'none'}${player.special ? ' (' + (player.specialTimer || 0).toFixed(1) + 's)' : ''}`);
+        console.log(`    GODCHAIN: ${player._godchainActive ? 'ACTIVE' : 'inactive'}`);
         console.log(`  Special: ${player.special || 'none'} (${(player.specialTimer || 0).toFixed(1)}s)`);
     },
 

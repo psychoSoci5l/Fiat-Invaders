@@ -28,7 +28,7 @@
         FIRE: '🔥 BURN THE BANKS',
         SPREAD: '💥 MAXIMUM DISRUPTION',
         HOMING: '🚀 SMART MONEY MISSILES',
-        LASER: '⚡ LIGHTNING NETWORK',
+        PIERCE: '🔥 PENETRATING POWER',
         NORMAL: '💪 BACK TO BASICS',
 
         // Ship power-ups

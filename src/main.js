@@ -95,8 +95,8 @@ let highScore = parseInt(localStorage.getItem('fiat_highscore')) || 0; // PERSIS
 
 // WEAPON PROGRESSION - Persisted in localStorage
 const BASE_WEAPONS = ['WIDE', 'NARROW', 'FIRE']; // Always unlocked
-const ADVANCED_WEAPONS = ['SPREAD', 'HOMING', 'LASER']; // Unlock per cycle
-const WEAPON_UNLOCK_CYCLE = { SPREAD: 2, HOMING: 3, LASER: 4 }; // Cycle required
+const ADVANCED_WEAPONS = ['SPREAD', 'HOMING']; // Unlock per cycle
+const WEAPON_UNLOCK_CYCLE = { SPREAD: 2, HOMING: 3 }; // Cycle required
 let maxCycleReached = parseInt(localStorage.getItem('fiat_maxcycle')) || 1;
 
 function getUnlockedWeapons() {
@@ -109,33 +109,26 @@ function getUnlockedWeapons() {
     return unlocked;
 }
 
-// v4.19: Build player state snapshot for adaptive drop system
-// v4.29: Pre-allocated to avoid per-call GC allocations
+// v4.47: Build player state snapshot for adaptive drop system
+// Pre-allocated to avoid per-call GC allocations
 const _playerState = {
-    shotLevel: 1,
-    modifiers: { rate: 0, power: 0, spread: 0 },
+    weaponLevel: 1,
     hasSpecial: false
 };
 function buildPlayerState() {
     if (!player) {
-        _playerState.shotLevel = 1;
-        _playerState.modifiers.rate = 0;
-        _playerState.modifiers.power = 0;
-        _playerState.modifiers.spread = 0;
+        _playerState.weaponLevel = 1;
         _playerState.hasSpecial = false;
         return _playerState;
     }
-    _playerState.shotLevel = player.shotLevel || 1;
-    _playerState.modifiers.rate = player.modifiers ? player.modifiers.rate.level : 0;
-    _playerState.modifiers.power = player.modifiers ? player.modifiers.power.level : 0;
-    _playerState.modifiers.spread = player.modifiers ? player.modifiers.spread.level : 0;
+    _playerState.weaponLevel = player.weaponLevel || 1;
     _playerState.hasSpecial = !!player.special;
     return _playerState;
 }
 
 // v4.29: Pre-allocated objects for CollisionSystem callbacks — avoids per-call allocation
 const _stateObj = { sacrificeState: null };
-const _sparkOpts = { shotLevel: 1, hasPower: false, isKill: false, isHyper: false };
+const _sparkOpts = { weaponLevel: 1, isKill: false, isHyper: false };
 
 // v4.28.0: CollisionSystem initialization with callbacks
 function initCollisionSystem() {
@@ -223,8 +216,7 @@ function initCollisionSystem() {
             onEnemyHit(e, bullet, shouldDie) {
                 audioSys.play('hitEnemy');
                 const sparkColor = bullet.color || player.stats?.color || '#fff';
-                _sparkOpts.shotLevel = player.shotLevel || 1;
-                _sparkOpts.hasPower = player.modifiers?.power?.level > 0;
+                _sparkOpts.weaponLevel = player.weaponLevel || 1;
                 _sparkOpts.isKill = shouldDie;
                 _sparkOpts.isHyper = player.isHyperActive && player.isHyperActive();
                 createBulletSpark(e.x, e.y, sparkColor, _sparkOpts);
@@ -346,7 +338,7 @@ function initCollisionSystem() {
                 }
 
                 // Drop logic
-                const useEvolution = !!(Balance.WEAPON_EVOLUTION && player.shotLevel);
+                const useEvolution = !!(Balance.WEAPON_EVOLUTION && player.weaponLevel);
                 const dropInfo = G.DropSystem.tryEnemyDrop(e.symbol, e.x, e.y, totalTime, useEvolution ? buildPlayerState() : getUnlockedWeapons, useEvolution);
                 if (dropInfo) {
                     powerUps.push(new G.PowerUp(dropInfo.x, dropInfo.y, dropInfo.type));
@@ -368,7 +360,7 @@ function initCollisionSystem() {
                     updateGrazeUI();
                 }
                 // Boss drops
-                const useEvolutionBoss = !!(Balance.WEAPON_EVOLUTION && player.shotLevel);
+                const useEvolutionBoss = !!(Balance.WEAPON_EVOLUTION && player.weaponLevel);
                 const bossDropInfo = G.DropSystem.tryBossDrop(
                     boss.x + boss.width / 2, boss.y + boss.height, totalTime,
                     useEvolutionBoss ? buildPlayerState() : getUnlockedWeapons,
@@ -766,14 +758,10 @@ const POWERUP_MEMES = {
     FIRE: "🔥 BURN THE FIAT",
     RAPID: "🚀 TO THE MOON",
 
-    // WEAPON EVOLUTION v3.0 types
+    // WEAPON EVOLUTION v4.47 types
     UPGRADE: "⬆️ LEVEL UP!",
-    RATE: "⚡ FIRE RATE++",
-    POWER: "💥 POWER++",
-    SPREAD: "🔱 SPREAD++",
     HOMING: "🎯 HEAT SEEKING",
     PIERCE: "🔥 PENETRATING",
-    LASER: "⚡ BEAM MODE",
     MISSILE: "🚀 WARHEAD ARMED",
     SHIELD: "🛡️ HODL MODE",
     SPEED: "💨 ZOOM OUT"
@@ -3804,19 +3792,11 @@ function update(dt) {
         if (!inWarmup && newBullets && newBullets.length > 0) {
             bullets.push(...newBullets);
             createMuzzleFlashParticles(player.x, player.y - 25, player.stats.color, {
-                shotLevel: player.shotLevel || 1,
-                hasPower: player.modifiers?.power?.level > 0,
-                hasRate: player.modifiers?.rate?.level > 0
+                weaponLevel: player.weaponLevel || 1
             });
         }
 
       if (!inWarmup) {
-        // Power-up economy tracking: modifier overlap per frame
-        if (G.Debug?.analytics?.runStart) {
-            const mods = player.modifiers;
-            const activeCount = (mods.rate.timer > 0 ? 1 : 0) + (mods.power.timer > 0 ? 1 : 0) + (mods.spread.timer > 0 ? 1 : 0);
-            G.Debug.trackModifierFrame(activeCount);
-        }
 
         // HYPER MODE: manual activation removed in v4.21 (now auto-activates when meter is full)
         // Legacy manual trigger kept as fallback if AUTO_ACTIVATE is disabled
@@ -4638,7 +4618,7 @@ function draw() {
                 hyperAvailable: player.hyperAvailable,
                 isHyper: player.isHyperActive ? player.isHyperActive() : false,
                 hyperTimer: player.getHyperTimeRemaining ? player.getHyperTimeRemaining() : 0,
-                shotLevel: player.shotLevel || 1,
+                weaponLevel: player.weaponLevel || 1,
                 special: player.special || null,
                 specialTimer: player.specialTimer || 0,
                 type: player.type
@@ -5249,8 +5229,7 @@ function loop(timestamp) {
         player._grazePercent = typeof grazeMeter !== 'undefined' ? grazeMeter : 0;
         // Reuse object to avoid per-frame allocation
         var ws = player._weaponState || (player._weaponState = {});
-        ws.shotLevel = player.shotLevel || 1;
-        ws.modifiers = player.modifiers;
+        ws.weaponLevel = player.weaponLevel || 1;
         ws.special = player.special;
         ws.specialTimer = player.specialTimer;
     }
@@ -5455,7 +5434,7 @@ function updatePowerUps(dt) {
                 createPowerUpPickupEffect(p.x, p.y, p.config.color);
 
                 // WEAPON EVOLUTION v3.0: Use applyPowerUp for new types
-                const evolutionTypes = ['UPGRADE', 'RATE', 'POWER', 'SPREAD', 'HOMING', 'PIERCE', 'LASER', 'MISSILE', 'SHIELD', 'SPEED'];
+                const evolutionTypes = ['UPGRADE', 'HOMING', 'PIERCE', 'MISSILE', 'SHIELD', 'SPEED'];
                 if (evolutionTypes.includes(p.type) && player.applyPowerUp) {
                     player.applyPowerUp(p.type);
                 } else {

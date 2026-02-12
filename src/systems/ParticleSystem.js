@@ -63,17 +63,17 @@
      * @param {number} x - X position
      * @param {number} y - Y position
      * @param {string} [color='#fff'] - Particle color (matches bullet)
-     * @param {Object} [opts] - Options: { shotLevel, hasPower, isKill, isHyper }
+     * @param {Object} [opts] - Options: { weaponLevel, isKill, isHyper }
      */
     function createBulletSpark(x, y, color = '#fff', opts = {}) {
         const vfx = G.Balance?.VFX || {};
         const baseCount = vfx.SPARK_COUNT_BASE || 4;
         const perLevel = vfx.SPARK_COUNT_PER_LEVEL || 2;
-        const level = opts.shotLevel || 1;
+        const level = opts.weaponLevel || 1;
         const targetCount = baseCount + (level - 1) * perLevel;
         const count = Math.min(targetCount, MAX_PARTICLES - particles.length);
 
-        const sizeMult = opts.hasPower ? (vfx.SPARK_POWER_SCALE || 1.5) : 1;
+        const sizeMult = level >= 4 ? (vfx.SPARK_POWER_SCALE || 1.5) : 1;
         const lifetime = opts.isKill ? 0.30 : 0.18;
 
         for (let i = 0; i < count; i++) {
@@ -188,19 +188,19 @@
      * @param {number} x - X position
      * @param {number} y - Y position
      * @param {string} color - Weapon color
-     * @param {Object} [opts] - { shotLevel, hasPower, hasRate }
+     * @param {Object} [opts] - { weaponLevel }
      */
     function createMuzzleFlashParticles(x, y, color, opts = {}) {
         const available = MAX_PARTICLES - particles.length;
         if (available <= 0) return;
 
         const vfx = G.Balance?.VFX || {};
-        const level = opts.shotLevel || 1;
-        const baseCount = 3 + level * 2; // 5/7/9 particles by level
+        const level = opts.weaponLevel || 1;
+        const baseCount = 3 + level * 2; // scales with weapon level
         const count = Math.min(baseCount, available);
 
-        const sizeMult = opts.hasPower ? (vfx.MUZZLE_POWER_SCALE || 1.3) : 1;
-        const speedMult = opts.hasRate ? 1.4 : 1;
+        const sizeMult = level >= 4 ? (vfx.MUZZLE_POWER_SCALE || 1.3) : 1;
+        const speedMult = level >= 3 ? 1.2 : 1;
 
         // Upward sparks (following bullet direction)
         for (let i = 0; i < count; i++) {
