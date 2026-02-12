@@ -15,7 +15,6 @@ Destroy waves of fiat currencies, face the Central Bank bosses (FED, ECB, BOJ) a
 |--------|------|
 | **Move** | **A/D** or **Left/Right Arrows** |
 | **Fire** | **Space** or **Up Arrow** |
-| **Shield** | **S** or **Down Arrow** |
 | **HYPER Mode** | **H** (when meter full) |
 | **Pause** | **ESC** |
 
@@ -24,7 +23,6 @@ Destroy waves of fiat currencies, face the Central Bank bosses (FED, ECB, BOJ) a
 |--------|---------|
 | **Move** | Tap **screen sides** (or use joystick) |
 | **Fire** | **Automatic** while touching |
-| **Shield** | Tap the **shield icon** |
 | **HYPER Mode** | Tap **HYPER button** (when available) |
 
 ---
@@ -33,46 +31,63 @@ Destroy waves of fiat currencies, face the Central Bank bosses (FED, ECB, BOJ) a
 
 ### The Game Loop
 1. **Destroy enemies** - Waves of fiat currencies descend from above
-2. **Graze bullets** - Pass close to danger for points and meter
-3. **Collect power-ups** - Upgrade your weapons and ship
-4. **Survive 5 waves** - Each level has 5 waves
+2. **Collect UPGRADE drops** - Power up your weapon through 5 levels
+3. **Grab specials & utilities** - HOMING, PIERCE, MISSILE, SHIELD, SPEED
+4. **Survive 5 waves** - Each cycle has 5 waves of 2 hordes each
 5. **Defeat the Boss** - The Central Bank awaits!
-6. **New cycle** - Difficulty increases, better rewards
+6. **New cycle** - Difficulty increases, enemies get tougher
 
 ### How to Win
-Achieve the **highest score possible**! Master the risk/reward mechanics:
-- **Graze** enemy bullets to build your meter
+Achieve the **highest score possible**! Master these mechanics:
+- **Kill enemies up close** to fill the DIP meter
 - **HYPER Mode** for 5x score at extreme risk
-- **Satoshi's Sacrifice** for ultimate comeback
+- **Reach Weapon Level 5** to unlock GODCHAIN
 
 ### Game Over
-Lose all your **lives** (hearts in top left). But wait - if you're on your last life, you may have one more option: **Satoshi's Sacrifice**!
+Lose all your **lives** (hearts in top left). Each death costs you **1 weapon level** and your current special weapon.
 
 ### Bear Market Mode
 Want a challenge? Activate **Bear Market** for increased difficulty and higher scores!
 
 ---
 
-## 4. Power-Ups & Resources
+## 4. Power-Ups & Drops
 
-Enemies drop power-ups when destroyed. Two categories exist:
+Enemies drop power-ups when destroyed. Three categories:
 
-### Weapon Power-Ups (replace each other)
-| Icon | Name | Effect |
-|------|------|--------|
-| **🔱** | **WIDE** | Triple shot, wide spread |
-| **🎯** | **NARROW** | Triple shot, focused |
-| **🔥** | **FIRE** | Triple parallel, **penetrating** |
-| **🌟** | **SPREAD** | 5-shot wide fan |
-| **🎯** | **HOMING** | Auto-tracking missiles |
-| **⚡** | **LASER** | Rapid penetrating beam |
+### Weapon UPGRADE (permanent)
+| Drop | Effect |
+|------|--------|
+| **UPGRADE** | Weapon level **+1** (up to level 5) |
 
-### Ship Power-Ups (replace each other)
-| Icon | Name | Effect | Duration |
-|------|------|--------|----------|
-| **⚡** | **SPEED** | Movement +50% | 10s |
-| **🚀** | **RAPID** | Fire rate +100% | 8s |
-| **🛡️** | **SHIELD** | Instant shield | 3s |
+Your weapon evolves as you collect UPGRADE drops:
+
+| Level | Name | Bullets | Damage | Fire Rate |
+|-------|------|---------|--------|-----------|
+| 1 | **Single** | 1 | Normal | Normal |
+| 2 | **Dual** | 2 | Normal | Normal |
+| 3 | **Dual+** | 2 | +25% | +15% faster |
+| 4 | **Triple** | 3 | +50% | +30% faster |
+| 5 | **Triple MAX** | 3 | +75% | +45% faster |
+
+**Death penalty**: Each death drops your weapon **1 level** and removes your special.
+
+### Special Weapons (temporary, 12s)
+Exclusive — collecting one replaces the current special.
+
+| Name | Effect |
+|------|--------|
+| **HOMING** | Bullets track the nearest enemy |
+| **PIERCE** | Bullets pass through enemies |
+| **MISSILE** | Fewer bullets but huge AoE explosions |
+
+### Utility Drops (temporary, 12s)
+Capsule-shaped pickups with distinct visuals.
+
+| Name | Effect |
+|------|--------|
+| **SHIELD** | Absorbs one hit |
+| **SPEED** | Movement speed +40% |
 
 ---
 
@@ -104,7 +119,7 @@ Enemies drop power-ups when destroyed. Two categories exist:
 
 ## 6. Central Bank Bosses
 
-Every 5 levels you face a boss. Rotation: **FED → ECB → BOJ**
+Every 5 waves you face a boss. Rotation: **FED → ECB → BOJ**
 
 | Boss | Symbol | Style |
 |------|--------|-------|
@@ -115,70 +130,67 @@ Every 5 levels you face a boss. Rotation: **FED → ECB → BOJ**
 **3 Phases per Boss:**
 - **Phase 1** (100%-66% HP): Slow, simple patterns
 - **Phase 2** (66%-33% HP): Fast, complex patterns
-- **Phase 3** (33%-0% HP): Erratic, spawns minions!
+- **Phase 3** (33%-0% HP): Erratic, maximum danger!
+
+**Boss Drops**: Every **40 hits** on a boss drops a power-up. Keep shooting!
 
 ---
 
 ## 7. Advanced Mechanics
 
-### ⚡ HYPER MODE - Maximum Risk, Maximum Reward
+### HYPER MODE - Maximum Risk, Maximum Reward
 
-When your **Graze Meter** reaches 100%, press **H** to activate HYPER:
+Kill enemies at close range to fill the **DIP meter**. When it reaches 100%, press **H** to activate HYPER:
 
 | Aspect | Effect |
 |--------|--------|
-| **Duration** | 5 seconds base (+0.3s per graze) |
+| **Duration** | 5 seconds base |
 | **Score** | **5x multiplier** on ALL points |
+| **Weapon** | Temporary **+2 weapon levels** (LV6/LV7!) |
 | **Hitbox** | 50% LARGER (more risk!) |
 | **Death** | **INSTANT** if hit (bypasses lives) |
 | **Cooldown** | 8 seconds after HYPER ends |
 
-**Strategy**: Activate HYPER when enemies are clustered. Graze during HYPER extends the timer!
+**Strategy**: Activate HYPER when enemies are clustered. The temporary weapon boost makes you devastating!
 
-### 🔥 SATOSHI'S SACRIFICE - The Ultimate Gamble
+### GODCHAIN - Ultimate Power
 
-When you're on your **last life** and about to die, time slows and a golden **₿** button appears:
+When you reach **Weapon Level 5**, GODCHAIN activates automatically:
+- Massive visual effect (golden aura, meteors)
+- Each UPGRADE drop at max level **recharges GODCHAIN**
+- GODCHAIN combined with HYPER reaches weapon levels 6-7 — absolute destruction!
 
-| If you ACCEPT | Result |
-|---------------|--------|
-| **Cost** | ALL your score resets to 0 |
-| **Reward** | 10 seconds of **TOTAL INVINCIBILITY** |
-| **Scoring** | **10x multiplier** during Sacrifice |
-| **Success** | Earn back your score = **+1 EXTRA LIFE** |
-| **Failure** | Earn less = You survive anyway |
-
-**The Satoshi Gamble**: Can you earn back everything you lost in 10 seconds?
+**The cycle**: Collect UPGRADEs → reach LV5 → GODCHAIN → timer expires → collect more UPGRADEs → GODCHAIN again!
 
 ---
 
 ## 8. Pro Tips
 
-### 💎 **HODL MODE** - The Champion's Secret
+### HODL MODE - The Champion's Secret
 **Stop moving** and your ship enters HODL mode:
 - **2x damage** against all enemies
 - **Golden aura** visible around ship
 
 Use HODL when enemies are lined up above you!
 
-### 🔥 **Graze** - Dance with Danger
-Pass **close to enemy bullets** without getting hit:
-- Build up the **Graze Meter** (side bar)
-- Higher meter = higher **score multiplier** (up to 2.5x)
-- **Full meter = HYPER READY!**
+### Kill Close for DIP
+Kill enemies when they're **close to your ship** vertically:
+- Fills the **DIP meter** faster
+- Full meter = HYPER READY!
+- Boss hits also contribute to the meter
 
-### 🛡️ **Tactical Shield**
-Shield has a 10-second cooldown. Use it to:
-- Pass through bullet walls
-- Survive Boss Phase 3 attacks
-- Emergency escape when grazing goes wrong
+### Tactical Shield (Utility Drop)
+When you pick up a SHIELD capsule:
+- Absorbs the **next hit** for 12 seconds
+- Doesn't stack — grab it when you need protection
+- Great for surviving Boss Phase 3 attacks
 
-### ⚡ **Boss Power-Ups**
-During boss fights, every **25 hits** drops a power-up. Keep shooting!
+### Weapon Level Management
+- **Death costs 1 level** — avoid dying at LV5 if possible
+- GODCHAIN only works at **LV5** — prioritize UPGRADE drops
+- After death, UPGRADE drops help you recover quickly
 
-### 🎯 **Last Enemy Bonus**
-The final enemy of each wave gives **2x points** - hunt them down!
-
-### 📊 **Wave Intensity**
+### Wave Strategy
 Waves get harder as you clear them:
 - **0-30%**: Setup phase, learn the patterns
 - **30-85%**: Build phase, pressure increases
@@ -192,9 +204,8 @@ Waves get harder as you clear them:
 |------|-----------------|
 | **HODL** | Stand still for double damage |
 | **HYPER** | 5x score mode (high risk) |
-| **SATOSHI MODE** | 10x invincibility sacrifice |
-| **NGMI** | Sacrifice failed (but you survive) |
-| **DIAMOND HANDS** | Success after Sacrifice |
+| **GODCHAIN** | Max weapon power mode at LV5 |
+| **DIP** | Proximity kill meter (triggers HYPER) |
 | **REKT** | Game Over |
 | **BUY THE DIP** | Restart the game |
 | **FOMO** | Don't miss power-ups! |
@@ -206,4 +217,4 @@ Waves get harder as you clear them:
 *"There is no second best"* - Michael Saylor
 
 ---
-v2.12.3 FIAT vs CRYPTO
+v4.48.0 FIAT vs CRYPTO

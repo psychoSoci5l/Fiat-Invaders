@@ -15,7 +15,6 @@ Distruggi le ondate di valute fiat, affronta i boss delle Banche Centrali (FED, 
 |--------|-------|
 | **Muovi** | **A/D** oppure **Frecce SX/DX** |
 | **Spara** | **Spazio** oppure **Freccia SU** |
-| **Scudo** | **S** oppure **Freccia GIÙ** |
 | **Modalità HYPER** | **H** (quando il meter è pieno) |
 | **Pausa** | **ESC** |
 
@@ -24,7 +23,6 @@ Distruggi le ondate di valute fiat, affronta i boss delle Banche Centrali (FED, 
 |--------|-------|
 | **Muovi** | Tocca i **lati dello schermo** (o usa il joystick) |
 | **Spara** | **Automatico** mentre tocchi |
-| **Scudo** | Tocca l'**icona scudo** |
 | **Modalità HYPER** | Tocca il **pulsante HYPER** (quando disponibile) |
 
 ---
@@ -33,46 +31,63 @@ Distruggi le ondate di valute fiat, affronta i boss delle Banche Centrali (FED, 
 
 ### Il Loop di Gioco
 1. **Distruggi i nemici** - Ondate di valute fiat scendono dall'alto
-2. **Sfiora i proiettili** - Avvicinati al pericolo per punti e meter
-3. **Raccogli i power-up** - Potenzia armi e nave
-4. **Sopravvivi alle 5 ondate** - Ogni livello ha 5 wave
+2. **Raccogli drop UPGRADE** - Potenzia la tua arma attraverso 5 livelli
+3. **Prendi speciali e utility** - HOMING, PIERCE, MISSILE, SHIELD, SPEED
+4. **Sopravvivi alle 5 ondate** - Ogni ciclo ha 5 wave da 2 orde ciascuna
 5. **Sconfiggi il Boss** - La Banca Centrale ti attende!
-6. **Nuovo ciclo** - Difficoltà aumenta, ricompense migliori
+6. **Nuovo ciclo** - Difficoltà aumenta, nemici più resistenti
 
 ### Come si Vince
-Accumula il **punteggio più alto possibile**! Padroneggia le meccaniche rischio/ricompensa:
-- **Graze** i proiettili nemici per riempire il meter
+Accumula il **punteggio più alto possibile**! Padroneggia queste meccaniche:
+- **Uccidi nemici da vicino** per riempire il meter DIP
 - **HYPER Mode** per punteggio x5 a rischio estremo
-- **Sacrificio di Satoshi** per la rimonta definitiva
+- **Raggiungi Livello Arma 5** per sbloccare GODCHAIN
 
 ### Game Over
-Perdi tutte le **vite** (cuori in alto a sinistra). Ma aspetta - se sei all'ultima vita, hai un'ultima opzione: il **Sacrificio di Satoshi**!
+Perdi tutte le **vite** (cuori in alto a sinistra). Ogni morte ti costa **1 livello arma** e la tua arma speciale attiva.
 
 ### Modalità Bear Market
 Vuoi una sfida? Attiva il **Bear Market** per difficoltà aumentata e punteggi più alti!
 
 ---
 
-## 4. Power-Up e Risorse
+## 4. Power-Up e Drop
 
-I nemici rilasciano power-up quando vengono distrutti. Esistono due categorie:
+I nemici rilasciano power-up quando vengono distrutti. Tre categorie:
 
-### Potenziamenti Arma (si sostituiscono)
-| Icona | Nome | Effetto |
-|-------|------|---------|
-| **🔱** | **WIDE** | Triplo sparo a ventaglio largo |
-| **🎯** | **NARROW** | Triplo sparo concentrato |
-| **🔥** | **FIRE** | Triplo parallelo **penetrante** |
-| **🌟** | **SPREAD** | Ventaglio a 5 colpi |
-| **🎯** | **HOMING** | Missili a ricerca automatica |
-| **⚡** | **LASER** | Raggio rapido penetrante |
+### UPGRADE Arma (permanente)
+| Drop | Effetto |
+|------|---------|
+| **UPGRADE** | Livello arma **+1** (fino al livello 5) |
 
-### Potenziamenti Nave (si sostituiscono)
-| Icona | Nome | Effetto | Durata |
-|-------|------|---------|--------|
-| **⚡** | **SPEED** | Movimento +50% | 10s |
-| **🚀** | **RAPID** | Fuoco +100% veloce | 8s |
-| **🛡️** | **SHIELD** | Scudo istantaneo | 3s |
+La tua arma evolve raccogliendo drop UPGRADE:
+
+| Livello | Nome | Proiettili | Danno | Cadenza |
+|---------|------|------------|-------|---------|
+| 1 | **Single** | 1 | Normale | Normale |
+| 2 | **Dual** | 2 | Normale | Normale |
+| 3 | **Dual+** | 2 | +25% | +15% veloce |
+| 4 | **Triple** | 3 | +50% | +30% veloce |
+| 5 | **Triple MAX** | 3 | +75% | +45% veloce |
+
+**Penalità morte**: Ogni morte riduce l'arma di **1 livello** e rimuove la speciale attiva.
+
+### Armi Speciali (temporanee, 12s)
+Esclusive — raccoglierne una sostituisce la speciale attiva.
+
+| Nome | Effetto |
+|------|---------|
+| **HOMING** | I proiettili inseguono il nemico più vicino |
+| **PIERCE** | I proiettili attraversano i nemici |
+| **MISSILE** | Meno proiettili ma enormi esplosioni ad area |
+
+### Drop Utility (temporanei, 12s)
+Pickup a forma di capsula con grafica distinta.
+
+| Nome | Effetto |
+|------|---------|
+| **SHIELD** | Assorbe un colpo |
+| **SPEED** | Velocità di movimento +40% |
 
 ---
 
@@ -104,7 +119,7 @@ I nemici rilasciano power-up quando vengono distrutti. Esistono due categorie:
 
 ## 6. I Boss delle Banche Centrali
 
-Ogni 5 livelli affronti un boss. Rotazione: **FED → BCE → BOJ**
+Ogni 5 ondate affronti un boss. Rotazione: **FED → BCE → BOJ**
 
 | Boss | Simbolo | Stile |
 |------|---------|-------|
@@ -115,70 +130,67 @@ Ogni 5 livelli affronti un boss. Rotazione: **FED → BCE → BOJ**
 **3 Fasi per ogni Boss:**
 - **Fase 1** (100%-66% HP): Lento, pattern semplici
 - **Fase 2** (66%-33% HP): Veloce, pattern complessi
-- **Fase 3** (33%-0% HP): Erratico, evoca rinforzi!
+- **Fase 3** (33%-0% HP): Erratico, pericolo massimo!
+
+**Drop dai Boss**: Ogni **40 colpi a segno** rilascia un power-up. Continua a sparare!
 
 ---
 
 ## 7. Meccaniche Avanzate
 
-### ⚡ HYPER MODE - Massimo Rischio, Massima Ricompensa
+### HYPER MODE - Massimo Rischio, Massima Ricompensa
 
-Quando il **Graze Meter** raggiunge il 100%, premi **H** per attivare HYPER:
+Uccidi i nemici da vicino per riempire il **meter DIP**. Quando raggiunge il 100%, premi **H** per attivare HYPER:
 
 | Aspetto | Effetto |
 |---------|---------|
-| **Durata** | 5 secondi base (+0.3s per graze) |
+| **Durata** | 5 secondi base |
 | **Punteggio** | **Moltiplicatore x5** su TUTTI i punti |
+| **Arma** | **+2 livelli arma** temporanei (LV6/LV7!) |
 | **Hitbox** | 50% PIÙ GRANDE (più rischio!) |
 | **Morte** | **ISTANTANEA** se colpito (ignora le vite) |
 | **Cooldown** | 8 secondi dopo la fine di HYPER |
 
-**Strategia**: Attiva HYPER quando i nemici sono raggruppati. Fare graze durante HYPER estende il timer!
+**Strategia**: Attiva HYPER quando i nemici sono raggruppati. Il boost temporaneo dell'arma ti rende devastante!
 
-### 🔥 IL SACRIFICIO DI SATOSHI - La Scommessa Definitiva
+### GODCHAIN - Potenza Assoluta
 
-Quando sei all'**ultima vita** e stai per morire, il tempo rallenta e appare un pulsante dorato **₿**:
+Quando raggiungi il **Livello Arma 5**, la GODCHAIN si attiva automaticamente:
+- Effetto visivo imponente (aura dorata, meteore)
+- Ogni drop UPGRADE al livello massimo **ricarica la GODCHAIN**
+- GODCHAIN combinata con HYPER raggiunge i livelli arma 6-7 — distruzione assoluta!
 
-| Se ACCETTI | Risultato |
-|------------|-----------|
-| **Costo** | TUTTO il punteggio si azzera |
-| **Ricompensa** | 10 secondi di **INVINCIBILITÀ TOTALE** |
-| **Punteggio** | **Moltiplicatore x10** durante il Sacrificio |
-| **Successo** | Riguadagni il punteggio = **+1 VITA EXTRA** |
-| **Fallimento** | Guadagni meno = Sopravvivi comunque |
-
-**La Scommessa di Satoshi**: Riesci a riguadagnare tutto in 10 secondi?
+**Il ciclo**: Raccogli UPGRADE → raggiungi LV5 → GODCHAIN → timer scade → raccogli altri UPGRADE → GODCHAIN di nuovo!
 
 ---
 
-## 8. Consigli da Pro (Tips)
+## 8. Consigli da Pro
 
-### 💎 **HODL MODE** - Il Segreto dei Campioni
+### HODL MODE - Il Segreto dei Campioni
 **Smetti di muoverti** e la tua nave entra in modalità HODL:
 - **Danno x2** contro tutti i nemici
 - **Aura dorata** visibile attorno alla nave
 
 Usa HODL quando i nemici sono allineati sopra di te!
 
-### 🔥 **Graze** - Sfiora il Pericolo
-Passa **vicino ai proiettili nemici** senza farti colpire:
-- Accumula il **Graze Meter** (barra laterale)
-- Più è pieno, maggiore il **moltiplicatore punti** (fino a 2.5x)
-- **Meter pieno = HYPER PRONTO!**
+### Uccidi da Vicino per il DIP
+Uccidi i nemici quando sono **vicini alla tua nave** verticalmente:
+- Riempie il **meter DIP** più velocemente
+- Meter pieno = HYPER PRONTO!
+- Anche i colpi ai boss contribuiscono al meter
 
-### 🛡️ **Scudo Tattico**
-Lo scudo ha un cooldown di 10 secondi. Usalo per:
-- Attraversare muri di proiettili
-- Sopravvivere agli attacchi del Boss in Fase 3
-- Emergenze quando il Graze va storto
+### Scudo Tattico (Drop Utility)
+Quando raccogli una capsula SHIELD:
+- Assorbe il **prossimo colpo** per 12 secondi
+- Non si accumula — raccoglilo quando serve protezione
+- Ottimo per sopravvivere alla Fase 3 dei boss
 
-### ⚡ **Power-up dei Boss**
-Durante i boss fight, ogni **25 colpi a segno** rilascia un power-up. Continua a sparare!
+### Gestione Livello Arma
+- **Morire costa 1 livello** — evita di morire a LV5 se possibile
+- GODCHAIN funziona solo a **LV5** — dai priorità ai drop UPGRADE
+- Dopo la morte, i drop UPGRADE ti aiutano a recuperare rapidamente
 
-### 🎯 **Bonus Ultimo Nemico**
-L'ultimo nemico di ogni ondata dà **punti x2** - dagli la caccia!
-
-### 📊 **Intensità delle Ondate**
+### Strategia nelle Ondate
 Le ondate diventano più difficili man mano che le svuoti:
 - **0-30%**: Fase setup, impara i pattern
 - **30-85%**: Fase build, pressione in aumento
@@ -192,9 +204,8 @@ Le ondate diventano più difficili man mano che le svuoti:
 |---------|----------------------|
 | **HODL** | Fermarsi per danni doppi |
 | **HYPER** | Modalità punteggio x5 (alto rischio) |
-| **SATOSHI MODE** | Sacrificio con invincibilità x10 |
-| **NGMI** | Sacrificio fallito (ma sopravvivi) |
-| **DIAMOND HANDS** | Successo dopo il Sacrificio |
+| **GODCHAIN** | Modalità potenza massima a LV5 |
+| **DIP** | Meter uccisioni ravvicinate (attiva HYPER) |
 | **REKT** | Game Over |
 | **BUY THE DIP** | Ricomincia la partita |
 | **FOMO** | Non perdere i power-up! |
@@ -206,4 +217,4 @@ Le ondate diventano più difficili man mano che le svuoti:
 *"There is no second best"* - Michael Saylor
 
 ---
-v2.12.3 FIAT vs CRYPTO
+v4.48.0 FIAT vs CRYPTO
