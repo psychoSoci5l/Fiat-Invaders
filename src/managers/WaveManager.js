@@ -163,6 +163,10 @@ window.Game.WaveManager = {
             // Get horde modifiers
             const hordeMods = Balance.getHordeModifiers(hordeNumber);
 
+            // Choose entry path (weighted random)
+            const entryPath = (hordeMods.entryStyle === 'rapid') ? 'SINE' : this._pickEntryPath();
+            dbg.log('WAVE', `[WM] Entry path: ${entryPath}`);
+
             // Spawn enemies
             for (let i = 0; i < positions.length; i++) {
                 const pos = positions[i];
@@ -174,7 +178,7 @@ window.Game.WaveManager = {
                     continue;
                 }
 
-                const enemy = this.createEnemy(pos, currencyType, cycle, hordeMods, i);
+                const enemy = this.createEnemy(pos, currencyType, cycle, hordeMods, i, entryPath, gameWidth);
                 enemies.push(enemy);
             }
 
@@ -201,9 +205,26 @@ window.Game.WaveManager = {
     },
 
     /**
+     * Pick weighted random entry path
+     */
+    _pickEntryPath() {
+        const Balance = window.Game.Balance;
+        const paths = Balance?.FORMATION_ENTRY?.PATHS;
+        if (!paths) return 'SINE';
+        const entries = Object.entries(paths);
+        const totalW = entries.reduce((s, [, v]) => s + (v.weight || 1), 0);
+        let r = Math.random() * totalW;
+        for (const [name, cfg] of entries) {
+            r -= (cfg.weight || 1);
+            if (r <= 0) return name;
+        }
+        return 'SINE';
+    },
+
+    /**
      * Create a single enemy with proper configuration
      */
-    createEnemy(pos, currencyType, cycle, hordeMods, index) {
+    createEnemy(pos, currencyType, cycle, hordeMods, index, entryPath, gameWidth) {
         const G = window.Game;
         const Balance = G.Balance;
         const level = window.currentLevel || 1;
@@ -220,13 +241,36 @@ window.Game.WaveManager = {
         const entryEnabled = formationConfig.ENABLED !== false;
         const spawnYOffset = formationConfig.SPAWN_Y_OFFSET || -80;
         const staggerDelay = formationConfig.STAGGER_DELAY || 0.08;
+        const path = entryPath || 'SINE';
+        const gw = gameWidth || G._gameWidth || 400;
 
-        const spawnY = entryEnabled ? spawnYOffset : pos.y;
-        const enemy = new G.Enemy(pos.x, spawnY, scaledType);
+        // Calculate spawn position based on entry path
+        let spawnX = pos.x;
+        let spawnY = entryEnabled ? spawnYOffset : pos.y;
+        if (entryEnabled) {
+            if (path === 'SWEEP') {
+                // Enter from left or right side
+                spawnX = (pos.x < gw / 2) ? -40 : gw + 40;
+                spawnY = pos.y + (Math.random() - 0.5) * 40;
+            } else if (path === 'SPIRAL') {
+                // Spiral down from center top
+                const angle = (index / 12) * Math.PI * 2;
+                const radius = 30 + index * 8;
+                spawnX = gw / 2 + Math.cos(angle) * radius;
+                spawnY = spawnYOffset;
+            } else if (path === 'SPLIT') {
+                // Two groups from opposite sides
+                spawnX = (index % 2 === 0) ? -40 : gw + 40;
+                spawnY = spawnYOffset + Math.abs(index - 6) * 10;
+            }
+        }
+
+        const enemy = new G.Enemy(spawnX, spawnY, scaledType);
 
         // Entry animation
         if (entryEnabled) {
             enemy.isEntering = true;
+            enemy.entryPath = path;
             enemy.targetX = pos.x;
             enemy.targetY = pos.y;
             enemy.baseY = pos.y;
@@ -390,6 +434,12 @@ window.Game.WaveManager = {
             case 'STAIRCASE_REVERSE': positions = this.generateStaircase(count, gameWidth, startY, spacing, false); break;
             case 'HURRICANE': positions = this.generateHurricane(count, gameWidth, startY, spacing); break;
             case 'FINAL_FORM': positions = this.generateFinalForm(count, gameWidth, startY, spacing); break;
+            // Currency symbol formations
+            case 'BTC_SYMBOL': positions = this.generateBtcSymbol(count, gameWidth, startY, spacing); break;
+            case 'DOLLAR_SIGN': positions = this.generateDollarSign(count, gameWidth, startY, spacing); break;
+            case 'EURO_SIGN': positions = this.generateEuroSign(count, gameWidth, startY, spacing); break;
+            case 'YEN_SIGN': positions = this.generateYenSign(count, gameWidth, startY, spacing); break;
+            case 'POUND_SIGN': positions = this.generatePoundSign(count, gameWidth, startY, spacing); break;
             // Legacy fallbacks
             case 'RECT': positions = this.generateRect(count, gameWidth, startY, spacing); break;
             case 'V_SHAPE': positions = this.generateVShape(count, gameWidth, startY, spacing); break;
@@ -1026,6 +1076,148 @@ window.Game.WaveManager = {
         }
 
         return positions;
+    },
+
+    // ========================================
+    // CURRENCY SYMBOL FORMATIONS (v4.46)
+    // ========================================
+
+    /**
+     * Distribute N points along a polyline path defined by normalized [0-1] vertices.
+     * Scales to fit within gameWidth with margins, centered.
+     */
+    _distributeOnPath(path, count, gameWidth, startY, spacing) {
+        const margin = 40;
+        const usableW = Math.min(gameWidth - margin * 2, count * spacing * 0.6);
+        const usableH = usableW * 1.2;
+        const cx = gameWidth / 2;
+
+        // Calculate total path length
+        let totalLen = 0;
+        const segLens = [];
+        for (let i = 1; i < path.length; i++) {
+            const dx = path[i][0] - path[i - 1][0];
+            const dy = path[i][1] - path[i - 1][1];
+            const len = Math.sqrt(dx * dx + dy * dy);
+            segLens.push(len);
+            totalLen += len;
+        }
+
+        const positions = [];
+        const step = totalLen / count;
+        let accum = step * 0.5; // start at half-step for centering
+        let segIdx = 0;
+        let segAccum = 0;
+
+        for (let i = 0; i < count; i++) {
+            // Walk along segments to find position at distance accum
+            let target = accum;
+            while (segIdx < segLens.length - 1 && target > segAccum + segLens[segIdx]) {
+                segAccum += segLens[segIdx];
+                segIdx++;
+            }
+            const localT = segLens[segIdx] > 0 ? (target - segAccum) / segLens[segIdx] : 0;
+            const p0 = path[segIdx];
+            const p1 = path[segIdx + 1] || p0;
+            const nx = p0[0] + (p1[0] - p0[0]) * localT;
+            const ny = p0[1] + (p1[1] - p0[1]) * localT;
+
+            positions.push({
+                x: cx + (nx - 0.5) * usableW,
+                y: startY + ny * usableH
+            });
+            accum += step;
+        }
+        return positions;
+    },
+
+    /**
+     * BTC_SYMBOL - Bitcoin "B" with vertical bars
+     */
+    generateBtcSymbol(count, gameWidth, startY, spacing) {
+        // B shape with two bumps + vertical bar
+        const path = [
+            [0.3, 0.0], [0.3, 1.0],  // left vertical
+            [0.3, 0.0], [0.6, 0.0], [0.7, 0.1], [0.7, 0.2], [0.6, 0.3], // top bump
+            [0.3, 0.3],  // middle connect back
+            [0.3, 0.5], [0.65, 0.5], [0.75, 0.6], [0.75, 0.8], [0.65, 0.9], [0.3, 1.0], // bottom bump
+            [0.35, -0.05], [0.35, 0.05], // top bar
+            [0.35, 0.95], [0.35, 1.05]  // bottom bar
+        ];
+        return this._distributeOnPath(path, count, gameWidth, startY, spacing);
+    },
+
+    /**
+     * DOLLAR_SIGN - $ shape
+     */
+    generateDollarSign(count, gameWidth, startY, spacing) {
+        // S-curve + vertical bar
+        const path = [
+            // S curve
+            [0.65, 0.15], [0.55, 0.05], [0.4, 0.0], [0.3, 0.05], [0.25, 0.15],
+            [0.3, 0.3], [0.5, 0.45],
+            [0.7, 0.55], [0.75, 0.7], [0.7, 0.85],
+            [0.6, 0.95], [0.45, 1.0], [0.35, 0.95],
+            // Vertical bar
+            [0.5, -0.05], [0.5, 1.05]
+        ];
+        return this._distributeOnPath(path, count, gameWidth, startY, spacing);
+    },
+
+    /**
+     * EURO_SIGN - Euro symbol with horizontal bars
+     */
+    generateEuroSign(count, gameWidth, startY, spacing) {
+        // C curve + two horizontal bars
+        const path = [
+            // C shape
+            [0.7, 0.15], [0.6, 0.05], [0.5, 0.0], [0.35, 0.05], [0.25, 0.2],
+            [0.2, 0.4], [0.2, 0.6],
+            [0.25, 0.8], [0.35, 0.95], [0.5, 1.0], [0.6, 0.95], [0.7, 0.85],
+            // Top bar
+            [0.15, 0.4], [0.55, 0.4],
+            // Bottom bar
+            [0.15, 0.6], [0.55, 0.6]
+        ];
+        return this._distributeOnPath(path, count, gameWidth, startY, spacing);
+    },
+
+    /**
+     * YEN_SIGN - Yen symbol
+     */
+    generateYenSign(count, gameWidth, startY, spacing) {
+        // Y shape + horizontal bars + stem
+        const path = [
+            // Y top left
+            [0.25, 0.0], [0.5, 0.4],
+            // Y top right
+            [0.75, 0.0], [0.5, 0.4],
+            // Stem
+            [0.5, 0.4], [0.5, 1.0],
+            // Top bar
+            [0.3, 0.55], [0.7, 0.55],
+            // Bottom bar
+            [0.3, 0.7], [0.7, 0.7]
+        ];
+        return this._distributeOnPath(path, count, gameWidth, startY, spacing);
+    },
+
+    /**
+     * POUND_SIGN - Pound sterling symbol
+     */
+    generatePoundSign(count, gameWidth, startY, spacing) {
+        // L-curve + horizontal bar + base
+        const path = [
+            // Top curve
+            [0.65, 0.1], [0.55, 0.0], [0.4, 0.0], [0.3, 0.1], [0.3, 0.25],
+            // Stem down
+            [0.3, 0.4], [0.25, 0.6], [0.2, 0.8], [0.2, 0.95],
+            // Base
+            [0.2, 1.0], [0.75, 1.0],
+            // Cross bar
+            [0.15, 0.5], [0.6, 0.5]
+        ];
+        return this._distributeOnPath(path, count, gameWidth, startY, spacing);
     },
 
     // ========================================

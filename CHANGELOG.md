@@ -1,5 +1,15 @@
 # Changelog
 
+## v4.46.0 - 2026-02-12
+### Backlog Closure — Formations, Collisions, Polish
+
+- **Privacy link in Settings**: Discrete text link under Help/Credits opens privacy summary modal, localized EN/IT
+- **iOS icon set**: `scripts/generate-icons.js` (sharp) generates 120/152/167/180/192/1024px icons. Updated `manifest.json` + apple-touch-icon meta tags
+- **Formation visual audit**: `dbg.formations()` renders all formations at 360/414/768px widths as overlay, reports off-screen and spacing issues
+- **Currency symbol formations**: 5 new formations (BTC_SYMBOL, DOLLAR_SIGN, EURO_SIGN, YEN_SIGN, POUND_SIGN) — polyline path distribution, auto-rotate into cycle 4+ waves (30% swap chance)
+- **Formation entry paths**: 4 entry path types (SINE, SWEEP, SPIRAL, SPLIT) with weighted random selection per wave. Config in `FORMATION_ENTRY.PATHS`
+- **Spatial partitioning**: `SpatialGrid.js` hash grid (80px cells) accelerates player-bullet-vs-enemy and bullet-cancellation collision checks. Fallback to original loops if grid unavailable
+
 ## v4.45.0 - 2026-02-11
 ### Cinematic Story Screens
 

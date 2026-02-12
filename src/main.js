@@ -2047,6 +2047,8 @@ function updateUIText() {
     if (setHeader) setHeader.innerText = t('SETTINGS');
     const closeBtn = document.getElementById('btn-settings-close');
     if (closeBtn) closeBtn.innerText = t('CLOSE');
+    const privacyLink = document.getElementById('privacy-link');
+    if (privacyLink) privacyLink.innerText = t('PRIVACY');
     // Select the lang row specifically (parent of #lang-btn)
     const langBtn = document.getElementById('lang-btn');
     if (langBtn) {
@@ -2066,6 +2068,10 @@ window.toggleHelpPanel = function () {
 };
 window.toggleCreditsPanel = function () {
     const panel = document.getElementById('credits-panel');
+    if (panel) panel.style.display = (panel.style.display === 'flex') ? 'none' : 'flex';
+};
+window.togglePrivacyPanel = function () {
+    const panel = document.getElementById('privacy-panel');
     if (panel) panel.style.display = (panel.style.display === 'flex') ? 'none' : 'flex';
 };
 
@@ -3896,6 +3902,9 @@ function update(dt) {
 }
 
 function updateBullets(dt) {
+    // Build spatial grids for collision optimization
+    if (G.CollisionSystem.buildGrids) G.CollisionSystem.buildGrids();
+
     // Player Bullets — update + collision via CollisionSystem
     for (let i = bullets.length - 1; i >= 0; i--) {
         let b = bullets[i];

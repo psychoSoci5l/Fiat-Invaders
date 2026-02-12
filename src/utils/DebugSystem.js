@@ -1889,6 +1889,59 @@ window.Game.Debug = {
             console.log(`    SPREAD: Lv${player.modifiers.spread.level} (${player.modifiers.spread.timer.toFixed(1)}s)`);
         }
         console.log(`  Special: ${player.special || 'none'} (${(player.specialTimer || 0).toFixed(1)}s)`);
+    },
+
+    /**
+     * Formation audit — console-only report (no overlay)
+     * Usage: dbg.formations()
+     */
+    formations() {
+        const G = window.Game;
+        const WM = G.WaveManager;
+        if (!WM) { console.log('[DEBUG] WaveManager not found'); return; }
+
+        const Balance = G.Balance;
+        const FORMATIONS = Balance?.WAVE_DEFINITIONS?.FORMATIONS || {};
+        const names = Object.keys(FORMATIONS);
+        const testWidths = [360, 414, 768];
+        const testCount = 12;
+        const spacingMin = Balance?.FORMATION?.SPACING_MIN || 62;
+        const issues = [];
+
+        console.log(`%c[FORMATION AUDIT] ${names.length} formations × ${testWidths.length} widths (n=${testCount})`, 'color:#f39c12;font-weight:bold');
+
+        names.forEach(name => {
+            const row = [];
+            testWidths.forEach(simW => {
+                const positions = WM.generateFormation(name, testCount, simW);
+                if (!positions || positions.length === 0) { row.push(`${simW}px: EMPTY`); return; }
+
+                let offScreen = 0;
+                let minSpacing = Infinity;
+                for (let i = 0; i < positions.length; i++) {
+                    const p = positions[i];
+                    if (p.x < 0 || p.x > simW) offScreen++;
+                    for (let j = i + 1; j < positions.length; j++) {
+                        const q = positions[j];
+                        const d = Math.sqrt((p.x - q.x) ** 2 + (p.y - q.y) ** 2);
+                        if (d < minSpacing) minSpacing = d;
+                    }
+                }
+
+                const tag = (offScreen > 0 || minSpacing < spacingMin) ? '!!' : 'OK';
+                row.push(`${simW}px: n=${positions.length} spc=${Math.round(minSpacing)} ${offScreen > 0 ? 'OFF=' + offScreen : ''} [${tag}]`);
+                if (offScreen > 0) issues.push(`${name}@${simW}: ${offScreen} off-screen`);
+                if (minSpacing < spacingMin) issues.push(`${name}@${simW}: minSpacing=${Math.round(minSpacing)} < ${spacingMin}`);
+            });
+            console.log(`  ${name.padEnd(18)} ${row.join('  |  ')}`);
+        });
+
+        if (issues.length > 0) {
+            console.warn(`%c[AUDIT] ${issues.length} issues:`, 'color:#e74c3c;font-weight:bold');
+            issues.forEach(i => console.warn('  ' + i));
+        } else {
+            console.log('%c[AUDIT] All formations OK', 'color:#2ecc71;font-weight:bold');
+        }
     }
 };
 
@@ -1896,4 +1949,4 @@ window.Game.Debug = {
 window.dbg = window.Game.Debug;
 
 // Console helper message
-console.log('[DEBUG] DebugSystem loaded. Commands: dbg.stats(), dbg.showOverlay(), dbg.perf(), dbg.perfReport(), dbg.debugBoss(), dbg.debugHUD(), dbg.hudStatus(), dbg.toggleHudMsg(key), dbg.maxWeapon(), dbg.weaponStatus(), dbg.godchain(), dbg.godchainStatus(), dbg.powerUpReport(), dbg.hitboxes()');
+console.log('[DEBUG] DebugSystem loaded. Commands: dbg.stats(), dbg.showOverlay(), dbg.perf(), dbg.perfReport(), dbg.debugBoss(), dbg.debugHUD(), dbg.hudStatus(), dbg.toggleHudMsg(key), dbg.maxWeapon(), dbg.weaponStatus(), dbg.godchain(), dbg.godchainStatus(), dbg.powerUpReport(), dbg.hitboxes(), dbg.formations()');

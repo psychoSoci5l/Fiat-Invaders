@@ -1154,6 +1154,13 @@
                 HURRICANE:  { generator: 'generateHurricane' },
                 FINAL_FORM: { generator: 'generateFinalForm' },
 
+                // Currency symbol formations (cycle 4+)
+                BTC_SYMBOL:  { generator: 'generateBtcSymbol' },
+                DOLLAR_SIGN: { generator: 'generateDollarSign' },
+                EURO_SIGN:   { generator: 'generateEuroSign' },
+                YEN_SIGN:    { generator: 'generateYenSign' },
+                POUND_SIGN:  { generator: 'generatePoundSign' },
+
                 // Legacy patterns (backwards compatibility)
                 RECT:       { generator: 'generateRect' },
                 V_SHAPE:    { generator: 'generateVShape' },
@@ -1190,7 +1197,14 @@
             STAGGER_DELAY: 0.04,          // Seconds between each enemy starting entry
             SPAWN_Y_OFFSET: -80,          // Y offset above screen for spawning
             SETTLE_TIME: 0.3,             // Seconds to settle after reaching position
-            CURVE_INTENSITY: 0.15         // How much enemies curve during entry (0-1)
+            CURVE_INTENSITY: 0.15,        // How much enemies curve during entry (0-1)
+            // Entry path types with weighted random selection
+            PATHS: {
+                SINE:   { weight: 3 },    // Default sine curve entry (from top)
+                SWEEP:  { weight: 2 },    // Enter from left or right side
+                SPIRAL: { weight: 1 },    // Spiral descent from center
+                SPLIT:  { weight: 2 }     // Two groups from opposite sides
+            }
         },
 
         // --- VFX SYSTEM v4.5 (Game Feel Overhaul) ---
@@ -1864,7 +1878,20 @@
             const defs = this.WAVE_DEFINITIONS.WAVES;
             // Cap cycle at 3 (repeat cycle 3 for cycles 4+)
             const effectiveCycle = Math.min(cycle, 3);
-            return defs.find(w => w.cycle === effectiveCycle && w.wave === waveInCycle) || null;
+            const base = defs.find(w => w.cycle === effectiveCycle && w.wave === waveInCycle) || null;
+            // Cycle 4+: 30% chance to swap formation with a currency symbol
+            if (base && cycle >= 4) {
+                const symbolForms = ['BTC_SYMBOL', 'DOLLAR_SIGN', 'EURO_SIGN', 'YEN_SIGN', 'POUND_SIGN'];
+                const clone = JSON.parse(JSON.stringify(base));
+                if (Math.random() < 0.3) {
+                    clone.horde1.formation = symbolForms[Math.floor(Math.random() * symbolForms.length)];
+                }
+                if (Math.random() < 0.3) {
+                    clone.horde2.formation = symbolForms[Math.floor(Math.random() * symbolForms.length)];
+                }
+                return clone;
+            }
+            return base;
         },
 
         /**

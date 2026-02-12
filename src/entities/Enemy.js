@@ -158,18 +158,46 @@ class Enemy extends window.Game.Entity {
             const dist = Math.sqrt(dx * dx + dy * dy);
 
             if (dist > 5) {
-                // Move towards target with slight curve
+                // Move towards target
                 const moveAmount = entrySpeed * dt;
                 const entryEB = EB.ENTRY;
                 const t = 1 - (dist / entryEB.MAX_DISTANCE); // Progress factor
+                const path = this.entryPath || 'SINE';
 
-                // Add horizontal curve for visual interest (sine wave entry)
-                const curveOffset = Math.sin(t * Math.PI) * curveIntensity * entryEB.CURVE_AMPLITUDE;
-                const adjustedDx = dx + curveOffset * (this.targetX > 300 ? -1 : 1);
+                let moveX, moveY;
+                if (path === 'SWEEP') {
+                    // Curve from side towards target with ease-in
+                    const ease = t * t; // accelerate into position
+                    const curveY = Math.sin(t * Math.PI) * 40;
+                    const angle = Math.atan2(dy + curveY, dx);
+                    moveX = Math.cos(angle) * moveAmount * (0.8 + ease * 0.4);
+                    moveY = Math.sin(angle) * moveAmount * (0.8 + ease * 0.4);
+                } else if (path === 'SPIRAL') {
+                    // Spiral descent
+                    const spiralAngle = t * Math.PI * 3;
+                    const spiralR = (1 - t) * 60;
+                    const spiralDx = dx + Math.cos(spiralAngle) * spiralR;
+                    const spiralDy = dy + Math.sin(spiralAngle) * spiralR * 0.4;
+                    const angle = Math.atan2(spiralDy, spiralDx);
+                    moveX = Math.cos(angle) * moveAmount;
+                    moveY = Math.sin(angle) * moveAmount;
+                } else if (path === 'SPLIT') {
+                    // Direct convergence with slight vertical wave
+                    const wave = Math.sin(t * Math.PI * 2) * 20;
+                    const angle = Math.atan2(dy + wave, dx);
+                    moveX = Math.cos(angle) * moveAmount;
+                    moveY = Math.sin(angle) * moveAmount;
+                } else {
+                    // SINE (default) — original behavior
+                    const curveOffset = Math.sin(t * Math.PI) * curveIntensity * entryEB.CURVE_AMPLITUDE;
+                    const adjustedDx = dx + curveOffset * (this.targetX > 300 ? -1 : 1);
+                    const angle = Math.atan2(dy, adjustedDx);
+                    moveX = Math.cos(angle) * moveAmount;
+                    moveY = Math.sin(angle) * moveAmount;
+                }
 
-                const angle = Math.atan2(dy, adjustedDx);
-                this.x += Math.cos(angle) * moveAmount;
-                this.y += Math.sin(angle) * moveAmount;
+                this.x += moveX;
+                this.y += moveY;
 
                 // Update entry progress for visual feedback
                 this.entryProgress = Math.min(1, t);

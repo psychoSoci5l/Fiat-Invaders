@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v4.45.0 FIAT vs CRYPTO";
+window.Game.VERSION = "v4.46.0 FIAT vs CRYPTO";
 
 window.Game.TEXTS = {
     EN: {
@@ -28,7 +28,7 @@ window.Game.TEXTS = {
         WEAPON_UNLOCK: "NEW WEAPON UNLOCKED:", GRAZE_MASTER: "GRAZE MASTER",
         LAST_FIAT: "LAST FIAT!", RESPAWN: "RESPAWN!",
         UPGRADE: "UPGRADE LVL", MAX_POWER: "MAX POWER", HODL: "HODL!",
-        SETTINGS: "SETTINGS", CLOSE: "CLOSE", LANG: "LANGUAGE",
+        SETTINGS: "SETTINGS", CLOSE: "CLOSE", LANG: "LANGUAGE", PRIVACY: "Privacy Policy",
         PAUSED: "PAUSED", RESUME: "RESUME", EXIT_TITLE: "EXIT TO TITLE", EXIT: "EXIT",
         RESTART_RUN: "RESTART RUN",
         // Mode descriptions
@@ -186,7 +186,7 @@ window.Game.TEXTS = {
         WEAPON_UNLOCK: "NUOVA ARMA SBLOCCATA:", GRAZE_MASTER: "MAESTRO GRAZE",
         LAST_FIAT: "ULTIMO FIAT!", RESPAWN: "RINASCITA!",
         UPGRADE: "POTENZIAMENTO LV", MAX_POWER: "MASSIMA POTENZA", HODL: "HODL!",
-        SETTINGS: "IMPOSTAZIONI", CLOSE: "CHIUDI", LANG: "LINGUA",
+        SETTINGS: "IMPOSTAZIONI", CLOSE: "CHIUDI", LANG: "LINGUA", PRIVACY: "Privacy",
         PAUSED: "PAUSA", RESUME: "RIPRENDI", EXIT_TITLE: "ESCI AL TITOLO", EXIT: "ESCI",
         RESTART_RUN: "RICOMINCIA",
         // Mode descriptions

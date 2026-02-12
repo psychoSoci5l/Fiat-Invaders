@@ -11,6 +11,8 @@ window.Game = window.Game || {};
     const CollisionSystem = {
         // Context object — set once via init()
         _ctx: null,
+        _enemyGrid: null,
+        _ebGrid: null,
 
         /**
          * Initialize with game context.
@@ -20,6 +22,44 @@ window.Game = window.Game || {};
          */
         init(ctx) {
             this._ctx = ctx;
+        },
+
+        /**
+         * Build spatial grids for current frame.
+         * Call once per frame before collision checks.
+         */
+        buildGrids() {
+            const grid = G.SpatialGrid;
+            if (!grid) return;
+
+            const ctx = this._ctx;
+            if (!ctx) return;
+
+            // Enemy grid (for player bullets vs enemies)
+            grid.clear();
+            const enemies = ctx.getEnemies();
+            for (let i = 0; i < enemies.length; i++) {
+                const e = enemies[i];
+                if (e && !e.isEntering && e.hasSettled) grid.insert(e);
+            }
+            this._enemyGrid = true;
+
+            // Enemy bullet grid (for bullet cancellation)
+            if (!this._ebGridObj) this._ebGridObj = { cellSize: 80, cells: new Map() };
+            this._ebGridObj.cells.clear();
+            const enemyBullets = ctx.getEnemyBullets();
+            for (let i = 0; i < enemyBullets.length; i++) {
+                const eb = enemyBullets[i];
+                if (eb && !eb.markedForDeletion) {
+                    const cx = Math.floor(eb.x / 80);
+                    const cy = Math.floor(eb.y / 80);
+                    const key = (cx << 16) | (cy & 0xFFFF);
+                    let cell = this._ebGridObj.cells.get(key);
+                    if (!cell) { cell = []; this._ebGridObj.cells.set(key, cell); }
+                    cell.push(eb);
+                }
+            }
+            this._ebGrid = true;
         },
 
         // ─── Enemy Bullets vs Player ───────────────────────────────
@@ -119,6 +159,7 @@ window.Game = window.Game || {};
 
         // ─── Player Bullets vs Enemies ─────────────────────────────
         // Iterates enemy array and checks circle collision
+        // Uses spatial grid when available for O(1) lookups
         processPlayerBulletVsEnemy(bullet, bIdx, bullets) {
             const ctx = this._ctx;
             if (!ctx) return;
@@ -128,8 +169,14 @@ window.Game = window.Game || {};
             const player = ctx.player;
             const runState = G.RunState;
 
-            for (let j = enemies.length - 1; j >= 0; j--) {
-                const e = enemies[j];
+            // Use spatial grid for narrow-phase candidates if available
+            const grid = G.SpatialGrid;
+            const hitR = Balance.BULLET_CONFIG.ENEMY_HITBOX_RADIUS || 29;
+            const queryR = hitR + (bullet.collisionRadius || 4) + 10;
+            const candidates = (grid && this._enemyGrid) ? grid.query(bullet.x, bullet.y, queryR) : enemies;
+
+            for (let j = candidates.length - 1; j >= 0; j--) {
+                const e = candidates[j];
                 if (!e) continue;
                 if (e.isEntering || !e.hasSettled) continue;
 
@@ -147,8 +194,9 @@ window.Game = window.Game || {};
                     cb.onEnemyHit(e, bullet, shouldDie);
 
                     if (shouldDie) {
-                        enemies.splice(j, 1);
-                        cb.onEnemyKilled(e, bullet, j, enemies);
+                        const eIdx = enemies.indexOf(e);
+                        if (eIdx >= 0) enemies.splice(eIdx, 1);
+                        cb.onEnemyKilled(e, bullet, eIdx, enemies);
                     }
 
                     // Missile AoE
@@ -169,6 +217,7 @@ window.Game = window.Game || {};
 
         // ─── Bullet Cancellation ───────────────────────────────────
         // Player bullets cancel enemy bullets on contact
+        // Uses spatial grid when available
         processBulletCancellation() {
             const ctx = this._ctx;
             if (!ctx) return;
@@ -179,20 +228,52 @@ window.Game = window.Game || {};
 
             if (bullets.length === 0 || enemyBullets.length === 0) return;
 
+            const useGrid = this._ebGrid && this._ebGridObj;
+
             for (let i = bullets.length - 1; i >= 0; i--) {
                 const b = bullets[i];
                 if (!b || b.markedForDeletion) continue;
                 const bR = b.collisionRadius || 4;
 
-                for (let j = enemyBullets.length - 1; j >= 0; j--) {
-                    const eb = enemyBullets[j];
-                    if (!eb || eb.markedForDeletion) continue;
-                    const ebR = eb.collisionRadius || Balance.BULLET_CONFIG.ENEMY_DEFAULT.collisionRadius;
+                if (useGrid) {
+                    // Grid-accelerated: query nearby enemy bullets
+                    const queryR = bR + (Balance.BULLET_CONFIG.ENEMY_DEFAULT.collisionRadius || 6) + 10;
+                    const minCx = Math.floor((b.x - queryR) / 80);
+                    const maxCx = Math.floor((b.x + queryR) / 80);
+                    const minCy = Math.floor((b.y - queryR) / 80);
+                    const maxCy = Math.floor((b.y + queryR) / 80);
 
-                    if (G.BulletSystem.circleCollide(b.x, b.y, bR, eb.x, eb.y, ebR)) {
-                        cb.onBulletCancel(b, eb, i, j, bullets, enemyBullets);
-                        // Pierce: if bullet still alive, continue hitting more enemy bullets
+                    for (let cx = minCx; cx <= maxCx; cx++) {
+                        for (let cy = minCy; cy <= maxCy; cy++) {
+                            const key = (cx << 16) | (cy & 0xFFFF);
+                            const cell = this._ebGridObj.cells.get(key);
+                            if (!cell) continue;
+                            for (let k = cell.length - 1; k >= 0; k--) {
+                                const eb = cell[k];
+                                if (!eb || eb.markedForDeletion) continue;
+                                const ebR = eb.collisionRadius || Balance.BULLET_CONFIG.ENEMY_DEFAULT.collisionRadius;
+                                if (G.BulletSystem.circleCollide(b.x, b.y, bR, eb.x, eb.y, ebR)) {
+                                    // Find original index for callback
+                                    const j = enemyBullets.indexOf(eb);
+                                    if (j >= 0) cb.onBulletCancel(b, eb, i, j, bullets, enemyBullets);
+                                    if (b.markedForDeletion) break;
+                                }
+                            }
+                            if (b.markedForDeletion) break;
+                        }
                         if (b.markedForDeletion) break;
+                    }
+                } else {
+                    // Fallback: original O(n*m) loop
+                    for (let j = enemyBullets.length - 1; j >= 0; j--) {
+                        const eb = enemyBullets[j];
+                        if (!eb || eb.markedForDeletion) continue;
+                        const ebR = eb.collisionRadius || Balance.BULLET_CONFIG.ENEMY_DEFAULT.collisionRadius;
+
+                        if (G.BulletSystem.circleCollide(b.x, b.y, bR, eb.x, eb.y, ebR)) {
+                            cb.onBulletCancel(b, eb, i, j, bullets, enemyBullets);
+                            if (b.markedForDeletion) break;
+                        }
                     }
                 }
             }

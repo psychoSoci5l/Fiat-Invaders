@@ -14,7 +14,11 @@
     <title>FIAT vs CRYPTO</title>
 
     <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="icon-512.png">
+    <link rel="apple-touch-icon" href="icon-180.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="icon-120.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="icon-152.png">
+    <link rel="apple-touch-icon" sizes="167x167" href="icon-167.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -407,6 +411,7 @@
 
             <button class="btn btn-primary" onclick="toggleHelpPanel()">? HELP</button>
             <button class="btn btn-primary" onclick="toggleCreditsPanel()">CREDITS</button>
+            <a href="#" class="privacy-link" id="privacy-link" onclick="togglePrivacyPanel(); return false;">Privacy Policy</a>
             <button class="btn btn-primary" id="btn-settings-close" onclick="toggleSettings()">CHIUDI</button>
         </div>
     </div>
@@ -420,6 +425,26 @@
                 <a href="https://www.psychosoci5l.com/" target="_blank" rel="noopener noreferrer" class="credits-link">www.psychosoci5l.com</a>
             </div>
             <button class="btn btn-primary" onclick="toggleCreditsPanel()">CHIUDI</button>
+        </div>
+    </div>
+
+    <!-- PRIVACY PANEL -->
+    <div id="privacy-panel" style="display: none;">
+        <div class="modal-content paper-modal privacy-modal">
+            <h2 class="modal-title">Privacy Policy</h2>
+            <div class="privacy-content">
+                <h3>Overview</h3>
+                <p>FIAT vs CRYPTO is a free browser-based game. We are committed to protecting your privacy.</p>
+                <h3>Data We Collect</h3>
+                <p><strong>Local Storage Only</strong> — Game progress, settings, and session data are stored locally on your device. No data is sent to external servers.</p>
+                <h3>What We Do NOT Collect</h3>
+                <p>No personal information, no location data, no device identifiers, no analytics, no advertising data.</p>
+                <h3>Third-Party Services</h3>
+                <p>This game does not use any third-party analytics, advertising, or tracking services.</p>
+                <h3>Contact</h3>
+                <p>Questions? Visit <a href="https://www.psychosoci5l.com/" target="_blank" rel="noopener noreferrer" style="color: #f39c12;">psychosoci5l.com</a></p>
+            </div>
+            <button class="btn btn-primary" onclick="togglePrivacyPanel()">CLOSE</button>
         </div>
     </div>
 
@@ -610,6 +635,7 @@
     <script src="src/audio/MusicData.js"></script>
     <script src="src/systems/BulletPatterns.js"></script>
     <script src="src/systems/BulletSystem.js"></script>
+    <script src="src/systems/SpatialGrid.js"></script>
     <script src="src/systems/CollisionSystem.js"></script>
     <script src="src/systems/DropSystem.js"></script>
     <script src="src/systems/MemeEngine.js"></script>
