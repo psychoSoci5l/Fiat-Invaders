@@ -5,35 +5,35 @@
 
 ---
 
-## IN PROGRESS — Refactor Architetturale (v4.49)
+## COMPLETATO — Refactor Architetturale (v4.49)
 
-### Fase 1 — Quick Wins (COMPLETATO)
+### Fase 1 — Quick Wins
 - [x] FloatingTextManager.js — floating text + score popups estratti da main.js
 - [x] PerkIconManager.js — perk glow icons estratti da main.js
 - [x] PerkManager.js — perk choice/roll/apply logic estratti da main.js
 
-### Fase 2 — Estrazione Strutturale (PARZIALE)
+### Fase 2 — Estrazione Strutturale
 - [x] MiniBossManager.js — spawn/update/draw/hit mini-boss estratti da main.js
-- [ ] IntroManager.js — intro screen state machine e DOM manipulation
 
-### Fase 3 — Refactor Profondo
-- [ ] HUDManager.js — DOM + canvas HUD updates
-- [ ] init() decomposition — spezzare init() in sotto-funzioni nominate
-
-### Fase 4 — Test Minimali (COMPLETATO)
-- [x] Test runner (tests/runner.html) — zero dipendenze, console.assert
+### Fase 3 — Test Minimali
+- [x] Test runner (tests/runner.html) — zero dipendenze, console.assert, 103 assertions
 - [x] test-utils.js — MathUtils + ColorUtils
 - [x] test-balance.js — BalanceConfig + ObjectPool
 - [x] test-state.js — GameStateMachine + RunState
 
+### Skipped (costo > beneficio)
+- IntroManager.js — codice DOM raramente toccato, troppo accoppiato con window.* bindings
+- HUDManager.js — mix DOM+canvas, funzioni sparse, beneficio minimo
+- init() decomposition — funzione eseguita una volta sola, bassa priorità
+
 ### Risultati
 - main.js: da ~5.470 a ~4.820 righe (~12% riduzione)
 - 4 nuovi moduli estratti, ciascuno testabile indipendentemente
-- 3 file di test con ~50 assertions
+- 3 file di test con 103 assertions
 
 ---
 
-## BACKLOG — COMPLETATO (v4.48.0)
+## COMPLETATO — v4.48.0
 
 - [x] Balance Recalibration Post-Weapon Evolution
 - [x] Weapon Evolution Redesign (Linear 5-Level System)
@@ -56,9 +56,6 @@
 - Leaderboard (local, no server)
 
 ### Technical
-- Complete IntroManager extraction
-- HUDManager extraction
-- init() decomposition in main.js
 - WebGL renderer option for low-end devices
 - Asset preloading with progress bar
 
