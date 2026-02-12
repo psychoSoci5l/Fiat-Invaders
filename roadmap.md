@@ -1,22 +1,15 @@
 # Roadmap: FIAT vs CRYPTO
 
-> **Versione attuale**: v4.37.0 (2026-02-10)
+> **Versione attuale**: v4.46.0 (2026-02-12)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
 
 ---
 
-## BACKLOG
+## BACKLOG — COMPLETATO (v4.46.0)
 
-### Formation Visual Audit
-- [ ] Test visivo di ciascuna delle 16 formazioni con debug overlay
-- [ ] Tuning spaziatura/fattori per formazione
-- [ ] Verifica a tutti i conteggi (8-24) e larghezze schermo
-
-### Performance
-- [ ] Spatial partitioning: collisioni grid-based O(n) vs O(n²)
-
-### Content & Polish
-- [ ] Formation entry paths (curve, loop-de-loops, split)
-- [ ] Geometric shape formations (simboli valuta)
-- [ ] iOS icon set completo (120, 152, 167, 180, 1024px)
-- [ ] Privacy link in settings/footer
+- [x] Formation Visual Audit — `dbg.formations()` console audit, 25 formazioni × 3 larghezze
+- [x] Spatial partitioning — SpatialGrid.js hash grid 80px, collisioni O(n) con fallback
+- [x] Formation entry paths — 4 tipi (SINE, SWEEP, SPIRAL, SPLIT) weighted random
+- [x] Geometric shape formations — 5 simboli valuta (BTC, $, EUR, YEN, GBP)
+- [x] iOS icon set — 120/152/167/180/192/1024px + generate-icons.js script
+- [x] Privacy link — Settings modal, localized EN/IT
