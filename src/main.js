@@ -2020,6 +2020,16 @@ window.togglePrivacyPanel = function () {
 // What's New panel (v4.50)
 const WHATS_NEW = [
     {
+        version: 'v4.58.0', date: '2026-02-12', title: 'Cyberpunk Damage FX',
+        items: [
+            'NEW: Enemies visually deteriorate below 50% HP with 5 layered cyberpunk effects',
+            'Neon outline flickers and glitches — cracks appear on the body',
+            'Bright neon sparks replace old grey smoke',
+            'Glow halo destabilizes: faster pulse, dimmer, desaturated',
+            'Body darkens progressively — damage is now unmistakable'
+        ]
+    },
+    {
         version: 'v4.53.0', date: '2026-02-12', title: 'Premium Purple Neon',
         items: [
             'Full UI color unification: all buttons, menus, modals now neon violet',

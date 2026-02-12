@@ -1,5 +1,17 @@
 # Changelog
 
+## v4.58.0 - 2026-02-12
+### Cyberpunk Enemy Damage Deterioration
+
+- **Progressive damage visuals**: Enemies no longer "pop like balloons" — below 50% HP they visually deteriorate with 5 layered cyberpunk effects that intensify as HP drops
+- **Outline flicker/glitch**: Neon outline oscillates at 18Hz with random glitch spikes — more unstable as HP decreases
+- **Fracture lines**: 2→5 luminous cracks appear on the dark body, generated once per enemy, alpha increases with damage
+- **Neon spark emission**: Replaces old grey smoke — bright sparks in enemy's own color, emitted faster as damage increases (0.28s→0.10s interval)
+- **Glow destabilization**: The neon halo pulses 2.5× faster, dims to 55% alpha, and shifts toward white on damaged enemies
+- **Body darkening**: Enemy fill progressively darkens, making cracks and flickering outline more visible
+- **Removed**: Old red damage tint circle (not shape-aware) and grey smoke particles (not cyberpunk)
+- **Kill switch**: `DAMAGE_VISUAL.ENABLED = false` disables all effects; individual sub-switches for each effect
+
 ## v4.57.0 - 2026-02-12
 ### Gameplay Rebalance + Perk Rationalization
 

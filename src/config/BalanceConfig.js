@@ -1218,10 +1218,6 @@
             HIT_FLASH_DURATION: 0.04,         // Seconds of white flash on hit
             HIT_SHAKE_INTENSITY: 2,           // Max px offset on hit
             HIT_SHAKE_DURATION: 0.06,         // Seconds of shake
-            DAMAGE_TINT_START: 0.5,           // HP ratio below which tint begins
-            SMOKE_HP_THRESHOLD: 0.20,         // HP ratio below which smoke starts
-            SMOKE_INTERVAL: 0.15,             // Seconds between smoke particles
-
             // Bullet impact sparks (contextual)
             SPARK_COUNT_BASE: 4,              // Particles at shot level 1
             SPARK_COUNT_PER_LEVEL: 2,         // +2 per shot level
@@ -1250,7 +1246,47 @@
             STRONG_KILL_SHAKE: 3,             // Shake px on strong-tier kill
             STRONG_KILL_SHAKE_DURATION: 0.06, // Shake duration
             HYPER_AMBIENT_INTERVAL: 0.5,      // Seconds between HYPER sparkles (slower — less clutter)
-            COMBO_SCORE_SCALE: true           // Float score size scales with streak
+            COMBO_SCORE_SCALE: true,          // Float score size scales with streak
+
+            // v4.58: Cyberpunk damage deterioration
+            DAMAGE_VISUAL: {
+                ENABLED: true,
+                THRESHOLD: 0.5,               // HP ratio below which effects begin
+                FLICKER: {
+                    ENABLED: true,
+                    SPEED: 18,                // Hz
+                    MIN_WIDTH: 1.0,
+                    MAX_WIDTH: 4.5,
+                    GLITCH_CHANCE: 0.03,
+                    GLITCH_MULT: 2.5
+                },
+                CRACKS: {
+                    ENABLED: true,
+                    COUNT_AT_THRESHOLD: 2,
+                    COUNT_AT_DEATH: 5,
+                    WIDTH: 1.5,
+                    ALPHA_MIN: 0.4,
+                    ALPHA_MAX: 0.9,
+                    LENGTH_MIN: 8,
+                    LENGTH_MAX: 18,
+                    BODY_RADIUS: 22
+                },
+                SPARKS: {
+                    ENABLED: true,
+                    INTERVAL_SLOW: 0.28,
+                    INTERVAL_FAST: 0.10,
+                    SPEED_MIN: 40,
+                    SPEED_MAX: 80,
+                    SIZE: 2.5,
+                    LIFETIME: 0.25
+                },
+                GLOW: {
+                    PULSE_SPEED_MULT: 2.5,
+                    ALPHA_MULT: 0.55,
+                    DESATURATE: 0.2
+                },
+                BODY_DARKEN: 0.12
+            }
         },
 
         // --- GODCHAIN MODE v4.6 (All modifiers maxed simultaneously) ---

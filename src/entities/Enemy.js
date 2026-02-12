@@ -20,14 +20,22 @@ class Enemy extends window.Game.Entity {
         this.telegraphTimer = 0;
         this.telegraphLead = window.Game.Balance.ENEMY_BEHAVIOR.TELEGRAPH_LEAD;
 
-        this.maxHp = this.hp; // Track for damage tint
+        this.maxHp = this.hp;
         this.active = true;
         this.fireTimer = 0; // Set by spawner for Fibonacci ramp-up
         this.hitFlash = 0; // Flash white when hit
         this._hitShakeTimer = 0; // Micro-shake timer
         this._hitShakeX = 0;     // Shake offset X
         this._hitShakeY = 0;     // Shake offset Y
-        this._smokeTimer = 0;    // Smoke emission timer
+
+        // v4.58: Damage deterioration state
+        this._sparkTimer = 0;
+        this._damageIntensity = 0;
+        this._crackData = null;  // Generated once when damaged
+        this._crackCount = 0;
+        this._wasDamaged = false;
+        this._outlineWidth = 2.5;
+        this._bodyFill = this._colorDark40;
 
         // Special behaviors (set by spawner based on tier)
         this.isKamikaze = false;      // Weak tier: can dive at player
@@ -119,22 +127,27 @@ class Enemy extends window.Game.Entity {
             this._hitShakeY = 0;
         }
 
-        // v4.5: Smoke when low HP
-        const vfx = window.Game.Balance?.VFX;
-        if (vfx && this.maxHp > 0 && this.hp / this.maxHp <= (vfx.SMOKE_HP_THRESHOLD || 0.20)) {
-            this._smokeTimer -= dt;
-            if (this._smokeTimer <= 0) {
-                this._smokeTimer = vfx.SMOKE_INTERVAL || 0.15;
+        // v4.58: Neon spark emission when damaged
+        const dmgCfg = window.Game.Balance?.VFX?.DAMAGE_VISUAL;
+        if (dmgCfg?.ENABLED && dmgCfg.SPARKS?.ENABLED && this._damageIntensity > 0) {
+            const spk = dmgCfg.SPARKS;
+            const interval = spk.INTERVAL_SLOW + (spk.INTERVAL_FAST - spk.INTERVAL_SLOW) * this._damageIntensity;
+            this._sparkTimer -= dt;
+            if (this._sparkTimer <= 0) {
+                this._sparkTimer = interval;
                 if (window.Game.ParticleSystem) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = spk.SPEED_MIN + Math.random() * (spk.SPEED_MAX - spk.SPEED_MIN);
                     window.Game.ParticleSystem.addParticle({
-                        x: this.x + (Math.random() - 0.5) * 15,
-                        y: this.y + (Math.random() - 0.5) * 8,
-                        vx: (Math.random() - 0.5) * 30,
-                        vy: -30 - Math.random() * 20,
-                        life: 0.4 + Math.random() * 0.2,
-                        maxLife: 0.6,
-                        color: '#888',
-                        size: 3 + Math.random() * 3
+                        x: this.x + (Math.random() - 0.5) * 20,
+                        y: this.y + (Math.random() - 0.5) * 12,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed,
+                        life: spk.LIFETIME,
+                        maxLife: spk.LIFETIME,
+                        color: this._colorBright,
+                        size: spk.SIZE,
+                        isSpark: true
                     });
                 }
             }
@@ -310,23 +323,52 @@ class Enemy extends window.Game.Entity {
         const x = this.x + Math.round(this._hitShakeX);
         const y = this.y + Math.round(this._hitShakeY);
 
+        // v4.58: Compute damage intensity (0 = intact, 1 = near death)
+        const dmgCfg = window.Game.Balance?.VFX?.DAMAGE_VISUAL;
+        const hpRatio = this.maxHp > 0 ? this.hp / this.maxHp : 1;
+        if (dmgCfg?.ENABLED && hpRatio <= (dmgCfg.THRESHOLD || 0.5) && hpRatio > 0) {
+            this._damageIntensity = 1 - (hpRatio / dmgCfg.THRESHOLD);
+
+            // Body darkening
+            if (dmgCfg.BODY_DARKEN > 0) {
+                const CU = window.Game.ColorUtils;
+                this._bodyFill = CU.darken(this.color, 0.4 + dmgCfg.BODY_DARKEN * this._damageIntensity);
+            }
+
+            // Outline flicker
+            if (dmgCfg.FLICKER?.ENABLED) {
+                const fl = dmgCfg.FLICKER;
+                const now = Date.now() * 0.001;
+                let flicker = Math.sin(now * fl.SPEED * Math.PI * 2) * 0.5 + 0.5; // 0-1
+                if (Math.random() < fl.GLITCH_CHANCE * this._damageIntensity) {
+                    flicker *= fl.GLITCH_MULT;
+                }
+                const range = fl.MAX_WIDTH - fl.MIN_WIDTH;
+                this._outlineWidth = fl.MIN_WIDTH + range * (0.5 + (flicker - 0.5) * this._damageIntensity);
+            }
+
+            // Generate cracks once
+            if (!this._wasDamaged && dmgCfg.CRACKS?.ENABLED) {
+                this._wasDamaged = true;
+                this._generateCracks(dmgCfg.CRACKS);
+            }
+
+            // Update crack count based on intensity
+            if (dmgCfg.CRACKS?.ENABLED) {
+                const cc = dmgCfg.CRACKS;
+                this._crackCount = Math.round(cc.COUNT_AT_THRESHOLD + (cc.COUNT_AT_DEATH - cc.COUNT_AT_THRESHOLD) * this._damageIntensity);
+            }
+        } else {
+            this._damageIntensity = 0;
+            this._outlineWidth = 2.5;
+            this._bodyFill = this._colorDark40;
+        }
+
         ctx.save();
         if (this.rotation) ctx.translate(x, y), ctx.rotate(this.rotation), ctx.translate(-x, -y);
 
-        // v4.5: Damage tint — darken toward red as HP drops
-        const vfx = window.Game.Balance?.VFX;
-        const hpRatio = this.maxHp > 0 ? this.hp / this.maxHp : 1;
-        const tintStart = vfx?.DAMAGE_TINT_START || 0.5;
-        if (hpRatio < tintStart && hpRatio > 0) {
-            const tintAmount = 1 - (hpRatio / tintStart); // 0 at threshold, 1 at 0 HP
-            // Subtle red overlay will be drawn after shape
-            ctx._damageTint = tintAmount;
-        } else {
-            ctx._damageTint = 0;
-        }
-
         ctx.strokeStyle = this._colorBright;
-        ctx.lineWidth = 2.5; // v4.56: neon outline
+        ctx.lineWidth = this._outlineWidth;
 
         // Draw based on shape type
         if (this.isMinion) {
@@ -343,21 +385,12 @@ class Enemy extends window.Game.Entity {
             this.drawCoin(ctx, x, y); // fallback
         }
 
-        ctx.restore();
-
-        // v4.5: Damage tint overlay (red tinge on damaged enemies)
-        if (ctx._damageTint > 0) {
-            ctx.globalAlpha = ctx._damageTint * 0.3; // Max 30% red overlay
-            ctx.fillStyle = '#cc0000';
-            ctx.beginPath();
-            ctx.arc(x, y, 25, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.globalAlpha = 1;
+        // v4.58: Draw fracture lines on damaged enemies
+        if (this._damageIntensity > 0 && this._crackData && dmgCfg?.CRACKS?.ENABLED) {
+            this._drawCracks(ctx, x, y, dmgCfg.CRACKS);
         }
 
-        // v4.45: Hit flash REMOVED (visual noise, HP is the only feedback now)
-
-        // v4.45: Telegraph circles and teleport flash REMOVED (confusing, not intuitive)
+        ctx.restore();
 
         // Kamikaze dive indicator (red trailing flames)
         if (this.kamikazeDiving) {
@@ -380,12 +413,28 @@ class Enemy extends window.Game.Entity {
         if (!cfg?.ENABLED) return;
         const x = this.x, y = this.y;
         const r = 25; // approximate enemy body radius
-        const pulse = Math.sin(Date.now() * cfg.PULSE_SPEED * 0.001) * cfg.PULSE_AMOUNT;
-        const alpha = cfg.ALPHA + pulse;
+
+        // v4.58: Destabilize glow when damaged
+        let pulseSpeed = cfg.PULSE_SPEED;
+        let baseAlpha = cfg.ALPHA;
+        let glowColor = this.color;
+        if (this._damageIntensity > 0) {
+            const dg = window.Game.Balance?.VFX?.DAMAGE_VISUAL?.GLOW;
+            if (dg) {
+                pulseSpeed *= 1 + (dg.PULSE_SPEED_MULT - 1) * this._damageIntensity;
+                baseAlpha *= 1 - (1 - dg.ALPHA_MULT) * this._damageIntensity;
+                // Shift toward white (desaturate)
+                const CU = window.Game.ColorUtils;
+                glowColor = CU.lighten(this.color, dg.DESATURATE * this._damageIntensity);
+            }
+        }
+
+        const pulse = Math.sin(Date.now() * pulseSpeed * 0.001) * cfg.PULSE_AMOUNT;
+        const alpha = baseAlpha + pulse;
         const CU = window.Game.ColorUtils;
         const grad = ctx.createRadialGradient(x, y, r * 0.4, x, y, r + cfg.RADIUS);
-        grad.addColorStop(0, CU.withAlpha(this.color, alpha));
-        grad.addColorStop(1, CU.withAlpha(this.color, 0));
+        grad.addColorStop(0, CU.withAlpha(glowColor, alpha));
+        grad.addColorStop(1, CU.withAlpha(glowColor, 0));
         ctx.fillStyle = grad;
         ctx.beginPath();
         ctx.arc(x, y, r + cfg.RADIUS, 0, Math.PI * 2);
@@ -395,8 +444,8 @@ class Enemy extends window.Game.Entity {
     drawCoin(ctx, x, y) {
         const r = 23;
 
-        // v4.56: Dark body fill (single tone, no cell-shading)
-        ctx.fillStyle = this._colorDark40;
+        // v4.56: Dark body fill
+        ctx.fillStyle = this._bodyFill;
         ctx.beginPath();
         ctx.arc(x, y, r, 0, Math.PI * 2);
         ctx.fill();
@@ -409,7 +458,7 @@ class Enemy extends window.Game.Entity {
 
         // Neon outline
         ctx.strokeStyle = this._colorBright;
-        ctx.lineWidth = 2.5;
+        ctx.lineWidth = this._outlineWidth;
         ctx.beginPath();
         ctx.arc(x, y, r, 0, Math.PI * 2);
         ctx.stroke();
@@ -457,13 +506,13 @@ class Enemy extends window.Game.Entity {
     drawBill(ctx, x, y) {
         const w = 44, h = 25;
 
-        // v4.56: Dark body fill (single tone)
-        ctx.fillStyle = this._colorDark40;
+        // v4.56: Dark body fill
+        ctx.fillStyle = this._bodyFill;
         ctx.fillRect(x - w/2, y - h/2, w, h);
 
         // Neon outline
         ctx.strokeStyle = this._colorBright;
-        ctx.lineWidth = 2.5;
+        ctx.lineWidth = this._outlineWidth;
         ctx.strokeRect(x - w/2, y - h/2, w, h);
 
         // Inner border (neon subtle)
@@ -507,8 +556,8 @@ class Enemy extends window.Game.Entity {
     }
 
     drawBar(ctx, x, y) {
-        // v4.56: Dark body fill (single tone trapezoid)
-        ctx.fillStyle = this._colorDark40;
+        // v4.56: Dark body fill (trapezoid)
+        ctx.fillStyle = this._bodyFill;
         ctx.beginPath();
         ctx.moveTo(x - 24, y + 12);
         ctx.lineTo(x - 17, y - 12);
@@ -519,7 +568,7 @@ class Enemy extends window.Game.Entity {
 
         // Neon outline
         ctx.strokeStyle = this._colorBright;
-        ctx.lineWidth = 2.5;
+        ctx.lineWidth = this._outlineWidth;
         ctx.stroke();
 
         // Top face (lighter neon tint)
@@ -560,13 +609,13 @@ class Enemy extends window.Game.Entity {
         const w = 40, h = 27;
 
         // v4.56: Dark body fill (rounded rect)
-        ctx.fillStyle = this._colorDark40;
+        ctx.fillStyle = this._bodyFill;
         this.roundRect(ctx, x - w/2, y - h/2, w, h, 5);
         ctx.fill();
 
         // Neon outline
         ctx.strokeStyle = this._colorBright;
-        ctx.lineWidth = 2.5;
+        ctx.lineWidth = this._outlineWidth;
         this.roundRect(ctx, x - w/2, y - h/2, w, h, 5);
         ctx.stroke();
 
@@ -685,6 +734,47 @@ class Enemy extends window.Game.Entity {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(this.symbol, x, y);
+    }
+
+    // v4.58: Generate crack line data (called once when enemy becomes damaged)
+    _generateCracks(cfg) {
+        const count = cfg.COUNT_AT_DEATH; // Pre-generate max, draw subset
+        this._crackData = [];
+        const R = cfg.BODY_RADIUS;
+        for (let i = 0; i < count; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const len = cfg.LENGTH_MIN + Math.random() * (cfg.LENGTH_MAX - cfg.LENGTH_MIN);
+            const startR = R * (0.2 + Math.random() * 0.3);
+            const sx = Math.cos(angle) * startR;
+            const sy = Math.sin(angle) * startR;
+            // Jagged midpoint
+            const midAngle = angle + (Math.random() - 0.5) * 0.8;
+            const mx = sx + Math.cos(midAngle) * len * 0.5;
+            const my = sy + Math.sin(midAngle) * len * 0.5;
+            // End point
+            const endAngle = midAngle + (Math.random() - 0.5) * 0.6;
+            const ex = mx + Math.cos(endAngle) * len * 0.5;
+            const ey = my + Math.sin(endAngle) * len * 0.5;
+            this._crackData.push({ sx, sy, mx, my, ex, ey });
+        }
+    }
+
+    // v4.58: Draw fracture lines on damaged enemy body
+    _drawCracks(ctx, x, y, cfg) {
+        const alpha = cfg.ALPHA_MIN + (cfg.ALPHA_MAX - cfg.ALPHA_MIN) * this._damageIntensity;
+        const CU = window.Game.ColorUtils;
+        ctx.strokeStyle = CU.withAlpha(this._colorBright, alpha);
+        ctx.lineWidth = cfg.WIDTH;
+        ctx.lineCap = 'round';
+        const n = Math.min(this._crackCount, this._crackData.length);
+        for (let i = 0; i < n; i++) {
+            const c = this._crackData[i];
+            ctx.beginPath();
+            ctx.moveTo(x + c.sx, y + c.sy);
+            ctx.lineTo(x + c.mx, y + c.my);
+            ctx.lineTo(x + c.ex, y + c.ey);
+            ctx.stroke();
+        }
     }
 
     roundRect(ctx, x, y, w, h, r) {
