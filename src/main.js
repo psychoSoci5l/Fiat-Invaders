@@ -1027,7 +1027,7 @@ function updatePrimaryButton(state) {
 
     if (state === 'SELECTION') {
         btn.classList.add('launch-state');
-        btn.innerHTML = '🚀 ' + t('LAUNCH');
+        btn.innerHTML = t('LAUNCH');
     } else {
         btn.classList.remove('launch-state');
         btn.innerHTML = t('TAP_START');
@@ -1939,7 +1939,7 @@ function updateUIText() {
     const btnPrimary = document.getElementById('btn-primary-action');
     if (btnPrimary) {
         if (introState === 'SELECTION') {
-            btnPrimary.innerHTML = '🚀 ' + t('LAUNCH');
+            btnPrimary.innerHTML = t('LAUNCH');
         } else {
             btnPrimary.innerHTML = t('TAP_START');
         }

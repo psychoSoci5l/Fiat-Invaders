@@ -4432,7 +4432,7 @@ body.is-touch p.mobile-only { display: block; }
 /* --- PWA INSTALL BANNER --- */
 #pwa-install-banner {
     position: absolute;
-    bottom: calc(180px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(280px + env(safe-area-inset-bottom, 0px));
     left: 50%;
     transform: translateX(-50%);
     width: 90%;
