@@ -140,9 +140,9 @@
                 currentWeaponLevel = playerState.weaponLevel;
             }
 
-            // Check for guaranteed UPGRADE (pity timer)
+            // Check for guaranteed UPGRADE (pity timer) — also works at max level for GODCHAIN recharge
             const killsSinceUpgrade = this.totalKills - this.lastUpgradeKillCount;
-            if (killsSinceUpgrade >= WE.KILLS_FOR_UPGRADE && currentWeaponLevel < WE.MAX_WEAPON_LEVEL) {
+            if (killsSinceUpgrade >= WE.KILLS_FOR_UPGRADE) {
                 this.lastUpgradeKillCount = this.totalKills;
                 return { type: 'UPGRADE', category: 'upgrade' };
             }
@@ -153,11 +153,7 @@
                 const category = this.selectNeedBasedCategory(playerState);
 
                 if (category === 'upgrade') {
-                    // If player already at max weapon level, give special instead
-                    if (currentWeaponLevel >= WE.MAX_WEAPON_LEVEL) {
-                        const type = this.getWeightedSpecial(WE);
-                        return { type, category: 'special' };
-                    }
+                    // v4.48: At max level, UPGRADE still drops → Player.js sets _godchainPending = true
                     this.lastUpgradeKillCount = this.totalKills;
                     return { type: 'UPGRADE', category: 'upgrade' };
                 } else if (category === 'special') {
@@ -275,10 +271,13 @@
             const CW = AD.CATEGORY_WEIGHTS;
             const MIN = AD.MIN_CATEGORY_WEIGHT;
 
-            // Calculate need scores (0.0 = no need, 1.0 = maximum need)
-            const upgradeNeed = (5 - playerState.weaponLevel) / 4;
-            const specialNeed = playerState.hasSpecial ? 0.0 : 1.0;
-            const utilityNeed = 0.6; // Always moderate need for utilities
+            // v4.48: Need scores responsive to full player state
+            const maxWpn = G.Balance.WEAPON_EVOLUTION.MAX_WEAPON_LEVEL;
+            const upgradeNeed = playerState.weaponLevel >= maxWpn
+                ? (AD.GODCHAIN_RECHARGE_NEED || 0.35)
+                : (maxWpn - playerState.weaponLevel) / (maxWpn - 1);
+            const specialNeed = playerState.hasSpecial ? 0.1 : 0.7;
+            const utilityNeed = (playerState.hasShield || playerState.hasSpeed) ? 0.2 : 0.5;
 
             // Weighted needs
             const wUpgrade = Math.max(MIN, upgradeNeed * CW.UPGRADE);
@@ -363,8 +362,14 @@
                         return null;
                     }
 
-                    // Adaptive suppression gate
-                    if (playerState && this.shouldSuppressDrop(playerState, pityDrop)) {
+                    let dropInfo = this.selectEvolutionDropType(playerState || currentWeaponLevel);
+                    // Anti-duplicate — if same type as last drop, reroll once
+                    if (dropInfo && dropInfo.type === this.lastDropType) {
+                        dropInfo = this.selectEvolutionDropType(playerState || currentWeaponLevel);
+                    }
+
+                    // v4.48: Suppression AFTER selection — never suppress UPGRADE (GODCHAIN needs it)
+                    if (dropInfo && dropInfo.category !== 'upgrade' && playerState && this.shouldSuppressDrop(playerState, pityDrop)) {
                         this.suppressedDrops++;
                         if (G.Debug && G.Debug.trackDropSuppressed) {
                             G.Debug.trackDropSuppressed(playerState);
@@ -372,11 +377,6 @@
                         return null;
                     }
 
-                    let dropInfo = this.selectEvolutionDropType(playerState || currentWeaponLevel);
-                    // Anti-duplicate — if same type as last drop, reroll once
-                    if (dropInfo && dropInfo.type === this.lastDropType) {
-                        dropInfo = this.selectEvolutionDropType(playerState || currentWeaponLevel);
-                    }
                     if (dropInfo) {
                         this.killsSinceLastDrop = 0;
                         this.lastEnemyDropTime = totalTime;

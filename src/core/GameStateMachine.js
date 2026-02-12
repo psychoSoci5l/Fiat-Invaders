@@ -14,7 +14,7 @@ window.Game = window.Game || {};
             'VIDEO':            ['INTRO'],
             'INTRO':            ['HANGAR', 'SETTINGS', 'WARMUP', 'STORY_SCREEN'],
             'HANGAR':           ['PLAY', 'WARMUP', 'INTRO', 'STORY_SCREEN'],
-            'STORY_SCREEN':     ['PLAY', 'WARMUP', 'INTERMISSION', 'INTRO'],
+            'STORY_SCREEN':     ['PLAY', 'WARMUP', 'INTERMISSION', 'INTRO', 'CAMPAIGN_VICTORY'],
             'WARMUP':           ['PLAY', 'PAUSE', 'INTRO'],
             'PLAY':             ['PAUSE', 'INTERMISSION', 'GAMEOVER', 'STORY_SCREEN', 'CAMPAIGN_VICTORY'],
             'PAUSE':            ['PLAY', 'WARMUP', 'INTRO'],

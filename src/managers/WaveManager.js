@@ -510,9 +510,17 @@ window.Game.WaveManager = {
             const maxY = positions.reduce((m, p) => Math.max(m, p.y), startY);
             const margin = FC.MARGIN || 60;
             const cols = Math.max(3, Math.floor((gameWidth - 2 * margin) / spacing));
+            // v4.48: Y-cap for safety net rows
+            const gameH = window.Game._gameHeight || 700;
+            const cycle = window.marketCycle || 1;
+            const ratios = window.Game.Balance?.FORMATION?.MAX_Y_RATIO_BY_CYCLE;
+            const maxYRatio = ratios ? (ratios[Math.min(cycle - 1, ratios.length - 1)] || 0.55) : (FC.MAX_Y_RATIO || 0.55);
+            const maxPixel = FC.MAX_Y_PIXEL || 500;
+            const safetyYBound = Math.min(gameH * maxYRatio, maxPixel);
             let extraRow = 1;
             while (positions.length < count) {
                 const y = maxY + extraRow * spacing * 0.8;
+                if (y > safetyYBound) break; // v4.48: stop adding rows below Y limit
                 const rowCount = Math.min(cols, count - positions.length);
                 const rowWidth = (rowCount - 1) * spacing;
                 const rowStartX = (gameWidth - rowWidth) / 2;
@@ -570,7 +578,8 @@ window.Game.WaveManager = {
             const cycle = window.marketCycle || 1;
             const ratios = window.Game.Balance?.FORMATION?.MAX_Y_RATIO_BY_CYCLE;
             const maxYRatio = ratios ? (ratios[Math.min(cycle - 1, ratios.length - 1)] || 0.55) : (window.Game.Balance?.FORMATION?.MAX_Y_RATIO || 0.55);
-            const maxYBound = gameH * maxYRatio; // v4.16: from config (was hardcoded 0.65)
+            const maxPixel = window.Game.Balance?.FORMATION?.MAX_Y_PIXEL || 500;
+            const maxYBound = Math.min(gameH * maxYRatio, maxPixel); // v4.48: pixel cap
 
             const minY = positions.reduce((m, p) => Math.min(m, p.y), Infinity);
             const maxY = positions.reduce((m, p) => Math.max(m, p.y), -Infinity);
@@ -723,23 +732,18 @@ window.Game.WaveManager = {
     generateChevron(count, gameWidth, startY, spacing) {
         const positions = [];
         const centerX = gameWidth / 2;
-        // v4.16: Y-mult from config (was hardcoded 0.75, caused Y-overflow with high counts)
         const yMult = window.Game.Balance?.FORMATION?.CHEVRON_Y_MULT || 0.55;
 
-        // Chevron capacity: 2*rows - 1 (pairs except last row which is center only)
-        // Find rows where capacity >= count
-        let rows = 1;
-        while (2 * rows - 1 < count) rows++;
-        rows = Math.min(rows, 7); // v4.40: cap rows to prevent excessive vertical spread
+        // v4.48: Filled chevron — row N has (2*N+1) positions, capacity = rows²
+        let rows = Math.ceil(Math.sqrt(count));
+        rows = Math.min(rows, 8);
 
-        // Generate full chevron shape (no early cutoff)
-        for (let row = 0; row < rows; row++) {
-            const xOffset = (rows - row - 1) * spacing * 0.5;
-            // Left side
-            positions.push({ x: centerX - xOffset, y: startY + row * spacing * yMult });
-            // Right side (except center)
-            if (xOffset > 0) {
-                positions.push({ x: centerX + xOffset, y: startY + row * spacing * yMult });
+        for (let row = 0; row < rows && positions.length < count; row++) {
+            const posInRow = 2 * row + 1;
+            const y = startY + row * spacing * yMult;
+            for (let col = 0; col < posInRow && positions.length < count; col++) {
+                const xOff = (col - row) * spacing * 0.5;
+                positions.push({ x: centerX + xOff, y });
             }
         }
         return positions;

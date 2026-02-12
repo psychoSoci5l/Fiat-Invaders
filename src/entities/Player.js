@@ -54,6 +54,8 @@ class Player extends window.Game.Entity {
 
         // GODCHAIN MODE state
         this._godchainActive = false;
+        this.godchainTimer = 0;       // v4.48: temporary duration
+        this._godchainPending = false; // v4.48: activation trigger
 
         // Visual effects
         this.animTime = 0;
@@ -113,6 +115,8 @@ class Player extends window.Game.Entity {
 
         // GODCHAIN reset
         this._godchainActive = false;
+        this.godchainTimer = 0;
+        this._godchainPending = false;
 
         // Weapon Evolution reset (soft reset - keep weaponLevel on normal reset)
         // Note: applyDeathPenalty() handles death penalty separately
@@ -150,9 +154,8 @@ class Player extends window.Game.Entity {
      * Check if GODCHAIN conditions are met (weapon level 5)
      */
     isGodchainActive() {
-        const req = window.Game.Balance?.GODCHAIN?.REQUIREMENTS;
-        if (!req) return false;
-        return this.weaponLevel >= (req.WEAPON_LEVEL || 5);
+        // v4.48: timer-based (was permanent)
+        return this.godchainTimer > 0;
     }
 
     update(dt, blockFiring = false) {
@@ -280,6 +283,19 @@ class Player extends window.Game.Entity {
         // Weapon Evolution timers
         this.updateWeaponState(dt);
 
+        // v4.48: GODCHAIN activation — trigger when pending
+        if (this._godchainPending) {
+            const dur = window.Game.Balance?.GODCHAIN?.DURATION || 10;
+            this.godchainTimer = dur;
+            this._godchainPending = false;
+        }
+
+        // GODCHAIN timer countdown
+        if (this.godchainTimer > 0) {
+            this.godchainTimer -= dt;
+            if (this.godchainTimer <= 0) this.godchainTimer = 0;
+        }
+
         // GODCHAIN state detection
         const wasGodchain = this._godchainActive;
         this._godchainActive = this.isGodchainActive();
@@ -291,6 +307,20 @@ class Player extends window.Game.Entity {
         } else if (!this._godchainActive && wasGodchain) {
             if (window.Game.Events) window.Game.Events.emit('GODCHAIN_DEACTIVATED');
             if (window.Game.Debug) window.Game.Debug.trackGodchainDeactivate();
+        }
+
+        // GODCHAIN particle sparks
+        if (this._godchainActive && window.Game.ParticleSystem && Math.random() < 0.33) {
+            const colors = ['#ff4400', '#ff6600', '#ffaa00'];
+            window.Game.ParticleSystem.addParticle({
+                x: this.x + (Math.random() - 0.5) * 30,
+                y: this.y + (Math.random() - 0.5) * 30,
+                vx: (Math.random() - 0.5) * 40,
+                vy: -Math.random() * 60 - 20,
+                life: 0.4, maxLife: 0.4,
+                size: 2 + Math.random() * 2,
+                color: colors[Math.floor(Math.random() * 3)]
+            });
         }
 
         // HYPER mode timer (frozen during non-combat states)
@@ -646,6 +676,10 @@ class Player extends window.Game.Entity {
 
             // Apply damage multiplier
             b.damageMult = damageMult;
+            // v4.48: Missile damage bonus (compensates reduced projectile count)
+            if (this.special === 'MISSILE') {
+                b.damageMult *= (WE.MISSILE_DAMAGE_BONUS || 2.0);
+            }
 
             // Apply special properties
             b.special = this.special;
@@ -678,10 +712,16 @@ class Player extends window.Game.Entity {
             bullets.push(b);
         };
 
-        // Shot patterns based on levelData.bullets (1/2/3)
-        if (levelData.bullets === 1) {
+        // v4.48: Missile optimization — fewer projectiles, more damage
+        let bulletCount = levelData.bullets;
+        if (this.special === 'MISSILE' && WE.MISSILE_BULLET_DIVISOR) {
+            bulletCount = Math.max(1, Math.floor(bulletCount / WE.MISSILE_BULLET_DIVISOR));
+        }
+
+        // Shot patterns based on bulletCount (1/2/3)
+        if (bulletCount === 1) {
             spawnBullet(0, 0);
-        } else if (levelData.bullets === 2) {
+        } else if (bulletCount === 2) {
             spawnBullet(-6, -spreadAngle / 2);
             spawnBullet(+6, +spreadAngle / 2);
         } else {
@@ -906,6 +946,27 @@ class Player extends window.Game.Entity {
             ctx.arc(0, 14, ec.RADIUS, 0, Math.PI * 2);
             ctx.fill();
             ctx.restore();
+        }
+
+        // v4.48: GODCHAIN FIRE_TRAIL — animated fire tongues behind ship
+        if (this._godchainActive) {
+            const ft = window.Game.Balance?.GODCHAIN?.FIRE_TRAIL;
+            if (ft) {
+                for (let i = 0; i < ft.TONGUE_COUNT; i++) {
+                    const phase = this.animTime * 8 + i * 1.3;
+                    const flickerX = Math.sin(phase) * 6;
+                    const flickerLen = ft.LENGTH * (0.7 + Math.sin(phase * 1.5) * 0.3);
+                    ctx.globalAlpha = ft.ALPHA * (0.6 + Math.sin(phase * 2) * 0.4);
+                    ctx.fillStyle = ft.COLORS[i % ft.COLORS.length];
+                    ctx.beginPath();
+                    ctx.moveTo(flickerX - 3, 18);
+                    ctx.lineTo(flickerX + 3, 18);
+                    ctx.lineTo(flickerX, 18 + flickerLen);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+                ctx.globalAlpha = 1;
+            }
         }
 
         // Side thrusters (small flames on fins when moving)
@@ -1435,6 +1496,14 @@ class Player extends window.Game.Entity {
                 if (window.Game.Events) {
                     window.Game.Events.emit('WEAPON_LEVEL_UP', { level: this.weaponLevel });
                 }
+
+                // v4.48: trigger GODCHAIN on reaching max level
+                if (this.weaponLevel >= WE.MAX_WEAPON_LEVEL) {
+                    this._godchainPending = true;
+                }
+            } else {
+                // v4.48: already max — re-trigger GODCHAIN
+                this._godchainPending = true;
             }
             return;
         }

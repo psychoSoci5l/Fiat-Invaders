@@ -1526,6 +1526,12 @@ window.Game.Debug = {
         _histogram: null,    // Uint32Array
         // Entity peaks
         _entityPeaks: { enemies: 0, eBullets: 0, pBullets: 0, particles: 0 },
+        // Entity density tracking (v4.48)
+        _entitySamples: [],
+        _entitySampleInterval: 30,
+        _entityFrameCounter: 0,
+        _entitySums: { enemies: 0, eBullets: 0, pBullets: 0, particles: 0 },
+        _entitySampleCount: 0,
         // Timestamp
         _startTime: 0,
         // FPS counter
@@ -1573,6 +1579,10 @@ window.Game.Debug = {
         p._above33 = 0;
         p._histogram.fill(0);
         p._entityPeaks = { enemies: 0, eBullets: 0, pBullets: 0, particles: 0 };
+        p._entitySamples = [];
+        p._entityFrameCounter = 0;
+        p._entitySums = { enemies: 0, eBullets: 0, pBullets: 0, particles: 0 };
+        p._entitySampleCount = 0;
         p._startTime = performance.now();
         p._fpsLastTime = performance.now();
         p._fpsFrames = 0;
@@ -1629,13 +1639,33 @@ window.Game.Debug = {
         var bucket = Math.min((frameMs / p._histStep) | 0, p._histBuckets - 1);
         p._histogram[bucket]++;
 
-        // Entity peaks
+        // Entity peaks + density sampling
         if (counts) {
             const pk = p._entityPeaks;
             if (counts.enemies > pk.enemies) pk.enemies = counts.enemies;
             if (counts.eBullets > pk.eBullets) pk.eBullets = counts.eBullets;
             if (counts.pBullets > pk.pBullets) pk.pBullets = counts.pBullets;
             if (counts.particles > pk.particles) pk.particles = counts.particles;
+
+            // v4.48: Entity density sampling
+            p._entitySums.enemies += counts.enemies;
+            p._entitySums.eBullets += counts.eBullets;
+            p._entitySums.pBullets += counts.pBullets;
+            p._entitySums.particles += counts.particles;
+            p._entitySampleCount++;
+            p._entityFrameCounter++;
+            if (p._entityFrameCounter >= p._entitySampleInterval) {
+                p._entityFrameCounter = 0;
+                p._entitySamples.push({
+                    t: ((performance.now() - p._startTime) / 1000).toFixed(1),
+                    enemies: counts.enemies,
+                    eBullets: counts.eBullets,
+                    pBullets: counts.pBullets,
+                    particles: counts.particles,
+                    wave: window.currentLevel || 0,
+                    level: window.marketCycle || 1
+                });
+            }
         }
 
         // FPS counter (update every 500ms)
@@ -1894,6 +1924,84 @@ window.Game.Debug = {
         } else {
             console.log('%c[AUDIT] All formations OK', 'color:#2ecc71;font-weight:bold');
         }
+    },
+
+    /**
+     * v4.48: Entity Density Report
+     * Usage: dbg.entityReport()
+     */
+    entityReport() {
+        const p = this._perf;
+        if (!p._entitySampleCount) {
+            console.log('[ENTITY] No data. Run dbg.perf() first and play a game.');
+            return;
+        }
+        const pk = p._entityPeaks;
+        const sc = p._entitySampleCount;
+        const avg = {
+            enemies: (p._entitySums.enemies / sc).toFixed(1),
+            eBullets: (p._entitySums.eBullets / sc).toFixed(1),
+            pBullets: (p._entitySums.pBullets / sc).toFixed(1),
+            particles: (p._entitySums.particles / sc).toFixed(1)
+        };
+
+        // Wave grouping
+        const waveGroups = {};
+        p._entitySamples.forEach(s => {
+            const w = s.wave;
+            const key = w <= 2 ? 'W1-W2' : w <= 4 ? 'W3-W4' : 'W5+Boss';
+            if (!waveGroups[key]) waveGroups[key] = { enemies: 0, eBullets: 0, pBullets: 0, count: 0 };
+            waveGroups[key].enemies += s.enemies;
+            waveGroups[key].eBullets += s.eBullets;
+            waveGroups[key].pBullets += s.pBullets;
+            waveGroups[key].count++;
+        });
+
+        // Hot spots (>100 total entities)
+        const hotSpots = p._entitySamples.filter(s =>
+            s.enemies + s.eBullets + s.pBullets + s.particles > 100
+        ).map(s => ({
+            t: s.t, wave: s.wave,
+            total: s.enemies + s.eBullets + s.pBullets + s.particles,
+            en: s.enemies, eb: s.eBullets, pb: s.pBullets
+        }));
+
+        // Player bullet excess frames
+        const pBulHigh100 = p._entitySamples.filter(s => s.pBullets > 100).length;
+        const pBulHigh200 = p._entitySamples.filter(s => s.pBullets > 200).length;
+        const totalSamples = p._entitySamples.length;
+
+        const L = '║';
+        const line = (txt) => console.log(`${L}  ${txt.padEnd(56)}${L}`);
+        console.log('%c╔══════════════════════════════════════════════════════════╗', 'color:#3498db');
+        console.log('%c║           ENTITY DENSITY REPORT                         ║', 'color:#3498db;font-weight:bold');
+        console.log('%c╠══ SESSION AVERAGES ══════════════════════════════════════╣', 'color:#3498db');
+        line(`Enemies:     ${avg.enemies} avg    ${pk.enemies} peak`);
+        line(`E.Bullets:   ${avg.eBullets} avg   ${pk.eBullets} peak`);
+        line(`P.Bullets:   ${avg.pBullets} avg   ${pk.pBullets} peak`);
+        line(`Particles:   ${avg.particles} avg   ${pk.particles} peak`);
+        console.log('%c╠══ DENSITY BY WAVE ═══════════════════════════════════════╣', 'color:#3498db');
+        ['W1-W2', 'W3-W4', 'W5+Boss'].forEach(key => {
+            const g = waveGroups[key];
+            if (g && g.count > 0) {
+                line(`${key}:  enemies ${(g.enemies/g.count).toFixed(0)}  eBul ${(g.eBullets/g.count).toFixed(0)}  pBul ${(g.pBullets/g.count).toFixed(0)}`);
+            }
+        });
+        console.log('%c╠══ HOT SPOTS (>100 total entities) ═══════════════════════╣', 'color:#3498db');
+        if (hotSpots.length === 0) {
+            line('None detected');
+        } else {
+            hotSpots.slice(0, 10).forEach(h => {
+                const warn = h.total > 300 ? '  !!' : '';
+                line(`@${h.t}s  W${h.wave} -- ${h.en}en + ${h.eb}eb + ${h.pb}pb = ${h.total} total${warn}`);
+            });
+            if (hotSpots.length > 10) line(`... and ${hotSpots.length - 10} more`);
+        }
+        console.log('%c╠══ PLAYER BULLET ANALYSIS ════════════════════════════════╣', 'color:#3498db');
+        line(`Avg pBullets: ${avg.pBullets}`);
+        line(`>100 pBul samples: ${pBulHigh100} (${totalSamples ? ((pBulHigh100/totalSamples)*100).toFixed(1) : 0}%)`);
+        line(`>200 pBul samples: ${pBulHigh200} (${totalSamples ? ((pBulHigh200/totalSamples)*100).toFixed(1) : 0}%)`);
+        console.log('%c╚══════════════════════════════════════════════════════════╝', 'color:#3498db');
     }
 };
 
@@ -1901,4 +2009,4 @@ window.Game.Debug = {
 window.dbg = window.Game.Debug;
 
 // Console helper message
-console.log('[DEBUG] DebugSystem loaded. Commands: dbg.stats(), dbg.showOverlay(), dbg.perf(), dbg.perfReport(), dbg.debugBoss(), dbg.debugHUD(), dbg.hudStatus(), dbg.toggleHudMsg(key), dbg.maxWeapon(), dbg.weaponStatus(), dbg.godchain(), dbg.godchainStatus(), dbg.powerUpReport(), dbg.hitboxes(), dbg.formations()');
+console.log('[DEBUG] DebugSystem loaded. Commands: dbg.stats(), dbg.showOverlay(), dbg.perf(), dbg.perfReport(), dbg.entityReport(), dbg.debugBoss(), dbg.debugHUD(), dbg.hudStatus(), dbg.toggleHudMsg(key), dbg.maxWeapon(), dbg.weaponStatus(), dbg.godchain(), dbg.godchainStatus(), dbg.powerUpReport(), dbg.hitboxes(), dbg.formations()');

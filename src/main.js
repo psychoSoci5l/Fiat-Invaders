@@ -113,16 +113,22 @@ function getUnlockedWeapons() {
 // Pre-allocated to avoid per-call GC allocations
 const _playerState = {
     weaponLevel: 1,
-    hasSpecial: false
+    hasSpecial: false,
+    hasShield: false,
+    hasSpeed: false
 };
 function buildPlayerState() {
     if (!player) {
         _playerState.weaponLevel = 1;
         _playerState.hasSpecial = false;
+        _playerState.hasShield = false;
+        _playerState.hasSpeed = false;
         return _playerState;
     }
     _playerState.weaponLevel = player.weaponLevel || 1;
     _playerState.hasSpecial = !!player.special;
+    _playerState.hasShield = !!player.shieldActive;
+    _playerState.hasSpeed = player.shipPowerUp === 'SPEED';
     return _playerState;
 }
 

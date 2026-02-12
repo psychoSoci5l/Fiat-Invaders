@@ -320,9 +320,9 @@
 
         // --- ENEMY HP SCALING ---
         ENEMY_HP: {
-            BASE: 18,                 // Base HP at difficulty 0 (v4.45: 15→18, extend C1 horde clear time ~20%)
-            SCALE: 30,                // Additional HP at max difficulty (v4.45: 25→30, later waves tankier)
-            CYCLE_MULT: [1.0, 1.6, 2.2]  // v4.45: Per-cycle HP multiplier (C2 enemies 60% tankier, C3 120% tankier)
+            BASE: 28,                 // v4.48: 18→28 (+55%, compensate triple spread hitting)
+            SCALE: 40,                // v4.48: 30→40 (+33%, late waves tankier)
+            CYCLE_MULT: [1.0, 2.5, 3.2]  // v4.48b: C2 2.5 (slows GODCHAIN carry-over to boss), C3 3.2 (compensates lighter BOJ)
         },
 
         // --- ENEMY BEHAVIORS ---
@@ -457,12 +457,12 @@
             // HP scaling (applied before perk/damage modifiers)
             // v4.16: +25-40% boost — audit showed FED 12.7s, BCE 9.7s (target 45-75s)
             HP: {
-                BASE: 3000,           // Base HP for all bosses (v4.16: 2400→3000)
-                PER_LEVEL: 65,        // +65 HP per level (v4.16: 50→65)
-                PER_CYCLE: 4000,      // +4000 HP per cycle (v4.45: 3000→4000, BCE C2 26.5s still fast)
-                CYCLE_MULT: [1.0, 2.0, 3.0], // v4.44: Per-cycle HP multiplier (C2 2×, C3 3×) — matches player GODCHAIN scaling
+                BASE: 5000,           // v4.48: 3000→5000 (+67%, FED C1 troppo debole con spread stretto)
+                PER_LEVEL: 100,       // v4.48: 65→100 (+54%, scaling livello più incisivo)
+                PER_CYCLE: 5000,      // v4.48: 4000→5000 (+25%, gap tra cicli maggiore)
+                CYCLE_MULT: [1.0, 2.5, 2.2], // v4.48c: BCE ×2.5 (moderate buff, handles GODCHAIN variance), BOJ ×2.2 (was 3.0, -27% post-death fair)
                 PERK_SCALE: 0.10,     // +10% per player perk
-                MIN_FLOOR: 2500       // Minimum HP (v4.16: 2000→2500)
+                MIN_FLOOR: 4000       // v4.48: 2500→4000 (+60%, pavimento più alto)
             },
 
             // Movement speed per phase per boss type
@@ -930,7 +930,7 @@
         WEAPON_EVOLUTION: {
             // Weapon levels (permanent until death, -1 per death)
             MAX_WEAPON_LEVEL: 5,
-            KILLS_FOR_UPGRADE: 30,        // Guaranteed UPGRADE drop every N kills
+            KILLS_FOR_UPGRADE: 50,        // v4.48: 30→50 (weapon pacing più lento, LV5 al ciclo 2)
 
             // HYPER mode weapon boost
             HYPER_LEVEL_BOOST: 2,         // +2 weapon levels during HYPER
@@ -941,11 +941,15 @@
                 1: { name: 'Single',     bullets: 1, cooldownMult: 1.00, damageMult: 1.00, spreadDeg: 0 },
                 2: { name: 'Dual',       bullets: 2, cooldownMult: 1.00, damageMult: 1.00, spreadDeg: 0 },
                 3: { name: 'Dual+',      bullets: 2, cooldownMult: 0.85, damageMult: 1.25, spreadDeg: 0 },
-                4: { name: 'Triple',     bullets: 3, cooldownMult: 0.70, damageMult: 1.50, spreadDeg: 12 },
-                5: { name: 'Triple MAX', bullets: 3, cooldownMult: 0.55, damageMult: 1.75, spreadDeg: 24 },
-                6: { name: 'HYPER+',     bullets: 3, cooldownMult: 0.40, damageMult: 2.00, spreadDeg: 30 },
-                7: { name: 'HYPER++',    bullets: 3, cooldownMult: 0.30, damageMult: 2.25, spreadDeg: 36 }
+                4: { name: 'Triple',     bullets: 3, cooldownMult: 0.70, damageMult: 1.50, spreadDeg: 5 },
+                5: { name: 'Triple MAX', bullets: 3, cooldownMult: 0.55, damageMult: 1.75, spreadDeg: 8 },
+                6: { name: 'HYPER+',     bullets: 3, cooldownMult: 0.40, damageMult: 2.00, spreadDeg: 10 },
+                7: { name: 'HYPER++',    bullets: 3, cooldownMult: 0.30, damageMult: 2.25, spreadDeg: 12 }
             },
+
+            // v4.48: Missile optimization — fewer projectiles, more damage
+            MISSILE_BULLET_DIVISOR: 2,   // floor(bullets / divisor), min 1
+            MISSILE_DAMAGE_BONUS: 2.0,   // stacked on damageMult
 
             // Special duration (HOMING/PIERCE/MISSILE)
             SPECIAL_DURATION: 12,
@@ -993,7 +997,8 @@
                 SPECIAL: 1.0,           // Base weight for special need
                 UTILITY: 0.8            // Base weight for utility need
             },
-            MIN_CATEGORY_WEIGHT: 0.05   // Minimum weight to prevent zero-chance
+            MIN_CATEGORY_WEIGHT: 0.05,  // Minimum weight to prevent zero-chance
+            GODCHAIN_RECHARGE_NEED: 0.35  // v4.48: Need per UPGRADE al max weapon level (GODCHAIN recharges)
         },
 
         // --- WAVES ---
@@ -1172,6 +1177,7 @@
             MARGIN: 60,               // Left/right margin for scatter/wall
             MAX_Y_RATIO: 0.55,        // v4.37: 0.65→0.55, enemies don't descend past 55% — more breathing room
             MAX_Y_RATIO_BY_CYCLE: [0.38, 0.38, 0.55],  // v4.40: C1+C2 top-heavy (38%), C3 expands (55%)
+            MAX_Y_PIXEL: 500,         // v4.48: absolute Y cap (prevents overflow on tall screens)
             CHEVRON_Y_MULT: 0.55,     // v4.16: Y-spacing multiplier for CHEVRON (was 0.75, caused overflow with high counts)
             SPIRAL_CENTER_Y_OFFSET: 100, // Spiral center Y offset from startY
             SPIRAL_ANGLE_STEP: 0.5,   // Radians per enemy in spiral
@@ -1248,6 +1254,7 @@
         GODCHAIN: {
             // v4.47: GODCHAIN = weapon level 5 (no modifier check needed)
             REQUIREMENTS: { WEAPON_LEVEL: 5 },
+            DURATION: 10,               // v4.48: seconds (was permanent, now temporary + re-triggerable)
             SPEED_BONUS: 1.05,          // +5% movement speed
             SHIP_COLORS: {
                 BODY: '#cc2222',        // Deep red body

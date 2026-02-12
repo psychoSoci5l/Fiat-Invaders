@@ -1,5 +1,17 @@
 # Changelog
 
+## v4.48.0 - 2026-02-12
+### Balance Recalibration Post-Weapon Evolution
+
+- **Enemy HP rebalanced**: BASE 18→28 (+55%), SCALE 30→40, CYCLE_MULT C2 2.5×, C3 3.2× — compensates triple-spread all-hit pattern
+- **Boss HP rebalanced**: BASE 3000→5000, PER_LEVEL 65→100, PER_CYCLE 4000→5000, CYCLE_MULT [1.0, 2.5, 2.2], MIN_FLOOR 2500→4000
+- **GODCHAIN re-trigger fix**: UPGRADE drops now reach player at max weapon level (were converted to specials). Pity timer works at max level. Suppression never blocks UPGRADE drops
+- **Adaptive drop intelligence**: Need-based category uses GODCHAIN_RECHARGE_NEED (0.35) at max level, gradual special/utility need based on player state (hasShield, hasSpeed)
+- **Weapon pacing slower**: KILLS_FOR_UPGRADE 30→50 (LV5 reached in cycle 2 instead of minute 1:09)
+- **Entity Density Tracker**: `dbg.entityReport()` — samples every 30 frames, reports session averages, density by wave, hot spots (>100 entities), player bullet analysis
+- **Formation safety**: Y-cap for safety net rows, pixel cap on Y-clamping, filled chevron algorithm
+- **Campaign victory transition**: STORY_SCREEN→CAMPAIGN_VICTORY added to state machine
+
 ## v4.47.0 - 2026-02-12
 ### Weapon Evolution Redesign
 
