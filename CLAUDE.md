@@ -123,7 +123,7 @@ Detailed tables, parameters, and implementation specifics → **SYSTEM_REFERENCE
 - **Arcade Records** — Persistent best cycle/level/kills in localStorage, NEW BEST badge on gameover, displayed in intro selection
 
 ### Rendering & VFX
-- **Color Palette (v4.52 Cyberpunk)** — Neon Magenta `#ff2d95` (FIAT/danger), Neon Cyan `#00f0ff` (CRYPTO/info/shield), Neon Gold `#ffaa00` (score/upgrade), Neon Green `#39ff14` (boss eyes/success), Deep Space `#030308→#0a0825` (backgrounds). Enemy outlines use `_colorDark50` (tinted, not flat black)
+- **Color Palette (v4.53 Cyberpunk)** — Neon Violet `#bb44ff` (UI buttons/accents), Neon Magenta `#ff2d95` (FIAT/danger), Neon Cyan `#00f0ff` (CRYPTO/info/shield), Gold `#ffaa00` (HUD score only), Neon Green `#39ff14` (boss eyes/success), Deep Space `#030308→#0a0825` (backgrounds). Enemy outlines use `_colorDark50` (tinted, not flat black)
 - **Additive Glow** — `Balance.GLOW`. `'lighter'` on player elements. Kill-switch: `GLOW.ENABLED = false`. Visual rule: "glow = collect, dark = avoid"
 - **Sky & Background** — `Balance.SKY`. Nebula violet→void gradients, stars from L1, firefly particles (cyan/magenta). Off-screen caching via `Balance.SKY.OFFSCREEN`
 - **Batch Rendering** — Multi-pass pipeline (standard → additive), ~30% less canvas state changes
@@ -159,9 +159,9 @@ Detailed tables, parameters, and implementation specifics → **SYSTEM_REFERENCE
 
 ### Button Design System
 All buttons use composable `.btn` classes from `style.css`. Never create new button classes — compose existing ones:
-- **Variants**: `.btn-primary` (gold), `.btn-secondary` (ghost), `.btn-danger` (red), `.btn-toggle` (compact gold), `.btn-icon` (44px square), `.btn-icon-round` (50px circle), `.btn-cta` (animated title), `.btn-pwa` (install banner)
+- **Variants**: `.btn-primary` (neon violet outline), `.btn-secondary` (ghost), `.btn-danger` (magenta), `.btn-toggle` (compact violet outline), `.btn-icon` (44px square violet), `.btn-icon-round` (50px circle violet), `.btn-cta` (animated title violet), `.btn-pwa` (install banner violet)
 - **Sizes**: `.btn-sm`, `.btn-lg`, `.btn-block` (full-width)
-- **CSS vars**: `--btn-gold-top/bottom/shadow/glow`, `--btn-danger-top/bottom/shadow`
+- **CSS vars**: `--btn-violet-border/glow/fill/hover`, `--btn-danger-top/bottom/shadow`
 - **Example**: `<button class="btn btn-primary btn-block">TEXT</button>`
 
 ### Performance: ColorUtils Caching

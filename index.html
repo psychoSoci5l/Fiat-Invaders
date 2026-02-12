@@ -106,7 +106,7 @@
         <div class="mode-selector" id="mode-selector">
             <div class="mode-pills">
                 <button class="mode-pill active" id="mode-pill-story" onclick="setGameMode('campaign')">STORY</button>
-                <button class="mode-pill" id="mode-pill-arcade" onclick="setGameMode('arcade')">ARCADE</button>
+                <button class="mode-pill mode-pill-wip" id="mode-pill-arcade" onclick="setGameMode('arcade')">ARCADE <span class="wip-tag">WIP</span></button>
             </div>
         </div>
 
@@ -181,29 +181,29 @@
         <div class="ship-container">
             <!-- BTC STRIKER -->
             <div class="ship-card" onclick="selectShip('BTC')" data-ship="BTC">
-                <div class="ship-icon" style="color: #F7931A;">₿</div>
-                <h3 style="color: #F7931A;">BTC STRIKER</h3>
+                <div class="ship-icon" style="color: #bb44ff;">₿</div>
+                <h3 style="color: #bb44ff;">BTC STRIKER</h3>
                 <div class="ship-trait" style="color: #aaa; font-size: 11px; margin-bottom: 8px;">⚖️ BALANCED</div>
                 <div class="stats">
                     <div class="stat-row">
                         <span class="stat-icon">💨</span>
                         <span class="stat-name">Speed</span>
-                        <span class="stat-value" style="color:#F7931A">●●●○○</span>
+                        <span class="stat-value" style="color:#bb44ff">●●●○○</span>
                     </div>
                     <div class="stat-row">
                         <span class="stat-icon">💥</span>
                         <span class="stat-name">Damage</span>
-                        <span class="stat-value" style="color:#F7931A">●●●○○</span>
+                        <span class="stat-value" style="color:#bb44ff">●●●○○</span>
                     </div>
                     <div class="stat-row">
                         <span class="stat-icon">🔫</span>
                         <span class="stat-name">Fire Rate</span>
-                        <span class="stat-value" style="color:#F7931A">●●●○○</span>
+                        <span class="stat-value" style="color:#bb44ff">●●●○○</span>
                     </div>
                     <div class="stat-row">
                         <span class="stat-icon">⭕</span>
                         <span class="stat-name">Hitbox</span>
-                        <span class="stat-value" style="color:#F7931A">●●●○○</span>
+                        <span class="stat-value" style="color:#bb44ff">●●●○○</span>
                     </div>
                 </div>
             </div>
@@ -270,11 +270,11 @@
     <!-- PAUSE SCREEN -->
     <div id="pause-screen" style="display: none;">
         <h1 class="neon-title" id="pause-title">PAUSA</h1>
-        <button class="btn btn-primary btn-block" id="btn-resume" onclick="togglePause()">⟡ RIPRENDI</button>
-        <button class="btn btn-primary btn-block" id="btn-settings" onclick="toggleSettings()">⟡ IMPOSTAZIONI</button>
-        <button class="btn btn-primary btn-block" id="btn-manual" onclick="toggleManual()">⟡ MANUALE</button>
-        <button class="btn btn-primary btn-block" id="btn-restart" onclick="restartRun()">⟡ RICOMINCIA</button>
-        <button class="btn btn-danger btn-block" id="btn-exit-title" onclick="backToIntro()">⟡ ESCI</button>
+        <button class="btn btn-primary btn-block" id="btn-resume" onclick="togglePause()">RIPRENDI</button>
+        <button class="btn btn-primary btn-block" id="btn-settings" onclick="toggleSettings()">IMPOSTAZIONI</button>
+        <button class="btn btn-primary btn-block" id="btn-manual" onclick="toggleManual()">MANUALE</button>
+        <button class="btn btn-primary btn-block" id="btn-restart" onclick="restartRun()">RICOMINCIA</button>
+        <button class="btn btn-danger btn-block" id="btn-exit-title" onclick="backToIntro()">ESCI</button>
         <div class="menu-row">
             <button class="btn btn-icon-round music-toggle" id="pause-music-toggle">
                 <svg viewBox="0 0 24 24" class="icon-svg"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
@@ -297,9 +297,8 @@
 
     <div id="gameover-screen" style="display: none;">
         <h1 class="glitch-text">LIQUIDATION EVENT</h1>
-        <p id="gameover-meme" style="color: #6aa9ff; font-family: 'Courier New', monospace; font-size: 16px; margin: 8px 0;">PAPER HANDS</p>
-        <p id="roast-msg"
-            style="color: #F7931A; font-family: 'Courier New', monospace; font-size: 16px; margin: 10px 0;">ACCOUNT BALANCE</p>
+        <p id="gameover-meme">PAPER HANDS</p>
+        <p id="roast-msg">ACCOUNT BALANCE</p>
         <div class="final-score"><span id="finalScore">0</span></div>
         <div id="gameover-stats">
             <div>KILLS: <span id="killsVal">0</span></div>

@@ -1,7 +1,28 @@
 # Roadmap: FIAT vs CRYPTO
 
-> **Versione attuale**: v4.51.0 (2026-02-12)
+> **Versione attuale**: v4.53.0 (2026-02-12)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
+
+---
+
+## COMPLETATO — Premium Purple Neon Unification (v4.53)
+
+- [x] Tutti i bottoni da gold gradient a neon violet outline (#bb44ff)
+- [x] CSS vars: `--neon-orange` → `--neon-violet`, `--btn-gold-*` → `--btn-violet-*`
+- [x] ~130 edit su style.css (modals, manual, tutorial, settings, whatsnew, pause-btn, sliders)
+- [x] Nave BTC: arancione → viola (Constants, Player.js, index.html, DialogueUI)
+- [x] StoryScreen: highlights gold → viola
+- [x] Arcade mode disabilitato (WIP) — pill greyed out + tag WIP
+- [x] What's New aggiornato con entry v4.53
+- [x] Preservati gold: HUD score, GODCHAIN, streaks, boss phases, bullet colors
+
+---
+
+## COMPLETATO — Visual Overhaul: Dark Cyberpunk Neon (v4.52)
+
+- [x] Palette neon: magenta, cyan, gold, green su deep space viola-nero
+- [x] 11 file modificati, ~100 CSS color replacements
+- [x] Sky system, enemies, weapons, bosses, powerups, particles tutti reworked
 
 ---
 
@@ -9,7 +30,7 @@
 
 - [x] iOS scroll fix: `#whatsnew-panel` aggiunto alla whitelist touch passthrough in InputSystem.js
 - [x] Root cause: `handleTouch` chiamava `preventDefault()` su touch nel panel (CSS era già corretto)
-- [x] Update notification glow: pulsante What's New brilla oro quando c'è un aggiornamento
+- [x] Update notification glow: pulsante What's New brilla quando c'è un aggiornamento
 - [x] Glow si spegne dopo apertura panel (versione salvata in `fiat_whatsnew_seen`)
 - [x] Test su iPhone reale — scroll confermato funzionante
 

@@ -141,7 +141,7 @@ class DialogueUI {
      */
     _getSpeakerColor(speaker) {
         const colors = {
-            'BTC': '#F7931A',
+            'BTC': '#bb44ff',
             'ETH': '#8c7ae6',
             'SOL': '#00d2d3',
             'POWELL': '#ff2d95',
@@ -154,7 +154,7 @@ class DialogueUI {
             'SYSTEM': '#00f0ff',
             'PLAYER': '#00ff66'
         };
-        return colors[speaker] || '#ffaa00';
+        return colors[speaker] || '#bb44ff';
     }
 
     /**

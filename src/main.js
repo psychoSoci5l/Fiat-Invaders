@@ -856,7 +856,7 @@ let introState = 'SPLASH'; // 'SPLASH' or 'SELECTION'
 const SHIP_KEYS = ['BTC', 'ETH', 'SOL'];
 const SHIP_DISPLAY = {
     // hit = hitbox rating (higher = smaller hitbox = easier to dodge)
-    BTC: { name: 'BTC STRIKER', color: '#F7931A', symbol: 'B', spd: 6, pwr: 7, hit: 5 },
+    BTC: { name: 'BTC STRIKER', color: '#bb44ff', symbol: 'B', spd: 6, pwr: 7, hit: 5 },
     ETH: { name: 'ETH HEAVY', color: '#8c7ae6', symbol: 'E', spd: 4, pwr: 8, hit: 3 },
     SOL: { name: 'SOL SPEEDSTER', color: '#00d2d3', symbol: 'S', spd: 9, pwr: 5, hit: 8 }
 };
@@ -1096,6 +1096,8 @@ window.cycleShip = function(dir) {
 
 // --- GAME MODE SELECTION (Arcade vs Campaign) ---
 window.setGameMode = function(mode) {
+    // Arcade mode disabled (WIP) — force Story only
+    if (mode === 'arcade') return;
     const campaignState = G.CampaignState;
     const isEnabled = mode === 'campaign';
 
@@ -2023,6 +2025,15 @@ window.togglePrivacyPanel = function () {
 
 // What's New panel (v4.50)
 const WHATS_NEW = [
+    {
+        version: 'v4.53.0', date: '2026-02-12', title: 'Premium Purple Neon',
+        items: [
+            'Full UI color unification: all buttons, menus, modals now neon violet',
+            'BTC ship recolored to violet',
+            'Story screen highlights, tutorial, manual, settings — all violet themed',
+            'Arcade mode temporarily disabled (work in progress)'
+        ]
+    },
     {
         version: 'v4.50.0', date: '2026-02-12', title: 'Arcade Mode Enhancements',
         items: [

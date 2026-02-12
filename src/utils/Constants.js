@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v4.52.0 FIAT vs CRYPTO";
+window.Game.VERSION = "v4.53.0 FIAT vs CRYPTO";
 
 window.Game.TEXTS = {
     EN: {
@@ -126,7 +126,7 @@ window.Game.TEXTS = {
         LAUNCH: "LAUNCH",
         HORDE_2_INCOMING: "HORDE 2!",
         GET_READY: "GET READY",
-        PWA_INSTALL_IOS: 'Install: tap <svg class="pwa-share-icon" viewBox="0 0 24 24" fill="none" stroke="#ffaa00" stroke-width="2"><path d="M12 3v12M5 10l7-7 7 7"/><path d="M5 21h14a1 1 0 001-1v-6H4v6a1 1 0 001 1z"/></svg> then "Add to Home Screen"',
+        PWA_INSTALL_IOS: 'Install: tap <svg class="pwa-share-icon" viewBox="0 0 24 24" fill="none" stroke="#bb44ff" stroke-width="2"><path d="M12 3v12M5 10l7-7 7 7"/><path d="M5 21h14a1 1 0 001-1v-6H4v6a1 1 0 001 1z"/></svg> then "Add to Home Screen"',
         PWA_INSTALL_ANDROID: "Install the app for the best experience",
         PWA_INSTALL_BTN: "INSTALL",
         // Tutorial (v4.37 unified)
@@ -291,7 +291,7 @@ window.Game.TEXTS = {
         LAUNCH: "LANCIA",
         HORDE_2_INCOMING: "ORDA 2!",
         GET_READY: "PREPARATI",
-        PWA_INSTALL_IOS: 'Installa: tap <svg class="pwa-share-icon" viewBox="0 0 24 24" fill="none" stroke="#ffaa00" stroke-width="2"><path d="M12 3v12M5 10l7-7 7 7"/><path d="M5 21h14a1 1 0 001-1v-6H4v6a1 1 0 001 1z"/></svg> poi "Aggiungi a Home"',
+        PWA_INSTALL_IOS: 'Installa: tap <svg class="pwa-share-icon" viewBox="0 0 24 24" fill="none" stroke="#bb44ff" stroke-width="2"><path d="M12 3v12M5 10l7-7 7 7"/><path d="M5 21h14a1 1 0 001-1v-6H4v6a1 1 0 001 1z"/></svg> poi "Aggiungi a Home"',
         PWA_INSTALL_ANDROID: "Installa l'app per la migliore esperienza",
         PWA_INSTALL_BTN: "INSTALLA",
         // Tutorial (v4.37 unified)
@@ -545,7 +545,7 @@ window.Game.MINION_TYPE = {
 };
 
 window.Game.SHIPS = {
-    BTC: { speed: 420, hp: 3, fireRate: 0.22, baseDamage: 14, color: '#F7931A', hitboxSize: 30, coreHitboxSize: 6 }, // v4.40: 0.26→0.22 (+20% fire rate)
+    BTC: { speed: 420, hp: 3, fireRate: 0.22, baseDamage: 14, color: '#bb44ff', hitboxSize: 30, coreHitboxSize: 6 }, // v4.40: 0.26→0.22 (+20% fire rate)
     ETH: { speed: 320, hp: 4, fireRate: 0.33, baseDamage: 28, color: '#8c7ae6', hitboxSize: 38, coreHitboxSize: 7 }, // v4.40: 0.40→0.33 (+20% fire rate)
     SOL: { speed: 560, hp: 2, fireRate: 0.17, baseDamage: 10, color: '#00d2d3', hitboxSize: 18, coreHitboxSize: 4 } // v4.40: 0.20→0.17 (+20% fire rate)
 };

@@ -1,5 +1,27 @@
 # Changelog
 
+## v4.53.0 - 2026-02-12
+### Premium Purple Neon Unification
+
+- **Button system redesign**: All buttons from gold gradient to neon violet outline style (`--btn-violet-*` vars). Ghost fill + glowing border for premium cyberpunk look
+- **New CSS palette**: `--neon-violet: #bb44ff` replaces `--neon-orange`. `--btn-violet-border/glow/fill/hover` replace `--btn-gold-*`
+- **btn-primary**: Neon outline (violet border, dark fill, white text) instead of solid gold gradient
+- **btn-cta**: TAP TO START ghost → violet ghost. LAUNCH state → solid violet gradient with white text
+- **btn-toggle/icon/icon-round/pwa**: All converted to violet theme
+- **Pause menu**: Removed decorative symbols from buttons, centered text, increased gap
+- **Intro screen**: Mode pills, mode description, ship arrows, score labels, arcade records → violet
+- **Gameover**: Final score glow, NEW BEST badge, roast message → violet. Inline styles moved to CSS
+- **Settings**: Modal border, title, slider thumbs, section headers → violet
+- **What's New**: Panel border, title, version borders, notification glow → violet
+- **Manual**: Container border, title, tab active, section headings, table headers, scrollbar → violet
+- **Tutorial**: Container border, title → violet
+- **Pause button (II)**: Gold pill → violet pill
+- **BTC Ship**: Orange (#F7931A) → violet (#bb44ff) — body, nose cone, ship card, dialogue speaker
+- **Story screen**: Text highlights (years, keywords, percentages) → violet
+- **PWA banner**: Border and install icon → violet
+- **~109 hardcoded gold→violet** replacements across CSS, preserving gameplay gold (HUD score, GODCHAIN, streaks, tier-medium, boss phases)
+- **Preserved**: HUD score stays gold (#ffaa00), score-row-value stays gold, GODCHAIN/HYPER effects, boss phase colors, bullet/explosion colors, btn-danger stays magenta
+
 ## v4.52.0 - 2026-02-12
 ### Visual Overhaul — Dark Cyberpunk Neon
 

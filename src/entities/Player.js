@@ -1027,7 +1027,7 @@ class Player extends window.Game.Entity {
         ctx.stroke();
 
         // Nose cone - two-tone
-        ctx.fillStyle = gcColors ? gcColors.NOSE : '#b08030'; // Shadow side
+        ctx.fillStyle = gcColors ? gcColors.NOSE : '#7722aa'; // Shadow side
         ctx.beginPath();
         ctx.moveTo(0, -28);
         ctx.lineTo(-10, -6);
@@ -1035,7 +1035,7 @@ class Player extends window.Game.Entity {
         ctx.closePath();
         ctx.fill();
 
-        ctx.fillStyle = gcColors ? gcColors.NOSE_LIGHT : '#eebb55'; // Light side
+        ctx.fillStyle = gcColors ? gcColors.NOSE_LIGHT : '#cc66ff'; // Light side
         ctx.beginPath();
         ctx.moveTo(0, -28);
         ctx.lineTo(0, -6);
