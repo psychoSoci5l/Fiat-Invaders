@@ -162,6 +162,18 @@ When you reach **Weapon Level 5**, GODCHAIN activates automatically:
 
 **The cycle**: Collect UPGRADEs → reach LV5 → GODCHAIN → timer expires → collect more UPGRADEs → GODCHAIN again!
 
+### Perks - Passive Upgrades
+
+Cancel **5 enemy bullets** with your shots within 1.5 seconds to earn a random perk. Perks stack up to **x2** and persist for the entire run.
+
+| Perk | Effect | Max Stacks |
+|------|--------|------------|
+| **Kinetic Rounds** | Damage +20%, bullets pierce +1 extra hit | x2 |
+| **Overclock Thrusters** | Movement speed +15% | x2 |
+| **Diamond Hands** | Score multiplier +25% | x2 |
+
+**Tips**: Perks are earned by intercepting enemy fire — position yourself where bullets are dense and keep shooting!
+
 ---
 
 ## 8. Pro Tips

@@ -162,6 +162,18 @@ Quando raggiungi il **Livello Arma 5**, la GODCHAIN si attiva automaticamente:
 
 **Il ciclo**: Raccogli UPGRADE → raggiungi LV5 → GODCHAIN → timer scade → raccogli altri UPGRADE → GODCHAIN di nuovo!
 
+### Perk - Potenziamenti Passivi
+
+Cancella **5 proiettili nemici** con i tuoi colpi entro 1.5 secondi per ottenere un perk casuale. I perk si accumulano fino a **x2** e durano tutta la partita.
+
+| Perk | Effetto | Stack Max |
+|------|---------|-----------|
+| **Kinetic Rounds** | Danno +20%, proiettili perforano +1 colpo extra | x2 |
+| **Overclock Thrusters** | Velocità movimento +15% | x2 |
+| **Diamond Hands** | Moltiplicatore punteggio +25% | x2 |
+
+**Consiglio**: I perk si ottengono intercettando il fuoco nemico — posizionati dove i proiettili sono densi e continua a sparare!
+
 ---
 
 ## 8. Consigli da Pro
