@@ -1,5 +1,11 @@
 # Changelog
 
+## v4.51.0 - 2026-02-12
+### What's New iOS Fix + Update Notification
+
+- **iOS scroll fix**: What's New panel now scrolls correctly on real iPhones — added `#whatsnew-panel` to InputSystem touch passthrough whitelist (root cause: `handleTouch` was calling `preventDefault()` on the panel)
+- **Update notification glow**: What's New button pulses with gold glow when a new version is detected (compares `G.VERSION` vs `fiat_whatsnew_seen` in localStorage). Glow dismissed on open.
+
 ## v4.50.0 - 2026-02-12
 ### Arcade Mode Enhancements
 

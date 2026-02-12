@@ -1,16 +1,17 @@
 # Roadmap: FIAT vs CRYPTO
 
-> **Versione attuale**: v4.50.0 (2026-02-12)
+> **Versione attuale**: v4.51.0 (2026-02-12)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
 
 ---
 
-## TODO — What's New scroll fix (iOS Safari)
+## COMPLETATO — What's New iOS Fix + Update Notification (v4.51)
 
-- [ ] What's New panel non scrolla su iPhone reale (scroll funziona in emulatore desktop)
-- [ ] Copiare esattamente il pattern CSS del manual-v2 (che funziona su iPhone): `height: 100dvh` esplicito su mobile, `overflow: visible`, `.whatsnew-scroll` con `flex: 1; min-height: 0; overflow-y: scroll`
-- [ ] Verificare se `body { touch-action: none }` interferisce (manual ha `touch-action: pan-y` sul modal)
-- [ ] Test su iPhone reale prima di chiudere
+- [x] iOS scroll fix: `#whatsnew-panel` aggiunto alla whitelist touch passthrough in InputSystem.js
+- [x] Root cause: `handleTouch` chiamava `preventDefault()` su touch nel panel (CSS era già corretto)
+- [x] Update notification glow: pulsante What's New brilla oro quando c'è un aggiornamento
+- [x] Glow si spegne dopo apertura panel (versione salvata in `fiat_whatsnew_seen`)
+- [x] Test su iPhone reale — scroll confermato funzionante
 
 ---
 

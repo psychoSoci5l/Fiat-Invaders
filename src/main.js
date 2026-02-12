@@ -1569,6 +1569,15 @@ function init() {
             // Reset primary button to TAP TO START state
             updatePrimaryButton('SPLASH');
 
+            // v4.51: Glow What's New button if version changed since last visit
+            try {
+                const seenVer = localStorage.getItem('fiat_whatsnew_seen');
+                if (seenVer !== G.VERSION) {
+                    const wnBtn = document.getElementById('intro-whatsnew');
+                    if (wnBtn) wnBtn.classList.add('btn-glow-notify');
+                }
+            } catch(e) {}
+
             // v4.35: Title Animation — set subtitle text, init and start animator
             const subtitleEl = document.getElementById('title-subtitle');
             if (subtitleEl) subtitleEl.textContent = t('TITLE_SUBTITLE');
@@ -1739,6 +1748,15 @@ function init() {
 
         // Reset primary button to TAP TO START state
         updatePrimaryButton('SPLASH');
+
+        // v4.51: Glow What's New button if version changed
+        try {
+            const seenVer = localStorage.getItem('fiat_whatsnew_seen');
+            if (seenVer !== G.VERSION) {
+                const wnBtn = document.getElementById('intro-whatsnew');
+                if (wnBtn) wnBtn.classList.add('btn-glow-notify');
+            }
+        } catch(e) {}
 
         updateUIText();
         setGameState('INTRO');
@@ -2077,6 +2095,10 @@ window.toggleWhatsNew = function () {
         if (title) title.innerText = t('WHATS_NEW') || "WHAT'S NEW";
         if (closeBtn) closeBtn.innerText = t('CLOSE') || 'CLOSE';
         audioSys.play('coinUI');
+        // Mark version as seen — remove glow
+        try { localStorage.setItem('fiat_whatsnew_seen', G.VERSION); } catch(e) {}
+        const wnBtn = document.getElementById('intro-whatsnew');
+        if (wnBtn) wnBtn.classList.remove('btn-glow-notify');
     }
 };
 
@@ -2494,6 +2516,15 @@ window.backToIntro = function () {
             introScreen.style.opacity = '1';
             introScreen.style.pointerEvents = 'auto';
         }
+
+        // v4.51: Glow What's New button if version changed
+        try {
+            const seenVer = localStorage.getItem('fiat_whatsnew_seen');
+            if (seenVer !== G.VERSION) {
+                const wnBtn = document.getElementById('intro-whatsnew');
+                if (wnBtn) wnBtn.classList.add('btn-glow-notify');
+            }
+        } catch(e) {}
 
         setGameState('INTRO');
         introState = 'SPLASH';

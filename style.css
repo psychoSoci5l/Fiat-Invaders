@@ -3249,6 +3249,23 @@ body.bear-mode .neon-title {
     border-color: #d2b4de;
 }
 
+/* What's New notification glow (v4.51) */
+.btn-glow-notify {
+    animation: btnGlowPulse 1.2s ease-in-out infinite;
+}
+@keyframes btnGlowPulse {
+    0%, 100% {
+        box-shadow: 0 0 8px rgba(243, 156, 18, 0.5), 0 0 16px rgba(243, 156, 18, 0.2);
+        transform: scale(1);
+        filter: brightness(1);
+    }
+    50% {
+        box-shadow: 0 0 24px rgba(243, 156, 18, 1), 0 0 48px rgba(243, 156, 18, 0.6), 0 0 72px rgba(243, 156, 18, 0.2);
+        transform: scale(1.15);
+        filter: brightness(1.4);
+    }
+}
+
 /* What's New panel (v4.50) */
 #whatsnew-panel {
     position: fixed;
