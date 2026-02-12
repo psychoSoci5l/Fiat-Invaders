@@ -893,8 +893,11 @@ class Player extends window.Game.Entity {
         ctx.translate(this.x, this.y);
 
         // Reactor flame (animated) - 4-layer cell-shaded style
-        const flameHeight = 20 + Math.sin(this.animTime * 12) * 8;
-        const flameWidth = 10 + Math.sin(this.animTime * 10) * 3;
+        // v4.55: flame scales with weapon level
+        const _flameLvl = this.weaponLevel || 1;
+        const _flameMult = 1 + (_flameLvl - 1) * 0.12; // LV1=1.0, LV3=1.24, LV5=1.48
+        const flameHeight = (20 + Math.sin(this.animTime * 12) * 8) * _flameMult;
+        const flameWidth = (10 + Math.sin(this.animTime * 10) * 3) * _flameMult;
         const pulse = 1 + Math.sin(this.animTime * 8) * 0.1;
 
         // Outer glow (red, largest)
@@ -992,136 +995,29 @@ class Player extends window.Game.Entity {
             }
         }
 
-        // v4.6: GODCHAIN ship color palette override
-        const gc = this._godchainActive ? window.Game.Balance?.GODCHAIN : null;
-        const gcColors = gc?.SHIP_COLORS;
+        // v4.55: Ship evolution — visual form scales with weaponLevel
+        this._drawShipBody(ctx);
 
-        // Vector ship (Cuphead-ish) - cell-shaded two-tone
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = '#111';
-
-        // Body - shadow side (left half)
-        ctx.fillStyle = gcColors ? gcColors.BODY_DARK : this._colorDark30;
-        ctx.beginPath();
-        ctx.moveTo(0, -26);
-        ctx.lineTo(-22, 12);
-        ctx.lineTo(0, 12);
-        ctx.closePath();
-        ctx.fill();
-
-        // Body - light side (right half)
-        ctx.fillStyle = gcColors ? gcColors.BODY : this.stats.color;
-        ctx.beginPath();
-        ctx.moveTo(0, -26);
-        ctx.lineTo(0, 12);
-        ctx.lineTo(22, 12);
-        ctx.closePath();
-        ctx.fill();
-
-        // Body outline
-        ctx.beginPath();
-        ctx.moveTo(0, -26);
-        ctx.lineTo(-22, 12);
-        ctx.lineTo(22, 12);
-        ctx.closePath();
-        ctx.stroke();
-
-        // Nose cone - two-tone
-        ctx.fillStyle = gcColors ? gcColors.NOSE : '#7722aa'; // Shadow side
-        ctx.beginPath();
-        ctx.moveTo(0, -28);
-        ctx.lineTo(-10, -6);
-        ctx.lineTo(0, -6);
-        ctx.closePath();
-        ctx.fill();
-
-        ctx.fillStyle = gcColors ? gcColors.NOSE_LIGHT : '#cc66ff'; // Light side
-        ctx.beginPath();
-        ctx.moveTo(0, -28);
-        ctx.lineTo(0, -6);
-        ctx.lineTo(10, -6);
-        ctx.closePath();
-        ctx.fill();
-
-        // Nose outline
-        ctx.beginPath();
-        ctx.moveTo(0, -28);
-        ctx.lineTo(-10, -6);
-        ctx.lineTo(10, -6);
-        ctx.closePath();
-        ctx.stroke();
-
-        // Left fin - shadow (left fin is in shadow)
-        ctx.fillStyle = gcColors ? gcColors.FIN : '#00bbcc';
-        ctx.beginPath();
-        ctx.moveTo(-22, 8);
-        ctx.lineTo(-34, 16);
-        ctx.lineTo(-16, 18);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-
-        // Right fin - light
-        ctx.fillStyle = gcColors ? gcColors.FIN_LIGHT : '#00eeff';
-        ctx.beginPath();
-        ctx.moveTo(22, 8);
-        ctx.lineTo(34, 16);
-        ctx.lineTo(16, 18);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-
-        // Rim lighting (right edge of body)
-        ctx.strokeStyle = gcColors ? gcColors.BODY_LIGHT : this._colorLight50;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(4, -24);
-        ctx.lineTo(22, 10);
-        ctx.stroke();
-
-        // Rim light on nose
-        ctx.strokeStyle = gcColors ? gcColors.NOSE_LIGHT : '#ffdd88';
-        ctx.beginPath();
-        ctx.moveTo(2, -26);
-        ctx.lineTo(8, -8);
-        ctx.stroke();
-
-        // Window
-        ctx.fillStyle = gcColors ? gcColors.WINDOW : '#00f0ff';
-        ctx.beginPath();
-        ctx.arc(0, -8, 6, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-
-        // BTC logo
-        ctx.fillStyle = '#111';
-        ctx.font = 'bold 14px Courier New';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('₿', 0, 6);
-
-        // v4.5: Evolved muzzle flash — scales with weapon level
+        // v4.55: Muzzle flash — matches ship evolution cannons
         if (this.muzzleFlash > 0) {
             const vfx = window.Game.Balance?.VFX || {};
             const flashAlpha = this.muzzleFlash / (Balance.PLAYER.MUZZLE_FLASH_DURATION || 0.08);
             const level = this.weaponLevel || 1;
             const levelScale = 1 + (level - 1) * (vfx.MUZZLE_SCALE_PER_LEVEL || 0.4);
+            const flashSize = (10 + (1 - flashAlpha) * 8) * levelScale;
 
-            const scale = levelScale;
-            const flashSize = (10 + (1 - flashAlpha) * 8) * scale;
-
-            // Weapon color for flash
             const wColor = this.stats?.color || '#E67E22';
             const CU = window.Game.ColorUtils;
-            const lightColor = CU ? CU.lighten(wColor, 0.5) : '#fff';
+            const wParsed = CU.parseHex(wColor);
 
-            // Main flash glow (weapon-colored)
+            // Central nose flash (always)
+            const noseY = -30;
             ctx.fillStyle = CU.rgba(255, 255, 220, flashAlpha * 0.7);
             ctx.beginPath();
-            ctx.arc(0, -30, flashSize, 0, Math.PI * 2);
+            ctx.arc(0, noseY, flashSize, 0, Math.PI * 2);
             ctx.fill();
 
-            // === ADDITIVE MUZZLE GLOW v4.23 ===
+            // Additive muzzle glow
             const _muzzleGlow = window.Game.Balance?.GLOW;
             if (_muzzleGlow?.ENABLED && _muzzleGlow?.MUZZLE?.ENABLED) {
                 const mc = _muzzleGlow.MUZZLE;
@@ -1129,57 +1025,67 @@ class Player extends window.Game.Entity {
                 ctx.globalCompositeOperation = 'lighter';
                 ctx.fillStyle = CU.rgba(255, 255, 220, flashAlpha * mc.ALPHA);
                 ctx.beginPath();
-                ctx.arc(0, -30, flashSize * mc.RADIUS_MULT, 0, Math.PI * 2);
+                ctx.arc(0, noseY, flashSize * mc.RADIUS_MULT, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.restore();
             }
 
-            // Colored inner core
-            const wParsed = CU.parseHex(wColor);
             ctx.fillStyle = CU.rgba(wParsed.r, wParsed.g, wParsed.b, flashAlpha * 0.5);
             ctx.beginPath();
-            ctx.arc(0, -30, flashSize * 0.6, 0, Math.PI * 2);
+            ctx.arc(0, noseY, flashSize * 0.6, 0, Math.PI * 2);
             ctx.fill();
 
-            // Flash lines (count scales with shot level)
+            // Center flash line
             ctx.strokeStyle = CU.rgba(wParsed.r, wParsed.g, wParsed.b, flashAlpha * 0.9);
             ctx.lineWidth = 1.5 + level * 0.5;
-            // Center line
             ctx.beginPath();
             ctx.moveTo(0, -28);
             ctx.lineTo(0, -42 - flashSize);
             ctx.stroke();
-            // Side lines (level 2+)
+
+            // LV2+: Side pod flashes
             if (level >= 2) {
+                const podTop = level >= 3 ? -28 : -24;
+                const podFlashSize = flashSize * 0.5;
+                ctx.fillStyle = CU.rgba(wParsed.r, wParsed.g, wParsed.b, flashAlpha * 0.6);
                 ctx.beginPath();
-                ctx.moveTo(-7 * scale, -28);
-                ctx.lineTo(-12 * scale, -36 - flashSize * 0.5);
+                ctx.arc(-12, podTop, podFlashSize, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(12, podTop, podFlashSize, 0, Math.PI * 2);
+                ctx.fill();
+                // Pod flash lines
+                ctx.beginPath();
+                ctx.moveTo(-12, podTop);
+                ctx.lineTo(-12, podTop - 8 - podFlashSize);
                 ctx.stroke();
                 ctx.beginPath();
-                ctx.moveTo(7 * scale, -28);
-                ctx.lineTo(12 * scale, -36 - flashSize * 0.5);
-                ctx.stroke();
-            }
-            // Outer lines (level 3)
-            if (level >= 3) {
-                ctx.strokeStyle = CU.rgba(wParsed.r, wParsed.g, wParsed.b, flashAlpha * 0.6);
-                ctx.beginPath();
-                ctx.moveTo(-14 * scale, -26);
-                ctx.lineTo(-18 * scale, -32 - flashSize * 0.3);
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.moveTo(14 * scale, -26);
-                ctx.lineTo(18 * scale, -32 - flashSize * 0.3);
+                ctx.moveTo(12, podTop);
+                ctx.lineTo(12, podTop - 8 - podFlashSize);
                 ctx.stroke();
             }
 
-            // Ring burst at level 3 (expanding ring)
+            // LV4+: Central barrel flash (higher up)
+            if (level >= 4) {
+                const barrelTop = level >= 5 ? -40 : -36;
+                const barrelFlashSize = flashSize * 0.7;
+                ctx.fillStyle = CU.rgba(255, 255, 220, flashAlpha * 0.8);
+                ctx.beginPath();
+                ctx.arc(0, barrelTop, barrelFlashSize, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.moveTo(0, barrelTop);
+                ctx.lineTo(0, barrelTop - 10 - barrelFlashSize);
+                ctx.stroke();
+            }
+
+            // Ring burst at level 3+
             if (level >= (vfx.MUZZLE_RING_AT_LEVEL || 3) && flashAlpha > 0.7) {
                 const ringExpand = (1 - flashAlpha) * 15;
                 ctx.strokeStyle = CU.rgba(wParsed.r, wParsed.g, wParsed.b, flashAlpha * 0.4);
                 ctx.lineWidth = 2;
                 ctx.beginPath();
-                ctx.arc(0, -30, flashSize + ringExpand, 0, Math.PI * 2);
+                ctx.arc(0, noseY, flashSize + ringExpand, 0, Math.PI * 2);
                 ctx.stroke();
             }
         }
@@ -1302,67 +1208,7 @@ class Player extends window.Game.Entity {
             }
         }
 
-        // 3. WEAPON LEVEL PIPS (above ship) — v4.47: 5 pips, HYPER pulsing
-        if (config.WEAPON_PIPS?.ENABLED && this._weaponState) {
-            const wp = config.WEAPON_PIPS;
-            const weaponLevel = this._weaponState.weaponLevel || 1;
-            const maxLevel = 5;
-            const startX = -(maxLevel - 1) * wp.SPACING / 2;
-
-            // Check for special override
-            if (this._weaponState.special && this._weaponState.specialTimer > 0) {
-                // Show special icon with countdown arc instead of pips
-                const SPECIAL_ICONS = { HOMING: '🎯', PIERCE: '🔥', MISSILE: '🚀' };
-                const icon = SPECIAL_ICONS[this._weaponState.special] || '?';
-                const timer = this._weaponState.specialTimer;
-                const maxTimer = window.Game.Balance.WEAPON_EVOLUTION.SPECIAL_DURATION;
-                const ratio = Math.min(1, timer / maxTimer);
-
-                // Countdown arc
-                ctx.strokeStyle = CU.rgba(255, 215, 0, 0.6);
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.arc(0, wp.Y_OFFSET, 10, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * ratio);
-                ctx.stroke();
-
-                // Icon
-                ctx.font = '10px monospace';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillStyle = CU.rgba(255, 255, 255, 0.8);
-                ctx.fillText(icon, 0, wp.Y_OFFSET);
-            } else {
-                // Normal: weapon level triangles (5 pips)
-                for (let i = 0; i < maxLevel; i++) {
-                    const px = startX + i * wp.SPACING;
-                    const py = wp.Y_OFFSET;
-                    const isFull = i < weaponLevel;
-                    const s = wp.SIZE;
-
-                    // HYPER-boosted pips pulse gold
-                    const isHyperPip = this.hyperActive && i >= weaponLevel && i < weaponLevel + 2;
-
-                    ctx.beginPath();
-                    ctx.moveTo(px, py - s);
-                    ctx.lineTo(px - s * 0.7, py + s * 0.5);
-                    ctx.lineTo(px + s * 0.7, py + s * 0.5);
-                    ctx.closePath();
-
-                    if (isFull) {
-                        ctx.fillStyle = CU.rgba(255, 255, 255, wp.FULL_ALPHA);
-                        ctx.fill();
-                    } else if (isHyperPip) {
-                        // Pulsing gold for HYPER-boosted levels
-                        const pulse = Math.sin(this.animTime * 8) * 0.3 + 0.7;
-                        ctx.fillStyle = CU.rgba(255, 215, 0, pulse);
-                        ctx.fill();
-                    } else {
-                        ctx.fillStyle = CU.rgba(128, 128, 128, wp.EMPTY_ALPHA);
-                        ctx.fill();
-                    }
-                }
-            }
-        }
+        // 3. WEAPON LEVEL PIPS — removed v4.55 (ship body now communicates weapon level visually)
 
         // 4a. GODCHAIN AURA (red/orange pulsing glow)
         if (this._godchainActive) {
@@ -1566,6 +1412,319 @@ class Player extends window.Game.Entity {
                 weaponLevel: this.weaponLevel
             });
         }
+    }
+
+    /**
+     * v4.55: Ship body evolution — visual form scales with weaponLevel
+     * LV1: base ship. LV2: +side pods. LV3: longer pods+belt. LV4: +barrel+wider. LV5: armor+glow. GODCHAIN: energy form.
+     */
+    _drawShipBody(ctx) {
+        const CU = window.Game.ColorUtils;
+        const level = this.weaponLevel || 1;
+        const t = this.animTime;
+        const gc = this._godchainActive ? window.Game.Balance?.GODCHAIN : null;
+        const gcColors = gc?.SHIP_COLORS;
+        const isGC = this._godchainActive;
+
+        // Body width scales at LV4+ and GODCHAIN
+        const bodyHalfW = isGC ? 26 : (level >= 4 ? 24 : 22);
+        // Fin extension: LV3 +4px, GODCHAIN +8px
+        const finExt = isGC ? 8 : (level >= 3 ? 4 : 0);
+
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#111';
+
+        // === BODY (two-tone triangle) ===
+        ctx.fillStyle = gcColors ? gcColors.BODY_DARK : this._colorDark30;
+        ctx.beginPath();
+        ctx.moveTo(0, -26);
+        ctx.lineTo(-bodyHalfW, 12);
+        ctx.lineTo(0, 12);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = gcColors ? gcColors.BODY : this.stats.color;
+        ctx.beginPath();
+        ctx.moveTo(0, -26);
+        ctx.lineTo(0, 12);
+        ctx.lineTo(bodyHalfW, 12);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(0, -26);
+        ctx.lineTo(-bodyHalfW, 12);
+        ctx.lineTo(bodyHalfW, 12);
+        ctx.closePath();
+        ctx.stroke();
+
+        // LV3+: body belt (luminous horizontal accent)
+        if (level >= 3) {
+            ctx.save();
+            ctx.strokeStyle = gcColors ? '#ff6600' : '#bb44ff';
+            ctx.lineWidth = 2;
+            ctx.globalAlpha = isGC ? 0.9 : 0.6;
+            ctx.beginPath();
+            ctx.moveTo(-bodyHalfW + 5, 0);
+            ctx.lineTo(bodyHalfW - 5, 0);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        // LV5+: armor plates (trapezoids at body sides)
+        if (level >= 5) {
+            ctx.save();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#111';
+            ctx.fillStyle = gcColors ? gcColors.BODY_DARK : this._colorDark30;
+            ctx.globalAlpha = 0.85;
+            // Left plate
+            ctx.beginPath();
+            ctx.moveTo(-bodyHalfW + 2, -1);
+            ctx.lineTo(-bodyHalfW + 8, -1);
+            ctx.lineTo(-bodyHalfW + 6, 10);
+            ctx.lineTo(-bodyHalfW, 10);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            // Right plate
+            ctx.beginPath();
+            ctx.moveTo(bodyHalfW - 2, -1);
+            ctx.lineTo(bodyHalfW - 8, -1);
+            ctx.lineTo(bodyHalfW - 6, 10);
+            ctx.lineTo(bodyHalfW, 10);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        // === NOSE CONE (two-tone) ===
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#111';
+        ctx.fillStyle = gcColors ? gcColors.NOSE : '#7722aa';
+        ctx.beginPath();
+        ctx.moveTo(0, -28);
+        ctx.lineTo(-10, -6);
+        ctx.lineTo(0, -6);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = gcColors ? gcColors.NOSE_LIGHT : '#cc66ff';
+        ctx.beginPath();
+        ctx.moveTo(0, -28);
+        ctx.lineTo(0, -6);
+        ctx.lineTo(10, -6);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(0, -28);
+        ctx.lineTo(-10, -6);
+        ctx.lineTo(10, -6);
+        ctx.closePath();
+        ctx.stroke();
+
+        // === LV4+: CENTRAL BARREL above nose ===
+        if (level >= 4) {
+            const barrelTop = level >= 5 ? -40 : -36;
+            const barrelW = level >= 5 ? 4 : 3;
+            ctx.fillStyle = gcColors ? gcColors.NOSE_LIGHT : '#cc66ff';
+            ctx.strokeStyle = '#111';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.rect(-barrelW, barrelTop, barrelW * 2, -28 - barrelTop);
+            ctx.fill();
+            ctx.stroke();
+
+            // LV5+: pulsing glow at barrel tip
+            if (level >= 5) {
+                const bPulse = Math.sin(t * 6) * 0.3 + 0.7;
+                ctx.fillStyle = gcColors ? '#ff6600' : '#bb44ff';
+                ctx.globalAlpha = bPulse * 0.8;
+                ctx.beginPath();
+                ctx.arc(0, barrelTop, 3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+
+            // GODCHAIN: energy core orb above barrel
+            if (isGC) {
+                ctx.save();
+                ctx.globalCompositeOperation = 'lighter';
+                const corePulse = Math.sin(t * 8) * 0.4 + 0.6;
+                ctx.fillStyle = CU.rgba(255, 100, 0, corePulse);
+                ctx.beginPath();
+                ctx.arc(0, barrelTop - 3, 5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // === FINS ===
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#111';
+
+        // Left fin
+        ctx.fillStyle = gcColors ? gcColors.FIN : '#00bbcc';
+        ctx.beginPath();
+        ctx.moveTo(-bodyHalfW, 8);
+        ctx.lineTo(-34 - finExt, 16 + (finExt > 4 ? 2 : 0));
+        ctx.lineTo(-16, 18);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Right fin
+        ctx.fillStyle = gcColors ? gcColors.FIN_LIGHT : '#00eeff';
+        ctx.beginPath();
+        ctx.moveTo(bodyHalfW, 8);
+        ctx.lineTo(34 + finExt, 16 + (finExt > 4 ? 2 : 0));
+        ctx.lineTo(16, 18);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // LV4+: fin thrusters (small flames at fin tips)
+        if (level >= 4) {
+            const ftH = 6 + Math.sin(t * 14) * 3;
+            ctx.fillStyle = '#ff8800';
+            ctx.globalAlpha = 0.7;
+            ctx.beginPath();
+            ctx.moveTo(-30 - finExt, 17);
+            ctx.lineTo(-34 - finExt, 17 + ftH);
+            ctx.lineTo(-26 - finExt, 17);
+            ctx.closePath();
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(30 + finExt, 17);
+            ctx.lineTo(34 + finExt, 17 + ftH);
+            ctx.lineTo(26 + finExt, 17);
+            ctx.closePath();
+            ctx.fill();
+            ctx.globalAlpha = 1;
+        }
+
+        // GODCHAIN: wing energy trails from fin tips
+        if (isGC) {
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            const wePulse = Math.sin(t * 5) * 0.3 + 0.5;
+            ctx.strokeStyle = CU.rgba(255, 100, 0, wePulse);
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-34 - finExt, 18);
+            ctx.lineTo(-38 - finExt, 28 + Math.sin(t * 7) * 4);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(34 + finExt, 18);
+            ctx.lineTo(38 + finExt, 28 + Math.sin(t * 7 + 1) * 4);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        // === RIM LIGHTING ===
+        ctx.strokeStyle = gcColors ? gcColors.BODY_LIGHT : this._colorLight50;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(4, -24);
+        ctx.lineTo(bodyHalfW, 10);
+        ctx.stroke();
+
+        ctx.strokeStyle = gcColors ? gcColors.NOSE_LIGHT : '#ffdd88';
+        ctx.beginPath();
+        ctx.moveTo(2, -26);
+        ctx.lineTo(8, -8);
+        ctx.stroke();
+
+        // === LV2+: GUN PODS (side cannons) ===
+        if (level >= 2) {
+            const podTop = level >= 3 ? -28 : -24;
+            const podX = 12;
+            const podW = 3;
+
+            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = '#111';
+
+            ctx.fillStyle = gcColors ? gcColors.NOSE : '#7722aa';
+            ctx.beginPath();
+            ctx.rect(-podX - podW, podTop, podW * 2, -14 - podTop);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = gcColors ? gcColors.NOSE_LIGHT : '#cc66ff';
+            ctx.beginPath();
+            ctx.rect(podX - podW, podTop, podW * 2, -14 - podTop);
+            ctx.fill();
+            ctx.stroke();
+
+            // Glow tips at pod tops
+            const tipR = level >= 5 ? 3 : 2;
+            const tipAlpha = level >= 5 ? (Math.sin(t * 6) * 0.3 + 0.7) : (level >= 3 ? 0.9 : 0.6);
+            ctx.fillStyle = gcColors ? '#ff6600' : '#bb44ff';
+            ctx.globalAlpha = tipAlpha;
+            ctx.beginPath();
+            ctx.arc(-podX, podTop, tipR, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(podX, podTop, tipR, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+        }
+
+        // === WINDOW ===
+        ctx.fillStyle = gcColors ? gcColors.WINDOW : '#00f0ff';
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#111';
+        ctx.beginPath();
+        ctx.arc(0, -8, 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // === GODCHAIN ENERGY LINES (circuit pattern on body) ===
+        if (isGC) {
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            const linePulse = Math.sin(t * 4) * 0.3 + 0.6;
+            ctx.strokeStyle = CU.rgba(255, 80, 0, linePulse);
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(-8, -20);
+            ctx.lineTo(-8, 6);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(8, -20);
+            ctx.lineTo(8, 6);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(-8, -10);
+            ctx.lineTo(8, -10);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(-12, 4);
+            ctx.lineTo(12, 4);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        // === BTC LOGO ===
+        if (isGC) {
+            // Glowing logo under additive blend
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            const logoPulse = Math.sin(t * 5) * 0.3 + 0.5;
+            ctx.fillStyle = CU.rgba(255, 100, 0, logoPulse);
+            ctx.font = 'bold 14px Courier New';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('\u20BF', 0, 6);
+            ctx.restore();
+        }
+        ctx.fillStyle = '#111';
+        ctx.font = 'bold 14px Courier New';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('\u20BF', 0, 6);
     }
 
     /**

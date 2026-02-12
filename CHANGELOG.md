@@ -1,5 +1,15 @@
 # Changelog
 
+## v4.55.0 - 2026-02-12
+### Ship Evolution + BTC Lock
+
+- **Ship body evolution**: Ship visually transforms as weapon level increases — LV1 base, LV2 side gun pods, LV3 longer pods + body belt + extended fins, LV4 central barrel + wider body + fin thrusters, LV5 armor plates + pulsing glow + enhanced engine
+- **GODCHAIN form**: Energy circuit lines on body, wing energy trails, central energy core orb, glowing BTC logo, wider body + aggressive fins — full visual transformation
+- **Engine flame scaling**: Reactor flame grows progressively larger with weapon level (+12% per level)
+- **Muzzle flash update**: Flash now fires from side gun pods (LV2+) and central barrel (LV4+) matching visual cannons
+- **Weapon pips removed**: Diegetic HUD triangles above ship removed — ship body itself now communicates weapon level
+- **Ship selection locked to BTC**: Arrows and ETH/SOL cards hidden, cycleShip disabled, hangar simplified to single ship
+
 ## v4.54.0 - 2026-02-12
 ### Purple Asset Refresh + PWA Safe Area Fix
 

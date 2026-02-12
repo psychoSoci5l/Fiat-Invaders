@@ -80,16 +80,14 @@
             <span class="title-crypto">CRYPTO</span>
         </h1>
 
-        <!-- HEADER (hidden in splash, visible in selection) -->
-        <div class="selection-header" id="selection-header" style="display: none;">CHOOSE YOUR SHIP</div>
+        <!-- HEADER (hidden in splash, visible in selection) — v4.55: no ship choice -->
+        <div class="selection-header" id="selection-header" style="display: none;">BTC STRIKER</div>
 
-        <!-- SHIP AREA (hidden in SPLASH, visible in SELECTION) -->
+        <!-- SHIP AREA (hidden in SPLASH, visible in SELECTION) — v4.55: arrows removed -->
         <div class="ship-area hidden">
-            <button class="ship-arrow ship-arrow-left" id="arrow-left" onclick="cycleShip(-1)" style="visibility: hidden;">‹</button>
             <div class="ship-preview-center">
                 <canvas id="intro-ship-canvas" width="160" height="180"></canvas>
             </div>
-            <button class="ship-arrow ship-arrow-right" id="arrow-right" onclick="cycleShip(1)" style="visibility: hidden;">›</button>
         </div>
 
         <!-- SHIP INFO (hidden in splash, visible in selection) -->
@@ -98,7 +96,7 @@
             <div id="ship-stats" class="ship-stats-large">
                 <span class="stat-item">SPD █████░░░</span>
                 <span class="stat-item">PWR ██████░░</span>
-                <span class="stat-item">HIT ███░░░░░</span>
+                <span class="stat-item">HIT ████░░░░</span>
             </div>
         </div>
 
@@ -175,9 +173,9 @@
         <div class="intro-version" id="version-tag"></div>
     </div>
 
-    <!-- HANGAR SCREEN -->
+    <!-- HANGAR SCREEN — v4.55: locked to BTC, ETH/SOL hidden -->
     <div id="hangar-screen" style="display: none;">
-        <h2 class="neon-title" style="font-size: 28px;">SELECT SHIP</h2>
+        <h2 class="neon-title" style="font-size: 28px;">BTC STRIKER</h2>
         <div class="ship-container">
             <!-- BTC STRIKER -->
             <div class="ship-card" onclick="selectShip('BTC')" data-ship="BTC">
@@ -204,62 +202,6 @@
                         <span class="stat-icon">⭕</span>
                         <span class="stat-name">Hitbox</span>
                         <span class="stat-value" style="color:#bb44ff">●●●○○</span>
-                    </div>
-                </div>
-            </div>
-            <!-- ETH HEAVY -->
-            <div class="ship-card" onclick="selectShip('ETH')" data-ship="ETH">
-                <div class="ship-icon" style="color: #8c7ae6;">Ξ</div>
-                <h3 style="color: #8c7ae6;">ETH HEAVY</h3>
-                <div class="ship-trait" style="color: #aaa; font-size: 11px; margin-bottom: 8px;">🎯 HIGH DAMAGE</div>
-                <div class="stats">
-                    <div class="stat-row">
-                        <span class="stat-icon">💨</span>
-                        <span class="stat-name">Speed</span>
-                        <span class="stat-value" style="color:#8c7ae6">●●○○○</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-icon">💥</span>
-                        <span class="stat-name">Damage</span>
-                        <span class="stat-value" style="color:#8c7ae6">●●●●●</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-icon">🔫</span>
-                        <span class="stat-name">Fire Rate</span>
-                        <span class="stat-value" style="color:#8c7ae6">●○○○○</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-icon">⭕</span>
-                        <span class="stat-name">Hitbox</span>
-                        <span class="stat-value" style="color:#8c7ae6">●●○○○</span>
-                    </div>
-                </div>
-            </div>
-            <!-- SOL SPEEDSTER -->
-            <div class="ship-card" onclick="selectShip('SOL')" data-ship="SOL">
-                <div class="ship-icon" style="color: #00d2d3;">◎</div>
-                <h3 style="color: #00d2d3;">SOL SPEEDSTER</h3>
-                <div class="ship-trait" style="color: #aaa; font-size: 11px; margin-bottom: 8px;">⚡ RAPID FIRE</div>
-                <div class="stats">
-                    <div class="stat-row">
-                        <span class="stat-icon">💨</span>
-                        <span class="stat-name">Speed</span>
-                        <span class="stat-value" style="color:#00d2d3">●●●●●</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-icon">💥</span>
-                        <span class="stat-name">Damage</span>
-                        <span class="stat-value" style="color:#00d2d3">●●○○○</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-icon">🔫</span>
-                        <span class="stat-name">Fire Rate</span>
-                        <span class="stat-value" style="color:#00d2d3">●●●●●</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-icon">⭕</span>
-                        <span class="stat-name">Hitbox</span>
-                        <span class="stat-value" style="color:#00d2d3">●●●●●</span>
                     </div>
                 </div>
             </div>

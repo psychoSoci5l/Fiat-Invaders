@@ -1081,17 +1081,9 @@ function updateModeIndicator() {
     }
 }
 
+// v4.55: Ship selection locked to BTC (ship evolution replaces multi-ship)
 window.cycleShip = function(dir) {
-    selectedShipIndex = (selectedShipIndex + dir + SHIP_KEYS.length) % SHIP_KEYS.length;
-    updateShipUI();
-    audioSys.play('coinUI');
-
-    // Swap animation
-    if (introShipCanvas) {
-        introShipCanvas.classList.remove('ship-swap');
-        void introShipCanvas.offsetWidth; // Force reflow
-        introShipCanvas.classList.add('ship-swap');
-    }
+    // noop — only BTC available
 }
 
 // --- GAME MODE SELECTION (Arcade vs Campaign) ---
@@ -2400,7 +2392,8 @@ window.launchShipAndStart = function () {
             }
         });
 
-        // Configure player and start
+        // Configure player and start (v4.55: locked to BTC)
+        selectedShipIndex = 0;
         const selectedShipKey = SHIP_KEYS[selectedShipIndex];
         player.configure(selectedShipKey);
 
