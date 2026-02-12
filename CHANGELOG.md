@@ -1,5 +1,17 @@
 # Changelog
 
+## v4.49.0 - 2026-02-12
+### Architectural Refactor — Module Extraction + Test Suite
+
+- **FloatingTextManager.js**: Extracted floating text + score popup system from main.js into standalone module (~80 lines)
+- **PerkIconManager.js**: Extracted perk glow icon rendering from main.js into standalone module (~120 lines)
+- **PerkManager.js**: Extracted perk choice/roll/apply logic from main.js with dependency injection pattern (~170 lines)
+- **MiniBossManager.js**: Extracted mini-boss spawn/update/draw/hit from main.js with callback pattern (~300 lines)
+- **Test suite**: Added tests/runner.html with zero-dependency test framework, ~50 assertions covering MathUtils, ColorUtils, BalanceConfig, ObjectPool, GameStateMachine, RunState
+- **NOTES.md**: Rewritten with current gameplay systems (v4.47 weapon evolution, v4.38 proximity kill, wave system v4.40+)
+- **roadmap.md**: Updated with refactor progress and future ideas
+- **main.js**: Reduced from ~5,470 to ~4,820 lines (~12% reduction), all extracted functions replaced with one-liner wrappers
+
 ## v4.48.0 - 2026-02-12
 ### Balance Recalibration Post-Weapon Evolution
 

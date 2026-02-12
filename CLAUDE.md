@@ -76,6 +76,8 @@ All modules attach to `window.Game` (alias `G`). Script load order in `index.htm
 - `G.CollisionSystem` - Collision detection loops (enemy→player, player→enemy, player→boss, bullet cancel)
 - `G.Debug` (alias `window.dbg`) - Debug system
 - `G.DropSystem`, `G.MemeEngine`, `G.RankSystem` - Systems
+- `G.FloatingTextManager`, `G.PerkIconManager` - VFX systems (extracted from main.js v4.49)
+- `G.PerkManager`, `G.MiniBossManager` - Managers (extracted from main.js v4.49)
 - `G.Bullet.Pool`, `G.ParticlePool`, `G.ParticleSystem` - Pooling & particles
 - `G.ColorUtils`, `G.MathUtils` - Utilities
 - `G.CampaignState` - Story mode progression

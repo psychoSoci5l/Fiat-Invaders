@@ -408,7 +408,7 @@ function initCollisionSystem() {
                 enemies.length = 0;
                 G.enemies = enemies;
                 if (G.HarmonicConductor) G.HarmonicConductor.enemies = enemies;
-                if (miniBoss) { miniBoss.active = false; miniBoss = null; if (waveMgr) waveMgr.miniBossActive = false; }
+                if (miniBoss) { G.MiniBossManager.clear(); miniBoss = null; }
                 updateScore(score);
                 showVictory("🏆 " + defeatedBossName + ' ' + t('DEFEATED'));
                 const victoryMemes = { 'FEDERAL_RESERVE': "💥 INFLATION CANCELLED!", 'BCE': "💥 FRAGMENTATION COMPLETE!", 'BOJ': "💥 YEN LIBERATED!" };
@@ -497,7 +497,7 @@ let intermissionMeme = ""; // Meme shown during countdown
 let lastCountdownNumber = 0; // Track countdown to trigger audio once per number
 let debugMode = false; // F3 toggle for performance stats
 let fpsHistory = []; // For smooth FPS display
-let perkOffers = [];
+// perkOffers moved to PerkManager.js
 let volatilityTimer = 0;
 let memeSwapTimer = 0;
 // v2.22.5: Expose boss and miniBoss for debug overlay
@@ -807,133 +807,15 @@ function drawTypedMessages(ctx) {
     if (G.MessageSystem) G.MessageSystem.draw(ctx, totalTime, playerPos);
 }
 
-function canOfferPerk(perk) {
-    if (!runState || !runState.perkStacks) return true;
-    const stacks = runState.perkStacks[perk.id] || 0;
-    const maxStacks = perk.maxStacks || 1;
-    if (perk.stackable) return stacks < maxStacks;
-    return stacks === 0;
-}
-
-function rollWeighted(pool) {
-    if (!pool || pool.length === 0) return null;
-    let totalWeight = 0;
-    pool.forEach(p => { totalWeight += (p.weight || 1); });
-    let r = Math.random() * totalWeight;
-    for (let i = 0; i < pool.length; i++) {
-        r -= (pool[i].weight || 1);
-        if (r <= 0) return pool[i];
-    }
-    return pool[pool.length - 1];
-}
-
-function pickPerkOffers(count) {
-    const basePool = (G.UPGRADES || []).filter(canOfferPerk);
-    if (basePool.length === 0) return [];
-    const picks = [];
-
-    const rarePool = basePool.filter(p => p.rarity === 'rare' || p.rarity === 'epic');
-    const includeRare = runState && runState.pityCounter >= 2 && rarePool.length > 0;
-    if (includeRare) {
-        const picked = rollWeighted(rarePool);
-        if (picked) picks.push(picked);
-    }
-
-    const pool = basePool.filter(p => !picks.includes(p));
-    for (let i = picks.length; i < count && pool.length > 0; i++) {
-        const picked = rollWeighted(pool);
-        if (!picked) break;
-        picks.push(picked);
-        const idx = pool.indexOf(picked);
-        if (idx !== -1) pool.splice(idx, 1);
-    }
-    return picks;
-}
-
-let recentPerks = []; // Track last 3 perks acquired
-
-function renderPerkBar(highlightId) {
-    // Perk bar disabled - cleaner UI
-    if (ui.perkBar) ui.perkBar.style.display = 'none';
-}
-
-function openPerkChoice() {
-    if (!ui.perkModal || !ui.perkOptions) return;
-    if (!G.UPGRADES || G.UPGRADES.length === 0) return;
-    perkChoiceActive = true;
-    setStyle('perk-modal', 'display', 'flex');
-
-    perkOffers = pickPerkOffers(3);
-    if (perkOffers.length === 0) {
-        closePerkChoice();
-        return;
-    }
-    ui.perkOptions.innerHTML = '';
-    perkOffers.forEach(perk => {
-        const btn = document.createElement('button');
-        const rarityClass = perk.rarity ? `rarity-${perk.rarity}` : '';
-        btn.className = `perk-card ${rarityClass}`.trim();
-        btn.innerHTML = `<div class="perk-name">${perk.icon || ''} ${perk.name}</div>
-            <div class="perk-desc">${perk.desc}</div>
-            <div class="perk-rarity">${perk.rarity || 'common'}</div>`;
-        btn.addEventListener('click', () => applyPerk(perk));
-        ui.perkOptions.appendChild(btn);
-    });
-}
-
-function closePerkChoice() {
-    perkChoiceActive = false;
-    setStyle('perk-modal', 'display', 'none');
-    if (runState && runState.pityCounter === undefined) runState.pityCounter = 0;
-}
-
-function applyPerk(perk) {
-    if (!perk) return;
-    const prevMax = player.maxHp;
-    if (perk.apply && runState) perk.apply(runState);
-    if (runState) {
-        runState.perks.push(perk.id);
-        runState.perkStacks[perk.id] = (runState.perkStacks[perk.id] || 0) + 1;
-    }
-
-    // Track for display (last 3)
-    const stacks = runState ? (runState.perkStacks[perk.id] || 1) : 1;
-    const existing = recentPerks.find(p => p.id === perk.id);
-    if (existing) {
-        existing.stacks = stacks;
-        // Move to end (most recent)
-        recentPerks = recentPerks.filter(p => p.id !== perk.id);
-        recentPerks.push(existing);
-    } else {
-        recentPerks.push({ id: perk.id, stacks: stacks });
-    }
-
-    // 1-hit = 1-life system: HP bonuses no longer affect gameplay
-    // player.maxHp and player.hp remain at 1
-    audioSys.play('perk');
-    addPerkIcon(perk); // Visual glow effect above player
-    updateLivesUI();
-    renderPerkBar(perk.id);
-    emitEvent('perk_selected', { id: perk.id });
-    if (runState) {
-        if (perk.rarity === 'rare' || perk.rarity === 'epic') runState.pityCounter = 0;
-        else runState.pityCounter += 1;
-    }
-    closePerkChoice();
-}
-
+// --- PERK SYSTEM (delegated to PerkManager) ---
+function openPerkChoice() { G.PerkManager.open(); perkChoiceActive = G.PerkManager.isActive(); }
+function closePerkChoice() { G.PerkManager.close(); perkChoiceActive = G.PerkManager.isActive(); }
+function applyPerk(perk) { G.PerkManager.apply(perk); perkChoiceActive = G.PerkManager.isActive(); }
 function applyRandomPerk() {
-    if (!G.UPGRADES || G.UPGRADES.length === 0) return;
-    if (perkCooldown > 0) return; // On cooldown, skip
-    const offers = pickPerkOffers(1);
-    if (!offers || offers.length === 0) return;
-
-    const perk = offers[0];
-    applyPerk(perk);
-    perkCooldown = Balance.PERK.COOLDOWN_TIME; // Start cooldown
-    audioSys.play('perk'); // Play perk sound
-    // Perk icon appears above ship via addPerkIcon() called in applyPerk()
+    const cd = G.PerkManager.applyRandom(perkCooldown);
+    if (cd > 0) perkCooldown = cd;
 }
+function renderPerkBar(id) { G.PerkManager.renderBar(id); }
 
 // --- INTRO SHIP ANIMATION & SELECTION ---
 let introShipCanvas = null;
@@ -2839,7 +2721,7 @@ function startGame() {
     volatilityTimer = 0;
     memeSwapTimer = Balance.MEMES.TICKER_SWAP_INTERVAL;
     closePerkChoice();
-    recentPerks = []; // Reset perk display
+    G.PerkManager.reset(); // Reset perk display
     renderPerkBar();
 
     lives = Balance.PLAYER.START_LIVES; setUI('scoreVal', '0'); setUI('lvlVal', '1'); setUI('livesText', lives);
@@ -2857,6 +2739,8 @@ function startGame() {
     bullets.forEach(b => G.Bullet.Pool.release(b));
     enemyBullets.forEach(b => G.Bullet.Pool.release(b));
     bullets = []; enemies = []; enemyBullets = []; powerUps = []; particles = []; floatingTexts = []; muzzleFlashes = []; perkIcons = []; boss = null; miniBoss = null;
+    if (G.FloatingTextManager) G.FloatingTextManager.reset();
+    if (G.PerkIconManager) G.PerkIconManager.reset();
     if (G.MessageSystem) G.MessageSystem.reset(); // Reset typed messages
     // Sync all array references after reset
     G.enemies = enemies;
@@ -2899,7 +2783,7 @@ function startGame() {
     }
 
     updateKillCounter(); // Reset display
-    miniBoss = null;
+    G.MiniBossManager.reset(); miniBoss = null;
     G.DropSystem.reset(); // Reset drop system (pity timer, weapon cooldown, boss drops)
     G.MemeEngine.reset(); // Reset meme engine (ticker timer, popup cooldown)
     perkPauseTimer = 0; // Reset perk pause
@@ -2925,6 +2809,45 @@ function startGame() {
 
     // v4.28.0: Initialize CollisionSystem with game context
     initCollisionSystem();
+
+    // v4.49: Initialize PerkManager with dependencies
+    G.PerkManager.init({
+        getRunState: () => runState,
+        getPlayer: () => player,
+        setStyle,
+        updateLivesUI,
+        emitEvent
+    });
+
+    // v4.49: Initialize MiniBossManager with dependencies
+    G.MiniBossManager.init({
+        gameWidth: () => gameWidth,
+        gameHeight: () => gameHeight,
+        level: () => level,
+        marketCycle: () => marketCycle,
+        runState: () => runState,
+        player: () => player,
+        waveMgr,
+        enemies: () => enemies,
+        setEnemies: (e) => { enemies = e; G.enemies = enemies; if (window.Game) window.Game.enemies = enemies; },
+        enemyBullets: () => enemyBullets,
+        setEnemyBullets: (eb) => { enemyBullets = eb; window.enemyBullets = enemyBullets; },
+        score: () => score,
+        setScore: (s) => { score = s; },
+        updateScore,
+        totalTime: () => totalTime,
+        setWaveStartTime: (t2) => { waveStartTime = t2; },
+        setBossJustDefeated: (v) => { bossJustDefeated = v; },
+        setShake: (v) => { shake = Math.max(shake, v); },
+        applyHitStop,
+        showDanger,
+        showVictory,
+        createEnemyDeathExplosion,
+        createExplosion,
+        canSpawnEnemyBullet,
+        getFiatDeathMeme,
+        t
+    });
 
     emitEvent('run_start', { bear: isBearMarket });
 }
@@ -3179,11 +3102,7 @@ function spawnBoss() {
     if (window.Game) window.Game.enemies = enemies;
 
     // v2.22.4: Clear miniBoss if active - only main boss should exist
-    if (miniBoss) {
-        miniBoss.active = false;
-        miniBoss = null;
-        if (waveMgr) waveMgr.miniBossActive = false;
-    }
+    if (miniBoss) { G.MiniBossManager.clear(); miniBoss = null; }
 
     // Clear player bullets to prevent instant boss damage from bullets fired during warning
     const bulletsClearedCount = bullets.length;
@@ -3221,379 +3140,14 @@ function spawnBoss() {
 // Mini-Boss System - v2.18.0: Spawns actual boss types based on currency mapping
 // bossTypeOrSymbol: Either a boss type ('FEDERAL_RESERVE', 'BCE', 'BOJ') or currency symbol for legacy
 // triggerColor: Color of the triggering currency (for visual theming)
-function spawnMiniBoss(bossTypeOrSymbol, triggerColor) {
-    // Slow down time for dramatic effect
-    applyHitStop('BOSS_DEFEAT', false); // 500ms slowmo
-
-    // Clear regular enemies and bullets for 1v1 fight
-    enemyBullets.forEach(b => { b.markedForDeletion = true; G.Bullet.Pool.release(b); });
-    enemyBullets = [];
-    window.enemyBullets = enemyBullets; // Update for Player core hitbox indicator
-
-    // Store current enemies to restore later
-    const savedEnemies = [...enemies];
-    enemies = [];
-    // Update global references
-    G.enemies = enemies;
-    if (window.Game) window.Game.enemies = enemies;
-
-    // Pause wave spawning during mini-boss
-    if (waveMgr) waveMgr.miniBossActive = true;
-
-    // Stop HarmonicConductor from firing (it has its own enemies reference)
-    if (G.HarmonicConductor) {
-        G.HarmonicConductor.enemies = enemies; // Now empty
-    }
-
-    // Determine if this is a boss type or legacy symbol
-    const validBossTypes = ['FEDERAL_RESERVE', 'BCE', 'BOJ'];
-    const isBossType = validBossTypes.includes(bossTypeOrSymbol);
-
-    if (isBossType) {
-        // v2.18.0: Spawn actual boss as mini-boss
-        const bossType = bossTypeOrSymbol;
-        const bossConfig = G.BOSSES[bossType] || G.BOSSES.FEDERAL_RESERVE;
-
-        // Create actual Boss instance (scaled down HP for mini-boss encounter)
-        miniBoss = new G.Boss(gameWidth, gameHeight, bossType);
-        window.miniBoss = miniBoss; // v2.22.5: Expose for debug overlay
-        miniBoss.isMiniBoss = true;
-        miniBoss.savedEnemies = savedEnemies;
-        miniBoss.triggerColor = triggerColor;
-
-        // Scale HP for mini-boss (60% of normal boss HP) v2.24.10: 0.5→0.6 (+20%)
-        const perkCount = (runState && runState.perks) ? runState.perks.length : 0;
-        const perkScaling = 1 + (perkCount * Balance.BOSS.HP.PERK_SCALE);
-        const fullBossHp = Balance.calculateBossHP(level, marketCycle);
-        const miniBossHp = Math.floor(fullBossHp * 0.6 * perkScaling);
-        miniBoss.hp = miniBossHp;
-        miniBoss.maxHp = miniBossHp;
-
-        // Display signature meme
-        const signatureMeme = G.BOSS_SIGNATURE_MEMES?.[bossType];
-        showDanger(bossConfig.name + ' ' + t('APPEARS'));
-        if (signatureMeme) {
-            G.MemeEngine.queueMeme('MINI_BOSS_SPAWN', signatureMeme, bossConfig.name);
-        }
-    } else {
-        // Legacy: Spawn giant fiat currency mini-boss
-        const symbol = bossTypeOrSymbol;
-        const color = triggerColor;
-        const fiatNames = { '¥': 'YEN', '€': 'EURO', '£': 'POUND', '$': 'DOLLAR', '₽': 'RUBLE', '₹': 'RUPEE', '₣': 'FRANC', '₺': 'LIRA', '元': 'YUAN', 'Ⓒ': 'CBDC' };
-
-        // Mini-boss HP formula: significantly buffed + perk scaling
-        const baseHp = 400;
-        const hpPerLevel = 100;
-        const hpPerCycle = 150;
-        const perkCount = (runState && runState.perks) ? runState.perks.length : 0;
-        const perkScaling = 1 + (perkCount * 0.10); // +10% HP per perk
-        const rawHp = baseHp + (level * hpPerLevel) + (marketCycle * hpPerCycle);
-        const scaledHp = Math.floor(rawHp * perkScaling);
-
-        miniBoss = {
-            x: gameWidth / 2,
-            y: 150,
-            targetY: 180,
-            width: 120,
-            height: 120,
-            hp: scaledHp,
-            maxHp: scaledHp,
-            symbol: symbol,
-            color: color,
-            name: fiatNames[symbol] || 'FIAT',
-            fireTimer: 0,
-            fireRate: 0.8,
-            phase: 0,
-            phaseTimer: 0,
-            savedEnemies: savedEnemies, // Restore after defeat
-            animTime: 0,
-            active: true
-        };
-        window.miniBoss = miniBoss; // v2.22.5: Expose for debug overlay
-
-        showDanger(miniBoss.name + ' ' + t('REVENGE'));
-        G.MemeEngine.queueMeme('MINI_BOSS_SPAWN', getFiatDeathMeme(), miniBoss.name);
-    }
-
-    audioSys.play('bossSpawn');
-}
-
-function updateMiniBoss(dt) {
-    if (!miniBoss || !miniBoss.active) return;
-
-    // v2.18.0: Check if this is a Boss instance (isMiniBoss flag)
-    if (miniBoss instanceof G.Boss) {
-        // Use Boss's own update method
-        const attackBullets = miniBoss.update(dt, player);
-        if (attackBullets && attackBullets.length > 0) {
-            for (const bd of attackBullets) {
-                if (!canSpawnEnemyBullet()) break; // v2.24.6: Global cap
-                const bullet = G.Bullet.Pool.acquire(
-                    bd.x, bd.y, bd.vx, bd.vy, bd.color, bd.w, bd.h, false
-                );
-                // Copy special properties (homing, etc.)
-                if (bd.isHoming) {
-                    bullet.isHoming = true;
-                    bullet.homingStrength = bd.homingStrength || 2.5;
-                    bullet.targetX = player.x;
-                    bullet.targetY = player.y;
-                    bullet.maxSpeed = bd.maxSpeed || 200;
-                }
-                enemyBullets.push(bullet);
-            }
-        }
-        return;
-    }
-
-    // Legacy mini-boss update
-    miniBoss.animTime += dt;
-
-    // Move to target position
-    if (miniBoss.y < miniBoss.targetY) {
-        miniBoss.y += 60 * dt;
-    }
-
-    // Oscillate horizontally
-    miniBoss.x = gameWidth / 2 + Math.sin(miniBoss.animTime * 1.5) * 150;
-
-    // Fire patterns
-    miniBoss.fireTimer -= dt;
-    if (miniBoss.fireTimer <= 0) {
-        miniBoss.fireTimer = miniBoss.fireRate - (miniBoss.hp / miniBoss.maxHp) * 0.3;
-        fireMiniBossBullets();
-    }
-
-    // Phase changes based on HP
-    const hpPct = miniBoss.hp / miniBoss.maxHp;
-    if (hpPct < 0.3 && miniBoss.phase < 2) {
-        miniBoss.phase = 2;
-        miniBoss.fireRate = 0.4;
-        shake = 15;
-    } else if (hpPct < 0.6 && miniBoss.phase < 1) {
-        miniBoss.phase = 1;
-        miniBoss.fireRate = 0.6;
-    }
-}
-
-function fireMiniBossBullets() {
-    if (!miniBoss) return;
-    if (!canSpawnEnemyBullet()) return; // v2.24.6: Global cap
-    const bulletSpeed = 170 + (miniBoss.phase * 42); // Reduced 15%
-
-    // Different patterns per phase
-    if (miniBoss.phase === 0) {
-        // Simple aimed shot
-        const dx = player.x - miniBoss.x;
-        const dy = player.y - miniBoss.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        const vx = (dx / dist) * bulletSpeed;
-        const vy = (dy / dist) * bulletSpeed;
-        enemyBullets.push(G.Bullet.Pool.acquire(miniBoss.x, miniBoss.y + 60, vx, vy, miniBoss.color, 8, 8, false));
-    } else if (miniBoss.phase === 1) {
-        // Triple spread
-        for (let angle = -0.3; angle <= 0.3; angle += 0.3) {
-            if (!canSpawnEnemyBullet()) break; // v2.24.6: Global cap
-            const dx = player.x - miniBoss.x;
-            const dy = player.y - miniBoss.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            const baseAngle = Math.atan2(dy, dx) + angle;
-            const vx = Math.cos(baseAngle) * bulletSpeed;
-            const vy = Math.sin(baseAngle) * bulletSpeed;
-            enemyBullets.push(G.Bullet.Pool.acquire(miniBoss.x, miniBoss.y + 60, vx, vy, miniBoss.color, 8, 8, false));
-        }
-    } else {
-        // Circle burst
-        for (let i = 0; i < 8; i++) {
-            if (!canSpawnEnemyBullet()) break; // v2.24.6: Global cap
-            const angle = (Math.PI * 2 / 8) * i + miniBoss.animTime;
-            const vx = Math.cos(angle) * bulletSpeed * 0.8;
-            const vy = Math.sin(angle) * bulletSpeed * 0.8;
-            enemyBullets.push(G.Bullet.Pool.acquire(miniBoss.x, miniBoss.y + 40, vx, vy, miniBoss.color, 6, 6, false));
-        }
-    }
-    audioSys.play('enemyShoot');
-}
-
-function drawMiniBoss(ctx) {
-    if (!miniBoss || !miniBoss.active) return;
-
-    // v2.18.0: Check if this is a Boss instance
-    if (miniBoss instanceof G.Boss) {
-        miniBoss.draw(ctx);
-        return;
-    }
-
-    // Legacy mini-boss drawing
-    ctx.save();
-    ctx.translate(miniBoss.x, miniBoss.y);
-
-    // Pulsing glow based on HP
-    const pulseAlpha = 0.3 + Math.sin(miniBoss.animTime * 5) * 0.2;
-    const hpPct = miniBoss.hp / miniBoss.maxHp;
-
-    // Outer glow
-    ctx.fillStyle = `rgba(${hexToRgb(miniBoss.color)}, ${pulseAlpha})`;
-    ctx.beginPath();
-    ctx.arc(0, 0, 80 + Math.sin(miniBoss.animTime * 3) * 10, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Main body - giant hexagonal coin shape
-    ctx.fillStyle = miniBoss.color;
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    for (let i = 0; i < 6; i++) {
-        const angle = (Math.PI * 2 / 6) * i - Math.PI / 2;
-        const x = Math.cos(angle) * 55;
-        const y = Math.sin(angle) * 55;
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-    }
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-
-    // Inner circle
-    ctx.fillStyle = '#111';
-    ctx.beginPath();
-    ctx.arc(0, 0, 40, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Symbol
-    ctx.fillStyle = miniBoss.color;
-    ctx.font = 'bold 50px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(miniBoss.symbol, 0, 0);
-
-    // HP bar
-    const barWidth = 100;
-    const barHeight = 8;
-    ctx.fillStyle = '#333';
-    ctx.fillRect(-barWidth / 2, 70, barWidth, barHeight);
-    ctx.fillStyle = hpPct > 0.3 ? miniBoss.color : '#ff0000';
-    ctx.fillRect(-barWidth / 2, 70, barWidth * hpPct, barHeight);
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(-barWidth / 2, 70, barWidth, barHeight);
-
-    // Name tag
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 14px Courier New';
-    ctx.fillText(miniBoss.name + ' BOSS', 0, 90);
-
-    ctx.restore();
-}
-
-function hexToRgb(hex) {
-    return window.Game.ColorUtils.hexToRgb(hex);
-}
-
+// --- MINI-BOSS (delegated to MiniBossManager) ---
+function spawnMiniBoss(type, color) { G.MiniBossManager.spawn(type, color); miniBoss = G.MiniBossManager.get(); }
+function updateMiniBoss(dt) { G.MiniBossManager.update(dt); miniBoss = G.MiniBossManager.get(); }
+function drawMiniBoss(ctx) { G.MiniBossManager.draw(ctx); }
 function checkMiniBossHit(b) {
-    if (!miniBoss || !miniBoss.active) return false;
-
-    // v2.18.0: Handle Boss instance mini-boss
-    const isBossInstance = miniBoss instanceof G.Boss;
-    const hitboxW = isBossInstance ? miniBoss.width / 2 : 44;
-    const hitboxH = isBossInstance ? miniBoss.height / 2 : 44;
-    const bossX = isBossInstance ? (miniBoss.x + miniBoss.width / 2) : miniBoss.x;
-    const bossY = isBossInstance ? (miniBoss.y + miniBoss.height / 2) : miniBoss.y;
-
-    if (Math.abs(b.x - bossX) < hitboxW && Math.abs(b.y - bossY) < hitboxH) {
-        const baseDmg = player.stats.baseDamage || 14;
-        const dmgMult = (runState && runState.getMod) ? runState.getMod('damageMult', 1) : 1;
-        let dmg = baseDmg * dmgMult;
-        if (b.isHodl) dmg *= Balance.SCORE.HODL_MULT_BOSS; // HODL bonus vs boss
-
-        if (isBossInstance) {
-            miniBoss.damage(dmg);
-        } else {
-            miniBoss.hp -= dmg;
-        }
-        audioSys.play('hitEnemy');
-
-        if (miniBoss.hp <= 0) {
-            // Mini-boss defeated!
-            // v2.22.5: Track mini-boss defeat
-            G.Debug.trackMiniBossDefeat(isBossInstance ? miniBoss.bossType : miniBoss.name);
-
-            // v2.24.3: Track mini-boss fight duration for analytics
-            if (G.Debug._miniBossStartInfo) {
-                const info = G.Debug._miniBossStartInfo;
-                const duration = Date.now() - info.startTime;
-                G.Debug.trackMiniBossFight(info.type, info.trigger, info.killCount, duration);
-                G.Debug._miniBossStartInfo = null;
-            }
-
-            // === GHOST BULLET FIX v2.23.0 ===
-            // Clear all mini-boss bullets (same as main boss cleanup at line ~2735)
-            if (enemyBullets.length > 0) {
-                G.Debug.log('BULLET', `[MINIBOSS] Cleared ${enemyBullets.length} ghost bullets on mini-boss defeat`);
-                enemyBullets.forEach(b => G.Bullet.Pool.release(b));
-                enemyBullets.length = 0;
-                window.enemyBullets = enemyBullets;
-            }
-
-            // Reset HarmonicConductor to invalidate pending setTimeout callbacks (same as main boss)
-            if (G.HarmonicConductor) {
-                G.HarmonicConductor.reset();
-            }
-
-            // Set defensive flag for next frame cleanup (same as main boss)
-            bossJustDefeated = true;
-
-            const bonusScore = isBossInstance ? 3000 * marketCycle : 2000 * marketCycle;
-            score += bonusScore;
-            updateScore(score);
-
-            // Epic mini-boss death
-            const deathX = isBossInstance ? (miniBoss.x + miniBoss.width / 2) : miniBoss.x;
-            const deathY = isBossInstance ? (miniBoss.y + miniBoss.height / 2) : miniBoss.y;
-            const deathColor = isBossInstance ? (miniBoss.color || '#ffffff') : miniBoss.color;
-            const deathSymbol = isBossInstance ? (miniBoss.symbol || '$') : miniBoss.symbol;
-            const deathName = isBossInstance ? (miniBoss.name || 'BOSS') : miniBoss.name;
-
-            createEnemyDeathExplosion(deathX, deathY, deathColor, deathSymbol);
-            createExplosion(deathX - 40, deathY - 30, deathColor, 15);
-            createExplosion(deathX + 40, deathY + 30, deathColor, 15);
-            createExplosion(deathX, deathY, '#fff', 20);
-
-            showVictory(deathName + ' ' + t('DESTROYED'));
-            G.MemeEngine.queueMeme('MINI_BOSS_DEFEATED', isBossInstance ? "CENTRAL BANK REKT!" : "FIAT IS DEAD!", deathName);
-            shake = 40;
-            audioSys.play('explosion');
-
-            // Hit stop for epic moment
-            if (window.Game.applyHitStop) {
-                window.Game.applyHitStop('BOSS_DEFEAT', false);
-            }
-            if (window.Game.triggerScreenFlash) {
-                window.Game.triggerScreenFlash('BOSS_DEFEAT');
-            }
-
-            // Clear boss minions, then restore wave enemies (v4.6.1: fix stuck game when savedEnemies empty)
-            enemies = (miniBoss.savedEnemies && miniBoss.savedEnemies.length > 0)
-                ? miniBoss.savedEnemies
-                : [];
-            waveStartTime = totalTime;
-            // Update global references
-            G.enemies = enemies;
-            if (window.Game) window.Game.enemies = enemies;
-
-            // Update HarmonicConductor with restored enemies
-            if (G.HarmonicConductor) {
-                G.HarmonicConductor.enemies = enemies;
-            }
-
-            // Resume wave spawning
-            if (waveMgr) waveMgr.miniBossActive = false;
-
-            miniBoss = null;
-            window.miniBoss = null; // v2.22.5: Sync for debug overlay
-        }
-        return true;
-    }
-    return false;
+    const result = G.MiniBossManager.checkHit(b);
+    miniBoss = G.MiniBossManager.get();
+    return result;
 }
 
 function update(dt) {
@@ -4529,30 +4083,11 @@ function draw() {
 
         drawParticles(ctx);
 
-        // v4.30: Floating texts — shared setup hoisted before loop
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.strokeStyle = '#000';
-        ctx.lineWidth = 3;
-        for (let i = 0; i < floatingTexts.length; i++) {
-            const t = floatingTexts[i];
-            if (!t || t.life <= 0) continue;
-            const maxLife = t.maxLife || 1.0;
-            const fadeStart = maxLife * 0.3;
-            const alpha = t.life < fadeStart ? t.life / fadeStart : 1;
-            ctx.font = G.ColorUtils.font('bold', t.size || 20, 'Courier New');
-            ctx.globalAlpha = alpha;
-            const padding = 80;
-            const clampedX = Math.max(padding, Math.min(gameWidth - padding, t.x));
-            ctx.strokeText(t.text, clampedX, t.y);
-            ctx.fillStyle = t.c;
-            ctx.fillText(t.text, clampedX, t.y);
-        }
-        ctx.globalAlpha = 1;
-        ctx.textAlign = 'left';
+        // Floating texts (delegated to FloatingTextManager)
+        G.FloatingTextManager.draw(ctx, gameWidth);
 
-        // Perk icons (glow above player)
-        drawPerkIcons(ctx);
+        // Perk icons (delegated to PerkIconManager)
+        G.PerkIconManager.draw(ctx, gameWidth);
 
         // Typed messages (GAME_INFO, DANGER, VICTORY) - distinct visual styles
         drawTypedMessages(ctx);
@@ -4819,203 +4354,15 @@ function drawDebug(ctx) {
 // Screen transition functions moved to TransitionManager.js
 // drawBearMarketOverlay and drawSky moved to SkyRenderer.js
 
-const MAX_FLOATING_TEXTS = 8; // Limit simultaneous floating texts (unified limit)
+// --- FLOATING TEXT (delegated to FloatingTextManager) ---
+function addText(text, x, y, c, size) { G.FloatingTextManager.addText(text, x, y, c, size); }
+function createFloatingScore(scoreValue, x, y) { G.FloatingTextManager.createFloatingScore(scoreValue, x, y, killStreak); }
+function updateFloatingTexts(dt) { G.FloatingTextManager.update(dt); }
 
-// Find an available slot or oldest entry to reuse (O(1) amortized vs O(n) shift)
-function findFloatingTextSlot() {
-    let oldestIdx = -1;
-    let oldestLife = Infinity;
-    for (let i = 0; i < floatingTexts.length; i++) {
-        const ft = floatingTexts[i];
-        if (!ft || ft.life <= 0) return i; // Empty/expired slot
-        if (ft.life < oldestLife) {
-            oldestLife = ft.life;
-            oldestIdx = i;
-        }
-    }
-    // No empty slot - grow array or overwrite oldest
-    if (floatingTexts.length < MAX_FLOATING_TEXTS) return floatingTexts.length;
-    return oldestIdx;
-}
-
-function addText(text, x, y, c, size = 20) {
-    if (!Balance.HUD_MESSAGES.FLOATING_TEXT) return;
-    const slot = findFloatingTextSlot();
-    floatingTexts[slot] = { text, x, y, c, size, life: 1.0 };
-}
-
-// Floating score numbers (Ikeda juice - shows meaningful score gains)
-function createFloatingScore(scoreValue, x, y) {
-    const config = Balance.JUICE?.FLOAT_SCORE;
-    if (!config) return;
-
-    // Only show significant scores
-    if (scoreValue < (config.MIN_VALUE || 100)) return;
-
-    // Scale based on score magnitude
-    let scale = 1;
-    if (scoreValue >= 2000) {
-        scale = config.SCALE_HUGE || 2.0;
-    } else if (scoreValue >= 500) {
-        scale = config.SCALE_LARGE || 1.5;
-    }
-
-    // v4.5: Streak-based scaling (scores grow with combo)
-    const vfx = Balance?.VFX;
-    if (vfx?.COMBO_SCORE_SCALE && killStreak > 5) {
-        const streakBonus = Math.min(0.5, (killStreak - 5) * 0.03); // +3% per kill above 5, max +50%
-        scale *= (1 + streakBonus);
-    }
-
-    const baseSize = 18;
-    const size = Math.floor(baseSize * scale);
-    const duration = config.DURATION || 1.2;
-    const velocity = config.VELOCITY || -80;
-
-    // Use slot-based insertion (O(1) instead of shift O(n))
-    const slot = findFloatingTextSlot();
-    floatingTexts[slot] = {
-        text: '+' + Math.floor(scoreValue),
-        x: x + (Math.random() - 0.5) * 20, // Slight randomization
-        y: y,
-        c: '#FFD700', // Gold
-        size: size,
-        life: duration,
-        maxLife: duration,
-        vy: velocity
-    };
-}
-
-function updateFloatingTexts(dt) {
-    for (let i = 0; i < floatingTexts.length; i++) {
-        const ft = floatingTexts[i];
-        if (!ft || ft.life <= 0) continue; // Skip empty/expired slots
-        // Use custom velocity if set, otherwise default
-        const velocity = ft.vy ? Math.abs(ft.vy) : 50;
-        ft.y -= velocity * dt;
-        ft.life -= dt;
-        // No splice needed - slot will be reused by findFloatingTextSlot
-    }
-}
-
-// --- PERK ICONS (Glow effect above player) ---
-const RARITY_COLORS = {
-    common: '#95a5a6',
-    uncommon: '#3498db',
-    rare: '#9b59b6',
-    epic: '#f39c12'
-};
-
-function addPerkIcon(perk) {
-    if (!Balance.HUD_MESSAGES.PERK_NOTIFICATION) return;
-    if (!player || !perk) return;
-    const lifetime = Balance.TIMING.PERK_ICON_LIFETIME;
-    perkIcons.push({
-        icon: perk.icon || '?',
-        name: perk.name || 'Perk',
-        color: RARITY_COLORS[perk.rarity] || RARITY_COLORS.common,
-        rarity: perk.rarity || 'common',
-        x: player.x,
-        y: player.y - 60,
-        life: lifetime,
-        maxLife: lifetime,
-        scale: 0,
-        glowPhase: 0
-    });
-}
-
-function updatePerkIcons(dt) {
-    for (let i = perkIcons.length - 1; i >= 0; i--) {
-        const p = perkIcons[i];
-        p.life -= dt;
-        p.y -= 25 * dt;   // Float upward
-        p.glowPhase += dt * 6;  // Glow pulse speed
-
-        // Scale animation: grow in first 0.3s, then shrink in last 0.5s
-        const age = p.maxLife - p.life;
-        if (age < 0.3) {
-            p.scale = age / 0.3;  // 0 -> 1
-        } else if (p.life < 0.5) {
-            p.scale = p.life / 0.5;  // 1 -> 0
-        } else {
-            p.scale = 1;
-        }
-
-        if (p.life <= 0) perkIcons.splice(i, 1);
-    }
-}
-
-// Helper to convert hex color to rgba (uses ColorUtils)
-function hexToRgba(hex, alpha) {
-    return window.Game.ColorUtils.hexToRgba(hex, alpha);
-}
-
-function drawPerkIcons(ctx) {
-    for (let i = 0; i < perkIcons.length; i++) {
-        const p = perkIcons[i];
-        if (p.scale <= 0) continue;
-
-        const alpha = Math.min(1, p.life / 0.5);  // Fade out in last 0.5s
-        const glowIntensity = 0.5 + Math.sin(p.glowPhase) * 0.3;
-        const size = 36 * p.scale;
-
-        ctx.save();
-        ctx.globalAlpha = alpha;
-
-        // v4.11: Parse hex once, use cached rgba for gradient stops
-        const CU = G.ColorUtils;
-        if (!p._rgb) p._rgb = CU.parseHex(p.color);
-        const pr = p._rgb.r, pg = p._rgb.g, pb = p._rgb.b;
-
-        // Outer glow (large, soft)
-        const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, size * 1.8);
-        gradient.addColorStop(0, CU.rgba(pr, pg, pb, glowIntensity * 0.5));
-        gradient.addColorStop(0.5, CU.rgba(pr, pg, pb, 0.25));
-        gradient.addColorStop(1, CU.rgba(pr, pg, pb, 0));
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, size * 1.8, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Inner glow (brighter)
-        const innerGlow = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, size * 0.9);
-        innerGlow.addColorStop(0, '#fff');
-        innerGlow.addColorStop(0.3, p.color);
-        innerGlow.addColorStop(1, CU.rgba(pr, pg, pb, 0));
-        ctx.fillStyle = innerGlow;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, size * 0.9, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Icon
-        ctx.font = G.ColorUtils.font('bold', size, 'Arial');
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        // v4.11: Stroke outline instead of GPU-expensive shadowBlur
-        ctx.strokeStyle = '#000';
-        ctx.lineWidth = 3;
-        ctx.fillStyle = '#fff';
-        ctx.strokeText(p.icon, p.x, p.y);
-        ctx.fillText(p.icon, p.x, p.y);
-
-        // Perk name below icon (smaller, fades in)
-        if (p.scale > 0.5) {
-            const nameAlpha = (p.scale - 0.5) * 2 * alpha;
-            ctx.globalAlpha = nameAlpha;
-            ctx.font = 'bold 14px "Courier New", monospace';
-            // Clamp X to prevent name overflow at screen edges
-            const namePadding = 60;
-            const nameX = Math.max(namePadding, Math.min(gameWidth - namePadding, p.x));
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 3;
-            ctx.strokeText(p.name, nameX, p.y + size * 0.8);
-            ctx.fillStyle = p.color;
-            ctx.fillText(p.name, nameX, p.y + size * 0.8);
-        }
-
-        ctx.restore();
-    }
-}
+// --- PERK ICONS (delegated to PerkIconManager) ---
+function addPerkIcon(perk) { if (player) G.PerkIconManager.addIcon(perk, player.x, player.y); }
+function updatePerkIcons(dt) { G.PerkIconManager.update(dt); }
+function drawPerkIcons(ctx) { G.PerkIconManager.draw(ctx, gameWidth); }
 
 // --- PARTICLES (Delegated to ParticleSystem) ---
 // All particle functions delegate to G.ParticleSystem for centralized management

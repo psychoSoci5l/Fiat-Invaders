@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FIAT vs CRYPTO — Test Suite</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #111; color: #eee; font-family: 'Courier New', monospace; padding: 20px; }
+        h1 { color: #F7931A; margin-bottom: 16px; font-size: 20px; }
+        .suite { margin-bottom: 24px; border-left: 3px solid #333; padding-left: 12px; }
+        .suite-name { color: #6aa9ff; font-size: 16px; font-weight: bold; margin-bottom: 8px; }
+        .test { padding: 2px 0; font-size: 13px; }
+        .pass { color: #4caf50; }
+        .fail { color: #f44336; font-weight: bold; }
+        .summary { margin-top: 20px; padding: 12px; border: 2px solid; font-size: 16px; }
+        .summary.ok { border-color: #4caf50; color: #4caf50; }
+        .summary.err { border-color: #f44336; color: #f44336; }
+    </style>
+</head>
+<body>
+    <h1>FIAT vs CRYPTO — Test Suite</h1>
+    <div id="results"></div>
+    <div id="summary"></div>
+
+    <!-- Load game modules (order matters) -->
+    <script src="../src/utils/Constants.js"></script>
+    <script src="../src/utils/DebugSystem.js"></script>
+    <script src="../src/utils/ColorUtils.js"></script>
+    <script src="../src/utils/MathUtils.js"></script>
+    <script src="../src/config/BalanceConfig.js"></script>
+    <script src="../src/core/GameStateMachine.js"></script>
+    <script src="../src/core/ObjectPool.js"></script>
+    <script src="../src/utils/RunState.js"></script>
+
+    <!-- Test files -->
+    <script src="test-utils.js"></script>
+    <script src="test-balance.js"></script>
+    <script src="test-state.js"></script>
+
+    <script>
+        // Run all registered suites
+        window._testRunner.run();
+    </script>
+</body>
+</html>
