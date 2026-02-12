@@ -10,36 +10,38 @@
 *   **Responsive**: "Notch-safe" UI design that adapts to all mobile screens.
 *   **Localization**: Fully localized in English (EN) and Italian (IT).
 
-## 🧠 Current Gameplay Rules (v4.35.0)
+## 🧠 Current Gameplay Rules (v4.48.0)
 
 *   **Two Game Modes**: **Story Mode** (3 acts with narrative chapters, boss progression FED→BCE→BOJ) and **Arcade Mode** (endless waves, high scores, mini-bosses).
-*   **Wave System**: 15 unique waves (5 per cycle x 3 cycles) with 16 formation patterns and thematic currency groups.
+*   **Wave System**: 15 unique waves (5 per cycle × 3 cycles) with 16 formation patterns and thematic currency groups.
 *   **Seamless Flow**: Waves transition instantly — no countdown between waves. Boss-defeat celebrations preserved.
 *   **HarmonicConductor**: Beat-synced enemy firing with wave intensity phases (Setup → Build → Panic).
-*   **HYPER Mode**: Graze meter auto-triggers HYPER at 100% — 5x score + 50% bigger hitbox (high risk/reward).
-*   **Satoshi's Sacrifice**: At 1 life, sacrifice all score for 10s invincibility and 10x multiplier.
-*   **Weapon Evolution**: Progressive shot levels (1-3) + stackable modifiers + exclusive specials.
-*   **GODCHAIN Mode**: Max all weapon modifiers simultaneously for ultimate ship form (red aura, fire trails, speed boost).
+*   **Weapon Evolution**: Linear 5-level system (Single → Dual → Dual+ → Triple → Triple MAX). UPGRADE drops increase level permanently. Death costs -1 level.
+*   **Special Weapons**: 3 exclusive specials (HOMING, PIERCE, MISSILE) — 12s duration each.
+*   **Utility Drops**: SHIELD (absorbs hit) and SPEED (+40% movement) — capsule-shaped, 12s duration.
+*   **HYPER Mode**: Proximity kills fill the DIP meter. At 100%, HYPER activates — 5x score, +2 temp weapon levels, 50% bigger hitbox (high risk/reward).
+*   **GODCHAIN Mode**: Activates at weapon level 5 — golden aura, meteors, max firepower. UPGRADE drops at max level recharge it.
 *   **Dynamic Difficulty (Rank System)**: Game adapts to player skill in real-time (-1.0 to +1.0 rank).
-*   **3 Unique Bosses**: FED (MEGA-BILL), BCE (MEGA-COIN), BOJ (MEGA-BAR) with exclusive attack patterns.
+*   **3 Unique Bosses**: FED (MEGA-BILL), BCE (MEGA-COIN), BOJ (MEGA-BAR) with exclusive attack patterns and 3 phases each.
 *   **10 Fiat Currencies**: Each with unique shape, tier, and fire pattern.
-*   **Compact HUD**: Minimal 45px top bar with diegetic ship indicators (life pips, shield ring, weapon pips, graze glow).
+*   **Compact HUD**: Minimal 45px top bar with diegetic ship indicators (life pips, weapon level pips, special timer).
 *   **Reactive Feedback**: Score colors on streaks, danger pulse at low HP, wave sweep transitions.
 *   **Meme Popup System**: Full-width neon cartoon popup above player ship with 3-tier priority queue (CRITICAL/HIGH/NORMAL), spring-pop animation, 10 event types.
-*   **First-Run Tutorial**: 3-step mode-aware onboarding (Controls, Objective, Survival) — separate content for Story vs Arcade, dynamic mobile control text (Swipe/Joystick).
+*   **First-Run Tutorial**: 3-step mode-aware onboarding (Controls, Objective, Survival) — separate content for Story vs Arcade.
 *   **Accessibility**: WCAG 2.1 AA+ contrast ratios, 48px+ touch targets, `prefers-reduced-motion` support.
 
 ## 🎮 How to Play
 
-*   **Move**: Arrow Keys (Desktop) or Virtual Joystick (Mobile).
+*   **Move**: Arrow Keys / A-D (Desktop) or Virtual Joystick (Mobile).
 *   **Shoot**: Auto-fire / Spacebar.
-*   **Shield**: Down Arrow or Tap Shield Button.
-*   **HYPER**: Auto-activates when graze meter fills to 100%.
-*   **HODL Mode**: Stop moving to charge "Diamond Hands" for 2x score multiplier.
+*   **HYPER**: Press H when DIP meter is full (auto-activates on mobile).
+*   **HODL Mode**: Stop moving for 2x damage (golden aura).
+
+See [PLAYER_MANUAL.md](PLAYER_MANUAL.md) (EN) or [MANUALE_GIOCATORE.md](MANUALE_GIOCATORE.md) (IT) for full details.
 
 ## 🛠️ Development & Running Locally
 
-Since this project uses ES6 Modules (`import/export`), you cannot run it by double-clicking `index.html`. You must use a local server.
+Since this project uses a global namespace pattern (`window.Game`), you need a local server.
 
 ### Using VS Code
 1.  Install "Live Server" extension.
@@ -84,6 +86,8 @@ manifest.json    # PWA Configuration
 
 ## 📚 Docs
 
+* `PLAYER_MANUAL.md` — Full player manual (English).
+* `MANUALE_GIOCATORE.md` — Manuale completo del giocatore (Italiano).
 * `CHANGELOG.md` — Running log of gameplay/visual changes.
 * `NOTES.md` — Current tuning knobs and balancing parameters.
 * `roadmap.md` — Medium/long‑term feature phases.
@@ -104,7 +108,9 @@ dbg.balanceTest()      // Start tracking + auto-enable perf profiler
 // ... play the game ...
 dbg.report()           // After game over: full analytics + performance report
 dbg.powerUpReport()    // Detailed power-up economy: spawned/collected/expired,
-                       // weapon timeline, modifier overlap, GODCHAIN stats
+                       // weapon timeline, GODCHAIN stats, adaptive suppression
+dbg.entityReport()     // Entity density: averages, wave grouping, hot spots,
+                       // player bullet analysis
 ```
 
 ### Performance Profiler
@@ -119,18 +125,18 @@ dbg.perfReport()    // Detailed report: FPS, frame times (P50/P95/P99),
 ```javascript
 dbg.showOverlay()   // On-screen panel: state, entities, boss, rank, HUD
 dbg.debugBoss()     // Enable boss logging + overlay
-dbg.debugWaves()    // Enable wave logging + overlay
 dbg.debugHUD()      // Enable HUD logging + overlay
 dbg.hudStatus()     // Full HUD state snapshot
+dbg.hitboxes()      // Show collision hitboxes
+dbg.formations()    // Formation visual audit at 360/414/768px
 ```
 
 ### Weapon Debug
 ```javascript
-dbg.maxWeapon()     // Max all weapon stats
-dbg.setShot(3)      // Set shot level 1-3
-dbg.setMod('rate',2)// Set modifier level
-dbg.setSpecial('HOMING') // Activate special
+dbg.maxWeapon()     // Max weapon level + activate GODCHAIN
+dbg.weaponStatus()  // Current weapon state snapshot
 dbg.godchain()      // Force GODCHAIN mode
+dbg.godchainStatus()// GODCHAIN timer and state
 ```
 
 ## 🔧 Common Tweaks
@@ -141,21 +147,25 @@ All tuning is centralized in `src/config/BalanceConfig.js` via `window.Game.Bala
 * **Enemy firing**: `Balance.CHOREOGRAPHY` (HarmonicConductor controls all firing)
 * **Wave definitions**: `Balance.WAVE_DEFINITIONS` (15 waves, formations, currencies)
 * **Boss stats**: `Balance.BOSS` (HP, fire rates, movement per boss per phase, attack patterns)
+* **Weapon evolution**: `Balance.WEAPON_EVOLUTION` (level table, specials, utilities, GODCHAIN)
+* **Drop system**: `Balance.ADAPTIVE_DROPS` (suppression, category weights, GODCHAIN recharge)
 * **Dynamic difficulty**: `Balance.RANK` (fire rate/enemy count adjustment range)
-* **Graze system**: `Balance.GRAZE` (radius, decay, HYPER meter)
+* **Proximity kills**: `Balance.PROXIMITY_KILL` (DIP meter gain, HYPER trigger)
 
 ## ✅ Quickstart Tuning Checklist
 
 * **Too much bullet spam** → Lower `Balance.CHOREOGRAPHY.INTENSITY` rate multipliers
-* **Waves end too fast** → Increase enemy count in `Balance.WAVE_DEFINITIONS`
-* **Player dies too quickly** → Reduce `Balance.RANK.FIRE_RATE_RANGE` or enable easier base difficulty
-* **Boss too spiky** → Lower `Balance.BOSS.HP` or increase fire rate timers
+* **Waves end too fast** → Increase `Balance.ENEMY_HP` (BASE, SCALE, CYCLE_MULT)
+* **Player dies too quickly** → Reduce `Balance.RANK.FIRE_RATE_RANGE` or lower difficulty
+* **Boss too tanky** → Lower `Balance.BOSS.HP` (BASE, PER_LEVEL, CYCLE_MULT)
+* **Weapon levels too fast** → Increase `Balance.WEAPON_EVOLUTION.KILLS_FOR_UPGRADE`
+* **GODCHAIN too rare** → Increase `Balance.ADAPTIVE_DROPS.GODCHAIN_RECHARGE_NEED`
 
 ## 🧩 Known Issues / Watchlist
 
 * Bear Market uses `window.isBearMarket` in `WaveManager` (ensure it stays in sync).
 * Assets in `/assets` are optional unless re‑wired into entities.
-* Service worker cache can mask recent changes during dev.
+* Service worker cache can mask recent changes during dev — always unregister SW when testing.
 
 ## 📜 Credits
 
