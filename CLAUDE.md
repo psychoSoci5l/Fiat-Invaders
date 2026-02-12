@@ -119,6 +119,8 @@ Detailed tables, parameters, and implementation specifics → **SYSTEM_REFERENCE
 - **HUD & Messages** — `Balance.MESSAGE_STRIP`. 2 DOM (#message-strip, #meme-popup) + 2 canvas (SHIP_STATUS, WAVE_SWEEP)
 - **Meme System** — `Balance.MEME_POPUP`. DOM popup, 3-tier priority, `queueMeme(event, text, emoji)` API
 - **Tutorial** — 3-step DOM overlay, mode-aware (Story/Arcade), per-mode localStorage
+- **What's New** — `#whatsnew-panel` DOM modal, JS-generated from version array in main.js. Scroll broken on iOS Safari (TODO)
+- **Arcade Records** — Persistent best cycle/level/kills in localStorage, NEW BEST badge on gameover, displayed in intro selection
 
 ### Rendering & VFX
 - **Additive Glow** — `Balance.GLOW`. `'lighter'` on player elements. Kill-switch: `GLOW.ENABLED = false`. Visual rule: "glow = collect, dark = avoid"
