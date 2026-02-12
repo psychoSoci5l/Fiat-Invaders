@@ -1,5 +1,16 @@
 # Changelog
 
+## v4.50.0 - 2026-02-12
+### Arcade Mode Enhancements
+
+- **Separate high scores**: Story and Arcade modes now track independent high scores (`fiat_highscore_story` / `fiat_highscore_arcade`) with one-time migration from legacy key
+- **Arcade gameover stats**: Cycle, Level, and Wave displayed on game over screen (Arcade only)
+- **Arcade Records**: Persistent tracking of best cycle, best level, and best kills with "NEW BEST!" badge on game over
+- **Intro screen records**: Arcade records displayed below high score in selection screen (hidden if no records yet)
+- **What's New panel**: Accessible from intro screen icon — shows version history and planned features for testers
+- **No more localStorage wipe**: Records and preferences now persist across version updates
+- **i18n**: Added EN/IT strings for NEW_BEST, BEST_CYCLE, BEST_LEVEL, BEST_KILLS, WHATS_NEW, CLOSE
+
 ## v4.49.0 - 2026-02-12
 ### Architectural Refactor — Module Extraction + Test Suite
 

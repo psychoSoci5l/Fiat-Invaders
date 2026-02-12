@@ -1,7 +1,28 @@
 # Roadmap: FIAT vs CRYPTO
 
-> **Versione attuale**: v4.49.0 (2026-02-12)
+> **Versione attuale**: v4.50.0 (2026-02-12)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
+
+---
+
+## TODO — What's New scroll fix (iOS Safari)
+
+- [ ] What's New panel non scrolla su iPhone reale (scroll funziona in emulatore desktop)
+- [ ] Copiare esattamente il pattern CSS del manual-v2 (che funziona su iPhone): `height: 100dvh` esplicito su mobile, `overflow: visible`, `.whatsnew-scroll` con `flex: 1; min-height: 0; overflow-y: scroll`
+- [ ] Verificare se `body { touch-action: none }` interferisce (manual ha `touch-action: pan-y` sul modal)
+- [ ] Test su iPhone reale prima di chiudere
+
+---
+
+## COMPLETATO — Arcade Mode Enhancements (v4.50)
+
+- [x] High score separati Story/Arcade (chiavi localStorage distinte + migrazione one-time)
+- [x] Gameover Arcade con stats progressione (cycle/level/wave)
+- [x] Arcade Records persistenti (bestCycle, bestLevel, bestKills) con badge "NEW BEST!"
+- [x] Arcade Records visibili nell'intro screen (selection state)
+- [x] Stringhe i18n EN/IT per nuovi elementi
+- [x] What's New panel (icona intro → changelog + planned features per i tester)
+- [x] Stop localStorage wipe on version change (records persistono tra aggiornamenti)
 
 ---
 

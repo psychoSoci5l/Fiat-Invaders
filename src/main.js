@@ -9,13 +9,10 @@ const runState = G.RunState;
 window.Game.images = {}; // Placeholder, populated by main.js
 
 
-// --- VERSION MIGRATION: Force clean slate on version change ---
+// --- VERSION TRACKING (v4.50: no longer clears localStorage) ---
 (function() {
     const APP_VER = G.VERSION.replace(/[^0-9.]/g, '').trim();
-    if (localStorage.getItem('fiat_app_version') !== APP_VER) {
-        localStorage.clear();
-        localStorage.setItem('fiat_app_version', APP_VER);
-    }
+    localStorage.setItem('fiat_app_version', APP_VER);
 })();
 
 // --- GLOBAL STATE ---
@@ -90,7 +87,39 @@ function loadAssets() {
 }
 loadAssets(); // Start loading immediately
 
-let highScore = parseInt(localStorage.getItem('fiat_highscore')) || 0; // PERSISTENCE
+// HIGH SCORE — mode-specific persistence (v4.50)
+function highScoreKey() {
+    const isStory = G.CampaignState && G.CampaignState.isEnabled();
+    return isStory ? 'fiat_highscore_story' : 'fiat_highscore_arcade';
+}
+function loadHighScoreForMode() {
+    return parseInt(localStorage.getItem(highScoreKey())) || 0;
+}
+// One-time migration: copy legacy key to arcade
+if (!localStorage.getItem('fiat_highscore_migrated')) {
+    const legacy = parseInt(localStorage.getItem('fiat_highscore')) || 0;
+    if (legacy > 0) localStorage.setItem('fiat_highscore_arcade', legacy);
+    localStorage.setItem('fiat_highscore_migrated', '1');
+}
+let highScore = loadHighScoreForMode(); // PERSISTENCE
+
+// ARCADE RECORDS — persistent progression tracking (v4.50)
+function loadArcadeRecords() {
+    try { return JSON.parse(localStorage.getItem('fiat_arcade_records')) || { bestCycle: 0, bestLevel: 0, bestKills: 0 }; }
+    catch { return { bestCycle: 0, bestLevel: 0, bestKills: 0 }; }
+}
+function saveArcadeRecords(records) {
+    localStorage.setItem('fiat_arcade_records', JSON.stringify(records));
+}
+function checkArcadeRecords() {
+    const records = loadArcadeRecords();
+    let newBest = false;
+    if (marketCycle > records.bestCycle) { records.bestCycle = marketCycle; newBest = true; }
+    if (level > records.bestLevel) { records.bestLevel = level; newBest = true; }
+    if (killCount > records.bestKills) { records.bestKills = killCount; newBest = true; }
+    if (newBest) saveArcadeRecords(records);
+    return { newBest, records };
+}
 // Note: High score UI update happens in updateModeIndicator() when intro screen is shown
 
 // WEAPON PROGRESSION - Persisted in localStorage
@@ -1010,6 +1039,9 @@ function updateModeIndicator() {
     const campaignState = G.CampaignState;
     const isStory = campaignState && campaignState.isEnabled();
 
+    // Reload highScore for current mode (v4.50)
+    highScore = loadHighScoreForMode();
+
     const modeText = document.getElementById('mode-indicator-text');
     const hint = document.getElementById('mode-indicator-hint');
     const scoreLabel = document.getElementById('score-row-label');
@@ -1026,6 +1058,26 @@ function updateModeIndicator() {
     }
     if (scoreValue) {
         scoreValue.innerText = highScore.toLocaleString();
+    }
+
+    // Arcade records row (v4.50)
+    const recordsRow = document.getElementById('arcade-records-row');
+    if (recordsRow) {
+        if (!isStory) {
+            const rec = loadArcadeRecords();
+            recordsRow.style.display = (rec.bestCycle || rec.bestLevel || rec.bestKills) ? 'flex' : 'none';
+            const cl = document.getElementById('rec-cycle-label');
+            const ll = document.getElementById('rec-level-label');
+            const kl = document.getElementById('rec-kills-label');
+            if (cl) cl.innerText = t('BEST_CYCLE');
+            if (ll) ll.innerText = t('BEST_LEVEL');
+            if (kl) kl.innerText = t('BEST_KILLS');
+            setUI('rec-cycle-val', rec.bestCycle);
+            setUI('rec-level-val', rec.bestLevel);
+            setUI('rec-kills-val', rec.bestKills);
+        } else {
+            recordsRow.style.display = 'none';
+        }
     }
 }
 
@@ -1949,6 +2001,83 @@ window.toggleCreditsPanel = function () {
 window.togglePrivacyPanel = function () {
     const panel = document.getElementById('privacy-panel');
     if (panel) panel.style.display = (panel.style.display === 'flex') ? 'none' : 'flex';
+};
+
+// What's New panel (v4.50)
+const WHATS_NEW = [
+    {
+        version: 'v4.50.0', date: '2026-02-12', title: 'Arcade Mode Enhancements',
+        items: [
+            'Separate high scores for Story and Arcade modes',
+            'Arcade gameover shows Cycle, Level, Wave stats',
+            'Persistent arcade records (best cycle, level, kills) with NEW BEST badge',
+            'Arcade records displayed in selection screen',
+            'Records now persist across updates'
+        ]
+    },
+    {
+        version: 'v4.49.0', date: '2026-02-12', title: 'Architectural Refactor',
+        items: [
+            'Extracted 4 modules from main.js for better code organization',
+            'Added test suite with 103 assertions'
+        ]
+    },
+    {
+        version: 'v4.48.0', date: '2026-02-12', title: 'Balance Recalibration',
+        items: [
+            'Enemy and Boss HP rebalanced for weapon evolution system',
+            'Improved adaptive drop intelligence',
+            'Weapon pacing tuned (level 5 reached in cycle 2)'
+        ]
+    },
+    {
+        version: 'v4.47.0', date: '2026-02-12', title: 'Weapon Evolution Redesign',
+        items: [
+            'New 5-level linear weapon system (replaces old 3+3+6)',
+            '3 specials: Homing, Pierce, Missile',
+            '2 utilities: Shield, Speed (capsule visual)',
+            'Laser removed'
+        ]
+    }
+];
+const WHATS_NEW_PLANNED = [
+    'Leaderboard online',
+    'New enemy types & formations',
+    'Achievement system',
+    'New bosses'
+];
+let whatsNewRendered = false;
+function renderWhatsNew() {
+    const container = document.getElementById('whatsnew-content');
+    if (!container || whatsNewRendered) return;
+    let html = '';
+    for (const entry of WHATS_NEW) {
+        html += `<div class="whatsnew-version"><h3>${entry.version} — ${entry.title}</h3><span class="wn-date">${entry.date}</span><ul>`;
+        for (const item of entry.items) html += `<li>${item}</li>`;
+        html += '</ul></div>';
+    }
+    if (WHATS_NEW_PLANNED.length) {
+        html += '<div class="whatsnew-planned"><h3>COMING SOON</h3><ul>';
+        for (const item of WHATS_NEW_PLANNED) html += `<li>${item}</li>`;
+        html += '</ul></div>';
+    }
+    container.innerHTML = html;
+    whatsNewRendered = true;
+}
+window.toggleWhatsNew = function () {
+    const panel = document.getElementById('whatsnew-panel');
+    if (!panel) return;
+    const isVisible = panel.style.display === 'flex';
+    panel.style.display = isVisible ? 'none' : 'flex';
+    if (!isVisible) {
+        renderWhatsNew();
+        // i18n
+        const title = document.getElementById('whatsnew-title');
+        const closeBtn = document.getElementById('btn-whatsnew-close');
+        if (title) title.innerText = t('WHATS_NEW') || "WHAT'S NEW";
+        if (closeBtn) closeBtn.innerText = t('CLOSE') || 'CLOSE';
+        audioSys.play('coinUI');
+    }
 };
 
 // Manual modal functions
@@ -4690,10 +4819,10 @@ function showCampaignVictory() {
     setTimeout(() => audioSys.play('levelUp'), 300);
     setTimeout(() => audioSys.play('levelUp'), 600);
 
-    // Save high score
+    // Save high score (mode-specific v4.50)
     if (score > highScore) {
         highScore = Math.floor(score);
-        localStorage.setItem('fiat_highscore', highScore);
+        localStorage.setItem(highScoreKey(), highScore);
         // Update badge score display (v4.8)
         const badgeScore = document.getElementById('badge-score-value');
         if (badgeScore) badgeScore.innerText = highScore.toLocaleString();
@@ -4752,7 +4881,7 @@ function triggerGameOver() {
 
     if (score > highScore) {
         highScore = Math.floor(score);
-        localStorage.setItem('fiat_highscore', highScore);
+        localStorage.setItem(highScoreKey(), highScore);
         // Update badge score display (v4.8)
         const badgeScore = document.getElementById('badge-score-value');
         if (badgeScore) badgeScore.innerText = highScore.toLocaleString();
@@ -4762,6 +4891,27 @@ function triggerGameOver() {
     setStyle('gameover-screen', 'display', 'flex');
     setUI('finalScore', Math.floor(score));
     if (ui.gameoverMeme) ui.gameoverMeme.innerText = getRandomMeme();
+
+    // Arcade stats & records (v4.50)
+    const isStory = G.CampaignState && G.CampaignState.isEnabled();
+    const statsRow = document.getElementById('arcade-stats-row');
+    const bestBadge = document.getElementById('new-best-badge');
+    if (!isStory) {
+        if (statsRow) {
+            statsRow.style.display = 'flex';
+            setUI('arcadeCycleVal', marketCycle);
+            setUI('arcadeLevelVal', level);
+            setUI('arcadeWaveVal', waveMgr.wave);
+        }
+        const result = checkArcadeRecords();
+        if (bestBadge) {
+            bestBadge.style.display = result.newBest ? 'inline-block' : 'none';
+            bestBadge.innerText = t('NEW_BEST');
+        }
+    } else {
+        if (statsRow) statsRow.style.display = 'none';
+        if (bestBadge) bestBadge.style.display = 'none';
+    }
 
     // Story: Game over dialogue
     if (G.Story) {

@@ -131,6 +131,11 @@
             <span class="score-row-label" id="score-row-label">HIGH SCORE</span>
             <span class="score-row-value" id="badge-score-value">0</span>
         </div>
+        <div id="arcade-records-row" style="display: none;">
+            <span id="rec-cycle-label">BEST CYCLE</span> <b id="rec-cycle-val">0</b>
+            <span id="rec-level-label">BEST LEVEL</span> <b id="rec-level-val">0</b>
+            <span id="rec-kills-label">BEST KILLS</span> <b id="rec-kills-val">0</b>
+        </div>
 
         <!-- PRIMARY ACTION BUTTON (fixed position for double-tap) -->
         <div class="primary-action-container">
@@ -161,6 +166,9 @@
             </button>
             <button class="btn btn-icon" onclick="toggleManual()" id="intro-manual">
                 <svg viewBox="0 0 24 24" class="icon-svg"><path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/></svg>
+            </button>
+            <button class="btn btn-icon" onclick="toggleWhatsNew()" id="intro-whatsnew">
+                <svg viewBox="0 0 24 24" class="icon-svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
             </button>
         </div>
 
@@ -297,6 +305,12 @@
             <div>KILLS: <span id="killsVal">0</span></div>
             <div>BEST STREAK: <span id="streakVal">0</span></div>
         </div>
+        <div id="arcade-stats-row" style="display: none;">
+            <span>CYCLE <b id="arcadeCycleVal">1</b></span>
+            <span>LEVEL <b id="arcadeLevelVal">1</b></span>
+            <span>WAVE <b id="arcadeWaveVal">1</b></span>
+        </div>
+        <div id="new-best-badge" style="display: none;">NEW BEST!</div>
         <div class="gameover-actions">
             <button class="btn btn-primary btn-lg" id="btn-retry" onclick="restartFromGameOver()">RETRY</button>
             <button class="btn btn-secondary" onclick="backToIntro()">MENU</button>
@@ -555,6 +569,15 @@
             </div>
 
             <button class="btn btn-primary" onclick="toggleHelpPanel()">CHIUDI</button>
+        </div>
+    </div>
+
+    <!-- WHAT'S NEW PANEL (v4.50) - Outside game-container for proper stacking -->
+    <div id="whatsnew-panel" style="display: none;">
+        <div class="whatsnew-box">
+            <h2 class="whatsnew-title" id="whatsnew-title">WHAT'S NEW</h2>
+            <div class="whatsnew-scroll" id="whatsnew-content"></div>
+            <button class="btn btn-primary" id="btn-whatsnew-close" onclick="toggleWhatsNew()">CLOSE</button>
         </div>
     </div>
 

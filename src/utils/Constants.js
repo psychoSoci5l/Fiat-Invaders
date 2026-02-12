@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v4.49.0 FIAT vs CRYPTO";
+window.Game.VERSION = "v4.50.0 FIAT vs CRYPTO";
 
 window.Game.TEXTS = {
     EN: {
@@ -161,7 +161,14 @@ window.Game.TEXTS = {
         MODE_ARCADE_DESC: "Endless high-score challenge",
         CHANGE_MODE: "tap to change",
         TITLE_SUBTITLE: "Currencies",
-        GO: "GO!"
+        GO: "GO!",
+        // Arcade records (v4.50)
+        NEW_BEST: "NEW BEST!",
+        BEST_CYCLE: "BEST CYCLE",
+        BEST_LEVEL: "BEST LEVEL",
+        BEST_KILLS: "BEST KILLS",
+        WHATS_NEW: "WHAT'S NEW",
+        CLOSE: "CLOSE"
     },
     IT: {
         SCORE: "PUNTI", LEVEL: "LIVELLO", LIVES: "VITE", NORMAL: "NORMALE",
@@ -319,7 +326,14 @@ window.Game.TEXTS = {
         MODE_ARCADE_DESC: "Sfida infinita per il punteggio",
         CHANGE_MODE: "tocca per cambiare",
         TITLE_SUBTITLE: "Valute",
-        GO: "VIA!"
+        GO: "VIA!",
+        // Arcade records (v4.50)
+        NEW_BEST: "NUOVO RECORD!",
+        BEST_CYCLE: "MIGLIOR CICLO",
+        BEST_LEVEL: "MIGLIOR LIVELLO",
+        BEST_KILLS: "MIGLIORI UCCISIONI",
+        WHATS_NEW: "NOVITÀ",
+        CLOSE: "CHIUDI"
     }
 };
 
