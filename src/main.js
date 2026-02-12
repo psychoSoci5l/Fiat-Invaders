@@ -1458,9 +1458,10 @@ function init() {
     if (events && events.on) {
         events.on('intermission_start', () => closePerkChoice());
         events.on('enemy_killed', () => {
-            if (runState && runState.flags && runState.flags.volatilityRush) {
+            // v4.57: Rapid Core kill streak boost (replaces volatilityRush)
+            if (runState && runState.flags && runState.flags.rapidCoreKillBoost) {
                 volatilityTimer = 2.0;
-                if (runState.modifiers) runState.modifiers.tempFireRateMult = 0.6;
+                if (runState.modifiers) runState.modifiers.tempFireRateMult = 0.7;
             }
         });
         // v4.6: GODCHAIN events
@@ -3453,6 +3454,11 @@ function update(dt) {
                 audioSys.play('levelUp'); // Triumphant jingle
                 updateLevelUI(); // With animation
                 grazePerksThisLevel = 0; // Reset graze perk cap for new level
+                // v4.57: Early drop boost — pre-fill pity counter so first power-up comes quickly
+                const edl = Balance.DROP_SCALING?.EARLY_DROP_LEVEL;
+                if (edl && level === edl && G.DropSystem) {
+                    G.DropSystem.killsSinceLastDrop = Balance.DROP_SCALING.EARLY_DROP_PREFILL || 40;
+                }
                 // NOTE: Removed showGameInfo("📈 LEVEL " + level) - unified in wave info below
             }
 

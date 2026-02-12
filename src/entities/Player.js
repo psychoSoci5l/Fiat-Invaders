@@ -627,6 +627,7 @@ class Player extends window.Game.Entity {
         // Calculate fire rate from level table
         let cooldown = this.stats.fireRate * levelData.cooldownMult;
         cooldown *= this.getRunMod('fireRateMult', 1);
+        cooldown *= this.getRunMod('tempFireRateMult', 1); // v4.57: Rapid Core kill streak boost
         this.cooldown = cooldown;
 
         // Damage multiplier from level table
@@ -696,14 +697,16 @@ class Player extends window.Game.Entity {
                 b.aoeRadius = 50;
             }
 
-            // Bullet pierce HP (scales with weapon level)
+            // Bullet pierce HP (scales with weapon level + Kinetic Rounds perk)
             const BP = Balance.BULLET_PIERCE;
+            const pierceBonusHP = this.getRunMod('pierceBonusHP', 0);
             if (b.isMissile) {
-                b.pierceHP = BP.MISSILE_HP;
+                b.pierceHP = BP.MISSILE_HP + pierceBonusHP;
             } else {
                 b.pierceHP = BP.BASE_HP
                     + Math.floor(effectiveLevel * (BP.LEVEL_BONUS || 0.5))
-                    + (isHodl ? BP.HODL_BONUS : 0);
+                    + (isHodl ? BP.HODL_BONUS : 0)
+                    + pierceBonusHP;
             }
 
             b.weaponType = this.special || 'EVOLUTION';
@@ -729,6 +732,14 @@ class Player extends window.Game.Entity {
             spawnBullet(-10, -spreadAngle);
             spawnBullet(0, 0);
             spawnBullet(+10, +spreadAngle);
+        }
+
+        // v4.57: Wide Arsenal perk — +2 wide-angle shots (25°)
+        const rs = window.Game.RunState;
+        if (rs && rs.flags && rs.flags.wideArsenal) {
+            const wideAngle = 25 * (Math.PI / 180);
+            spawnBullet(-14, -wideAngle);
+            spawnBullet(+14, +wideAngle);
         }
 
         return bullets;

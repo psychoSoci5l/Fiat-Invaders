@@ -1,5 +1,19 @@
 # Changelog
 
+## v4.57.0 - 2026-02-12
+### Gameplay Rebalance + Perk Rationalization
+
+- **Wave density +1 row**: All 15 waves get ~4 extra enemies per horde — fuller formations, less empty first levels
+- **Perk rationalization (12 → 6)**: Removed 5 dead-code perks, merged overlapping effects into 6 functional perks: Rapid Core (fire rate + kill streak boost), Kinetic Rounds (damage + pierce), Overclock Thrusters (speed), Fortress Protocol (shield CD + invuln at x2), Wide Arsenal (+2 side shots), Diamond Hands (score)
+- **Wide Arsenal implemented**: New rare perk adds 2 actual wide-angle shots (±25°) to every volley
+- **Kinetic Rounds pierce**: Each stack adds +1 pierceHP to all bullets (including missiles)
+- **Rapid Core kill streak**: Replaces broken volatilityRush — on kill, 2s of fire rate boost (tempFireRateMult 0.7)
+- **Fortress Protocol**: Merges cooldown_vents + second_wind — shield CD -25%/stack, invuln on expire at stack 2
+- **Max stack reduction**: All stackable perks capped at x2 (was x3-4) — DPS ceiling from perks: x4 → x2
+- **C3 fire budget -10%**: Cycle 3 enemy bullets/sec 56 → 50 (boss excluded)
+- **Early drop at level 2**: Pity counter pre-filled so first power-up arrives after ~10 kills
+- **Dead code cleanup**: Removed hodlBonus, twinCannons, wideSpread, laserBeam, pierce, volatilityRush flags
+
 ## v4.56.0 - 2026-02-12
 ### Enemy Neon Cyberpunk Restyling + Colored Enemy Bullets
 

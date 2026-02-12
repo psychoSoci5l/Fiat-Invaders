@@ -19,6 +19,7 @@ class RunState {
             speedMult: 1,
             shieldCooldownMult: 1,
             damageMult: 1,
+            pierceBonusHP: 0,
             maxHpBonus: 0
         };
 

@@ -137,7 +137,6 @@ window.Game = window.Game || {};
                 const dmgMult = (runState && runState.getMod) ? runState.getMod('damageMult', 1) : 1;
                 let dmg = baseBossDmg * dmgMult;
                 if (bullet.isHodl) dmg = Math.ceil(dmg * Balance.SCORE.HODL_MULT_BOSS);
-                if (runState && runState.flags && runState.flags.hodlBonus && bullet.isHodl) dmg = Math.ceil(dmg * 1.15);
 
                 boss.damage(dmg);
                 cb.onBossHit(bullet, dmg, boss, bIdx, bullets);
@@ -187,7 +186,6 @@ window.Game = window.Game || {};
 
                     if (bullet.damageMult && bullet.damageMult > 1) dmg *= bullet.damageMult;
                     if (bullet.isHodl) dmg *= Balance.SCORE.HODL_MULT_ENEMY;
-                    if (runState && runState.flags && runState.flags.hodlBonus && bullet.isHodl) dmg *= 1.15;
                     if (player.getSmartContractMult) dmg *= player.getSmartContractMult(e);
 
                     const shouldDie = e.takeDamage(dmg);

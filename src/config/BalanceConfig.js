@@ -979,7 +979,10 @@
 
             // Pity timer decreases with cycle
             PITY_BASE: 55,              // Base kills for guaranteed drop (v4.17: 45→55)
-            PITY_REDUCTION: 2           // -2 kills per cycle (min 15) (v4.17: 3→2)
+            PITY_REDUCTION: 2,          // -2 kills per cycle (min 15) (v4.17: 3→2)
+            // v4.57: Early drop at level 2 start — pity counter pre-filled so first drop comes after ~8 kills
+            EARLY_DROP_LEVEL: 2,        // Level at which to boost pity counter
+            EARLY_DROP_PREFILL: 45      // Pre-fill killsSinceLastDrop (pity 55 - 45 = 10 kills to first drop)
         },
 
         // --- ADAPTIVE DROPS v4.47 (Redesigned) ---
@@ -1049,85 +1052,85 @@
             // v4.14: All counts +25% (ceil) — rebalanced for smaller 48px enemies
             WAVES: [
                 // === CYCLE 1: "AWAKENING" (Tutorial — top-heavy, simple formations) ===
-                // v4.40: +1 row (~4 enemies/horde), monotonic progression
+                // v4.57: +1 row (~4-5 enemies/horde) across all waves — fuller formations
                 {
                     cycle: 1, wave: 1, name: 'First Contact',
-                    horde1: { count: 18, formation: 'RECT', currencies: ['¥', '₽', '₹'] },
-                    horde2: { count: 15, formation: 'RECT', currencies: ['¥', '₽', '₹'] }
+                    horde1: { count: 22, formation: 'RECT', currencies: ['¥', '₽', '₹'] },
+                    horde2: { count: 19, formation: 'RECT', currencies: ['¥', '₽', '₹'] }
                 },
                 {
                     cycle: 1, wave: 2, name: 'European Dawn',
-                    horde1: { count: 20, formation: 'WALL', currencies: ['¥', '₽', '€'] },
-                    horde2: { count: 18, formation: 'RECT', currencies: ['₹', '£'] }
+                    horde1: { count: 24, formation: 'WALL', currencies: ['¥', '₽', '€'] },
+                    horde2: { count: 22, formation: 'RECT', currencies: ['₹', '£'] }
                 },
                 {
                     cycle: 1, wave: 3, name: 'Old World',
-                    horde1: { count: 21, formation: 'ARROW', currencies: ['€', '£', '₣'] },
-                    horde2: { count: 20, formation: 'WALL', currencies: ['₺', '€', '£'] }
+                    horde1: { count: 25, formation: 'ARROW', currencies: ['€', '£', '₣'] },
+                    horde2: { count: 24, formation: 'WALL', currencies: ['₺', '€', '£'] }
                 },
                 {
                     cycle: 1, wave: 4, name: 'Dollar Emerges',
-                    horde1: { count: 24, formation: 'DIAMOND', currencies: ['€', '₣', '$'] },
-                    horde2: { count: 21, formation: 'ARROW', currencies: ['£', '₺', '元'] }
+                    horde1: { count: 28, formation: 'DIAMOND', currencies: ['€', '₣', '$'] },
+                    horde2: { count: 25, formation: 'ARROW', currencies: ['£', '₺', '元'] }
                 },
                 {
                     cycle: 1, wave: 5, name: 'Global Alliance',
-                    horde1: { count: 25, formation: 'WALL', currencies: ['¥', '€', '$', '元'] },
-                    horde2: { count: 24, formation: 'DIAMOND', currencies: ['₽', '£', '₣', 'Ⓒ'] }
+                    horde1: { count: 29, formation: 'WALL', currencies: ['¥', '€', '$', '元'] },
+                    horde2: { count: 28, formation: 'DIAMOND', currencies: ['₽', '£', '₣', 'Ⓒ'] }
                 },
 
                 // === CYCLE 2: "CONFLICT" (Learning — still top-heavy, slightly more varied) ===
                 {
                     cycle: 2, wave: 1, name: 'Eastern Front',
-                    horde1: { count: 22, formation: 'RECT', currencies: ['¥', '元', '₹'] },
-                    horde2: { count: 20, formation: 'WALL', currencies: ['¥', '元', '₽'] }
+                    horde1: { count: 26, formation: 'RECT', currencies: ['¥', '元', '₹'] },
+                    horde2: { count: 24, formation: 'WALL', currencies: ['¥', '元', '₽'] }
                 },
                 {
                     cycle: 2, wave: 2, name: 'Brussels Burns',
-                    horde1: { count: 24, formation: 'CHEVRON', currencies: ['€', '₣', '£'] },
-                    horde2: { count: 22, formation: 'PINCER', currencies: ['€', '₣', '₺'] }
+                    horde1: { count: 28, formation: 'CHEVRON', currencies: ['€', '₣', '£'] },
+                    horde2: { count: 26, formation: 'PINCER', currencies: ['€', '₣', '₺'] }
                 },
                 {
                     cycle: 2, wave: 3, name: 'Reserve War',
-                    horde1: { count: 27, formation: 'WALL', currencies: ['$', '€', '£'] },
-                    horde2: { count: 24, formation: 'FORTRESS', currencies: ['$', '元', 'Ⓒ'] }
+                    horde1: { count: 31, formation: 'WALL', currencies: ['$', '€', '£'] },
+                    horde2: { count: 28, formation: 'FORTRESS', currencies: ['$', '元', 'Ⓒ'] }
                 },
                 {
                     cycle: 2, wave: 4, name: 'BRICS Rising',
-                    horde1: { count: 29, formation: 'ARROW', currencies: ['₽', '₹', '₺', '$'] },
-                    horde2: { count: 26, formation: 'WALL', currencies: ['元', 'Ⓒ', '$'] }
+                    horde1: { count: 33, formation: 'ARROW', currencies: ['₽', '₹', '₺', '$'] },
+                    horde2: { count: 30, formation: 'WALL', currencies: ['元', 'Ⓒ', '$'] }
                 },
                 {
                     cycle: 2, wave: 5, name: 'Final Stand',
-                    horde1: { count: 31, formation: 'FORTRESS', currencies: ['$', '元', 'Ⓒ', '€'] },
-                    horde2: { count: 28, formation: 'WALL', currencies: ['$', '元', 'Ⓒ', '₣'] }
+                    horde1: { count: 35, formation: 'FORTRESS', currencies: ['$', '元', 'Ⓒ', '€'] },
+                    horde2: { count: 32, formation: 'WALL', currencies: ['$', '元', 'Ⓒ', '₣'] }
                 },
 
                 // === CYCLE 3: "RECKONING" (Skilled) ===
                 {
                     cycle: 3, wave: 1, name: 'Digital Doom',
-                    horde1: { count: 27, formation: 'VORTEX', currencies: ['Ⓒ', '€', '$'] },
-                    horde2: { count: 24, formation: 'HURRICANE', currencies: ['Ⓒ', '元', '£'] }
+                    horde1: { count: 31, formation: 'VORTEX', currencies: ['Ⓒ', '€', '$'] },
+                    horde2: { count: 28, formation: 'HURRICANE', currencies: ['Ⓒ', '元', '£'] }
                 },
                 {
                     cycle: 3, wave: 2, name: 'Pincer Attack',
-                    horde1: { count: 29, formation: 'FLANKING', currencies: ['$', '元', 'Ⓒ'] },
-                    horde2: { count: 27, formation: 'SPIRAL', currencies: ['€', '£', '₣', '$'] }
+                    horde1: { count: 33, formation: 'FLANKING', currencies: ['$', '元', 'Ⓒ'] },
+                    horde2: { count: 31, formation: 'SPIRAL', currencies: ['€', '£', '₣', '$'] }
                 },
                 {
                     cycle: 3, wave: 3, name: 'Escalation',
-                    horde1: { count: 32, formation: 'STAIRCASE', currencies: ['¥', '₽', '₹', '€', '£', '₣', '₺', '$', '元', 'Ⓒ'] },
-                    horde2: { count: 29, formation: 'STAIRCASE_REVERSE', currencies: ['$', '元', 'Ⓒ', '₺', '₣', '£', '€', '₹', '₽', '¥'] }
+                    horde1: { count: 36, formation: 'STAIRCASE', currencies: ['¥', '₽', '₹', '€', '£', '₣', '₺', '$', '元', 'Ⓒ'] },
+                    horde2: { count: 33, formation: 'STAIRCASE_REVERSE', currencies: ['$', '元', 'Ⓒ', '₺', '₣', '£', '€', '₹', '₽', '¥'] }
                 },
                 {
                     cycle: 3, wave: 4, name: 'Eye of Storm',
-                    horde1: { count: 34, formation: 'HURRICANE', currencies: ['¥', '₽', '₹', '€', '£', '₣', '₺', '$', '元', 'Ⓒ'] },
-                    horde2: { count: 31, formation: 'VORTEX', currencies: ['$', '元', 'Ⓒ'] }
+                    horde1: { count: 38, formation: 'HURRICANE', currencies: ['¥', '₽', '₹', '€', '£', '₣', '₺', '$', '元', 'Ⓒ'] },
+                    horde2: { count: 35, formation: 'VORTEX', currencies: ['$', '元', 'Ⓒ'] }
                 },
                 {
                     cycle: 3, wave: 5, name: 'Endgame',
-                    horde1: { count: 36, formation: 'FINAL_FORM', currencies: ['$', '元', 'Ⓒ', '€', '£', '₣'] },
-                    horde2: { count: 32, formation: 'FINAL_FORM', currencies: ['Ⓒ', 'Ⓒ', 'Ⓒ', '$', '元'] }
+                    horde1: { count: 40, formation: 'FINAL_FORM', currencies: ['$', '元', 'Ⓒ', '€', '£', '₣'] },
+                    horde2: { count: 36, formation: 'FINAL_FORM', currencies: ['Ⓒ', 'Ⓒ', 'Ⓒ', '$', '元'] }
                 }
             ],
 
@@ -1606,7 +1609,7 @@
         // Limits total enemy bullets/sec to prevent screen flooding with many enemies
         FIRE_BUDGET: {
             ENABLED: true,
-            BULLETS_PER_SECOND: [12, 31, 56],  // v4.44: reverted C1 to 12 (HP increase already extends wave duration)
+            BULLETS_PER_SECOND: [12, 31, 50],  // v4.57: C3 56→50 (-10% aggressività, boss escluso)
             WAVE_GRACE_PERIOD: 2.5,             // v4.37: seconds of silence at wave start (no enemy fire)
             BEAR_MARKET_BONUS: 10,              // +10 bullets/sec in Bear Market
             PANIC_MULTIPLIER: 1.3,              // +30% during PANIC phase
