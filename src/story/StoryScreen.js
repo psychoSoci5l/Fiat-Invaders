@@ -402,7 +402,8 @@
         // --- Text ---
         const maxWidth = width * CONFIG.MAX_WIDTH_RATIO;
         const centerX = width / 2;
-        let y = CONFIG.PADDING_TOP;
+        const safeTop = (window.safeAreaInsets && window.safeAreaInsets.top) || 0;
+        let y = CONFIG.PADDING_TOP + safeTop;
 
         // Period (year)
         const period = currentStory.period || '';

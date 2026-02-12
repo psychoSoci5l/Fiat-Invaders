@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.54.0 - 2026-02-12
+### Purple Asset Refresh + PWA Safe Area Fix
+
+- **Splash video**: New purple-themed `splashscreen.mp4` replaces old orange version
+- **App icon (SVG + 7 PNGs)**: Ship recolored from BTC orange to neon violet (#bb44ff), purple engine flames, deep space background (#1a0a30→#030308)
+- **manifest.json**: `theme_color` → `#bb44ff`, `background_color` → `#030308` (deep space)
+- **StoryScreen PWA fix**: Added `safeAreaInsets.top` offset to canvas text — story title no longer hidden under iOS status bar in standalone PWA mode
+
 ## v4.53.0 - 2026-02-12
 ### Premium Purple Neon Unification
 

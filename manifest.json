@@ -3,8 +3,8 @@
   "short_name": "FIATvsCRYPTO",
   "start_url": ".",
   "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#000000",
+  "background_color": "#030308",
+  "theme_color": "#bb44ff",
   "orientation": "portrait",
   "icons": [
     {

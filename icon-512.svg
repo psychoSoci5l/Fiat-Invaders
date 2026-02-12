@@ -2,23 +2,23 @@
   <defs>
     <!-- Space background gradient -->
     <radialGradient id="spaceGrad" cx="50%" cy="30%" r="70%">
-      <stop offset="0%" stop-color="#1a1a3e"/>
-      <stop offset="50%" stop-color="#0d0d1a"/>
-      <stop offset="100%" stop-color="#000005"/>
+      <stop offset="0%" stop-color="#1a0a30"/>
+      <stop offset="50%" stop-color="#0a0825"/>
+      <stop offset="100%" stop-color="#030308"/>
     </radialGradient>
 
-    <!-- Flame gradients -->
+    <!-- Flame gradients - purple -->
     <linearGradient id="flameOuter" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#cc3300"/>
-      <stop offset="100%" stop-color="#ff4400"/>
+      <stop offset="0%" stop-color="#7722bb"/>
+      <stop offset="100%" stop-color="#9933dd"/>
     </linearGradient>
     <linearGradient id="flameMain" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#ff6600"/>
-      <stop offset="100%" stop-color="#ff8800"/>
+      <stop offset="0%" stop-color="#bb44ff"/>
+      <stop offset="100%" stop-color="#cc66ff"/>
     </linearGradient>
     <linearGradient id="flameInner" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#ffcc00"/>
-      <stop offset="100%" stop-color="#ffee66"/>
+      <stop offset="0%" stop-color="#dd99ff"/>
+      <stop offset="100%" stop-color="#eeccff"/>
     </linearGradient>
 
     <!-- Glow filter -->
@@ -67,15 +67,15 @@
   <g transform="translate(256, 230) scale(5)">
 
     <!-- Engine glow (behind flame) -->
-    <ellipse cx="0" cy="20" rx="15" ry="8" fill="#ff6600" opacity="0.4" filter="url(#engineGlow)"/>
+    <ellipse cx="0" cy="20" rx="15" ry="8" fill="#bb44ff" opacity="0.4" filter="url(#engineGlow)"/>
 
-    <!-- Reactor flame - outer (red) -->
+    <!-- Reactor flame - outer (deep purple) -->
     <polygon points="-13,12 0,45 13,12" fill="url(#flameOuter)" opacity="0.7" filter="url(#glow)"/>
 
-    <!-- Reactor flame - main (orange) -->
+    <!-- Reactor flame - main (purple) -->
     <polygon points="-10,12 0,40 10,12" fill="url(#flameMain)"/>
 
-    <!-- Reactor flame - inner (yellow) -->
+    <!-- Reactor flame - inner (light purple) -->
     <polygon points="-5,12 0,32 5,12" fill="url(#flameInner)"/>
 
     <!-- Reactor flame - core (white) -->
@@ -88,28 +88,28 @@
     <polygon points="22,8 34,16 16,18" fill="#4bc0c8" stroke="#111" stroke-width="3"/>
 
     <!-- Body - shadow side (left half) -->
-    <polygon points="0,-26 -22,12 0,12" fill="#c76b10" stroke="none"/>
+    <polygon points="0,-26 -22,12 0,12" fill="#7a2db3" stroke="none"/>
 
     <!-- Body - light side (right half) -->
-    <polygon points="0,-26 0,12 22,12" fill="#F7931A" stroke="none"/>
+    <polygon points="0,-26 0,12 22,12" fill="#bb44ff" stroke="none"/>
 
     <!-- Body outline -->
     <polygon points="0,-26 -22,12 22,12" fill="none" stroke="#111" stroke-width="4" stroke-linejoin="round"/>
 
     <!-- Nose cone - shadow side -->
-    <polygon points="0,-28 -10,-6 0,-6" fill="#c47d3a"/>
+    <polygon points="0,-28 -10,-6 0,-6" fill="#9944cc"/>
 
     <!-- Nose cone - light side -->
-    <polygon points="0,-28 0,-6 10,-6" fill="#f6b26b"/>
+    <polygon points="0,-28 0,-6 10,-6" fill="#d080ff"/>
 
     <!-- Nose cone outline -->
     <polygon points="0,-28 -10,-6 10,-6" fill="none" stroke="#111" stroke-width="3" stroke-linejoin="round"/>
 
     <!-- Rim lighting (right edge) -->
-    <line x1="4" y1="-24" x2="20" y2="10" stroke="#ffb347" stroke-width="2" stroke-linecap="round"/>
+    <line x1="4" y1="-24" x2="20" y2="10" stroke="#cc77ff" stroke-width="2" stroke-linecap="round"/>
 
     <!-- Rim light on nose -->
-    <line x1="2" y1="-26" x2="8" y2="-8" stroke="#ffd699" stroke-width="2" stroke-linecap="round"/>
+    <line x1="2" y1="-26" x2="8" y2="-8" stroke="#e0aaff" stroke-width="2" stroke-linecap="round"/>
 
     <!-- Window glow -->
     <circle cx="0" cy="-8" r="8" fill="#4dc8ff" opacity="0.3" filter="url(#glow)"/>
@@ -125,7 +125,7 @@
 
   </g>
 
-  <!-- Title text (optional - can remove) -->
-  <text x="256" y="470" font-family="Arial Black, sans-serif" font-size="26" fill="#F7931A" text-anchor="middle" letter-spacing="1" filter="url(#glow)">FIAT vs CRYPTO</text>
+  <!-- Title text -->
+  <text x="256" y="470" font-family="Arial Black, sans-serif" font-size="26" fill="#bb44ff" text-anchor="middle" letter-spacing="1" filter="url(#glow)">FIAT vs CRYPTO</text>
 
 </svg>
