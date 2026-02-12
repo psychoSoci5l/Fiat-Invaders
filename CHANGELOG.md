@@ -1,5 +1,16 @@
 # Changelog
 
+## v4.59.0 - 2026-02-12
+### Perk Reduction + Adaptive Power Calibration
+
+- **Perk system reduced (6 → 3)**: Kept Kinetic Rounds (damage +20%, pierce +1/stack), Overclock Thrusters (speed +15%), Diamond Hands (score x1.25). Removed Rapid Core, Wide Arsenal, Fortress Protocol — all DPS-stacking and shield perks eliminated
+- **Dead code cleanup**: Removed volatilityTimer, rapidCoreKillBoost, secondWind, wideArsenal shot code, fireRateMult/tempFireRateMult/shieldCooldownMult modifiers from RunState and Player
+- **Perk toggle**: Added `PERK.ENABLED` flag in BalanceConfig for easy testing with perks on/off
+- **Adaptive Power Calibration (APC)**: New system adjusts enemy HP and drop pity at cycle transitions (C2+) based on player power score (weapon level, perk stacks, special weapon)
+- **APC HP scaling**: `HP_FLOOR: 0.85` + `HP_RANGE: 0.50` — weak players face 85% HP enemies, strong players face up to 135%
+- **APC pity adjustment**: Weak players get -10 kills on pity timer, strong players +5 — adaptive drop economy
+- **APC debug**: `dbg.report()` shows APC section with power score, HP multiplier, pity adjustment
+
 ## v4.58.0 - 2026-02-12
 ### Cyberpunk Enemy Damage Deterioration
 

@@ -14,10 +14,7 @@ class RunState {
         this.pityCounter = 0;
         this.modifiers = {
             scoreMult: 1,
-            fireRateMult: 1,
-            tempFireRateMult: 1,
             speedMult: 1,
-            shieldCooldownMult: 1,
             damageMult: 1,
             pierceBonusHP: 0,
             maxHpBonus: 0
@@ -67,6 +64,13 @@ class RunState {
 
         // --- Wave timing ---
         this.waveStartTime = 0;
+
+        // --- Adaptive Power Calibration (v4.59) ---
+        this.cyclePower = {
+            score: 0,      // Power score snapshot (0.0–1.0)
+            hpMult: 1.0,   // Enemy HP multiplier for this cycle
+            pityAdj: 0     // Pity timer kill adjustment
+        };
 
         // --- Per-frame counters ---
         this._frameKills = 0;

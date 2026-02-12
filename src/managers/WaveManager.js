@@ -229,9 +229,10 @@ window.Game.WaveManager = {
         const Balance = G.Balance;
         const level = window.currentLevel || 1;
 
-        // Scale HP based on difficulty
+        // Scale HP based on difficulty + APC multiplier (v4.59)
         const diff = Balance.calculateDifficulty(level, cycle);
-        const scaledHP = Balance.calculateEnemyHP(diff, cycle);
+        const apcMult = (G.RunState && G.RunState.cyclePower) ? G.RunState.cyclePower.hpMult : 1.0;
+        const scaledHP = Balance.calculateEnemyHP(diff, cycle) * apcMult;
         const scaledType = Object.assign({}, currencyType, {
             hp: currencyType.hp * scaledHP
         });
@@ -1356,7 +1357,8 @@ window.Game.WaveManager = {
                     const cycle = window.marketCycle || 1;
                     const level = window.currentLevel || 1;
                     const diff = Balance.calculateDifficulty(level, cycle);
-                    const scaledHP = Balance.calculateEnemyHP(diff, cycle);
+                    const apcMult2 = (G.RunState && G.RunState.cyclePower) ? G.RunState.cyclePower.hpMult : 1.0;
+                    const scaledHP = Balance.calculateEnemyHP(diff, cycle) * apcMult2;
                     const baseType = G.FIAT_TYPES[typeIdx];
                     const scaledType = Object.assign({}, baseType, { hp: baseType.hp * scaledHP });
 

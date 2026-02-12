@@ -254,8 +254,17 @@
             if (!AD || !AD.ENABLED) return false;
             if (isPityDrop) return false;
 
+            // v4.59: APC — weak players bypass suppression entirely
+            const APC = G.Balance.ADAPTIVE_POWER;
+            if (APC && APC.ENABLED && G.RunState && G.RunState.cyclePower.score < APC.WEAK_THRESHOLD) return false;
+
             const powerScore = this.getPlayerPowerScore(playerState);
             if (powerScore < AD.SUPPRESSION_FLOOR) return false;
+
+            // v4.59: Strong APC players have lower suppression floor
+            const floor = (APC && APC.ENABLED && G.RunState && G.RunState.cyclePower.score > APC.STRONG_THRESHOLD)
+                ? 0.35 : AD.SUPPRESSION_FLOOR;
+            if (powerScore < floor) return false;
 
             return Math.random() < powerScore;
         }
@@ -321,11 +330,13 @@
                 dropChance += (cycle - 1) * Balance.DROP_SCALING.CYCLE_BONUS;
             }
 
-            // Pity timer
+            // Pity timer (+ APC adjustment v4.59)
             let pityThreshold = Balance.DROPS.PITY_TIMER_KILLS;
             if (Balance.DROP_SCALING) {
                 pityThreshold = Math.max(15, Balance.DROP_SCALING.PITY_BASE - (cycle - 1) * Balance.DROP_SCALING.PITY_REDUCTION);
             }
+            const apcAdj = (G.RunState && G.RunState.cyclePower) ? G.RunState.cyclePower.pityAdj : 0;
+            if (apcAdj) pityThreshold = Math.max(10, pityThreshold + apcAdj);
             const pityDrop = this.killsSinceLastDrop >= pityThreshold;
 
             // === WEAPON EVOLUTION ===

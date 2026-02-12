@@ -731,6 +731,13 @@ window.Game.Debug = {
             }
         }
 
+        // v4.59: APC section
+        const cp = G.RunState ? G.RunState.cyclePower : null;
+        if (cp && cp.score > 0) {
+            console.log('%c╠══ ADAPTIVE POWER CALIBRATION ═══════════════════════════╣', 'color: #bb44ff');
+            console.log(`%c║   Power Score: ${cp.score.toFixed(2)}  HP Mult: ${cp.hpMult.toFixed(3)}  Pity Adj: ${cp.pityAdj}`, 'color: #bb44ff');
+        }
+
         console.log('%c╚════════════════════════════════════════════════════════════╝', 'color: #f80');
         console.log('');
 

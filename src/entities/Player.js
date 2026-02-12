@@ -38,10 +38,6 @@ class Player extends window.Game.Entity {
         this.smartContractTimer = 0;      // Time since last hit on same target
         this.smartContractStacks = 0;     // Number of consecutive hits
 
-        // v4.0.2: Second Wind - brief invuln when shield expires
-        this.secondWind = false;
-        this.secondWindTimer = 0;
-
         this.beastMode = 0;
         this.hp = 1;  // 1-hit = 1-life system
         this.invulnTimer = 0;
@@ -243,16 +239,9 @@ class Player extends window.Game.Entity {
             if (this.shieldTimer <= 0) {
                 this.shieldActive = false;
                 if (window.Game.Audio) window.Game.Audio.play('shieldDeactivate');
-                // v4.0.2: Second Wind perk - brief invuln when shield expires
-                const rs = window.Game.RunState;
-                if (rs && rs.flags && rs.flags.secondWind) {
-                    this.secondWindTimer = Balance.PLAYER.SECOND_WIND_DURATION;
-                    this.invulnTimer = Math.max(this.invulnTimer, Balance.PLAYER.SECOND_WIND_DURATION);
-                }
             }
         }
         if (this.shieldCooldown > 0) this.shieldCooldown -= dt;
-        if (this.secondWindTimer > 0) this.secondWindTimer -= dt;
 
         // Weapon timer (WIDE, NARROW, FIRE revert to NORMAL)
         if (this.weapon !== 'NORMAL') {
@@ -370,7 +359,7 @@ class Player extends window.Game.Entity {
         this.shieldActive = true;
         this.shieldTimer = 2.0;
         const shieldCD = window.Game.Balance?.PLAYER?.SHIELD_COOLDOWN || 10.0;
-        this.shieldCooldown = shieldCD * this.getRunMod('shieldCooldownMult', 1);
+        this.shieldCooldown = shieldCD;
         window.Game.Audio.play('shield');
     }
 
@@ -529,7 +518,7 @@ class Player extends window.Game.Entity {
         // Fire rate: base from weapon, modified by RAPID ship power-up
         const rapidMult = (this.shipPowerUp === 'RAPID') ? 0.5 : 1;
         const baseRate = this.weapon === 'NORMAL' ? this.stats.fireRate : conf.rate;
-        const rate = baseRate * rapidMult * this.getRunMod('fireRateMult', 1);
+        const rate = baseRate * rapidMult;
         this.cooldown = rate;
 
         // Bullet setup
@@ -626,8 +615,6 @@ class Player extends window.Game.Entity {
 
         // Calculate fire rate from level table
         let cooldown = this.stats.fireRate * levelData.cooldownMult;
-        cooldown *= this.getRunMod('fireRateMult', 1);
-        cooldown *= this.getRunMod('tempFireRateMult', 1); // v4.57: Rapid Core kill streak boost
         this.cooldown = cooldown;
 
         // Damage multiplier from level table
@@ -732,14 +719,6 @@ class Player extends window.Game.Entity {
             spawnBullet(-10, -spreadAngle);
             spawnBullet(0, 0);
             spawnBullet(+10, +spreadAngle);
-        }
-
-        // v4.57: Wide Arsenal perk — +2 wide-angle shots (25°)
-        const rs = window.Game.RunState;
-        if (rs && rs.flags && rs.flags.wideArsenal) {
-            const wideAngle = 25 * (Math.PI / 180);
-            spawnBullet(-14, -wideAngle);
-            spawnBullet(+14, +wideAngle);
         }
 
         return bullets;

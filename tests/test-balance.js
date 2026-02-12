@@ -81,4 +81,53 @@
         pool.release(obj2); // should be no-op
         assert(pool.reserve.length <= 3, 'double release does not duplicate');
     });
+
+    // --- Adaptive Power Calibration (v4.59) ---
+    _testRunner.suite('AdaptivePowerCalibration', (assert) => {
+        const B = window.Game.Balance;
+        const APC = B.ADAPTIVE_POWER;
+        assert(APC, 'ADAPTIVE_POWER config exists');
+        assert(APC.ENABLED === true, 'APC enabled by default');
+        assert(APC.WEIGHTS.WEAPON + APC.WEIGHTS.PERKS + APC.WEIGHTS.SPECIAL === 1.0, 'Weights sum to 1.0');
+
+        // HP multiplier range
+        assert(APC.HP_FLOOR === 0.85, 'HP floor is 0.85');
+        assert(APC.HP_FLOOR + APC.HP_RANGE === 1.15, 'HP ceiling is 1.15');
+
+        // Power score calculation for known inputs
+        const W = APC.WEIGHTS;
+        // Weakest: LV1, 0 perks, no special → score = 0
+        const weakScore = W.WEAPON * 0 + W.PERKS * 0 + W.SPECIAL * 0;
+        assert(weakScore === 0, 'Weakest player score = 0');
+        const weakHP = APC.HP_FLOOR + weakScore * APC.HP_RANGE;
+        assert(weakHP === 0.85, 'Weakest HP mult = 0.85');
+
+        // Max: LV5, 8 stacks, special → score = 1.0
+        const maxScore = W.WEAPON * 1 + W.PERKS * 1 + W.SPECIAL * 1;
+        assert(maxScore === 1.0, 'Maxed player score = 1.0');
+        const maxHP = APC.HP_FLOOR + maxScore * APC.HP_RANGE;
+        assert(Math.abs(maxHP - 1.15) < 0.001, 'Maxed HP mult = 1.15');
+
+        // Neutral: LV3, 2 perks, no special → ~0.35
+        const neutralWeapon = (3 - 1) / 4; // 0.5
+        const neutralPerk = 2 / 8;          // 0.25
+        const neutralScore = W.WEAPON * neutralWeapon + W.PERKS * neutralPerk + W.SPECIAL * 0;
+        assert(neutralScore > 0.3 && neutralScore < 0.4, 'Neutral score ~0.35 (got ' + neutralScore.toFixed(3) + ')');
+
+        // Thresholds
+        assert(APC.WEAK_THRESHOLD === 0.30, 'Weak threshold = 0.30');
+        assert(APC.STRONG_THRESHOLD === 0.60, 'Strong threshold = 0.60');
+
+        // Pity adjustments
+        assert(APC.PITY_BONUS_WEAK < 0, 'Weak pity bonus is negative (easier)');
+        assert(APC.PITY_PENALTY_STRONG > 0, 'Strong pity penalty is positive (harder)');
+
+        // RunState.cyclePower default
+        const RS = window.Game.RunState;
+        assert(RS, 'RunState exists');
+        assert(RS.cyclePower, 'cyclePower field exists');
+        assert(RS.cyclePower.hpMult === 1.0, 'Default hpMult = 1.0');
+        assert(RS.cyclePower.pityAdj === 0, 'Default pityAdj = 0');
+        assert(RS.cyclePower.score === 0, 'Default score = 0');
+    });
 })();

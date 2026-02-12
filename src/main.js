@@ -447,6 +447,26 @@ function initCollisionSystem() {
                 if (G.Debug) { G.Debug.trackBossFightEnd(defeatedBossType, marketCycle); G.Debug.trackCycleEnd(marketCycle, Math.floor(score)); }
                 marketCycle++;
                 window.marketCycle = marketCycle;
+                // v4.59: Adaptive Power Calibration — snapshot player strength for next cycle
+                const APC = G.Balance.ADAPTIVE_POWER;
+                if (APC && APC.ENABLED && marketCycle >= 2) {
+                    const wl = player ? (player.weaponLevel || 1) : 1;
+                    const stacks = G.RunState.perkStacks || {};
+                    let totalStacks = 0;
+                    for (const k in stacks) totalStacks += stacks[k];
+                    const hasSpec = !!(player && player.special);
+                    const W = APC.WEIGHTS;
+                    const weaponScore = (wl - 1) / 4;
+                    const perkScore = Math.min(totalStacks / 8, 1);
+                    const specialScore = hasSpec ? 1.0 : 0.0;
+                    const ps = W.WEAPON * weaponScore + W.PERKS * perkScore + W.SPECIAL * specialScore;
+                    const hpM = APC.HP_FLOOR + ps * APC.HP_RANGE;
+                    let pAdj = 0;
+                    if (ps < APC.WEAK_THRESHOLD) pAdj = APC.PITY_BONUS_WEAK;
+                    else if (ps > APC.STRONG_THRESHOLD) pAdj = APC.PITY_PENALTY_STRONG;
+                    G.RunState.cyclePower = { score: ps, hpMult: hpM, pityAdj: pAdj };
+                    console.log(`[APC] C${marketCycle} powerScore=${ps.toFixed(2)} hpMult=${hpM.toFixed(3)} pityAdj=${pAdj} (wl=${wl} perks=${totalStacks} spec=${hasSpec})`);
+                }
                 console.log(`[BOSS DEFEATED] Cycle incremented to ${marketCycle}, calling waveMgr.reset()`);
                 G.Debug.trackCycleUp(marketCycle);
                 if (G.Debug) G.Debug.trackCycleStart(marketCycle);
@@ -483,7 +503,7 @@ function initCollisionSystem() {
                 ebArr.splice(ebIdx, 1);
                 bulletCancelStreak += 1;
                 bulletCancelTimer = Balance.PERK.CANCEL_WINDOW;
-                if (bulletCancelStreak >= Balance.PERK.BULLET_CANCEL_COUNT) {
+                if (Balance.PERK.ENABLED && bulletCancelStreak >= Balance.PERK.BULLET_CANCEL_COUNT) {
                     bulletCancelStreak = 0;
                     applyRandomPerk();
                 }
@@ -527,7 +547,6 @@ let lastCountdownNumber = 0; // Track countdown to trigger audio once per number
 let debugMode = false; // F3 toggle for performance stats
 let fpsHistory = []; // For smooth FPS display
 // perkOffers moved to PerkManager.js
-let volatilityTimer = 0;
 let memeSwapTimer = 0;
 // v2.22.5: Expose boss and miniBoss for debug overlay
 window.boss = null;
@@ -1458,11 +1477,6 @@ function init() {
     if (events && events.on) {
         events.on('intermission_start', () => closePerkChoice());
         events.on('enemy_killed', () => {
-            // v4.57: Rapid Core kill streak boost (replaces volatilityRush)
-            if (runState && runState.flags && runState.flags.rapidCoreKillBoost) {
-                volatilityTimer = 2.0;
-                if (runState.modifiers) runState.modifiers.tempFireRateMult = 0.7;
-            }
         });
         // v4.6: GODCHAIN events
         events.on('GODCHAIN_ACTIVATED', () => {
@@ -2894,7 +2908,6 @@ function startGame() {
     // 1-hit = 1-life system: ignore stats.hp and bonuses
     player.maxHp = 1;
     player.hp = 1;
-    volatilityTimer = 0;
     memeSwapTimer = Balance.MEMES.TICKER_SWAP_INTERVAL;
     closePerkChoice();
     G.PerkManager.reset(); // Reset perk display
@@ -3356,12 +3369,6 @@ function update(dt) {
     }
     if (perkCooldown > 0) {
         perkCooldown -= dt;
-    }
-    if (volatilityTimer > 0) {
-        volatilityTimer -= dt;
-        if (volatilityTimer <= 0 && runState && runState.modifiers) {
-            runState.modifiers.tempFireRateMult = 1;
-        }
     }
 
     // Graze meter decay: lose points if not actively grazing (not during HYPER)

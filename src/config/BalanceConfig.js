@@ -41,7 +41,7 @@
             RESET_Y_OFFSET: 160,      // Y position after reset (above controls)
             BOUNDARY_MARGIN: 20,      // Screen edge margin
             TOUCH_SWIPE_MULT: 15,     // Touch input responsiveness
-            SECOND_WIND_DURATION: 0.5,// ETH invulnerability on shield expire
+            // (removed: SECOND_WIND_DURATION, perk eliminated v4.59)
             INVULN_DURATION: 1.4,     // Post-hit invulnerability seconds
             MUZZLE_FLASH_DURATION: 0.08, // Muzzle flash display time
             BULLET_SPAWN_Y_OFFSET: 25,   // Y offset for bullet spawn above ship
@@ -71,6 +71,7 @@
 
         // --- PERK SYSTEM ---
         PERK: {
+            ENABLED: true,            // v4.59: Toggle perk system (false = no perks awarded)
             BULLET_CANCEL_COUNT: 5,   // Bullets to cancel for perk trigger
             CANCEL_WINDOW: 1.5,       // Seconds window to cancel bullets
             COOLDOWN_TIME: 4,         // Seconds between perk rewards
@@ -1002,6 +1003,19 @@
             },
             MIN_CATEGORY_WEIGHT: 0.05,  // Minimum weight to prevent zero-chance
             GODCHAIN_RECHARGE_NEED: 0.35  // v4.48: Need per UPGRADE al max weapon level (GODCHAIN recharges)
+        },
+
+        // --- ADAPTIVE POWER CALIBRATION v4.59 ---
+        // Adjusts enemy HP and drop pity based on player power at cycle start (C2+)
+        ADAPTIVE_POWER: {
+            ENABLED: true,
+            WEIGHTS: { WEAPON: 0.50, PERKS: 0.30, SPECIAL: 0.20 },
+            HP_FLOOR: 0.85,              // hpMult at powerScore=0 (weakest player)
+            HP_RANGE: 0.50,              // hpMult = FLOOR + powerScore * RANGE → max 1.35
+            PITY_BONUS_WEAK: -10,        // Kills reduction on pity timer if weak
+            PITY_PENALTY_STRONG: 5,      // Kills increase on pity timer if strong
+            WEAK_THRESHOLD: 0.30,        // Below this = weak player
+            STRONG_THRESHOLD: 0.60       // Above this = strong player
         },
 
         // --- WAVES ---

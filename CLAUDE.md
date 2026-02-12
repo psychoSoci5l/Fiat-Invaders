@@ -113,7 +113,8 @@ Detailed tables, parameters, and implementation specifics → **SYSTEM_REFERENCE
 - **Collision** — `CollisionSystem.js`. 4 loops, callback pattern, init via `initCollisionSystem()`
 - **Bullet System** — `Balance.BULLET_CONFIG` + `Balance.BULLET_PIERCE`. Circle-based collision, missile AoE, pierce HP (bullets survive N enemy-bullet hits). Debug: `dbg.hitboxes()`
 - **Proximity Kill Meter** — `Balance.PROXIMITY_KILL`. Vertical-distance kills fill DIP meter (replaces graze as HYPER source). Boss hits +0.4, phase transitions +15. `Game.addProximityMeter(gain)` API
-- **Perk System** — `Upgrades.js`. Cancel 5 enemy bullets in 1.5s → random perk, cooldown 4s. 6 perks: Rapid Core (fire rate +15%, kill streak boost), Kinetic Rounds (damage +20%, pierce +1/stack), Overclock Thrusters (speed +15%), Fortress Protocol (shield CD -25%, invuln at x2), Wide Arsenal (+2 side shots), Diamond Hands (score x1.25). Max 2 stacks each. Perk effects via `runState.modifiers` (multipliers) and `runState.flags` (booleans)
+- **Perk System** — `Upgrades.js`. Cancel 5 enemy bullets in 1.5s → random perk, cooldown 4s. `PERK.ENABLED` toggle. 3 perks: Kinetic Rounds (damage +20%, pierce +1/stack), Overclock Thrusters (speed +15%), Diamond Hands (score x1.25). Max 2 stacks each. Perk effects via `runState.modifiers` (multipliers)
+- **Adaptive Power Calibration** — `Balance.ADAPTIVE_POWER`. At cycle transitions (C2+), snapshots player power (weapon level, perk stacks, special). Adjusts enemy HP (0.85–1.35×) and drop pity timer. Debug: APC section in `dbg.report()`
 
 ### UI & Presentation
 - **HUD & Messages** — `Balance.MESSAGE_STRIP`. 2 DOM (#message-strip, #meme-popup) + 2 canvas (SHIP_STATUS, WAVE_SWEEP)
