@@ -102,12 +102,12 @@ Detailed tables, parameters, and implementation specifics → **SYSTEM_REFERENCE
 
 ### Core Gameplay
 - **Difficulty & Rank** — `Balance.DIFFICULTY` / `Balance.RANK`. +8%/lvl, +20%/cycle, cap 85%, Bear Market 1.3×, dynamic rank ±1
-- **Weapon Evolution** — `Balance.WEAPON_EVOLUTION`. 3 shot levels + 3 modifiers + 6 specials. Death: -1 shot, -1 mods, lose special
-- **GODCHAIN** — `Balance.GODCHAIN`. Activates at shotLevel=3 + rate≥2 + power≥2 + spread≥1
+- **Weapon Evolution** — `Balance.WEAPON_EVOLUTION`. Linear 5-level system (`LEVELS` table 1-7). HYPER adds +2 temp levels. 3 specials (HOMING/PIERCE/MISSILE, 12s). 2 utilities (SHIELD/SPEED, capsule visual). Death: -1 weapon level, lose special
+- **GODCHAIN** — `Balance.GODCHAIN`. Activates at `weaponLevel >= 5`
 - **Enemy System** — `Balance.ENEMY_BEHAVIOR`. 10 currencies, 3 tiers, 4 shapes. Fire budget: C1=25/C2=45/C3=70 bullets/sec
 - **Wave System** — `Balance.WAVE_DEFINITIONS`. 15 waves (5×3 cycles), 16 formations, legacy fallback cycle 4+
 - **Boss System** — `Balance.BOSS`. FED/BCE/BOJ, 3 phases each, HP formula in config, rotation `marketCycle % 3`
-- **Drop System** — `Balance.ADAPTIVE_DROPS`. Rates 3%/2.5%/1% by tier, pity 55 kills, adaptive suppression
+- **Drop System** — `Balance.ADAPTIVE_DROPS`. Rates 3%/2.5%/1% by tier, pity 55 kills, adaptive suppression. 3 categories: UPGRADE/SPECIAL/UTILITY
 - **Collision** — `CollisionSystem.js`. 4 loops, callback pattern, init via `initCollisionSystem()`
 - **Bullet System** — `Balance.BULLET_CONFIG` + `Balance.BULLET_PIERCE`. Circle-based collision, missile AoE, pierce HP (bullets survive N enemy-bullet hits). Debug: `dbg.hitboxes()`
 - **Proximity Kill Meter** — `Balance.PROXIMITY_KILL`. Vertical-distance kills fill DIP meter (replaces graze as HYPER source). Boss hits +0.4, phase transitions +15. `Game.addProximityMeter(gain)` API
