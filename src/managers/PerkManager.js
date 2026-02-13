@@ -99,11 +99,28 @@
         return recentPerks;
     }
 
+    // v4.61: Color for next elemental perk (used by PowerUp draw)
+    const PERK_COLORS = {
+        0: '#ff4400',  // Fire (next perk when perkLevel=0)
+        1: '#00f0ff',  // Laser
+        2: '#8844ff',  // Electric
+    };
+    const GODCHAIN_COLOR = '#FFD700';
+
+    function getNextPerkColor() {
+        const runState = _deps.getRunState ? _deps.getRunState() : null;
+        const level = runState ? (runState.perkLevel || 0) : 0;
+        const maxElements = (Balance.PERK && Balance.PERK.MAX_ELEMENTS) || 3;
+        if (level >= maxElements) return GODCHAIN_COLOR;
+        return PERK_COLORS[level] || '#bb44ff';
+    }
+
     G.PerkManager = {
         init,
         isActive,
         canOfferPerk,
         getNextPerk,
+        getNextPerkColor,
         pickOffers,
         renderBar,
         open,

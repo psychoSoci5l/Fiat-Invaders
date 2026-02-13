@@ -72,8 +72,6 @@
         // --- PERK SYSTEM (v4.60: Elemental perks) ---
         PERK: {
             ENABLED: true,            // Toggle perk system (false = no perks awarded)
-            BULLET_CANCEL_COUNT: 8,   // v4.60: 5→8 bullets to cancel for perk trigger
-            CANCEL_WINDOW: 1.5,       // Seconds window to cancel bullets
             COOLDOWN_TIME: 15,        // v4.60: 4→15s between perk rewards (prevents stacking too fast)
             PAUSE_DURATION: 1.2,      // Seconds to pause for perk notification
             MAX_ELEMENTS: 3           // v4.60: 3 elemental perks (fire→laser→electric)
@@ -956,6 +954,7 @@
             // Weapon levels (permanent until death, -1 per death)
             MAX_WEAPON_LEVEL: 5,
             KILLS_FOR_UPGRADE: 50,        // v4.48: 30→50 (weapon pacing più lento, LV5 al ciclo 2)
+            KILLS_FOR_PERK: 50,           // v4.61: pity timer for perk drops (~L1 for first perk)
 
             // HYPER mode weapon boost
             HYPER_LEVEL_BOOST: 2,         // +2 weapon levels during HYPER
@@ -1023,7 +1022,8 @@
             CATEGORY_WEIGHTS: {
                 UPGRADE: 1.5,           // Base weight for weapon upgrade need
                 SPECIAL: 1.0,           // Base weight for special need
-                UTILITY: 0.8            // Base weight for utility need
+                UTILITY: 0.8,           // Base weight for utility need
+                PERK: 1.2              // v4.61: Base weight for elemental perk need
             },
             MIN_CATEGORY_WEIGHT: 0.05,  // Minimum weight to prevent zero-chance
             GODCHAIN_RECHARGE_NEED: 0.35  // v4.48: Need per UPGRADE al max weapon level (GODCHAIN recharges)

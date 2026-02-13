@@ -144,7 +144,8 @@ const _playerState = {
     weaponLevel: 1,
     hasSpecial: false,
     hasShield: false,
-    hasSpeed: false
+    hasSpeed: false,
+    perkLevel: 0
 };
 function buildPlayerState() {
     if (!player) {
@@ -158,6 +159,7 @@ function buildPlayerState() {
     _playerState.hasSpecial = !!player.special;
     _playerState.hasShield = !!player.shieldActive;
     _playerState.hasSpeed = player.shipPowerUp === 'SPEED';
+    _playerState.perkLevel = G.RunState ? G.RunState.perkLevel : 0;
     return _playerState;
 }
 
@@ -502,11 +504,6 @@ function initCollisionSystem() {
                 G.Bullet.Pool.release(eb);
                 ebArr.splice(ebIdx, 1);
                 bulletCancelStreak += 1;
-                bulletCancelTimer = Balance.PERK.CANCEL_WINDOW;
-                if (Balance.PERK.ENABLED && bulletCancelStreak >= Balance.PERK.BULLET_CANCEL_COUNT) {
-                    bulletCancelStreak = 0;
-                    applyRandomPerk();
-                }
                 if (!pb.penetration) {
                     pb.pierceHP = (pb.pierceHP || 1) - 1;
                     if (pb.pierceHP <= 0) {
@@ -818,6 +815,7 @@ const POWERUP_MEMES = {
     PIERCE: "🔥 PENETRATING",
     MISSILE: "🚀 WARHEAD ARMED",
     SHIELD: "🛡️ HODL MODE",
+    PERK: "✦ ELEMENT UNLOCKED",
     SPEED: "💨 ZOOM OUT"
 };
 
@@ -5056,6 +5054,17 @@ function updatePowerUps(dt) {
             if (Math.abs(p.x - player.x) < 40 && Math.abs(p.y - player.y) < 40) {
                 // Pickup effect!
                 createPowerUpPickupEffect(p.x, p.y, p.config.color);
+
+                // v4.61: PERK drop — apply elemental perk via PerkManager
+                if (p.type === 'PERK') {
+                    applyRandomPerk();
+                    const meme = POWERUP_MEMES[p.type] || 'PERK!';
+                    G.MemeEngine.queueMeme('PERK', meme, p.type);
+                    if (G.Debug) G.Debug.trackPowerUpCollected(p.type, p.isPityDrop || false);
+                    powerUps.splice(i, 1);
+                    emitEvent('powerup_pickup', { type: p.type, category: 'perk' });
+                    continue;
+                }
 
                 // WEAPON EVOLUTION v3.0: Use applyPowerUp for new types
                 const evolutionTypes = ['UPGRADE', 'HOMING', 'PIERCE', 'MISSILE', 'SHIELD', 'SPEED'];

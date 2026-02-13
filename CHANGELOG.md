@@ -1,5 +1,16 @@
 # Changelog
 
+## v4.61.0 - 2026-02-13
+### Perk Drop via DropSystem
+
+- **Perk drops are now physical power-ups**: Elemental perks (Fire/Laser/Electric) drop from killed enemies via DropSystem instead of bullet-cancel trigger
+- **Perk pity timer**: Guaranteed perk drop every 50 kills (`KILLS_FOR_PERK`), similar to weapon upgrade pity
+- **Need-based perk weighting**: DropSystem category selector includes perk need (high pre-3 elements, 0.35 post-3 for GODCHAIN re-trigger)
+- **Diamond crystal visual**: New PERK power-up drawn as diamond/crystal shape with dynamic color matching next element (Fire=orange, Laser=cyan, Electric=purple, GODCHAIN=gold)
+- **Bullet-cancel decoupled**: Bullet cancellation still works (audio + VFX) but no longer awards perks. Removed `BULLET_CANCEL_COUNT` and `CANCEL_WINDOW` from config
+- **Perk bypasses suppression**: Like UPGRADE drops, PERK drops are never suppressed by adaptive drop system
+- **Tested pacing**: First perk (Fire) arrives ~L1, all 3 elements by end of C1, GODCHAIN at ~2:30 (was 17s with bullet-cancel)
+
 ## v4.60.0 - 2026-02-13
 ### Elemental Perk System + Meter Rebalance
 
@@ -16,7 +27,7 @@
 - **PerkManager rewritten**: Sequential assignment (no modal, no choice), auto-applied on trigger
 - **New BalanceConfig section**: `ELEMENTAL` with Fire/Laser/Electric tuning (splash radius, chain radius, speed mult, etc.)
 - **Particle effects**: `createFireImpact()` and `createElectricChain()` in ParticleSystem
-- **Known issue**: Perk trigger still uses bullet-cancel mechanic (inherited) — needs dedicated drop mechanic (planned v4.61)
+- **Known issue**: Perk trigger still uses bullet-cancel mechanic (inherited) — resolved in v4.61
 
 ## v4.59.0 - 2026-02-12
 ### Perk Reduction + Adaptive Power Calibration

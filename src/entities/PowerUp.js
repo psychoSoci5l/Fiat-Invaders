@@ -17,6 +17,9 @@ const POWERUP_CONFIG = {
     SHIELD:  { color: '#00ff66', symbol: '🛡', category: 'utility', name: 'SHIELD' },
     SPEED:   { color: '#ffcc00', symbol: '💨', category: 'utility', name: 'SPEED' },
 
+    // v4.61: Elemental perk drop (color determined dynamically in draw)
+    PERK:    { color: '#bb44ff', symbol: '⚡', category: 'perk', name: 'PERK' },
+
     // === LEGACY TYPES (backward compatibility) ===
     WIDE:   { color: '#bb44ff', symbol: '🔱', category: 'weapon', name: 'WIDE' },
     NARROW: { color: '#2288ff', symbol: '🎯', category: 'weapon', name: 'NARROW' },
@@ -54,14 +57,18 @@ class PowerUp extends window.Game.Entity {
 
         ctx.save();
 
+        // v4.61: Dynamic glow color for PERK type
+        const glowColor = (cfg.category === 'perk' && window.Game.PerkManager && window.Game.PerkManager.getNextPerkColor)
+            ? window.Game.PerkManager.getNextPerkColor() : cfg.color;
+
         // Outer animated glow
         const _puGlow = window.Game.Balance?.GLOW;
         const _useAdditivePU = _puGlow?.ENABLED && _puGlow?.POWERUP?.ENABLED;
         const _puRadius = 28 * pulse * (_useAdditivePU ? _puGlow.POWERUP.RADIUS_MULT : 1);
         if (_useAdditivePU) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; }
         const gradient = ctx.createRadialGradient(x, y, 0, x, y, _puRadius);
-        gradient.addColorStop(0, cfg.color);
-        gradient.addColorStop(0.5, window.Game.ColorUtils.withAlpha(cfg.color, 0.3));
+        gradient.addColorStop(0, glowColor);
+        gradient.addColorStop(0.5, window.Game.ColorUtils.withAlpha(glowColor, 0.3));
         gradient.addColorStop(1, 'transparent');
         ctx.fillStyle = gradient;
         ctx.globalAlpha = _useAdditivePU ? _puGlow.POWERUP.ALPHA : glowPulse;
@@ -80,6 +87,9 @@ class PowerUp extends window.Game.Entity {
                 break;
             case 'utility':
                 this.drawUtilityPowerUp(ctx, x, y, cfg, pulse);
+                break;
+            case 'perk':
+                this.drawPerkPowerUp(ctx, x, y, cfg, pulse);
                 break;
             case 'weapon':
                 this.drawWeaponPowerUp(ctx, x, y, cfg, pulse);
@@ -339,6 +349,92 @@ class PowerUp extends window.Game.Entity {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(cfg.symbol, 0, 0);
+
+        ctx.restore();
+    }
+
+    /**
+     * PERK power-up: Diamond crystal, color based on next elemental perk
+     */
+    drawPerkPowerUp(ctx, x, y, cfg, pulse) {
+        const size = 18 * pulse;
+        const perkColor = (window.Game.PerkManager && window.Game.PerkManager.getNextPerkColor)
+            ? window.Game.PerkManager.getNextPerkColor()
+            : '#bb44ff';
+
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(this.rotation * 0.3);
+
+        // Diamond shape (tall hexagon)
+        const drawDiamond = (s) => {
+            ctx.beginPath();
+            ctx.moveTo(0, -s);           // top point
+            ctx.lineTo(s * 0.6, -s * 0.3); // upper right
+            ctx.lineTo(s * 0.6, s * 0.3);  // lower right
+            ctx.lineTo(0, s);              // bottom point
+            ctx.lineTo(-s * 0.6, s * 0.3); // lower left
+            ctx.lineTo(-s * 0.6, -s * 0.3); // upper left
+            ctx.closePath();
+        };
+
+        // Glow shadow
+        ctx.shadowColor = perkColor;
+        ctx.shadowBlur = 10;
+
+        // Main body — dark side
+        drawDiamond(size);
+        ctx.fillStyle = window.Game.ColorUtils.darken(perkColor, 0.3);
+        ctx.fill();
+
+        // Light side overlay
+        ctx.globalAlpha = 0.7;
+        ctx.fillStyle = perkColor;
+        ctx.beginPath();
+        ctx.moveTo(0, -size);
+        ctx.lineTo(size * 0.6, -size * 0.3);
+        ctx.lineTo(size * 0.6, size * 0.3);
+        ctx.lineTo(0, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        // Remove shadow
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+
+        // Bold outline
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 3;
+        drawDiamond(size);
+        ctx.stroke();
+
+        // Inner facet lines
+        ctx.strokeStyle = window.Game.ColorUtils.lighten(perkColor, 0.4);
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(0, -size * 0.6);
+        ctx.lineTo(size * 0.35, 0);
+        ctx.lineTo(0, size * 0.6);
+        ctx.lineTo(-size * 0.35, 0);
+        ctx.closePath();
+        ctx.stroke();
+
+        // Bright core
+        ctx.fillStyle = '#fff';
+        ctx.globalAlpha = 0.8;
+        ctx.beginPath();
+        ctx.arc(0, 0, size * 0.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        // Element symbol in center
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 11px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const symbols = { '#ff4400': '🔥', '#00f0ff': '⚡', '#8844ff': '⛓' };
+        ctx.fillText(symbols[perkColor] || '✦', 0, 0);
 
         ctx.restore();
     }

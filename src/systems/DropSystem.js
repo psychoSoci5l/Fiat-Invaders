@@ -37,6 +37,10 @@
             // Anti-cluster — minimum time between drops + no consecutive duplicates
             this.lastEnemyDropTime = 0;
             this.lastDropType = null;
+
+            // v4.61: Perk drop tracking
+            this.killsSincePerkDrop = 0;
+            this.lastPerkKillCount = 0;
         }
 
         /**
@@ -57,6 +61,9 @@
 
             this.lastEnemyDropTime = 0;
             this.lastDropType = null;
+
+            this.killsSincePerkDrop = 0;
+            this.lastPerkKillCount = 0;
         }
 
         /**
@@ -140,6 +147,17 @@
                 currentWeaponLevel = playerState.weaponLevel;
             }
 
+            // v4.61: Check for guaranteed PERK drop (pity timer)
+            if (G.Balance.PERK && G.Balance.PERK.ENABLED) {
+                const killsSincePerk = this.totalKills - this.lastPerkKillCount;
+                const perkPity = WE.KILLS_FOR_PERK || 50;
+                if (killsSincePerk >= perkPity) {
+                    this.lastPerkKillCount = this.totalKills;
+                    this.killsSincePerkDrop = 0;
+                    return { type: 'PERK', category: 'perk' };
+                }
+            }
+
             // Check for guaranteed UPGRADE (pity timer) — also works at max level for GODCHAIN recharge
             const killsSinceUpgrade = this.totalKills - this.lastUpgradeKillCount;
             if (killsSinceUpgrade >= WE.KILLS_FOR_UPGRADE) {
@@ -152,7 +170,12 @@
             if (AD && AD.ENABLED && playerState) {
                 const category = this.selectNeedBasedCategory(playerState);
 
-                if (category === 'upgrade') {
+                if (category === 'perk') {
+                    // v4.61: Perk drop via DropSystem
+                    this.lastPerkKillCount = this.totalKills;
+                    this.killsSincePerkDrop = 0;
+                    return { type: 'PERK', category: 'perk' };
+                } else if (category === 'upgrade') {
                     // v4.48: At max level, UPGRADE still drops → Player.js sets _godchainPending = true
                     this.lastUpgradeKillCount = this.totalKills;
                     return { type: 'UPGRADE', category: 'upgrade' };
@@ -288,16 +311,24 @@
             const specialNeed = playerState.hasSpecial ? 0.1 : 0.7;
             const utilityNeed = (playerState.hasShield || playerState.hasSpeed) ? 0.2 : 0.5;
 
+            // v4.61: Perk need — high pre-3, reduced post-3 (GODCHAIN re-trigger)
+            const perkLevel = playerState.perkLevel || 0;
+            const maxElements = (G.Balance.PERK && G.Balance.PERK.MAX_ELEMENTS) || 3;
+            const perkNeed = perkLevel >= maxElements ? 0.35 : (maxElements - perkLevel) / maxElements;
+
             // Weighted needs
             const wUpgrade = Math.max(MIN, upgradeNeed * CW.UPGRADE);
             const wSpecial = Math.max(MIN, specialNeed * CW.SPECIAL);
             const wUtility = Math.max(MIN, utilityNeed * CW.UTILITY);
-            const totalWeight = wUpgrade + wSpecial + wUtility;
+            const wPerk = (G.Balance.PERK && G.Balance.PERK.ENABLED && CW.PERK)
+                ? Math.max(MIN, perkNeed * CW.PERK) : 0;
+            const totalWeight = wUpgrade + wSpecial + wUtility + wPerk;
 
             // Weighted random selection
             const roll = Math.random() * totalWeight;
             if (roll < wUpgrade) return 'upgrade';
             if (roll < wUpgrade + wSpecial) return 'special';
+            if (roll < wUpgrade + wSpecial + wPerk) return 'perk';
             return 'utility';
         }
 
@@ -317,6 +348,7 @@
 
             this.killsSinceLastDrop++;
             this.totalKills++;
+            this.killsSincePerkDrop++;
 
             // Anti-cluster — enforce minimum 6s between enemy drops (pity bypasses)
             const MIN_DROP_INTERVAL = 6.0;
@@ -380,7 +412,7 @@
                     }
 
                     // v4.48: Suppression AFTER selection — never suppress UPGRADE (GODCHAIN needs it)
-                    if (dropInfo && dropInfo.category !== 'upgrade' && playerState && this.shouldSuppressDrop(playerState, pityDrop)) {
+                    if (dropInfo && dropInfo.category !== 'upgrade' && dropInfo.category !== 'perk' && playerState && this.shouldSuppressDrop(playerState, pityDrop)) {
                         this.suppressedDrops++;
                         if (G.Debug && G.Debug.trackDropSuppressed) {
                             G.Debug.trackDropSuppressed(playerState);
