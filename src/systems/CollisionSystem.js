@@ -278,9 +278,18 @@ window.Game = window.Game || {};
     };
 
     // ─── v4.60: Elemental on-kill effects ─────────────────────────
-    CollisionSystem._applyElementalOnKill = function(deadEnemy, bullet, killDmg, enemies) {
+    CollisionSystem._applyElementalOnKill = function(deadEnemy, bullet, killDmg, enemies, depth) {
         const elCfg = Balance.ELEMENTAL;
         if (!elCfg) return;
+
+        // v5.0.7: Contagion — cascade depth check
+        depth = depth || 0;
+        const conCfg = elCfg.CONTAGION;
+        const perkLvl = G.RunState ? G.RunState.perkLevel : 0;
+        const maxDepth = (conCfg?.ENABLED && perkLvl > 0)
+            ? (conCfg.MAX_DEPTH[Math.min(perkLvl, conCfg.MAX_DEPTH.length) - 1] || 0)
+            : 0;
+        const damageDecay = conCfg?.DAMAGE_DECAY || 0.5;
 
         // Fire: splash damage to nearby enemies
         if (bullet._elemFire) {
@@ -298,6 +307,11 @@ window.Game = window.Game || {};
                         enemies.splice(i, 1);
                         if (this._ctx && this._ctx.callbacks && this._ctx.callbacks.onEnemyKilled) {
                             this._ctx.callbacks.onEnemyKilled(en, bullet, i, enemies);
+                        }
+                        // v5.0.7: Contagion cascade
+                        if (depth < maxDepth) {
+                            const decayedDmg = splashDmg * damageDecay;
+                            this._applyElementalOnKill(en, bullet, decayedDmg, enemies, depth + 1);
                         }
                     }
                     // Fire impact particles
@@ -324,7 +338,7 @@ window.Game = window.Game || {};
                 const dy = en.y - deadEnemy.y;
                 const distSq = dx * dx + dy * dy;
                 if (distSq <= chainR * chainR) {
-                    targets.push({ enemy: en, distSq, idx: i });
+                    targets.push({ enemy: en, distSq });
                 }
             }
             targets.sort((a, b) => a.distSq - b.distSq);
@@ -337,6 +351,11 @@ window.Game = window.Game || {};
                     if (idx >= 0) enemies.splice(idx, 1);
                     if (this._ctx && this._ctx.callbacks && this._ctx.callbacks.onEnemyKilled) {
                         this._ctx.callbacks.onEnemyKilled(tgt.enemy, bullet, idx, enemies);
+                    }
+                    // v5.0.7: Contagion cascade
+                    if (depth < maxDepth) {
+                        const decayedDmg = chainDmg * damageDecay;
+                        this._applyElementalOnKill(tgt.enemy, bullet, decayedDmg, enemies, depth + 1);
                     }
                 }
                 // Electric chain particles

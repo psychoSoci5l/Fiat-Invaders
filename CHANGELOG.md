@@ -1,5 +1,14 @@
 # Changelog
 
+## v5.0.7 - 2026-02-13
+### Elemental Contagion + Progressive Aggression
+- **feat(cascade)**: elemental kills now propagate — Fire splash and Electric chain kills trigger further cascades
+- **cascade depth**: scales with perk level (1 perk → depth 1, 2+ perks → depth 2), damage halves each step (`DAMAGE_DECAY: 0.5`)
+- **config**: `Balance.ELEMENTAL.CONTAGION` — `ENABLED`, `MAX_DEPTH`, `DAMAGE_DECAY` (kill-switch ready)
+- **feat(aggression)**: enemy fire rate increases with perk level (+10%/+15%/+20% for perk 1/2/3+)
+- **config**: `Balance.FIRE_BUDGET.ELEMENTAL_AGGRESSION` — `ENABLED`, `SCALE` (kill-switch ready)
+- **impact**: dense formations reward elemental builds with chain reactions; enemies compensate with increased pressure
+
 ## v5.0.6 - 2026-02-13
 ### Explosion VFX Overhaul
 - **fix(visual)**: replaced "imploding balloon" particle effect with real explosion shrapnel

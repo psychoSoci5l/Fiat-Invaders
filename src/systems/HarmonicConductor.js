@@ -245,6 +245,14 @@ window.Game.HarmonicConductor = {
             max *= (1 + rank * (cfg.RANK_SCALE || 0.15));
         }
 
+        // v5.0.7: Elemental Aggression — progressive fire rate boost per perk level
+        const runState = window.Game.RunState;
+        const aggCfg = cfg.ELEMENTAL_AGGRESSION;
+        if (aggCfg?.ENABLED && runState?.perkLevel > 0) {
+            const lvl = Math.min(runState.perkLevel, aggCfg.SCALE.length);
+            max *= 1 + (aggCfg.SCALE[lvl - 1] || 0);
+        }
+
         this._fireBudget.maxPerSecond = Math.round(max);
     },
 

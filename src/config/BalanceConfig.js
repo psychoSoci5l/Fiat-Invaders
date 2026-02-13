@@ -97,6 +97,12 @@
                 CHAIN_TARGETS: 2,     // max enemies to chain to
                 ARC_COLOR: '#8844ff',
                 ARC_COLOR_BRIGHT: '#bb88ff'
+            },
+            // v5.0.7: Elemental Contagion — cascade kills propagate elemental effects
+            CONTAGION: {
+                ENABLED: true,
+                MAX_DEPTH: [1, 2, 2],     // max cascade depth per perkLevel 1/2/3+
+                DAMAGE_DECAY: 0.5          // damage halves each cascade step
             }
         },
 
@@ -1660,7 +1666,12 @@
             DEFICIT_CARRYOVER: 0.5,             // 50% unused budget carried over
             // v4.44: Burst/pause cycle — creates dodgeable gaps in enemy fire
             BURST_DURATION: 2.0,                // Seconds of firing
-            PAUSE_DURATION: 1.2                 // Seconds of silence (creates bullet gaps)
+            PAUSE_DURATION: 1.2,                // Seconds of silence (creates bullet gaps)
+            // v5.0.7: Progressive aggression — fire rate boost per elemental perk level
+            ELEMENTAL_AGGRESSION: {
+                ENABLED: true,
+                SCALE: [0.10, 0.15, 0.20]  // +% fire rate for perkLevel 1/2/3+
+            }
         },
 
         // --- PAPER TEAR v4.43 ---
