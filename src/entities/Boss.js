@@ -415,22 +415,29 @@ class Boss extends window.Game.Entity {
         // FED Signature: Aggressive printer - sineWave + expandingRing → spiral + homingMissiles → laserBeam + curtain + homing
         const atk = Balance.BOSS.ATTACKS.FEDERAL_RESERVE;
         if (this.phase === 1) {
-            // Phase 1: Slow patrol, simple patterns (sineWave + expandingRing)
+            // Phase 1: 3-pattern rotation — ring, sineWave, aimedBurst (v5.0.4)
             this.fireTimer = fireRates[0];
             this.angle += atk.P1.ROTATION_SPEED;
+            const p1Cycle = Math.floor(this.angle * 2) % 3;
 
-            if (Math.floor(this.angle * 2) % 2 === 0) {
+            if (p1Cycle === 0) {
                 const rp = atk.P1.RING;
                 const ringBullets = Patterns.expandingRing(cx, cy - 20, this.angle, {
                     count: rp.count, speed: rp.speed, color: '#00ff66', size: rp.size, rotate: true
                 });
                 bullets.push(...ringBullets);
-            } else {
+            } else if (p1Cycle === 1) {
                 const sp = atk.P1.SINE;
                 const waveBullets = Patterns.sineWave(cx, cy - 20, this.animTime, {
                     count: sp.count, width: sp.width, amplitude: sp.amplitude, speed: sp.speed, color: '#00cc55', size: 8
                 });
                 bullets.push(...waveBullets);
+            } else if (player) {
+                const bp = atk.P1.BURST;
+                const burstBullets = Patterns.aimedBurst(cx, cy - 20, player.x, player.y, {
+                    count: bp.count, speed: bp.speed, spread: bp.spread, color: '#00ff66', size: 10
+                });
+                bullets.push(...burstBullets);
             }
         } else if (this.phase === 2) {
             // Phase 2: Faster, complex patterns (spiral + HOMING MISSILES)
@@ -530,17 +537,26 @@ class Boss extends window.Game.Entity {
         // BCE Signature: Bureaucratic - curtain + rotatingBarrier → spiral + delayedExplosion → rotatingBarrier x2 + star attacks
         const atkBCE = Balance.BOSS.ATTACKS.BCE;
         if (this.phase === 1) {
-            // Phase 1: BUREAUCRACY - Slow walls + ROTATING BARRIER
+            // Phase 1: BUREAUCRACY - 3-pattern rotation: curtain, flower, barrier constant (v5.0.4)
             this.fireTimer = fireRates[0];
             this.angle += atkBCE.P1.ROTATION_SPEED;
 
-            // Horizontal curtain (bureaucratic wall)
+            // Alternating curtain / flower burst
             if (Math.floor(this.animTime * 0.5) !== Math.floor((this.animTime - fireRates[0]) * 0.5)) {
-                const cp = atkBCE.P1.CURTAIN;
-                const wallBullets = Patterns.curtain(cx, cy - 20, cx, {
-                    width: 380, count: cp.count, gapSize: cp.gapSize, speed: cp.speed, color: '#003399', size: 12
-                });
-                bullets.push(...wallBullets);
+                const burstCycle = Math.floor(this.animTime * 0.5) % 2;
+                if (burstCycle === 0) {
+                    const cp = atkBCE.P1.CURTAIN;
+                    const wallBullets = Patterns.curtain(cx, cy - 20, cx, {
+                        width: 380, count: cp.count, gapSize: cp.gapSize, speed: cp.speed, color: '#003399', size: 12
+                    });
+                    bullets.push(...wallBullets);
+                } else {
+                    const fp = atkBCE.P1.FLOWER;
+                    const flowerBullets = Patterns.flower(cx, cy - 25, this.animTime, {
+                        petals: fp.petals, bulletsPerPetal: fp.bulletsPerPetal, speed: fp.speed, color: '#003399', size: 10
+                    });
+                    bullets.push(...flowerBullets);
+                }
             }
 
             // Rotating barrier (BCE signature - find the gap!)
@@ -694,25 +710,32 @@ class Boss extends window.Game.Entity {
         // BOJ Signature: Zen precision - sineWave + zenGarden → screenWipe + aimedBurst → zenGarden x4 + rapid screenWipe
         const atkBOJ = Balance.BOSS.ATTACKS.BOJ;
         if (this.phase === 1) {
-            // Phase 1: YIELD CURVE - Beautiful sine waves + ZEN GARDEN
+            // Phase 1: YIELD CURVE - 3-pattern rotation: sineWave, zenGarden, expandingRing (v5.0.4)
             this.fireTimer = fireRates[0];
             this.wavePhase += atkBOJ.P1.WAVE_PHASE_SPEED;
+            const bojP1Cycle = Math.floor(this.animTime * 0.25) % 3;
 
-            // Precise sine wave
-            const sp1 = atkBOJ.P1.SINE;
-            const waveBullets = Patterns.sineWave(cx, cy - 20, this.wavePhase, {
-                count: sp1.count, width: sp1.width, amplitude: sp1.amplitude, speed: sp1.speed, color: '#bc002d', size: 10
-            });
-            bullets.push(...waveBullets);
-
-            // Zen garden spirals (BOJ signature - hypnotic)
-            // v4.10.2: Fire every 2nd cycle (was every cycle) + reduced arms/bullets to lower Phase 1 density
-            if (Math.floor(this.animTime * 0.25) !== Math.floor((this.animTime - fireRates[0]) * 0.25)) {
+            if (bojP1Cycle === 0) {
+                // Precise sine wave
+                const sp1 = atkBOJ.P1.SINE;
+                const waveBullets = Patterns.sineWave(cx, cy - 20, this.wavePhase, {
+                    count: sp1.count, width: sp1.width, amplitude: sp1.amplitude, speed: sp1.speed, color: '#bc002d', size: 10
+                });
+                bullets.push(...waveBullets);
+            } else if (bojP1Cycle === 1) {
+                // Zen garden spirals (BOJ signature - hypnotic)
                 const zp1 = atkBOJ.P1.ZEN;
                 const zenBullets = Patterns.zenGarden(cx, cy - 30, this.wavePhase, {
                     arms: zp1.arms, bulletsPerArm: zp1.bulletsPerArm, speed: zp1.speed, color1: '#bc002d', color2: '#ffffff', size: 9
                 });
                 bullets.push(...zenBullets);
+            } else {
+                // Concentric ring (zen ripple)
+                const rp1 = atkBOJ.P1.RING;
+                const ringBullets = Patterns.expandingRing(cx, cy - 20, this.wavePhase, {
+                    count: rp1.count, speed: rp1.speed, color: '#bc002d', size: rp1.size, rotate: false
+                });
+                bullets.push(...ringBullets);
             }
 
         } else if (this.phase === 2) {

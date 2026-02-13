@@ -1,5 +1,20 @@
 # Changelog
 
+## v5.0.4 - 2026-02-13
+### Boss Fight Overhaul & Power Progression
+- **Boss P1 pattern variety**: all 3 bosses now rotate 3 visually distinct patterns in Phase 1
+  - FED: ring → sineWave → aimedBurst (was 2-pattern alternation)
+  - BCE: curtain/flower alternation + rotatingBarrier (was curtain-only + barrier)
+  - BOJ: sineWave → zenGarden → expandingRing (was sine + zen only)
+- **Boss HP & phases**: BASE 5250→4083 (-22%), P3 threshold 33%→20% (shorter desperation)
+- **FED P1 intensity**: fire rate 0.85→0.70s (+22%), move speed 55→70 (+27%)
+- **Power progression pacing**: linearized for C1 — player peaks during boss, not before
+  - KILLS_FOR_UPGRADE: 55→75 (weapon LV4 at boss entry, LV5 mid-fight)
+  - KILLS_FOR_PERK: 50→80 (2 perks pre-boss, GODCHAIN triggers during fight)
+  - EARLY_DROP_PREFILL: 42→25 (first drop after ~30 kills, end W1H1)
+  - PITY_BASE: 55→65 (less drop clustering)
+  - PERK.COOLDOWN_TIME: 15→25s (wider perk spacing)
+
 ## v5.0.3 - 2026-02-13
 ### Balance Tuning
 - Boss HP BASE: 5000 → 5250 (+5%) — FED C1 fight was 21.8s, target 40-60s

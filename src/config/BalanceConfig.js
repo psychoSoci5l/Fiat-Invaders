@@ -72,7 +72,7 @@
         // --- PERK SYSTEM (v4.60: Elemental perks) ---
         PERK: {
             ENABLED: true,            // Toggle perk system (false = no perks awarded)
-            COOLDOWN_TIME: 15,        // v4.60: 4→15s between perk rewards (prevents stacking too fast)
+            COOLDOWN_TIME: 25,        // v5.0.4: 15→25s (perks più distanziati, GODCHAIN durante boss)
             PAUSE_DURATION: 1.2,      // Seconds to pause for perk notification
             MAX_ELEMENTS: 3           // v4.60: 3 elemental perks (fire→laser→electric)
         },
@@ -441,13 +441,13 @@
             MAX_DROPS_PER_BOSS: 99,   // v4.18: Effectively uncapped — dynamic time-based cap below
             DROP_TIME_INTERVAL: 12,   // v4.18: Seconds between allowed boss drops (dynamic cap)
             MEME_ROTATION_INTERVAL: 4.0,  // Seconds between boss meme rotations
-            PHASE_THRESHOLDS: [0.66, 0.33], // HP % for phase transitions (Phase 2, Phase 3)
+            PHASE_THRESHOLDS: [0.66, 0.20], // v5.0.4: P3 at 20% (was 33%) — shorter desperation phase
             PHASE_TRANSITION_TIME: 1.5,    // Seconds for phase transition
 
             // HP scaling (applied before perk/damage modifiers)
             // v4.16: +25-40% boost — audit showed FED 12.7s, BCE 9.7s (target 45-75s)
             HP: {
-                BASE: 5250,           // v5.0.3: 5000→5250 (+5%, FED C1 fight target 40-60s)
+                BASE: 4083,           // v5.0.4: 5250→4083 (-22%, FED C1 target ~80-90s with perks→5500 HP)
                 PER_LEVEL: 100,       // v4.48: 65→100 (+54%, scaling livello più incisivo)
                 PER_CYCLE: 5000,      // v4.48: 4000→5000 (+25%, gap tra cicli maggiore)
                 CYCLE_MULT: [1.0, 2.5, 2.2], // v4.48c: BCE ×2.5 (moderate buff, handles GODCHAIN variance), BOJ ×2.2 (was 3.0, -27% post-death fair)
@@ -458,7 +458,7 @@
             // Movement speed per phase per boss type
             // Updated v2.18.0: Distinct movement personalities
             PHASE_SPEEDS: {
-                FEDERAL_RESERVE: [55, 130, 200],  // Aggressive, fast in later phases
+                FEDERAL_RESERVE: [70, 130, 200],  // v5.0.4: P1 55→70 (+27%, more dynamic dodge)
                 BCE: [35, 55, 90],                // Bureaucratic, always slow
                 BOJ: [45, 75, 160]                // Zen to sudden intervention
             },
@@ -466,7 +466,7 @@
             // Fire rate per phase (seconds between attacks, lower = faster)
             // Updated v2.18.0: Rebalanced for new patterns
             FIRE_RATES: {
-                FEDERAL_RESERVE: [0.85, 0.38, 0.20],  // Aggressive printer
+                FEDERAL_RESERVE: [0.70, 0.38, 0.20],  // v5.0.4: P1 0.85→0.70 (+22% fire rate)
                 BCE: [1.40, 0.70, 0.35],              // Bureaucratic delays
                 BOJ: [0.90, 0.45, 0.18]               // v4.10.2: Phase 1 slowed (0.75→0.90) to reduce bullet density
             },
@@ -524,7 +524,8 @@
                     P1: {
                         ROTATION_SPEED: 0.15,
                         RING: { count: 12, speed: 130, size: 10 },
-                        SINE: { count: 10, width: 350, amplitude: 25, speed: 150 }
+                        SINE: { count: 10, width: 350, amplitude: 25, speed: 150 },
+                        BURST: { count: 4, speed: 180, spread: 0.3 }  // v5.0.4: 3rd pattern — aimed burst at player
                     },
                     P2: {
                         ROTATION_SPEED: 0.28,
@@ -541,7 +542,8 @@
                     P1: {
                         ROTATION_SPEED: 0.08,
                         CURTAIN: { count: 11, gapSize: 90, speed: 90 },
-                        BARRIER: { count: 20, radius: 70, speed: 50, gapAngle: 1.047, rotationSpeed: 1.2 }
+                        BARRIER: { count: 20, radius: 70, speed: 50, gapAngle: 1.047, rotationSpeed: 1.2 },
+                        FLOWER: { petals: 6, bulletsPerPetal: 2, speed: 100 }  // v5.0.4: 3rd pattern — EU star burst
                     },
                     P2: {
                         ROTATION_SPEED: 0.18,
@@ -557,7 +559,8 @@
                     P1: {
                         WAVE_PHASE_SPEED: 0.12,
                         SINE: { count: 12, width: 380, amplitude: 35, speed: 120 },
-                        ZEN: { arms: 2, bulletsPerArm: 1, speed: 110 }
+                        ZEN: { arms: 2, bulletsPerArm: 1, speed: 110 },
+                        RING: { count: 10, speed: 100, size: 9 }  // v5.0.4: 3rd pattern — zen concentric ring
                     },
                     P2: {
                         WAVE_PHASE_SPEED: 0.18,
@@ -919,8 +922,8 @@
         WEAPON_EVOLUTION: {
             // Weapon levels (permanent until death, -1 per death)
             MAX_WEAPON_LEVEL: 5,
-            KILLS_FOR_UPGRADE: 55,        // v5.0.3: 50→55 (+10%, WPN_LV5 dopo @3:00)
-            KILLS_FOR_PERK: 50,           // v4.61: pity timer for perk drops (~L1 for first perk)
+            KILLS_FOR_UPGRADE: 75,        // v5.0.4: 55→75 (LV4 a ~2:15, LV5 mid-boss)
+            KILLS_FOR_PERK: 80,           // v5.0.4: 50→80 (2 perks pre-boss, 3° durante boss)
 
             // HYPER mode weapon boost
             HYPER_LEVEL_BOOST: 2,         // +2 weapon levels during HYPER
@@ -968,11 +971,11 @@
             CYCLE_BONUS: 0,              // v4.17: 0.5%→0 (flat rate, no cycle scaling)
 
             // Pity timer decreases with cycle
-            PITY_BASE: 55,              // Base kills for guaranteed drop (v4.17: 45→55)
+            PITY_BASE: 65,              // v5.0.4: 55→65 (drop generali meno frequenti)
             PITY_REDUCTION: 2,          // -2 kills per cycle (min 15) (v4.17: 3→2)
             // v4.57: Early drop at level 2 start — pity counter pre-filled so first drop comes after ~8 kills
             EARLY_DROP_LEVEL: 2,        // Level at which to boost pity counter
-            EARLY_DROP_PREFILL: 42      // v5.0.3: 45→42 (primo upgrade da 10→13 kills, mid-W1H1)
+            EARLY_DROP_PREFILL: 25      // v5.0.4: 42→25 (primo drop dopo ~30 kills, fine W1H1)
         },
 
         // --- ADAPTIVE DROPS v4.47 (Redesigned) ---
