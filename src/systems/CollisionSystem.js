@@ -141,6 +141,18 @@ window.Game = window.Game || {};
                     bullet.markedForDeletion = true;
                     G.Bullet.Pool.release(bullet);
                     bullets.splice(bIdx, 1);
+                } else {
+                    // v5.0.8: Pierce decay on boss hit too
+                    const pd = Balance.WEAPON_EVOLUTION?.PIERCE_DECAY;
+                    if (pd) {
+                        bullet._pierceCount = (bullet._pierceCount || 0) + 1;
+                        bullet.damageMult *= pd.DAMAGE_MULT;
+                        if (bullet._pierceCount >= pd.MAX_ENEMIES) {
+                            bullet.markedForDeletion = true;
+                            G.Bullet.Pool.release(bullet);
+                            bullets.splice(bIdx, 1);
+                        }
+                    }
                 }
 
                 if (boss.hp <= 0) {
@@ -207,7 +219,18 @@ window.Game = window.Game || {};
                         bullets.splice(bIdx, 1);
                         return; // Non-penetrating stops
                     }
-                    // Penetrating bullets continue
+                    // v5.0.8: Pierce decay — reduce damage after each enemy pierced
+                    const pd = Balance.WEAPON_EVOLUTION?.PIERCE_DECAY;
+                    if (pd) {
+                        bullet._pierceCount = (bullet._pierceCount || 0) + 1;
+                        bullet.damageMult *= pd.DAMAGE_MULT;
+                        if (bullet._pierceCount >= pd.MAX_ENEMIES) {
+                            bullet.markedForDeletion = true;
+                            G.Bullet.Pool.release(bullet);
+                            bullets.splice(bIdx, 1);
+                            return;
+                        }
+                    }
                 }
             }
         },

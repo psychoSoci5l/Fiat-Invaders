@@ -962,6 +962,12 @@
             // Speed utility effect
             SPEED_MULTIPLIER: 1.4,        // Movement speed during SPEED utility
 
+            // PIERCE penetration tuning (v5.0.8)
+            PIERCE_DECAY: {
+                DAMAGE_MULT: 0.65,    // damageMult multiplied by this after each enemy pierced
+                MAX_ENEMIES: 5        // max enemies a single pierce bullet can pass through
+            },
+
             // Drop weights for specials (weapon-type only)
             SPECIAL_WEIGHTS: {
                 HOMING: 25,

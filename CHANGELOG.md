@@ -1,5 +1,13 @@
 # Changelog
 
+## v5.0.8 - 2026-02-13
+### Pierce Decay + Progression Tracker
+- **fix(balance)**: PIERCE bullets now lose 35% damage per enemy pierced (`DAMAGE_MULT: 0.65`), max 5 enemies — prevents screen-clearing
+- **config**: `Balance.WEAPON_EVOLUTION.PIERCE_DECAY` — `DAMAGE_MULT`, `MAX_ENEMIES` (tuneable)
+- **feat(debug)**: progression tracker logs every pickup with before/after state diff in real-time
+- **debug**: `dbg.progressionReport()` — full timeline with weapon milestones, pierce escalation, power curve summary
+- **debug**: `dbg.report()` auto-appends progression report when data exists
+
 ## v5.0.7 - 2026-02-13
 ### Elemental Contagion + Progressive Aggression
 - **feat(cascade)**: elemental kills now propagate — Fire splash and Electric chain kills trigger further cascades

@@ -354,6 +354,8 @@ window.Game.Debug = {
             _godchainStart: null,
             modifierOverlapFrames: 0,  // frames con 2+ modifier attivi
             _totalTrackedFrames: 0,
+            // v5.0.8: Progression tracking
+            progressionLog: [],        // [{ time, type, before, after, wave, cycle }]
         };
         console.log(`[ANALYTICS] Run started: ${ship} / ${mode}`);
     },
@@ -460,6 +462,159 @@ window.Game.Debug = {
         if (isPityTimer) {
             a.pityTimerTriggers++;
         }
+    },
+
+    /**
+     * v5.0.8: Track progression state change (before/after pickup)
+     * @param {string} type - Power-up type (UPGRADE, PIERCE, PERK, etc.)
+     * @param {Object} before - Snapshot before pickup
+     * @param {Object} after  - Snapshot after pickup
+     */
+    trackProgression(type, before, after) {
+        const a = this.analytics;
+        if (!a.runStart) return;
+        const G = window.Game;
+        const time = Date.now() - a.runStart;
+        const wave = G.WaveManager?.wave || 0;
+        const cycle = window.marketCycle || 1;
+
+        const entry = { time, type, before, after, wave, cycle };
+        a.progressionLog.push(entry);
+
+        // Real-time console log
+        const sec = Math.floor(time / 1000);
+        const min = Math.floor(sec / 60);
+        const ts = `${min}:${(sec % 60).toString().padStart(2, '0')}`;
+
+        const changes = [];
+        if (before.weaponLevel !== after.weaponLevel)
+            changes.push(`WPN ${before.weaponLevel}→${after.weaponLevel}`);
+        if (before.special !== after.special)
+            changes.push(`SPE ${before.special || '-'}→${after.special || '-'}`);
+        if (before.perkLevel !== after.perkLevel)
+            changes.push(`PERK ${before.perkLevel}→${after.perkLevel}`);
+        if (before.shieldActive !== after.shieldActive)
+            changes.push(`SHIELD ${before.shieldActive ? 'ON' : 'OFF'}→${after.shieldActive ? 'ON' : 'OFF'}`);
+        if (before.hyperActive !== after.hyperActive)
+            changes.push(`HYPER ${before.hyperActive ? 'ON' : 'OFF'}→${after.hyperActive ? 'ON' : 'OFF'}`);
+        if (before.effectiveLevel !== after.effectiveLevel)
+            changes.push(`EFF_LV ${before.effectiveLevel}→${after.effectiveLevel}`);
+        if (before.pierceHP !== after.pierceHP)
+            changes.push(`PIERCE_HP ${before.pierceHP}→${after.pierceHP}`);
+
+        const changeStr = changes.length > 0 ? changes.join(' | ') : '(no change)';
+        const stateStr = `WPN:${after.weaponLevel} SPE:${after.special || '-'} PERK:${after.perkLevel} EFF:${after.effectiveLevel} PIERCE:${after.pierceHP}`;
+
+        const color = type === 'UPGRADE' ? '#0f0'
+            : type === 'PERK' ? '#f80'
+            : type === 'PIERCE' ? '#f44'
+            : type === 'HOMING' ? '#0ff'
+            : type === 'MISSILE' ? '#ff0'
+            : '#fff';
+
+        console.log(
+            `%c[PROG] @${ts} C${cycle}W${wave} ▸ ${type}%c  ${changeStr}  %c[${stateStr}]`,
+            `color: ${color}; font-weight: bold`,
+            'color: #fff',
+            'color: #888'
+        );
+    },
+
+    /**
+     * v5.0.8: Progression report — full pickup history with state diffs
+     */
+    progressionReport() {
+        const a = this.analytics;
+        const log = a.progressionLog;
+        if (!log || log.length === 0) {
+            console.log('[PROG] No progression data — play a run first');
+            return;
+        }
+
+        const formatTime = (ms) => {
+            const sec = Math.floor(ms / 1000);
+            const min = Math.floor(sec / 60);
+            return `${min}:${(sec % 60).toString().padStart(2, '0')}`;
+        };
+
+        console.log('');
+        console.log('%c╔════════════════════════════════════════════════════════════╗', 'color: #f80');
+        console.log('%c║         PROGRESSION TRACKER REPORT v5.0.8                  ║', 'color: #f80; font-weight: bold');
+        console.log('%c╠════════════════════════════════════════════════════════════╣', 'color: #f80');
+        console.log('%c║  TIME  │ C│W │ PICKUP   │ CHANGE                          ║', 'color: #888');
+        console.log('%c╠════════════════════════════════════════════════════════════╣', 'color: #f80');
+
+        for (const e of log) {
+            const ts = formatTime(e.time);
+            const b = e.before;
+            const af = e.after;
+
+            // Build change description
+            const diffs = [];
+            if (b.weaponLevel !== af.weaponLevel)
+                diffs.push(`WPN ${b.weaponLevel}→${af.weaponLevel}`);
+            if (b.special !== af.special)
+                diffs.push(`SPE ${b.special || '-'}→${af.special || '-'}`);
+            if (b.perkLevel !== af.perkLevel)
+                diffs.push(`PERK ${b.perkLevel}→${af.perkLevel}`);
+            if (b.effectiveLevel !== af.effectiveLevel)
+                diffs.push(`EFF ${b.effectiveLevel}→${af.effectiveLevel}`);
+            if (b.pierceHP !== af.pierceHP)
+                diffs.push(`PIERCE ${b.pierceHP}→${af.pierceHP}`);
+            if (b.shieldActive !== af.shieldActive)
+                diffs.push('SHIELD ' + (af.shieldActive ? 'ON' : 'OFF'));
+
+            const diffStr = diffs.length > 0 ? diffs.join(' | ') : '(no state change)';
+
+            const color = e.type === 'UPGRADE' ? 'color: #0f0'
+                : e.type === 'PERK' ? 'color: #f80'
+                : e.type === 'PIERCE' ? 'color: #f44'
+                : e.type === 'HOMING' ? 'color: #0ff'
+                : e.type === 'MISSILE' ? 'color: #ff0'
+                : 'color: #fff';
+
+            console.log(
+                `%c║ ${ts.padEnd(5)} │C${e.cycle}│W${String(e.wave).padEnd(2)}│ ${e.type.padEnd(9)}│%c ${diffStr}`,
+                color,
+                'color: #fff'
+            );
+        }
+
+        // Summary: power curve analysis
+        console.log('%c╠══ POWER CURVE SUMMARY ════════════════════════════════════╣', 'color: #f80');
+
+        // Count by type
+        const byType = {};
+        for (const e of log) byType[e.type] = (byType[e.type] || 0) + 1;
+        const typeStr = Object.entries(byType).map(([t, c]) => `${t}:${c}`).join('  ');
+        console.log(`%c║  Pickups: ${log.length} — ${typeStr}`, 'color: #fff');
+
+        // Time to reach each weapon level
+        const wpnTimes = {};
+        for (const e of log) {
+            if (e.after.weaponLevel > e.before.weaponLevel) {
+                wpnTimes[e.after.weaponLevel] = formatTime(e.time);
+            }
+        }
+        if (Object.keys(wpnTimes).length > 0) {
+            const wpnStr = Object.entries(wpnTimes).map(([lv, t]) => `LV${lv}@${t}`).join('  ');
+            console.log(`%c║  Weapon milestones: ${wpnStr}`, 'color: #0f0');
+        }
+
+        // Pierce HP escalation
+        const lastEntry = log[log.length - 1];
+        if (lastEntry) {
+            console.log(`%c║  Final state: WPN:${lastEntry.after.weaponLevel} SPE:${lastEntry.after.special || '-'} PERK:${lastEntry.after.perkLevel} EFF:${lastEntry.after.effectiveLevel} PIERCE:${lastEntry.after.pierceHP}`, 'color: #ff0');
+        }
+
+        // Pierce progression over time
+        const pierceEntries = log.filter(e => e.after.pierceHP !== e.before.pierceHP);
+        if (pierceEntries.length > 0) {
+            const pierceStr = pierceEntries.map(e => `${e.before.pierceHP}→${e.after.pierceHP}@${formatTime(e.time)}`).join('  ');
+            console.log(`%c║  Pierce escalation: ${pierceStr}`, 'color: #f44');
+        }
+
+        console.log('%c╚════════════════════════════════════════════════════════════╝', 'color: #f80');
     },
 
     /**
@@ -860,6 +1015,11 @@ window.Game.Debug = {
 
         console.log('╚════════════════════════════════════════════════════════════╝');
         console.log('');
+
+        // v5.0.8: Auto-append progression report if data exists
+        if (a.progressionLog && a.progressionLog.length > 0) {
+            this.progressionReport();
+        }
 
         // Return data for screenshot/export
         return this.getAnalyticsData();
@@ -1974,4 +2134,4 @@ window.Game.Debug = {
 window.dbg = window.Game.Debug;
 
 // Console helper message
-console.log('[DEBUG] DebugSystem loaded. Commands: dbg.stats(), dbg.showOverlay(), dbg.perf(), dbg.perfReport(), dbg.entityReport(), dbg.debugBoss(), dbg.debugHUD(), dbg.hudStatus(), dbg.toggleHudMsg(key), dbg.maxWeapon(), dbg.weaponStatus(), dbg.godchain(), dbg.godchainStatus(), dbg.powerUpReport(), dbg.hitboxes(), dbg.formations()');
+console.log('[DEBUG] DebugSystem loaded. Commands: dbg.stats(), dbg.showOverlay(), dbg.perf(), dbg.perfReport(), dbg.entityReport(), dbg.debugBoss(), dbg.debugHUD(), dbg.hudStatus(), dbg.toggleHudMsg(key), dbg.maxWeapon(), dbg.weaponStatus(), dbg.godchain(), dbg.godchainStatus(), dbg.powerUpReport(), dbg.progressionReport(), dbg.hitboxes(), dbg.formations()');

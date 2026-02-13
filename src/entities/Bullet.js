@@ -21,6 +21,7 @@ class Bullet extends window.Game.Entity {
         this.isMissile = false;   // MISSILE special flag
         this.aoeRadius = 0;       // MISSILE explosion radius
         this.pierceHP = 1;        // Bullet pierce: survives N enemy-bullet hits
+        this._pierceCount = 0;    // v5.0.8: enemies pierced counter
 
         // v4.60: Elemental perk flags
         this._elemFire = false;
@@ -54,6 +55,7 @@ class Bullet extends window.Game.Entity {
         this.isMissile = false;
         this.aoeRadius = 0;
         this.pierceHP = 1;
+        this._pierceCount = 0;  // v5.0.8: enemies pierced counter
 
         // v4.60: Elemental reset
         this._elemFire = false;

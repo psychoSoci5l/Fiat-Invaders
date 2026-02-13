@@ -4744,6 +4744,25 @@ function triggerGameOver() {
     audioSys.play('explosion');
 }
 
+// v5.0.8: Snapshot player power state for progression tracking
+function _snapPlayerState() {
+    const WE = G.Balance.WEAPON_EVOLUTION;
+    const BP = G.Balance.BULLET_PIERCE;
+    const rs = G.RunState;
+    let effLv = player.weaponLevel;
+    if (player.hyperActive) effLv = Math.min(7, effLv + (WE?.HYPER_LEVEL_BOOST || 2));
+    const pierceHP = BP ? BP.BASE_HP + Math.floor(effLv * (BP.LEVEL_BONUS || 0.5)) : 0;
+    return {
+        weaponLevel: player.weaponLevel,
+        special: player.special,
+        perkLevel: rs ? (rs.perkLevel || 0) : 0,
+        shieldActive: !!player.shieldActive,
+        hyperActive: !!player.hyperActive,
+        effectiveLevel: effLv,
+        pierceHP: pierceHP
+    };
+}
+
 function updatePowerUps(dt) {
     for (let i = powerUps.length - 1; i >= 0; i--) {
         let p = powerUps[i];
@@ -4757,12 +4776,19 @@ function updatePowerUps(dt) {
                 // Pickup effect!
                 createPowerUpPickupEffect(p.x, p.y, p.config.color);
 
+                // v5.0.8: Snapshot BEFORE pickup
+                const before = G.Debug ? _snapPlayerState() : null;
+
                 // v4.61: PERK drop — apply elemental perk via PerkManager
                 if (p.type === 'PERK') {
                     applyRandomPerk();
                     const meme = POWERUP_MEMES[p.type] || 'PERK!';
                     G.MemeEngine.queueMeme('PERK', meme, p.type);
-                    if (G.Debug) G.Debug.trackPowerUpCollected(p.type, p.isPityDrop || false);
+                    if (G.Debug) {
+                        const after = _snapPlayerState();
+                        G.Debug.trackProgression(p.type, before, after);
+                        G.Debug.trackPowerUpCollected(p.type, p.isPityDrop || false);
+                    }
                     powerUps.splice(i, 1);
                     emitEvent('powerup_pickup', { type: p.type, category: 'perk' });
                     continue;
@@ -4780,8 +4806,12 @@ function updatePowerUps(dt) {
                 const meme = POWERUP_MEMES[p.type] || p.type;
                 const puCategory = p.config?.category || 'MODIFIER';
                 G.MemeEngine.queueMeme(puCategory.toUpperCase(), meme, p.type);
-                // Analytics: Track power-up
-                if (G.Debug) G.Debug.trackPowerUpCollected(p.type, p.isPityDrop || false);
+                // Analytics: Track power-up + progression
+                if (G.Debug) {
+                    const after = _snapPlayerState();
+                    G.Debug.trackProgression(p.type, before, after);
+                    G.Debug.trackPowerUpCollected(p.type, p.isPityDrop || false);
+                }
                 powerUps.splice(i, 1);
                 emitEvent('powerup_pickup', { type: p.type, category: p.config?.category });
             }
