@@ -443,6 +443,7 @@
             MEME_ROTATION_INTERVAL: 4.0,  // Seconds between boss meme rotations
             PHASE_THRESHOLDS: [0.66, 0.20], // v5.0.4: P3 at 20% (was 33%) — shorter desperation phase
             PHASE_TRANSITION_TIME: 1.5,    // Seconds for phase transition
+            DMG_DIVISOR: 4,                // Player bullet damage vs boss: ceil(baseDamage * damageMult / DMG_DIVISOR)
 
             // HP scaling (applied before perk/damage modifiers)
             // v4.16: +25-40% boost — audit showed FED 12.7s, BCE 9.7s (target 45-75s)
@@ -450,7 +451,6 @@
                 BASE: 4083,           // v5.0.4: 5250→4083 (-22%, FED C1 target ~80-90s with perks→5500 HP)
                 PER_LEVEL: 100,       // v4.48: 65→100 (+54%, scaling livello più incisivo)
                 PER_CYCLE: 5000,      // v4.48: 4000→5000 (+25%, gap tra cicli maggiore)
-                CYCLE_MULT: [1.0, 2.5, 2.2], // v4.48c: BCE ×2.5 (moderate buff, handles GODCHAIN variance), BOJ ×2.2 (was 3.0, -27% post-death fair)
                 PERK_SCALE: 0.10,     // +10% per player perk
                 MIN_FLOOR: 4000       // v4.48: 2500→4000 (+60%, pavimento più alto)
             },

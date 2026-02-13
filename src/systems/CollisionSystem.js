@@ -130,7 +130,8 @@ window.Game = window.Game || {};
                 const player = ctx.player;
                 const runState = G.RunState;
 
-                const baseBossDmg = Math.ceil((player.stats.baseDamage || 14) / 4);
+                const bossDivisor = G.Balance?.BOSS?.DMG_DIVISOR || 4;
+                const baseBossDmg = Math.ceil((player.stats.baseDamage || 14) * (bullet.damageMult || 1) / bossDivisor);
                 let dmg = baseBossDmg;
 
                 boss.damage(dmg);

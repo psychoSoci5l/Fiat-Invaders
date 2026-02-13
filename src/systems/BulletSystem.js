@@ -108,8 +108,8 @@
                     const dist = Math.sqrt(distSq);
                     const falloff = 1 - (dist / aoeR) * 0.5;
                     const dmg = baseDmg * falloff;
-                    if (boss.takeDamage) {
-                        boss.takeDamage(dmg);
+                    if (boss.damage) {
+                        boss.damage(dmg);
                     }
                 }
             }

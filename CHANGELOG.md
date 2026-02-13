@@ -1,5 +1,13 @@
 # Changelog
 
+## v5.0.5 - 2026-02-13
+### Boss Damage Rebalance
+- **fix(critical)**: boss damage now scales with weapon level (`damageMult`) — was flat `ceil(baseDamage/4)` since launch
+- **fix(bug)**: missile AoE now damages bosses (`takeDamage` → `damage` method fix)
+- **removed**: boss HP `CYCLE_MULT` [1.0, 2.5, 2.2] — was calibrated for old compound perk system
+- **config**: added `BOSS.DMG_DIVISOR` for tuneable boss damage divisor
+- **impact**: C1 boss kill ~35s (was ~60s), C2 ~75s (was ~132s), C3 ~117s (was ~204s)
+
 ## v5.0.4 - 2026-02-13
 ### Boss Fight Overhaul & Power Progression
 - **Boss P1 pattern variety**: all 3 bosses now rotate 3 visually distinct patterns in Phase 1
