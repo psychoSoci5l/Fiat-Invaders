@@ -21,7 +21,7 @@ Distruggi le ondate di valute fiat, affronta i boss delle Banche Centrali (FED, 
 ### Touch (Mobile)
 | Azione | Gesto |
 |--------|-------|
-| **Muovi** | Tocca i **lati dello schermo** (o usa il joystick) |
+| **Muovi** | **Tocca e trascina** ovunque sullo schermo |
 | **Spara** | **Automatico** mentre tocchi |
 | **Modalità HYPER** | Tocca il **pulsante HYPER** (quando disponibile) |
 

@@ -21,7 +21,7 @@ Destroy waves of fiat currencies, face the Central Bank bosses (FED, ECB, BOJ) a
 ### Touch (Mobile)
 | Action | Gesture |
 |--------|---------|
-| **Move** | Tap **screen sides** (or use joystick) |
+| **Move** | **Touch and drag** anywhere on screen |
 | **Fire** | **Automatic** while touching |
 | **HYPER Mode** | Tap **HYPER button** (when available) |
 
