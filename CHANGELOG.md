@@ -1,5 +1,9 @@
 # Changelog
 
+## v5.0.2 - 2026-02-13
+### Fixes
+- Fix crash on elemental perk pickup: `perkStacks` not initialized in RunState.reset()
+
 ## v5.0.1 - 2026-02-13
 ### Fixes & Cleanup
 - Restore ship preview canvas + stats panel accidentally removed in v5.0.0
