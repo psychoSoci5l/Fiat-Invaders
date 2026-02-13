@@ -1,5 +1,16 @@
 # Changelog
 
+## v5.2.0 - 2026-02-13
+### Weapon Deployment Animation System
+- **feat(vfx)**: weapon upgrade transitions — mechanical slide-out animation with ease-out-back overshoot (0.35s)
+- **feat(vfx)**: LV1 nose barrel — small integrated barrel always visible at ship tip with pulsing glow
+- **feat(vfx)**: LV1→LV2 gun pods slide out from body, LV2→3 pods extend upward, LV3→4 barrel rises + pods widen, LV4→5 full extend + armor
+- **feat(audio)**: `weaponDeploy` SFX — two-phase procedural sound (square sweep whoosh + triangle/square mechanical clank at lock-in)
+- **feat(vfx)**: screen shake + haptic feedback at 85% animation progress (lock-in moment)
+- **feat(vfx)**: muzzle flash positions follow animated geometry during deployment
+- **config**: `Balance.VFX.WEAPON_DEPLOY` — ENABLED kill-switch, DURATION (0.35s), LOCK_AT (0.85), SHAKE_INTENSITY (6px)
+- **fix**: deploy cancelled on death/reset — no visual glitches from interrupted animations
+
 ## v5.1.0 - 2026-02-13
 ### Directional Muzzle Flash VFX
 - **feat(vfx)**: new canvas V-flash muzzle effect — directional diamond shape drawn at actual cannon positions per weapon level

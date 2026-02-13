@@ -1,15 +1,26 @@
 # Roadmap: FIAT vs CRYPTO
 
-> **Versione attuale**: v5.0.9 (2026-02-13)
+> **Versione attuale**: v5.2.0 (2026-02-13)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
 
 ---
 
-## TODO — Shooting VFX (post v5.0.9)
+## COMPLETATO — Weapon Deployment Animation (v5.2.0)
 
-- [ ] Nuovo effetto sparo: sostituire la bolla/cerchio rimossa con un VFX adeguato (flash direzionale, spark trail, o simile)
-- [ ] L'effetto deve scalare con weapon level (più cannoni = più effetti)
-- [ ] Considerare variante elementale (colore/forma cambia con perk attivo)
+- [x] Mechanical slide-out animation on weapon upgrade (ease-out-back, 0.35s)
+- [x] LV1 nose barrel (always visible, pulsing glow)
+- [x] Geometry cache `_geom` — shared by `_drawShipBody` + `_drawMuzzleFlash`
+- [x] Procedural SFX: `weaponDeploy` (whoosh) + `weaponDeployLock` (clank)
+- [x] Screen shake + haptic at lock-in (85% progress)
+- [x] Deploy cancelled on death/reset
+
+---
+
+## COMPLETATO — Shooting VFX (v5.1.0)
+
+- [x] Nuovo effetto sparo: canvas V-flash direzionale a diamante, 3 layer (inner→outer)
+- [x] L'effetto scala con weapon level (+12%/livello, include HYPER boost)
+- [x] Variante elementale: Fire (wider), Laser (taller), Electric (side sparks), GODCHAIN (fire tongues)
 
 ---
 

@@ -1250,6 +1250,14 @@
             MUZZLE_RATE_SCALE: 0.6,
             MUZZLE_RING_AT_LEVEL: 3,
 
+            // v5.2: Weapon deployment animation (mechanical slide-out)
+            WEAPON_DEPLOY: {
+                ENABLED: true,
+                DURATION: 0.35,             // Animation duration (s)
+                LOCK_AT: 0.85,              // Shake + audio lock at this % of progress
+                SHAKE_INTENSITY: 6,         // Screen shake at lock-in (px)
+            },
+
             // v5.1: Directional muzzle flash (canvas + particles)
             MUZZLE_FLASH: {
                 ENABLED: true,                    // Kill-switch for canvas V-flash

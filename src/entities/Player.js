@@ -53,6 +53,25 @@ class Player extends window.Game.Entity {
         this.godchainTimer = 0;       // v4.48: temporary duration
         this._godchainPending = false; // v4.48: activation trigger
 
+        // Weapon deployment animation (v5.2)
+        this._deploy = {
+            active: false,
+            timer: 0,
+            duration: 0,
+            fromLevel: 1,
+            toLevel: 1,
+            t: 0,
+            _lockFired: false,
+            _fromGeom: null,
+            _toGeom: null
+        };
+        // Geometry cache (used by _drawShipBody and _drawMuzzleFlash)
+        this._geom = {
+            podX: 0, podTop: 0, podW: 0,
+            barrelTop: 0, barrelW: 0,
+            bodyHalfW: 21
+        };
+
         // Visual effects
         this.animTime = 0;
         this.muzzleFlash = 0; // Timer for muzzle flash effect
@@ -113,6 +132,9 @@ class Player extends window.Game.Entity {
         this._godchainActive = false;
         this.godchainTimer = 0;
         this._godchainPending = false;
+
+        // Weapon deploy animation reset
+        this._deploy.active = false;
 
         // Weapon Evolution reset (soft reset - keep weaponLevel on normal reset)
         // Note: applyDeathPenalty() handles death penalty separately
@@ -179,6 +201,9 @@ class Player extends window.Game.Entity {
         // Animation timer for visual effects
         this.animTime += dt;
         if (this.muzzleFlash > 0) this.muzzleFlash -= dt;
+
+        // Weapon deployment animation tick
+        if (this._deploy.active) this._updateDeploy(dt);
 
         // Trail effect - pre-allocated circular buffer (no GC)
         // Check if we need a new trail point (use last written slot)
@@ -1130,7 +1155,9 @@ class Player extends window.Game.Entity {
         // UPGRADE: permanent weapon level increase
         if (type === 'UPGRADE') {
             if (this.weaponLevel < WE.MAX_WEAPON_LEVEL) {
+                const fromLevel = this.weaponLevel;
                 this.weaponLevel++;
+                this._startDeploy(fromLevel, this.weaponLevel);
                 if (Audio) Audio.play('levelUp');
                 if (window.Game.Debug) window.Game.Debug.trackWeaponEvent('UPGRADE', 'WPN_LV' + this.weaponLevel);
 
@@ -1192,6 +1219,9 @@ class Player extends window.Game.Entity {
         // Weapon level: min 1
         this.weaponLevel = Math.max(1, this.weaponLevel - penalty);
 
+        // Cancel deploy animation
+        this._deploy.active = false;
+
         // Special: lost completely on death
         this.special = null;
         this.specialTimer = 0;
@@ -1202,6 +1232,118 @@ class Player extends window.Game.Entity {
             window.Game.Events.emit('DEATH_PENALTY_APPLIED', {
                 weaponLevel: this.weaponLevel
             });
+        }
+    }
+
+    /**
+     * v5.2: Compute target geometry for a given weapon level.
+     * Returns object with podX, podTop, podW, barrelTop, barrelW, bodyHalfW.
+     */
+    _computeGeomForLevel(level) {
+        const isGC = this._godchainActive;
+        return {
+            bodyHalfW: isGC ? 26 : (level >= 5 ? 25 : (level >= 4 ? 24 : (level >= 2 ? 23 : 21))),
+            podX:      level >= 4 ? 15 : 13,
+            podTop:    level >= 5 ? -32 : (level >= 4 ? -30 : (level >= 3 ? -28 : -22)),
+            podW:      level >= 5 ? 5 : (level >= 3 ? 4.5 : 4),
+            barrelTop: level >= 5 ? -40 : -36,
+            barrelW:   level >= 5 ? 4 : 3
+        };
+    }
+
+    /**
+     * v5.2: Start weapon deployment animation.
+     */
+    _startDeploy(fromLevel, toLevel) {
+        const cfg = window.Game.Balance?.VFX?.WEAPON_DEPLOY;
+        if (!cfg || !cfg.ENABLED) return;
+
+        const d = this._deploy;
+
+        // If already deploying, use current interpolated geom as "from"
+        const fromGeom = d.active
+            ? { bodyHalfW: this._geom.bodyHalfW, podX: this._geom.podX, podTop: this._geom.podTop, podW: this._geom.podW, barrelTop: this._geom.barrelTop, barrelW: this._geom.barrelW }
+            : this._computeGeomForLevel(fromLevel);
+
+        // For components that don't exist at fromLevel, use hidden positions
+        if (fromLevel < 2) {
+            // Pods hidden inside body
+            fromGeom.podX = 6;
+            fromGeom.podTop = -10;
+            fromGeom.podW = 3;
+        }
+        if (fromLevel < 4) {
+            // Barrel hidden at nose tip
+            fromGeom.barrelTop = -28;
+            fromGeom.barrelW = 2;
+        }
+
+        d.active = true;
+        d.timer = 0;
+        d.duration = cfg.DURATION;
+        d.fromLevel = fromLevel;
+        d.toLevel = toLevel;
+        d.t = 0;
+        d._lockFired = false;
+        d._fromGeom = fromGeom;
+        d._toGeom = this._computeGeomForLevel(toLevel);
+
+        // Play start SFX
+        const Audio = window.Game.Audio;
+        if (Audio) Audio.play('weaponDeploy');
+    }
+
+    /**
+     * v5.2: Update weapon deployment animation (called from update()).
+     */
+    _updateDeploy(dt) {
+        const d = this._deploy;
+        const cfg = window.Game.Balance?.VFX?.WEAPON_DEPLOY;
+        if (!cfg) { d.active = false; return; }
+
+        d.timer += dt;
+        let p = Math.min(1, d.timer / d.duration);
+
+        // Ease-out-back (mechanical overshoot)
+        const c1 = 1.70158, c3 = c1 + 1;
+        d.t = 1 + c3 * Math.pow(p - 1, 3) + c1 * Math.pow(p - 1, 2);
+
+        // Lerp geometry
+        const from = d._fromGeom;
+        const to = d._toGeom;
+        const t = d.t;
+        const g = this._geom;
+        g.bodyHalfW = from.bodyHalfW + (to.bodyHalfW - from.bodyHalfW) * t;
+        g.podX      = from.podX + (to.podX - from.podX) * t;
+        g.podTop    = from.podTop + (to.podTop - from.podTop) * t;
+        g.podW      = from.podW + (to.podW - from.podW) * t;
+        g.barrelTop = from.barrelTop + (to.barrelTop - from.barrelTop) * t;
+        g.barrelW   = from.barrelW + (to.barrelW - from.barrelW) * t;
+
+        // Lock-in event at LOCK_AT threshold
+        if (p >= cfg.LOCK_AT && !d._lockFired) {
+            d._lockFired = true;
+            // Screen shake
+            if (window.Game.EffectsRenderer) {
+                window.Game.EffectsRenderer.applyShake(cfg.SHAKE_INTENSITY);
+            }
+            // Haptic
+            if (window.Game.Input) window.Game.Input.vibrate(30);
+            // Lock SFX
+            const Audio = window.Game.Audio;
+            if (Audio) Audio.play('weaponDeployLock');
+        }
+
+        // Complete
+        if (p >= 1) {
+            d.active = false;
+            // Snap to final geometry
+            g.bodyHalfW = to.bodyHalfW;
+            g.podX = to.podX;
+            g.podTop = to.podTop;
+            g.podW = to.podW;
+            g.barrelTop = to.barrelTop;
+            g.barrelW = to.barrelW;
         }
     }
 
@@ -1217,8 +1359,18 @@ class Player extends window.Game.Entity {
         const gcColors = gc?.SHIP_COLORS;
         const isGC = this._godchainActive;
 
-        // Body width scales with level and GODCHAIN
-        const bodyHalfW = isGC ? 26 : (level >= 5 ? 25 : (level >= 4 ? 24 : (level >= 2 ? 23 : 21)));
+        // v5.2: Geometry from cache (animated during deploy, else snapped)
+        if (!this._deploy.active) {
+            const tgt = this._computeGeomForLevel(level);
+            this._geom.bodyHalfW = tgt.bodyHalfW;
+            this._geom.podX = tgt.podX;
+            this._geom.podTop = tgt.podTop;
+            this._geom.podW = tgt.podW;
+            this._geom.barrelTop = tgt.barrelTop;
+            this._geom.barrelW = tgt.barrelW;
+        }
+        const g = this._geom;
+        const bodyHalfW = g.bodyHalfW;
         // Fin extension: LV3 +4px, GODCHAIN +8px
         const finExt = isGC ? 8 : (level >= 3 ? 4 : 0);
 
@@ -1316,10 +1468,29 @@ class Player extends window.Game.Entity {
         ctx.closePath();
         ctx.stroke();
 
-        // === LV4+: CENTRAL BARREL above nose ===
-        if (level >= 4) {
-            const barrelTop = level >= 5 ? -40 : -36;
-            const barrelW = level >= 5 ? 4 : 3;
+        // === LV1+: NOSE BARREL (small integrated barrel at tip) ===
+        {
+            const nbPulse = Math.sin(t * 6) * 0.3 + 0.7;
+            ctx.fillStyle = gcColors ? gcColors.NOSE_LIGHT : '#cc66ff';
+            ctx.strokeStyle = '#111';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.rect(-2, -32, 4, 4);
+            ctx.fill();
+            ctx.stroke();
+            // Glow tip
+            ctx.fillStyle = gcColors ? '#ff6600' : '#bb44ff';
+            ctx.globalAlpha = nbPulse * 0.6;
+            ctx.beginPath();
+            ctx.arc(0, -32, 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+        }
+
+        // === LV4+: CENTRAL BARREL above nose (uses _geom) ===
+        if (level >= 4 || (this._deploy.active && this._deploy.toLevel >= 4)) {
+            const barrelTop = g.barrelTop;
+            const barrelW = g.barrelW;
             ctx.fillStyle = gcColors ? gcColors.NOSE_LIGHT : '#cc66ff';
             ctx.strokeStyle = '#111';
             ctx.lineWidth = 2;
@@ -1428,11 +1599,11 @@ class Player extends window.Game.Entity {
         ctx.lineTo(8, -8);
         ctx.stroke();
 
-        // === LV2+: GUN PODS (side cannons) ===
-        if (level >= 2) {
-            const podTop = level >= 5 ? -32 : (level >= 4 ? -30 : (level >= 3 ? -28 : -22));
-            const podX = level >= 4 ? 15 : 13;
-            const podW = level >= 5 ? 5 : (level >= 3 ? 4.5 : 4);
+        // === LV2+: GUN PODS (side cannons — uses _geom for deploy animation) ===
+        if (level >= 2 || (this._deploy.active && this._deploy.toLevel >= 2)) {
+            const podTop = g.podTop;
+            const podX = g.podX;
+            const podW = g.podW;
             const podBot = -10;
 
             // Mount brackets (struts connecting body to pods)
@@ -1592,26 +1763,22 @@ class Player extends window.Game.Entity {
         const hw = mf.BASE_WIDTH * scale * widthMult;   // half-width
         const h = mf.BASE_HEIGHT * scale * heightMult;  // height
 
-        // Compute actual muzzle points from ship geometry (must match _drawShipBody)
+        // Compute actual muzzle points from ship geometry (_geom for deploy animation)
         // {x, y} in local coords — y points up = more negative
+        const gm = this._geom;
         const muzzles = [];
         if (effectiveLevel <= 1) {
-            // LV1: single shot from nose tip
-            muzzles.push({ x: 0, y: -28 });
+            // LV1: single shot from nose barrel tip
+            muzzles.push({ x: 0, y: -32 });
         } else if (effectiveLevel <= 3) {
             // LV2-3: dual from gun pod tops
-            const podX = 13;
-            const podTop = effectiveLevel >= 3 ? -28 : -22;
-            muzzles.push({ x: -podX, y: podTop });
-            muzzles.push({ x: podX, y: podTop });
+            muzzles.push({ x: -gm.podX, y: gm.podTop });
+            muzzles.push({ x: gm.podX, y: gm.podTop });
         } else {
             // LV4+: triple — side pods + central barrel
-            const podX = 15;
-            const podTop = effectiveLevel >= 5 ? -32 : -30;
-            const barrelTop = effectiveLevel >= 5 ? -40 : -36;
-            muzzles.push({ x: -podX, y: podTop });
-            muzzles.push({ x: 0, y: barrelTop });
-            muzzles.push({ x: podX, y: podTop });
+            muzzles.push({ x: -gm.podX, y: gm.podTop });
+            muzzles.push({ x: 0, y: gm.barrelTop || -28 });
+            muzzles.push({ x: gm.podX, y: gm.podTop });
         }
 
         ctx.save();

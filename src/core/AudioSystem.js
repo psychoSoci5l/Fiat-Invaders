@@ -1131,6 +1131,53 @@ class AudioSystem {
                 noise.start(t); noise.stop(t + 0.15);
             }
         }
+        // === WEAPON DEPLOY SFX (v5.2 — mechanical slide-out) ===
+        else if (type === 'weaponDeploy') {
+            // Start phase: square wave sweep 150→90Hz + noise burst bandpass 2kHz
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.connect(gain); gain.connect(output);
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(150, t);
+            osc.frequency.exponentialRampToValueAtTime(90, t + 0.18);
+            gain.gain.setValueAtTime(0.10, t);
+            gain.gain.exponentialRampToValueAtTime(0.01, t + 0.18);
+            osc.start(t); osc.stop(t + 0.18);
+
+            const noise = this.createNoiseOsc(0.12);
+            if (noise) {
+                const filter = this.ctx.createBiquadFilter();
+                const nGain = this.ctx.createGain();
+                noise.connect(filter); filter.connect(nGain); nGain.connect(output);
+                filter.type = 'bandpass';
+                filter.frequency.value = 2000;
+                filter.Q.value = 3;
+                nGain.gain.setValueAtTime(0.08, t);
+                nGain.gain.exponentialRampToValueAtTime(0.01, t + 0.12);
+                noise.start(t); noise.stop(t + 0.12);
+            }
+        }
+        else if (type === 'weaponDeployLock') {
+            // Lock phase: triangle sweep 280→112Hz + square click 80Hz
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.connect(gain); gain.connect(output);
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(280, t);
+            osc.frequency.exponentialRampToValueAtTime(112, t + 0.10);
+            gain.gain.setValueAtTime(0.12, t);
+            gain.gain.exponentialRampToValueAtTime(0.01, t + 0.10);
+            osc.start(t); osc.stop(t + 0.10);
+
+            const click = this.ctx.createOscillator();
+            const clickGain = this.ctx.createGain();
+            click.connect(clickGain); clickGain.connect(output);
+            click.type = 'square';
+            click.frequency.value = 80;
+            clickGain.gain.setValueAtTime(0.10, t);
+            clickGain.gain.exponentialRampToValueAtTime(0.01, t + 0.03);
+            click.start(t); click.stop(t + 0.03);
+        }
     }
 
     // Hit sound variants helper

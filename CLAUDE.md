@@ -130,6 +130,7 @@ Detailed tables, parameters, and implementation specifics → **SYSTEM_REFERENCE
 - **Batch Rendering** — Multi-pass pipeline (standard → additive), ~30% less canvas state changes
 - **Responsive Formations** — `Balance.FORMATION.RESPONSIVE`. Spacing scales with screen width. Kill-switch: `RESPONSIVE: false`
 - **Muzzle Flash** — `Balance.VFX.MUZZLE_FLASH`. Canvas V-flash at actual cannon positions (nose/pods/barrel per level). 3-layer diamond, elemental tinting, `ENABLED` kill-switch
+- **Weapon Deploy** — `Balance.VFX.WEAPON_DEPLOY`. Mechanical slide-out animation on weapon upgrade (0.35s ease-out-back). LV1 nose barrel always visible. Geometry cache `_geom` shared with muzzle flash. `ENABLED` kill-switch
 - **Juice & VFX** — `Balance.JUICE` / `Balance.VFX`. Damage vignette, boss cinematics. Kill-switches in `JUICE.SCREEN_EFFECTS`
 - **Title Animation** — `Balance.TITLE_ANIM`. 2s intro, skip on tap, `prefers-reduced-motion` → auto-skip
 
