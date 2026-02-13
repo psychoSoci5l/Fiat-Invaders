@@ -14,6 +14,7 @@ class RunState {
 
         // --- Elemental Perk System (v4.60) ---
         this.perkLevel = 0;         // 0-3+, counts elements collected
+        this.perkStacks = {};       // perk id → stack count (used by PerkManager)
         this.hasFirePerk = false;
         this.hasLaserPerk = false;
         this.hasElectricPerk = false;
