@@ -156,38 +156,6 @@
             WARNING_TIME: 2.0         // Seconds before HYPER ends to play warning
         },
 
-        // --- SATOSHI'S SACRIFICE (Ultimate Last Stand) ---
-        // When about to die, player can sacrifice ALL score for a chance at redemption.
-        // Design: Ikeda Philosophy - the ultimate gamble, all or nothing.
-        SACRIFICE: {
-            // Trigger conditions
-            TRIGGER_HP: 1,                    // HP threshold to enable sacrifice option
-            ENABLED: false,                   // v4.37: disabled — confuses new players
-
-            // Decision window
-            DECISION_WINDOW: 2.0,             // Seconds to decide (press SPACE/tap)
-            DECISION_TIME_SCALE: 0.25,        // Extreme slow-mo during decision
-
-            // Sacrifice mode
-            INVINCIBILITY_DURATION: 10.0,     // Seconds of total invincibility
-            SCORE_MULT: 10.0,                 // Kill multiplier during sacrifice
-            DISABLE_GRAZE: true,              // Walk through bullets (no graze)
-
-            // Outcome thresholds
-            SUCCESS_THRESHOLD: 1.0,           // Must earn >= 100% of sacrificed score
-            SUCCESS_BONUS_LIVES: 1,           // Extra life on success
-
-            // Visual settings
-            BUTTON_SIZE: 100,                 // Sacrifice button size in pixels
-            COUNTDOWN_FONT_SIZE: 64,          // Timer font size
-            GLOW_COLOR: '#FFFFFF',            // Player glow during sacrifice
-            GHOST_TRAIL_COUNT: 5,             // Number of ghost images
-
-            // Audio
-            HEARTBEAT_INTERVAL: 0.8,          // Seconds between heartbeats during decision
-            WARNING_TIME: 3.0                 // Seconds before sacrifice ends to warn
-        },
-
         // --- JUICE SYSTEM (Hit Stop & Visual Feedback) ---
         // Every action should feel impactful. Micro-freezes and flashes create "weight".
         JUICE: {
@@ -240,7 +208,6 @@
 
                 // Mode-specific overlays — ON (tints, not interruptions)
                 HYPER_OVERLAY: false,          // Golden tint during HYPER (disabled — obscures bullets)
-                SACRIFICE_OVERLAY: true,       // White tint during sacrifice
 
                 // Bear Market atmosphere
                 LIGHTNING: true,               // Purple lightning flashes

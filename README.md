@@ -10,7 +10,7 @@
 *   **Responsive**: "Notch-safe" UI design that adapts to all mobile screens.
 *   **Localization**: Fully localized in English (EN) and Italian (IT).
 
-## 🧠 Current Gameplay Rules (v4.48.0)
+## 🧠 Current Gameplay Rules (v5.0)
 
 *   **Two Game Modes**: **Story Mode** (3 acts with narrative chapters, boss progression FED→BCE→BOJ) and **Arcade Mode** (endless waves, high scores, mini-bosses).
 *   **Wave System**: 15 unique waves (5 per cycle × 3 cycles) with 16 formation patterns and thematic currency groups.
@@ -19,12 +19,13 @@
 *   **Weapon Evolution**: Linear 5-level system (Single → Dual → Dual+ → Triple → Triple MAX). UPGRADE drops increase level permanently. Death costs -1 level.
 *   **Special Weapons**: 3 exclusive specials (HOMING, PIERCE, MISSILE) — 12s duration each.
 *   **Utility Drops**: SHIELD (absorbs hit) and SPEED (+40% movement) — capsule-shaped, 12s duration.
+*   **Elemental Perks**: Fixed sequential order (Fire → Laser → Electric). Diamond crystal drops every 50 kills. Fire = splash damage, Laser = speed + pierce, Electric = chain lightning.
 *   **HYPER Mode**: Proximity kills fill the DIP meter. At 100%, HYPER activates — 5x score, +2 temp weapon levels, 50% bigger hitbox (high risk/reward).
-*   **GODCHAIN Mode**: Activates at weapon level 5 — golden aura, meteors, max firepower. UPGRADE drops at max level recharge it.
+*   **GODCHAIN Mode**: Activates when 3 elemental perks collected — energy form ship, max firepower. Further perks re-trigger it.
 *   **Dynamic Difficulty (Rank System)**: Game adapts to player skill in real-time (-1.0 to +1.0 rank).
 *   **3 Unique Bosses**: FED (MEGA-BILL), BCE (MEGA-COIN), BOJ (MEGA-BAR) with exclusive attack patterns and 3 phases each.
 *   **10 Fiat Currencies**: Each with unique shape, tier, and fire pattern.
-*   **Compact HUD**: Minimal 45px top bar with diegetic ship indicators (life pips, weapon level pips, special timer).
+*   **Compact HUD**: Minimal 45px top bar with diegetic ship indicators.
 *   **Reactive Feedback**: Score colors on streaks, danger pulse at low HP, wave sweep transitions.
 *   **Meme Popup System**: Full-width neon cartoon popup above player ship with 3-tier priority queue (CRITICAL/HIGH/NORMAL), spring-pop animation, 10 event types.
 *   **First-Run Tutorial**: 3-step mode-aware onboarding (Controls, Objective, Survival) — separate content for Story vs Arcade.
@@ -35,7 +36,6 @@
 *   **Move**: Arrow Keys / A-D (Desktop) or Virtual Joystick (Mobile).
 *   **Shoot**: Auto-fire / Spacebar.
 *   **HYPER**: Press H when DIP meter is full (auto-activates on mobile).
-*   **HODL Mode**: Stop moving for 2x damage (golden aura).
 
 See [PLAYER_MANUAL.md](PLAYER_MANUAL.md) (EN) or [MANUALE_GIOCATORE.md](MANUALE_GIOCATORE.md) (IT) for full details.
 
@@ -169,4 +169,4 @@ All tuning is centralized in `src/config/BalanceConfig.js` via `window.Game.Bala
 
 ## 📜 Credits
 
-Created by [**psychoSocial**](https://www.psychosoci5l.com/) with **Claude**.
+Created by [**psychoSocial**](https://www.psychosoci5l.com/) with **Claude**, **Antigravity**, **ChatGPT**, **Gemini**.

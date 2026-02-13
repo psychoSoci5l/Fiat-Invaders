@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v4.61.0 FIAT vs CRYPTO";
+window.Game.VERSION = "v5.0.0 FIAT vs CRYPTO";
 
 window.Game.TEXTS = {
     EN: {
@@ -496,25 +496,6 @@ window.Game.POWERUP_TYPES = {
     // Utilities (non-weapon, distinct capsule shape)
     SHIELD:  { icon: '🛡️', color: '#2ECC71', category: 'utility', name: 'SHIELD', symbol: '🛡' },
     SPEED:   { icon: '💨', color: '#F1C40F', category: 'utility', name: 'SPEED', symbol: '>' }
-};
-
-// Legacy weapon types (kept for backward compatibility during transition)
-// TODO: Remove after full migration to WEAPON_EVOLUTION system
-window.Game.WEAPONS = {
-    NORMAL: { color: '#ffaa00', rate: 0.18, bullets: 2 },                           // Twin shot base
-    WIDE:   { color: '#bb44ff', rate: 0.40, bullets: 3, spread: 0.18, icon: '🔱' },
-    NARROW: { color: '#2288ff', rate: 0.38, bullets: 3, spread: 0.08, icon: '🎯' },
-    FIRE:   { color: '#ff3344', rate: 0.44, bullets: 3, spread: 0, icon: '🔥' },    // Penetration utility
-    SPREAD: { color: '#00ff66', rate: 0.55, bullets: 5, spread: 0.35, icon: '🌟' }, // 5-shot wide fan
-    HOMING: { color: '#ff8800', rate: 0.50, bullets: 2, icon: '🎯' }                // Tracking missiles
-};
-
-// Legacy ship power-ups (kept for backward compatibility during transition)
-// TODO: Remove after full migration to WEAPON_EVOLUTION system
-window.Game.SHIP_POWERUPS = {
-    SPEED:  { speedMult: 1.25, icon: '⚡', color: '#ffcc00' },
-    RAPID:  { rateMult: 0.80, icon: '🚀', color: '#2288ff' },
-    SHIELD: { instant: true, icon: '🛡️', color: '#00ff66' }
 };
 
 // 10 Fiat currencies with unique stats and visual styles

@@ -112,12 +112,6 @@ window.Game.Debug = {
         powerUpsCollected: [],    // [{ time, type, wave, cycle }]
         pityTimerTriggers: 0,
 
-        // Sacrifice
-        sacrificeOpportunities: 0,
-        sacrificeAccepted: 0,
-        sacrificeSuccess: 0,
-        sacrificeFail: 0,
-
         // Boss
         bossData: [],             // [{ type, cycle, duration, damageToPlayer, phases }]
 
@@ -344,10 +338,6 @@ window.Game.Debug = {
             hyperScoreGained: 0,
             powerUpsCollected: [],
             pityTimerTriggers: 0,
-            sacrificeOpportunities: 0,
-            sacrificeAccepted: 0,
-            sacrificeSuccess: 0,
-            sacrificeFail: 0,
             bossData: [],
             miniBossData: [],
             scoreAtCycleEnd: {},
@@ -469,31 +459,6 @@ window.Game.Debug = {
         });
         if (isPityTimer) {
             a.pityTimerTriggers++;
-        }
-    },
-
-    /**
-     * Track sacrifice opportunity
-     */
-    trackSacrificeOpportunity() {
-        this.analytics.sacrificeOpportunities++;
-    },
-
-    /**
-     * Track sacrifice accepted
-     */
-    trackSacrificeAccepted() {
-        this.analytics.sacrificeAccepted++;
-    },
-
-    /**
-     * Track sacrifice result
-     */
-    trackSacrificeResult(success) {
-        if (success) {
-            this.analytics.sacrificeSuccess++;
-        } else {
-            this.analytics.sacrificeFail++;
         }
     },
 
@@ -835,13 +800,6 @@ window.Game.Debug = {
         if (typeStr) {
             console.log(`║   Types: ${typeStr}`);
         }
-
-        // Sacrifice
-        console.log('║                                                            ║');
-        console.log('║ SACRIFICE                                                  ║');
-        console.log('║ ──────────────────────────────────────────────────────────║');
-        console.log(`║   Opportunities: ${a.sacrificeOpportunities}  Accepted: ${a.sacrificeAccepted}`);
-        console.log(`║   Success: ${a.sacrificeSuccess}  Fail: ${a.sacrificeFail}`);
 
         // Mini-boss
         console.log('║                                                            ║');

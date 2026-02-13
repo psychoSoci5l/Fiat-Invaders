@@ -168,7 +168,7 @@
     const PRECACHE_COLORS = [
         [255, 215, 0],   // gold
         [255, 200, 50],  // power glow
-        [255, 255, 150], // hodl sparkle
+        [255, 255, 150], // golden sparkle
         [255, 180, 0],   // dark gold
         [255, 140, 0],   // deeper gold
         [255, 255, 200], // light gold

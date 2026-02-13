@@ -1,5 +1,31 @@
 # Changelog
 
+## v5.0.0 - 2026-02-13
+### Clean Slate Release
+
+Major codebase cleanup — zero gameplay changes. All removed systems are preserved in git history.
+
+**Dead code removed (~1200 lines):**
+- Sacrifice system (main.js, BalanceConfig, AudioSystem, EffectsRenderer, CollisionSystem, RunState, DebugSystem — 8 files, ~400 lines)
+- `script.js` prototype (entire file, ~700 lines)
+- Legacy `WEAPONS` / `SHIP_POWERUPS` constants + Player.js legacy fire fallback (~100 lines)
+- Ship selection UI from intro (HTML + ~200 lines CSS)
+- `modifiers` / `getMod()` dead accessor system (RunState + 4 call sites)
+- localStorage v4.50 migration shim
+- `perkStacks` compatibility field
+
+**Console noise cleaned:**
+- WeatherController: 7 hardcoded `console.log` removed
+- 3 commented-out `console.log` removed (main.js, InputSystem)
+
+**Docs updated:**
+- SYSTEM_REFERENCE.md: Weapon Evolution + GODCHAIN rewritten for v5.0, new Elemental Perk section
+- README.md: Removed HODL, updated version/GODCHAIN/perks, fixed credits
+- NOTES.md: Rewritten (perk system, mini-boss, APC, HYPER meter)
+- roadmap.md: Consolidated, archived completed phases
+
+**Renamed:** "hodl sparkle" → "golden sparkle" in ColorUtils
+
 ## v4.61.0 - 2026-02-13
 ### Perk Drop via DropSystem
 

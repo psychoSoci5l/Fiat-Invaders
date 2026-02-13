@@ -511,92 +511,7 @@ class Player extends window.Game.Entity {
         window.Game.Input.vibrate(Balance.PLAYER.FIRE_VIBRATION_MS);
         this.muzzleFlash = Balance.PLAYER.MUZZLE_FLASH_DURATION;
 
-        // === WEAPON EVOLUTION v4.47 ===
-        if (WE && this.weaponLevel >= 1) {
-            return this.fireEvolution();
-        }
-
-        // === LEGACY SYSTEM FALLBACK ===
-        const conf = window.Game.WEAPONS[this.weapon];
-
-        // Fire rate: base from weapon, modified by RAPID ship power-up
-        const rapidMult = (this.shipPowerUp === 'RAPID') ? 0.5 : 1;
-        const baseRate = this.weapon === 'NORMAL' ? this.stats.fireRate : conf.rate;
-        const rate = baseRate * rapidMult;
-        this.cooldown = rate;
-
-        // Bullet setup
-        const color = conf.color;
-        const bulletW = 5;
-        const bulletH = 20;
-        const bulletSpeed = 765;
-        const weaponType = this.weapon;
-        const spawnBullet = (x, y, vx, vy) => {
-            const b = window.Game.Bullet.Pool.acquire(x, y, vx, vy, color, bulletW, bulletH, false);
-            b.weaponType = weaponType;
-            const BP = Balance.BULLET_PIERCE;
-            b.pierceHP = BP.BASE_HP;
-            bullets.push(b);
-        };
-
-        // Weapon patterns (tighter spreads for better control)
-        if (this.weapon === 'WIDE') {
-            // Triple spread - tighter pattern
-            const spread = conf.spread || 0.18;
-            spawnBullet(this.x, this.y - 25, 0, -bulletSpeed);
-            spawnBullet(this.x - 8, this.y - 22, -bulletSpeed * spread, -bulletSpeed * 0.92);
-            spawnBullet(this.x + 8, this.y - 22, bulletSpeed * spread, -bulletSpeed * 0.92);
-        } else if (this.weapon === 'NARROW') {
-            // Triple focused - very tight pattern
-            const spread = conf.spread || 0.08;
-            spawnBullet(this.x, this.y - 25, 0, -bulletSpeed);
-            spawnBullet(this.x - 4, this.y - 23, -bulletSpeed * spread, -bulletSpeed * 0.97);
-            spawnBullet(this.x + 4, this.y - 23, bulletSpeed * spread, -bulletSpeed * 0.97);
-        } else if (this.weapon === 'FIRE') {
-            // Triple parallel (tighter spacing) - PENETRATING
-            const spawnFireBullet = (x, y, vx, vy) => {
-                const b = window.Game.Bullet.Pool.acquire(x, y, vx, vy, color, bulletW, bulletH, false);
-                b.penetration = true; // FIRE bullets pierce through enemies
-                bullets.push(b);
-            };
-            spawnFireBullet(this.x, this.y - 25, 0, -bulletSpeed);
-            spawnFireBullet(this.x - 10, this.y - 25, 0, -bulletSpeed);
-            spawnFireBullet(this.x + 10, this.y - 25, 0, -bulletSpeed);
-        } else if (this.weapon === 'SPREAD') {
-            // 5-shot wide fan pattern
-            const spread = conf.spread || 0.35;
-            spawnBullet(this.x, this.y - 25, 0, -bulletSpeed); // Center
-            spawnBullet(this.x - 6, this.y - 23, -bulletSpeed * spread * 0.5, -bulletSpeed * 0.95); // Inner left
-            spawnBullet(this.x + 6, this.y - 23, bulletSpeed * spread * 0.5, -bulletSpeed * 0.95);  // Inner right
-            spawnBullet(this.x - 12, this.y - 20, -bulletSpeed * spread, -bulletSpeed * 0.88);      // Outer left
-            spawnBullet(this.x + 12, this.y - 20, bulletSpeed * spread, -bulletSpeed * 0.88);       // Outer right
-        } else if (this.weapon === 'HOMING') {
-            // Tracking missiles - spawn with homing flag
-            const spawnHomingBullet = (x, y) => {
-                const b = window.Game.Bullet.Pool.acquire(x, y, 0, -bulletSpeed * 0.6, color, 8, 16, false);
-                b.homing = true;
-                b.homingSpeed = 4.0; // Turn rate
-                b.weaponType = 'HOMING';
-                bullets.push(b);
-            };
-            spawnHomingBullet(this.x - 10, this.y - 20);
-            spawnHomingBullet(this.x + 10, this.y - 20);
-        } else if (this.weapon === 'LASER') {
-            // Rapid continuous beam - thin penetrating shots
-            const spawnLaserBullet = (x, y) => {
-                const b = window.Game.Bullet.Pool.acquire(x, y, 0, -bulletSpeed * 1.4, color, 3, 30, false);
-                b.penetration = true; // Laser pierces through enemies
-                b.weaponType = 'LASER';
-                bullets.push(b);
-            };
-            spawnLaserBullet(this.x, this.y - 25);
-        } else {
-            // NORMAL: twin shot (2 parallel bullets for stronger base attack)
-            spawnBullet(this.x - 6, this.y - 25, 0, -bulletSpeed);
-            spawnBullet(this.x + 6, this.y - 25, 0, -bulletSpeed);
-        }
-
-        return bullets;
+        return this.fireEvolution();
     }
 
     /**
@@ -1243,8 +1158,6 @@ class Player extends window.Game.Entity {
     }
 
     getRunMod(key, fallback) {
-        const rs = window.Game.RunState;
-        if (rs && rs.getMod) return rs.getMod(key, fallback);
         return fallback;
     }
 

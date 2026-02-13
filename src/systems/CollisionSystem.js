@@ -90,9 +90,6 @@ window.Game = window.Game || {};
 
                 const ebR = eb.collisionRadius || Balance.BULLET_CONFIG.ENEMY_DEFAULT.collisionRadius;
 
-                // SACRIFICE MODE: total invincibility
-                if (state.sacrificeState === 'ACTIVE') continue;
-
                 // Core hit check (take damage)
                 if (G.BulletSystem.circleCollide(eb.x, eb.y, ebR, player.x, player.y, coreR)) {
                     // HYPER instant death
@@ -134,8 +131,7 @@ window.Game = window.Game || {};
                 const runState = G.RunState;
 
                 const baseBossDmg = Math.ceil((player.stats.baseDamage || 14) / 4);
-                const dmgMult = (runState && runState.getMod) ? runState.getMod('damageMult', 1) : 1;
-                let dmg = baseBossDmg * dmgMult;
+                let dmg = baseBossDmg;
 
                 boss.damage(dmg);
                 cb.onBossHit(bullet, dmg, boss, bIdx, bullets);
@@ -180,8 +176,7 @@ window.Game = window.Game || {};
 
                 if (G.BulletSystem.bulletHitsEntity(bullet, e, Balance.BULLET_CONFIG.ENEMY_HITBOX_RADIUS)) {
                     const baseDmg = player.stats.baseDamage || 14;
-                    const dmgMult = (runState && runState.getMod) ? runState.getMod('damageMult', 1) : 1;
-                    let dmg = baseDmg * dmgMult;
+                    let dmg = baseDmg;
 
                     if (bullet.damageMult && bullet.damageMult > 1) dmg *= bullet.damageMult;
                     if (player.getSmartContractMult) dmg *= player.getSmartContractMult(e);

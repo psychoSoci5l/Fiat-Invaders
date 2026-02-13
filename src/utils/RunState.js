@@ -9,16 +9,8 @@ class RunState {
         // --- Original modifiers/perks ---
         this.coins = 0;
         this.perks = [];
-        this.perkStacks = {};   // kept for compat, unused by elemental system
         this.flags = {};
         this.pityCounter = 0;
-        this.modifiers = {
-            scoreMult: 1,
-            speedMult: 1,
-            damageMult: 1,
-            pierceBonusHP: 0,
-            maxHpBonus: 0
-        };
 
         // --- Elemental Perk System (v4.60) ---
         this.perkLevel = 0;         // 0-3+, counts elements collected
@@ -54,15 +46,6 @@ class RunState {
         this.bulletCancelTimer = 0;
         this.perkCooldown = 0;
 
-        // --- Sacrifice ---
-        this.sacrificeState = 'NONE';
-        this.sacrificeDecisionTimer = 0;
-        this.sacrificeActiveTimer = 0;
-        this.sacrificeScoreAtStart = 0;
-        this.sacrificesUsedThisRun = 0;
-        this.sacrificeScoreEarned = 0;
-        this.sacrificeGhostTrail = [];
-
         // --- Mini-boss ---
         this.fiatKillCounter = { '¥': 0, '₽': 0, '₹': 0, '€': 0, '£': 0, '₣': 0, '₺': 0, '$': 0, '元': 0, 'Ⓒ': 0 };
         this.lastMiniBossSpawnTime = 0;
@@ -83,11 +66,6 @@ class RunState {
         this._hyperAmbientTimer = 0;
     }
 
-    getMod(key, fallback = 1) {
-        if (!this.modifiers) return fallback;
-        const val = this.modifiers[key];
-        return (val === undefined || val === null) ? fallback : val;
-    }
 }
 
 window.Game.RunState = new RunState();

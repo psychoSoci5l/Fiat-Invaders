@@ -333,18 +333,6 @@
     }
 
     /**
-     * Draw sacrifice mode overlay (white ethereal)
-     * @param {CanvasRenderingContext2D} ctx
-     * @param {number} totalTime - Total elapsed time for animation
-     */
-    function drawSacrificeOverlay(ctx, totalTime) {
-        if (!G.Balance?.JUICE?.SCREEN_EFFECTS?.SACRIFICE_OVERLAY) return;
-        const sacrificePulse = Math.sin(totalTime * 4) * 0.03 + 0.08;
-        ctx.fillStyle = `rgba(255, 255, 255, ${sacrificePulse})`;
-        ctx.fillRect(-20, -20, gameWidth + 40, gameHeight + 40);
-    }
-
-    /**
      * Draw vignette effect
      * @param {CanvasRenderingContext2D} ctx
      * @param {string} color - Vignette color (rgba format)
@@ -436,7 +424,6 @@
         // Triggers (new)
         triggerDamageVignette,
         drawHyperOverlay,
-        drawSacrificeOverlay,
         drawVignette,
         drawLowHPVignette,
         drawGodchainVignette,

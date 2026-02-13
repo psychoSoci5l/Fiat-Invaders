@@ -75,7 +75,6 @@ function loadAssets() {
             if (!spriteHasTransparency(img)) {
                 console.warn(`Asset appears fully opaque (no alpha): ${key} -> ${src}`);
             }
-            /* console.log(`Loaded ${key}`); */
         };
         img.onerror = () => {
             img._failed = true;
@@ -94,12 +93,6 @@ function highScoreKey() {
 }
 function loadHighScoreForMode() {
     return parseInt(localStorage.getItem(highScoreKey())) || 0;
-}
-// One-time migration: copy legacy key to arcade
-if (!localStorage.getItem('fiat_highscore_migrated')) {
-    const legacy = parseInt(localStorage.getItem('fiat_highscore')) || 0;
-    if (legacy > 0) localStorage.setItem('fiat_highscore_arcade', legacy);
-    localStorage.setItem('fiat_highscore_migrated', '1');
 }
 let highScore = loadHighScoreForMode(); // PERSISTENCE
 
@@ -164,7 +157,6 @@ function buildPlayerState() {
 }
 
 // v4.29: Pre-allocated objects for CollisionSystem callbacks — avoids per-call allocation
-const _stateObj = { sacrificeState: null };
 const _sparkOpts = { weaponLevel: 1, isKill: false, isHyper: false };
 
 // v4.28.0: CollisionSystem initialization with callbacks
@@ -177,7 +169,7 @@ function initCollisionSystem() {
         getEnemies: () => enemies,
         getBoss: () => boss,
         getMiniBoss: () => miniBoss,
-        getState: () => { _stateObj.sacrificeState = sacrificeState; return _stateObj; },
+        getState: () => ({}),
         callbacks: {
             // Player hit by enemy bullet (normal — not HYPER)
             onPlayerHit(eb, ebIdx, ebArr) {
@@ -279,17 +271,15 @@ function initCollisionSystem() {
                 lastKillTime = now;
 
                 // Score calculation
-                const perkMult = (runState && runState.getMod) ? runState.getMod('scoreMult', 1) : 1;
+                const perkMult = 1;
                 const bearMult = isBearMarket ? Balance.SCORE.BEAR_MARKET_MULT : 1;
                 const grazeKillBonus = grazeMeter >= Balance.SCORE.GRAZE_KILL_THRESHOLD ? Balance.SCORE.GRAZE_KILL_BONUS : 1;
                 const hyperMult = (player.isHyperActive && player.isHyperActive()) ? Balance.HYPER.SCORE_MULT : 1;
                 const isLastEnemy = enemies.length === 0;
                 const lastEnemyMult = isLastEnemy && G.HarmonicConductor ? G.HarmonicConductor.getLastEnemyBonus() : 1;
-                const sacrificeMult = sacrificeState === 'ACTIVE' ? Balance.SACRIFICE.SCORE_MULT : 1;
-                const killScore = Math.floor(e.scoreVal * bearMult * perkMult * killStreakMult * grazeKillBonus * hyperMult * lastEnemyMult * sacrificeMult);
+                const killScore = Math.floor(e.scoreVal * bearMult * perkMult * killStreakMult * grazeKillBonus * hyperMult * lastEnemyMult);
                 score += killScore;
                 updateScore(score);
-                if (sacrificeState === 'ACTIVE') sacrificeScoreEarned += killScore;
                 createFloatingScore(killScore, e.x, e.y - 20);
 
                 if (isLastEnemy && lastEnemyMult > 1) {
@@ -574,8 +564,6 @@ let score, level, totalTime, killCount, streak, bestStreak;
 let killStreak, killStreakMult, lastKillTime, lastScoreMilestone;
 let grazeCount, grazeMeter, grazeMultiplier, grazePerksThisLevel, lastGrazeSoundTime, lastGrazeTime;
 let bulletCancelStreak, bulletCancelTimer, perkCooldown;
-let sacrificeState, sacrificeDecisionTimer, sacrificeActiveTimer, sacrificeScoreAtStart;
-let sacrificesUsedThisRun, sacrificeScoreEarned, sacrificeGhostTrail;
 let fiatKillCounter, lastMiniBossSpawnTime, miniBossThisWave;
 let waveStartTime, _frameKills, _hyperAmbientTimer, marketCycle;
 
@@ -600,13 +588,6 @@ function syncFromRunState() {
     bulletCancelStreak = runState.bulletCancelStreak;
     bulletCancelTimer = runState.bulletCancelTimer;
     perkCooldown = runState.perkCooldown;
-    sacrificeState = runState.sacrificeState;
-    sacrificeDecisionTimer = runState.sacrificeDecisionTimer;
-    sacrificeActiveTimer = runState.sacrificeActiveTimer;
-    sacrificeScoreAtStart = runState.sacrificeScoreAtStart;
-    sacrificesUsedThisRun = runState.sacrificesUsedThisRun;
-    sacrificeScoreEarned = runState.sacrificeScoreEarned;
-    sacrificeGhostTrail = runState.sacrificeGhostTrail;
     fiatKillCounter = runState.fiatKillCounter;
     lastMiniBossSpawnTime = runState.lastMiniBossSpawnTime;
     miniBossThisWave = runState.miniBossThisWave;
@@ -3829,110 +3810,6 @@ function drawGodchainUI(ctx) {
     ctx.restore();
 }
 
-// Draw Satoshi's Sacrifice UI (decision button or active countdown)
-function drawSacrificeUI(ctx) {
-    const centerX = gameWidth / 2;
-    const centerY = gameHeight / 2;
-    const config = Balance.SACRIFICE;
-
-    // DECISION MODE: Show sacrifice button
-    if (sacrificeState === 'DECISION') {
-        ctx.save();
-
-        // Dark overlay
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(0, 0, gameWidth, gameHeight);
-
-        // Pulsing button
-        const pulse = Math.sin(totalTime * 8) * 0.1 + 1;
-        const btnSize = config.BUTTON_SIZE * pulse;
-
-        // Button glow
-        ctx.shadowColor = '#FFD700';
-        ctx.shadowBlur = 30;
-
-        // Button background
-        const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, btnSize);
-        gradient.addColorStop(0, '#FFD700');
-        gradient.addColorStop(0.7, '#ffaa00');
-        gradient.addColorStop(1, '#996600');
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, btnSize / 2, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Button border
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 4;
-        ctx.stroke();
-
-        // Bitcoin symbol
-        ctx.font = G.ColorUtils.font('bold', btnSize * 0.5, 'Arial');
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillStyle = '#fff';
-        ctx.fillText('₿', centerX, centerY - 5);
-
-        // Text above button
-        ctx.font = 'bold 28px "Courier New", monospace';
-        ctx.fillStyle = '#fff';
-        ctx.strokeStyle = '#000';
-        ctx.lineWidth = 4;
-        ctx.strokeText('SATOSHI\'S SACRIFICE', centerX, centerY - btnSize / 2 - 40);
-        ctx.fillText('SATOSHI\'S SACRIFICE', centerX, centerY - btnSize / 2 - 40);
-
-        // Instructions below button
-        ctx.font = 'bold 18px "Courier New", monospace';
-        ctx.fillStyle = '#FFD700';
-        ctx.strokeText('[SPACE] to SACRIFICE ALL ' + Math.floor(sacrificeScoreAtStart) + ' PTS', centerX, centerY + btnSize / 2 + 30);
-        ctx.fillText('[SPACE] to SACRIFICE ALL ' + Math.floor(sacrificeScoreAtStart) + ' PTS', centerX, centerY + btnSize / 2 + 30);
-
-        // Timer
-        ctx.font = 'bold 24px "Courier New", monospace';
-        const timerColor = sacrificeDecisionTimer < 1 ? '#ff4444' : '#fff';
-        ctx.fillStyle = timerColor;
-        ctx.fillText(sacrificeDecisionTimer.toFixed(1) + 's', centerX, centerY + btnSize / 2 + 60);
-
-        ctx.restore();
-    }
-    // ACTIVE MODE: Show countdown and score tracker
-    else if (sacrificeState === 'ACTIVE') {
-        ctx.save();
-
-        const timeLeft = sacrificeActiveTimer;
-        const pulse = Math.sin(totalTime * 6) * 0.1 + 1;
-
-        // Large countdown at top
-        ctx.font = G.ColorUtils.font('bold', config.COUNTDOWN_FONT_SIZE * pulse, '"Courier New", monospace');
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-
-        // Glow
-        ctx.shadowColor = '#fff';
-        ctx.shadowBlur = 20;
-
-        ctx.fillStyle = timeLeft < 3 ? '#ff4444' : '#fff';
-        ctx.strokeStyle = '#000';
-        ctx.lineWidth = 5;
-        ctx.strokeText('SATOSHI MODE', centerX, 100);
-        ctx.fillText('SATOSHI MODE', centerX, 100);
-
-        ctx.font = 'bold 48px "Courier New", monospace';
-        ctx.strokeText(Math.ceil(timeLeft) + 's', centerX, 150);
-        ctx.fillText(Math.ceil(timeLeft) + 's', centerX, 150);
-
-        // Score tracker (bottom)
-        ctx.font = 'bold 20px "Courier New", monospace';
-        ctx.fillStyle = '#FFD700';
-        const needed = Math.floor(sacrificeScoreAtStart * config.SUCCESS_THRESHOLD);
-        const earned = Math.floor(sacrificeScoreEarned);
-        const progress = earned >= needed ? '✓ GOAL MET!' : earned + ' / ' + needed;
-        ctx.strokeText('x10 SCORE | ' + progress, centerX, gameHeight - 50);
-        ctx.fillText('x10 SCORE | ' + progress, centerX, gameHeight - 50);
-
-        ctx.restore();
-    }
-}
 
 // v4.28.0: checkBulletCollisions removed — logic moved to CollisionSystem.processPlayerBulletVsEnemy
 
@@ -3999,20 +3876,6 @@ function updateEnemies(dt) {
 }
 
 function startDeathSequence() {
-    // Check if Satoshi's Sacrifice should be offered
-    const sacrificeConfig = Balance.SACRIFICE;
-    const canSacrifice = sacrificeConfig && sacrificeConfig.ENABLED &&
-                         lives === 1 && // Last life
-                         score > 0 && // Has score to sacrifice
-                         sacrificeState === 'NONE' && // Not already in sacrifice
-                         sacrificesUsedThisRun < 1; // Max 1 sacrifice per run
-
-    if (canSacrifice) {
-        // Enter sacrifice decision state instead of death
-        enterSacrificeDecision();
-        return;
-    }
-
     // v4.1.0: Signal death to rank system
     if (G.RankSystem) G.RankSystem.onDeath();
 
@@ -4036,118 +3899,6 @@ function startDeathSequence() {
 
     // 3. Play Sound
     audioSys.play('explosion');
-}
-
-// Enter Satoshi's Sacrifice decision window
-function enterSacrificeDecision() {
-    sacrificeState = 'DECISION';
-    sacrificeDecisionTimer = Balance.SACRIFICE.DECISION_WINDOW;
-    sacrificeScoreAtStart = score;
-
-    // Analytics: Track sacrifice opportunity
-    if (G.Debug) G.Debug.trackSacrificeOpportunity();
-
-    // Extreme slow-mo during decision
-    // (handled in game loop via sacrificeState check)
-
-    // Play dramatic sound
-    audioSys.play('sacrificeOffer');
-
-    // Screen effect
-    shake = 20;
-    triggerScreenFlash('PLAYER_HIT');
-}
-
-// Activate Satoshi's Sacrifice
-function activateSacrifice() {
-    sacrificeState = 'ACTIVE';
-    sacrificeActiveTimer = Balance.SACRIFICE.INVINCIBILITY_DURATION;
-    sacrificeScoreEarned = 0;
-    sacrificesUsedThisRun++; // Increment sacrifice counter (max 1 per run)
-
-    // Analytics: Track sacrifice accepted
-    if (G.Debug) G.Debug.trackSacrificeAccepted();
-
-    // Reset score to 0 (the sacrifice)
-    score = 0;
-    updateScore(0);
-
-    // Make player invincible
-    player.invulnTimer = Balance.SACRIFICE.INVINCIBILITY_DURATION + 1; // Slightly longer than mode
-
-    // Play activation sound
-    audioSys.play('sacrificeActivate');
-
-    // Epic visual feedback
-    applyHitStop('BOSS_DEFEAT', false); // Long slowmo
-    triggerScreenFlash('BOSS_DEFEAT'); // White flash
-    shake = 40;
-
-    showDanger("⚡ SATOSHI MODE ⚡");
-}
-
-// End Satoshi's Sacrifice and determine outcome
-function endSacrifice() {
-    const config = Balance.SACRIFICE;
-    const sacrificedAmount = sacrificeScoreAtStart;
-    const earnedAmount = sacrificeScoreEarned;
-    const success = earnedAmount >= (sacrificedAmount * config.SUCCESS_THRESHOLD);
-
-    sacrificeState = 'NONE';
-    sacrificeGhostTrail = [];
-
-    // Analytics: Track sacrifice result
-    if (G.Debug) G.Debug.trackSacrificeResult(success);
-
-    if (success) {
-        // SUCCESS - Satoshi approves!
-        lives += config.SUCCESS_BONUS_LIVES;
-        setUI('livesText', lives);
-        updateLivesUI();
-
-        showVictory("💎 SATOSHI APPROVES 💎");
-        audioSys.play('sacrificeSuccess');
-        applyHitStop('BOSS_DEFEAT', false);
-        triggerScreenFlash('HYPER_ACTIVATE'); // Gold flash
-
-        // Bonus message
-        const profit = earnedAmount - sacrificedAmount;
-        if (profit > 0) {
-            showGameInfo("+" + Math.floor(profit) + " " + t('PROFIT'));
-        }
-    } else {
-        // FAILURE - NGMI but survive
-        showDanger("📉 NGMI 📉");
-        audioSys.play('sacrificeFail');
-        applyHitStop('PLAYER_HIT', false);
-        triggerScreenFlash('PLAYER_HIT');
-
-        // Still survive (that's the point of sacrifice)
-        player.hp = 1;  // 1-hit = 1-life system
-        player.invulnTimer = Balance.TIMING.INVULNERABILITY;
-    }
-
-    // Clear bullets for fairness
-    enemyBullets.forEach(b => {
-        b.markedForDeletion = true;
-    });
-}
-
-// Decline sacrifice (let death happen)
-function declineSacrifice() {
-    sacrificeState = 'NONE';
-
-    // Continue with normal death
-    if (G.EffectsRenderer) {
-        G.EffectsRenderer.setHitStop(Balance.TIMING.HIT_STOP_DEATH, true);
-        G.EffectsRenderer.applyImpactFlash(Balance.EFFECTS.FLASH.DEATH_OPACITY);
-        G.EffectsRenderer.applyShake(Balance.EFFECTS.SHAKE.PLAYER_DEATH);
-    }
-    deathTimer = Balance.TIMING.DEATH_DURATION;
-    audioSys.play('explosion');
-    enemyBullets.forEach(b => {
-        b.markedForDeletion = true;
-    });
 }
 
 function executeDeath() {
@@ -4225,42 +3976,8 @@ function draw() {
         G.EffectsRenderer.drawHyperOverlay(ctx, totalTime);
     }
 
-    // SACRIFICE MODE screen overlay (white/ethereal)
-    if (sacrificeState === 'ACTIVE' && G.EffectsRenderer) {
-        G.EffectsRenderer.drawSacrificeOverlay(ctx, totalTime);
-        ctx.fillRect(-20, -20, gameWidth + 40, gameHeight + 40);
-    }
-
     if (gameState === 'PLAY' || gameState === 'WARMUP' || gameState === 'PAUSE' || gameState === 'GAMEOVER' || gameState === 'INTERMISSION') {
-        // Draw sacrifice ghost trail (before player)
-        if (sacrificeState === 'ACTIVE' && sacrificeGhostTrail.length > 0) {
-            ctx.save();
-            sacrificeGhostTrail.forEach((ghost, i) => {
-                ctx.globalAlpha = ghost.alpha * 0.4;
-                // Simple ghost silhouette
-                ctx.fillStyle = '#FFFFFF';
-                ctx.beginPath();
-                ctx.arc(ghost.x, ghost.y, 20 - i * 2, 0, Math.PI * 2);
-                ctx.fill();
-            });
-            ctx.restore();
-        }
-
-        // Player glow during sacrifice
-        if (sacrificeState === 'ACTIVE' && player) {
-            ctx.save();
-            const glowPulse = 1 + Math.sin(totalTime * 8) * 0.3;
-            ctx.shadowColor = '#FFFFFF';
-            ctx.shadowBlur = 30 * glowPulse;
-            ctx.globalAlpha = 0.8;
-        }
-
         player.draw(ctx);
-
-        // End player glow
-        if (sacrificeState === 'ACTIVE') {
-            ctx.restore();
-        }
 
         // v4.56: Batched enemy glow pass (additive)
         const _glowCfg = G.Balance?.GLOW;
@@ -4355,9 +4072,6 @@ function draw() {
         // HYPER MODE UI (timer when active, "READY" when available)
         drawHyperUI(ctx);
         drawGodchainUI(ctx);
-
-        // SACRIFICE UI (decision button or active countdown)
-        drawSacrificeUI(ctx);
 
         // v4.21: Intermission countdown removed (seamless wave transitions)
         // Boss-defeat intermission still uses timer but no visual countdown overlay
@@ -4757,50 +4471,6 @@ function loop(timestamp) {
         }
     }
 
-    // Satoshi's Sacrifice System
-    if (sacrificeState === 'DECISION') {
-        // Extreme slow-mo during decision
-        dt *= Balance.SACRIFICE.DECISION_TIME_SCALE;
-
-        // Update decision timer
-        sacrificeDecisionTimer -= realDt;
-
-        // Check for activation input (Space or touch)
-        if (inputSys.isDown('Space') || inputSys.isDown('KeyS')) {
-            activateSacrifice();
-        }
-
-        // Timer expired - decline automatically
-        if (sacrificeDecisionTimer <= 0) {
-            declineSacrifice();
-        }
-    } else if (sacrificeState === 'ACTIVE') {
-        // Update sacrifice timer
-        sacrificeActiveTimer -= realDt;
-
-        // Update ghost trail for visual effect
-        if (player) {
-            sacrificeGhostTrail.unshift({ x: player.x, y: player.y, alpha: 1 });
-            if (sacrificeGhostTrail.length > Balance.SACRIFICE.GHOST_TRAIL_COUNT) {
-                sacrificeGhostTrail.pop();
-            }
-            // Fade ghost trail
-            sacrificeGhostTrail.forEach((g, i) => {
-                g.alpha = 1 - (i / sacrificeGhostTrail.length);
-            });
-        }
-
-        // Warning when time is running low
-        if (sacrificeActiveTimer <= Balance.SACRIFICE.WARNING_TIME && sacrificeActiveTimer > Balance.SACRIFICE.WARNING_TIME - 0.1) {
-            showDanger("⚠️ " + Math.ceil(sacrificeActiveTimer) + t('TIME_LEFT'));
-        }
-
-        // Sacrifice ended
-        if (sacrificeActiveTimer <= 0) {
-            endSacrifice();
-        }
-    }
-
     // Update effects via EffectsRenderer (hit stop, screen flash, score pulse)
     if (G.EffectsRenderer) {
         const effectResult = G.EffectsRenderer.update(realDt);
@@ -4885,9 +4555,6 @@ function loop(timestamp) {
 
 // Game Center Mock (replace with Capacitor plugin for iOS)
 function submitToGameCenter(scoreValue) {
-    // TODO: In production, use Capacitor GameCenter plugin
-    // e.g., GameCenter.submitScore({ leaderboardId: 'fiat_invaders_highscore', score: scoreValue });
-    // console.log('[GameCenter] Score submitted:', scoreValue);  // Removed for production
     emitEvent('gamecenter_submit', { score: scoreValue });
 }
 

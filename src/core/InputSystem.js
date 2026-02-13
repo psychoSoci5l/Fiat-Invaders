@@ -13,7 +13,6 @@ class InputSystem {
 
     init() {
         window.addEventListener('keydown', e => {
-            // console.log("Key:", e.code);
             this.keys[e.code] = true;
             this.handleGlobalKeys(e.code);
         });

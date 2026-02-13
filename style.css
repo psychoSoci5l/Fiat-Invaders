@@ -970,92 +970,6 @@ body {
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* Ship area - center with arrows */
-.ship-area {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 15px;
-    margin: 10px 0;
-}
-
-.ship-preview-center {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: transparent !important;
-}
-
-#intro-ship-canvas {
-    background: transparent !important;
-    border: none !important;
-    filter: drop-shadow(0 0 25px rgba(187, 68, 255, 0.7));
-    animation: shipFloat 2.5s ease-in-out infinite;
-}
-
-@keyframes shipFloat {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
-}
-
-#intro-ship-canvas.ship-swap {
-    animation: shipSwap 0.25s ease-out;
-}
-
-@keyframes shipSwap {
-    0% { transform: scale(0.85) rotate(-3deg); opacity: 0.5; }
-    100% { transform: scale(1) rotate(0); opacity: 1; }
-}
-
-/* Ship arrows */
-.ship-arrow {
-    background: rgba(255, 255, 255, 0.08);
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 48px;
-    width: 60px;
-    height: 90px;
-    cursor: pointer;
-    border-radius: 12px;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.ship-arrow.visible {
-    visibility: visible !important;
-    animation: arrowFadeIn 0.3s ease-out;
-}
-
-@keyframes arrowFadeIn {
-    from { opacity: 0; transform: scale(0.8); }
-    to { opacity: 1; transform: scale(1); }
-}
-
-.ship-arrow:hover {
-    background: rgba(187, 68, 255, 0.2);
-    border-color: var(--neon-violet);
-    color: var(--neon-violet);
-    transform: scale(1.1);
-    box-shadow: 0 0 20px rgba(187, 68, 255, 0.3);
-}
-
-.ship-arrow:active {
-    transform: scale(0.95);
-}
-
-/* Selection info */
-.selection-info {
-    text-align: center;
-    animation: fadeSlideUp 0.4s ease-out;
-}
-
-@keyframes fadeSlideUp {
-    from { opacity: 0; transform: translateY(15px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
 /* TAP TO START button */
 .btn-tap-start {
     background: linear-gradient(180deg, rgba(187, 68, 255, 0.15) 0%, rgba(187, 68, 255, 0.05) 100%);
@@ -1157,103 +1071,6 @@ body {
     letter-spacing: 5px;
     color: #fff;
     text-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
-}
-
-.selection-ship {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 20px;
-}
-
-.ship-preview-large {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: transparent !important;
-    border: none !important;
-}
-
-#intro-ship-canvas {
-    background: transparent !important;
-    border: none !important;
-    filter: drop-shadow(0 0 25px rgba(187, 68, 255, 0.7));
-    animation: selectionShipFloat 2.5s ease-in-out infinite;
-}
-
-@keyframes selectionShipFloat {
-    0%, 100% { transform: translateY(0) scale(1); }
-    50% { transform: translateY(-10px) scale(1.03); }
-}
-
-#intro-ship-canvas.ship-swap {
-    animation: shipSwap 0.25s ease-out;
-}
-
-@keyframes shipSwap {
-    0% { transform: scale(0.85) rotate(-3deg); opacity: 0.5; }
-    100% { transform: scale(1) rotate(0); opacity: 1; }
-}
-
-.ship-arrow {
-    background: rgba(255, 255, 255, 0.08);
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 48px;
-    width: 60px;
-    height: 90px;
-    cursor: pointer;
-    border-radius: 12px;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.ship-arrow:hover {
-    background: rgba(187, 68, 255, 0.2);
-    border-color: var(--neon-violet);
-    color: var(--neon-violet);
-    transform: scale(1.1);
-    box-shadow: 0 0 20px rgba(187, 68, 255, 0.3);
-}
-
-.ship-arrow:active {
-    transform: scale(0.95);
-}
-
-.selection-info {
-    text-align: center;
-    animation: infoFadeIn 0.5s ease-out 0.15s both;
-}
-
-@keyframes infoFadeIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.ship-name-large {
-    font-size: clamp(22px, 6vw, 28px);
-    font-weight: 900;
-    letter-spacing: 4px;
-    color: var(--neon-violet);
-    text-shadow:
-        0 0 20px rgba(187, 68, 255, 0.6),
-        -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000;
-    margin-bottom: 10px;
-}
-
-.ship-stats-large {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    font-size: clamp(13px, 3.5vw, 16px);
-    color: #ccc;
-    font-family: 'Courier New', monospace;
-}
-
-.ship-stats-large .stat-item {
-    text-shadow: 0 0 5px rgba(0, 0, 0, 0.8);
 }
 
 .selection-score {
@@ -1649,12 +1466,6 @@ body {
         1px 1px 0 #000;
 }
 
-/* Ship Area Hidden State (SPLASH) */
-.ship-area.hidden {
-    opacity: 0; height: 0; margin: 0; overflow: hidden;
-    pointer-events: none;
-    transition: all 0.3s ease;
-}
 
 /* Current Mode Indicator (SELECTION) - Minimal text style */
 .current-mode-indicator {
@@ -1751,9 +1562,6 @@ body {
 
 @media (max-height: 600px) {
     .mode-selector {
-        margin: 8px 0;
-    }
-    .ship-area {
         margin: 8px 0;
     }
     .current-mode-indicator {

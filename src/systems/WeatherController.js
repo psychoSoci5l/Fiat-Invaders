@@ -99,8 +99,6 @@
         var mapping = cfg.TRIGGERS[eventName];
         if (!mapping) return;
 
-        console.log('[WEATHER] Trigger: ' + eventName + ' (' + mapping.length + ' effects)');
-
         for (var i = 0; i < mapping.length; i++) {
             var fx = mapping[i];
 
@@ -109,10 +107,7 @@
             for (var j = 0; j < activeEffects.length; j++) {
                 if (activeEffects[j].type === fx.type) { alreadyActive = true; break; }
             }
-            if (alreadyActive) {
-                console.log('[WEATHER]   SKIP ' + fx.type + ' (already active)');
-                continue;
-            }
+            if (alreadyActive) continue;
 
             activeEffects.push({
                 type: fx.type,
@@ -120,8 +115,6 @@
                 duration: fx.duration || 5,
                 intensity: fx.intensity || 1.0
             });
-
-            console.log('[WEATHER]   + ' + fx.type + ' (dur=' + (fx.duration || 5) + 's, int=' + (fx.intensity || 1.0) + ')');
 
             // Immediate side-effects per type
             if (fx.type === 'sheet_lightning') {
@@ -132,11 +125,9 @@
             }
             if (fx.type === 'meteor_shower') {
                 _spawnMeteorBurst(fx.count || 8);
-                console.log('[WEATHER]   spawned ' + (fx.count || 8) + ' meteors');
             }
             if (fx.type === 'rain') {
                 _spawnRain(fx.count || 30);
-                console.log('[WEATHER]   spawned ' + raindrops.length + ' raindrops');
             }
         }
     }
@@ -320,7 +311,6 @@
             distantLightningFlash = 0;
         }
 
-        console.log('[WEATHER] setLevel(' + level + ', bear=' + isBearMarket + ', boss=' + bossActive + ') ambient=' + effects.join(','));
     }
 
     // --- triggerLevelTransition (v4.42) ---
@@ -342,7 +332,6 @@
         // Flash
         sheetFlashTarget = tr.FLASH_INTENSITY;
 
-        console.log('[WEATHER] Level transition burst');
     }
 
     // --- Update ---

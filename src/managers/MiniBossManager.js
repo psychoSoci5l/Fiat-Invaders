@@ -271,8 +271,7 @@
             const pl = player();
             const rs = runState();
             const baseDmg = pl.stats.baseDamage || 14;
-            const dmgMult = (rs && rs.getMod) ? rs.getMod('damageMult', 1) : 1;
-            let dmg = baseDmg * dmgMult;
+            let dmg = baseDmg;
 
             if (isBossInstance) {
                 miniBoss.damage(dmg);
