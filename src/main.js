@@ -3486,7 +3486,7 @@ function update(dt) {
                 // v4.57: Early drop boost — pre-fill pity counter so first power-up comes quickly
                 const edl = Balance.DROP_SCALING?.EARLY_DROP_LEVEL;
                 if (edl && level === edl && G.DropSystem) {
-                    G.DropSystem.killsSinceLastDrop = Balance.DROP_SCALING.EARLY_DROP_PREFILL || 40;
+                    G.DropSystem.killsSinceLastDrop = Math.max(G.DropSystem.killsSinceLastDrop, Balance.DROP_SCALING.EARLY_DROP_PREFILL || 40);
                 }
                 // NOTE: Removed showGameInfo("📈 LEVEL " + level) - unified in wave info below
             }

@@ -72,7 +72,7 @@
         // --- PERK SYSTEM (v4.60: Elemental perks) ---
         PERK: {
             ENABLED: true,            // Toggle perk system (false = no perks awarded)
-            COOLDOWN_TIME: 25,        // v5.0.4: 15→25s (perks più distanziati, GODCHAIN durante boss)
+            COOLDOWN_TIME: 20,        // v5.0.4: 25→20s (compromise: not too fast, not boring)
             PAUSE_DURATION: 1.2,      // Seconds to pause for perk notification
             MAX_ELEMENTS: 3           // v4.60: 3 elemental perks (fire→laser→electric)
         },
@@ -922,8 +922,8 @@
         WEAPON_EVOLUTION: {
             // Weapon levels (permanent until death, -1 per death)
             MAX_WEAPON_LEVEL: 5,
-            KILLS_FOR_UPGRADE: 75,        // v5.0.4: 55→75 (LV4 a ~2:15, LV5 mid-boss)
-            KILLS_FOR_PERK: 80,           // v5.0.4: 50→80 (2 perks pre-boss, 3° durante boss)
+            KILLS_FOR_UPGRADE: 50,        // v5.0.4: 60→50 (LV2@W1H2 end — avoids 3-hit slog at W2)
+            KILLS_FOR_PERK: 70,           // v5.0.4: 80→70 (perk@W2H1, perk@W3H2, GODCHAIN@W5H1)
 
             // HYPER mode weapon boost
             HYPER_LEVEL_BOOST: 2,         // +2 weapon levels during HYPER
@@ -971,7 +971,7 @@
             CYCLE_BONUS: 0,              // v4.17: 0.5%→0 (flat rate, no cycle scaling)
 
             // Pity timer decreases with cycle
-            PITY_BASE: 65,              // v5.0.4: 55→65 (drop generali meno frequenti)
+            PITY_BASE: 40,              // v5.0.4: 50→40 (general drop every ~40 kills, ~24s)
             PITY_REDUCTION: 2,          // -2 kills per cycle (min 15) (v4.17: 3→2)
             // v4.57: Early drop at level 2 start — pity counter pre-filled so first drop comes after ~8 kills
             EARLY_DROP_LEVEL: 2,        // Level at which to boost pity counter
