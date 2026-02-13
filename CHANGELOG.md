@@ -1,5 +1,20 @@
 # Changelog
 
+## v5.4.0 - 2026-02-13
+### HUD Message Refactoring
+- **feat(hud)**: PICKUP toast — power-up/perk/GODCHAIN feedback now uses DOM message strip (Zona 1) with cyan border, scale-in bounce animation (150ms)
+- **feat(hud)**: priority-based drop logic — low-priority messages silently dropped when high-priority message is active (< 60% duration elapsed)
+- **feat(hud)**: meme combat suppression — meme popups auto-suppressed during active combat, visible only in INTERMISSION and first 2s of each wave
+- **feat(hud)**: boss intermission 6s — sequenced messages: VICTORY (0-2s) → weapon unlock (2-4s) → CYCLE BEGINS (4-6s), skippable
+- **feat(hud)**: HYPER idle slim bar — ready state shows 160x4 golden pulsing bar, cooldown shows grey filling bar (replaces text labels)
+- **feat(hud)**: 3-row HUD layout — HYPER bar (Row 1, compact 18px) → message strip (Row 2) → GODCHAIN (Row 3), positions derived from DOM `_stripTopY` for safe-area alignment
+- **feat(hud)**: pause button resized to span both feedback rows (48px height, aligned with HYPER bar + message strip zone)
+- **fix(layout)**: enemy `START_Y` raised to 130, `START_Y_RESPONSIVE` disabled — enemies no longer overlap HUD/message strip on any screen size
+- **refactor**: pickup feedback routed from MemeEngine popup to MessageSystem strip (perk, powerup, GODCHAIN on/off)
+- **refactor**: PerkIconManager calls removed from PerkManager (feedback via showPickup)
+- **config**: kill-switches for rollback — `HUD_MESSAGES.SHIP_STATUS`, `PERK_NOTIFICATION`, `MEME_POPUP.COMBAT_SUPPRESSION`, `HYPER_UI.SHOW_TEXT_WHEN_IDLE`, `MESSAGE_STRIP.DROP_LOW_PRIORITY`
+- **config**: `Balance.TIMING.INTERMISSION_BOSS_DURATION` (6.0s), `Balance.HUD_MESSAGES.HYPER_UI` block
+
 ## v5.3.0 - 2026-02-13
 ### Gradius-Style Laser Beam
 - **feat(vfx)**: laser beam replaces bullet when Laser perk active — 110px elongated beam bolt with 3-layer rendering (white core → cyan mid → additive outer glow)

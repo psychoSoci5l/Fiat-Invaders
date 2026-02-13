@@ -69,6 +69,9 @@
             this._popup = null;
             this._emojiEl = null;
             this._textEl = null;
+
+            // v5.4.0: Combat suppression
+            this._waveStartedAt = 0;
         }
 
         /**
@@ -86,6 +89,7 @@
             this._isShowing = false;
             this._currentItem = null;
             this._lastShowTime = 0;
+            this._waveStartedAt = 0;
             if (this._hideTimer) {
                 clearTimeout(this._hideTimer);
                 this._hideTimer = null;
@@ -303,6 +307,36 @@
         }
 
         // ========================================
+        // COMBAT SUPPRESSION v5.4.0
+        // ========================================
+
+        /**
+         * Mark wave start time (call when a new wave begins)
+         */
+        setWaveStartTime() {
+            this._waveStartedAt = Date.now();
+        }
+
+        /**
+         * Check if memes should be suppressed (combat active, grace period expired)
+         * @returns {boolean} true if memes should be dropped
+         */
+        isSuppressed() {
+            const config = G.Balance?.MEME_POPUP;
+            if (!config || !config.COMBAT_SUPPRESSION) return false;
+
+            // Don't suppress outside PLAY state (INTERMISSION, INTRO, etc.)
+            if (!G.GameState || !G.GameState.is('PLAY')) return false;
+
+            // Grace period after wave start
+            const elapsed = (Date.now() - this._waveStartedAt) / 1000;
+            if (elapsed < (config.WAVE_GRACE_PERIOD || 2.0)) return false;
+
+            // Combat active — suppress
+            return true;
+        }
+
+        // ========================================
         // POPUP MANAGEMENT
         // ========================================
 
@@ -393,6 +427,10 @@
             if (!config || !config.ENABLED) return;
 
             const tier = EVENT_TIER_MAP[event] || 'NORMAL';
+
+            // v5.4.0: Suppress non-critical memes during combat
+            if (tier !== 'CRITICAL' && this.isSuppressed()) return;
+
             const priority = config.PRIORITIES[tier] || 1;
             const duration = config.DURATIONS[event] || 2000;
 

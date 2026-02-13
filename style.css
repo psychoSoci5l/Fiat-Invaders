@@ -2789,6 +2789,31 @@ body.bear-mode .neon-title {
          0    0  4px rgba(0, 229, 255, 0.3);
 }
 
+/* Type: Pickup — power-up/perk feedback v5.4.0 */
+#message-strip.type-pickup {
+    background: rgba(0, 0, 0, 0.55);
+    border-bottom: 1px solid #00f0ff;
+}
+#message-strip.type-pickup .strip-text {
+    color: #00f0ff;
+    font-size: 11px;
+    text-shadow:
+        -1px -1px 0 #000,
+         1px -1px 0 #000,
+        -1px  1px 0 #000,
+         1px  1px 0 #000,
+         0    0  6px rgba(0, 240, 255, 0.4);
+}
+#message-strip.type-pickup.show {
+    animation: pickupScaleIn 150ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes pickupScaleIn {
+    0%   { transform: scale(0.7); opacity: 0; }
+    70%  { transform: scale(1.05); }
+    100% { transform: scale(1); opacity: 1; }
+}
+
 @keyframes stripEntrance {
     0%   { transform: translateY(-100%); }
     70%  { transform: translateY(2px); }
@@ -2811,6 +2836,7 @@ body.bear-mode .neon-title {
     #message-strip.type-danger .strip-text,
     #message-strip.type-victory .strip-text { font-size: 13px; }
     #message-strip.type-info .strip-text { font-size: 9px; }
+    #message-strip.type-pickup .strip-text { font-size: 10px; }
     #message-strip { padding: 4px 10px; }
 }
 
@@ -2819,6 +2845,7 @@ body.bear-mode .neon-title {
     #message-strip.type-danger .strip-text,
     #message-strip.type-victory .strip-text { font-size: 11px; }
     #message-strip.type-info .strip-text { font-size: 8px; }
+    #message-strip.type-pickup .strip-text { font-size: 9px; }
 }
 
 /* --- PERK CHOICE MODAL --- */
@@ -2913,9 +2940,9 @@ body.bear-mode .neon-title {
 #pause-btn {
     position: absolute;
     left: 10px;
-    top: calc(52px + var(--pwa-top-inset, env(safe-area-inset-top, 0px)));
+    top: calc(47px + var(--pwa-top-inset, env(safe-area-inset-top, 0px)));
     width: 58px;
-    height: 32px;
+    height: 48px;
     border-radius: 8px;
     border: 2px solid #000;
     background: linear-gradient(180deg, #bb44ff 0%, #9933dd 100%);

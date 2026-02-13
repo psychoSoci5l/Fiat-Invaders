@@ -333,7 +333,7 @@ function initCollisionSystem() {
                             triggerScreenFlash('HYPER_ACTIVATE');
                         } else if (!player.hyperAvailable) {
                             player.hyperAvailable = true;
-                            showGameInfo(t('HYPER_READY') + " [H]");
+                            // v5.4.0: No text — slim bar in drawHyperUI handles visual
                             audioSys.play('hyperReady');
                         }
                     }
@@ -463,7 +463,7 @@ function initCollisionSystem() {
                 console.log(`[BOSS DEFEATED] Cycle incremented to ${marketCycle}, calling waveMgr.reset()`);
                 G.Debug.trackCycleUp(marketCycle);
                 if (G.Debug) G.Debug.trackCycleStart(marketCycle);
-                checkWeaponUnlocks(marketCycle);
+                // v5.4.0: checkWeaponUnlocks moved to startIntermission (delayed 2s)
                 waveMgr.reset();
                 fiatKillCounter = { '¥': 0, '₽': 0, '₹': 0, '€': 0, '£': 0, '₣': 0, '₺': 0, '$': 0, '元': 0, 'Ⓒ': 0 };
                 if (G.HarmonicConductor) { G.HarmonicConductor.reset(); G.HarmonicConductor.setDifficulty(level, marketCycle, isBearMarket); }
@@ -813,6 +813,9 @@ function showMemeFun(text, duration = 1500) {
 }
 function showPowerUp(text) {
     if (G.MessageSystem) G.MessageSystem.showPowerUp(text);
+}
+function showPickup(text) {
+    if (G.MessageSystem) G.MessageSystem.showPickup(text);
 }
 function showGameInfo(text) {
     if (G.MessageSystem) G.MessageSystem.showGameInfo(text);
@@ -1460,11 +1463,11 @@ function init() {
         });
         // v4.6: GODCHAIN events
         events.on('GODCHAIN_ACTIVATED', () => {
-            showPowerUp('🔥 ' + t('GODCHAIN_ON'));
+            showPickup('🔥 ' + t('GODCHAIN_ON'));
             if (G.triggerScreenFlash) G.triggerScreenFlash('HYPER_ACTIVATE');
         });
         events.on('GODCHAIN_DEACTIVATED', () => {
-            showPowerUp(t('GODCHAIN_OFF'));
+            showPickup(t('GODCHAIN_OFF'));
         });
         // Harmonic Conductor bullet spawning
         events.on('harmonic_bullets', (data) => {
@@ -1888,6 +1891,11 @@ function resize() {
     // Update MessageSystem dimensions (fixes text box positioning after resize)
     if (G.MessageSystem) {
         G.MessageSystem.setDimensions(gameWidth, gameHeight);
+    }
+    // v5.4.0: Cache message-strip position for canvas HUD alignment
+    const stripElResize = document.getElementById('message-strip');
+    if (stripElResize) {
+        window._stripTopY = parseFloat(getComputedStyle(stripElResize).top) || 67;
     }
     // Update SkyRenderer dimensions (fixes gradient cache + hill positions on resize)
     if (G.SkyRenderer) {
@@ -3102,7 +3110,12 @@ function highlightShip(idx) {
 
 function startIntermission(msgOverride) {
     setGameState('INTERMISSION');
-    waveMgr.intermissionTimer = Balance.TIMING.INTERMISSION_DURATION;
+    // v5.4.0: Boss defeat uses longer intermission (6s, skippable)
+    const isBossDefeat = !!msgOverride;
+    const duration = isBossDefeat
+        ? (Balance.TIMING.INTERMISSION_BOSS_DURATION || 6.0)
+        : Balance.TIMING.INTERMISSION_DURATION;
+    waveMgr.intermissionTimer = duration;
     waveMgr.waveInProgress = false; // Safety reset
 
     // Hide any active story dialogue box - meme is shown in countdown overlay instead
@@ -3156,9 +3169,17 @@ function startIntermission(msgOverride) {
         G.MemeEngine.queueMeme('STREAK', memeDisplay, '');
     }
 
-    // Show override text if provided (boss defeat, etc.)
-    if (msgOverride) {
-        addText(msgOverride, gameWidth / 2, gameHeight / 2 - 80, '#00ff00', 30);
+    // v5.4.0: Boss defeat → sequenced messages over 6s
+    if (isBossDefeat) {
+        // t=0: VICTORY + boss meme already queued by onBossDeath callback
+        // t=2s: weapon unlock check
+        setTimeout(() => checkWeaponUnlocks(window.marketCycle), 2000);
+        // t=4s: "CYCLE X BEGINS" via wave info strip
+        setTimeout(() => {
+            if (msgOverride) {
+                G.MessageSystem.showWaveInfo(msgOverride, '');
+            }
+        }, 4000);
     }
     emitEvent('intermission_start', { level: level, wave: waveMgr.wave });
 }
@@ -3423,7 +3444,7 @@ function update(dt) {
             triggerScreenFlash('HYPER_ACTIVATE');
         } else if (!player.hyperAvailable) {
             player.hyperAvailable = true;
-            showGameInfo(t('HYPER_READY') + " [H]");
+            // v5.4.0: No text — slim bar in drawHyperUI handles visual
             audioSys.play('hyperReady');
         }
     }
@@ -3520,6 +3541,7 @@ function update(dt) {
             const cycleText = t('CYCLE') + ' ' + marketCycle;
             const waveText = t('WAVE_OF') + ' ' + waveNumber + '/' + wavesPerCycle;
             G.MessageSystem.showWaveInfo(cycleText, waveText, wavesPerCycle, flavorText);
+            if (G.MemeEngine) G.MemeEngine.setWaveStartTime();
 
             // Update global level BEFORE spawnWave so enemy HP scaling is correct
             window.currentLevel = level;
@@ -3718,29 +3740,30 @@ function updateGrazeUI() {
     }
 }
 
-// Draw HYPER mode UI (timer and ready indicator)
+// v5.4.0: Draw HYPER mode UI — compact bar ABOVE message strip (Row 1: HUD → HYPER → strip → enemies)
 function drawHyperUI(ctx) {
     if (!player) return;
 
     const isHyperActive = player.isHyperActive && player.isHyperActive();
     const centerX = gameWidth / 2;
+    // Position: 2px above message-strip, derived from cached DOM position
+    const stripY = window._stripTopY || 67;
+    const hyperUI = Balance.HUD_MESSAGES?.HYPER_UI;
 
-    // HYPER ACTIVE: Show countdown timer at top
+    // HYPER ACTIVE: Compact bar with timer inside
     if (isHyperActive) {
         const timeLeft = player.getHyperTimeRemaining ? player.getHyperTimeRemaining() : 0;
-        const pulse = Math.sin(totalTime * 10) * 0.1 + 0.9;
+
+        const barWidth = 200;
+        const barHeight = 18;
+        const barX = centerX - barWidth / 2;
+        const barY = stripY - barHeight - 2; // 2px gap above strip
 
         ctx.save();
 
-        // Background bar
-        const barWidth = 200;
-        const barHeight = 30;
-        const barX = centerX - barWidth / 2;
-        const barY = 55;
-
         // Bar background
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(barX - 2, barY - 2, barWidth + 4, barHeight + 4);
+        ctx.fillRect(barX - 1, barY - 1, barWidth + 2, barHeight + 2);
 
         // Time fill (golden, depleting)
         const fillRatio = timeLeft / Balance.HYPER.BASE_DURATION;
@@ -3750,53 +3773,72 @@ function drawHyperUI(ctx) {
 
         // Border
         ctx.strokeStyle = fillRatio < 0.3 ? '#ff6666' : '#fff';
-        ctx.lineWidth = 3;
+        ctx.lineWidth = 2;
         ctx.strokeRect(barX, barY, barWidth, barHeight);
 
-        // HYPER text
-        ctx.font = G.ColorUtils.font('bold', 18 * pulse, '"Courier New", monospace');
+        // Combined text: "HYPER x5  8.3s"
+        ctx.font = G.ColorUtils.font('bold', 11, '"Courier New", monospace');
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillStyle = '#fff';
         ctx.strokeStyle = '#000';
-        ctx.lineWidth = 3;
-        ctx.strokeText('HYPER x5', centerX, barY + barHeight / 2);
-        ctx.fillText('HYPER x5', centerX, barY + barHeight / 2);
-
-        // Time remaining number
-        ctx.font = 'bold 24px "Courier New", monospace';
-        ctx.fillStyle = fillColor;
-        ctx.strokeText(timeLeft.toFixed(1) + 's', centerX, barY + barHeight + 20);
-        ctx.fillText(timeLeft.toFixed(1) + 's', centerX, barY + barHeight + 20);
+        ctx.lineWidth = 2;
+        const label = 'HYPER x5  ' + timeLeft.toFixed(1) + 's';
+        ctx.strokeText(label, centerX, barY + barHeight / 2);
+        ctx.fillText(label, centerX, barY + barHeight / 2);
 
         ctx.restore();
     }
-    // HYPER READY: Show pulsing indicator
+    // HYPER READY: Slim golden pulsing bar
     else if (player.hyperAvailable && grazeMeter >= Balance.HYPER.METER_THRESHOLD) {
-        const pulse = Math.sin(totalTime * 6) * 0.15 + 0.85;
-
-        ctx.save();
-        ctx.font = G.ColorUtils.font('bold', 20 * pulse, '"Courier New", monospace');
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-
-        ctx.fillStyle = '#FFD700';
-        ctx.strokeStyle = '#000';
-        ctx.lineWidth = 4;
-        var hyperReadyLabel = '⚡ ' + t('HYPER_READY') + ' [H] ⚡';
-        ctx.strokeText(hyperReadyLabel, centerX, 70);
-        ctx.fillText(hyperReadyLabel, centerX, 70);
-
-        ctx.restore();
+        if (hyperUI && !hyperUI.SHOW_TEXT_WHEN_IDLE) {
+            const barW = hyperUI.IDLE_BAR_WIDTH || 160;
+            const barH = hyperUI.IDLE_BAR_HEIGHT || 4;
+            const barY = stripY - barH - 8; // Centered in gap above strip
+            const pulse = Math.sin(totalTime * 6) * 0.3 + 0.7;
+            ctx.save();
+            ctx.globalAlpha = pulse;
+            ctx.fillStyle = '#FFD700';
+            ctx.fillRect(centerX - barW / 2, barY, barW, barH);
+            ctx.restore();
+        } else {
+            // Legacy text mode (kill-switch)
+            const pulse = Math.sin(totalTime * 6) * 0.15 + 0.85;
+            ctx.save();
+            ctx.font = G.ColorUtils.font('bold', 20 * pulse, '"Courier New", monospace');
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#FFD700';
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 4;
+            var hyperReadyLabel = '⚡ ' + t('HYPER_READY') + ' [H] ⚡';
+            ctx.strokeText(hyperReadyLabel, centerX, stripY - 12);
+            ctx.fillText(hyperReadyLabel, centerX, stripY - 12);
+            ctx.restore();
+        }
     }
-    // HYPER COOLDOWN: Show cooldown timer
+    // HYPER COOLDOWN: Slim grey bar filling up
     else if (player.hyperCooldown > 0) {
-        ctx.save();
-        ctx.font = '14px "Courier New", monospace';
-        ctx.textAlign = 'center';
-        ctx.fillStyle = 'rgba(150, 150, 150, 0.7)';
-        ctx.fillText(`HYPER: ${player.hyperCooldown.toFixed(1)}s`, centerX, 70);
-        ctx.restore();
+        if (hyperUI && !hyperUI.SHOW_TEXT_WHEN_IDLE) {
+            const barW = hyperUI.IDLE_BAR_WIDTH || 160;
+            const barH = hyperUI.IDLE_BAR_HEIGHT || 4;
+            const barY = stripY - barH - 8;
+            const cooldownMax = Balance.HYPER.COOLDOWN || 10;
+            const fillRatio = 1 - (player.hyperCooldown / cooldownMax);
+            ctx.save();
+            ctx.globalAlpha = 0.5;
+            ctx.fillStyle = '#666';
+            ctx.fillRect(centerX - barW / 2, barY, barW * Math.min(1, fillRatio), barH);
+            ctx.restore();
+        } else {
+            // Legacy text mode (kill-switch)
+            ctx.save();
+            ctx.font = '14px "Courier New", monospace';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = 'rgba(150, 150, 150, 0.7)';
+            ctx.fillText(`HYPER: ${player.hyperCooldown.toFixed(1)}s`, centerX, stripY - 12);
+            ctx.restore();
+        }
     }
 }
 
@@ -3810,14 +3852,16 @@ function drawGodchainUI(ctx) {
 
     ctx.save();
 
+    // v5.4.0: Position below message strip (Row 3)
+    const stripY = window._stripTopY || 67;
     const barWidth = 200;
-    const barHeight = 26;
+    const barHeight = 18;
     const barX = centerX - barWidth / 2;
-    const barY = 90; // Below HYPER bar position
+    const barY = stripY + 30; // Below message strip (~28px height + 2px gap)
 
     // Bar background
     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    ctx.fillRect(barX - 2, barY - 2, barWidth + 4, barHeight + 4);
+    ctx.fillRect(barX - 1, barY - 1, barWidth + 2, barHeight + 2);
 
     // Time fill (red-orange, depleting)
     const fillRatio = timeLeft / duration;
@@ -3830,21 +3874,16 @@ function drawGodchainUI(ctx) {
     ctx.lineWidth = 2;
     ctx.strokeRect(barX, barY, barWidth, barHeight);
 
-    // GODCHAIN text
-    ctx.font = G.ColorUtils.font('bold', 16 * pulse, '"Courier New", monospace');
+    // GODCHAIN text + timer inside bar
+    ctx.font = G.ColorUtils.font('bold', 11, '"Courier New", monospace');
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#fff';
     ctx.strokeStyle = '#000';
-    ctx.lineWidth = 3;
-    ctx.strokeText('GODCHAIN', centerX, barY + barHeight / 2);
-    ctx.fillText('GODCHAIN', centerX, barY + barHeight / 2);
-
-    // Time remaining
-    ctx.font = 'bold 20px "Courier New", monospace';
-    ctx.fillStyle = fillColor;
-    ctx.strokeText(timeLeft.toFixed(1) + 's', centerX, barY + barHeight + 16);
-    ctx.fillText(timeLeft.toFixed(1) + 's', centerX, barY + barHeight + 16);
+    ctx.lineWidth = 2;
+    const label = 'GODCHAIN  ' + timeLeft.toFixed(1) + 's';
+    ctx.strokeText(label, centerX, barY + barHeight / 2);
+    ctx.fillText(label, centerX, barY + barHeight / 2);
 
     ctx.restore();
 }
@@ -4804,7 +4843,7 @@ function updatePowerUps(dt) {
                 if (p.type === 'PERK') {
                     applyRandomPerk();
                     const meme = POWERUP_MEMES[p.type] || 'PERK!';
-                    G.MemeEngine.queueMeme('PERK', meme, p.type);
+                    showPickup(meme);
                     if (G.Debug) {
                         const after = _snapPlayerState();
                         G.Debug.trackProgression(p.type, before, after);
@@ -4823,10 +4862,9 @@ function updatePowerUps(dt) {
                     player.upgrade(p.type);
                 }
 
-                // Crypto-themed powerup feedback via meme popup
+                // Crypto-themed powerup feedback via pickup toast (v5.4.0)
                 const meme = POWERUP_MEMES[p.type] || p.type;
-                const puCategory = p.config?.category || 'MODIFIER';
-                G.MemeEngine.queueMeme(puCategory.toUpperCase(), meme, p.type);
+                showPickup(meme);
                 // Analytics: Track power-up + progression
                 if (G.Debug) {
                     const after = _snapPlayerState();

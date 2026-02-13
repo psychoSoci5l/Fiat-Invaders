@@ -125,6 +125,13 @@
                 _interruptStrip(item);
                 return;
             }
+            // Drop low-priority message if high-pri hasn't reached 60% of its duration
+            if (cfg.DROP_LOW_PRIORITY && priority < currentStripItem.priority) {
+                const elapsed = Date.now() - lastStripShowTime;
+                if (elapsed < currentStripItem.duration * 0.6) {
+                    return; // Drop silently
+                }
+            }
             // Same or lower priority: queue (replace same type in queue)
             const maxQueue = cfg.MAX_QUEUE_SIZE || 3;
             const sameIdx = stripQueue.findIndex(q => q.type === type);
@@ -288,6 +295,18 @@
     }
 
     // ========================================
+    // PUBLIC API: PICKUP TOAST (v5.4.0)
+    // ========================================
+
+    /**
+     * Show pickup feedback in message strip (power-up/perk/GODCHAIN)
+     * @param {string} text - Pickup feedback text
+     */
+    function showPickup(text) {
+        _queueStripMessage(text, 'pickup');
+    }
+
+    // ========================================
     // MEME_WHISPER: no-op (dead code since v4.20)
     // ========================================
 
@@ -419,6 +438,8 @@
         showMemeWhisper,
         showMemeFun,
         showMemePopup,
+        // Pickup toast (v5.4.0)
+        showPickup,
         // Canvas: Ship Status
         showShipStatus,
         showPowerUp,       // Legacy compat

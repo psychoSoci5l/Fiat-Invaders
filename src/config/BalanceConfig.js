@@ -396,7 +396,7 @@
             SPEED_BASE: 12,           // Base grid scroll speed
             SPEED_SCALE: 20,          // Additional speed at max difficulty
             SPACING: 72,              // v4.25: 60→72 (58px enemies, was 48px)
-            START_Y: 80,              // Initial Y position (v4.4: 150→80 for compact HUD)
+            START_Y: 130,             // v5.4.0: 80→130, clears HUD zone (enemy top edge at ~101px, below strip ~95px)
             MAX_Y: 380                // Maximum Y before descent stops
         },
 
@@ -662,18 +662,21 @@
                 MODIFIER: 2000,
                 STREAK: 2000,
                 GRAZE: 1500
-            }
+            },
+            COMBAT_SUPPRESSION: true,         // Suppress memes during active combat
+            WAVE_GRACE_PERIOD: 2.0            // Seconds after wave start where memes are visible
         },
 
         // --- MESSAGE STRIP v4.26.0 ---
         MESSAGE_STRIP: {
             ENABLED: true,
-            PRIORITIES: { DANGER: 3, VICTORY: 3, WAVE: 2, INFO: 1 },
-            DURATIONS: { DANGER: 2500, VICTORY: 3000, WAVE: 2500, INFO: 2000 },
+            PRIORITIES: { DANGER: 3, VICTORY: 3, PICKUP: 2, WAVE: 2, INFO: 1 },
+            DURATIONS: { DANGER: 2500, VICTORY: 3000, PICKUP: 1500, WAVE: 2500, INFO: 2000 },
             COOLDOWN: 300,
             MAX_QUEUE_SIZE: 3,
             ENTRANCE_MS: 200,
-            EXIT_MS: 300
+            EXIT_MS: 300,
+            DROP_LOW_PRIORITY: true           // Drop low-pri messages when high-pri is active
         },
 
         // --- TIMING SYSTEM (all durations in seconds unless noted) ---
@@ -681,6 +684,7 @@
             // State transitions
             SPLASH_TIMEOUT: 4.0,           // Video splash screen max duration
             INTERMISSION_DURATION: 3.2,    // Between waves (3-2-1 countdown, ceil(3.2)=4 but we cap at 3)
+            INTERMISSION_BOSS_DURATION: 6.0, // Boss defeat intermission (skippable)
             DEATH_DURATION: 2.0,           // Death sequence length
             INVULNERABILITY: 2.1,          // Post-hit protection
 
@@ -751,9 +755,9 @@
             ALERT_DANGER: true,           // Boss warnings, danger messages
             ALERT_VICTORY: true,          // Boss defeated, achievements
             MEME_WHISPER: true,           // Small decorative meme text (replaces MEME_POPUP)
-            SHIP_STATUS: true,            // Perk/weapon/power-up above player
+            SHIP_STATUS: false,           // Replaced by PICKUP toast in message strip
             FLOATING_TEXT: false,         // Damage numbers (opt-in, can clutter)
-            PERK_NOTIFICATION: true,      // Perk icons - useful to know what you got
+            PERK_NOTIFICATION: false,     // Replaced by PICKUP toast in message strip
 
             // Wave strip config
             WAVE_STRIP_CONFIG: {
@@ -781,6 +785,14 @@
                 FONT_SIZE: 11,            // Text size
                 DURATION: 2.0,            // Display duration
                 ICON_SIZE: 16             // Icon size
+            },
+
+            // HYPER UI v5.4.0 — simplified idle/cooldown display
+            HYPER_UI: {
+                SHOW_TEXT_WHEN_IDLE: false, // Kill-switch: true → legacy text labels
+                IDLE_BAR_HEIGHT: 4,
+                IDLE_BAR_WIDTH: 160
+                // Y position derived dynamically from message-strip DOM position
             }
         },
 
@@ -1209,7 +1221,7 @@
         // --- FORMATION LAYOUT (v4.0.3: extracted from WaveManager hardcodes) ---
         FORMATION: {
             SPACING: 78,              // v4.25: 65→78 (58px enemies, was 48px)
-            START_Y: 80,              // Initial Y position (v4.4: 150→80 for compact HUD)
+            START_Y: 130,             // v5.4.0: 80→130, clears HUD zone (enemy top edge at ~101px, below strip ~95px)
             MARGIN: 60,               // Left/right margin for scatter/wall
             MAX_Y_RATIO: 0.55,        // v4.37: 0.65→0.55, enemies don't descend past 55% — more breathing room
             MAX_Y_RATIO_BY_CYCLE: [0.38, 0.38, 0.55],  // v4.40: C1+C2 top-heavy (38%), C3 expands (55%)
@@ -1225,7 +1237,7 @@
             // v4.32: Responsive formation scaling
             RESPONSIVE: true,         // Master toggle (false = pre-v4.32 fixed spacing)
             SPACING_MIN: 62,          // Min spacing (58px enemy + 4px gap, prevents overlap)
-            START_Y_RESPONSIVE: true  // Scale startY with height ratio
+            START_Y_RESPONSIVE: false // v5.4.0: disabled — HUD zone is fixed-pixel, startY must not scale down
         },
 
         // --- ENEMY FORMATION ENTRY ---

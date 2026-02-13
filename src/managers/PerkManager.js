@@ -62,7 +62,7 @@
             recentPerks.push({ id: nextPerk.id, stacks: 1 });
 
             if (G.Audio) G.Audio.play('perk');
-            if (player && G.PerkIconManager) G.PerkIconManager.addIcon(nextPerk, player.x, player.y);
+            // v5.4.0: PerkIconManager replaced by showPickup toast in main.js
             if (_deps.emitEvent) _deps.emitEvent('perk_selected', { id: nextPerk.id });
 
             // After perk 3: trigger GODCHAIN
@@ -74,11 +74,7 @@
             runState.perkLevel++;
             if (player && player.activateGodchain) player.activateGodchain();
             if (G.Audio) G.Audio.play('perk');
-
-            // Show GODCHAIN icon
-            if (player && G.PerkIconManager) {
-                G.PerkIconManager.addIcon({ icon: '\uD83D\uDD17', name: 'GODCHAIN' }, player.x, player.y);
-            }
+            // v5.4.0: GODCHAIN feedback via showPickup toast in main.js
         }
 
         return Balance.PERK.COOLDOWN_TIME;
