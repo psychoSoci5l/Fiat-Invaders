@@ -215,7 +215,7 @@ window.Game.DIALOGUES = {
 
     // === TIPS (loading, pause, random) ===
     TIPS: [
-        "💎 HODL = stai fermo per bonus danni!",
+        "💎 Uccidi da vicino per riempire il DIP meter!",
         "🌀 Sfiora i proiettili per riempire il Graze meter!",
         "⚡ I power-up sono utility, non necessità. Git gud.",
         "🐻 Bear Market mode: per veri degenerati.",

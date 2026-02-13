@@ -1,5 +1,14 @@
 # Changelog
 
+## v5.0.1 - 2026-02-13
+### Fixes & Cleanup
+- Restore ship preview canvas + stats panel accidentally removed in v5.0.0
+- Fix stale HODL tip in DialogueData ("stai fermo per bonus danni" → DIP meter tip)
+- Remove dead `HODL` key from LABELS EN/IT
+- Clean stale HODL comments in Player.js
+- Rename MemeEngine shield text "HODL MODE" → "SHIELD UP"
+- Update CLAUDE.md: RunState description, perk drop system
+
 ## v5.0.0 - 2026-02-13
 ### Clean Slate Release
 

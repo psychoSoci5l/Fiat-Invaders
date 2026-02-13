@@ -83,6 +83,16 @@
         <!-- HEADER (hidden in splash, visible in selection) — v4.55: no ship choice -->
         <div class="selection-header" id="selection-header" style="display: none;">BTC STRIKER</div>
 
+        <!-- SHIP INFO (hidden in splash, visible in selection) -->
+        <div class="selection-info" id="selection-info" style="display: none;">
+            <div id="ship-name" class="ship-name-large">BTC STRIKER</div>
+            <div id="ship-stats" class="ship-stats-large">
+                <span class="stat-item">SPD █████░░░</span>
+                <span class="stat-item">PWR ██████░░</span>
+                <span class="stat-item">HIT ████░░░░</span>
+            </div>
+        </div>
+
         <!-- MODE SELECTOR (visible in splash, hidden in selection) - v4.8.1 minimal style -->
         <div class="mode-selector" id="mode-selector">
             <div class="mode-pills">
@@ -116,6 +126,13 @@
             <span id="rec-cycle-label">BEST CYCLE</span> <b id="rec-cycle-val">0</b>
             <span id="rec-level-label">BEST LEVEL</span> <b id="rec-level-val">0</b>
             <span id="rec-kills-label">BEST KILLS</span> <b id="rec-kills-val">0</b>
+        </div>
+
+        <!-- SHIP PREVIEW (hidden in splash, visible in selection) -->
+        <div class="ship-area hidden">
+            <div class="ship-preview-center">
+                <canvas id="intro-ship-canvas" width="160" height="180"></canvas>
+            </div>
         </div>
 
         <!-- PRIMARY ACTION BUTTON (fixed position for double-tap) -->

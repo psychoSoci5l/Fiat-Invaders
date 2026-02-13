@@ -34,7 +34,7 @@
         // Ship power-ups
         SPEED: '⚡ ZOOM ZOOM',
         RAPID: '🔫 UNLIMITED AMMO',
-        SHIELD: '🛡️ HODL MODE'
+        SHIELD: '🛡️ SHIELD UP'
     };
 
     // Event → tier mapping for queueMeme()

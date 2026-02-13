@@ -71,7 +71,7 @@ All modules attach to `window.Game` (alias `G`). Script load order in `index.htm
 - `window.Game` (G) - Main namespace
 - `G.Balance` - **Single source of truth for ALL tuning** (BalanceConfig.js)
 - `G.Audio`, `G.Input`, `G.Events` - Singletons (AudioSystem, InputSystem, EventBus)
-- `G.RunState` - Per-run state (perks, modifiers, score, level, streaks, graze, sacrifice, etc.)
+- `G.RunState` - Per-run state (perks, score, level, streaks, graze, etc.)
 - `G.GameState` - State machine (transition table, validation, `.is()` helper)
 - `G.CollisionSystem` - Collision detection loops (enemy→player, player→enemy, player→boss, bullet cancel)
 - `G.Debug` (alias `window.dbg`) - Debug system
@@ -113,7 +113,7 @@ Detailed tables, parameters, and implementation specifics → **SYSTEM_REFERENCE
 - **Collision** — `CollisionSystem.js`. 4 loops, callback pattern, init via `initCollisionSystem()`
 - **Bullet System** — `Balance.BULLET_CONFIG` + `Balance.BULLET_PIERCE`. Circle-based collision, missile AoE, pierce HP (bullets survive N enemy-bullet hits). Debug: `dbg.hitboxes()`
 - **Proximity Kill Meter** — `Balance.PROXIMITY_KILL`. Vertical-distance kills fill DIP meter (replaces graze as HYPER source). Boss hits +0.4, phase transitions +15. `Game.addProximityMeter(gain)` API
-- **Elemental Perk System** — `Upgrades.js` + `PerkManager.js`. Fixed order: Fire (splash 30%), Laser (+25% speed, +1 pierce), Electric (chain 20% to 1-2 nearby). No stacking. Perk 3 → triggers GODCHAIN. Perk 4+ → re-triggers GODCHAIN. Death resets all. Config in `Balance.ELEMENTAL`. **TODO v4.61**: trigger ancora via bullet-cancel — serve meccanica drop dedicata
+- **Elemental Perk System** — `Upgrades.js` + `PerkManager.js`. Fixed order: Fire (splash 30%), Laser (+25% speed, +1 pierce), Electric (chain 20% to 1-2 nearby). No stacking. Perk 3 → triggers GODCHAIN. Perk 4+ → re-triggers GODCHAIN. Death resets all. Config in `Balance.ELEMENTAL`. Drops as diamond power-ups via DropSystem (pity 50 kills)
 - **Adaptive Power Calibration** — `Balance.ADAPTIVE_POWER`. At cycle transitions (C2+), snapshots player power (weapon level, perk stacks, special). Adjusts enemy HP (0.85–1.35×) and drop pity timer. Debug: APC section in `dbg.report()`
 
 ### UI & Presentation

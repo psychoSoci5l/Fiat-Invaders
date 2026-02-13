@@ -663,7 +663,7 @@ class Player extends window.Game.Entity {
         const Balance = window.Game.Balance;
         const CU = window.Game.ColorUtils;
 
-        // HYPER MODE AURA - Intense golden aura (overrides HODL visuals)
+        // HYPER MODE AURA - Intense golden aura
         if (this.hyperActive) {
             const HYPER = Balance.HYPER;
             const hyperPulse = Math.sin(this.animTime * HYPER.AURA_PULSE_SPEED) * 0.2 + 0.8;
@@ -700,7 +700,7 @@ class Player extends window.Game.Entity {
             ctx.arc(this.x, this.y, 50, -Math.PI / 2, -Math.PI / 2 + ringAngle);
             ctx.stroke();
 
-            // Orbiting energy orbs (faster than HODL)
+            // Orbiting energy orbs
             for (let i = 0; i < 6; i++) {
                 const angle = this.animTime * 5 + (Math.PI / 3) * i;
                 const dist = 45 + Math.sin(this.animTime * 8 + i) * 6;
