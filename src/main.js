@@ -327,9 +327,10 @@ function initCollisionSystem() {
                 emitEvent('enemy_killed', { score: killScore, x: e.x, y: e.y });
 
                 // Proximity Kill Meter — closer kills (vertically) fill meter faster
+                // v4.61: Skip accumulation during HYPER (meter resets to 0 on HYPER end)
                 const dist = Math.abs(e.y - player.y);
                 const proxCfg = Balance.PROXIMITY_KILL;
-                if (dist < proxCfg.MAX_DISTANCE) {
+                if (dist < proxCfg.MAX_DISTANCE && !(player.isHyperActive && player.isHyperActive())) {
                     const t2 = 1 - Math.max(0, (dist - proxCfg.CLOSE_DISTANCE)) / (proxCfg.MAX_DISTANCE - proxCfg.CLOSE_DISTANCE);
                     const gain = proxCfg.METER_GAIN_MIN + t2 * (proxCfg.METER_GAIN_MAX - proxCfg.METER_GAIN_MIN);
                     lastGrazeTime = totalTime;
@@ -389,9 +390,9 @@ function initCollisionSystem() {
                 const hitScore = Math.floor(dmg * 2);
                 score += hitScore;
                 updateScore(score);
-                // Proximity Kill Meter: boss hits give small meter gain
+                // Proximity Kill Meter: boss hits give small meter gain (skip during HYPER)
                 const bossGain = Balance.PROXIMITY_KILL.BOSS_HIT_GAIN;
-                if (bossGain > 0) {
+                if (bossGain > 0 && !(player.isHyperActive && player.isHyperActive())) {
                     lastGrazeTime = totalTime;
                     grazeMeter = Math.min(100, grazeMeter + bossGain);
                     updateGrazeUI();
@@ -4687,6 +4688,8 @@ window.Game.triggerScreenFlash = triggerScreenFlash;
 
 // Expose proximity meter gain for boss phase transitions
 window.Game.addProximityMeter = function(gain) {
+    // v4.61: Skip accumulation during HYPER
+    if (player && player.isHyperActive && player.isHyperActive()) return;
     lastGrazeTime = totalTime;
     grazeMeter = Math.min(100, grazeMeter + gain);
     const Balance = window.Game.Balance;
