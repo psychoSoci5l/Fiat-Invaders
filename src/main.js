@@ -490,7 +490,7 @@ function initCollisionSystem() {
             },
             // Bullet cancel (player bullet vs enemy bullet)
             onBulletCancel(pb, eb, pbIdx, ebIdx, pbArr, ebArr) {
-                createBulletSpark(eb.x, eb.y);
+                createBulletSpark(eb.x, eb.y, eb.color || '#ff4444', { isCancel: true });
                 eb.markedForDeletion = true;
                 G.Bullet.Pool.release(eb);
                 ebArr.splice(ebIdx, 1);

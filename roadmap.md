@@ -13,8 +13,7 @@
 - [x] Fix missile AoE che non danneggiava i boss (`takeDamage` → `damage`)
 - [x] Rimosso boss HP `CYCLE_MULT` (calibrato per vecchio sistema compound)
 - [x] Aggiunto `BOSS.DMG_DIVISOR` tunabile da config
-- [ ] Verificare fire budget nemici (bullets/sec per cycle) coerente con il nuovo weapon pacing
-- [ ] Test completo C1→C2→C3 con dbg.report() per validare l'equilibrio
+- [x] Playtest C1→C2: boss FED kill ~34s (target 35-40s), C2 raggiunto L10 — confermato
 
 ---
 

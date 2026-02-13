@@ -67,48 +67,55 @@
      */
     function createBulletSpark(x, y, color = '#fff', opts = {}) {
         const vfx = G.Balance?.VFX || {};
-        const baseCount = vfx.SPARK_COUNT_BASE || 4;
-        const perLevel = vfx.SPARK_COUNT_PER_LEVEL || 2;
         const level = opts.weaponLevel || 1;
-        const targetCount = baseCount + (level - 1) * perLevel;
-        const count = Math.min(targetCount, MAX_PARTICLES - particles.length);
-
         const sizeMult = level >= 4 ? (vfx.SPARK_POWER_SCALE || 1.5) : 1;
-        const lifetime = opts.isKill ? 0.30 : 0.18;
 
+        // Cancel: more particles, faster, longer lived
+        const baseCount = opts.isCancel ? 8 : (opts.isKill ? 6 : (vfx.SPARK_COUNT_BASE || 4));
+        const perLevel = vfx.SPARK_COUNT_PER_LEVEL || 2;
+        const targetCount = opts.isCancel ? baseCount : baseCount + (level - 1) * perLevel;
+        const count = Math.min(targetCount, MAX_PARTICLES - particles.length);
+        const lifetime = opts.isKill ? 0.30 : (opts.isCancel ? 0.28 : 0.20);
+
+        // Shrapnel particles — fast directional fragments, no rings/glow
         for (let i = 0; i < count; i++) {
             const angle = Math.random() * Math.PI * 2;
-            const speed = Math.random() * 180 + 100;
+            // Varied speeds: some fast shrapnel, some slower embers
+            const speedBase = opts.isCancel ? 200 : 160;
+            const speedRange = opts.isCancel ? 250 : 200;
+            const speed = Math.random() * speedRange + speedBase;
+            const sz = (Math.random() * 3 + 1.5) * sizeMult;
             addParticle({
-                x: x + (Math.random() - 0.5) * 6,
-                y: y + (Math.random() - 0.5) * 6,
+                x: x + (Math.random() - 0.5) * 4,
+                y: y + (Math.random() - 0.5) * 4,
                 vx: Math.cos(angle) * speed,
                 vy: Math.sin(angle) * speed,
-                life: lifetime, maxLife: lifetime,
-                color: i < 2 ? '#fff' : color, // First 2 white, rest colored
-                size: (Math.random() * 3 + 2) * sizeMult,
-                isSpark: i < 2 // v4.23.1: white sparks rendered additive
+                life: lifetime * (0.6 + Math.random() * 0.4),
+                maxLife: lifetime,
+                color: i < 2 ? '#fff' : color,
+                size: sz, baseSize: sz,
+                explosionGrow: true,
+                isSpark: true
             });
         }
 
-        // Kill ring (expanding burst on kill)
+        // Kill: extra fast outer shrapnel burst
         if (opts.isKill && (vfx.SPARK_KILL_RING !== false)) {
-            addParticle({
-                x: x, y: y, vx: 0, vy: 0,
-                life: 0.15, maxLife: 0.15,
-                color: color, size: 18,
-                isRing: true
-            });
-        }
-
-        // HYPER golden ring
-        if (opts.isHyper && (vfx.SPARK_HYPER_RING !== false)) {
-            addParticle({
-                x: x, y: y, vx: 0, vy: 0,
-                life: 0.20, maxLife: 0.20,
-                color: '#FFD700', size: 22,
-                isRing: true
-            });
+            const extra = Math.min(4, MAX_PARTICLES - particles.length);
+            for (let i = 0; i < extra; i++) {
+                const angle = (Math.PI * 2 / extra) * i + Math.random() * 0.4;
+                const speed = 350 + Math.random() * 150;
+                addParticle({
+                    x: x, y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    life: 0.15, maxLife: 0.20,
+                    color: '#fff',
+                    size: 2.5, baseSize: 2.5,
+                    explosionGrow: true,
+                    isSpark: true
+                });
+            }
         }
     }
 
@@ -236,54 +243,46 @@
         const available = MAX_PARTICLES - particles.length;
         if (available <= 0) return;
 
-        const actualCount = Math.min(count, Math.floor(available * 0.6));
+        const actualCount = Math.min(count, Math.floor(available * 0.7));
 
-        // Core explosion particles (varied sizes for depth)
+        // Core shrapnel — fast fragments flying outward
         for (let i = 0; i < actualCount; i++) {
             const angle = Math.random() * Math.PI * 2;
-            const speed = Math.random() * 280 + 80;
-            const sizeVariant = i < actualCount / 3 ? 7 : (i < actualCount * 2/3 ? 5 : 3);
+            const speed = Math.random() * 300 + 100;
+            // 3 size tiers: big chunks, medium, small sparks
+            const sz = i < actualCount / 3 ? 6 + Math.random() * 2
+                     : i < actualCount * 2/3 ? 4 + Math.random() * 2
+                     : 2 + Math.random() * 2;
             addParticle({
-                x: x + (Math.random() - 0.5) * 10,
-                y: y + (Math.random() - 0.5) * 10,
+                x: x + (Math.random() - 0.5) * 8,
+                y: y + (Math.random() - 0.5) * 8,
                 vx: Math.cos(angle) * speed,
                 vy: Math.sin(angle) * speed,
-                life: 0.45, maxLife: 0.45,
+                life: 0.35 + Math.random() * 0.15,
+                maxLife: 0.50,
                 color: color,
-                size: sizeVariant + Math.random() * 2
+                size: sz * 0.6, baseSize: sz,
+                explosionGrow: true
             });
         }
 
-        // White spark highlights
-        const highlightCount = Math.min(4, available - actualCount);
-        for (let i = 0; i < highlightCount; i++) {
+        // White-hot sparks — fast, small, short-lived
+        const sparkCount = Math.min(5, available - actualCount);
+        for (let i = 0; i < sparkCount; i++) {
             const angle = Math.random() * Math.PI * 2;
-            const speed = Math.random() * 120 + 60;
+            const speed = Math.random() * 400 + 200;
             addParticle({
                 x: x, y: y,
                 vx: Math.cos(angle) * speed,
                 vy: Math.sin(angle) * speed,
-                life: 0.25, maxLife: 0.25,
+                life: 0.12 + Math.random() * 0.10,
+                maxLife: 0.22,
                 color: '#fff',
-                size: Math.random() * 4 + 2
+                size: 2, baseSize: 2,
+                explosionGrow: true,
+                isSpark: true
             });
         }
-
-        // Outer flash ring (colored, large)
-        addParticle({
-            x: x, y: y, vx: 0, vy: 0,
-            life: 0.15, maxLife: 0.15,
-            color: color, size: 25,
-            isRing: true
-        });
-
-        // Inner flash ring (white, smaller, faster)
-        addParticle({
-            x: x, y: y, vx: 0, vy: 0,
-            life: 0.1, maxLife: 0.1,
-            color: '#fff', size: 12,
-            isRing: true
-        });
     }
 
     /**
@@ -311,28 +310,30 @@
         const available = MAX_PARTICLES - particles.length;
         if (available <= 2) return;
 
-        // Strong tier: white flash ring
-        if (tierConf.flash) {
-            addParticle({
-                x: x, y: y, vx: 0, vy: 0,
-                life: 0.12, maxLife: 0.12,
-                color: '#fff', size: 30,
-                isRing: true
-            });
-        }
-
-        // Additional ring for strong tier (double ring)
-        if (tierConf.ringCount >= 2) {
-            addParticle({
-                x: x, y: y, vx: 0, vy: 0,
-                life: 0.20, maxLife: 0.20,
-                color: color, size: 35,
-                isRing: true
-            });
+        // Strong/Medium tier: extra fast shrapnel burst instead of rings
+        if (tier !== 'WEAK') {
+            const extraCount = tier === 'STRONG' ? 6 : 3;
+            const burst = Math.min(extraCount, Math.floor(available * 0.3));
+            for (let i = 0; i < burst; i++) {
+                const angle = (Math.PI * 2 / burst) * i + Math.random() * 0.5;
+                const speed = 350 + Math.random() * 200;
+                addParticle({
+                    x: x, y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    life: 0.18 + Math.random() * 0.08,
+                    maxLife: 0.26,
+                    color: i % 2 === 0 ? '#fff' : color,
+                    size: 2.5, baseSize: 2.5,
+                    explosionGrow: true,
+                    isSpark: true
+                });
+            }
         }
 
         // Flying currency symbols (2 for weak, 3 for medium/strong)
-        const symbolCount = Math.min(tier === 'WEAK' ? 2 : 3, available - 2);
+        const availNow = MAX_PARTICLES - particles.length;
+        const symbolCount = Math.min(tier === 'WEAK' ? 2 : 3, availNow - 2);
         for (let i = 0; i < symbolCount; i++) {
             const angle = (Math.PI * 2 / symbolCount) * i + Math.random() * 0.5;
             const speed = Math.random() * 150 + 100;
@@ -350,53 +351,29 @@
             });
         }
 
-        // Shape-specific debris
-        const debrisCount = Math.min(tierConf.debrisCount, available - symbolCount);
+        // Shape-specific debris — fast directional chunks
+        const debrisCount = Math.min(tierConf.debrisCount, MAX_PARTICLES - particles.length);
         const CU = G.ColorUtils;
         const debrisColor = CU ? CU.darken(color, 0.2) : color;
 
         for (let i = 0; i < debrisCount; i++) {
             const angle = Math.random() * Math.PI * 2;
-            const speed = Math.random() * 220 + 100;
-            // Debris size varies by shape
+            const speed = Math.random() * 250 + 120;
             let dSize = Math.random() * 5 + 3;
-            if (shape === 'bar') dSize = Math.random() * 4 + 4;      // Chunky golden shards
-            else if (shape === 'bill') dSize = Math.random() * 3 + 2; // Thin paper scraps
-            else if (shape === 'card') dSize = Math.random() * 4 + 3; // Digital fragments
+            if (shape === 'bar') dSize = Math.random() * 4 + 4;
+            else if (shape === 'bill') dSize = Math.random() * 3 + 2;
+            else if (shape === 'card') dSize = Math.random() * 4 + 3;
 
             addParticle({
-                x: x + (Math.random() - 0.5) * 15,
-                y: y + (Math.random() - 0.5) * 15,
+                x: x + (Math.random() - 0.5) * 12,
+                y: y + (Math.random() - 0.5) * 12,
                 vx: Math.cos(angle) * speed,
                 vy: Math.sin(angle) * speed,
-                life: tierConf.duration,
+                life: tierConf.duration * (0.7 + Math.random() * 0.3),
                 maxLife: tierConf.duration,
                 color: i % 3 === 0 ? '#fff' : debrisColor,
-                size: dSize
-            });
-        }
-
-        // Shockwave ring (expanding semi-transparent)
-        if (tier !== 'WEAK') {
-            const shockSize = tier === 'STRONG' ? 40 : 28;
-            addParticle({
-                x: x, y: y, vx: 0, vy: 0,
-                life: 0.25, maxLife: 0.25,
-                color: color, size: shockSize,
-                isRing: true
-            });
-        }
-
-        // v4.23.1: Lingering death glow — additive flash that fades at death point
-        const _dfCfg = G.Balance?.GLOW?.DEATH_FLASH;
-        if (_dfCfg?.ENABLED && G.Balance?.GLOW?.ENABLED) {
-            const dfDur = _dfCfg.DURATION || 0.4;
-            addParticle({
-                x: x, y: y, vx: 0, vy: 0,
-                life: dfDur, maxLife: dfDur,
-                color: color,
-                size: _dfCfg.RADIUS || 30,
-                isGlow: true
+                size: dSize * 0.6, baseSize: dSize,
+                explosionGrow: true
             });
         }
     }
@@ -435,40 +412,25 @@
             });
         }
 
-        // Big flash rings
-        addParticle({
-            x: x, y: y, vx: 0, vy: 0,
-            life: 0.4, maxLife: 0.4,
-            color: '#fff', size: 60,
-            isRing: true
-        });
-        addParticle({
-            x: x, y: y, vx: 0, vy: 0,
-            life: 0.3, maxLife: 0.3,
-            color: '#ff2244', size: 80,
-            isRing: true
-        });
-        addParticle({
-            x: x, y: y, vx: 0, vy: 0,
-            life: 0.5, maxLife: 0.5,
-            color: '#ffaa00', size: 100,
-            isRing: true
-        });
-
-        // Extra debris
-        const debrisCount = Math.min(10, available - symbolCount - 3);
-        for (let i = 0; i < debrisCount; i++) {
+        // Massive shrapnel burst — replaces rings
+        const burstAvail = MAX_PARTICLES - particles.length;
+        const burstCount = Math.min(15, burstAvail);
+        const burstColors = ['#ff2244', '#ffaa00', '#00ff66', '#fff'];
+        for (let i = 0; i < burstCount; i++) {
             const angle = Math.random() * Math.PI * 2;
-            const speed = Math.random() * 350 + 100;
+            const speed = Math.random() * 450 + 150;
+            const sz = Math.random() * 6 + 3;
             addParticle({
-                x: x + (Math.random() - 0.5) * 60,
-                y: y + (Math.random() - 0.5) * 60,
+                x: x + (Math.random() - 0.5) * 50,
+                y: y + (Math.random() - 0.5) * 50,
                 vx: Math.cos(angle) * speed,
                 vy: Math.sin(angle) * speed,
-                life: 0.6,
-                maxLife: 0.6,
-                color: ['#ff2244', '#ffaa00', '#00ff66', '#fff'][i % 4],
-                size: Math.random() * 8 + 4
+                life: 0.4 + Math.random() * 0.3,
+                maxLife: 0.7,
+                color: burstColors[i % 4],
+                size: sz * 0.6, baseSize: sz,
+                explosionGrow: true,
+                isSpark: i < 5
             });
         }
     }
@@ -527,11 +489,19 @@
                 p.x += p.vx * dt;
                 p.y += p.vy * dt;
                 p.life -= dt;
-                // Rotate symbols, shrink regular particles
+                // Rotate symbols; explosion particles grow then hold, others fade size gently
                 if (p.symbol) {
                     p.rotation = (p.rotation || 0) + (p.rotSpeed || 5) * dt;
+                } else if (p.explosionGrow) {
+                    // Explosion lifecycle: quick expand (first 25% of life), then hold
+                    const lifeRatio = 1 - (p.life / p.maxLife); // 0→1
+                    if (lifeRatio < 0.25) {
+                        // Expand phase: grow from 60% to 100% of target size
+                        p.size = p.baseSize * (0.6 + lifeRatio * 1.6);
+                    }
+                    // After 25%: size stays at baseSize (alpha handles fade)
                 } else {
-                    p.size *= 0.92;
+                    p.size *= 0.97; // Gentler shrink for non-explosion particles
                 }
 
                 // Remove dead or offscreen particles

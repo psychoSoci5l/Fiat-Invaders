@@ -1,5 +1,15 @@
 # Changelog
 
+## v5.0.6 - 2026-02-13
+### Explosion VFX Overhaul
+- **fix(visual)**: replaced "imploding balloon" particle effect with real explosion shrapnel
+- **particle lifecycle**: explosion particles now grow briefly (60%→100% in first 25% of life) then hold size, fading via alpha only (was: constant shrink `size *= 0.92`)
+- **bullet cancel**: 8 colored shrapnel particles (was 4 white), enemy bullet color passed through, longer lifetime 0.28s (was 0.18s)
+- **enemy kill spark**: extra fast shrapnel burst (4 sparks at 350+ px/s) for kill impacts
+- **removed rings/glow**: all explosion functions now use directional fragments only — no more bubble-like expanding rings
+- **boss death**: 15 multicolor shrapnel burst replaces 3 large expanding rings
+- **non-explosion particles**: gentler shrink `0.97` (was `0.92`) for muzzle flash, graze, etc.
+
 ## v5.0.5 - 2026-02-13
 ### Boss Damage Rebalance
 - **fix(critical)**: boss damage now scales with weapon level (`damageMult`) — was flat `ceil(baseDamage/4)` since launch
