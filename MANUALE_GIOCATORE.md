@@ -41,7 +41,7 @@ Distruggi le ondate di valute fiat, affronta i boss delle Banche Centrali (FED, 
 Accumula il **punteggio più alto possibile**! Padroneggia queste meccaniche:
 - **Uccidi nemici da vicino** per riempire il meter DIP
 - **HYPER Mode** per punteggio x5 a rischio estremo
-- **Raggiungi Livello Arma 5** per sbloccare GODCHAIN
+- **Raccogli tutti e 3 i Perk Elementali** per sbloccare GODCHAIN
 
 ### Game Over
 Perdi tutte le **vite** (cuori in alto a sinistra). Ogni morte ti costa **1 livello arma** e la tua arma speciale attiva.
@@ -53,7 +53,7 @@ Vuoi una sfida? Attiva il **Bear Market** per difficoltà aumentata e punteggi p
 
 ## 4. Power-Up e Drop
 
-I nemici rilasciano power-up quando vengono distrutti. Tre categorie:
+I nemici rilasciano power-up quando vengono distrutti. Quattro categorie:
 
 ### UPGRADE Arma (permanente)
 | Drop | Effetto |
@@ -80,6 +80,17 @@ Esclusive — raccoglierne una sostituisce la speciale attiva.
 | **HOMING** | I proiettili inseguono il nemico più vicino |
 | **PIERCE** | I proiettili attraversano i nemici |
 | **MISSILE** | Meno proiettili ma enormi esplosioni ad area |
+
+### Perk Elementali (permanenti, droppano come cristalli a diamante)
+Si raccolgono in ordine fisso. Ogni elemento aggiunge un effetto permanente ai tuoi proiettili:
+
+| Ordine | Elemento | Effetto |
+|--------|----------|---------|
+| 1° | **Fire** | Le uccisioni causano danno ad area (30%) ai nemici vicini |
+| 2° | **Laser** | Proiettili +25% velocità, +1 perforazione |
+| 3° | **Electric** | Le uccisioni scatenano fulmini su 1-2 nemici vicini (20% danno) |
+
+Raccoglierli tutti e 3 attiva la **GODCHAIN**! Ulteriori drop perk la ri-attivano. La morte resetta tutti i perk.
 
 ### Drop Utility (temporanei, 12s)
 Pickup a forma di capsula con grafica distinta.
@@ -140,39 +151,28 @@ Ogni 5 ondate affronti un boss. Rotazione: **FED → BCE → BOJ**
 
 ### HYPER MODE - Massimo Rischio, Massima Ricompensa
 
-Uccidi i nemici da vicino per riempire il **meter DIP**. Quando raggiunge il 100%, premi **H** per attivare HYPER:
+Uccidi i nemici da vicino per riempire il **meter DIP**. Quando raggiunge il 100%, HYPER si attiva automaticamente:
 
 | Aspetto | Effetto |
 |---------|---------|
-| **Durata** | 5 secondi base |
+| **Durata** | 10 secondi (fissa) |
 | **Punteggio** | **Moltiplicatore x5** su TUTTI i punti |
 | **Arma** | **+2 livelli arma** temporanei (LV6/LV7!) |
 | **Hitbox** | 50% PIÙ GRANDE (più rischio!) |
 | **Morte** | **ISTANTANEA** se colpito (ignora le vite) |
 | **Cooldown** | 8 secondi dopo la fine di HYPER |
+| **Meter DIP** | Si blocca durante HYPER, si azzera quando finisce |
 
 **Strategia**: Attiva HYPER quando i nemici sono raggruppati. Il boost temporaneo dell'arma ti rende devastante!
 
 ### GODCHAIN - Potenza Assoluta
 
-Quando raggiungi il **Livello Arma 5**, la GODCHAIN si attiva automaticamente:
-- Effetto visivo imponente (aura dorata, meteore)
-- Ogni drop UPGRADE al livello massimo **ricarica la GODCHAIN**
+Quando raccogli **tutti e 3 i Perk Elementali** (Fire + Laser + Electric), la GODCHAIN si attiva automaticamente:
+- Durata 10 secondi con effetti visivi imponenti (aura dorata, meteore)
+- Ulteriori drop perk **ri-attivano la GODCHAIN**
 - GODCHAIN combinata con HYPER raggiunge i livelli arma 6-7 — distruzione assoluta!
 
-**Il ciclo**: Raccogli UPGRADE → raggiungi LV5 → GODCHAIN → timer scade → raccogli altri UPGRADE → GODCHAIN di nuovo!
-
-### Perk - Potenziamenti Passivi
-
-Cancella **5 proiettili nemici** con i tuoi colpi entro 1.5 secondi per ottenere un perk casuale. I perk si accumulano fino a **x2** e durano tutta la partita.
-
-| Perk | Effetto | Stack Max |
-|------|---------|-----------|
-| **Kinetic Rounds** | Danno +20%, proiettili perforano +1 colpo extra | x2 |
-| **Overclock Thrusters** | Velocità movimento +15% | x2 |
-| **Diamond Hands** | Moltiplicatore punteggio +25% | x2 |
-
-**Consiglio**: I perk si ottengono intercettando il fuoco nemico — posizionati dove i proiettili sono densi e continua a sparare!
+**Il ciclo**: Raccogli drop perk → Fire → Laser → Electric → GODCHAIN! → raccogli altri perk → GODCHAIN di nuovo!
 
 ---
 
@@ -198,9 +198,9 @@ Quando raccogli una capsula SHIELD:
 - Ottimo per sopravvivere alla Fase 3 dei boss
 
 ### Gestione Livello Arma
-- **Morire costa 1 livello** — evita di morire a LV5 se possibile
-- GODCHAIN funziona solo a **LV5** — dai priorità ai drop UPGRADE
-- Dopo la morte, i drop UPGRADE ti aiutano a recuperare rapidamente
+- **Morire costa 1 livello** e **resetta tutti i perk elementali**
+- Dai priorità sia ai drop UPGRADE che ai PERK per ricostruire dopo la morte
+- Dopo la morte, i drop UPGRADE ti aiutano a recuperare il livello arma velocemente
 
 ### Strategia nelle Ondate
 Le ondate diventano più difficili man mano che le svuoti:
@@ -216,7 +216,7 @@ Le ondate diventano più difficili man mano che le svuoti:
 |---------|----------------------|
 | **HODL** | Fermarsi per danni doppi |
 | **HYPER** | Modalità punteggio x5 (alto rischio) |
-| **GODCHAIN** | Modalità potenza massima a LV5 |
+| **GODCHAIN** | Modalità suprema (raccogli tutti e 3 i perk elementali) |
 | **DIP** | Meter uccisioni ravvicinate (attiva HYPER) |
 | **REKT** | Game Over |
 | **BUY THE DIP** | Ricomincia la partita |
@@ -229,4 +229,4 @@ Le ondate diventano più difficili man mano che le svuoti:
 *"There is no second best"* - Michael Saylor
 
 ---
-v4.48.0 FIAT vs CRYPTO
+v4.61.0 FIAT vs CRYPTO

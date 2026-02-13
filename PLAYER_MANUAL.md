@@ -41,7 +41,7 @@ Destroy waves of fiat currencies, face the Central Bank bosses (FED, ECB, BOJ) a
 Achieve the **highest score possible**! Master these mechanics:
 - **Kill enemies up close** to fill the DIP meter
 - **HYPER Mode** for 5x score at extreme risk
-- **Reach Weapon Level 5** to unlock GODCHAIN
+- **Collect all 3 Elemental Perks** to unlock GODCHAIN
 
 ### Game Over
 Lose all your **lives** (hearts in top left). Each death costs you **1 weapon level** and your current special weapon.
@@ -53,7 +53,7 @@ Want a challenge? Activate **Bear Market** for increased difficulty and higher s
 
 ## 4. Power-Ups & Drops
 
-Enemies drop power-ups when destroyed. Three categories:
+Enemies drop power-ups when destroyed. Four categories:
 
 ### Weapon UPGRADE (permanent)
 | Drop | Effect |
@@ -80,6 +80,17 @@ Exclusive — collecting one replaces the current special.
 | **HOMING** | Bullets track the nearest enemy |
 | **PIERCE** | Bullets pass through enemies |
 | **MISSILE** | Fewer bullets but huge AoE explosions |
+
+### Elemental Perks (permanent, drop as diamond crystals)
+Collected in fixed order. Each adds a permanent elemental effect to your bullets:
+
+| Order | Element | Effect |
+|-------|---------|--------|
+| 1st | **Fire** | Kills cause splash damage (30%) to nearby enemies |
+| 2nd | **Laser** | Bullets +25% speed, +1 pierce |
+| 3rd | **Electric** | Kills chain lightning to 1-2 nearby enemies (20% damage) |
+
+Collecting all 3 activates **GODCHAIN**! Further perk drops re-trigger it. Death resets all perks.
 
 ### Utility Drops (temporary, 12s)
 Capsule-shaped pickups with distinct visuals.
@@ -140,39 +151,28 @@ Every 5 waves you face a boss. Rotation: **FED → ECB → BOJ**
 
 ### HYPER MODE - Maximum Risk, Maximum Reward
 
-Kill enemies at close range to fill the **DIP meter**. When it reaches 100%, press **H** to activate HYPER:
+Kill enemies at close range to fill the **DIP meter**. When it reaches 100%, HYPER activates automatically:
 
 | Aspect | Effect |
 |--------|--------|
-| **Duration** | 5 seconds base |
+| **Duration** | 10 seconds (fixed) |
 | **Score** | **5x multiplier** on ALL points |
 | **Weapon** | Temporary **+2 weapon levels** (LV6/LV7!) |
 | **Hitbox** | 50% LARGER (more risk!) |
 | **Death** | **INSTANT** if hit (bypasses lives) |
 | **Cooldown** | 8 seconds after HYPER ends |
+| **DIP Meter** | Freezes during HYPER, resets to zero when it ends |
 
 **Strategy**: Activate HYPER when enemies are clustered. The temporary weapon boost makes you devastating!
 
 ### GODCHAIN - Ultimate Power
 
-When you reach **Weapon Level 5**, GODCHAIN activates automatically:
-- Massive visual effect (golden aura, meteors)
-- Each UPGRADE drop at max level **recharges GODCHAIN**
+When you collect **all 3 Elemental Perks** (Fire + Laser + Electric), GODCHAIN activates automatically:
+- 10 second duration with massive visual effects (golden aura, meteors)
+- Further perk drops **re-trigger GODCHAIN**
 - GODCHAIN combined with HYPER reaches weapon levels 6-7 — absolute destruction!
 
-**The cycle**: Collect UPGRADEs → reach LV5 → GODCHAIN → timer expires → collect more UPGRADEs → GODCHAIN again!
-
-### Perks - Passive Upgrades
-
-Cancel **5 enemy bullets** with your shots within 1.5 seconds to earn a random perk. Perks stack up to **x2** and persist for the entire run.
-
-| Perk | Effect | Max Stacks |
-|------|--------|------------|
-| **Kinetic Rounds** | Damage +20%, bullets pierce +1 extra hit | x2 |
-| **Overclock Thrusters** | Movement speed +15% | x2 |
-| **Diamond Hands** | Score multiplier +25% | x2 |
-
-**Tips**: Perks are earned by intercepting enemy fire — position yourself where bullets are dense and keep shooting!
+**The cycle**: Collect perk drops → Fire → Laser → Electric → GODCHAIN! → collect more perks → GODCHAIN again!
 
 ---
 
@@ -198,9 +198,9 @@ When you pick up a SHIELD capsule:
 - Great for surviving Boss Phase 3 attacks
 
 ### Weapon Level Management
-- **Death costs 1 level** — avoid dying at LV5 if possible
-- GODCHAIN only works at **LV5** — prioritize UPGRADE drops
-- After death, UPGRADE drops help you recover quickly
+- **Death costs 1 level** and **resets all elemental perks**
+- Prioritize both UPGRADE and PERK drops to rebuild after death
+- After death, UPGRADE drops help you recover weapon level quickly
 
 ### Wave Strategy
 Waves get harder as you clear them:
@@ -216,7 +216,7 @@ Waves get harder as you clear them:
 |------|-----------------|
 | **HODL** | Stand still for double damage |
 | **HYPER** | 5x score mode (high risk) |
-| **GODCHAIN** | Max weapon power mode at LV5 |
+| **GODCHAIN** | Ultimate mode (collect all 3 elemental perks) |
 | **DIP** | Proximity kill meter (triggers HYPER) |
 | **REKT** | Game Over |
 | **BUY THE DIP** | Restart the game |
@@ -229,4 +229,4 @@ Waves get harder as you clear them:
 *"There is no second best"* - Michael Saylor
 
 ---
-v4.48.0 FIAT vs CRYPTO
+v4.61.0 FIAT vs CRYPTO

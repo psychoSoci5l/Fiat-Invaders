@@ -2033,6 +2033,17 @@ window.togglePrivacyPanel = function () {
 // What's New panel (v4.50)
 const WHATS_NEW = [
     {
+        version: 'v4.61.0', date: '2026-02-13', title: 'Elemental Perk Drops',
+        items: [
+            'NEW: Elemental Perks — Fire, Laser, Electric — now drop as physical power-ups (diamond crystals)',
+            'Fixed order: Fire (splash damage) → Laser (+speed, +pierce) → Electric (chain lightning)',
+            'Collecting all 3 elements activates GODCHAIN — further drops re-trigger it',
+            'DIP meter no longer accumulates during HYPER — resets to zero when HYPER ends',
+            'HYPER duration fixed at 10 seconds (no extensions)',
+            'Meter decay doubled — stay aggressive to keep it filled'
+        ]
+    },
+    {
         version: 'v4.58.0', date: '2026-02-12', title: 'Cyberpunk Damage FX',
         items: [
             'NEW: Enemies visually deteriorate below 50% HP with 5 layered cyberpunk effects',
