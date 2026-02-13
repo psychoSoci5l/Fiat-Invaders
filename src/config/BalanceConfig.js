@@ -80,8 +80,8 @@
         // --- ELEMENTAL PERK EFFECTS (v4.60) ---
         ELEMENTAL: {
             FIRE: {
-                SPLASH_RADIUS: 40,    // px radius for splash damage
-                SPLASH_DAMAGE: 0.30,  // 30% of kill damage to adjacent
+                SPLASH_RADIUS: 50,    // v5.0.8: 40→50 (catch more formation neighbors)
+                SPLASH_DAMAGE: 0.75,  // v5.0.8: 0.30→0.75 (was cosmetic at 30%, now finishes wounded enemies)
                 TRAIL_COLORS: ['#ff4400', '#ff6600', '#ffaa00'],
                 IMPACT_PARTICLES: 8
             },
@@ -92,8 +92,8 @@
                 TRAIL_LENGTH: 18
             },
             ELECTRIC: {
-                CHAIN_RADIUS: 80,     // px radius to find chain targets
-                CHAIN_DAMAGE: 0.20,   // 20% of kill damage
+                CHAIN_RADIUS: 90,     // v5.0.8: 80→90 (slightly wider chain reach)
+                CHAIN_DAMAGE: 0.50,   // v5.0.8: 0.20→0.50 (was cosmetic at 20%)
                 CHAIN_TARGETS: 2,     // max enemies to chain to
                 ARC_COLOR: '#8844ff',
                 ARC_COLOR_BRIGHT: '#bb88ff'
@@ -102,7 +102,7 @@
             CONTAGION: {
                 ENABLED: true,
                 MAX_DEPTH: [1, 2, 2],     // max cascade depth per perkLevel 1/2/3+
-                DAMAGE_DECAY: 0.5          // damage halves each cascade step
+                DAMAGE_DECAY: 0.6          // v5.0.8: 0.5→0.6 (cascades retain more damage)
             }
         },
 
