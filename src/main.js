@@ -2210,6 +2210,26 @@ window.launchShipAndStart = function () {
     const introScreen = document.getElementById('intro-screen');
     const curtain = document.getElementById('curtain-overlay');
 
+    // v5.0: ship canvas removed from HTML — skip launch animation if missing
+    if (!shipCanvas) {
+        if (introScreen) { introScreen.style.display = 'none'; }
+        selectedShipIndex = 0;
+        player.configure(SHIP_KEYS[selectedShipIndex]);
+        audioSys.startMusic();
+        if (G.SkyRenderer) G.SkyRenderer.init(gameWidth, gameHeight);
+        if (G.WeatherController) G.WeatherController.init(gameWidth, gameHeight);
+        const campaignState = G.CampaignState;
+        if (campaignState && campaignState.isEnabled() && shouldShowStory('PROLOGUE')) {
+            setTimeout(() => { if (curtain) curtain.classList.add('open'); }, 100);
+            showStoryScreen('PROLOGUE', () => { startGame(); });
+        } else {
+            startGame();
+            setTimeout(() => { if (curtain) curtain.classList.add('open'); }, 100);
+        }
+        isLaunching = false;
+        return;
+    }
+
     // CRITICAL: Get ship's current position before moving it
     const shipRect = shipCanvas.getBoundingClientRect();
     const shipStartX = shipRect.left;
