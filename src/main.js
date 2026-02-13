@@ -2039,6 +2039,7 @@ const WHATS_NEW = [
             'Fixed order: Fire (splash damage) → Laser (+speed, +pierce) → Electric (chain lightning)',
             'Collecting all 3 elements activates GODCHAIN — further drops re-trigger it',
             'DIP meter no longer accumulates during HYPER — resets to zero when HYPER ends',
+            'HODL mode removed — was unusable on mobile (autofire requires touch)',
             'HYPER duration fixed at 10 seconds (no extensions)',
             'Meter decay doubled — stay aggressive to keep it filled'
         ]
