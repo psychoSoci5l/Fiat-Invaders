@@ -225,15 +225,6 @@
             });
         }
 
-        // Flash ring (always, size scales with level)
-        if (available > count) {
-            addParticle({
-                x: x, y: y, vx: 0, vy: 0,
-                life: 0.06 + level * 0.02, maxLife: 0.10,
-                color: color, size: 6 + level * 3,
-                isRing: true
-            });
-        }
     }
 
     /**

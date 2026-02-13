@@ -1,5 +1,14 @@
 # Changelog
 
+## v5.0.9 - 2026-02-13
+### Visual Polish + Elemental Tuning Round 2
+- **fix(visual)**: removed muzzle flash "bubble" effect (circle + ring burst on player nose when firing)
+- **fix(visual)**: removed flash ring particle from muzzle spark system — only directional sparks remain
+- **feat(visual)**: ship evolution more distinct per weapon level — wider pods, mount brackets, progressive body scaling, brighter tip glows
+- **balance**: elemental damage tuning round 2 — fire splash 0.75→1.2, electric chain 0.50→0.80, contagion decay 0.6→0.7
+- **balance**: fire splash radius 50→55, electric chain radius 90→100
+- **result**: contagion kill rate 3.4%→26.9% (target 15-25%) — elemental system now gameplay-relevant
+
 ## v5.0.8 - 2026-02-13
 ### Pierce Decay + Progression Tracker
 - **fix(balance)**: PIERCE bullets now lose 35% damage per enemy pierced (`DAMAGE_MULT: 0.65`), max 5 enemies — prevents screen-clearing

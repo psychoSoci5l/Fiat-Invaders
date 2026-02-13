@@ -1,7 +1,25 @@
 # Roadmap: FIAT vs CRYPTO
 
-> **Versione attuale**: v5.0.5 (2026-02-13)
+> **Versione attuale**: v5.0.9 (2026-02-13)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
+
+---
+
+## TODO — Shooting VFX (post v5.0.9)
+
+- [ ] Nuovo effetto sparo: sostituire la bolla/cerchio rimossa con un VFX adeguato (flash direzionale, spark trail, o simile)
+- [ ] L'effetto deve scalare con weapon level (più cannoni = più effetti)
+- [ ] Considerare variante elementale (colore/forma cambia con perk attivo)
+
+---
+
+## COMPLETATO — Visual Polish + Elemental Tuning (v5.0.9)
+
+- [x] Rimosso muzzle flash "bolla" (cerchio + ring burst + glow additivo)
+- [x] Rimosso flash ring particle dal sistema muzzle spark
+- [x] Evoluzione nave più evidente: pod più larghi, staffe montaggio, body scaling progressivo
+- [x] Elemental tuning round 2: fire splash 1.2×, electric chain 0.8×, contagion decay 0.7
+- [x] Kill rate contagion: 3.4% → 26.9% (target raggiunto)
 
 ---
 

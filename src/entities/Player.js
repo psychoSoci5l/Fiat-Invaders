@@ -884,97 +884,6 @@ class Player extends window.Game.Entity {
         // v4.55: Ship evolution — visual form scales with weaponLevel
         this._drawShipBody(ctx);
 
-        // v4.55: Muzzle flash — matches ship evolution cannons
-        if (this.muzzleFlash > 0) {
-            const vfx = window.Game.Balance?.VFX || {};
-            const flashAlpha = this.muzzleFlash / (Balance.PLAYER.MUZZLE_FLASH_DURATION || 0.08);
-            const level = this.weaponLevel || 1;
-            const levelScale = 1 + (level - 1) * (vfx.MUZZLE_SCALE_PER_LEVEL || 0.4);
-            const flashSize = (10 + (1 - flashAlpha) * 8) * levelScale;
-
-            const wColor = this.stats?.color || '#E67E22';
-            const CU = window.Game.ColorUtils;
-            const wParsed = CU.parseHex(wColor);
-
-            // Central nose flash (always)
-            const noseY = -30;
-            ctx.fillStyle = CU.rgba(255, 255, 220, flashAlpha * 0.7);
-            ctx.beginPath();
-            ctx.arc(0, noseY, flashSize, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Additive muzzle glow
-            const _muzzleGlow = window.Game.Balance?.GLOW;
-            if (_muzzleGlow?.ENABLED && _muzzleGlow?.MUZZLE?.ENABLED) {
-                const mc = _muzzleGlow.MUZZLE;
-                ctx.save();
-                ctx.globalCompositeOperation = 'lighter';
-                ctx.fillStyle = CU.rgba(255, 255, 220, flashAlpha * mc.ALPHA);
-                ctx.beginPath();
-                ctx.arc(0, noseY, flashSize * mc.RADIUS_MULT, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.restore();
-            }
-
-            ctx.fillStyle = CU.rgba(wParsed.r, wParsed.g, wParsed.b, flashAlpha * 0.5);
-            ctx.beginPath();
-            ctx.arc(0, noseY, flashSize * 0.6, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Center flash line
-            ctx.strokeStyle = CU.rgba(wParsed.r, wParsed.g, wParsed.b, flashAlpha * 0.9);
-            ctx.lineWidth = 1.5 + level * 0.5;
-            ctx.beginPath();
-            ctx.moveTo(0, -28);
-            ctx.lineTo(0, -42 - flashSize);
-            ctx.stroke();
-
-            // LV2+: Side pod flashes
-            if (level >= 2) {
-                const podTop = level >= 3 ? -28 : -24;
-                const podFlashSize = flashSize * 0.5;
-                ctx.fillStyle = CU.rgba(wParsed.r, wParsed.g, wParsed.b, flashAlpha * 0.6);
-                ctx.beginPath();
-                ctx.arc(-12, podTop, podFlashSize, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.beginPath();
-                ctx.arc(12, podTop, podFlashSize, 0, Math.PI * 2);
-                ctx.fill();
-                // Pod flash lines
-                ctx.beginPath();
-                ctx.moveTo(-12, podTop);
-                ctx.lineTo(-12, podTop - 8 - podFlashSize);
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.moveTo(12, podTop);
-                ctx.lineTo(12, podTop - 8 - podFlashSize);
-                ctx.stroke();
-            }
-
-            // LV4+: Central barrel flash (higher up)
-            if (level >= 4) {
-                const barrelTop = level >= 5 ? -40 : -36;
-                const barrelFlashSize = flashSize * 0.7;
-                ctx.fillStyle = CU.rgba(255, 255, 220, flashAlpha * 0.8);
-                ctx.beginPath();
-                ctx.arc(0, barrelTop, barrelFlashSize, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.beginPath();
-                ctx.moveTo(0, barrelTop);
-                ctx.lineTo(0, barrelTop - 10 - barrelFlashSize);
-                ctx.stroke();
-            }
-
-            // Ring burst at level 3+
-            if (level >= (vfx.MUZZLE_RING_AT_LEVEL || 3) && flashAlpha > 0.7) {
-                const ringExpand = (1 - flashAlpha) * 15;
-                ctx.strokeStyle = CU.rgba(wParsed.r, wParsed.g, wParsed.b, flashAlpha * 0.4);
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.arc(0, noseY, flashSize + ringExpand, 0, Math.PI * 2);
-                ctx.stroke();
-            }
-        }
 
         // Shield Overlay
         if (this.shieldActive) {
@@ -1306,8 +1215,8 @@ class Player extends window.Game.Entity {
         const gcColors = gc?.SHIP_COLORS;
         const isGC = this._godchainActive;
 
-        // Body width scales at LV4+ and GODCHAIN
-        const bodyHalfW = isGC ? 26 : (level >= 4 ? 24 : 22);
+        // Body width scales with level and GODCHAIN
+        const bodyHalfW = isGC ? 26 : (level >= 5 ? 25 : (level >= 4 ? 24 : (level >= 2 ? 23 : 21)));
         // Fin extension: LV3 +4px, GODCHAIN +8px
         const finExt = isGC ? 8 : (level >= 3 ? 4 : 0);
 
@@ -1342,11 +1251,11 @@ class Player extends window.Game.Entity {
         if (level >= 3) {
             ctx.save();
             ctx.strokeStyle = gcColors ? '#ff6600' : '#bb44ff';
-            ctx.lineWidth = 2;
-            ctx.globalAlpha = isGC ? 0.9 : 0.6;
+            ctx.lineWidth = level >= 5 ? 3 : 2.5;
+            ctx.globalAlpha = isGC ? 0.9 : 0.75;
             ctx.beginPath();
-            ctx.moveTo(-bodyHalfW + 5, 0);
-            ctx.lineTo(bodyHalfW - 5, 0);
+            ctx.moveTo(-bodyHalfW + 4, 0);
+            ctx.lineTo(bodyHalfW - 4, 0);
             ctx.stroke();
             ctx.restore();
         }
@@ -1519,28 +1428,48 @@ class Player extends window.Game.Entity {
 
         // === LV2+: GUN PODS (side cannons) ===
         if (level >= 2) {
-            const podTop = level >= 3 ? -28 : -24;
-            const podX = 12;
-            const podW = 3;
+            const podTop = level >= 5 ? -32 : (level >= 4 ? -30 : (level >= 3 ? -28 : -22));
+            const podX = level >= 4 ? 15 : 13;
+            const podW = level >= 5 ? 5 : (level >= 3 ? 4.5 : 4);
+            const podBot = -10;
 
-            ctx.lineWidth = 1.5;
+            // Mount brackets (struts connecting body to pods)
+            ctx.fillStyle = gcColors ? gcColors.BODY_DARK : this._colorDark30;
+            ctx.strokeStyle = '#111';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(-6, -10);
+            ctx.lineTo(-podX + podW, -12);
+            ctx.lineTo(-podX + podW, -8);
+            ctx.closePath();
+            ctx.fill(); ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(6, -10);
+            ctx.lineTo(podX - podW, -12);
+            ctx.lineTo(podX - podW, -8);
+            ctx.closePath();
+            ctx.fill(); ctx.stroke();
+
+            ctx.lineWidth = 2;
             ctx.strokeStyle = '#111';
 
+            // Left pod
             ctx.fillStyle = gcColors ? gcColors.NOSE : '#7722aa';
             ctx.beginPath();
-            ctx.rect(-podX - podW, podTop, podW * 2, -14 - podTop);
+            ctx.rect(-podX - podW, podTop, podW * 2, podBot - podTop);
             ctx.fill();
             ctx.stroke();
 
+            // Right pod
             ctx.fillStyle = gcColors ? gcColors.NOSE_LIGHT : '#cc66ff';
             ctx.beginPath();
-            ctx.rect(podX - podW, podTop, podW * 2, -14 - podTop);
+            ctx.rect(podX - podW, podTop, podW * 2, podBot - podTop);
             ctx.fill();
             ctx.stroke();
 
             // Glow tips at pod tops
-            const tipR = level >= 5 ? 3 : 2;
-            const tipAlpha = level >= 5 ? (Math.sin(t * 6) * 0.3 + 0.7) : (level >= 3 ? 0.9 : 0.6);
+            const tipR = level >= 5 ? 4.5 : (level >= 3 ? 3.5 : 3);
+            const tipAlpha = level >= 5 ? (Math.sin(t * 6) * 0.3 + 0.7) : (level >= 3 ? 0.9 : 0.7);
             ctx.fillStyle = gcColors ? '#ff6600' : '#bb44ff';
             ctx.globalAlpha = tipAlpha;
             ctx.beginPath();
