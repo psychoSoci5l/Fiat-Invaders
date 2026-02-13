@@ -210,25 +210,6 @@ class Bullet extends window.Game.Entity {
                 ctx.globalAlpha = 1;
             }
 
-            // HODL bullets get golden glow effect (2x damage indicator)
-            if (this.isHodl) {
-                const hodlGlow = Math.sin(this.age * 15) * 0.2 + 0.5;
-                ctx.fillStyle = CU.rgba(255, 215, 0, hodlGlow * 0.4);
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, 12 + pulse * 3, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Golden sparkle trail
-                ctx.fillStyle = CU.rgba(255, 255, 150, hodlGlow * 0.6);
-                for (let i = 0; i < 2; i++) {
-                    const trailY = this.y + 8 + i * 8;
-                    const trailSize = 2 - i * 0.5;
-                    ctx.beginPath();
-                    ctx.arc(this.x + (Math.sin(this.age * 20 + i) * 3), trailY, trailSize, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-            }
-
             // v4.30: Glow moved to drawGlow() — batched in main.js additive pass
 
             // Check for WEAPON EVOLUTION special first (overrides weaponType)

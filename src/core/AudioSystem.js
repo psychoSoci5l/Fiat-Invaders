@@ -630,19 +630,6 @@ class AudioSystem {
                 osc.stop(start + 0.08);
             });
         }
-        else if (type === 'hodl') {
-            const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
-            osc.connect(gain);
-            gain.connect(output);
-            osc.type = 'square';
-            osc.frequency.setValueAtTime(1200, t);
-            osc.frequency.exponentialRampToValueAtTime(400, t + 0.15);
-            gain.gain.setValueAtTime(0.1, t);
-            gain.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
-            osc.start(t);
-            osc.stop(t + 0.15);
-        }
         else if (type === 'comboLost') {
             const osc = this.ctx.createOscillator();
             const gain = this.ctx.createGain();

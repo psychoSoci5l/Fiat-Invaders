@@ -178,13 +178,6 @@ When you collect **all 3 Elemental Perks** (Fire + Laser + Electric), GODCHAIN a
 
 ## 8. Pro Tips
 
-### HODL MODE - The Champion's Secret
-**Stop moving** and your ship enters HODL mode:
-- **2x damage** against all enemies
-- **Golden aura** visible around ship
-
-Use HODL when enemies are lined up above you!
-
 ### Kill Close for DIP
 Kill enemies when they're **close to your ship** vertically:
 - Fills the **DIP meter** faster
@@ -214,7 +207,7 @@ Waves get harder as you clear them:
 
 | Term | In-Game Meaning |
 |------|-----------------|
-| **HODL** | Stand still for double damage |
+| **HODL** | Hold on for dear life! |
 | **HYPER** | 5x score mode (high risk) |
 | **GODCHAIN** | Ultimate mode (collect all 3 elemental perks) |
 | **DIP** | Proximity kill meter (triggers HYPER) |

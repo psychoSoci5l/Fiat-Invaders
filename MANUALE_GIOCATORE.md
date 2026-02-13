@@ -178,13 +178,6 @@ Quando raccogli **tutti e 3 i Perk Elementali** (Fire + Laser + Electric), la GO
 
 ## 8. Consigli da Pro
 
-### HODL MODE - Il Segreto dei Campioni
-**Smetti di muoverti** e la tua nave entra in modalità HODL:
-- **Danno x2** contro tutti i nemici
-- **Aura dorata** visibile attorno alla nave
-
-Usa HODL quando i nemici sono allineati sopra di te!
-
 ### Uccidi da Vicino per il DIP
 Uccidi i nemici quando sono **vicini alla tua nave** verticalmente:
 - Riempie il **meter DIP** più velocemente
@@ -214,7 +207,7 @@ Le ondate diventano più difficili man mano che le svuoti:
 
 | Termine | Significato nel Gioco |
 |---------|----------------------|
-| **HODL** | Fermarsi per danni doppi |
+| **HODL** | Tieni duro! |
 | **HYPER** | Modalità punteggio x5 (alto rischio) |
 | **GODCHAIN** | Modalità suprema (raccogli tutti e 3 i perk elementali) |
 | **DIP** | Meter uccisioni ravvicinate (attiva HYPER) |

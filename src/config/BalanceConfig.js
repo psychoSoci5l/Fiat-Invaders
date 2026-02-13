@@ -611,8 +611,7 @@
         // --- SCORE SYSTEM ---
         SCORE: {
             // Damage multipliers
-            HODL_MULT_ENEMY: 1.25,    // HODL damage multiplier vs enemies
-            HODL_MULT_BOSS: 1.5,      // HODL damage multiplier vs boss
+            // v4.61: HODL removed (incompatible with mobile autofire)
 
             // Base multipliers
             BEAR_MARKET_MULT: 2,      // Score multiplier in Bear Market mode
@@ -895,7 +894,7 @@
             BASE_HP: 1,            // Each base bullet passes through 1 enemy bullet
             LEVEL_BONUS: 0.5,      // +0.5 per weapon level (LV5 = +2)
             MISSILE_HP: 3,         // Missiles are tougher
-            HODL_BONUS: 1,         // HODL bullets +1 pierce
+            // v4.61: HODL_BONUS removed
         },
 
         // --- PROXIMITY KILL METER (replaces graze as meter source) ---

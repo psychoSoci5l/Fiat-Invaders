@@ -506,16 +506,14 @@ class Player extends window.Game.Entity {
         const Balance = window.Game.Balance;
         const WE = Balance.WEAPON_EVOLUTION;
         const bullets = [];
-        const isHodl = Math.abs(this.vx) < 10;
-
         // Play Sound
-        window.Game.Audio.play(isHodl ? 'hodl' : 'shoot');
+        window.Game.Audio.play('shoot');
         window.Game.Input.vibrate(Balance.PLAYER.FIRE_VIBRATION_MS);
         this.muzzleFlash = Balance.PLAYER.MUZZLE_FLASH_DURATION;
 
         // === WEAPON EVOLUTION v4.47 ===
         if (WE && this.weaponLevel >= 1) {
-            return this.fireEvolution(isHodl);
+            return this.fireEvolution();
         }
 
         // === LEGACY SYSTEM FALLBACK ===
@@ -534,10 +532,10 @@ class Player extends window.Game.Entity {
         const bulletSpeed = 765;
         const weaponType = this.weapon;
         const spawnBullet = (x, y, vx, vy) => {
-            const b = window.Game.Bullet.Pool.acquire(x, y, vx, vy, color, bulletW, bulletH, isHodl);
+            const b = window.Game.Bullet.Pool.acquire(x, y, vx, vy, color, bulletW, bulletH, false);
             b.weaponType = weaponType;
             const BP = Balance.BULLET_PIERCE;
-            b.pierceHP = BP.BASE_HP + (isHodl ? BP.HODL_BONUS : 0);
+            b.pierceHP = BP.BASE_HP;
             bullets.push(b);
         };
 
@@ -557,7 +555,7 @@ class Player extends window.Game.Entity {
         } else if (this.weapon === 'FIRE') {
             // Triple parallel (tighter spacing) - PENETRATING
             const spawnFireBullet = (x, y, vx, vy) => {
-                const b = window.Game.Bullet.Pool.acquire(x, y, vx, vy, color, bulletW, bulletH, isHodl);
+                const b = window.Game.Bullet.Pool.acquire(x, y, vx, vy, color, bulletW, bulletH, false);
                 b.penetration = true; // FIRE bullets pierce through enemies
                 bullets.push(b);
             };
@@ -575,7 +573,7 @@ class Player extends window.Game.Entity {
         } else if (this.weapon === 'HOMING') {
             // Tracking missiles - spawn with homing flag
             const spawnHomingBullet = (x, y) => {
-                const b = window.Game.Bullet.Pool.acquire(x, y, 0, -bulletSpeed * 0.6, color, 8, 16, isHodl);
+                const b = window.Game.Bullet.Pool.acquire(x, y, 0, -bulletSpeed * 0.6, color, 8, 16, false);
                 b.homing = true;
                 b.homingSpeed = 4.0; // Turn rate
                 b.weaponType = 'HOMING';
@@ -586,7 +584,7 @@ class Player extends window.Game.Entity {
         } else if (this.weapon === 'LASER') {
             // Rapid continuous beam - thin penetrating shots
             const spawnLaserBullet = (x, y) => {
-                const b = window.Game.Bullet.Pool.acquire(x, y, 0, -bulletSpeed * 1.4, color, 3, 30, isHodl);
+                const b = window.Game.Bullet.Pool.acquire(x, y, 0, -bulletSpeed * 1.4, color, 3, 30, false);
                 b.penetration = true; // Laser pierces through enemies
                 b.weaponType = 'LASER';
                 bullets.push(b);
@@ -605,7 +603,7 @@ class Player extends window.Game.Entity {
      * Weapon Evolution v4.47 fire system
      * Linear 5-level progression, HYPER adds +2 temporary levels
      */
-    fireEvolution(isHodl) {
+    fireEvolution() {
         const Balance = window.Game.Balance;
         const WE = Balance.WEAPON_EVOLUTION;
         const bullets = [];
@@ -665,7 +663,7 @@ class Player extends window.Game.Entity {
                 color,
                 w,
                 h,
-                isHodl
+                false
             );
 
             // Apply damage multiplier
@@ -698,7 +696,6 @@ class Player extends window.Game.Entity {
             } else {
                 b.pierceHP = BP.BASE_HP
                     + Math.floor(effectiveLevel * (BP.LEVEL_BONUS || 0.5))
-                    + (isHodl ? BP.HODL_BONUS : 0)
                     + pierceBonusHP;
             }
 
@@ -831,43 +828,6 @@ class Player extends window.Game.Entity {
             ctx.fill();
 
             ctx.restore();
-        }
-
-        // HODL MODE AURA - Golden glow when stationary (only if not in HYPER)
-        const isHodl = Math.abs(this.vx) < 10;
-        if (isHodl && !this.hyperActive) {
-            const hodlPulse = Math.sin(this.animTime * 8) * 0.15 + 0.4;
-            const hodlSize = 45 + Math.sin(this.animTime * 6) * 8;
-
-            // Outer golden glow
-            const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, hodlSize);
-            gradient.addColorStop(0, CU.rgba(255, 215, 0, hodlPulse * 0.6));
-            gradient.addColorStop(0.5, CU.rgba(255, 180, 0, hodlPulse * 0.3));
-            gradient.addColorStop(1, 'transparent');
-            ctx.fillStyle = gradient;
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, hodlSize, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Inner bright ring
-            ctx.strokeStyle = CU.rgba(255, 255, 200, hodlPulse * 0.8);
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, 30 + Math.sin(this.animTime * 10) * 3, 0, Math.PI * 2);
-            ctx.stroke();
-
-            // Orbiting sparkles
-            for (let i = 0; i < 4; i++) {
-                const angle = this.animTime * 3 + (Math.PI / 2) * i;
-                const dist = 35 + Math.sin(this.animTime * 5 + i) * 5;
-                const sparkX = this.x + Math.cos(angle) * dist;
-                const sparkY = this.y + Math.sin(angle) * dist;
-
-                ctx.fillStyle = CU.rgba(255, 255, 150, hodlPulse);
-                ctx.beginPath();
-                ctx.arc(sparkX, sparkY, 2 + Math.sin(this.animTime * 8 + i) * 1, 0, Math.PI * 2);
-                ctx.fill();
-            }
         }
 
         // Enhanced trail effect - multiple afterimages when moving fast
