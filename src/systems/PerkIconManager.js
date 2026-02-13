@@ -14,6 +14,13 @@
         epic: '#ffaa00'
     };
 
+    // v4.60: Elemental perk colors
+    const ELEMENT_COLORS = {
+        fire: '#ff4400',
+        laser: '#00f0ff',
+        electric: '#8844ff'
+    };
+
     let icons = [];
 
     function addIcon(perk, playerX, playerY) {
@@ -23,7 +30,7 @@
         icons.push({
             icon: perk.icon || '?',
             name: perk.name || 'Perk',
-            color: RARITY_COLORS[perk.rarity] || RARITY_COLORS.common,
+            color: (perk.elementType && ELEMENT_COLORS[perk.elementType]) || RARITY_COLORS[perk.rarity] || RARITY_COLORS.common,
             rarity: perk.rarity || 'common',
             x: playerX,
             y: playerY - 60,

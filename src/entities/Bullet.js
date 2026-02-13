@@ -21,6 +21,11 @@ class Bullet extends window.Game.Entity {
         this.isMissile = false;   // MISSILE special flag
         this.aoeRadius = 0;       // MISSILE explosion radius
         this.pierceHP = 1;        // Bullet pierce: survives N enemy-bullet hits
+
+        // v4.60: Elemental perk flags
+        this._elemFire = false;
+        this._elemLaser = false;
+        this._elemElectric = false;
     }
 
     reset(x, y, vx, vy, color, w, h, isHodl) {
@@ -49,6 +54,11 @@ class Bullet extends window.Game.Entity {
         this.isMissile = false;
         this.aoeRadius = 0;
         this.pierceHP = 1;
+
+        // v4.60: Elemental reset
+        this._elemFire = false;
+        this._elemLaser = false;
+        this._elemElectric = false;
     }
 
     update(dt, enemies, boss) {
@@ -262,6 +272,11 @@ class Bullet extends window.Game.Entity {
                         this.drawNormalBullet(ctx, pulse);
                 }
             }
+
+            // v4.60: Elemental overlays on top
+            if (this._elemFire || this._elemLaser || this._elemElectric) {
+                this._drawElementalOverlays(ctx);
+            }
         }
     }
     // ═══════════════════════════════════════════════════════════════════
@@ -282,6 +297,81 @@ class Bullet extends window.Game.Entity {
         ctx.beginPath();
         ctx.arc(this.x, this.y, gc.RADIUS, 0, Math.PI * 2);
         ctx.fill();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // v4.60: ELEMENTAL OVERLAYS — drawn on top of any player bullet
+    // ═══════════════════════════════════════════════════════════════════
+    _drawFireTrail(ctx) {
+        const colors = ['#ff4400', '#ff6600', '#ffaa00'];
+        ctx.globalAlpha = 0.65;
+        for (let i = 0; i < 3; i++) {
+            const ox = Math.sin(this.age * 28 + i * 2.1) * 3;
+            const tLen = 10 + Math.sin(this.age * 22 + i * 1.7) * 4;
+            const tW = 2.5 - i * 0.5;
+            ctx.fillStyle = colors[i];
+            ctx.beginPath();
+            ctx.moveTo(this.x - tW + ox, this.y + 5);
+            ctx.quadraticCurveTo(this.x + ox, this.y + 5 + tLen, this.x + tW + ox, this.y + 5);
+            ctx.closePath();
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    _drawLaserGlow(ctx) {
+        const cfg = window.Game.Balance?.ELEMENTAL?.LASER;
+        const glowColor = cfg?.GLOW_COLOR || '#00f0ff';
+        const tLen = cfg?.TRAIL_LENGTH || 18;
+        ctx.globalAlpha = 0.35;
+        ctx.fillStyle = glowColor;
+        ctx.beginPath();
+        ctx.moveTo(this.x - 2, this.y);
+        ctx.lineTo(this.x, this.y + tLen);
+        ctx.lineTo(this.x + 2, this.y);
+        ctx.closePath();
+        ctx.fill();
+        // Bright core line
+        ctx.globalAlpha = 0.6;
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(this.x, this.y - 3);
+        ctx.lineTo(this.x, this.y + tLen * 0.6);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+    }
+
+    _drawElectricArc(ctx) {
+        const cfg = window.Game.Balance?.ELEMENTAL?.ELECTRIC;
+        const color = cfg?.ARC_COLOR || '#8844ff';
+        const bright = cfg?.ARC_COLOR_BRIGHT || '#bb88ff';
+        ctx.globalAlpha = 0.55;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.5;
+        // 2 random arcs from bullet
+        for (let i = 0; i < 2; i++) {
+            const endX = this.x + (Math.random() - 0.5) * 16;
+            const endY = this.y + (Math.random() - 0.5) * 16;
+            const midX = (this.x + endX) / 2 + (Math.random() - 0.5) * 8;
+            const midY = (this.y + endY) / 2 + (Math.random() - 0.5) * 8;
+            ctx.beginPath();
+            ctx.moveTo(this.x, this.y);
+            ctx.quadraticCurveTo(midX, midY, endX, endY);
+            ctx.stroke();
+        }
+        // Bright center point
+        ctx.fillStyle = bright;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+    }
+
+    _drawElementalOverlays(ctx) {
+        if (this._elemFire) this._drawFireTrail(ctx);
+        if (this._elemLaser) this._drawLaserGlow(ctx);
+        if (this._elemElectric) this._drawElectricArc(ctx);
     }
 
     // ═══════════════════════════════════════════════════════════════════

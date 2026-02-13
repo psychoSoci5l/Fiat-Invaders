@@ -9,7 +9,7 @@ class RunState {
         // --- Original modifiers/perks ---
         this.coins = 0;
         this.perks = [];
-        this.perkStacks = {};
+        this.perkStacks = {};   // kept for compat, unused by elemental system
         this.flags = {};
         this.pityCounter = 0;
         this.modifiers = {
@@ -19,6 +19,12 @@ class RunState {
             pierceBonusHP: 0,
             maxHpBonus: 0
         };
+
+        // --- Elemental Perk System (v4.60) ---
+        this.perkLevel = 0;         // 0-3+, counts elements collected
+        this.hasFirePerk = false;
+        this.hasLaserPerk = false;
+        this.hasElectricPerk = false;
 
         // --- Score & progression (v4.28.0: moved from main.js) ---
         this.score = 0;

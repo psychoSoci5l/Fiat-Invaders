@@ -1,7 +1,33 @@
 # Roadmap: FIAT vs CRYPTO
 
-> **Versione attuale**: v4.53.0 (2026-02-12)
+> **Versione attuale**: v4.60.0 (2026-02-13)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
+
+---
+
+## TODO — Perk Drop Mechanic Redesign (v4.61)
+
+Il sistema elemental perk (v4.60) è implementato ma usa ancora il trigger bullet-cancel ereditato dal vecchio sistema. I perk devono avere una meccanica di drop propria, separata dalla cancellazione proiettili.
+
+- [ ] Progettare nuova meccanica di acquisizione perk (non bullet-cancel)
+- [ ] Scollegare `applyRandomPerk()` dal callback `onBulletCancel` in main.js
+- [ ] Implementare nuovo trigger in PerkManager
+- [ ] Bilanciare pacing: Fire ~L1, Laser ~L2-3, Electric ~fine C1
+- [ ] Testare progressione perk su run completa
+
+---
+
+## COMPLETATO — Elemental Perk System + Meter Rebalance (v4.60)
+
+- [x] 3 perk elementali sequenziali: Fire (splash 30%), Laser (+25% speed, +1 pierce), Electric (chain 20%)
+- [x] GODCHAIN trigger cambiato: 3 elementi raccolti → GODCHAIN 10s (era weapon level 5)
+- [x] GODCHAIN re-trigger su ulteriori bullet cancel dopo perk 3
+- [x] GODCHAIN HUD timer bar
+- [x] HYPER durata fissa 10s (era 5s + estensioni)
+- [x] Meter decay raddoppiato (2→4/sec)
+- [x] Bullet draw elementali (fire trail, laser glow, electric arcs)
+- [x] Particle effects: fire impact, electric chain
+- [ ] **BLOCCATO**: trigger perk ancora via bullet-cancel → da sostituire in v4.61
 
 ---
 

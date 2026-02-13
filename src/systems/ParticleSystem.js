@@ -657,6 +657,48 @@
         return particles.length;
     }
 
+    // v4.60: Fire impact burst (orange/red particles)
+    function createFireImpact(x, y) {
+        const count = G.Balance?.ELEMENTAL?.FIRE?.IMPACT_PARTICLES || 8;
+        const colors = ['#ff4400', '#ff6600', '#ffaa00', '#ff2200'];
+        for (let i = 0; i < count; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 60 + Math.random() * 100;
+            addParticle({
+                x, y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                size: 2 + Math.random() * 3,
+                life: 0.3 + Math.random() * 0.3,
+                shape: 'circle',
+                gravity: 100,
+                fadeOut: true
+            });
+        }
+    }
+
+    // v4.60: Electric chain line (particles along chain path)
+    function createElectricChain(x1, y1, x2, y2) {
+        const steps = 5;
+        const colors = ['#8844ff', '#bb88ff', '#ffffff'];
+        for (let i = 0; i < steps; i++) {
+            const t = i / steps;
+            const px = x1 + (x2 - x1) * t + (Math.random() - 0.5) * 10;
+            const py = y1 + (y2 - y1) * t + (Math.random() - 0.5) * 10;
+            addParticle({
+                x: px, y: py,
+                vx: (Math.random() - 0.5) * 40,
+                vy: (Math.random() - 0.5) * 40,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                size: 1.5 + Math.random() * 2,
+                life: 0.2 + Math.random() * 0.2,
+                shape: 'circle',
+                fadeOut: true
+            });
+        }
+    }
+
     // Export to namespace
     G.ParticleSystem = {
         init,
@@ -670,6 +712,8 @@
         createEnemyDeathExplosion,
         createBossDeathExplosion,
         createScoreParticles,
+        createFireImpact,
+        createElectricChain,
         update,
         draw,
         clear,

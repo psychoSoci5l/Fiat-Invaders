@@ -147,11 +147,17 @@ class Player extends window.Game.Entity {
     }
 
     /**
-     * Check if GODCHAIN conditions are met (weapon level 5)
+     * Check if GODCHAIN is active (timer-based)
      */
     isGodchainActive() {
-        // v4.48: timer-based (was permanent)
         return this.godchainTimer > 0;
+    }
+
+    /**
+     * v4.60: Activate GODCHAIN from elemental perk system
+     */
+    activateGodchain() {
+        this._godchainPending = true;
     }
 
     update(dt, blockFiring = false) {
@@ -699,6 +705,21 @@ class Player extends window.Game.Entity {
             b.weaponType = this.special || 'EVOLUTION';
             if (this.hyperActive) b._isHyper = true;
             if (this._godchainActive) b._isGodchain = true;
+
+            // v4.60: Elemental perk flags on bullets
+            const rs = window.Game.RunState;
+            if (rs) {
+                b._elemFire = rs.hasFirePerk;
+                b._elemLaser = rs.hasLaserPerk;
+                b._elemElectric = rs.hasElectricPerk;
+                // Laser perk: +25% speed, +1 pierce
+                if (rs.hasLaserPerk) {
+                    const laserCfg = Balance.ELEMENTAL?.LASER;
+                    b.vy *= (laserCfg?.SPEED_MULT || 1.25);
+                    b.pierceHP += (laserCfg?.PIERCE_BONUS || 1);
+                }
+            }
+
             bullets.push(b);
         };
 
@@ -1333,13 +1354,9 @@ class Player extends window.Game.Entity {
                     window.Game.Events.emit('WEAPON_LEVEL_UP', { level: this.weaponLevel });
                 }
 
-                // v4.48: trigger GODCHAIN on reaching max level
-                if (this.weaponLevel >= WE.MAX_WEAPON_LEVEL) {
-                    this._godchainPending = true;
-                }
+                // v4.60: GODCHAIN no longer triggered by weapon level (now via elemental perks)
             } else {
-                // v4.48: already max — re-trigger GODCHAIN
-                this._godchainPending = true;
+                // Already max weapon level — no action (GODCHAIN via perks now)
             }
             return;
         }

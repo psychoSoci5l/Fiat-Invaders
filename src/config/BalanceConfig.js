@@ -69,13 +69,37 @@
             DAMAGE_BONUS: 0.15        // +15% per consecutive hit
         },
 
-        // --- PERK SYSTEM ---
+        // --- PERK SYSTEM (v4.60: Elemental perks) ---
         PERK: {
-            ENABLED: true,            // v4.59: Toggle perk system (false = no perks awarded)
-            BULLET_CANCEL_COUNT: 5,   // Bullets to cancel for perk trigger
+            ENABLED: true,            // Toggle perk system (false = no perks awarded)
+            BULLET_CANCEL_COUNT: 8,   // v4.60: 5→8 bullets to cancel for perk trigger
             CANCEL_WINDOW: 1.5,       // Seconds window to cancel bullets
-            COOLDOWN_TIME: 4,         // Seconds between perk rewards
-            PAUSE_DURATION: 1.2       // Seconds to pause for perk notification
+            COOLDOWN_TIME: 15,        // v4.60: 4→15s between perk rewards (prevents stacking too fast)
+            PAUSE_DURATION: 1.2,      // Seconds to pause for perk notification
+            MAX_ELEMENTS: 3           // v4.60: 3 elemental perks (fire→laser→electric)
+        },
+
+        // --- ELEMENTAL PERK EFFECTS (v4.60) ---
+        ELEMENTAL: {
+            FIRE: {
+                SPLASH_RADIUS: 40,    // px radius for splash damage
+                SPLASH_DAMAGE: 0.30,  // 30% of kill damage to adjacent
+                TRAIL_COLORS: ['#ff4400', '#ff6600', '#ffaa00'],
+                IMPACT_PARTICLES: 8
+            },
+            LASER: {
+                SPEED_MULT: 1.25,     // +25% bullet speed
+                PIERCE_BONUS: 1,      // +1 pierce HP
+                GLOW_COLOR: '#00f0ff',
+                TRAIL_LENGTH: 18
+            },
+            ELECTRIC: {
+                CHAIN_RADIUS: 80,     // px radius to find chain targets
+                CHAIN_DAMAGE: 0.20,   // 20% of kill damage
+                CHAIN_TARGETS: 2,     // max enemies to chain to
+                ARC_COLOR: '#8844ff',
+                ARC_COLOR_BRIGHT: '#bb88ff'
+            }
         },
 
         // --- GRAZING SYSTEM (Core Risk/Reward Mechanic) ---
@@ -99,7 +123,7 @@
             MAX_PERKS_PER_LEVEL: 2,   // Cap graze perks per level
 
             // Decay (use it or lose it)
-            DECAY_RATE: 2,            // Meter decay per second (v2.24.11: 4→2 for slower drain)
+            DECAY_RATE: 4,            // v4.60: 2→4 meter decay/sec (need consistent killing)
             DECAY_DELAY: 1.0,         // Seconds before decay starts (v2.24.11: 0.5→1.0)
 
             // Sound design (theremin of danger)
@@ -115,9 +139,9 @@
         HYPER: {
             METER_THRESHOLD: 100,     // Graze meter value to enable HYPER activation
             AUTO_ACTIVATE: true,      // v4.21: Auto-trigger HYPER when meter is full (no manual input needed)
-            BASE_DURATION: 5.0,       // Seconds of HYPER mode
-            GRAZE_EXTENSION: 0.3,     // Seconds added per graze during HYPER
-            MAX_DURATION: 12.0,       // Cap on total HYPER time (prevents infinite)
+            BASE_DURATION: 10.0,      // v4.60: 5→10s fixed duration (no extensions)
+            GRAZE_EXTENSION: 0,       // v4.60: disabled (was 0.3)
+            MAX_DURATION: 10.0,       // v4.60: matches BASE_DURATION (fixed)
             SCORE_MULT: 3.0,          // Score multiplier during HYPER (v4.44: 5.0→3.0, less score distortion between cycles)
             HITBOX_PENALTY: 1.5,      // Core hitbox size multiplier (50% larger = more risk)
             COOLDOWN: 8.0,            // Seconds after HYPER ends before meter can refill
@@ -884,7 +908,7 @@
             METER_GAIN_MIN: 1,     // Meter gain at max distance
             BOSS_PHASE_GAIN: 15,   // Gain per boss phase completed
             BOSS_HIT_GAIN: 0.15,   // v4.40: 0.4→0.15, gradual meter build during boss (prevents sudden HYPER)
-            HYPER_KILL_EXTENSION: 0.4, // Seconds added per kill during HYPER
+            HYPER_KILL_EXTENSION: 0, // v4.60: disabled (was 0.4, HYPER is now fixed duration)
         },
 
         // --- BULLET CONFIG v4.22 (Centralized bullet parameters) ---
@@ -1305,8 +1329,8 @@
 
         // --- GODCHAIN MODE v4.6 (All modifiers maxed simultaneously) ---
         GODCHAIN: {
-            // v4.47: GODCHAIN = weapon level 5 (no modifier check needed)
-            REQUIREMENTS: { WEAPON_LEVEL: 5 },
+            // v4.60: GODCHAIN = 3 elemental perks collected (was weapon level 5)
+            REQUIREMENTS: { PERK_LEVEL: 3 },
             DURATION: 10,               // v4.48: seconds (was permanent, now temporary + re-triggerable)
             SPEED_BONUS: 1.05,          // +5% movement speed
             SHIP_COLORS: {

@@ -195,6 +195,11 @@ window.Game = window.Game || {};
                         const eIdx = enemies.indexOf(e);
                         if (eIdx >= 0) enemies.splice(eIdx, 1);
                         cb.onEnemyKilled(e, bullet, eIdx, enemies);
+
+                        // v4.60: Elemental effects on kill
+                        if (bullet._elemFire || bullet._elemElectric) {
+                            this._applyElementalOnKill(e, bullet, dmg, enemies);
+                        }
                     }
 
                     // Missile AoE
@@ -273,6 +278,76 @@ window.Game = window.Game || {};
                             if (b.markedForDeletion) break;
                         }
                     }
+                }
+            }
+        }
+    };
+
+    // ─── v4.60: Elemental on-kill effects ─────────────────────────
+    CollisionSystem._applyElementalOnKill = function(deadEnemy, bullet, killDmg, enemies) {
+        const elCfg = Balance.ELEMENTAL;
+        if (!elCfg) return;
+
+        // Fire: splash damage to nearby enemies
+        if (bullet._elemFire) {
+            const fireCfg = elCfg.FIRE;
+            const splashR = fireCfg?.SPLASH_RADIUS || 40;
+            const splashDmg = killDmg * (fireCfg?.SPLASH_DAMAGE || 0.30);
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const en = enemies[i];
+                if (!en || en.markedForDeletion) continue;
+                const dx = en.x - deadEnemy.x;
+                const dy = en.y - deadEnemy.y;
+                if (dx * dx + dy * dy <= splashR * splashR) {
+                    const died = en.takeDamage(splashDmg);
+                    if (died) {
+                        enemies.splice(i, 1);
+                        if (this._ctx && this._ctx.callbacks && this._ctx.callbacks.onEnemyKilled) {
+                            this._ctx.callbacks.onEnemyKilled(en, bullet, i, enemies);
+                        }
+                    }
+                    // Fire impact particles
+                    if (G.ParticleSystem && G.ParticleSystem.createFireImpact) {
+                        G.ParticleSystem.createFireImpact(en.x, en.y);
+                    }
+                }
+            }
+        }
+
+        // Electric: chain damage to 1-2 nearest enemies
+        if (bullet._elemElectric) {
+            const elecCfg = elCfg.ELECTRIC;
+            const chainR = elecCfg?.CHAIN_RADIUS || 80;
+            const chainDmg = killDmg * (elecCfg?.CHAIN_DAMAGE || 0.20);
+            const maxTargets = elecCfg?.CHAIN_TARGETS || 2;
+
+            // Find nearest N enemies within radius
+            const targets = [];
+            for (let i = 0; i < enemies.length; i++) {
+                const en = enemies[i];
+                if (!en || en.markedForDeletion) continue;
+                const dx = en.x - deadEnemy.x;
+                const dy = en.y - deadEnemy.y;
+                const distSq = dx * dx + dy * dy;
+                if (distSq <= chainR * chainR) {
+                    targets.push({ enemy: en, distSq, idx: i });
+                }
+            }
+            targets.sort((a, b) => a.distSq - b.distSq);
+
+            for (let t = 0; t < Math.min(maxTargets, targets.length); t++) {
+                const tgt = targets[t];
+                const died = tgt.enemy.takeDamage(chainDmg);
+                if (died) {
+                    const idx = enemies.indexOf(tgt.enemy);
+                    if (idx >= 0) enemies.splice(idx, 1);
+                    if (this._ctx && this._ctx.callbacks && this._ctx.callbacks.onEnemyKilled) {
+                        this._ctx.callbacks.onEnemyKilled(tgt.enemy, bullet, idx, enemies);
+                    }
+                }
+                // Electric chain particles
+                if (G.ParticleSystem && G.ParticleSystem.createElectricChain) {
+                    G.ParticleSystem.createElectricChain(deadEnemy.x, deadEnemy.y, tgt.enemy.x, tgt.enemy.y);
                 }
             }
         }

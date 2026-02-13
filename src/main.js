@@ -3769,6 +3769,55 @@ function drawHyperUI(ctx) {
     }
 }
 
+// v4.60: Draw GODCHAIN timer bar (same position as HYPER bar, shows when GODCHAIN active)
+function drawGodchainUI(ctx) {
+    if (!player || !player._godchainActive) return;
+    const centerX = gameWidth / 2;
+    const timeLeft = player.godchainTimer || 0;
+    const duration = G.Balance?.GODCHAIN?.DURATION || 10;
+    const pulse = Math.sin(totalTime * 8) * 0.08 + 0.92;
+
+    ctx.save();
+
+    const barWidth = 200;
+    const barHeight = 26;
+    const barX = centerX - barWidth / 2;
+    const barY = 90; // Below HYPER bar position
+
+    // Bar background
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(barX - 2, barY - 2, barWidth + 4, barHeight + 4);
+
+    // Time fill (red-orange, depleting)
+    const fillRatio = timeLeft / duration;
+    const fillColor = fillRatio < 0.3 ? '#ff2222' : '#ff4400';
+    ctx.fillStyle = fillColor;
+    ctx.fillRect(barX, barY, barWidth * Math.min(1, fillRatio), barHeight);
+
+    // Border
+    ctx.strokeStyle = fillRatio < 0.3 ? '#ff6666' : '#ff8800';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(barX, barY, barWidth, barHeight);
+
+    // GODCHAIN text
+    ctx.font = G.ColorUtils.font('bold', 16 * pulse, '"Courier New", monospace');
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#fff';
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 3;
+    ctx.strokeText('GODCHAIN', centerX, barY + barHeight / 2);
+    ctx.fillText('GODCHAIN', centerX, barY + barHeight / 2);
+
+    // Time remaining
+    ctx.font = 'bold 20px "Courier New", monospace';
+    ctx.fillStyle = fillColor;
+    ctx.strokeText(timeLeft.toFixed(1) + 's', centerX, barY + barHeight + 16);
+    ctx.fillText(timeLeft.toFixed(1) + 's', centerX, barY + barHeight + 16);
+
+    ctx.restore();
+}
+
 // Draw Satoshi's Sacrifice UI (decision button or active countdown)
 function drawSacrificeUI(ctx) {
     const centerX = gameWidth / 2;
@@ -4294,6 +4343,7 @@ function draw() {
 
         // HYPER MODE UI (timer when active, "READY" when available)
         drawHyperUI(ctx);
+        drawGodchainUI(ctx);
 
         // SACRIFICE UI (decision button or active countdown)
         drawSacrificeUI(ctx);

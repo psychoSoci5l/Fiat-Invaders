@@ -1,5 +1,23 @@
 # Changelog
 
+## v4.60.0 - 2026-02-13
+### Elemental Perk System + Meter Rebalance
+
+- **Elemental perks replace stat perks**: 3 sequential elements (Fire → Laser → Electric) replace Kinetic Rounds / Overclock Thrusters / Diamond Hands. Fixed order, no stacking, no RNG
+- **Fire perk**: Splash damage 30% to enemies within 40px on kill. Orange/red flame trail on bullets, fire impact particles
+- **Laser perk**: Bullets +25% speed, +1 pierce HP. Cyan glow trail, elongated scia on bullets
+- **Electric perk**: Chain damage 20% to 1-2 nearest enemies within 80px on kill. Purple arc overlays on bullets, chain particles
+- **GODCHAIN now triggered by perks**: Collecting all 3 elements activates GODCHAIN 10s (was weapon level 5). Further bullet cancels re-trigger GODCHAIN
+- **GODCHAIN HUD bar**: Timer bar below HYPER bar shows remaining GODCHAIN time (red-orange fill)
+- **Weapon level 5 = visual only**: Ship gets armored look at LV5 but no longer triggers GODCHAIN energy form
+- **HYPER fixed duration**: 10s flat (was 5s + extensions). No more timer extension on graze/kill. Removed `GRAZE_EXTENSION` and `HYPER_KILL_EXTENSION`
+- **Meter decay doubled**: `DECAY_RATE` 2→4 per second — need consistent killing to maintain meter
+- **Death resets all perks**: Lose all elemental effects, perkLevel back to 0
+- **PerkManager rewritten**: Sequential assignment (no modal, no choice), auto-applied on trigger
+- **New BalanceConfig section**: `ELEMENTAL` with Fire/Laser/Electric tuning (splash radius, chain radius, speed mult, etc.)
+- **Particle effects**: `createFireImpact()` and `createElectricChain()` in ParticleSystem
+- **Known issue**: Perk trigger still uses bullet-cancel mechanic (inherited) — needs dedicated drop mechanic (planned v4.61)
+
 ## v4.59.0 - 2026-02-12
 ### Perk Reduction + Adaptive Power Calibration
 
