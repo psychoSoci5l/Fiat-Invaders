@@ -1244,11 +1244,42 @@
             SPARK_KILL_RING: true,            // Expanding ring on kill hit
             SPARK_HYPER_RING: false,          // Golden ring during HYPER (disabled — clean readability)
 
-            // Muzzle flash evolution
-            MUZZLE_SCALE_PER_LEVEL: 0.4,     // +40% per shot level
-            MUZZLE_POWER_SCALE: 1.3,         // Size mult with POWER mod
-            MUZZLE_RATE_SCALE: 0.6,          // Size mult with RATE mod (smaller, faster)
-            MUZZLE_RING_AT_LEVEL: 3,         // Show ring burst at this shot level
+            // Muzzle flash evolution (legacy — kept for compat)
+            MUZZLE_SCALE_PER_LEVEL: 0.4,
+            MUZZLE_POWER_SCALE: 1.3,
+            MUZZLE_RATE_SCALE: 0.6,
+            MUZZLE_RING_AT_LEVEL: 3,
+
+            // v5.1: Directional muzzle flash (canvas + particles)
+            MUZZLE_FLASH: {
+                ENABLED: true,                    // Kill-switch for canvas V-flash
+                BASE_WIDTH: 7,                    // V-flash half-width (px)
+                BASE_HEIGHT: 18,                  // V-flash height (px)
+                LEVEL_SCALE: 0.12,                // +12% size per weapon level
+
+                // Color palettes [inner, mid, outer]
+                COLORS_BASE:      ['#ffffff', '#ffcc44', '#ff8c00'],
+                COLORS_FIRE:      ['#ffffff', '#ff6622', '#ff4400'],
+                COLORS_LASER:     ['#ffffff', '#66ddff', '#00f0ff'],
+                COLORS_ELECTRIC:  ['#ffffff', '#aa77ff', '#8844ff'],
+                COLORS_GODCHAIN:  ['#ffffff', '#ff8833', '#ff4400'],
+
+                // Shape modifiers per elemental
+                FIRE_WIDTH_MULT: 1.4,             // Wider fire flash
+                LASER_HEIGHT_MULT: 1.5,           // Taller laser flash
+                LASER_WIDTH_MULT: 0.7,            // Narrower laser flash
+                ELECTRIC_SIDE_SPARKS: 2,          // Side spark count
+                GODCHAIN_TONGUE_COUNT: 3,         // Oscillating fire tongues
+            },
+
+            // Muzzle spark particles (reduced — canvas flash carries visual weight)
+            MUZZLE_SPARK_BASE: 2,                 // Base spark count
+            MUZZLE_SPARK_PER_LEVEL: 1,            // +1 per weapon level
+            MUZZLE_SPARK_SPREAD: 0.3,             // Radians spread (tight cone)
+            MUZZLE_TRACER_PER_BARREL: 1,          // White tracer per fire point
+            MUZZLE_TRACER_SPEED: 400,             // Tracer speed (px/s)
+            MUZZLE_TRACER_LIFE: 0.10,             // Tracer lifetime (s)
+            MUZZLE_TRACER_SIZE: 2.5,              // Tracer radius
 
             // Explosion tiers
             EXPLOSION_WEAK: { particles: 6, ringCount: 1, duration: 0.30, debrisCount: 2 },

@@ -884,6 +884,8 @@ class Player extends window.Game.Entity {
         // v4.55: Ship evolution — visual form scales with weaponLevel
         this._drawShipBody(ctx);
 
+        // v5.1: Directional muzzle flash (canvas V-flash)
+        this._drawMuzzleFlash(ctx);
 
         // Shield Overlay
         if (this.shieldActive) {
@@ -1534,6 +1536,149 @@ class Player extends window.Game.Entity {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('\u20BF', 0, 6);
+    }
+
+    /**
+     * v5.1: Directional muzzle flash — canvas V-flash at actual cannon positions
+     * Geometry matches _drawShipBody barrel/pod coordinates per level.
+     */
+    _drawMuzzleFlash(ctx) {
+        if (this.muzzleFlash <= 0) return;
+
+        const Balance = window.Game.Balance;
+        const mf = Balance.VFX?.MUZZLE_FLASH;
+        if (!mf || !mf.ENABLED) return;
+
+        const WE = Balance.WEAPON_EVOLUTION;
+        const glowOn = Balance.GLOW?.ENABLED;
+
+        // Effective weapon level (includes HYPER boost)
+        let effectiveLevel = this.weaponLevel || 1;
+        if (this.hyperActive) {
+            effectiveLevel = Math.min(7, effectiveLevel + (WE.HYPER_LEVEL_BOOST || 2));
+        }
+        const isGC = this._godchainActive;
+
+        // Alpha from timer (linear decay)
+        const duration = Balance.PLAYER.MUZZLE_FLASH_DURATION || 0.08;
+        const alpha = Math.min(1, this.muzzleFlash / duration);
+
+        // Determine perk state and colors
+        const rs = window.Game.RunState;
+        let colors = mf.COLORS_BASE;
+        let widthMult = 1;
+        let heightMult = 1;
+        let perkType = 'BASE';
+
+        if (isGC) {
+            colors = mf.COLORS_GODCHAIN;
+            perkType = 'GODCHAIN';
+        } else if (rs?.hasElectricPerk) {
+            colors = mf.COLORS_ELECTRIC;
+            perkType = 'ELECTRIC';
+        } else if (rs?.hasLaserPerk) {
+            colors = mf.COLORS_LASER;
+            widthMult = mf.LASER_WIDTH_MULT;
+            heightMult = mf.LASER_HEIGHT_MULT;
+            perkType = 'LASER';
+        } else if (rs?.hasFirePerk) {
+            colors = mf.COLORS_FIRE;
+            widthMult = mf.FIRE_WIDTH_MULT;
+            perkType = 'FIRE';
+        }
+
+        // Size scales with weapon level
+        const scale = 1 + (effectiveLevel - 1) * mf.LEVEL_SCALE;
+        const hw = mf.BASE_WIDTH * scale * widthMult;   // half-width
+        const h = mf.BASE_HEIGHT * scale * heightMult;  // height
+
+        // Compute actual muzzle points from ship geometry (must match _drawShipBody)
+        // {x, y} in local coords — y points up = more negative
+        const muzzles = [];
+        if (effectiveLevel <= 1) {
+            // LV1: single shot from nose tip
+            muzzles.push({ x: 0, y: -28 });
+        } else if (effectiveLevel <= 3) {
+            // LV2-3: dual from gun pod tops
+            const podX = 13;
+            const podTop = effectiveLevel >= 3 ? -28 : -22;
+            muzzles.push({ x: -podX, y: podTop });
+            muzzles.push({ x: podX, y: podTop });
+        } else {
+            // LV4+: triple — side pods + central barrel
+            const podX = 15;
+            const podTop = effectiveLevel >= 5 ? -32 : -30;
+            const barrelTop = effectiveLevel >= 5 ? -40 : -36;
+            muzzles.push({ x: -podX, y: podTop });
+            muzzles.push({ x: 0, y: barrelTop });
+            muzzles.push({ x: podX, y: podTop });
+        }
+
+        ctx.save();
+        if (glowOn) ctx.globalCompositeOperation = 'lighter';
+
+        for (const mp of muzzles) {
+            const fx = mp.x;
+            const fy = mp.y;
+
+            // 3 layers: outer → mid → inner (each smaller, brighter)
+            for (let layer = 2; layer >= 0; layer--) {
+                const layerScale = 1 - layer * 0.22; // 1.0, 0.78, 0.56
+                const layerAlpha = alpha * (0.45 + layer * 0.25); // 0.45, 0.70, 0.95
+                const lw = hw * layerScale;
+                const lh = h * layerScale;
+
+                ctx.globalAlpha = layerAlpha;
+                ctx.fillStyle = colors[layer];
+                ctx.beginPath();
+                // Diamond/V shape pointing up
+                ctx.moveTo(fx, fy - lh);              // top tip
+                ctx.lineTo(fx - lw, fy - lh * 0.25);  // left waist
+                ctx.lineTo(fx, fy);                    // bottom center (cannon mouth)
+                ctx.lineTo(fx + lw, fy - lh * 0.25);  // right waist
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            // Electric: side sparks (small lightning arcs)
+            if (perkType === 'ELECTRIC') {
+                const sparkCount = mf.ELECTRIC_SIDE_SPARKS;
+                ctx.globalAlpha = alpha * 0.8;
+                ctx.strokeStyle = colors[2];
+                ctx.lineWidth = 1.5;
+                for (let s = 0; s < sparkCount; s++) {
+                    const side = s % 2 === 0 ? -1 : 1;
+                    const sparkPhase = this.animTime * 20 + s * 2.5;
+                    const sx = fx + side * (hw + 3 + Math.sin(sparkPhase) * 4);
+                    const sy = fy - h * 0.5 + Math.cos(sparkPhase * 1.3) * 3;
+                    ctx.beginPath();
+                    ctx.moveTo(fx + side * hw * 0.5, fy - h * 0.3);
+                    ctx.lineTo(sx, sy);
+                    ctx.stroke();
+                }
+            }
+
+            // GODCHAIN: oscillating fire tongues above each cannon
+            if (perkType === 'GODCHAIN') {
+                const tongueCount = mf.GODCHAIN_TONGUE_COUNT;
+                const tongueColors = ['#ff4400', '#ff6600', '#ffaa00'];
+                for (let t2 = 0; t2 < tongueCount; t2++) {
+                    const phase = this.animTime * 12 + t2 * 2.1;
+                    const tongueX = fx + Math.sin(phase) * (hw * 0.8);
+                    const tongueH = h * (0.6 + Math.sin(phase * 1.5) * 0.25);
+                    ctx.globalAlpha = alpha * (0.55 + Math.sin(phase * 2) * 0.3);
+                    ctx.fillStyle = tongueColors[t2 % tongueColors.length];
+                    ctx.beginPath();
+                    ctx.moveTo(tongueX - 2.5, fy - h * 0.15);
+                    ctx.lineTo(tongueX + 2.5, fy - h * 0.15);
+                    ctx.lineTo(tongueX, fy - h * 0.15 - tongueH);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+            }
+        }
+
+        ctx.restore();
     }
 
     /**

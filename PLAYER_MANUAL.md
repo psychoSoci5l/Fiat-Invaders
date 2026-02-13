@@ -70,6 +70,8 @@ Your weapon evolves as you collect UPGRADE drops:
 | 4 | **Triple** | 3 | +50% | +30% faster |
 | 5 | **Triple MAX** | 3 | +75% | +45% faster |
 
+Each weapon level changes the ship visually — bigger pods, longer barrels — and the **muzzle flash** fires from the actual cannon positions, growing brighter and larger as you power up. Elemental perks tint the flash (red/cyan/violet/fire).
+
 **Death penalty**: Each death drops your weapon **1 level** and removes your special.
 
 ### Special Weapons (temporary, 12s)

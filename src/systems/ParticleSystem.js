@@ -203,28 +203,89 @@
 
         const vfx = G.Balance?.VFX || {};
         const level = opts.weaponLevel || 1;
-        const baseCount = 3 + level * 2; // scales with weapon level
-        const count = Math.min(baseCount, available);
+        const isGodchain = opts.isGodchain || false;
 
+        // Determine elemental tint
+        const rs = G.RunState;
+        let sparkColor = color;
+        if (isGodchain) {
+            sparkColor = '#ff6600';
+        } else if (rs?.hasElectricPerk) {
+            sparkColor = '#8844ff';
+        } else if (rs?.hasLaserPerk) {
+            sparkColor = '#00f0ff';
+        } else if (rs?.hasFirePerk) {
+            sparkColor = '#ff4400';
+        }
+
+        // Spark count: reduced (canvas flash carries visual weight)
+        const sparkBase = vfx.MUZZLE_SPARK_BASE || 2;
+        const sparkPerLvl = vfx.MUZZLE_SPARK_PER_LEVEL || 1;
+        const sparkCount = Math.min(sparkBase + (level - 1) * sparkPerLvl, available);
+        const spread = vfx.MUZZLE_SPARK_SPREAD || 0.3;
         const sizeMult = level >= 4 ? (vfx.MUZZLE_POWER_SCALE || 1.3) : 1;
         const speedMult = level >= 3 ? 1.2 : 1;
 
-        // Upward sparks (following bullet direction)
-        for (let i = 0; i < count; i++) {
-            const spread = (Math.random() - 0.5) * (0.6 + level * 0.15);
-            const speed = (Math.random() * 200 + 150) * speedMult;
-            addParticle({
-                x: x + (Math.random() - 0.5) * (6 + level * 2),
-                y: y,
-                vx: spread * speed,
-                vy: -speed * 0.6,
-                life: 0.12 + level * 0.02,
-                maxLife: 0.18,
-                color: i < 2 ? '#fff' : color,
-                size: (Math.random() * 3 + 2) * sizeMult
-            });
+        // Actual cannon positions (must match Player._drawShipBody geometry)
+        // x,y passed in is player.x, player.y - 25 (nose area)
+        // We compute offsets relative to that anchor
+        const muzzles = [];
+        if (level <= 1) {
+            // LV1: nose tip at (0, -28) → anchor is (0, -25) → dy = -3
+            muzzles.push({ dx: 0, dy: -3 });
+        } else if (level <= 3) {
+            // LV2-3: gun pods — podX=13, podTop varies
+            const podX = 13;
+            const podTop = level >= 3 ? -28 : -22;
+            // Anchor is player.y - 25, so dy = podTop - (-25) = podTop + 25
+            muzzles.push({ dx: -podX, dy: podTop + 25 });
+            muzzles.push({ dx: podX, dy: podTop + 25 });
+        } else {
+            // LV4+: pods(±15) + central barrel
+            const podX = 15;
+            const podTop = level >= 5 ? -32 : -30;
+            const barrelTop = level >= 5 ? -40 : -36;
+            muzzles.push({ dx: -podX, dy: podTop + 25 });
+            muzzles.push({ dx: 0, dy: barrelTop + 25 });
+            muzzles.push({ dx: podX, dy: podTop + 25 });
         }
 
+        // Directional sparks per cannon
+        for (const mp of muzzles) {
+            for (let i = 0; i < sparkCount; i++) {
+                if (particles.length >= MAX_PARTICLES) return;
+                const angle = -Math.PI / 2 + (Math.random() - 0.5) * spread;
+                const speed = (Math.random() * 180 + 120) * speedMult;
+                addParticle({
+                    x: x + mp.dx + (Math.random() - 0.5) * 4,
+                    y: y + mp.dy,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    life: 0.10 + Math.random() * 0.04,
+                    maxLife: 0.14,
+                    color: i === 0 ? '#fff' : sparkColor,
+                    size: (Math.random() * 2.5 + 1.5) * sizeMult
+                });
+            }
+
+            // Tracer particle: fast, white, short-lived
+            if (particles.length < MAX_PARTICLES) {
+                const tracerSpeed = vfx.MUZZLE_TRACER_SPEED || 400;
+                const tracerLife = vfx.MUZZLE_TRACER_LIFE || 0.10;
+                const tracerSize = vfx.MUZZLE_TRACER_SIZE || 2.5;
+                addParticle({
+                    x: x + mp.dx,
+                    y: y + mp.dy,
+                    vx: (Math.random() - 0.5) * 15,
+                    vy: -tracerSpeed,
+                    life: tracerLife,
+                    maxLife: tracerLife,
+                    color: '#fff',
+                    size: tracerSize,
+                    isSpark: true
+                });
+            }
+        }
     }
 
     /**

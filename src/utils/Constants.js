@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v5.0.9 FIAT vs CRYPTO";
+window.Game.VERSION = "v5.1.0 FIAT vs CRYPTO";
 
 window.Game.TEXTS = {
     EN: {

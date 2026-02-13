@@ -129,6 +129,7 @@ Detailed tables, parameters, and implementation specifics → **SYSTEM_REFERENCE
 - **Sky & Background** — `Balance.SKY`. Nebula violet→void gradients, stars from L1, firefly particles (cyan/magenta). Off-screen caching via `Balance.SKY.OFFSCREEN`
 - **Batch Rendering** — Multi-pass pipeline (standard → additive), ~30% less canvas state changes
 - **Responsive Formations** — `Balance.FORMATION.RESPONSIVE`. Spacing scales with screen width. Kill-switch: `RESPONSIVE: false`
+- **Muzzle Flash** — `Balance.VFX.MUZZLE_FLASH`. Canvas V-flash at actual cannon positions (nose/pods/barrel per level). 3-layer diamond, elemental tinting, `ENABLED` kill-switch
 - **Juice & VFX** — `Balance.JUICE` / `Balance.VFX`. Damage vignette, boss cinematics. Kill-switches in `JUICE.SCREEN_EFFECTS`
 - **Title Animation** — `Balance.TITLE_ANIM`. 2s intro, skip on tap, `prefers-reduced-motion` → auto-skip
 

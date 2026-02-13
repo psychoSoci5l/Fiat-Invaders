@@ -70,6 +70,8 @@ La tua arma evolve raccogliendo drop UPGRADE:
 | 4 | **Triple** | 3 | +50% | +30% veloce |
 | 5 | **Triple MAX** | 3 | +75% | +45% veloce |
 
+Ogni livello arma cambia la nave visivamente — pod più grandi, canne più lunghe — e il **muzzle flash** spara dalle posizioni reali dei cannoni, diventando più luminoso e grande man mano che ti potenzi. I perk elementali colorano il flash (rosso/ciano/viola/fuoco).
+
 **Penalità morte**: Ogni morte riduce l'arma di **1 livello** e rimuove la speciale attiva.
 
 ### Armi Speciali (temporanee, 12s)

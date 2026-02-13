@@ -2014,6 +2014,15 @@ window.togglePrivacyPanel = function () {
 // What's New panel (v4.50)
 const WHATS_NEW = [
     {
+        version: 'v5.1.0', date: '2026-02-13', title: 'Directional Muzzle Flash',
+        items: [
+            'NEW: Cannon-aligned muzzle flash — V-shaped flare fires from actual gun positions',
+            'Muzzle flash scales with weapon level and changes color with elemental perks',
+            'Fire: wider red flash — Laser: tall cyan beam — Electric: violet arcs — GODCHAIN: fire tongues',
+            'Directional spark particles now shoot upward from each cannon barrel'
+        ]
+    },
+    {
         version: 'v4.61.0', date: '2026-02-13', title: 'Elemental Perk Drops',
         items: [
             'NEW: Elemental Perks — Fire, Laser, Electric — now drop as physical power-ups (diamond crystals)',
@@ -3552,7 +3561,8 @@ function update(dt) {
         if (!inWarmup && newBullets && newBullets.length > 0) {
             bullets.push(...newBullets);
             createMuzzleFlashParticles(player.x, player.y - 25, player.stats.color, {
-                weaponLevel: player.weaponLevel || 1
+                weaponLevel: player.weaponLevel || 1,
+                isGodchain: player._godchainActive
             });
         }
 

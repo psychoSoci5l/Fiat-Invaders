@@ -1,5 +1,16 @@
 # Changelog
 
+## v5.1.0 - 2026-02-13
+### Directional Muzzle Flash VFX
+- **feat(vfx)**: new canvas V-flash muzzle effect — directional diamond shape drawn at actual cannon positions per weapon level
+- **feat(vfx)**: 3-layer coloring (inner white → mid → outer colored) with linear alpha decay from fire timer
+- **feat(vfx)**: elemental perk tinting — Fire (wider, red), Laser (taller/narrower, cyan), Electric (side spark arcs, violet), GODCHAIN (oscillating fire tongues)
+- **feat(vfx)**: muzzle flash scales with weapon level (+12%/lvl, includes HYPER boost)
+- **refactor(particles)**: `createMuzzleFlashParticles` rewritten — directional sparks (0.3 rad spread) + 1 white tracer per barrel, tinted per elemental perk
+- **fix(visual)**: muzzle flash positions now match actual ship geometry — LV1 nose tip, LV2-3 gun pod tops, LV4+ pods + central barrel
+- **config**: `Balance.VFX.MUZZLE_FLASH` — full kill-switch (`ENABLED`), color palettes, shape modifiers, spark/tracer params
+- **perf**: reduced particle count (2+level vs 3+level×2) — canvas flash carries visual weight
+
 ## v5.0.9 - 2026-02-13
 ### Visual Polish + Elemental Tuning Round 2
 - **fix(visual)**: removed muzzle flash "bubble" effect (circle + ring burst on player nose when firing)
