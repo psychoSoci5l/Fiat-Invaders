@@ -45,6 +45,34 @@
             return (dx * dx + dy * dy) <= (rSum * rSum);
         },
 
+        // ========== LINE-SEGMENT vs CIRCLE (Laser Beam collision) ==========
+
+        /**
+         * Test if a line segment (x1,y1)→(x2,y2) intersects a circle (cx,cy,r)
+         * Projects circle center onto segment, clamps to [0,1], checks distance ≤ r
+         * @returns {boolean}
+         */
+        lineSegmentVsCircle(x1, y1, x2, y2, cx, cy, r) {
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            const fx = x1 - cx;
+            const fy = y1 - cy;
+            const lenSq = dx * dx + dy * dy;
+            if (lenSq < 0.001) {
+                // Degenerate segment — fallback to point-vs-circle
+                return (fx * fx + fy * fy) <= (r * r);
+            }
+            // t = projection of circle center onto segment, clamped [0,1]
+            let t = -(fx * dx + fy * dy) / lenSq;
+            if (t < 0) t = 0;
+            else if (t > 1) t = 1;
+            const nearX = x1 + t * dx;
+            const nearY = y1 + t * dy;
+            const distX = nearX - cx;
+            const distY = nearY - cy;
+            return (distX * distX + distY * distY) <= (r * r);
+        },
+
         // ========== MISSILE AoE EXPLOSION ==========
 
         /**
@@ -149,12 +177,32 @@
             ctx.globalAlpha = 0.6;
             ctx.lineWidth = 1;
 
-            // Player bullets (magenta circles)
+            // Player bullets (magenta circles / cyan beam lines)
             if (playerBullets) {
+                const beamCfg = G.Balance?.ELEMENTAL?.LASER?.BEAM;
                 ctx.strokeStyle = '#ff00ff';
                 for (let i = 0; i < playerBullets.length; i++) {
                     const b = playerBullets[i];
                     if (!b || b.markedForDeletion) continue;
+
+                    // Laser beam: draw collision segment (cyan line)
+                    if (b._elemLaser && !b.special && beamCfg?.ENABLED) {
+                        const speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy) || 1;
+                        const ndx = b.vx / speed;
+                        const ndy = b.vy / speed;
+                        const tailX = b.x - ndx * beamCfg.LENGTH;
+                        const tailY = b.y - ndy * beamCfg.LENGTH;
+                        ctx.strokeStyle = '#00ffff';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.moveTo(b.x, b.y);
+                        ctx.lineTo(tailX, tailY);
+                        ctx.stroke();
+                        ctx.lineWidth = 1;
+                        ctx.strokeStyle = '#ff00ff';
+                        continue;
+                    }
+
                     const r = b.collisionRadius || 4;
                     ctx.beginPath();
                     ctx.arc(b.x, b.y, r, 0, Math.PI * 2);
@@ -240,13 +288,14 @@
             // Legend (top-left, small)
             ctx.globalAlpha = 0.8;
             ctx.fillStyle = '#000';
-            ctx.fillRect(200, 100, 130, 70);
+            ctx.fillRect(200, 100, 140, 82);
             ctx.font = '9px monospace';
             ctx.fillStyle = '#ff00ff'; ctx.fillText('magenta = player bullet', 204, 112);
             ctx.fillStyle = '#ff3333'; ctx.fillText('red = enemy bullet', 204, 124);
             ctx.fillStyle = '#00ff00'; ctx.fillText('green = enemy hitbox', 204, 136);
             ctx.fillStyle = '#ffff00'; ctx.fillText('yellow = player core', 204, 148);
-            ctx.fillStyle = '#00ffff'; ctx.fillText('cyan = graze zone', 204, 160);
+            ctx.fillStyle = '#00ffff'; ctx.fillText('cyan = graze/beam seg', 204, 160);
+            ctx.fillStyle = '#ff8800'; ctx.fillText('orange = boss hitbox', 204, 172);
 
             ctx.restore();
         }

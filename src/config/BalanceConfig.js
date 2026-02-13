@@ -89,7 +89,21 @@
                 SPEED_MULT: 1.25,     // +25% bullet speed
                 PIERCE_BONUS: 1,      // +1 pierce HP
                 GLOW_COLOR: '#00f0ff',
-                TRAIL_LENGTH: 18
+                TRAIL_LENGTH: 18,     // legacy overlay (fallback when BEAM disabled)
+                BEAM: {
+                    ENABLED: true,
+                    LENGTH: 110,
+                    CORE_WIDTH: 2.5,       // white center line
+                    MID_WIDTH: 5,          // cyan-white mid layer
+                    OUTER_WIDTH: 10,       // cyan glow (additive pass)
+                    CORE_ALPHA: 1.0,
+                    MID_ALPHA: 0.5,
+                    OUTER_ALPHA: 0.18,
+                    SHIMMER_SPEED: 15,     // rad/s
+                    SHIMMER_AMOUNT: 0.15,
+                    HEAD_GLOW_RADIUS: 6,   // bright tip
+                    IMPACT_PARTICLES: 6
+                }
             },
             ELECTRIC: {
                 CHAIN_RADIUS: 100,    // v5.0.8: 80→90→100 (wider chain reach)

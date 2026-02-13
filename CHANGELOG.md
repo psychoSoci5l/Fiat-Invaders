@@ -1,5 +1,19 @@
 # Changelog
 
+## v5.3.0 - 2026-02-13
+### Gradius-Style Laser Beam
+- **feat(vfx)**: laser beam replaces bullet when Laser perk active — 110px elongated beam bolt with 3-layer rendering (white core → cyan mid → additive outer glow)
+- **feat(vfx)**: beam head glow — radial white-to-cyan gradient at leading tip
+- **feat(vfx)**: shimmer animation — beam width pulses ±15% at ~2.4Hz (sin wave)
+- **feat(vfx)**: beam direction-aligned to velocity vector (supports spread angles)
+- **feat(gameplay)**: Gradius-style single beam — multi-cannon levels (LV2+) consolidate into one powerful central beam with combined damage (×2 for Dual, ×3 for Triple)
+- **feat(collision)**: line-segment vs circle collision for beam bullets — `BulletSystem.lineSegmentVsCircle()` replaces circle check; beam damages enemies along entire 110px length
+- **feat(collision)**: beam bullet cancellation — player laser beams cancel enemy bullets along full segment (both spatial grid and fallback paths)
+- **feat(debug)**: `dbg.hitboxes()` shows cyan collision segment for beam bullets
+- **feat(vfx)**: elemental overlay compositing — Fire trail, Electric arcs, HYPER sparkles, GODCHAIN fire tongues render on top of beam body
+- **config**: `Balance.ELEMENTAL.LASER.BEAM` — ENABLED kill-switch, LENGTH, CORE/MID/OUTER widths and alphas, SHIMMER_SPEED, HEAD_GLOW_RADIUS
+- **perf**: beam consolidation reduces bullet pool objects at high weapon levels (1 beam vs 2-3 bullets), culling margin expanded to 130px for beam bounds
+
 ## v5.2.0 - 2026-02-13
 ### Weapon Deployment Animation System
 - **feat(vfx)**: weapon upgrade transitions — mechanical slide-out animation with ease-out-back overshoot (0.35s)

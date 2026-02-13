@@ -89,7 +89,7 @@ Collected in fixed order. Each adds a permanent elemental effect to your bullets
 | Order | Element | Effect |
 |-------|---------|--------|
 | 1st | **Fire** | Kills cause splash damage (30%) to nearby enemies |
-| 2nd | **Laser** | Bullets +25% speed, +1 pierce |
+| 2nd | **Laser** | Fires a Gradius-style beam bolt (+25% speed, +1 pierce). Multi-cannon levels merge into one powerful beam |
 | 3rd | **Electric** | Kills chain lightning to 1-2 nearby enemies (20% damage) |
 
 Collecting all 3 activates **GODCHAIN**! Further perk drops re-trigger it. Death resets all perks.

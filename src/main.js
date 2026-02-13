@@ -2014,6 +2014,15 @@ window.togglePrivacyPanel = function () {
 // What's New panel (v4.50)
 const WHATS_NEW = [
     {
+        version: 'v5.3.0', date: '2026-02-13', title: 'Gradius-Style Laser Beam',
+        items: [
+            'NEW: Laser perk now fires a 110px elongated beam bolt — 3-layer glow (white core, cyan mid, additive outer)',
+            'Gradius-style single beam — multi-cannon levels merge into one powerful central beam with combined damage',
+            'Beam collides along its entire length — enemies and enemy bullets are hit by the full segment',
+            'Shimmer animation, head glow, and full elemental overlay support (Fire/Electric/GODCHAIN/HYPER)'
+        ]
+    },
+    {
         version: 'v5.1.0', date: '2026-02-13', title: 'Directional Muzzle Flash',
         items: [
             'NEW: Cannon-aligned muzzle flash — V-shaped flare fires from actual gun positions',
@@ -4045,7 +4054,8 @@ function draw() {
             ctx.globalCompositeOperation = 'lighter';
             for (let i = 0; i < bullets.length; i++) {
                 const b = bullets[i];
-                if (b.x < -20 || b.x > gameWidth + 20 || b.y < -20 || b.y > gameHeight + 20) continue;
+                const gm = (b._elemLaser && !b.special) ? 130 : 20;
+                if (b.x < -gm || b.x > gameWidth + gm || b.y < -gm || b.y > gameHeight + gm) continue;
                 b.drawGlow(ctx);
             }
             ctx.restore();
@@ -4055,7 +4065,8 @@ function draw() {
         for (let i = 0; i < bullets.length; i++) {
             const b = bullets[i];
             // Off-screen culling (X and Y)
-            if (b.x > -20 && b.x < gameWidth + 20 && b.y > -20 && b.y < gameHeight + 20) b.draw(ctx);
+            const margin = (b._elemLaser && !b.special) ? 130 : 20;
+            if (b.x > -margin && b.x < gameWidth + margin && b.y > -margin && b.y < gameHeight + margin) b.draw(ctx);
         }
 
         // Screen dimming when many enemy bullets (configurable)

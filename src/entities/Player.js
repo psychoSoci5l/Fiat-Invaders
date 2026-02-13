@@ -666,17 +666,32 @@ class Player extends window.Game.Entity {
             bulletCount = Math.max(1, Math.floor(bulletCount / WE.MISSILE_BULLET_DIVISOR));
         }
 
-        // Shot patterns based on bulletCount (1/2/3)
-        if (bulletCount === 1) {
+        // v5.3: Laser beam consolidation — Gradius-style single beam
+        // When laser perk active (no special), merge all streams into one powerful beam
+        const rs = window.Game.RunState;
+        const beamCfg = Balance.ELEMENTAL?.LASER?.BEAM;
+        if (rs?.hasLaserPerk && !this.special && beamCfg?.ENABLED && bulletCount > 1) {
+            // Spawn single central beam with combined damage
+            const origCount = bulletCount;
+            bulletCount = 1;
+            // Temporarily boost damageMult on the spawned bullet after creation
             spawnBullet(0, 0);
-        } else if (bulletCount === 2) {
-            spawnBullet(-6, -spreadAngle / 2);
-            spawnBullet(+6, +spreadAngle / 2);
+            // Compensate: multiply damage by original bullet count
+            const beam = bullets[bullets.length - 1];
+            if (beam) beam.damageMult *= origCount;
         } else {
-            // 3 bullets
-            spawnBullet(-10, -spreadAngle);
-            spawnBullet(0, 0);
-            spawnBullet(+10, +spreadAngle);
+            // Shot patterns based on bulletCount (1/2/3)
+            if (bulletCount === 1) {
+                spawnBullet(0, 0);
+            } else if (bulletCount === 2) {
+                spawnBullet(-6, -spreadAngle / 2);
+                spawnBullet(+6, +spreadAngle / 2);
+            } else {
+                // 3 bullets
+                spawnBullet(-10, -spreadAngle);
+                spawnBullet(0, 0);
+                spawnBullet(+10, +spreadAngle);
+            }
         }
 
         return bullets;

@@ -182,12 +182,26 @@ window.Game = window.Game || {};
             const queryR = hitR + (bullet.collisionRadius || 4) + 10;
             const candidates = (grid && this._enemyGrid) ? grid.query(bullet.x, bullet.y, queryR) : enemies;
 
+            // v5.3: Laser beam line-segment collision
+            const beamCfg = Balance.ELEMENTAL?.LASER?.BEAM;
+            const isBeam = bullet._elemLaser && !bullet.special && beamCfg?.ENABLED;
+            let beamTailX, beamTailY;
+            if (isBeam) {
+                const spd = Math.sqrt(bullet.vx * bullet.vx + bullet.vy * bullet.vy) || 1;
+                beamTailX = bullet.x - (bullet.vx / spd) * beamCfg.LENGTH;
+                beamTailY = bullet.y - (bullet.vy / spd) * beamCfg.LENGTH;
+            }
+
             for (let j = candidates.length - 1; j >= 0; j--) {
                 const e = candidates[j];
                 if (!e) continue;
                 if (e.isEntering || !e.hasSettled) continue;
 
-                if (G.BulletSystem.bulletHitsEntity(bullet, e, Balance.BULLET_CONFIG.ENEMY_HITBOX_RADIUS)) {
+                const eR = Balance.BULLET_CONFIG.ENEMY_HITBOX_RADIUS;
+                const hit = isBeam
+                    ? G.BulletSystem.lineSegmentVsCircle(bullet.x, bullet.y, beamTailX, beamTailY, e.x, e.y, eR)
+                    : G.BulletSystem.bulletHitsEntity(bullet, e, eR);
+                if (hit) {
                     const baseDmg = player.stats.baseDamage || 14;
                     let dmg = baseDmg;
 
@@ -250,14 +264,25 @@ window.Game = window.Game || {};
 
             const useGrid = this._ebGrid && this._ebGridObj;
 
+            const beamCfg = Balance.ELEMENTAL?.LASER?.BEAM;
+
             for (let i = bullets.length - 1; i >= 0; i--) {
                 const b = bullets[i];
                 if (!b || b.markedForDeletion) continue;
                 const bR = b.collisionRadius || 4;
 
+                // v5.3: Beam bullets use line-segment collision for cancellation
+                const isBeam = b._elemLaser && !b.special && beamCfg?.ENABLED;
+                let beamTailX, beamTailY;
+                if (isBeam) {
+                    const spd = Math.sqrt(b.vx * b.vx + b.vy * b.vy) || 1;
+                    beamTailX = b.x - (b.vx / spd) * beamCfg.LENGTH;
+                    beamTailY = b.y - (b.vy / spd) * beamCfg.LENGTH;
+                }
+
                 if (useGrid) {
                     // Grid-accelerated: query nearby enemy bullets
-                    const queryR = bR + (Balance.BULLET_CONFIG.ENEMY_DEFAULT.collisionRadius || 6) + 10;
+                    const queryR = isBeam ? (beamCfg.LENGTH + 10) : (bR + (Balance.BULLET_CONFIG.ENEMY_DEFAULT.collisionRadius || 6) + 10);
                     const minCx = Math.floor((b.x - queryR) / 80);
                     const maxCx = Math.floor((b.x + queryR) / 80);
                     const minCy = Math.floor((b.y - queryR) / 80);
@@ -272,7 +297,10 @@ window.Game = window.Game || {};
                                 const eb = cell[k];
                                 if (!eb || eb.markedForDeletion) continue;
                                 const ebR = eb.collisionRadius || Balance.BULLET_CONFIG.ENEMY_DEFAULT.collisionRadius;
-                                if (G.BulletSystem.circleCollide(b.x, b.y, bR, eb.x, eb.y, ebR)) {
+                                const cancelHit = isBeam
+                                    ? G.BulletSystem.lineSegmentVsCircle(b.x, b.y, beamTailX, beamTailY, eb.x, eb.y, ebR)
+                                    : G.BulletSystem.circleCollide(b.x, b.y, bR, eb.x, eb.y, ebR);
+                                if (cancelHit) {
                                     // Find original index for callback
                                     const j = enemyBullets.indexOf(eb);
                                     if (j >= 0) cb.onBulletCancel(b, eb, i, j, bullets, enemyBullets);
@@ -290,7 +318,10 @@ window.Game = window.Game || {};
                         if (!eb || eb.markedForDeletion) continue;
                         const ebR = eb.collisionRadius || Balance.BULLET_CONFIG.ENEMY_DEFAULT.collisionRadius;
 
-                        if (G.BulletSystem.circleCollide(b.x, b.y, bR, eb.x, eb.y, ebR)) {
+                        const cancelHit = isBeam
+                            ? G.BulletSystem.lineSegmentVsCircle(b.x, b.y, beamTailX, beamTailY, eb.x, eb.y, ebR)
+                            : G.BulletSystem.circleCollide(b.x, b.y, bR, eb.x, eb.y, ebR);
+                        if (cancelHit) {
                             cb.onBulletCancel(b, eb, i, j, bullets, enemyBullets);
                             if (b.markedForDeletion) break;
                         }

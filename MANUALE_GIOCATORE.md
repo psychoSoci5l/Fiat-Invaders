@@ -89,7 +89,7 @@ Si raccolgono in ordine fisso. Ogni elemento aggiunge un effetto permanente ai t
 | Ordine | Elemento | Effetto |
 |--------|----------|---------|
 | 1° | **Fire** | Le uccisioni causano danno ad area (30%) ai nemici vicini |
-| 2° | **Laser** | Proiettili +25% velocità, +1 perforazione |
+| 2° | **Laser** | Spara un raggio laser stile Gradius (+25% velocità, +1 perforazione). Cannoni multipli si fondono in un unico beam potente |
 | 3° | **Electric** | Le uccisioni scatenano fulmini su 1-2 nemici vicini (20% danno) |
 
 Raccoglierli tutti e 3 attiva la **GODCHAIN**! Ulteriori drop perk la ri-attivano. La morte resetta tutti i perk.

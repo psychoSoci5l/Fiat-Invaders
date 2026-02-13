@@ -214,6 +214,16 @@ class Bullet extends window.Game.Entity {
 
             // v4.30: Glow moved to drawGlow() — batched in main.js additive pass
 
+            // v5.3: Laser beam rendering (overrides everything when active)
+            const beamCfg = window.Game.Balance?.ELEMENTAL?.LASER?.BEAM;
+            if (this._elemLaser && !this.special && beamCfg?.ENABLED) {
+                this._drawLaserBeam(ctx);
+                // Fire/Electric overlays still draw on top of beam
+                if (this._elemFire) this._drawFireTrail(ctx);
+                if (this._elemElectric) this._drawElectricArc(ctx);
+                return;
+            }
+
             // Check for WEAPON EVOLUTION special first (overrides weaponType)
             if (this.special) {
                 switch (this.special) {
@@ -270,6 +280,14 @@ class Bullet extends window.Game.Entity {
         if (this.vy > 0) return; // Enemy bullets: no glow
         const glowCfg = window.Game.Balance?.GLOW;
         if (!glowCfg?.ENABLED || !glowCfg?.BULLET?.ENABLED) return;
+
+        // v5.3: Laser beam additive glow
+        const beamCfg = window.Game.Balance?.ELEMENTAL?.LASER?.BEAM;
+        if (this._elemLaser && !this.special && beamCfg?.ENABLED) {
+            this._drawLaserBeamGlow(ctx);
+            return;
+        }
+
         const gc = glowCfg.BULLET;
         const glowAlpha = gc.ALPHA + Math.sin(this.age * gc.PULSE_SPEED) * gc.PULSE_AMOUNT;
         ctx.globalAlpha = glowAlpha;
@@ -355,6 +373,154 @@ class Bullet extends window.Game.Entity {
         if (this._elemFire) this._drawFireTrail(ctx);
         if (this._elemLaser) this._drawLaserGlow(ctx);
         if (this._elemElectric) this._drawElectricArc(ctx);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // v5.3: LASER BEAM — Gradius-style elongated beam bolt
+    // Standard pass: core + mid body, direction-aligned
+    // ═══════════════════════════════════════════════════════════════════
+    _drawLaserBeam(ctx) {
+        const cfg = window.Game.Balance?.ELEMENTAL?.LASER?.BEAM;
+        if (!cfg) return;
+        const CU = window.Game.ColorUtils;
+
+        // Direction vector (normalized)
+        const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy) || 1;
+        const ndx = this.vx / speed;
+        const ndy = this.vy / speed;
+
+        // Head (bullet position) and tail
+        const hx = this.x;
+        const hy = this.y;
+        const tx = hx - ndx * cfg.LENGTH;
+        const ty = hy - ndy * cfg.LENGTH;
+
+        // Shimmer: width pulses ±SHIMMER_AMOUNT
+        const shimmer = 1 + Math.sin(this.age * cfg.SHIMMER_SPEED) * cfg.SHIMMER_AMOUNT;
+
+        // POWER glow (if damageMult > 1)
+        if (this.damageMult > 1) {
+            const vfx = window.Game.Balance?.VFX || {};
+            const glowAlpha = (vfx.TRAIL_POWER_GLOW || 0.25) * (0.5 + Math.sin(this.age * 12) * 0.5);
+            ctx.fillStyle = CU.rgba(255, 200, 50, glowAlpha);
+            ctx.beginPath();
+            ctx.arc(hx, hy, 10 + this.damageMult * 4, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // HYPER golden sparkles
+        if (this._isHyper) {
+            const sparkAlpha = 0.4 + Math.sin(this.age * 18 + this.x * 0.1) * 0.2;
+            ctx.fillStyle = CU.rgba(255, 215, 0, sparkAlpha);
+            for (let i = 1; i <= 2; i++) {
+                const frac = i * 0.3;
+                const sx = hx + (tx - hx) * frac + Math.sin(this.age * 25 + i * 2) * 3;
+                const sy = hy + (ty - hy) * frac;
+                ctx.beginPath();
+                ctx.arc(sx, sy, 2.5 - i * 0.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // GODCHAIN fire trail along beam
+        if (this._isGodchain) {
+            const gcCfg = window.Game.Balance?.GODCHAIN?.FIRE_TRAIL;
+            const tongueCount = gcCfg?.TONGUE_COUNT || 3;
+            const tongueLen = gcCfg?.LENGTH || 12;
+            const baseAlpha = gcCfg?.ALPHA || 0.7;
+            const colors = gcCfg?.COLORS || ['#ff4400', '#ff6600', '#ffaa00'];
+            ctx.globalAlpha = baseAlpha;
+            for (let i = 0; i < tongueCount; i++) {
+                const frac = 0.5 + i * 0.15;
+                const bx = hx + (tx - hx) * frac;
+                const by = hy + (ty - hy) * frac;
+                const offsetX = Math.sin(this.age * 30 + i * 2.1) * 3;
+                const tLen = tongueLen + Math.sin(this.age * 25 + i * 1.7) * 4;
+                const tW = 3 - i * 0.5;
+                ctx.fillStyle = colors[i % colors.length];
+                ctx.beginPath();
+                ctx.moveTo(bx - tW + offsetX, by + 3);
+                ctx.quadraticCurveTo(bx + offsetX, by + 3 + tLen, bx + tW + offsetX, by + 3);
+                ctx.closePath();
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+        }
+
+        // === Mid beam layer (#66ddff) ===
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = '#66ddff';
+        ctx.lineWidth = cfg.MID_WIDTH * shimmer;
+        ctx.globalAlpha = cfg.MID_ALPHA;
+        ctx.beginPath();
+        ctx.moveTo(hx, hy);
+        ctx.lineTo(tx, ty);
+        ctx.stroke();
+
+        // === Core beam (white) ===
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = cfg.CORE_WIDTH * shimmer;
+        ctx.globalAlpha = cfg.CORE_ALPHA;
+        ctx.beginPath();
+        ctx.moveTo(hx, hy);
+        ctx.lineTo(tx, ty);
+        ctx.stroke();
+
+        // === Head glow (radial, bright white tip) ===
+        ctx.globalAlpha = 0.9;
+        const headR = cfg.HEAD_GLOW_RADIUS;
+        const headGrad = ctx.createRadialGradient(hx, hy, 0, hx, hy, headR);
+        headGrad.addColorStop(0, '#ffffff');
+        headGrad.addColorStop(0.5, '#aaeeff');
+        headGrad.addColorStop(1, 'rgba(0,240,255,0)');
+        ctx.fillStyle = headGrad;
+        ctx.beginPath();
+        ctx.arc(hx, hy, headR, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.globalAlpha = 1;
+        ctx.lineCap = 'butt';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // v5.3: LASER BEAM GLOW — Additive pass (outer glow layer)
+    // Called from batched additive pass — ctx already in 'lighter'
+    // ═══════════════════════════════════════════════════════════════════
+    _drawLaserBeamGlow(ctx) {
+        const cfg = window.Game.Balance?.ELEMENTAL?.LASER?.BEAM;
+        if (!cfg) return;
+
+        const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy) || 1;
+        const ndx = this.vx / speed;
+        const ndy = this.vy / speed;
+
+        const hx = this.x;
+        const hy = this.y;
+        const tx = hx - ndx * cfg.LENGTH;
+        const ty = hy - ndy * cfg.LENGTH;
+
+        const shimmer = 1 + Math.sin(this.age * cfg.SHIMMER_SPEED) * cfg.SHIMMER_AMOUNT;
+
+        // Outer glow (#00f0ff, additive)
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = '#00f0ff';
+        ctx.lineWidth = cfg.OUTER_WIDTH * shimmer;
+        ctx.globalAlpha = cfg.OUTER_ALPHA;
+        ctx.beginPath();
+        ctx.moveTo(hx, hy);
+        ctx.lineTo(tx, ty);
+        ctx.stroke();
+
+        // Head glow (additive bloom)
+        ctx.globalAlpha = 0.35;
+        const headR = cfg.HEAD_GLOW_RADIUS * 1.5;
+        ctx.fillStyle = '#00f0ff';
+        ctx.beginPath();
+        ctx.arc(hx, hy, headR, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.globalAlpha = 1;
+        ctx.lineCap = 'butt';
     }
 
     // ═══════════════════════════════════════════════════════════════════
