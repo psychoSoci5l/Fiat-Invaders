@@ -326,6 +326,7 @@ window.Game = window.Game || {};
                 const dy = en.y - deadEnemy.y;
                 if (dx * dx + dy * dy <= splashR * splashR) {
                     const died = en.takeDamage(splashDmg);
+                    if (G.Debug) G.Debug.trackContagion('fire', depth, splashDmg, died);
                     if (died) {
                         enemies.splice(i, 1);
                         if (this._ctx && this._ctx.callbacks && this._ctx.callbacks.onEnemyKilled) {
@@ -369,6 +370,7 @@ window.Game = window.Game || {};
             for (let t = 0; t < Math.min(maxTargets, targets.length); t++) {
                 const tgt = targets[t];
                 const died = tgt.enemy.takeDamage(chainDmg);
+                if (G.Debug) G.Debug.trackContagion('electric', depth, chainDmg, died);
                 if (died) {
                     const idx = enemies.indexOf(tgt.enemy);
                     if (idx >= 0) enemies.splice(idx, 1);

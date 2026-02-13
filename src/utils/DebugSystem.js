@@ -356,6 +356,9 @@ window.Game.Debug = {
             _totalTrackedFrames: 0,
             // v5.0.8: Progression tracking
             progressionLog: [],        // [{ time, type, before, after, wave, cycle }]
+            // v5.0.8: Contagion tracking
+            contagionEvents: [],       // [{ time, element, depth, damage, killed, perkLevel, wave, cycle }]
+            contagionSummary: { fire: 0, electric: 0, cascadeKills: 0, maxDepth: 0 },
         };
         console.log(`[ANALYTICS] Run started: ${ship} / ${mode}`);
     },
@@ -615,6 +618,136 @@ window.Game.Debug = {
         }
 
         console.log('%c╚════════════════════════════════════════════════════════════╝', 'color: #f80');
+    },
+
+    /**
+     * v5.0.8: Track elemental contagion event
+     * @param {string} element - 'fire' or 'electric'
+     * @param {number} depth - cascade depth (0 = direct, 1+ = contagion)
+     * @param {number} damage - damage dealt
+     * @param {boolean} killed - whether target died
+     */
+    trackContagion(element, depth, damage, killed) {
+        const a = this.analytics;
+        if (!a.runStart) return;
+        const G = window.Game;
+        const time = Date.now() - a.runStart;
+
+        a.contagionEvents.push({
+            time, element, depth, damage: Math.round(damage),
+            killed,
+            perkLevel: G.RunState?.perkLevel || 0,
+            wave: G.WaveManager?.wave || 0,
+            cycle: window.marketCycle || 1
+        });
+
+        // Update summary
+        const s = a.contagionSummary;
+        s[element]++;
+        if (killed && depth > 0) s.cascadeKills++;
+        if (depth > s.maxDepth) s.maxDepth = depth;
+    },
+
+    /**
+     * v5.0.8: Contagion report — elemental cascade analysis
+     */
+    contagionReport() {
+        const a = this.analytics;
+        const events = a.contagionEvents;
+        if (!events || events.length === 0) {
+            console.log('[CONTAGION] No contagion data — play a run with elemental perks first');
+            return;
+        }
+
+        const formatTime = (ms) => {
+            const sec = Math.floor(ms / 1000);
+            const min = Math.floor(sec / 60);
+            return `${min}:${(sec % 60).toString().padStart(2, '0')}`;
+        };
+
+        const s = a.contagionSummary;
+        const totalHits = events.length;
+        const kills = events.filter(e => e.killed);
+        const cascadeHits = events.filter(e => e.depth > 0);
+        const cascadeKills = kills.filter(e => e.depth > 0);
+        const directKills = kills.filter(e => e.depth === 0);
+
+        console.log('');
+        console.log('%c╔════════════════════════════════════════════════════════════╗', 'color: #8844ff');
+        console.log('%c║         ELEMENTAL CONTAGION REPORT v5.0.8                  ║', 'color: #8844ff; font-weight: bold');
+        console.log('%c╠════════════════════════════════════════════════════════════╣', 'color: #8844ff');
+
+        // Overview
+        console.log('%c╠══ OVERVIEW ═══════════════════════════════════════════════╣', 'color: #0ff');
+        console.log(`%c║  Total elemental hits: ${totalHits}  (Fire: ${s.fire}  Electric: ${s.electric})`, 'color: #fff');
+        console.log(`%c║  Kills: ${kills.length}  (direct: ${directKills.length}  cascade: ${cascadeKills.length})`, 'color: #0f0');
+        console.log(`%c║  Max cascade depth reached: ${s.maxDepth}`, s.maxDepth >= 2 ? 'color: #f80' : 'color: #fff');
+        console.log(`%c║  Cascade hits (depth>0): ${cascadeHits.length}  kills: ${cascadeKills.length}`, cascadeKills.length > 0 ? 'color: #f80' : 'color: #888');
+
+        if (totalHits > 0) {
+            const killRate = ((kills.length / totalHits) * 100).toFixed(1);
+            console.log(`%c║  Kill rate: ${killRate}%`, parseFloat(killRate) > 50 ? 'color: #0f0' : 'color: #ff0');
+        }
+
+        // By element breakdown
+        console.log('%c╠══ BY ELEMENT ═════════════════════════════════════════════╣', 'color: #0ff');
+        for (const elem of ['fire', 'electric']) {
+            const elemEvents = events.filter(e => e.element === elem);
+            if (elemEvents.length === 0) continue;
+            const elemKills = elemEvents.filter(e => e.killed);
+            const elemCascade = elemEvents.filter(e => e.depth > 0);
+            const elemCascadeKills = elemKills.filter(e => e.depth > 0);
+            const avgDmg = elemEvents.reduce((sum, e) => sum + e.damage, 0) / elemEvents.length;
+            const color = elem === 'fire' ? '#ff4400' : '#8844ff';
+            console.log(`%c║  ${elem.toUpperCase().padEnd(10)} hits: ${elemEvents.length}  kills: ${elemKills.length}  cascade: ${elemCascade.length} (${elemCascadeKills.length} kills)  avgDmg: ${Math.round(avgDmg)}`, `color: ${color}`);
+        }
+
+        // Cascade depth distribution
+        console.log('%c╠══ CASCADE DEPTH DISTRIBUTION ════════════════════════════╣', 'color: #0ff');
+        const byDepth = {};
+        for (const e of events) {
+            byDepth[e.depth] = byDepth[e.depth] || { hits: 0, kills: 0 };
+            byDepth[e.depth].hits++;
+            if (e.killed) byDepth[e.depth].kills++;
+        }
+        for (const [d, data] of Object.entries(byDepth).sort((a, b) => a[0] - b[0])) {
+            const label = d === '0' ? 'Direct (d0)' : `Cascade d${d}`;
+            const bar = '█'.repeat(Math.min(20, Math.round(data.hits / totalHits * 40)));
+            console.log(`%c║  ${label.padEnd(14)} ${bar} ${data.hits} hits, ${data.kills} kills`, 'color: #fff');
+        }
+
+        // Timeline: show cascade chains (group events within 100ms)
+        console.log('%c╠══ NOTABLE CHAINS (3+ hits within 100ms) ══════════════════╣', 'color: #0ff');
+        let chainStart = 0;
+        let chainCount = 0;
+        let chains = [];
+        for (let i = 0; i < events.length; i++) {
+            if (i === 0 || events[i].time - events[i - 1].time > 100) {
+                if (chainCount >= 3) {
+                    chains.push({ start: chainStart, count: chainCount, events: events.slice(chainStart, i) });
+                }
+                chainStart = i;
+                chainCount = 1;
+            } else {
+                chainCount++;
+            }
+        }
+        if (chainCount >= 3) {
+            chains.push({ start: chainStart, count: chainCount, events: events.slice(chainStart) });
+        }
+
+        if (chains.length === 0) {
+            console.log('%c║  No notable chains (need 3+ elemental hits in <100ms)    ║', 'color: #888');
+        }
+        for (const chain of chains.slice(-10)) {
+            const t = formatTime(chain.events[0].time);
+            const kills = chain.events.filter(e => e.killed).length;
+            const maxD = Math.max(...chain.events.map(e => e.depth));
+            const elems = [...new Set(chain.events.map(e => e.element[0].toUpperCase()))].join('+');
+            console.log(`%c║  @${t} — ${chain.count} hits, ${kills} kills, depth ${maxD}, [${elems}]`, kills > 2 ? 'color: #f80' : 'color: #fff');
+        }
+
+        console.log('%c╚════════════════════════════════════════════════════════════╝', 'color: #8844ff');
     },
 
     /**
@@ -1019,6 +1152,11 @@ window.Game.Debug = {
         // v5.0.8: Auto-append progression report if data exists
         if (a.progressionLog && a.progressionLog.length > 0) {
             this.progressionReport();
+        }
+
+        // v5.0.8: Auto-append contagion report if data exists
+        if (a.contagionEvents && a.contagionEvents.length > 0) {
+            this.contagionReport();
         }
 
         // Return data for screenshot/export
@@ -2134,4 +2272,4 @@ window.Game.Debug = {
 window.dbg = window.Game.Debug;
 
 // Console helper message
-console.log('[DEBUG] DebugSystem loaded. Commands: dbg.stats(), dbg.showOverlay(), dbg.perf(), dbg.perfReport(), dbg.entityReport(), dbg.debugBoss(), dbg.debugHUD(), dbg.hudStatus(), dbg.toggleHudMsg(key), dbg.maxWeapon(), dbg.weaponStatus(), dbg.godchain(), dbg.godchainStatus(), dbg.powerUpReport(), dbg.progressionReport(), dbg.hitboxes(), dbg.formations()');
+console.log('[DEBUG] DebugSystem loaded. Commands: dbg.stats(), dbg.showOverlay(), dbg.perf(), dbg.perfReport(), dbg.entityReport(), dbg.debugBoss(), dbg.debugHUD(), dbg.hudStatus(), dbg.toggleHudMsg(key), dbg.maxWeapon(), dbg.weaponStatus(), dbg.godchain(), dbg.godchainStatus(), dbg.powerUpReport(), dbg.progressionReport(), dbg.contagionReport(), dbg.hitboxes(), dbg.formations()');
