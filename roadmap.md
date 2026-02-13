@@ -1,7 +1,20 @@
 # Roadmap: FIAT vs CRYPTO
 
-> **Versione attuale**: v5.0.0 (2026-02-13)
+> **Versione attuale**: v5.0.5 (2026-02-13)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
+
+---
+
+## COMPLETATO — Balance Tuning v5.0.x
+
+### Boss Damage Rebalance (v5.0.5)
+- [x] Ricalcolare enemy HP vs DPS effettivo per la nuova curva di progressione
+- [x] Boss damage scala con weapon level (`damageMult`) — era flat dal lancio
+- [x] Fix missile AoE che non danneggiava i boss (`takeDamage` → `damage`)
+- [x] Rimosso boss HP `CYCLE_MULT` (calibrato per vecchio sistema compound)
+- [x] Aggiunto `BOSS.DMG_DIVISOR` tunabile da config
+- [ ] Verificare fire budget nemici (bullets/sec per cycle) coerente con il nuovo weapon pacing
+- [ ] Test completo C1→C2→C3 con dbg.report() per validare l'equilibrio
 
 ---
 
@@ -66,7 +79,7 @@
 
 ### Gameplay
 - New enemy types (elite variants, shield enemies)
-- Boss attack pattern variety (per-phase unique patterns)
+- ~~Boss attack pattern variety (per-phase unique patterns)~~ ✅ v5.0.4
 - Combo system (chain kills for multiplier)
 - Daily challenge mode
 - Leaderboard (local, no server)
