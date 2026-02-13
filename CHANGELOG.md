@@ -1,5 +1,11 @@
 # Changelog
 
+## v5.0.3 - 2026-02-13
+### Balance Tuning
+- Boss HP BASE: 5000 → 5250 (+5%) — FED C1 fight was 21.8s, target 40-60s
+- KILLS_FOR_UPGRADE: 50 → 55 (+10%) — slightly slower weapon progression
+- EARLY_DROP_PREFILL: 45 → 42 — first weapon upgrade at ~13 kills (was ~10)
+
 ## v5.0.2 - 2026-02-13
 ### Fixes
 - Fix crash on elemental perk pickup: `perkStacks` not initialized in RunState.reset()

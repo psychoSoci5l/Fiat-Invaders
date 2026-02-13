@@ -447,7 +447,7 @@
             // HP scaling (applied before perk/damage modifiers)
             // v4.16: +25-40% boost — audit showed FED 12.7s, BCE 9.7s (target 45-75s)
             HP: {
-                BASE: 5000,           // v4.48: 3000→5000 (+67%, FED C1 troppo debole con spread stretto)
+                BASE: 5250,           // v5.0.3: 5000→5250 (+5%, FED C1 fight target 40-60s)
                 PER_LEVEL: 100,       // v4.48: 65→100 (+54%, scaling livello più incisivo)
                 PER_CYCLE: 5000,      // v4.48: 4000→5000 (+25%, gap tra cicli maggiore)
                 CYCLE_MULT: [1.0, 2.5, 2.2], // v4.48c: BCE ×2.5 (moderate buff, handles GODCHAIN variance), BOJ ×2.2 (was 3.0, -27% post-death fair)
@@ -919,7 +919,7 @@
         WEAPON_EVOLUTION: {
             // Weapon levels (permanent until death, -1 per death)
             MAX_WEAPON_LEVEL: 5,
-            KILLS_FOR_UPGRADE: 50,        // v4.48: 30→50 (weapon pacing più lento, LV5 al ciclo 2)
+            KILLS_FOR_UPGRADE: 55,        // v5.0.3: 50→55 (+10%, WPN_LV5 dopo @3:00)
             KILLS_FOR_PERK: 50,           // v4.61: pity timer for perk drops (~L1 for first perk)
 
             // HYPER mode weapon boost
@@ -972,7 +972,7 @@
             PITY_REDUCTION: 2,          // -2 kills per cycle (min 15) (v4.17: 3→2)
             // v4.57: Early drop at level 2 start — pity counter pre-filled so first drop comes after ~8 kills
             EARLY_DROP_LEVEL: 2,        // Level at which to boost pity counter
-            EARLY_DROP_PREFILL: 45      // Pre-fill killsSinceLastDrop (pity 55 - 45 = 10 kills to first drop)
+            EARLY_DROP_PREFILL: 42      // v5.0.3: 45→42 (primo upgrade da 10→13 kills, mid-W1H1)
         },
 
         // --- ADAPTIVE DROPS v4.47 (Redesigned) ---
