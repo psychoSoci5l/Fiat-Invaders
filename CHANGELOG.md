@@ -1,5 +1,11 @@
 # Changelog
 
+## v5.10.1 - 2026-02-14
+### PWA Icons: Crypto Viper
+- **feat(icons)**: Regenerated all 7 PWA icons (120→1024px) with Crypto Viper LV5 ship design — chevron body, swept fins, gun pods, BTC cockpit path, reactor flames
+- **style(icons)**: Deep space radial gradient background, seeded stars, "FIAT vs CRYPTO" title with violet glow and cyan "vs" accent
+- **chore(icons)**: Canvas-based generator tool (`_generate_icons.html`) for future icon regeneration, gitignored
+
 ## v5.10.0 - 2026-02-14
 ### Shield Fin Glow + Tutorial Redesign
 - **feat(player)**: Shield Fin Glow — cyan additive glow on fins replaces SHIELD_RING circle. Cooldown: fins fill 0→100% alpha. Ready: pulsing cyan + radial glow at fin tips. Hidden during active hex shield

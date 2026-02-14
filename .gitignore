@@ -10,6 +10,7 @@ GAMEPLAY_BALANCE_LOG.md
 # === Local tool config ===
 .claude/
 _ps_meta/
+_generate_icons.html
 
 # === Windows artifacts ===
 nul

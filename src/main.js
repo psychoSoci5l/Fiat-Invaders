@@ -945,9 +945,15 @@ let introState = 'SPLASH'; // 'SPLASH' or 'SELECTION'
 const SHIP_KEYS = ['BTC', 'ETH', 'SOL'];
 const SHIP_DISPLAY = {
     // hit = hitbox rating (higher = smaller hitbox = easier to dodge)
-    BTC: { name: 'BTC STRIKER', color: '#bb44ff', symbol: 'B', spd: 6, pwr: 7, hit: 5 },
-    ETH: { name: 'ETH HEAVY', color: '#8c7ae6', symbol: 'E', spd: 4, pwr: 8, hit: 3 },
-    SOL: { name: 'SOL SPEEDSTER', color: '#00d2d3', symbol: 'S', spd: 9, pwr: 5, hit: 8 }
+    BTC: { name: 'BTC STRIKER', accent: '#bb44ff', symbol: '₿',
+        bodyDark: '#2a2040', bodyLight: '#6644aa', noseDark: '#4d3366', noseLight: '#9966cc',
+        finDark: '#1a4455', finLight: '#2a6677', spd: 6, pwr: 7, hit: 5 },
+    ETH: { name: 'ETH HEAVY', accent: '#8c7ae6', symbol: 'Ξ',
+        bodyDark: '#1a2040', bodyLight: '#4a5a8e', noseDark: '#2a3366', noseLight: '#7a8ecc',
+        finDark: '#1a3455', finLight: '#2a5077', spd: 4, pwr: 8, hit: 3 },
+    SOL: { name: 'SOL SPEEDSTER', accent: '#00d2d3', symbol: '◎',
+        bodyDark: '#0a2a2a', bodyLight: '#1a6a6a', noseDark: '#0a3a3a', noseLight: '#2a8a8a',
+        finDark: '#0a3455', finLight: '#1a5a77', spd: 9, pwr: 5, hit: 8 }
 };
 
 function initIntroShip() {
@@ -1256,9 +1262,9 @@ function updateShipUI() {
 
     if (nameEl) {
         nameEl.textContent = ship.name;
-        nameEl.style.color = ship.color;
+        nameEl.style.color = ship.accent;
         // Black outline for readability on any background
-        nameEl.style.textShadow = `0 0 10px ${ship.color}, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 8px rgba(0,0,0,0.8)`;
+        nameEl.style.textShadow = `0 0 10px ${ship.accent}, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 8px rgba(0,0,0,0.8)`;
     }
 
     if (statsEl) {
@@ -1300,149 +1306,253 @@ function animateIntroShip() {
     ctx.translate(cx, cy + hover);
     ctx.scale(scale, scale);
 
-    // === REACTOR FLAMES (4-layer cell-shaded) ===
+    // Chevron geometry (LV1 preview, matches Player._drawShipBody)
+    const bodyHalfW = 22;
+    const finExt = 0;
+    const outline = '#1a1028';
+    const tipY = -36;
+    const shoulderX = bodyHalfW * 0.45;
+    const shoulderY = -16;
+    const wingY = -6;
+    const waistX = bodyHalfW - 2;
+    const waistY = 8;
+    const rearX = bodyHalfW + 2;
+    const rearY = 16;
+    const centerRearY = 10;
+
+    // === REACTOR FLAMES (4-layer, from rearY) ===
     const flameHeight = 25 + Math.sin(introShipTime * 12) * 10;
     const flameWidth = 12 + Math.sin(introShipTime * 10) * 4;
     const pulse = 1 + Math.sin(introShipTime * 8) * 0.15;
 
-    // Outer glow (red)
     ctx.fillStyle = '#cc3300';
     ctx.globalAlpha = 0.6;
     ctx.beginPath();
-    ctx.moveTo(-flameWidth * 1.4 * pulse, 14);
-    ctx.lineTo(0, 14 + flameHeight * 1.2);
-    ctx.lineTo(flameWidth * 1.4 * pulse, 14);
+    ctx.moveTo(-flameWidth * 1.4 * pulse, rearY);
+    ctx.lineTo(0, rearY + flameHeight * 1.2);
+    ctx.lineTo(flameWidth * 1.4 * pulse, rearY);
     ctx.closePath();
     ctx.fill();
     ctx.globalAlpha = 1;
 
-    // Main flame (orange)
     ctx.fillStyle = '#ff6600';
     ctx.beginPath();
-    ctx.moveTo(-flameWidth, 14);
-    ctx.lineTo(0, 14 + flameHeight);
-    ctx.lineTo(flameWidth, 14);
+    ctx.moveTo(-flameWidth, rearY);
+    ctx.lineTo(0, rearY + flameHeight);
+    ctx.lineTo(flameWidth, rearY);
     ctx.closePath();
     ctx.fill();
 
-    // Inner flame (yellow)
     ctx.fillStyle = '#ffcc00';
     ctx.beginPath();
-    ctx.moveTo(-flameWidth * 0.5, 14);
-    ctx.lineTo(0, 14 + flameHeight * 0.65);
-    ctx.lineTo(flameWidth * 0.5, 14);
+    ctx.moveTo(-flameWidth * 0.5, rearY);
+    ctx.lineTo(0, rearY + flameHeight * 0.65);
+    ctx.lineTo(flameWidth * 0.5, rearY);
     ctx.closePath();
     ctx.fill();
 
-    // Hot core (white)
     ctx.fillStyle = '#fff';
     ctx.beginPath();
-    ctx.moveTo(-flameWidth * 0.2, 14);
-    ctx.lineTo(0, 14 + flameHeight * 0.35);
-    ctx.lineTo(flameWidth * 0.2, 14);
+    ctx.moveTo(-flameWidth * 0.2, rearY);
+    ctx.lineTo(0, rearY + flameHeight * 0.35);
+    ctx.lineTo(flameWidth * 0.2, rearY);
     ctx.closePath();
     ctx.fill();
 
-    // === SHIP BODY (cell-shaded two-tone) ===
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = '#111';
+    // === CHEVRON BODY (two-tone left/right) ===
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = outline;
 
-    const darkColor = G.ColorUtils ? G.ColorUtils.darken(ship.color, 0.3) : '#c47000';
-
-    // Body - shadow side (left)
-    ctx.fillStyle = darkColor;
+    // Left half (dark)
+    ctx.fillStyle = ship.bodyDark;
     ctx.beginPath();
-    ctx.moveTo(0, -26);
-    ctx.lineTo(-22, 12);
-    ctx.lineTo(0, 12);
+    ctx.moveTo(0, tipY);
+    ctx.lineTo(-shoulderX, shoulderY);
+    ctx.lineTo(-bodyHalfW, wingY);
+    ctx.lineTo(-waistX, waistY);
+    ctx.lineTo(-rearX, rearY);
+    ctx.lineTo(0, centerRearY);
     ctx.closePath();
     ctx.fill();
 
-    // Body - light side (right)
-    ctx.fillStyle = ship.color;
+    // Right half (light)
+    ctx.fillStyle = ship.bodyLight;
     ctx.beginPath();
-    ctx.moveTo(0, -26);
-    ctx.lineTo(0, 12);
-    ctx.lineTo(22, 12);
+    ctx.moveTo(0, tipY);
+    ctx.lineTo(shoulderX, shoulderY);
+    ctx.lineTo(bodyHalfW, wingY);
+    ctx.lineTo(waistX, waistY);
+    ctx.lineTo(rearX, rearY);
+    ctx.lineTo(0, centerRearY);
     ctx.closePath();
     ctx.fill();
 
-    // Body outline
+    // Full chevron outline
     ctx.beginPath();
-    ctx.moveTo(0, -26);
-    ctx.lineTo(-22, 12);
-    ctx.lineTo(22, 12);
+    ctx.moveTo(0, tipY);
+    ctx.lineTo(-shoulderX, shoulderY);
+    ctx.lineTo(-bodyHalfW, wingY);
+    ctx.lineTo(-waistX, waistY);
+    ctx.lineTo(-rearX, rearY);
+    ctx.lineTo(0, centerRearY);
+    ctx.lineTo(rearX, rearY);
+    ctx.lineTo(waistX, waistY);
+    ctx.lineTo(bodyHalfW, wingY);
+    ctx.lineTo(shoulderX, shoulderY);
     ctx.closePath();
     ctx.stroke();
 
-    // === NOSE CONE (two-tone) ===
-    ctx.fillStyle = '#c47d3a';
+    // === DORSAL SPINE (accent center line) ===
+    ctx.save();
+    ctx.strokeStyle = ship.accent;
+    ctx.lineWidth = 1.5;
+    ctx.globalAlpha = 0.6;
     ctx.beginPath();
-    ctx.moveTo(0, -28);
-    ctx.lineTo(-10, -6);
-    ctx.lineTo(0, -6);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.fillStyle = '#f6b26b';
-    ctx.beginPath();
-    ctx.moveTo(0, -28);
-    ctx.lineTo(0, -6);
-    ctx.lineTo(10, -6);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.moveTo(0, -28);
-    ctx.lineTo(-10, -6);
-    ctx.lineTo(10, -6);
-    ctx.closePath();
+    ctx.moveTo(0, tipY + 6);
+    ctx.lineTo(0, centerRearY - 2);
     ctx.stroke();
+    ctx.restore();
 
-    // === FINS ===
-    ctx.fillStyle = '#2d8a91';
-    ctx.beginPath();
-    ctx.moveTo(-22, 8);
-    ctx.lineTo(-34, 16);
-    ctx.lineTo(-16, 18);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.fillStyle = '#45b7c5';
-    ctx.beginPath();
-    ctx.moveTo(22, 8);
-    ctx.lineTo(34, 16);
-    ctx.lineTo(16, 18);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-
-    // === COCKPIT ===
-    ctx.fillStyle = '#1a1a2e';
-    ctx.beginPath();
-    ctx.ellipse(0, -2, 6, 10, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = '#333';
+    // === NOSE CAP (two-tone tip) ===
     ctx.lineWidth = 2;
-    ctx.stroke();
-
-    // Cockpit highlight
-    ctx.fillStyle = 'rgba(100, 200, 255, 0.4)';
+    ctx.strokeStyle = outline;
+    ctx.fillStyle = ship.noseDark;
     ctx.beginPath();
-    ctx.ellipse(-2, -5, 2, 4, -0.3, 0, Math.PI * 2);
+    ctx.moveTo(0, tipY);
+    ctx.lineTo(-8, -20);
+    ctx.lineTo(0, -20);
+    ctx.closePath();
     ctx.fill();
 
-    // === SHIP SYMBOL ===
-    const symbols = { BTC: '₿', ETH: 'Ξ', SOL: '◎' };
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 14px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.shadowColor = ship.color;
-    ctx.shadowBlur = 8;
-    ctx.fillText(symbols[key] || ship.symbol, 0, 5);
-    ctx.shadowBlur = 0;
+    ctx.fillStyle = ship.noseLight;
+    ctx.beginPath();
+    ctx.moveTo(0, tipY);
+    ctx.lineTo(0, -20);
+    ctx.lineTo(8, -20);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(0, tipY);
+    ctx.lineTo(-8, -20);
+    ctx.lineTo(8, -20);
+    ctx.closePath();
+    ctx.stroke();
+
+    // === NOSE BARREL (rect + glow tip) ===
+    {
+        const nbPulse = Math.sin(introShipTime * 6) * 0.3 + 0.7;
+        ctx.fillStyle = ship.noseLight;
+        ctx.strokeStyle = outline;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.rect(-2.5, -40, 5, 4);
+        ctx.fill(); ctx.stroke();
+        ctx.fillStyle = ship.accent;
+        ctx.globalAlpha = nbPulse * 0.6;
+        ctx.beginPath();
+        ctx.arc(0, -40, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+    }
+
+    // === FINS (swept-back teal triangles) ===
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = outline;
+
+    ctx.fillStyle = ship.finDark;
+    ctx.beginPath();
+    ctx.moveTo(-bodyHalfW, wingY + 2);
+    ctx.lineTo(-40 - finExt, rearY);
+    ctx.lineTo(-bodyHalfW + 6, rearY + 2);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+
+    ctx.fillStyle = ship.finLight;
+    ctx.beginPath();
+    ctx.moveTo(bodyHalfW, wingY + 2);
+    ctx.lineTo(40 + finExt, rearY);
+    ctx.lineTo(bodyHalfW - 6, rearY + 2);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+
+    // === RIM LIGHTING (edge highlights) ===
+    ctx.strokeStyle = '#9977cc';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(3, tipY + 4);
+    ctx.lineTo(bodyHalfW - 2, wingY);
+    ctx.stroke();
+
+    ctx.strokeStyle = ship.noseLight;
+    ctx.lineWidth = 1;
+    ctx.globalAlpha = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(2, tipY + 2);
+    ctx.lineTo(6, -22);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    // === COCKPIT (BTC: path ₿, others: text symbol) ===
+    if (key === 'BTC') {
+        // Path-drawn ₿ (matches Player._drawBtcSymbolPath)
+        const s = 0.9;
+        const cockpitColor = '#00f0ff';
+        ctx.save();
+        ctx.translate(0, -2);
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        const drawBPath = () => {
+            ctx.beginPath();
+            ctx.moveTo(-3 * s, -7 * s);
+            ctx.lineTo(-3 * s, 7 * s);
+            ctx.moveTo(-3 * s, -7 * s);
+            ctx.lineTo(1 * s, -7 * s);
+            ctx.quadraticCurveTo(6 * s, -7 * s, 6 * s, -3.5 * s);
+            ctx.quadraticCurveTo(6 * s, 0, 1 * s, 0);
+            ctx.lineTo(-3 * s, 0);
+            ctx.moveTo(1 * s, 0);
+            ctx.quadraticCurveTo(7 * s, 0, 7 * s, 3.5 * s);
+            ctx.quadraticCurveTo(7 * s, 7 * s, 1 * s, 7 * s);
+            ctx.lineTo(-3 * s, 7 * s);
+            ctx.moveTo(-1 * s, -9 * s);
+            ctx.lineTo(-1 * s, -6 * s);
+            ctx.moveTo(2 * s, -9 * s);
+            ctx.lineTo(2 * s, -6 * s);
+            ctx.moveTo(-1 * s, 6 * s);
+            ctx.lineTo(-1 * s, 9 * s);
+            ctx.moveTo(2 * s, 6 * s);
+            ctx.lineTo(2 * s, 9 * s);
+            ctx.stroke();
+        };
+
+        // Outer glow
+        ctx.lineWidth = 5 * s;
+        ctx.strokeStyle = 'rgba(0, 240, 255, 0.3)';
+        drawBPath();
+        // Inner bright
+        ctx.lineWidth = 1.8 * s;
+        ctx.strokeStyle = cockpitColor;
+        drawBPath();
+        // Core white
+        ctx.lineWidth = 0.8 * s;
+        ctx.strokeStyle = '#ffffff';
+        ctx.globalAlpha = 0.8;
+        drawBPath();
+
+        ctx.restore();
+    } else {
+        // ETH / SOL: text symbol fallback
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 14px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = ship.accent;
+        ctx.shadowBlur = 8;
+        ctx.fillText(ship.symbol, 0, -2);
+        ctx.shadowBlur = 0;
+    }
 
     ctx.restore();
 
