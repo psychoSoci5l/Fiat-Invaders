@@ -805,6 +805,104 @@ class AudioSystem {
         else if (type === 'coinScore') { this._playCoinVariant(output, t, 1.0); }
         else if (type === 'coinUI') { this._playCoinVariant(output, t, 1.3); }
         else if (type === 'coinPerk') { this._playCoinVariant(output, t, 0.8); }
+        // v5.15: Cyber destruction SFX (tier-differentiated)
+        else if (type === 'enemyDestroy') {
+            const sfxCfg = window.Game.Balance?.VFX?.ENEMY_DESTROY?.SFX;
+            const tier = (opts && opts.tier) || 'WEAK';
+            const tc = sfxCfg?.[tier] || { VOLUME: 0.08, DURATION: 0.08 };
+            const vol = tc.VOLUME;
+            const dur = tc.DURATION;
+            // Layer 1: Noise crunch (highpass filtered)
+            const bufSize = 4096;
+            const nBuf = this.ctx.createBuffer(1, bufSize, this.ctx.sampleRate);
+            const nData = nBuf.getChannelData(0);
+            for (let i = 0; i < bufSize; i++) nData[i] = Math.random() * 2 - 1;
+            const noise = this.ctx.createBufferSource();
+            noise.buffer = nBuf;
+            const hp = this.ctx.createBiquadFilter();
+            hp.type = 'highpass';
+            hp.frequency.value = tier === 'WEAK' ? 2500 : tier === 'MEDIUM' ? 1800 : 1200;
+            hp.Q.value = 1.5;
+            const nGain = this.ctx.createGain();
+            noise.connect(hp); hp.connect(nGain); nGain.connect(output);
+            nGain.gain.setValueAtTime(vol, t);
+            nGain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+            noise.start(t); noise.stop(t + dur + 0.01);
+            // Layer 2: Sub-bass thud (MEDIUM/STRONG only)
+            if (tier !== 'WEAK') {
+                const sub = this.ctx.createOscillator();
+                const subG = this.ctx.createGain();
+                sub.connect(subG); subG.connect(output);
+                sub.type = 'sine';
+                sub.frequency.setValueAtTime(tier === 'STRONG' ? 80 : 100, t);
+                sub.frequency.exponentialRampToValueAtTime(40, t + dur);
+                subG.gain.setValueAtTime(vol * 0.7, t);
+                subG.gain.exponentialRampToValueAtTime(0.001, t + dur);
+                sub.start(t); sub.stop(t + dur + 0.01);
+            }
+            // Layer 3: Square snap (descending sweep)
+            const snap = this.ctx.createOscillator();
+            const snapG = this.ctx.createGain();
+            snap.connect(snapG); snapG.connect(output);
+            snap.type = 'square';
+            snap.frequency.setValueAtTime(tier === 'STRONG' ? 600 : tier === 'MEDIUM' ? 500 : 400, t);
+            snap.frequency.exponentialRampToValueAtTime(80, t + dur * 0.8);
+            snapG.gain.setValueAtTime(vol * 0.5, t);
+            snapG.gain.exponentialRampToValueAtTime(0.001, t + dur * 0.6);
+            snap.start(t); snap.stop(t + dur + 0.01);
+        }
+        // v5.15: Elemental destroy layer
+        else if (type === 'elemDestroyLayer') {
+            const eCfg = window.Game.Balance?.VFX?.ENEMY_DESTROY?.SFX?.ELEM_LAYER;
+            if (!eCfg?.ENABLED) { /* skip */ }
+            else {
+                const eType = (opts && opts.elemType) || 'fire';
+                const vol = eCfg.VOLUME;
+                const dur = eCfg.DURATION;
+                if (eType === 'fire') {
+                    // Bandpass noise at 200Hz (low rumble)
+                    const bufSize = 4096;
+                    const nBuf = this.ctx.createBuffer(1, bufSize, this.ctx.sampleRate);
+                    const nData = nBuf.getChannelData(0);
+                    for (let i = 0; i < bufSize; i++) nData[i] = Math.random() * 2 - 1;
+                    const noise = this.ctx.createBufferSource();
+                    noise.buffer = nBuf;
+                    const bp = this.ctx.createBiquadFilter();
+                    bp.type = 'bandpass'; bp.frequency.value = 200; bp.Q.value = 3;
+                    const g = this.ctx.createGain();
+                    noise.connect(bp); bp.connect(g); g.connect(output);
+                    g.gain.setValueAtTime(vol, t);
+                    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+                    noise.start(t); noise.stop(t + dur + 0.01);
+                } else if (eType === 'laser') {
+                    // Triangle sweep 1800→2700→1080Hz (crystalline)
+                    const osc = this.ctx.createOscillator();
+                    const g = this.ctx.createGain();
+                    osc.connect(g); g.connect(output);
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(1800, t);
+                    osc.frequency.linearRampToValueAtTime(2700, t + dur * 0.4);
+                    osc.frequency.linearRampToValueAtTime(1080, t + dur);
+                    g.gain.setValueAtTime(vol, t);
+                    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+                    osc.start(t); osc.stop(t + dur + 0.01);
+                } else if (eType === 'electric') {
+                    // 3 rapid square pulses at ~900Hz (zap crackling)
+                    for (let i = 0; i < 3; i++) {
+                        const osc = this.ctx.createOscillator();
+                        const g = this.ctx.createGain();
+                        osc.connect(g); g.connect(output);
+                        osc.type = 'square';
+                        osc.frequency.value = 900 + (Math.random() - 0.5) * 200;
+                        const pStart = t + i * 0.03;
+                        const pDur = 0.02;
+                        g.gain.setValueAtTime(vol, pStart);
+                        g.gain.exponentialRampToValueAtTime(0.001, pStart + pDur);
+                        osc.start(pStart); osc.stop(pStart + pDur + 0.01);
+                    }
+                }
+            }
+        }
         else if (type === 'hyperReady') {
             const notes = [392, 523, 659, 784];
             notes.forEach((freq, i) => {

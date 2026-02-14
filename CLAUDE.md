@@ -137,6 +137,7 @@ Detailed tables, parameters, and implementation specifics → **SYSTEM_REFERENCE
 - **Laser Beam** — `Balance.ELEMENTAL.LASER.BEAM`. Gradius-style 110px beam bolt when Laser perk active (no special). 3-layer rendering (core/mid/outer glow), shimmer animation, line-segment collision via `BulletSystem.lineSegmentVsCircle()`. Multi-cannon levels consolidate into single beam (Player.js `fireEvolution`). `ENABLED` kill-switch
 - **Juice & VFX** — `Balance.JUICE` / `Balance.VFX`. Damage vignette, boss cinematics. Kill-switches in `JUICE.SCREEN_EFFECTS`
 - **Score Pulse** — `Balance.JUICE.SCORE_PULSE_TIERS`. 5-tier HUD-reactive score (MICRO/NORMAL/BIG/MASSIVE/LEGENDARY). CSS animations with scale+shake+glow. Combo accumulator bumps tier on rapid kills. `updateScore(score, scoreGain)`. Floating text disabled via `SCREEN_EFFECTS.SCORE_FLOATING_TEXT: false`. New high score: magenta pulsing glow (`.score-new-record`)
+- **Enemy Destruction** — `Balance.VFX.ENEMY_DESTROY`. Rectangular rotating fragment particles (isRect), elemental tint on 60% of shrapnel, tier-differentiated SFX (noise crunch + sub-bass + square snap). `Balance.ELEMENTAL.ENEMY_TINT` for flash/persistent tint on living enemies hit by elemental damage. Kill-switches per feature
 - **Title Animation** — `Balance.TITLE_ANIM`. 2s intro, skip on tap, `prefers-reduced-motion` → auto-skip
 
 ### Audio

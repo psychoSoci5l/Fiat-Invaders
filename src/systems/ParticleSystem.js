@@ -304,9 +304,17 @@
     /**
      * Create explosion with rings and varied particles
      */
-    function createExplosion(x, y, color, count = 12) {
+    function createExplosion(x, y, color, count = 12, opts) {
+        opts = opts || {};
         const available = MAX_PARTICLES - particles.length;
         if (available <= 0) return;
+
+        const destroyCfg = G.Balance?.VFX?.ENEMY_DESTROY;
+        const useRect = destroyCfg?.ENABLED && destroyCfg?.RECT_FRAGMENTS?.ENABLED;
+        const rectCfg = destroyCfg?.RECT_FRAGMENTS;
+        const tintCfg = destroyCfg?.ELEMENTAL_TINT;
+        const elemColor = opts.elemColor || null;
+        const tintRatio = (tintCfg?.ENABLED && elemColor) ? (tintCfg.TINT_RATIO || 0.6) : 0;
 
         const actualCount = Math.min(count, Math.floor(available * 0.7));
 
@@ -314,21 +322,30 @@
         for (let i = 0; i < actualCount; i++) {
             const angle = Math.random() * Math.PI * 2;
             const speed = Math.random() * 300 + 100;
-            // 3 size tiers: big chunks, medium, small sparks
             const sz = i < actualCount / 3 ? 6 + Math.random() * 2
                      : i < actualCount * 2/3 ? 4 + Math.random() * 2
                      : 2 + Math.random() * 2;
-            addParticle({
+            const useElemColor = tintRatio > 0 && Math.random() < tintRatio;
+            const pColor = useElemColor ? elemColor : color;
+            const props = {
                 x: x + (Math.random() - 0.5) * 8,
                 y: y + (Math.random() - 0.5) * 8,
                 vx: Math.cos(angle) * speed,
                 vy: Math.sin(angle) * speed,
                 life: 0.35 + Math.random() * 0.15,
                 maxLife: 0.50,
-                color: color,
+                color: pColor,
                 size: sz * 0.6, baseSize: sz,
                 explosionGrow: true
-            });
+            };
+            if (useRect) {
+                props.isRect = true;
+                props.rectW = rectCfg.WIDTH_MIN + Math.random() * (rectCfg.WIDTH_MAX - rectCfg.WIDTH_MIN);
+                props.rectH = rectCfg.HEIGHT_MIN + Math.random() * (rectCfg.HEIGHT_MAX - rectCfg.HEIGHT_MIN);
+                props.rotation = Math.random() * Math.PI * 2;
+                props.rotSpeed = (Math.random() < 0.5 ? -1 : 1) * (rectCfg.ROT_SPEED_MIN + Math.random() * (rectCfg.ROT_SPEED_MAX - rectCfg.ROT_SPEED_MIN));
+            }
+            addParticle(props);
         }
 
         // White-hot sparks — fast, small, short-lived
@@ -336,7 +353,7 @@
         for (let i = 0; i < sparkCount; i++) {
             const angle = Math.random() * Math.PI * 2;
             const speed = Math.random() * 400 + 200;
-            addParticle({
+            const sparkProps = {
                 x: x, y: y,
                 vx: Math.cos(angle) * speed,
                 vy: Math.sin(angle) * speed,
@@ -346,7 +363,15 @@
                 size: 2, baseSize: 2,
                 explosionGrow: true,
                 isSpark: true
-            });
+            };
+            if (useRect) {
+                sparkProps.isRect = true;
+                sparkProps.rectW = 2 + Math.random() * 3;
+                sparkProps.rectH = 1 + Math.random() * 2;
+                sparkProps.rotation = Math.random() * Math.PI * 2;
+                sparkProps.rotSpeed = (Math.random() < 0.5 ? -1 : 1) * 10;
+            }
+            addParticle(sparkProps);
         }
     }
 
@@ -358,9 +383,19 @@
      * @param {string} symbol
      * @param {string} [shape] - Enemy shape for debris style
      */
-    function createEnemyDeathExplosion(x, y, color, symbol, shape) {
+    function createEnemyDeathExplosion(x, y, color, symbol, shape, elemType) {
         const Balance = G.Balance;
         const vfx = Balance?.VFX || {};
+        const destroyCfg = vfx.ENEMY_DESTROY;
+
+        // Determine elemental color
+        let elemColor = null;
+        if (destroyCfg?.ENABLED && destroyCfg?.ELEMENTAL_TINT?.ENABLED && elemType) {
+            const tintMap = destroyCfg.ELEMENTAL_TINT;
+            if (elemType === 'fire') elemColor = tintMap.FIRE;
+            else if (elemType === 'laser') elemColor = tintMap.LASER;
+            else if (elemType === 'electric') elemColor = tintMap.ELECTRIC;
+        }
 
         // Determine tier
         let tier = 'WEAK';
@@ -369,30 +404,43 @@
 
         const tierConf = vfx['EXPLOSION_' + tier] || { particles: 8, ringCount: 1, duration: 0.35, debrisCount: 3 };
 
-        // Core explosion (scaled by tier)
-        createExplosion(x, y, color, tierConf.particles);
+        // Core explosion (scaled by tier) — pass elemColor for tinting
+        createExplosion(x, y, color, tierConf.particles, { elemColor });
 
         const available = MAX_PARTICLES - particles.length;
         if (available <= 2) return;
 
-        // Strong/Medium tier: extra fast shrapnel burst instead of rings
+        const useRect = destroyCfg?.ENABLED && destroyCfg?.RECT_FRAGMENTS?.ENABLED;
+        const rectCfg = destroyCfg?.RECT_FRAGMENTS;
+        const tintRatio = (elemColor && destroyCfg?.ELEMENTAL_TINT?.TINT_RATIO) || 0;
+
+        // Strong/Medium tier: extra fast shrapnel burst
         if (tier !== 'WEAK') {
             const extraCount = tier === 'STRONG' ? 6 : 3;
             const burst = Math.min(extraCount, Math.floor(available * 0.3));
             for (let i = 0; i < burst; i++) {
                 const angle = (Math.PI * 2 / burst) * i + Math.random() * 0.5;
                 const speed = 350 + Math.random() * 200;
-                addParticle({
+                const useElem = tintRatio > 0 && Math.random() < tintRatio;
+                const props = {
                     x: x, y: y,
                     vx: Math.cos(angle) * speed,
                     vy: Math.sin(angle) * speed,
                     life: 0.18 + Math.random() * 0.08,
                     maxLife: 0.26,
-                    color: i % 2 === 0 ? '#fff' : color,
+                    color: useElem ? elemColor : (i % 2 === 0 ? '#fff' : color),
                     size: 2.5, baseSize: 2.5,
                     explosionGrow: true,
                     isSpark: true
-                });
+                };
+                if (useRect) {
+                    props.isRect = true;
+                    props.rectW = 2 + Math.random() * 3;
+                    props.rectH = 1 + Math.random() * 2;
+                    props.rotation = Math.random() * Math.PI * 2;
+                    props.rotSpeed = (Math.random() < 0.5 ? -1 : 1) * 10;
+                }
+                addParticle(props);
             }
         }
 
@@ -408,7 +456,7 @@
                 vy: Math.sin(angle) * speed - 50,
                 life: tierConf.duration + 0.25,
                 maxLife: tierConf.duration + 0.25,
-                color: color,
+                color: elemColor || color,
                 size: 16 + Math.random() * 6,
                 symbol: symbol,
                 rotation: Math.random() * Math.PI * 2,
@@ -416,7 +464,7 @@
             });
         }
 
-        // Shape-specific debris — fast directional chunks
+        // Shape-specific debris — fast directional chunks (rect + elem tint)
         const debrisCount = Math.min(tierConf.debrisCount, MAX_PARTICLES - particles.length);
         const CU = G.ColorUtils;
         const debrisColor = CU ? CU.darken(color, 0.2) : color;
@@ -429,17 +477,26 @@
             else if (shape === 'bill') dSize = Math.random() * 3 + 2;
             else if (shape === 'card') dSize = Math.random() * 4 + 3;
 
-            addParticle({
+            const useElem = tintRatio > 0 && Math.random() < tintRatio;
+            const props = {
                 x: x + (Math.random() - 0.5) * 12,
                 y: y + (Math.random() - 0.5) * 12,
                 vx: Math.cos(angle) * speed,
                 vy: Math.sin(angle) * speed,
                 life: tierConf.duration * (0.7 + Math.random() * 0.3),
                 maxLife: tierConf.duration,
-                color: i % 3 === 0 ? '#fff' : debrisColor,
+                color: useElem ? elemColor : (i % 3 === 0 ? '#fff' : debrisColor),
                 size: dSize * 0.6, baseSize: dSize,
                 explosionGrow: true
-            });
+            };
+            if (useRect) {
+                props.isRect = true;
+                props.rectW = rectCfg.WIDTH_MIN + Math.random() * (rectCfg.WIDTH_MAX - rectCfg.WIDTH_MIN);
+                props.rectH = rectCfg.HEIGHT_MIN + Math.random() * (rectCfg.HEIGHT_MAX - rectCfg.HEIGHT_MIN);
+                props.rotation = Math.random() * Math.PI * 2;
+                props.rotSpeed = (Math.random() < 0.5 ? -1 : 1) * (rectCfg.ROT_SPEED_MIN + Math.random() * (rectCfg.ROT_SPEED_MAX - rectCfg.ROT_SPEED_MIN));
+            }
+            addParticle(props);
         }
     }
 
@@ -563,6 +620,8 @@
                 // Rotate symbols; explosion particles grow then hold, others fade size gently
                 if (p.symbol) {
                     p.rotation = (p.rotation || 0) + (p.rotSpeed || 5) * dt;
+                } else if (p.isRect && p.rotSpeed) {
+                    p.rotation = (p.rotation || 0) + p.rotSpeed * dt;
                 } else if (p.explosionGrow) {
                     // Explosion lifecycle: quick expand (first 25% of life), then hold
                     const lifeRatio = 1 - (p.life / p.maxLife); // 0→1
@@ -642,6 +701,13 @@
                 ctx.strokeText(p.symbol, 0, 0);
                 ctx.fillText(p.symbol, 0, 0);
                 ctx.restore();
+            } else if (p.isRect) {
+                ctx.fillStyle = p.color;
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.rotation || 0);
+                ctx.fillRect(-p.rectW * 0.5, -p.rectH * 0.5, p.rectW, p.rectH);
+                ctx.restore();
             } else {
                 ctx.fillStyle = p.color;
                 ctx.beginPath();
@@ -680,8 +746,15 @@
                 ctx.stroke();
                 ctx.strokeStyle = '#111';
                 ctx.lineWidth = 2;
+            } else if (p.isRect) {
+                ctx.fillStyle = p.color;
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.rotation || 0);
+                ctx.fillRect(-p.rectW * 0.5, -p.rectH * 0.5, p.rectW, p.rectH);
+                ctx.restore();
             } else {
-                // isSpark
+                // isSpark (circle fallback)
                 ctx.fillStyle = p.color;
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);

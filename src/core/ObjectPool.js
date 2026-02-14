@@ -93,6 +93,20 @@ window.Game.ParticlePool = {
         p.color = props.color || '#fff';
         p.type = props.type || null;
         p.name = props.name || null;
+        // v5.15: Reset all special flags to prevent stale state from recycled particles
+        p.isSpark = props.isSpark || false;
+        p.isRing = props.isRing || false;
+        p.isGlow = props.isGlow || false;
+        p.isRect = props.isRect || false;
+        p.explosionGrow = props.explosionGrow || false;
+        p.symbol = props.symbol || null;
+        p.rotation = props.rotation || 0;
+        p.rotSpeed = props.rotSpeed || 0;
+        p.baseSize = props.baseSize || props.size || 4;
+        p.gravity = props.gravity || 0;
+        p.rectW = props.rectW || 0;
+        p.rectH = props.rectH || 0;
+        p.target = props.target || null;
         return p;
     },
 

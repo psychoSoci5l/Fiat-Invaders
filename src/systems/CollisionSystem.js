@@ -208,7 +208,9 @@ window.Game = window.Game || {};
                     if (bullet.damageMult && bullet.damageMult > 1) dmg *= bullet.damageMult;
                     if (player.getSmartContractMult) dmg *= player.getSmartContractMult(e);
 
-                    const shouldDie = e.takeDamage(dmg);
+                    // v5.15: Determine elemental type from bullet
+                    const elemType = bullet._elemFire ? 'fire' : bullet._elemLaser ? 'laser' : bullet._elemElectric ? 'electric' : null;
+                    const shouldDie = e.takeDamage(dmg, elemType);
                     cb.onEnemyHit(e, bullet, shouldDie);
 
                     // v5.13: Laser beam impact VFX
@@ -366,18 +368,19 @@ window.Game = window.Game || {};
                 const dx = en.x - deadEnemy.x;
                 const dy = en.y - deadEnemy.y;
                 if (dx * dx + dy * dy <= splashR * splashR) {
-                    const died = en.takeDamage(splashDmg);
+                    const died = en.takeDamage(splashDmg, 'fire');
                     if (G.Debug) G.Debug.trackContagion('fire', depth, splashDmg, died);
                     if (died) {
                         enemies.splice(i, 1);
                         if (this._ctx && this._ctx.callbacks && this._ctx.callbacks.onEnemyKilled) {
                             this._ctx.callbacks.onEnemyKilled(en, bullet, i, enemies);
                         }
-                        // v5.0.7: Contagion cascade
                         if (depth < maxDepth) {
                             const decayedDmg = splashDmg * damageDecay;
                             this._applyElementalOnKill(en, bullet, decayedDmg, enemies, depth + 1);
                         }
+                    } else if (en.applyContagionTint) {
+                        en.applyContagionTint('fire');
                     }
                     // v5.13: Napalm impact (fallback to fire impact if disabled)
                     if (G.ParticleSystem) {
@@ -429,7 +432,7 @@ window.Game = window.Game || {};
 
             for (let t = 0; t < Math.min(maxTargets, targets.length); t++) {
                 const tgt = targets[t];
-                const died = tgt.enemy.takeDamage(chainDmg);
+                const died = tgt.enemy.takeDamage(chainDmg, 'electric');
                 if (G.Debug) G.Debug.trackContagion('electric', depth, chainDmg, died);
                 if (died) {
                     const idx = enemies.indexOf(tgt.enemy);
@@ -437,11 +440,12 @@ window.Game = window.Game || {};
                     if (this._ctx && this._ctx.callbacks && this._ctx.callbacks.onEnemyKilled) {
                         this._ctx.callbacks.onEnemyKilled(tgt.enemy, bullet, idx, enemies);
                     }
-                    // v5.0.7: Contagion cascade
                     if (depth < maxDepth) {
                         const decayedDmg = chainDmg * damageDecay;
                         this._applyElementalOnKill(tgt.enemy, bullet, decayedDmg, enemies, depth + 1);
                     }
+                } else if (tgt.enemy.applyContagionTint) {
+                    tgt.enemy.applyContagionTint('electric');
                 }
                 // v5.13: Lightning bolt (fallback to electric chain if disabled)
                 if (G.ParticleSystem) {

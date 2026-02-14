@@ -1,5 +1,18 @@
 # Changelog
 
+## v5.15.0 - 2026-02-15
+### Cyber Destruction Overhaul — Rectangular Fragments + Elemental Tint + Tier SFX
+- **feat(vfx)**: Rectangular fragment particles replace circular "balloon" explosions. Rotating debris with randomized width/height for a cyber-shrapnel aesthetic
+- **feat(vfx)**: Elemental tint on death fragments — 60% of shrapnel colored with element color (fire orange, laser cyan, electric violet) when killing with elemental bullets
+- **feat(vfx)**: Elemental tint on living enemies — flash overlay on hit, persistent tint on enemies surviving splash/chain damage. Visual feedback for contagion spread
+- **feat(audio)**: Tier-differentiated destruction SFX (`enemyDestroy`) — noise crunch (highpass filtered), sub-bass thud (MEDIUM/STRONG), square snap sweep. Replaces flat `coinScore` sound
+- **feat(audio)**: Elemental destroy layer (`elemDestroyLayer`) — fire rumble (bandpass noise 200Hz), laser shimmer (triangle sweep), electric zap (3 square pulses)
+- **fix(pool)**: ObjectPool `acquire()` now resets all special particle flags (isRect, isRing, isSpark, isGlow, symbol, rotation, gravity, etc.) preventing stale state from recycled particles
+- **config**: `Balance.VFX.ENEMY_DESTROY` — master config for rect fragments, elemental tint ratios, tier SFX volumes/durations
+- **config**: `Balance.ELEMENTAL.ENEMY_TINT` — flash duration/alpha, persistent alpha, per-element colors
+- **pipeline**: CollisionSystem passes `elemType` through `takeDamage()` and `applyContagionTint()` to surviving enemies
+- **kill-switches**: `VFX.ENEMY_DESTROY.ENABLED` (master), `.RECT_FRAGMENTS.ENABLED`, `.ELEMENTAL_TINT.ENABLED`, `.SFX.ENABLED` (fallback to coinScore), `ELEMENTAL.ENEMY_TINT.ENABLED`
+
 ## v5.14.0 - 2026-02-14
 ### Score Pulse System — HUD-Reactive Score Feedback
 - **feat(hud)**: Score Pulse Tiers — 5-tier reactive HUD score (MICRO/NORMAL/BIG/MASSIVE/LEGENDARY) replaces floating "+500" text. Tier determined by score gain amount, CSS animations with scale+shake+glow per tier

@@ -270,7 +270,18 @@ function initCollisionSystem() {
             },
             // Enemy killed
             onEnemyKilled(e, bullet, enemyIdx, enemies) {
-                audioSys.play('coinScore');
+                // v5.15: Determine tier + elemType for destruction SFX
+                const _destroyCfg = Balance.VFX?.ENEMY_DESTROY;
+                let _killTier = 'WEAK';
+                if (Balance.isStrongTier && Balance.isStrongTier(e.symbol)) _killTier = 'STRONG';
+                else if (Balance.isMediumTier && Balance.isMediumTier(e.symbol)) _killTier = 'MEDIUM';
+                const _killElemType = bullet._elemFire ? 'fire' : bullet._elemLaser ? 'laser' : bullet._elemElectric ? 'electric' : null;
+                if (_destroyCfg?.SFX?.ENABLED) {
+                    audioSys.play('enemyDestroy', { tier: _killTier });
+                    if (_killElemType) audioSys.play('elemDestroyLayer', { elemType: _killElemType });
+                } else {
+                    audioSys.play('coinScore');
+                }
                 applyHitStop('ENEMY_KILL', true);
                 if (G.RankSystem) G.RankSystem.onKill();
 
@@ -328,7 +339,7 @@ function initCollisionSystem() {
                     bullets.length = 0;
                 }
 
-                createEnemyDeathExplosion(e.x, e.y, e.color, e.symbol || '$', e.shape);
+                createEnemyDeathExplosion(e.x, e.y, e.color, e.symbol || '$', e.shape, _killElemType);
 
                 // Arcade: Volatile Rounds — AoE damage on kill
                 if (_isArcade && G.RunState.arcadeBonuses.volatileRounds && enemies.length > 0) {
@@ -734,6 +745,11 @@ let bulletCancelStreak, bulletCancelTimer, perkCooldown;
 let fiatKillCounter, lastMiniBossSpawnTime, miniBossThisWave;
 let waveStartTime, _frameKills, _hyperAmbientTimer, marketCycle;
 
+// v5.14: Score Pulse Tier system — HUD-reactive feedback replaces floating text
+var _scorePulseTierClasses = ['score-normal', 'score-big', 'score-massive', 'score-legendary'];
+var _scorePulseAccumulator = 0;
+var _scorePulseAccTimer = 0;
+
 // Sync local aliases FROM RunState (call after runState.reset())
 function syncFromRunState() {
     score = runState.score;
@@ -815,10 +831,7 @@ function canSpawnEnemyBullet() {
     return enemyBullets.length < cap;
 }
 
-// v5.14: Score Pulse Tier system — HUD-reactive feedback replaces floating text
-var _scorePulseTierClasses = ['score-normal', 'score-big', 'score-massive', 'score-legendary'];
-var _scorePulseAccumulator = 0;
-var _scorePulseAccTimer = 0;
+// v5.14: Score Pulse Tier system (moved above syncFromRunState call)
 
 function _getScoreTier(gain) {
     const tiers = Balance.JUICE?.SCORE_PULSE_TIERS;
@@ -5003,8 +5016,8 @@ function createBulletExplosion(x, y, color) {
     if (audioSys) audioSys.play('bulletCancel');
 }
 
-function createEnemyDeathExplosion(x, y, color, symbol, shape) {
-    if (G.ParticleSystem) G.ParticleSystem.createEnemyDeathExplosion(x, y, color, symbol, shape);
+function createEnemyDeathExplosion(x, y, color, symbol, shape, elemType) {
+    if (G.ParticleSystem) G.ParticleSystem.createEnemyDeathExplosion(x, y, color, symbol, shape, elemType);
 }
 
 function createBossDeathExplosion(x, y) {

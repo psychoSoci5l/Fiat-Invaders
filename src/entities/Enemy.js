@@ -37,6 +37,12 @@ class Enemy extends window.Game.Entity {
         this._outlineWidth = 2.5;
         this._bodyFill = this._colorDark40;
 
+        // v5.15: Elemental tint state
+        this._elemTint = null;
+        this._elemTintTimer = 0;
+        this._elemPersistent = false;
+        this._elemType = null;
+
         // Special behaviors (set by spawner based on tier)
         this.isKamikaze = false;      // Weak tier: can dive at player
         this.kamikazeDiving = false;  // Currently diving
@@ -118,6 +124,14 @@ class Enemy extends window.Game.Entity {
         if (this.hitFlash > 0) this.hitFlash -= dt * ff.HIT;
         if (this.teleportFlash > 0) this.teleportFlash -= dt * ff.TELEPORT;
         if (this.teleportCooldown > 0) this.teleportCooldown -= dt;
+
+        // v5.15: Elemental tint decay
+        if (this._elemTintTimer > 0) {
+            this._elemTintTimer -= dt;
+            if (this._elemTintTimer <= 0 && !this._elemPersistent) {
+                this._elemTint = null;
+            }
+        }
 
         // v4.5: Hit shake decay
         if (this._hitShakeTimer > 0) {
@@ -315,11 +329,29 @@ class Enemy extends window.Game.Entity {
     }
 
     // Take damage - returns true if enemy should die
-    takeDamage(amount) {
+    takeDamage(amount, elemType) {
         this.hp -= amount;
         this.hitFlash = 1;
         this._hitShakeTimer = window.Game.Balance?.VFX?.HIT_SHAKE_DURATION || 0.06;
+        // v5.15: Elemental tint flash
+        if (elemType) {
+            const tintCfg = window.Game.Balance?.ELEMENTAL?.ENEMY_TINT;
+            if (tintCfg?.ENABLED) {
+                this._elemType = elemType;
+                this._elemTint = tintCfg[elemType.toUpperCase()] || null;
+                this._elemTintTimer = tintCfg.FLASH_DURATION || 0.15;
+            }
+        }
         return this.hp <= 0;
+    }
+
+    // v5.15: Persistent contagion tint for enemies surviving splash/chain
+    applyContagionTint(elemType) {
+        const tintCfg = window.Game.Balance?.ELEMENTAL?.ENEMY_TINT;
+        if (!tintCfg?.ENABLED) return;
+        this._elemType = elemType;
+        this._elemTint = tintCfg[elemType.toUpperCase()] || null;
+        this._elemPersistent = true;
     }
 
     draw(ctx) {
@@ -392,6 +424,20 @@ class Enemy extends window.Game.Entity {
         // v4.58: Draw fracture lines on damaged enemies
         if (this._damageIntensity > 0 && this._crackData && dmgCfg?.CRACKS?.ENABLED) {
             this._drawCracks(ctx, x, y, dmgCfg.CRACKS);
+        }
+
+        // v5.15: Elemental tint overlay
+        if (this._elemTint) {
+            const tintCfg = window.Game.Balance?.ELEMENTAL?.ENEMY_TINT;
+            const alpha = this._elemTintTimer > 0
+                ? (tintCfg?.FLASH_ALPHA || 0.6)
+                : (tintCfg?.PERSISTENT_ALPHA || 0.25);
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = this._elemTint;
+            ctx.beginPath();
+            ctx.arc(x, y, 25, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
         }
 
         ctx.restore();

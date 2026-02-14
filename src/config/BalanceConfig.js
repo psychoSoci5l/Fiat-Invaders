@@ -130,6 +130,15 @@
                 },
                 RIPPLE_DURATION: 0.20,
                 RIPPLE_RADIUS: 18
+            },
+
+            // v5.15: Elemental tint on living enemies
+            ENEMY_TINT: {
+                ENABLED: true,
+                FLASH_DURATION: 0.15,
+                FLASH_ALPHA: 0.6,
+                PERSISTENT_ALPHA: 0.25,
+                FIRE: '#ff4400', LASER: '#00f0ff', ELECTRIC: '#8844ff'
             }
         },
 
@@ -1497,6 +1506,29 @@
             EXPLOSION_WEAK: { particles: 6, ringCount: 1, duration: 0.30, debrisCount: 2 },
             EXPLOSION_MEDIUM: { particles: 10, ringCount: 1, duration: 0.40, debrisCount: 4 },
             EXPLOSION_STRONG: { particles: 14, ringCount: 2, duration: 0.55, debrisCount: 6, flash: true },
+
+            // v5.15: Cyber Destruction VFX
+            ENEMY_DESTROY: {
+                ENABLED: true,
+                RECT_FRAGMENTS: {
+                    ENABLED: true,
+                    WIDTH_MIN: 3, WIDTH_MAX: 8,
+                    HEIGHT_MIN: 2, HEIGHT_MAX: 5,
+                    ROT_SPEED_MIN: 5, ROT_SPEED_MAX: 15
+                },
+                ELEMENTAL_TINT: {
+                    ENABLED: true,
+                    FIRE: '#ff4400', LASER: '#00f0ff', ELECTRIC: '#8844ff',
+                    TINT_RATIO: 0.6
+                },
+                SFX: {
+                    ENABLED: true,
+                    WEAK:   { VOLUME: 0.08, DURATION: 0.08 },
+                    MEDIUM: { VOLUME: 0.10, DURATION: 0.12 },
+                    STRONG: { VOLUME: 0.14, DURATION: 0.18 },
+                    ELEM_LAYER: { ENABLED: true, VOLUME: 0.06, DURATION: 0.15 }
+                }
+            },
 
             // Trail enhancement
             TRAIL_POWER_GLOW: 0.25,           // Outer glow alpha with POWER mod
