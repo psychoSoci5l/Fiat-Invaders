@@ -1748,22 +1748,37 @@
         // --- PAPER TEAR v4.43 ---
         PAPER_TEAR: {
             ENABLED: true,
-            OPEN_DURATION: 1.4,
-            CLOSE_DURATION: 0.7,
+            OPEN_DURATION: 1.2,
+            CLOSE_DURATION: 0.6,
             CENTER_Y_RATIO: 0.32,
             VOID_HALF_HEIGHT_RATIO: 0.30,
             VOID_COLOR: [5, 5, 15],
             VOID_ALPHA: 0.92,
-            EDGE: {
-                SEG_MIN: 8, SEG_MAX: 25,
-                DEPTH_MIN: 6, DEPTH_MAX: 22,
-                HIGHLIGHT_COLOR: '#e8e0d0',
-                HIGHLIGHT_WIDTH: 1.5,
-                HIGHLIGHT_ALPHA: 0.85
+            SCANLINE: {
+                COLOR: [187, 68, 255],      // neon violet
+                GLOW_SIZE: 8,
+                GLOW_ALPHA: 0.4,
+                LINE_WIDTH: 2,
+                LINE_ALPHA: 0.9,
+                SHIMMER_SPEED: 3,
+                SHIMMER_AMOUNT: 0.15
             },
-            SHADOW: {
-                ENABLED: true,
-                BLUR: 12, OFFSET_Y: 4, ALPHA: 0.4
+            GLITCH: {
+                COUNT: 4,
+                LENGTH_MIN: 30,
+                LENGTH_MAX: 120,
+                OFFSET_MIN: 2,
+                OFFSET_MAX: 8,
+                REFRESH_RATE: 0.08,
+                ALPHA: 0.6
+            },
+            VOID_SCANLINES: {
+                SPACING: 3,
+                ALPHA: 0.03
+            },
+            FLASH: {
+                DURATION: 0.1,
+                ALPHA: 0.3
             }
         },
 
@@ -1792,6 +1807,58 @@
             SFX: {
                 BOOM_VOLUME: 0.7,
                 ZAP_VOLUME: 0.7
+            }
+        },
+
+        // --- STORY BACKGROUNDS v5.5 ---
+        STORY_BACKGROUNDS: {
+            ENABLED: true,
+            PROLOGUE: {
+                COIN_COUNT: 14,
+                COIN_SIZE_MIN: 6,
+                COIN_SIZE_MAX: 12,
+                FALL_SPEED_MIN: 0.3,
+                FALL_SPEED_MAX: 0.8,
+                DISSOLVE_START: 0.6,         // fraction of screen height
+                GREY_SPEED: 1.2,
+                FADE_SPEED: 0.8,
+                SHRINK_SPEED: 0.5,
+                SPARK_CHANCE: 0.4,
+                SPARK_MAX: 35
+            },
+            CHAPTER_1: {
+                CHAR_COUNT: 28,
+                FONT_SIZE_MIN: 12,
+                FONT_SIZE_MAX: 20,
+                FALL_SPEED_MIN: 0.5,
+                FALL_SPEED_MAX: 1.2,
+                ATTRACT_RADIUS: 120,
+                ATTRACT_FORCE: 0.8,
+                BTC_SIZE: 80,
+                BTC_BASE_ALPHA: 0.1,
+                BTC_PULSE_ALPHA: 0.08,
+                BTC_PULSE_SPEED: 2.5
+            },
+            CHAPTER_2: {
+                NODE_COUNT: 18,
+                NODE_RADIUS_MIN: 3,
+                NODE_RADIUS_MAX: 6,
+                DRIFT_SPEED: 0.3,
+                CONNECT_DIST: 160,
+                LINE_ALPHA: 0.2,
+                PULSE_INTERVAL: 2.5,
+                PULSE_TRAVEL_TIME: 0.8
+            },
+            CHAPTER_3: {
+                NODE_COUNT: 22,
+                GLOBE_RADIUS: 0.35,
+                ROTATE_SPEED: 0.15,
+                BOLT_INTERVAL: 2.5,
+                BOLT_SEGMENTS: 6,
+                BOLT_JITTER: 30,
+                BOLT_FADE_SPEED: 2.5,
+                RIPPLE_SPEED: 60,
+                RIPPLE_FADE: 2.0
             }
         },
 

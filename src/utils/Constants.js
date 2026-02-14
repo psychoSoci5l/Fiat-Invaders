@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v5.4.0 FIAT vs CRYPTO";
+window.Game.VERSION = "v5.6.0 FIAT vs CRYPTO";
 
 window.Game.TEXTS = {
     EN: {
@@ -159,7 +159,7 @@ window.Game.TEXTS = {
         MODE_ARCADE: "ARCADE",
         MODE_STORY_DESC: "Experience Bitcoin's story through 3 epic chapters",
         MODE_ARCADE_DESC: "Endless high-score challenge",
-        CHANGE_MODE: "tap to change",
+        CHANGE_MODE: "change mode",
         TITLE_SUBTITLE: "Currencies",
         GO: "GO!",
         // Arcade records (v4.50)
@@ -324,7 +324,7 @@ window.Game.TEXTS = {
         MODE_ARCADE: "ARCADE",
         MODE_STORY_DESC: "Vivi la storia di Bitcoin attraverso 3 capitoli epici",
         MODE_ARCADE_DESC: "Sfida infinita per il punteggio",
-        CHANGE_MODE: "tocca per cambiare",
+        CHANGE_MODE: "cambia modalità",
         TITLE_SUBTITLE: "Valute",
         GO: "VIA!",
         // Arcade records (v4.50)

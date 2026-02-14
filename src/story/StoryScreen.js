@@ -231,7 +231,11 @@
         paraAlphas = [];
         typingParaAlpha = 0;
 
-        initStars();
+        if (G.StoryBackgrounds && G.StoryBackgrounds.isEnabled()) {
+            G.StoryBackgrounds.init(storyId, canvasWidth, canvasHeight);
+        } else {
+            initStars();
+        }
 
         if (G.Events) {
             G.Events.emit('story:show', { storyId: storyId });
@@ -337,13 +341,17 @@
 
         hintBlinkTimer += dt * CONFIG.HINT_BLINK_SPEED * Math.PI * 2;
 
-        for (const star of stars) {
-            star.y += star.speed * dt * 20;
-            if (star.y > canvasHeight) {
-                star.y = 0;
-                star.x = Math.random() * canvasWidth;
+        if (G.StoryBackgrounds && G.StoryBackgrounds.isEnabled()) {
+            G.StoryBackgrounds.update(dt);
+        } else {
+            for (const star of stars) {
+                star.y += star.speed * dt * 20;
+                if (star.y > canvasHeight) {
+                    star.y = 0;
+                    star.x = Math.random() * canvasWidth;
+                }
+                star.twinklePhase += star.twinkleSpeed * dt;
             }
-            star.twinklePhase += star.twinkleSpeed * dt;
         }
     }
 
@@ -377,26 +385,28 @@
 
         ctx.globalAlpha = fadeAlpha;
 
-        // --- Stars with glow ---
-        for (const star of stars) {
-            const twinkle = 0.5 + 0.5 * Math.sin(star.twinklePhase);
-            const alpha = star.brightness * twinkle;
+        // --- Background layer (cinematic or legacy stars) ---
+        if (G.StoryBackgrounds && G.StoryBackgrounds.isEnabled()) {
+            G.StoryBackgrounds.draw(ctx, width, height, fadeAlpha);
+        } else {
+            for (const star of stars) {
+                const twinkle = 0.5 + 0.5 * Math.sin(star.twinklePhase);
+                const alpha = star.brightness * twinkle;
 
-            // Soft glow
-            ctx.fillStyle = CU
-                ? CU.rgba(180, 200, 255, alpha * CONFIG.STAR_GLOW_ALPHA)
-                : 'rgba(180,200,255,' + (alpha * CONFIG.STAR_GLOW_ALPHA) + ')';
-            ctx.beginPath();
-            ctx.arc(star.x, star.y, star.size * 3, 0, Math.PI * 2);
-            ctx.fill();
+                ctx.fillStyle = CU
+                    ? CU.rgba(180, 200, 255, alpha * CONFIG.STAR_GLOW_ALPHA)
+                    : 'rgba(180,200,255,' + (alpha * CONFIG.STAR_GLOW_ALPHA) + ')';
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.size * 3, 0, Math.PI * 2);
+                ctx.fill();
 
-            // Core
-            ctx.fillStyle = CU
-                ? CU.rgba(255, 255, 255, alpha)
-                : 'rgba(255,255,255,' + alpha + ')';
-            ctx.beginPath();
-            ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
-            ctx.fill();
+                ctx.fillStyle = CU
+                    ? CU.rgba(255, 255, 255, alpha)
+                    : 'rgba(255,255,255,' + alpha + ')';
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
         }
 
         // --- Text ---
@@ -515,7 +525,11 @@
         canvasWidth = width;
         canvasHeight = height;
         if (isActive) {
-            initStars();
+            if (G.StoryBackgrounds && G.StoryBackgrounds.isEnabled()) {
+                G.StoryBackgrounds.resize(width, height);
+            } else {
+                initStars();
+            }
         }
     }
 

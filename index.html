@@ -80,7 +80,13 @@
             <span class="title-crypto">CRYPTO</span>
         </h1>
 
-        <!-- HEADER (hidden in splash, visible in selection) — v4.55: no ship choice -->
+        <!-- CURRENT MODE INDICATOR (hidden in splash, visible in selection — top of selection) -->
+        <div class="current-mode-indicator" id="current-mode-indicator" style="display: none;" onclick="goBackToModeSelect()">
+            <span class="mode-indicator-text" id="mode-indicator-text">STORY MODE</span>
+            <span class="mode-indicator-hint" id="mode-indicator-hint">change mode</span>
+        </div>
+
+        <!-- HEADER (hidden in splash, visible in selection) -->
         <div class="selection-header" id="selection-header" style="display: none;">BTC STRIKER</div>
 
         <!-- SHIP INFO (hidden in splash, visible in selection) -->
@@ -91,6 +97,17 @@
                 <span class="stat-item">PWR ██████░░</span>
                 <span class="stat-item">HIT ████░░░░</span>
             </div>
+        </div>
+
+        <!-- HIGH SCORE ROW (visible in selection only) -->
+        <div class="selection-score-row" id="selection-score-row" style="display: none;">
+            <span class="score-row-label" id="score-row-label">HIGH SCORE</span>
+            <span class="score-row-value" id="badge-score-value">0</span>
+        </div>
+        <div id="arcade-records-row" style="display: none;">
+            <span id="rec-cycle-label">BEST CYCLE</span> <b id="rec-cycle-val">0</b>
+            <span id="rec-level-label">BEST LEVEL</span> <b id="rec-level-val">0</b>
+            <span id="rec-kills-label">BEST KILLS</span> <b id="rec-kills-val">0</b>
         </div>
 
         <!-- MODE SELECTOR (visible in splash, hidden in selection) - v4.8.1 minimal style -->
@@ -111,28 +128,13 @@
             </p>
         </div>
 
-        <!-- CURRENT MODE INDICATOR (hidden in splash, visible in selection) -->
-        <div class="current-mode-indicator" id="current-mode-indicator" style="display: none;" onclick="goBackToModeSelect()">
-            <span class="mode-indicator-text" id="mode-indicator-text">STORY MODE</span>
-            <span class="mode-indicator-hint" id="mode-indicator-hint">tap to change</span>
-        </div>
-
-        <!-- HIGH SCORE ROW (visible in selection only) -->
-        <div class="selection-score-row" id="selection-score-row" style="display: none;">
-            <span class="score-row-label" id="score-row-label">HIGH SCORE</span>
-            <span class="score-row-value" id="badge-score-value">0</span>
-        </div>
-        <div id="arcade-records-row" style="display: none;">
-            <span id="rec-cycle-label">BEST CYCLE</span> <b id="rec-cycle-val">0</b>
-            <span id="rec-level-label">BEST LEVEL</span> <b id="rec-level-val">0</b>
-            <span id="rec-kills-label">BEST KILLS</span> <b id="rec-kills-val">0</b>
-        </div>
-
         <!-- SHIP PREVIEW (hidden in splash, visible in selection) -->
         <div class="ship-area hidden">
+            <button class="ship-arrow ship-arrow-left" id="arrow-left" onclick="cycleShip(-1)">&#x276E;</button>
             <div class="ship-preview-center">
                 <canvas id="intro-ship-canvas" width="160" height="180"></canvas>
             </div>
+            <button class="ship-arrow ship-arrow-right" id="arrow-right" onclick="cycleShip(1)">&#x276F;</button>
         </div>
 
         <!-- PRIMARY ACTION BUTTON (fixed position for double-tap) -->
@@ -631,6 +633,7 @@
     <script src="src/managers/CampaignState.js"></script>
     <!-- Story System -->
     <script src="src/story/StoryScreenData.js"></script>
+    <script src="src/story/StoryBackgrounds.js"></script>
     <script src="src/story/StoryScreen.js"></script>
     <script src="src/story/DialogueData.js"></script>
     <script src="src/story/StoryManager.js"></script>

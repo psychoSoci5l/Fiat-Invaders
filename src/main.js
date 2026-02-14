@@ -25,6 +25,7 @@ function setGameState(newState) {
     gameState = newState;
     if (G.GameState) G.GameState.transition(newState);
 }
+G._setGameState = setGameState; // debug access
 if (G.GameState) G.GameState.forceSet('VIDEO');
 let userLang = navigator.language || navigator.userLanguage;
 let currentLang = userLang.startsWith('it') ? 'IT' : 'EN';
@@ -1083,9 +1084,9 @@ function updateModeIndicator() {
     }
 }
 
-// v4.55: Ship selection locked to BTC (ship evolution replaces multi-ship)
 window.cycleShip = function(dir) {
-    // noop — only BTC available
+    selectedShipIndex = (selectedShipIndex + dir + SHIP_KEYS.length) % SHIP_KEYS.length;
+    updateShipUI();
 }
 
 // --- GAME MODE SELECTION (Arcade vs Campaign) ---
@@ -1906,6 +1907,10 @@ function resize() {
     if (G.TitleAnimator) {
         G.TitleAnimator.setDimensions(gameWidth, gameHeight);
     }
+    // v5.5: Update StoryScreen dimensions (cinematic backgrounds)
+    if (G.StoryScreen && G.StoryScreen.isShowing()) {
+        G.StoryScreen.setDimensions(gameWidth, gameHeight);
+    }
 }
 
 function updateUIText() {
@@ -2456,8 +2461,7 @@ window.launchShipAndStart = function () {
             }
         });
 
-        // Configure player and start (v4.55: locked to BTC)
-        selectedShipIndex = 0;
+        // Configure player with selected ship
         const selectedShipKey = SHIP_KEYS[selectedShipIndex];
         player.configure(selectedShipKey);
 

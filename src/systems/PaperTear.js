@@ -1,4 +1,4 @@
-// PaperTear.js — Canvas "paper tear" effect for intro title reveal
+// PaperTear.js — Digital Scanline Void effect for intro title reveal
 (function() {
     'use strict';
     var G = window.Game;
@@ -11,30 +11,32 @@
 
     var width = 0, height = 0;
     var centerY = 0, halfH = 0;
-    var topEdge = [];   // [{x, offset}]
-    var botEdge = [];
+
+    // Glitch segments: array of {x, len, offset}
+    var glitchSegs = [];
+    var glitchTimer = 0;
+
+    // Shimmer phase (continuous)
+    var shimmerPhase = 0;
 
     function cfg() {
         if (!B) B = G.Balance.PAPER_TEAR;
         return B;
     }
 
-    function generateEdge(w) {
-        var c = cfg().EDGE;
-        var pts = [];
-        var x = 0;
-        while (x < w) {
-            var seg = c.SEG_MIN + Math.random() * (c.SEG_MAX - c.SEG_MIN);
-            var depth = c.DEPTH_MIN + Math.random() * (c.DEPTH_MAX - c.DEPTH_MIN);
-            if (Math.random() < 0.5) depth = -depth;
-            pts.push({ x: x, offset: depth });
-            x += seg;
+    function generateGlitch(w) {
+        var c = cfg().GLITCH;
+        var segs = [];
+        for (var i = 0; i < c.COUNT; i++) {
+            segs.push({
+                x: Math.random() * (w - c.LENGTH_MAX),
+                len: c.LENGTH_MIN + Math.random() * (c.LENGTH_MAX - c.LENGTH_MIN),
+                offset: (c.OFFSET_MIN + Math.random() * (c.OFFSET_MAX - c.OFFSET_MIN)) * (Math.random() < 0.5 ? -1 : 1)
+            });
         }
-        pts.push({ x: w, offset: pts.length ? pts[pts.length - 1].offset * 0.5 : 0 });
-        return pts;
+        return segs;
     }
 
-    // Smooth ease with slow start (feels like paper pulling apart)
     function easeOutQuart(t) { return 1 - Math.pow(1 - t, 4); }
     function easeInQuart(t) { return t * t * t * t; }
 
@@ -44,8 +46,9 @@
             var c = cfg();
             centerY = h * c.CENTER_Y_RATIO;
             halfH = h * c.VOID_HALF_HEIGHT_RATIO;
-            topEdge = generateEdge(w);
-            botEdge = generateEdge(w);
+            glitchSegs = generateGlitch(w);
+            glitchTimer = 0;
+            shimmerPhase = 0;
             state = 'IDLE';
             progress = 0;
             timer = 0;
@@ -75,6 +78,21 @@
 
         update: function(dt) {
             var c = cfg();
+
+            // Shimmer always ticks when visible
+            if (progress > 0) {
+                shimmerPhase += dt * c.SCANLINE.SHIMMER_SPEED;
+            }
+
+            // Refresh glitch segments periodically
+            if (progress > 0) {
+                glitchTimer += dt;
+                if (glitchTimer >= c.GLITCH.REFRESH_RATE) {
+                    glitchTimer -= c.GLITCH.REFRESH_RATE;
+                    glitchSegs = generateGlitch(width);
+                }
+            }
+
             if (state === 'OPENING') {
                 timer += dt;
                 var t = Math.min(timer / c.OPEN_DURATION, 1);
@@ -95,74 +113,96 @@
         draw: function(ctx) {
             if (progress <= 0) return;
             var c = cfg();
-            // Top edge opens faster than bottom for asymmetric tear feel
-            var topProg = Math.min(progress * 1.15, 1);
-            var botProg = Math.min(progress * 0.9, 1);
-            var yTop = centerY - halfH * topProg;
-            var yBot = centerY + halfH * botProg;
+            var CU = G.ColorUtils;
+            var sc = c.SCANLINE;
+            var gl = c.GLITCH;
+            var fl = c.FLASH;
+
+            var yTop = centerY - halfH * progress;
+            var yBot = centerY + halfH * progress;
+            var voidH = yBot - yTop;
 
             ctx.save();
 
-            // Shadow
-            if (c.SHADOW.ENABLED && progress > 0.1) {
-                ctx.shadowColor = 'rgba(0,0,0,' + (c.SHADOW.ALPHA * progress) + ')';
-                ctx.shadowBlur = c.SHADOW.BLUR * progress;
-                ctx.shadowOffsetY = c.SHADOW.OFFSET_Y * progress;
-            }
-
-            // Void fill path
-            ctx.beginPath();
-            // Top edge (left to right)
-            for (var i = 0; i < topEdge.length; i++) {
-                var p = topEdge[i];
-                var y = yTop + p.offset * topProg;
-                if (i === 0) ctx.moveTo(p.x, y);
-                else ctx.lineTo(p.x, y);
-            }
-            // Right side down
-            ctx.lineTo(width, yBot + (botEdge.length ? botEdge[botEdge.length - 1].offset * botProg : 0));
-            // Bottom edge (right to left)
-            for (var j = botEdge.length - 1; j >= 0; j--) {
-                var pb = botEdge[j];
-                ctx.lineTo(pb.x, yBot + pb.offset * botProg);
-            }
-            ctx.closePath();
-
+            // --- Void fill ---
             var vc = c.VOID_COLOR;
-            ctx.fillStyle = 'rgba(' + vc[0] + ',' + vc[1] + ',' + vc[2] + ',' + (c.VOID_ALPHA * Math.min(progress * 1.5, 1)) + ')';
-            ctx.fill();
+            ctx.fillStyle = CU.rgba(vc[0], vc[1], vc[2], c.VOID_ALPHA * Math.min(progress * 1.5, 1));
+            ctx.fillRect(0, yTop, width, voidH);
 
-            // Reset shadow before stroke
-            ctx.shadowColor = 'transparent';
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetY = 0;
-
-            // Edge highlights
-            var ec = c.EDGE;
-            ctx.strokeStyle = ec.HIGHLIGHT_COLOR;
-            ctx.lineWidth = ec.HIGHLIGHT_WIDTH;
-            ctx.globalAlpha = ec.HIGHLIGHT_ALPHA * Math.min(progress * 2, 1);
-
-            // Top edge highlight
-            ctx.beginPath();
-            for (var k = 0; k < topEdge.length; k++) {
-                var pt = topEdge[k];
-                var yt = yTop + pt.offset * topProg;
-                if (k === 0) ctx.moveTo(pt.x, yt);
-                else ctx.lineTo(pt.x, yt);
+            // --- Void scanlines (subtle CRT) ---
+            if (voidH > 0) {
+                var vsc = c.VOID_SCANLINES;
+                ctx.fillStyle = CU.rgba(255, 255, 255, vsc.ALPHA);
+                var startLine = Math.ceil(yTop / vsc.SPACING) * vsc.SPACING;
+                for (var sy = startLine; sy < yBot; sy += vsc.SPACING) {
+                    ctx.fillRect(0, sy, width, 1);
+                }
             }
+
+            // --- Flash (opening start / closing end) ---
+            var flashAlpha = 0;
+            if (state === 'OPENING' && timer < fl.DURATION) {
+                flashAlpha = fl.ALPHA * (1 - timer / fl.DURATION);
+            } else if (state === 'CLOSING' && progress < 0.05) {
+                flashAlpha = fl.ALPHA * (1 - progress / 0.05);
+            }
+            if (flashAlpha > 0.01) {
+                ctx.fillStyle = CU.rgba(sc.COLOR[0], sc.COLOR[1], sc.COLOR[2], flashAlpha);
+                ctx.fillRect(0, centerY - 2, width, 4);
+            }
+
+            // --- Shimmer multiplier ---
+            var shimmer = 1 + Math.sin(shimmerPhase) * sc.SHIMMER_AMOUNT;
+
+            // --- Neon border lines (top & bottom) ---
+            var prevComp = ctx.globalCompositeOperation;
+            ctx.globalCompositeOperation = 'lighter';
+
+            // Glow layer
+            ctx.lineWidth = sc.LINE_WIDTH + sc.GLOW_SIZE;
+            ctx.strokeStyle = CU.rgba(sc.COLOR[0], sc.COLOR[1], sc.COLOR[2], sc.GLOW_ALPHA * shimmer * Math.min(progress * 3, 1));
+            ctx.beginPath();
+            ctx.moveTo(0, yTop);
+            ctx.lineTo(width, yTop);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(0, yBot);
+            ctx.lineTo(width, yBot);
             ctx.stroke();
 
-            // Bottom edge highlight
+            // Core line
+            ctx.lineWidth = sc.LINE_WIDTH;
+            ctx.strokeStyle = CU.rgba(sc.COLOR[0], sc.COLOR[1], sc.COLOR[2], sc.LINE_ALPHA * shimmer * Math.min(progress * 3, 1));
             ctx.beginPath();
-            for (var m = 0; m < botEdge.length; m++) {
-                var pbo = botEdge[m];
-                var yb = yBot + pbo.offset * botProg;
-                if (m === 0) ctx.moveTo(pbo.x, yb);
-                else ctx.lineTo(pbo.x, yb);
-            }
+            ctx.moveTo(0, yTop);
+            ctx.lineTo(width, yTop);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(0, yBot);
+            ctx.lineTo(width, yBot);
             ctx.stroke();
 
+            // --- Glitch segments ---
+            if (progress > 0.15) {
+                var glAlpha = gl.ALPHA * Math.min((progress - 0.15) * 4, 1);
+                ctx.lineWidth = sc.LINE_WIDTH;
+                for (var i = 0; i < glitchSegs.length; i++) {
+                    var seg = glitchSegs[i];
+                    ctx.strokeStyle = CU.rgba(sc.COLOR[0], sc.COLOR[1], sc.COLOR[2], glAlpha * shimmer);
+                    // Glitch on top edge
+                    ctx.beginPath();
+                    ctx.moveTo(seg.x, yTop + seg.offset);
+                    ctx.lineTo(seg.x + seg.len, yTop + seg.offset);
+                    ctx.stroke();
+                    // Glitch on bottom edge
+                    ctx.beginPath();
+                    ctx.moveTo(seg.x, yBot - seg.offset);
+                    ctx.lineTo(seg.x + seg.len, yBot - seg.offset);
+                    ctx.stroke();
+                }
+            }
+
+            ctx.globalCompositeOperation = prevComp;
             ctx.restore();
         },
 

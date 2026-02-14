@@ -1,5 +1,34 @@
 # Changelog
 
+## v5.6.0 - 2026-02-14
+### Digital Scanline Void (replaces Paper Tear)
+- **feat(vfx)**: digital scanline void — neon violet horizontal split replaces cartoon paper tear effect
+- **feat(vfx)**: opening flash — thin neon line at center expands into void (1.2s ease-out)
+- **feat(vfx)**: neon border lines — 2-layer glow + core stroke with additive blending (`'lighter'`)
+- **feat(vfx)**: glitch segments — 4 random-length offset lines per edge, refresh every 80ms
+- **feat(vfx)**: CRT void scanlines — subtle horizontal lines every 3px (alpha 0.03) inside void
+- **feat(vfx)**: shimmer/breathing — border alpha oscillates ±15% via sine wave
+- **feat(vfx)**: closing flash — neon burst when void fully closes (0.6s ease-in)
+- **config**: `Balance.PAPER_TEAR` rewritten — `SCANLINE`, `GLITCH`, `VOID_SCANLINES`, `FLASH` blocks (replaces `EDGE`/`SHADOW`)
+- **config**: kill-switch `ENABLED: false` preserved — instant open/close behavior unchanged
+- **compat**: API fully backward-compatible — zero changes to main.js (all 10 call sites unchanged)
+
+### Selection Screen Layout Refresh
+- **feat(ui)**: layout reordered — mode indicator at top, then ship header/stats/record, then ship preview with arrows, then LAUNCH
+- **feat(ui)**: ship selection re-enabled — `cycleShip()` restored, arrow buttons `‹` `›` flanking ship preview, keyboard arrows supported
+- **feat(ui)**: mode indicator enlarged — text 18-22px (was 14-16px), more glow and spacing
+- **fix(ui)**: hint/record text readability — removed white stroke text-shadow, clean lavender color instead
+- **i18n**: "tap to change" → "change mode" (EN) / "cambia modalità" (IT)
+
+## v5.5.0 - 2026-02-14
+### Cinematic Story Backgrounds
+- **feat(story)**: PROLOGUE — falling gold coins dissolving into grey dust with golden sparks (14 coins, dissolve at 60% screen)
+- **feat(story)**: CHAPTER_1 — Matrix-style hex rain with pulsing Bitcoin symbol (28 chars, center attraction, amber ₿ glow)
+- **feat(story)**: CHAPTER_2 — network nodes with pulse connections (18 nodes, violet vs cyan debate, traveling pulse every 2.5s)
+- **feat(story)**: CHAPTER_3 — lightning network globe (22 amber nodes, zigzag bolts every 2.5s, radial ripples)
+- **new**: `src/story/StoryBackgrounds.js` — per-chapter animated backgrounds with dispatch tables
+- **config**: `Balance.STORY_BACKGROUNDS` — per-chapter tuning, kill-switch `ENABLED: true` (fallback to legacy stars)
+
 ## v5.4.0 - 2026-02-13
 ### HUD Message Refactoring
 - **feat(hud)**: PICKUP toast — power-up/perk/GODCHAIN feedback now uses DOM message strip (Zona 1) with cyan border, scale-in bounce animation (150ms)
