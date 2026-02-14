@@ -473,7 +473,7 @@ function initCollisionSystem() {
                 const bossBonus = Balance.SCORE.BOSS_DEFEAT_BASE + (marketCycle * Balance.SCORE.BOSS_DEFEAT_PER_CYCLE);
                 score += bossBonus;
                 createFloatingScore(bossBonus, bossX, bossY - 50);
-                boss.active = false; boss = null; window.boss = null; shake = 60; audioSys.play('explosion');
+                boss.active = false; boss = null; window.boss = null; shake = Balance.EFFECTS.SHAKE.BOSS_DEFEAT || 80; audioSys.play('explosion');
                 audioSys.setBossPhase(0);
                 if (G.Events) G.Events.emit('weather:boss_defeat');
                 // v4.42: Restore ambient without boss
@@ -533,39 +533,46 @@ function initCollisionSystem() {
                 const chapterId = G.BOSS_TO_CHAPTER && G.BOSS_TO_CHAPTER[defeatedBossType];
                 const shouldShowChapter = chapterId && shouldShowStory(chapterId);
 
-                // Arcade: show modifier choice, then intermission
-                if (_isArcadeMode && G.ModifierChoiceScreen) {
-                    const picks = Balance.ARCADE.MODIFIERS.POST_BOSS_PICKS || 3;
-                    // Reset Last Stand per cycle
-                    if (G.RunState.arcadeBonuses.lastStandAvailable) {
-                        G.RunState.arcadeBonuses.lastStandAvailable = true;
+                // Chain reaction explosions during celebration
+                setTimeout(() => { createBossDeathExplosion(bossX, bossY - 30); }, 600);
+                setTimeout(() => { createBossDeathExplosion(bossX + 20, bossY + 20); }, 1100);
+
+                // Delayed transition — let the celebration breathe
+                const celebDelay = (Balance.TIMING.BOSS_CELEBRATION_DELAY || 2.0) * 1000;
+                setTimeout(() => {
+                    // Arcade: show modifier choice, then intermission
+                    if (_isArcadeMode && G.ModifierChoiceScreen) {
+                        const picks = Balance.ARCADE.MODIFIERS.POST_BOSS_PICKS || 3;
+                        // Reset Last Stand per cycle
+                        if (G.RunState.arcadeBonuses.lastStandAvailable) {
+                            G.RunState.arcadeBonuses.lastStandAvailable = true;
+                        }
+                        startIntermission(t('CYCLE') + ' ' + marketCycle + ' ' + t('BEGINS'));
+                        // Show modifier choice after a brief delay
+                        setTimeout(() => {
+                            G.ModifierChoiceScreen.show(picks, () => {
+                                const extraL = G.RunState.arcadeBonuses.extraLives;
+                                if (extraL > 0) {
+                                    lives += extraL;
+                                    G.RunState.arcadeBonuses.extraLives = 0;
+                                    updateLivesUI();
+                                } else if (extraL < 0) {
+                                    lives = Math.max(1, lives + extraL);
+                                    G.RunState.arcadeBonuses.extraLives = 0;
+                                    updateLivesUI();
+                                }
+                            });
+                        }, 1500);
+                    } else if (campaignComplete && shouldShowChapter) {
+                        showStoryScreen(chapterId, () => { showCampaignVictory(); });
+                    } else if (campaignComplete) {
+                        showCampaignVictory();
+                    } else if (shouldShowChapter) {
+                        showStoryScreen(chapterId, () => { restoreGameUI(); startIntermission(t('CYCLE') + ' ' + marketCycle + ' ' + t('BEGINS')); });
+                    } else {
+                        startIntermission(t('CYCLE') + ' ' + marketCycle + ' ' + t('BEGINS'));
                     }
-                    startIntermission(t('CYCLE') + ' ' + marketCycle + ' ' + t('BEGINS'));
-                    // Show modifier choice after a brief delay (let boss celebration play)
-                    setTimeout(() => {
-                        G.ModifierChoiceScreen.show(picks, () => {
-                            // Apply extra lives from modifier
-                            const extraL = G.RunState.arcadeBonuses.extraLives;
-                            if (extraL > 0) {
-                                lives += extraL;
-                                G.RunState.arcadeBonuses.extraLives = 0;
-                                updateLivesUI();
-                            } else if (extraL < 0) {
-                                lives = Math.max(1, lives + extraL);
-                                G.RunState.arcadeBonuses.extraLives = 0;
-                                updateLivesUI();
-                            }
-                        });
-                    }, 1500);
-                } else if (campaignComplete && shouldShowChapter) {
-                    showStoryScreen(chapterId, () => { showCampaignVictory(); });
-                } else if (campaignComplete) {
-                    showCampaignVictory();
-                } else if (shouldShowChapter) {
-                    showStoryScreen(chapterId, () => { restoreGameUI(); startIntermission(t('CYCLE') + ' ' + marketCycle + ' ' + t('BEGINS')); });
-                } else {
-                    startIntermission(t('CYCLE') + ' ' + marketCycle + ' ' + t('BEGINS'));
-                }
+                }, celebDelay);
                 emitEvent('boss_killed', { level: level, cycle: marketCycle, bossType: defeatedBossType, campaignComplete: campaignComplete });
                 const bossDefeatPool = G.DIALOGUES && G.DIALOGUES.BOSS_DEFEAT && G.DIALOGUES.BOSS_DEFEAT[defeatedBossType];
                 if (bossDefeatPool && bossDefeatPool.length > 0) {
@@ -2047,6 +2054,8 @@ function resize() {
         // iPhone 14 Pro Dynamic Island needs ~59px, older notch devices ~47px
         const pwaTopInset = Math.max(insets.top, 59);
         document.documentElement.style.setProperty('--pwa-top-inset', pwaTopInset + 'px');
+        const pwaBottomInset = Math.max(insets.bottom, 34); // iPhone home indicator min
+        document.documentElement.style.setProperty('--pwa-bottom-inset', pwaBottomInset + 'px');
     } else {
         // Safari/Browser mode: account for notch and home bar
         const safeTop = insets.top;

@@ -403,7 +403,7 @@ class Player extends window.Game.Entity {
 
     activateShield() {
         this.shieldActive = true;
-        this.shieldTimer = 2.0;
+        this.shieldTimer = window.Game.Balance?.PLAYER?.SHIELD_DURATION || 5.0;
         const shieldCD = window.Game.Balance?.PLAYER?.SHIELD_COOLDOWN || 10.0;
         this.shieldCooldown = shieldCD;
         window.Game.Audio.play('shield');
@@ -1262,7 +1262,7 @@ class Player extends window.Game.Entity {
             if (type === 'SHIELD') {
                 this.activateShield();
                 this.shieldCooldown = 0;
-                this.shieldTimer = PU.DURATION_SHIELD;
+                this.shieldTimer = window.Game.Balance?.PLAYER?.SHIELD_DURATION || 5.0;
             } else if (type === 'SPEED') {
                 this.shipPowerUp = type;
                 this.shipPowerUpTimer = PU.DURATION_SPEED;
@@ -1327,7 +1327,7 @@ class Player extends window.Game.Entity {
         if (type === 'SHIELD') {
             this.activateShield();
             this.shieldCooldown = 0;
-            this.shieldTimer = 3.0;
+            this.shieldTimer = window.Game.Balance?.PLAYER?.SHIELD_DURATION || 5.0;
             if (Audio) Audio.play('shield');
             return;
         }

@@ -1,5 +1,12 @@
 # Changelog
 
+## v5.10.2 - 2026-02-14
+### Shield Duration + Boss Celebration + PWA Bottom Inset
+- **fix(player)**: Shield duration 2s→5s — configurable via `Balance.PLAYER.SHIELD_DURATION`, all 3 shield activation paths now read from config
+- **feat(boss)**: Boss defeat celebration delay — 2s pause before intermission/story screen (`Balance.TIMING.BOSS_CELEBRATION_DELAY`), chain reaction explosions at t=0.6s and t=1.1s
+- **feat(boss)**: Enhanced boss defeat impact — hitstop 0.5s→1.0s, screen shake 60→80, shake reads from `Balance.EFFECTS.SHAKE.BOSS_DEFEAT`
+- **fix(pwa)**: Bottom safe area inset for iPhone PWA — `--pwa-bottom-inset` CSS variable (min 34px home indicator), all 14 `env(safe-area-inset-bottom)` references wrapped in `var()` fallback
+
 ## v5.10.1 - 2026-02-14
 ### PWA Icons: Crypto Viper
 - **feat(icons)**: Regenerated all 7 PWA icons (120→1024px) with Crypto Viper LV5 ship design — chevron body, swept fins, gun pods, BTC cockpit path, reactor flames

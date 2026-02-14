@@ -49,6 +49,7 @@
             DANGER_RANGE_SQ: 3600,    // Core hitbox indicator range (60px squared)
             START_LIVES: 3,           // Starting lives per run
             SHIELD_COOLDOWN: 10.0,    // Base shield cooldown seconds
+            SHIELD_DURATION: 5.0,     // Shield active duration (seconds)
             SPREAD_OFFSETS: {
                 NARROW: 4,            // Narrow pattern X offset
                 FIRE: 10,             // Fire pattern X offset
@@ -190,7 +191,7 @@
                 PLAYER_HIT: 0,
                 // Non-gameplay — preserved (boss cinematic moments)
                 BOSS_PHASE: 0.30,         // 300ms on boss phase transition
-                BOSS_DEFEAT: 0.50,        // 500ms on boss death
+                BOSS_DEFEAT: 1.00,        // 1s on boss death (dramatic slowmo)
             },
 
             // Screen flash effects (values used when enabled)
@@ -684,6 +685,7 @@
             // State transitions
             SPLASH_TIMEOUT: 4.0,           // Video splash screen max duration
             INTERMISSION_DURATION: 3.2,    // Between waves (3-2-1 countdown, ceil(3.2)=4 but we cap at 3)
+            BOSS_CELEBRATION_DELAY: 2.0,   // Seconds before intermission after boss death
             INTERMISSION_BOSS_DURATION: 6.0, // Boss defeat intermission (skippable)
             DEATH_DURATION: 2.0,           // Death sequence length
             INVULNERABILITY: 2.1,          // Post-hit protection
@@ -718,7 +720,7 @@
         EFFECTS: {
             // Screen shake intensities (higher = stronger)
             SHAKE: {
-                BOSS_DEFEAT: 60,
+                BOSS_DEFEAT: 80,
                 PLAYER_DEATH: 50,
                 BOSS_HIT: 40,
                 PHASE_TRANSITION: 30,
