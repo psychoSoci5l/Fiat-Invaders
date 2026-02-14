@@ -80,7 +80,7 @@
      */
     function createBulletSpark(x, y, color = '#fff', opts = {}) {
         const vfx = G.Balance?.VFX || {};
-        const level = opts.weaponLevel || 1;
+        const level = opts.weaponLevel ?? 1;
         const sizeMult = level >= 4 ? (vfx.SPARK_POWER_SCALE || 1.5) : 1;
 
         // Cancel: more particles, faster, longer lived
@@ -215,7 +215,7 @@
         if (available <= 0) return;
 
         const vfx = G.Balance?.VFX || {};
-        const level = opts.weaponLevel || 1;
+        const level = opts.weaponLevel ?? 1;
         const isGodchain = opts.isGodchain || false;
 
         // Determine elemental tint

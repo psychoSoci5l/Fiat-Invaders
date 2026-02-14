@@ -90,7 +90,7 @@
             const cx = bullet.x;
             const cy = bullet.y;
             const aoeR = bullet.aoeRadius || cfg.radius;
-            const baseDmg = (window.player?.stats?.baseDamage || 14) * (bullet.damageMult || 1) * cfg.damage;
+            const baseDmg = (window.player?.stats?.baseDamage ?? 14) * (bullet.damageMult || 1) * cfg.damage;
             const aoeRSq = aoeR * aoeR;
             const damaged = [];
 

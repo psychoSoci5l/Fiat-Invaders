@@ -272,7 +272,7 @@
         if (Math.abs(b.x - bossX) < hitboxW && Math.abs(b.y - bossY) < hitboxH) {
             const pl = player();
             const rs = runState();
-            const baseDmg = pl.stats.baseDamage || 14;
+            const baseDmg = pl.stats.baseDamage ?? 14;
             let dmg = baseDmg;
 
             if (isBossInstance) {

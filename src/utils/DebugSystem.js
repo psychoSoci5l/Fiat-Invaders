@@ -959,7 +959,7 @@ window.Game.Debug = {
         console.log('%c╠══ WEAPON STATE (final) ═══════════════════════════════════╣', 'color: #0ff');
         const p = window.player;
         if (p) {
-            console.log(`%c║   Weapon Level: ${p.weaponLevel || 1}`, 'color: #fff');
+            console.log(`%c║   Weapon Level: ${p.weaponLevel ?? 1}`, 'color: #fff');
             console.log(`%c║   Special: ${p.special || 'none'} (${(p.specialTimer || 0).toFixed(1)}s)`, 'color: #fff');
             console.log(`%c║   GODCHAIN: ${p._godchainActive ? 'ACTIVE' : 'inactive'}`, p._godchainActive ? 'color: #f80; font-weight: bold' : 'color: #888');
         } else {
@@ -1798,7 +1798,7 @@ window.Game.Debug = {
         }
         const active = player._godchainActive ? 'ACTIVE' : 'INACTIVE';
         console.log(`[DEBUG] GODCHAIN: ${active}`);
-        console.log(`  Weapon Level: ${player.weaponLevel || 1} (need 5)`);
+        console.log(`  Weapon Level: ${player.weaponLevel ?? 1} (need 5)`);
     },
 
     // ========== PERFORMANCE PROFILER v4.10 ==========
@@ -2171,7 +2171,7 @@ window.Game.Debug = {
             return;
         }
         console.log('[DEBUG] Weapon Evolution State:');
-        console.log(`  Weapon Level: ${player.weaponLevel || 1}`);
+        console.log(`  Weapon Level: ${player.weaponLevel ?? 1}`);
         console.log(`  Modifiers:`);
         console.log(`    Special: ${player.special || 'none'}${player.special ? ' (' + (player.specialTimer || 0).toFixed(1) + 's)' : ''}`);
         console.log(`    GODCHAIN: ${player._godchainActive ? 'ACTIVE' : 'inactive'}`);

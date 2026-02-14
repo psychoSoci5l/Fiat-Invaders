@@ -131,7 +131,7 @@ window.Game = window.Game || {};
                 const runState = G.RunState;
 
                 const bossDivisor = G.Balance?.BOSS?.DMG_DIVISOR || 4;
-                const baseBossDmg = Math.ceil((player.stats.baseDamage || 14) * (bullet.damageMult || 1) / bossDivisor);
+                const baseBossDmg = Math.ceil((player.stats.baseDamage ?? 14) * (bullet.damageMult || 1) / bossDivisor);
                 let dmg = baseBossDmg;
 
                 boss.damage(dmg);
@@ -202,7 +202,7 @@ window.Game = window.Game || {};
                     ? G.BulletSystem.lineSegmentVsCircle(bullet.x, bullet.y, beamTailX, beamTailY, e.x, e.y, eR)
                     : G.BulletSystem.bulletHitsEntity(bullet, e, eR);
                 if (hit) {
-                    const baseDmg = player.stats.baseDamage || 14;
+                    const baseDmg = player.stats.baseDamage ?? 14;
                     let dmg = baseDmg;
 
                     if (bullet.damageMult && bullet.damageMult > 1) dmg *= bullet.damageMult;

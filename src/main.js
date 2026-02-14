@@ -43,6 +43,19 @@ window.addEventListener('beforeinstallprompt', (e) => {
 // Game Entities
 let player;
 let bullets = [], enemyBullets = [], enemies = [], powerUps = [], particles = [], floatingTexts = [], muzzleFlashes = [], perkIcons = [];
+
+// Boss death timeout tracking (prevent orphan timeouts on restart)
+let _bossDeathTimeouts = [];
+function bossDeathTimeout(fn, delay) {
+    const id = setTimeout(fn, delay);
+    _bossDeathTimeouts.push(id);
+    return id;
+}
+function clearBossDeathTimeouts() {
+    _bossDeathTimeouts.forEach(id => clearTimeout(id));
+    _bossDeathTimeouts = [];
+    window._evolutionItem = null;
+}
 window.enemyBullets = enemyBullets; // Expose for Player core hitbox indicator
 // Sky state moved to SkyRenderer.js
 let images = {}; // 🖼️ Asset Cache
@@ -149,7 +162,7 @@ function buildPlayerState() {
         _playerState.hasSpeed = false;
         return _playerState;
     }
-    _playerState.weaponLevel = player.weaponLevel || 1;
+    _playerState.weaponLevel = player.weaponLevel ?? 1;
     _playerState.hasSpecial = !!player.special;
     _playerState.hasShield = !!player.shieldActive;
     _playerState.hasSpeed = player.shipPowerUp === 'SPEED';
@@ -250,7 +263,7 @@ function initCollisionSystem() {
             onEnemyHit(e, bullet, shouldDie) {
                 audioSys.play('hitEnemy');
                 const sparkColor = bullet.color || player.stats?.color || '#fff';
-                _sparkOpts.weaponLevel = player.weaponLevel || 1;
+                _sparkOpts.weaponLevel = player.weaponLevel ?? 1;
                 _sparkOpts.isKill = shouldDie;
                 _sparkOpts.isHyper = player.isHyperActive && player.isHyperActive();
                 createBulletSpark(e.x, e.y, sparkColor, _sparkOpts);
@@ -321,15 +334,16 @@ function initCollisionSystem() {
 
                 // Arcade: Volatile Rounds — AoE damage on kill
                 if (_isArcade && G.RunState.arcadeBonuses.volatileRounds && enemies.length > 0) {
-                    const aoeRadius = 30;
-                    const aoeDmg = Math.floor((player.stats.baseDamage || 14) * 0.5);
+                    const vr = Balance.ARCADE?.MODIFIER_TUNING?.VOLATILE_ROUNDS;
+                    const aoeRadius = vr?.AOE_RADIUS ?? 30;
+                    const aoeDmg = Math.floor((player.stats.baseDamage ?? 14) * (vr?.DMG_MULT ?? 0.5));
                     for (let vi = enemies.length - 1; vi >= 0; vi--) {
                         const ve = enemies[vi];
                         if (!ve || !ve.active) continue;
                         const dx = ve.x - e.x, dy = ve.y - e.y;
                         if (dx * dx + dy * dy < aoeRadius * aoeRadius) {
                             ve.hp -= aoeDmg;
-                            ve.hitFlash = 0.1;
+                            ve.hitFlash = vr?.HIT_FLASH ?? 0.1;
                             createExplosion(ve.x, ve.y, e.color, 4);
                         }
                     }
@@ -337,7 +351,9 @@ function initCollisionSystem() {
 
                 // Arcade: Chain Lightning — kill chains to 1 nearby enemy
                 if (_isArcade && G.RunState.arcadeBonuses.chainLightning && enemies.length > 0) {
-                    let closest = null, closestDist = 100 * 100;
+                    const cl = Balance.ARCADE?.MODIFIER_TUNING?.CHAIN_LIGHTNING;
+                    const clRange = cl?.RANGE ?? 100;
+                    let closest = null, closestDist = clRange * clRange;
                     for (let ci = 0; ci < enemies.length; ci++) {
                         const ce = enemies[ci];
                         if (!ce || !ce.active) continue;
@@ -346,9 +362,9 @@ function initCollisionSystem() {
                         if (d2 < closestDist) { closest = ce; closestDist = d2; }
                     }
                     if (closest) {
-                        const chainDmg = Math.floor((player.stats.baseDamage || 14) * 0.3);
+                        const chainDmg = Math.floor((player.stats.baseDamage ?? 14) * (cl?.DMG_MULT ?? 0.3));
                         closest.hp -= chainDmg;
-                        closest.hitFlash = 0.15;
+                        closest.hitFlash = cl?.HIT_FLASH ?? 0.15;
                         createExplosion(closest.x, closest.y, '#00f0ff', 5);
                     }
                 }
@@ -503,7 +519,7 @@ function initCollisionSystem() {
                 // v5.11: APC with 3-level formula
                 const APC = G.Balance.ADAPTIVE_POWER;
                 if (APC && APC.ENABLED && marketCycle >= 2) {
-                    const wl = player ? (player.weaponLevel || 1) : 1;
+                    const wl = player ? (player.weaponLevel ?? 1) : 1;
                     const stacks = G.RunState.perkStacks || {};
                     let totalStacks = 0;
                     for (const k in stacks) totalStacks += stacks[k];
@@ -536,9 +552,12 @@ function initCollisionSystem() {
                 // === v5.11: Cinematic boss death sequence ===
                 const BD = Balance.VFX?.BOSS_DEATH;
 
+                // v5.13.1: All boss death timeouts tracked for cleanup on restart
+                clearBossDeathTimeouts();
+
                 // T=0.3: Coin rain
                 if (BD?.COIN_RAIN?.ENABLED && G.ParticleSystem) {
-                    setTimeout(() => {
+                    bossDeathTimeout(() => {
                         const cw = G.Balance.GAME?.BASE_WIDTH || 600;
                         const ch = G.Balance.GAME?.BASE_HEIGHT || 800;
                         G.ParticleSystem.createCoinRain(cw, ch);
@@ -546,7 +565,7 @@ function initCollisionSystem() {
                 }
 
                 // T=0.5: Freeze ends → SLOWMO
-                setTimeout(() => {
+                bossDeathTimeout(() => {
                     applyHitStop('BOSS_DEFEAT_SLOWMO', false);
                 }, 500);
 
@@ -561,7 +580,7 @@ function initCollisionSystem() {
                         const ox = offsets[i] ? offsets[i][0] : 0;
                         const oy = offsets[i] ? offsets[i][1] : 0;
                         const sc = scales[i] || 1.0;
-                        setTimeout(() => {
+                        bossDeathTimeout(() => {
                             createBossDeathExplosion(bossX + ox, bossY + oy);
                             if (sc >= 1.5) {
                                 // Climax explosion: extra flash + shake
@@ -581,7 +600,7 @@ function initCollisionSystem() {
                     const spawnDelay = (evoConf.SPAWN_DELAY || 2.8) * 1000;
                     const flyDuration = (evoConf.FLY_DURATION || 1.2) * 1000;
 
-                    setTimeout(() => {
+                    bossDeathTimeout(() => {
                         // Create evolution item object (managed inline)
                         const evoItem = {
                             x: bossX, y: bossY,
@@ -599,14 +618,14 @@ function initCollisionSystem() {
 
                 // Delayed transition — let the celebration breathe
                 const celebDelay = (Balance.TIMING.BOSS_CELEBRATION_DELAY || 5.0) * 1000;
-                setTimeout(() => {
+                bossDeathTimeout(() => {
                     if (_isArcadeMode && G.ModifierChoiceScreen) {
                         const picks = Balance.ARCADE.MODIFIERS.POST_BOSS_PICKS || 3;
                         if (G.RunState.arcadeBonuses.lastStandAvailable) {
                             G.RunState.arcadeBonuses.lastStandAvailable = true;
                         }
                         startIntermission(t('CYCLE') + ' ' + marketCycle + ' ' + t('BEGINS'));
-                        setTimeout(() => {
+                        bossDeathTimeout(() => {
                             G.ModifierChoiceScreen.show(picks, () => {
                                 const extraL = G.RunState.arcadeBonuses.extraLives;
                                 if (extraL > 0) {
@@ -2871,6 +2890,8 @@ window.restartFromGameOver = function () {
     startGame();
 };
 window.backToIntro = function () {
+    clearBossDeathTimeouts(); // v5.13.1: Cancel orphan boss death timeouts
+
     // Immediately hide touch controls (before curtain animation)
     if (ui.touchControls) {
         ui.touchControls.classList.remove('visible');
@@ -3236,6 +3257,7 @@ function triggerScoreStreakColor(streakLevel) {
 
 function startGame() {
     audioSys.init();
+    clearBossDeathTimeouts(); // v5.13.1: Cancel orphan boss death timeouts
 
     // Always reset story progress when starting Story Mode (shows all chapters fresh)
     if (G.CampaignState && G.CampaignState.isEnabled()) {
@@ -3953,7 +3975,7 @@ function update(dt) {
         if (!inWarmup && newBullets && newBullets.length > 0) {
             bullets.push(...newBullets);
             createMuzzleFlashParticles(player.x, player.y - 25, player.stats.color, {
-                weaponLevel: player.weaponLevel || 1,
+                weaponLevel: player.weaponLevel ?? 1,
                 isGodchain: player._godchainActive
             });
         }
@@ -4662,7 +4684,7 @@ function draw() {
                 hyperAvailable: player.hyperAvailable,
                 isHyper: player.isHyperActive ? player.isHyperActive() : false,
                 hyperTimer: player.getHyperTimeRemaining ? player.getHyperTimeRemaining() : 0,
-                weaponLevel: player.weaponLevel || 1,
+                weaponLevel: player.weaponLevel ?? 1,
                 special: player.special || null,
                 specialTimer: player.specialTimer || 0,
                 type: player.type
@@ -5138,7 +5160,7 @@ function loop(timestamp) {
         player._grazePercent = typeof grazeMeter !== 'undefined' ? grazeMeter : 0;
         // Reuse object to avoid per-frame allocation
         var ws = player._weaponState || (player._weaponState = {});
-        ws.weaponLevel = player.weaponLevel || 1;
+        ws.weaponLevel = player.weaponLevel ?? 1;
         ws.special = player.special;
         ws.specialTimer = player.specialTimer;
     }

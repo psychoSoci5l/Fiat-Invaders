@@ -1,5 +1,12 @@
 # Changelog
 
+## v5.13.1 - 2026-02-14
+### Health Check — Boss Death Race Condition + Code Hygiene
+- **fix(boss-death)**: Tracked all boss death `setTimeout` calls in `_bossDeathTimeouts[]` — restart/back-to-intro during celebration now cancels all orphan timeouts (coin rain, explosions, evolution item, celebration transition). Prevents ghost `_evolutionItem` writes and stray explosions on fresh game state
+- **refactor(arcade)**: Extracted Volatile Rounds and Chain Lightning hardcoded values to `Balance.ARCADE.MODIFIER_TUNING` (AOE_RADIUS, DMG_MULT, HIT_FLASH, RANGE)
+- **refactor(damage)**: `baseDamage || 14` → `?? 14` in 6 locations (CollisionSystem, BulletSystem, MiniBossManager, main.js) — semantically correct nullish coalescing
+- **refactor(weapon)**: `weaponLevel || 1` → `?? 1` in 14 locations (Player.js, main.js, ParticleSystem, DebugSystem) — consistent with v5.11.1 `??` convention
+
 ## v5.13.0 - 2026-02-14
 ### Spectacular Elemental VFX
 - **feat(vfx)**: Napalm impact — fire kills now produce expanding ring + 6 directional flame tongues + 5 gravity embers (replaces 8 plain circles). Kill-switch: `ELEMENTAL_VFX.NAPALM.ENABLED`

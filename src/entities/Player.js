@@ -881,7 +881,7 @@ class Player extends window.Game.Entity {
 
         // Reactor flame (animated) - 4-layer cell-shaded style
         // v4.55: flame scales with weapon level
-        const _flameLvl = this.weaponLevel || 1;
+        const _flameLvl = this.weaponLevel ?? 1;
         const _flameMult = 1 + (_flameLvl - 1) * 0.12; // LV1=1.0, LV3=1.24, LV5=1.48
         const flameHeight = (20 + Math.sin(this.animTime * 12) * 8) * _flameMult;
         const flameWidth = (10 + Math.sin(this.animTime * 10) * 3) * _flameMult;
@@ -1711,7 +1711,7 @@ class Player extends window.Game.Entity {
      */
     _drawShipBody(ctx) {
         const CU = window.Game.ColorUtils;
-        const level = this.weaponLevel || 1;
+        const level = this.weaponLevel ?? 1;
         const t = this.animTime;
         const gc = this._godchainActive ? window.Game.Balance?.GODCHAIN : null;
         const gcColors = gc?.SHIP_COLORS;
@@ -2307,7 +2307,7 @@ class Player extends window.Game.Entity {
         const glowOn = Balance.GLOW?.ENABLED;
 
         // Effective weapon level (includes HYPER boost)
-        let effectiveLevel = this.weaponLevel || 1;
+        let effectiveLevel = this.weaponLevel ?? 1;
         if (this.hyperActive) {
             effectiveLevel = Math.min(5, effectiveLevel + (WE.HYPER_LEVEL_BOOST || 2));
         }

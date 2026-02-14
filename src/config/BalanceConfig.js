@@ -2350,6 +2350,12 @@
                 POST_BOSS_PICKS: 3,             // Cards shown after boss defeat
                 POST_MINIBOSS_PICKS: 2,         // Cards shown after mini-boss defeat
                 MAX_MODIFIERS: 20               // Safety cap
+            },
+
+            // Modifier tuning values (v5.13.1: extracted from inline)
+            MODIFIER_TUNING: {
+                VOLATILE_ROUNDS: { AOE_RADIUS: 30, DMG_MULT: 0.5, HIT_FLASH: 0.1 },
+                CHAIN_LIGHTNING: { RANGE: 100, DMG_MULT: 0.3, HIT_FLASH: 0.15 }
             }
         }
     };
