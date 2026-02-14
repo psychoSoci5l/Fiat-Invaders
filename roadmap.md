@@ -1,7 +1,36 @@
 # Roadmap: FIAT vs CRYPTO
 
-> **Versione attuale**: v5.8.0 (2026-02-14)
+> **Versione attuale**: v5.9.0 (2026-02-14)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
+
+---
+
+## COMPLETATO — Ship Redesign: Crypto Viper (v5.9.0)
+
+- [x] Chevron body 42px (6-vertex: tip/shoulder/wing/waist/rear/center) — was 30px triangle
+- [x] Metallic tech palette (#2a2040 body, #4d3366 nose, #1a4455 fins, #1a1028 outline)
+- [x] BTC cockpit as path-drawn strokes (3-layer glow/bright/core) — replaces text+circle
+- [x] Dramatic weapon evolution: bodyHalfW 22→33, finExt 0→10, panel lines LV3+, diagonals LV4+
+- [x] Deploy animation: finExt lerped, new hidden positions proportional to larger hull
+- [x] Proportional hitboxes: BTC 42/8, ETH 50/9, SOL 24/5
+- [x] Hex shield radius 52 (was 40), HYPER aura 35/58/53 (was 28/50/45)
+- [x] Bullet dimensions 7x22 (was 5x20), spread ±8/±13 (was ±6/±10)
+- [x] Afterimage 6-vertex chevron, side thrusters ±34/18, reactor flame Y=14
+- [x] Tap zone 65px (was 55px), hitbox fallbacks updated (42/8)
+
+---
+
+## DA VERIFICARE — Conseguenze Ship Redesign (v5.9.x)
+
+- [ ] PWA icon: `icon-512.png` mostra la vecchia navicella triangolare — ricreare con chevron
+- [ ] Splashscreen video: `splashscreen.mp4` potrebbe mostrare vecchia silhouette — verificare
+- [ ] Hangar/intro screen: verificare che il rendering della nave nella selezione usi le nuove dimensioni
+- [ ] Player manual screenshots: aggiornare se contengono immagini della vecchia nave
+- [ ] Touch responsiveness: testare tap-on-ship shield su device fisici con la nuova hitzone 65px
+- [ ] Collision feel: testare graze distance, core hitbox, enemy bullet vs player con nuove dimensioni
+- [ ] Visual balance: verificare che la nave 42px non sia troppo grande rispetto ai nemici 58px (ratio 0.72 vs vecchio 0.52)
+- [ ] Weapon pips Y_OFFSET: -38 potrebbe sovrapporsi alla punta della nave (tipY=-36) — verificare
+- [ ] Diegetic shield ready indicator: verificare posizionamento con shield ring 45px
 
 ---
 

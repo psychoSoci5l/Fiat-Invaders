@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v5.8.0 FIAT vs CRYPTO";
+window.Game.VERSION = "v5.9.0 FIAT vs CRYPTO";
 
 window.Game.TEXTS = {
     EN: {
@@ -528,9 +528,9 @@ window.Game.MINION_TYPE = {
 };
 
 window.Game.SHIPS = {
-    BTC: { speed: 420, hp: 3, fireRate: 0.22, baseDamage: 14, color: '#bb44ff', hitboxSize: 30, coreHitboxSize: 6 }, // v4.40: 0.26→0.22 (+20% fire rate)
-    ETH: { speed: 320, hp: 4, fireRate: 0.33, baseDamage: 28, color: '#8c7ae6', hitboxSize: 38, coreHitboxSize: 7 }, // v4.40: 0.40→0.33 (+20% fire rate)
-    SOL: { speed: 560, hp: 2, fireRate: 0.17, baseDamage: 10, color: '#00d2d3', hitboxSize: 18, coreHitboxSize: 4 } // v4.40: 0.20→0.17 (+20% fire rate)
+    BTC: { speed: 420, hp: 3, fireRate: 0.22, baseDamage: 14, color: '#bb44ff', hitboxSize: 42, coreHitboxSize: 8 }, // v5.9: 30→42 chevron redesign
+    ETH: { speed: 320, hp: 4, fireRate: 0.33, baseDamage: 28, color: '#8c7ae6', hitboxSize: 50, coreHitboxSize: 9 }, // v5.9: 38→50 proportional
+    SOL: { speed: 560, hp: 2, fireRate: 0.17, baseDamage: 10, color: '#00d2d3', hitboxSize: 24, coreHitboxSize: 5 } // v5.9: 18→24 proportional
 };
 
 // High-contrast projectile color palette

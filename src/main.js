@@ -4088,7 +4088,7 @@ function updateEnemies(dt) {
     const effectiveGridDir = allSettled ? gridDir : 0;
 
     // Cache player hitbox size once (avoid repeated property access per enemy)
-    const hitR = (player.stats.hitboxSize || 30) + 15;
+    const hitR = (player.stats.hitboxSize || 42) + 15;
     const playerX = player.x;
     const playerY = player.y;
 

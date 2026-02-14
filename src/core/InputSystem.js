@@ -246,7 +246,7 @@ class InputSystem {
         const canvasY = (clientY - rect.top) * (canvas.height / rect.height);
         const dx = canvasX - this._playerPos.x;
         const dy = canvasY - this._playerPos.y;
-        return (dx * dx + dy * dy) < 55 * 55; // 55px radius tap zone
+        return (dx * dx + dy * dy) < 65 * 65; // 65px radius tap zone (v5.9: 55→65 for 42px ship)
     }
 
     // === VIBRATION with visual fallback ===

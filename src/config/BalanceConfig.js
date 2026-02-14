@@ -44,7 +44,7 @@
             // (removed: SECOND_WIND_DURATION, perk eliminated v4.59)
             INVULN_DURATION: 1.4,     // Post-hit invulnerability seconds
             MUZZLE_FLASH_DURATION: 0.08, // Muzzle flash display time
-            BULLET_SPAWN_Y_OFFSET: 25,   // Y offset for bullet spawn above ship
+            BULLET_SPAWN_Y_OFFSET: 33,   // Y offset for bullet spawn above ship (v5.9: 25→33 chevron)
             FIRE_VIBRATION_MS: 5,     // Haptic feedback on fire
             DANGER_RANGE_SQ: 3600,    // Core hitbox indicator range (60px squared)
             START_LIVES: 3,           // Starting lives per run
@@ -168,8 +168,8 @@
 
             // Visual settings
             AURA_PULSE_SPEED: 8,      // Aura animation speed
-            AURA_SIZE_BASE: 28,       // Base aura radius (reduced — clean border glow)
-            AURA_SIZE_PULSE: 4,       // Aura size oscillation (subtle)
+            AURA_SIZE_BASE: 35,       // Base aura radius (v5.9: 28→35 chevron)
+            AURA_SIZE_PULSE: 5,       // Aura size oscillation (v5.9: 4→5)
             PARTICLE_BURST: 3,        // Particles per graze during HYPER (minimal clutter)
 
             // Audio settings
@@ -841,7 +841,7 @@
             ENABLED: true,
             LIFE_PIPS: {
                 ENABLED: true,
-                Y_OFFSET: 28,            // Below ship center
+                Y_OFFSET: 34,            // Below ship center (v5.9: 28→34 chevron)
                 RADIUS: 4,               // Pip circle radius
                 SPACING: 12,             // Between pips
                 FULL_ALPHA: 0.7,         // Filled pip opacity
@@ -849,7 +849,7 @@
             },
             SHIELD_RING: {
                 ENABLED: true,
-                RADIUS: 35,              // Ring radius
+                RADIUS: 45,              // Ring radius (v5.9: 35→45 chevron)
                 COOLDOWN_ALPHA: 0.15,    // Cooldown arc opacity
                 READY_ALPHA: 0.35,       // Ready state — visible pulsing ring
                 READY_PULSE_SPEED: 4,    // Pulse frequency (rad/s)
@@ -915,7 +915,7 @@
         // --- BULLET CONFIG v4.22 (Centralized bullet parameters) ---
         BULLET_CONFIG: {
             // Player bullets
-            PLAYER_NORMAL:  { speed: 765, collisionRadius: 5, piercing: false, explosion: null },
+            PLAYER_NORMAL:  { speed: 765, collisionRadius: 6, piercing: false, explosion: null }, // v5.9: 5→6
             PLAYER_HOMING:  { speed: 459, collisionRadius: 6, piercing: false, explosion: null },   // 765*0.6
             PLAYER_PIERCE:  { speed: 765, collisionRadius: 5, piercing: true,  explosion: null },
             PLAYER_MISSILE: { speed: 536, collisionRadius: 7, piercing: false,                      // 765*0.7
@@ -927,14 +927,14 @@
             BOSS_PATTERN:   { speed: null, collisionRadius: 5, piercing: false, explosion: null },
             // Collision targets
             ENEMY_HITBOX_RADIUS: 29,     // Half of 58px enemy size (v4.25)
-            PLAYER_CORE_RADIUS: 6        // Default, overridden by stats.coreHitboxSize
+            PLAYER_CORE_RADIUS: 8        // Default, overridden by stats.coreHitboxSize (v5.9: 6→8)
         },
 
         // --- HITBOX / COLLISION ---
         HITBOX: {
             PLAYER_OUTER_BONUS: 15,       // Added to ship hitboxSize for outer collision
-            PLAYER_CORE_DEFAULT: 6,       // Default core hitbox if not in ship stats
-            PLAYER_OUTER_DEFAULT: 30,     // Default outer hitbox if not in ship stats
+            PLAYER_CORE_DEFAULT: 8,       // Default core hitbox if not in ship stats (v5.9: 6→8)
+            PLAYER_OUTER_DEFAULT: 42,     // Default outer hitbox if not in ship stats (v5.9: 30→42)
             BOSS_DEFAULT_WIDTH: 160,
             BOSS_DEFAULT_HEIGHT: 140
         },
@@ -1289,8 +1289,8 @@
             // v5.1: Directional muzzle flash (canvas + particles)
             MUZZLE_FLASH: {
                 ENABLED: true,                    // Kill-switch for canvas V-flash
-                BASE_WIDTH: 7,                    // V-flash half-width (px)
-                BASE_HEIGHT: 18,                  // V-flash height (px)
+                BASE_WIDTH: 8,                    // V-flash half-width (v5.9: 7→8)
+                BASE_HEIGHT: 20,                  // V-flash height (v5.9: 18→20)
                 LEVEL_SCALE: 0.12,                // +12% size per weapon level
 
                 // Color palettes [inner, mid, outer]

@@ -1,5 +1,25 @@
 # Changelog
 
+## v5.9.0 - 2026-02-14
+### Ship Redesign: Crypto Viper
+- **feat(player)**: Complete ship redesign — 42px chevron silhouette (was 30px triangle), 6-vertex body with shoulder breaks, waist, flared rear
+- **feat(player)**: Metallic tech palette — dark violet body (#2a2040/#6644aa), purple nose cap (#4d3366/#9966cc), teal fins (#1a4455/#2a6677)
+- **feat(player)**: BTC cockpit path — symbol drawn as multi-layer stroke path (glow/bright/core) instead of text, cyan normal / orange GODCHAIN
+- **feat(player)**: Dramatic weapon evolution — bodyHalfW 22→33px across LV1-GC, swept-back fins with finExt 0→10px, panel lines LV3+, diagonal accents LV4+
+- **feat(player)**: Dorsal spine — central violet accent line always visible, scales with GODCHAIN intensity
+- **feat(player)**: Updated deploy animation — new hidden positions (pods 8/-14/3.5, barrel -36/2.5), finExt lerped during transitions
+- **feat(player)**: Proportional hitboxes — BTC 42/8, ETH 50/9, SOL 24/5 (core hitbox scales with ship size)
+- **feat(player)**: Chevron afterimage trail — 6-vertex silhouette replaces triangle for movement trail
+- **feat(player)**: Larger hex shield — radius 52 (was 40), hexSize 11, 6 rows for full coverage
+- **feat(player)**: HYPER aura scaled — timer ring 58px, orbiting orbs 53px, base aura 35px
+- **feat(player)**: Wider bullet spread — 7x22 base bullets (was 5x20), 2-bullet ±8px, 3-bullet ±13px offsets
+- **feat(player)**: Muzzle flash LV1 at Y=-40 (was -32), matching nose barrel position
+- **feat(player)**: Side thrusters repositioned — ±34/18px (was ±28/16px) matching wider chevron
+- **feat(player)**: Reactor flame Y=14 (was 12), aligned with chevron rear
+- **feat(bullet)**: Visual multipliers tuned — 1.8x width / 1.2x height (was 2.0/1.3), BTC font 9px (was 8px)
+- **feat(balance)**: Bullet spawn Y offset 33 (was 25), collision radius 6 (was 5), core radius 8 (was 6)
+- **feat(balance)**: Diegetic HUD — life pips Y=34, shield ring radius 45, muzzle flash 8x20px base
+
 ## v5.8.0 - 2026-02-14
 ### Arcade Mode: Rogue Protocol
 - **feat(arcade)**: Arcade mode unlocked — fully playable roguelike shooter mode with infinite scaling

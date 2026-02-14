@@ -3,7 +3,7 @@ window.Game = window.Game || {};
 class Player extends window.Game.Entity {
     constructor(gameWidth, gameHeight) {
         const P = window.Game.Balance.PLAYER;
-        super(gameWidth / 2, gameHeight - P.SPAWN_OFFSET_Y, 30, 30);
+        super(gameWidth / 2, gameHeight - P.SPAWN_OFFSET_Y, 42, 42);
         this.gameWidth = gameWidth;
         this.gameHeight = gameHeight;
 
@@ -71,7 +71,7 @@ class Player extends window.Game.Entity {
         this._geom = {
             podX: 0, podTop: 0, podW: 0,
             barrelTop: 0, barrelW: 0,
-            bodyHalfW: 21
+            bodyHalfW: 22, finExt: 0
         };
 
         // Visual effects
@@ -591,8 +591,8 @@ class Player extends window.Game.Entity {
 
         // Bullet setup
         const color = this.stats.color;
-        const bulletW = 5;
-        const bulletH = 20;
+        const bulletW = 7;
+        const bulletH = 22;
         const bulletSpeed = 765;
 
         // Special-specific spawn function
@@ -605,12 +605,12 @@ class Player extends window.Game.Entity {
 
             // Adjust for special types
             if (this.special === 'MISSILE') {
-                w = 8;
-                h = 16;
+                w = 9;
+                h = 18;
                 bSpeed = bulletSpeed * 0.7;
             } else if (this.special === 'HOMING') {
-                w = 8;
-                h = 16;
+                w = 9;
+                h = 18;
                 bSpeed = bulletSpeed * 0.6;
             }
 
@@ -619,7 +619,7 @@ class Player extends window.Game.Entity {
 
             const b = window.Game.Bullet.Pool.acquire(
                 this.x + offsetX,
-                this.y - 25,
+                this.y - 33,
                 finalVx,
                 finalVy,
                 color,
@@ -709,13 +709,13 @@ class Player extends window.Game.Entity {
             if (bulletCount === 1) {
                 spawnBullet(0, 0);
             } else if (bulletCount === 2) {
-                spawnBullet(-6, -spreadAngle / 2);
-                spawnBullet(+6, +spreadAngle / 2);
+                spawnBullet(-8, -spreadAngle / 2);
+                spawnBullet(+8, +spreadAngle / 2);
             } else {
                 // 3 bullets
-                spawnBullet(-10, -spreadAngle);
+                spawnBullet(-13, -spreadAngle);
                 spawnBullet(0, 0);
-                spawnBullet(+10, +spreadAngle);
+                spawnBullet(+13, +spreadAngle);
             }
         }
 
@@ -762,13 +762,13 @@ class Player extends window.Game.Entity {
             ctx.strokeStyle = timeRatio < 0.3 ? '#ff4444' : '#FFD700';
             ctx.lineWidth = 6;
             ctx.beginPath();
-            ctx.arc(this.x, this.y, 50, -Math.PI / 2, -Math.PI / 2 + ringAngle);
+            ctx.arc(this.x, this.y, 58, -Math.PI / 2, -Math.PI / 2 + ringAngle);
             ctx.stroke();
 
             // Orbiting energy orbs
             for (let i = 0; i < 6; i++) {
                 const angle = this.animTime * 5 + (Math.PI / 3) * i;
-                const dist = 45 + Math.sin(this.animTime * 8 + i) * 6;
+                const dist = 53 + Math.sin(this.animTime * 8 + i) * 6;
                 const orbX = this.x + Math.cos(angle) * dist;
                 const orbY = this.y + Math.sin(angle) * dist;
 
@@ -827,12 +827,15 @@ class Player extends window.Game.Entity {
                 ctx.globalAlpha = alpha;
                 ctx.translate(t.x, t.y);
 
-                // Simplified ship shape
+                // Simplified chevron shape
                 ctx.fillStyle = this.stats.color;
                 ctx.beginPath();
-                ctx.moveTo(0, -20);
-                ctx.lineTo(-15, 10);
-                ctx.lineTo(15, 10);
+                ctx.moveTo(0, -28);
+                ctx.lineTo(-18, -4);
+                ctx.lineTo(-18, 12);
+                ctx.lineTo(0, 8);
+                ctx.lineTo(18, 12);
+                ctx.lineTo(18, -4);
                 ctx.closePath();
                 ctx.fill();
 
@@ -855,9 +858,9 @@ class Player extends window.Game.Entity {
         ctx.fillStyle = '#cc3300';
         ctx.globalAlpha = 0.6;
         ctx.beginPath();
-        ctx.moveTo(-flameWidth * 1.3 * pulse, 12);
-        ctx.lineTo(0, 12 + flameHeight * 1.1);
-        ctx.lineTo(flameWidth * 1.3 * pulse, 12);
+        ctx.moveTo(-flameWidth * 1.3 * pulse, 14);
+        ctx.lineTo(0, 14 + flameHeight * 1.1);
+        ctx.lineTo(flameWidth * 1.3 * pulse, 14);
         ctx.closePath();
         ctx.fill();
         ctx.globalAlpha = 1;
@@ -865,27 +868,27 @@ class Player extends window.Game.Entity {
         // Main flame (orange)
         ctx.fillStyle = '#ff6600';
         ctx.beginPath();
-        ctx.moveTo(-flameWidth, 12);
-        ctx.lineTo(0, 12 + flameHeight);
-        ctx.lineTo(flameWidth, 12);
+        ctx.moveTo(-flameWidth, 14);
+        ctx.lineTo(0, 14 + flameHeight);
+        ctx.lineTo(flameWidth, 14);
         ctx.closePath();
         ctx.fill();
 
         // Inner flame (yellow)
         ctx.fillStyle = '#ffcc00';
         ctx.beginPath();
-        ctx.moveTo(-flameWidth * 0.5, 12);
-        ctx.lineTo(0, 12 + flameHeight * 0.65);
-        ctx.lineTo(flameWidth * 0.5, 12);
+        ctx.moveTo(-flameWidth * 0.5, 14);
+        ctx.lineTo(0, 14 + flameHeight * 0.65);
+        ctx.lineTo(flameWidth * 0.5, 14);
         ctx.closePath();
         ctx.fill();
 
         // Hot core (white)
         ctx.fillStyle = '#fff';
         ctx.beginPath();
-        ctx.moveTo(-flameWidth * 0.2, 12);
-        ctx.lineTo(0, 12 + flameHeight * 0.3);
-        ctx.lineTo(flameWidth * 0.2, 12);
+        ctx.moveTo(-flameWidth * 0.2, 14);
+        ctx.lineTo(0, 14 + flameHeight * 0.3);
+        ctx.lineTo(flameWidth * 0.2, 14);
         ctx.closePath();
         ctx.fill();
 
@@ -897,7 +900,7 @@ class Player extends window.Game.Entity {
             ctx.globalCompositeOperation = 'lighter';
             ctx.fillStyle = CU.rgba(255, 140, 0, ec.ALPHA);
             ctx.beginPath();
-            ctx.arc(0, 14, ec.RADIUS, 0, Math.PI * 2);
+            ctx.arc(0, 16, ec.RADIUS, 0, Math.PI * 2);
             ctx.fill();
             ctx.restore();
         }
@@ -913,9 +916,9 @@ class Player extends window.Game.Entity {
                     ctx.globalAlpha = ft.ALPHA * (0.6 + Math.sin(phase * 2) * 0.4);
                     ctx.fillStyle = ft.COLORS[i % ft.COLORS.length];
                     ctx.beginPath();
-                    ctx.moveTo(flickerX - 3, 18);
-                    ctx.lineTo(flickerX + 3, 18);
-                    ctx.lineTo(flickerX, 18 + flickerLen);
+                    ctx.moveTo(flickerX - 3, 20);
+                    ctx.lineTo(flickerX + 3, 20);
+                    ctx.lineTo(flickerX, 20 + flickerLen);
                     ctx.closePath();
                     ctx.fill();
                 }
@@ -930,17 +933,17 @@ class Player extends window.Game.Entity {
             if (this.vx > 0) {
                 // Moving right, left thruster fires
                 ctx.beginPath();
-                ctx.moveTo(-28, 16);
-                ctx.lineTo(-32, 16 + sideFlameH);
-                ctx.lineTo(-24, 16);
+                ctx.moveTo(-34, 18);
+                ctx.lineTo(-38, 18 + sideFlameH);
+                ctx.lineTo(-30, 18);
                 ctx.closePath();
                 ctx.fill();
             } else {
                 // Moving left, right thruster fires
                 ctx.beginPath();
-                ctx.moveTo(28, 16);
-                ctx.lineTo(32, 16 + sideFlameH);
-                ctx.lineTo(24, 16);
+                ctx.moveTo(34, 18);
+                ctx.lineTo(38, 18 + sideFlameH);
+                ctx.lineTo(30, 18);
                 ctx.closePath();
                 ctx.fill();
             }
@@ -1305,12 +1308,13 @@ class Player extends window.Game.Entity {
     _computeGeomForLevel(level) {
         const isGC = this._godchainActive;
         return {
-            bodyHalfW: isGC ? 26 : (level >= 5 ? 25 : (level >= 4 ? 24 : (level >= 2 ? 23 : 21))),
-            podX:      level >= 4 ? 15 : 13,
-            podTop:    level >= 5 ? -32 : (level >= 4 ? -30 : (level >= 3 ? -28 : -22)),
-            podW:      level >= 5 ? 5 : (level >= 3 ? 4.5 : 4),
-            barrelTop: level >= 5 ? -40 : -36,
-            barrelW:   level >= 5 ? 4 : 3
+            bodyHalfW: isGC ? 33 : (level >= 5 ? 31 : (level >= 4 ? 29 : (level >= 3 ? 27 : (level >= 2 ? 25 : 22)))),
+            podX:      level >= 4 ? 20 : (level >= 3 ? 18 : 16),
+            podTop:    isGC ? -38 : (level >= 5 ? -38 : (level >= 4 ? -36 : (level >= 3 ? -34 : -28))),
+            podW:      isGC ? 6 : (level >= 5 ? 6 : (level >= 4 ? 5.5 : (level >= 3 ? 5 : 4.5))),
+            barrelTop: level >= 5 ? -48 : -44,
+            barrelW:   isGC ? 4.5 : (level >= 5 ? 4.5 : 3.5),
+            finExt:    isGC ? 10 : (level >= 5 ? 8 : (level >= 4 ? 6 : (level >= 3 ? 4 : 0)))
         };
     }
 
@@ -1325,20 +1329,20 @@ class Player extends window.Game.Entity {
 
         // If already deploying, use current interpolated geom as "from"
         const fromGeom = d.active
-            ? { bodyHalfW: this._geom.bodyHalfW, podX: this._geom.podX, podTop: this._geom.podTop, podW: this._geom.podW, barrelTop: this._geom.barrelTop, barrelW: this._geom.barrelW }
+            ? { bodyHalfW: this._geom.bodyHalfW, podX: this._geom.podX, podTop: this._geom.podTop, podW: this._geom.podW, barrelTop: this._geom.barrelTop, barrelW: this._geom.barrelW, finExt: this._geom.finExt }
             : this._computeGeomForLevel(fromLevel);
 
         // For components that don't exist at fromLevel, use hidden positions
         if (fromLevel < 2) {
             // Pods hidden inside body
-            fromGeom.podX = 6;
-            fromGeom.podTop = -10;
-            fromGeom.podW = 3;
+            fromGeom.podX = 8;
+            fromGeom.podTop = -14;
+            fromGeom.podW = 3.5;
         }
         if (fromLevel < 4) {
             // Barrel hidden at nose tip
-            fromGeom.barrelTop = -28;
-            fromGeom.barrelW = 2;
+            fromGeom.barrelTop = -36;
+            fromGeom.barrelW = 2.5;
         }
 
         d.active = true;
@@ -1382,6 +1386,7 @@ class Player extends window.Game.Entity {
         g.podW      = from.podW + (to.podW - from.podW) * t;
         g.barrelTop = from.barrelTop + (to.barrelTop - from.barrelTop) * t;
         g.barrelW   = from.barrelW + (to.barrelW - from.barrelW) * t;
+        g.finExt    = from.finExt + (to.finExt - from.finExt) * t;
 
         // Lock-in event at LOCK_AT threshold
         if (p >= cfg.LOCK_AT && !d._lockFired) {
@@ -1407,12 +1412,13 @@ class Player extends window.Game.Entity {
             g.podW = to.podW;
             g.barrelTop = to.barrelTop;
             g.barrelW = to.barrelW;
+            g.finExt = to.finExt;
         }
     }
 
     /**
-     * v4.55: Ship body evolution — visual form scales with weaponLevel
-     * LV1: base ship. LV2: +side pods. LV3: longer pods+belt. LV4: +barrel+wider. LV5: armor+glow. GODCHAIN: energy form.
+     * v5.9: Chevron ship body — metallic tech design with BTC cockpit path
+     * LV1: base chevron. LV2: +side pods. LV3: +panel lines+fins. LV4: +barrel+fin thrusters. LV5: +armor. GODCHAIN: energy form.
      */
     _drawShipBody(ctx) {
         const CU = window.Game.ColorUtils;
@@ -1431,141 +1437,202 @@ class Player extends window.Game.Entity {
             this._geom.podW = tgt.podW;
             this._geom.barrelTop = tgt.barrelTop;
             this._geom.barrelW = tgt.barrelW;
+            this._geom.finExt = tgt.finExt;
         }
         const g = this._geom;
         const bodyHalfW = g.bodyHalfW;
-        // Fin extension: LV3 +4px, GODCHAIN +8px
-        const finExt = isGC ? 8 : (level >= 3 ? 4 : 0);
+        const finExt = g.finExt;
 
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = '#111';
+        // Metallic tech palette
+        const bodyDark  = gcColors ? gcColors.BODY_DARK : '#2a2040';
+        const bodyLight = gcColors ? gcColors.BODY : '#6644aa';
+        const noseDark  = gcColors ? gcColors.NOSE : '#4d3366';
+        const noseLight = gcColors ? gcColors.NOSE_LIGHT : '#9966cc';
+        const accentGlow = gcColors ? '#ff6600' : '#bb44ff';
+        const finDark   = gcColors ? gcColors.FIN : '#1a4455';
+        const finLight  = gcColors ? gcColors.FIN_LIGHT : '#2a6677';
+        const outline   = '#1a1028';
 
-        // === BODY (two-tone triangle) ===
-        ctx.fillStyle = gcColors ? gcColors.BODY_DARK : this._colorDark30;
-        ctx.beginPath();
-        ctx.moveTo(0, -26);
-        ctx.lineTo(-bodyHalfW, 12);
-        ctx.lineTo(0, 12);
-        ctx.closePath();
-        ctx.fill();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = outline;
 
-        ctx.fillStyle = gcColors ? gcColors.BODY : this.stats.color;
-        ctx.beginPath();
-        ctx.moveTo(0, -26);
-        ctx.lineTo(0, 12);
-        ctx.lineTo(bodyHalfW, 12);
-        ctx.closePath();
-        ctx.fill();
+        // Chevron vertices (local coords, Y negative = up)
+        const tipY = -36;
+        const shoulderX = bodyHalfW * 0.45;
+        const shoulderY = -16;
+        const wingY = -6;
+        const waistX = bodyHalfW - 2;
+        const waistY = 8;
+        const rearX = bodyHalfW + 2;
+        const rearY = 16;
+        const centerRearY = 10;
 
-        ctx.beginPath();
-        ctx.moveTo(0, -26);
-        ctx.lineTo(-bodyHalfW, 12);
-        ctx.lineTo(bodyHalfW, 12);
-        ctx.closePath();
-        ctx.stroke();
-
-        // LV3+: body belt (luminous horizontal accent)
-        if (level >= 3) {
-            ctx.save();
-            ctx.strokeStyle = gcColors ? '#ff6600' : '#bb44ff';
-            ctx.lineWidth = level >= 5 ? 3 : 2.5;
-            ctx.globalAlpha = isGC ? 0.9 : 0.75;
-            ctx.beginPath();
-            ctx.moveTo(-bodyHalfW + 4, 0);
-            ctx.lineTo(bodyHalfW - 4, 0);
-            ctx.stroke();
-            ctx.restore();
-        }
-
-        // LV5+: armor plates (trapezoids at body sides)
+        // === 1. LV5+: ARMOR PLATES (behind body) ===
         if (level >= 5) {
             ctx.save();
             ctx.lineWidth = 2;
-            ctx.strokeStyle = '#111';
-            ctx.fillStyle = gcColors ? gcColors.BODY_DARK : this._colorDark30;
+            ctx.strokeStyle = outline;
+            ctx.fillStyle = bodyDark;
             ctx.globalAlpha = 0.85;
             // Left plate
             ctx.beginPath();
-            ctx.moveTo(-bodyHalfW + 2, -1);
-            ctx.lineTo(-bodyHalfW + 8, -1);
-            ctx.lineTo(-bodyHalfW + 6, 10);
-            ctx.lineTo(-bodyHalfW, 10);
+            ctx.moveTo(-bodyHalfW + 1, waistY - 2);
+            ctx.lineTo(-bodyHalfW + 10, waistY - 2);
+            ctx.lineTo(-bodyHalfW + 8, rearY - 2);
+            ctx.lineTo(-bodyHalfW - 1, rearY - 2);
             ctx.closePath();
-            ctx.fill();
-            ctx.stroke();
+            ctx.fill(); ctx.stroke();
             // Right plate
             ctx.beginPath();
-            ctx.moveTo(bodyHalfW - 2, -1);
-            ctx.lineTo(bodyHalfW - 8, -1);
-            ctx.lineTo(bodyHalfW - 6, 10);
-            ctx.lineTo(bodyHalfW, 10);
+            ctx.moveTo(bodyHalfW - 1, waistY - 2);
+            ctx.lineTo(bodyHalfW - 10, waistY - 2);
+            ctx.lineTo(bodyHalfW - 8, rearY - 2);
+            ctx.lineTo(bodyHalfW + 1, rearY - 2);
             ctx.closePath();
-            ctx.fill();
-            ctx.stroke();
+            ctx.fill(); ctx.stroke();
             ctx.restore();
         }
 
-        // === NOSE CONE (two-tone) ===
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = '#111';
-        ctx.fillStyle = gcColors ? gcColors.NOSE : '#7722aa';
+        // === 2. MAIN CHEVRON BODY (two-tone left/right) ===
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = outline;
+
+        // Left half (dark)
+        ctx.fillStyle = bodyDark;
         ctx.beginPath();
-        ctx.moveTo(0, -28);
-        ctx.lineTo(-10, -6);
-        ctx.lineTo(0, -6);
+        ctx.moveTo(0, tipY);
+        ctx.lineTo(-shoulderX, shoulderY);
+        ctx.lineTo(-bodyHalfW, wingY);
+        ctx.lineTo(-waistX, waistY);
+        ctx.lineTo(-rearX, rearY);
+        ctx.lineTo(0, centerRearY);
         ctx.closePath();
         ctx.fill();
 
-        ctx.fillStyle = gcColors ? gcColors.NOSE_LIGHT : '#cc66ff';
+        // Right half (light)
+        ctx.fillStyle = bodyLight;
         ctx.beginPath();
-        ctx.moveTo(0, -28);
-        ctx.lineTo(0, -6);
-        ctx.lineTo(10, -6);
+        ctx.moveTo(0, tipY);
+        ctx.lineTo(shoulderX, shoulderY);
+        ctx.lineTo(bodyHalfW, wingY);
+        ctx.lineTo(waistX, waistY);
+        ctx.lineTo(rearX, rearY);
+        ctx.lineTo(0, centerRearY);
         ctx.closePath();
         ctx.fill();
 
+        // Full chevron outline
         ctx.beginPath();
-        ctx.moveTo(0, -28);
-        ctx.lineTo(-10, -6);
-        ctx.lineTo(10, -6);
+        ctx.moveTo(0, tipY);
+        ctx.lineTo(-shoulderX, shoulderY);
+        ctx.lineTo(-bodyHalfW, wingY);
+        ctx.lineTo(-waistX, waistY);
+        ctx.lineTo(-rearX, rearY);
+        ctx.lineTo(0, centerRearY);
+        ctx.lineTo(rearX, rearY);
+        ctx.lineTo(waistX, waistY);
+        ctx.lineTo(bodyHalfW, wingY);
+        ctx.lineTo(shoulderX, shoulderY);
         ctx.closePath();
         ctx.stroke();
 
-        // === LV1+: NOSE BARREL (small integrated barrel at tip) ===
+        // === 3. DORSAL SPINE (central violet line, always) ===
+        ctx.save();
+        ctx.strokeStyle = accentGlow;
+        ctx.lineWidth = 1.5;
+        ctx.globalAlpha = isGC ? 0.9 : 0.6;
+        ctx.beginPath();
+        ctx.moveTo(0, tipY + 6);
+        ctx.lineTo(0, centerRearY - 2);
+        ctx.stroke();
+        ctx.restore();
+
+        // === 4. PANEL LINES (LV3+) ===
+        if (level >= 3) {
+            ctx.save();
+            ctx.strokeStyle = accentGlow;
+            ctx.lineWidth = level >= 5 ? 2.5 : 2;
+            ctx.globalAlpha = isGC ? 0.9 : 0.65;
+            // Horizontal accent
+            ctx.beginPath();
+            ctx.moveTo(-bodyHalfW + 5, 0);
+            ctx.lineTo(bodyHalfW - 5, 0);
+            ctx.stroke();
+            // LV4+: diagonal panel lines
+            if (level >= 4) {
+                ctx.lineWidth = 1.5;
+                ctx.globalAlpha = isGC ? 0.7 : 0.4;
+                ctx.beginPath();
+                ctx.moveTo(-shoulderX - 2, shoulderY + 4);
+                ctx.lineTo(-bodyHalfW + 4, wingY + 6);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(shoulderX + 2, shoulderY + 4);
+                ctx.lineTo(bodyHalfW - 4, wingY + 6);
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        // === 5. NOSE CAP ACCENT (two-tone trianglino at tip) ===
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = outline;
+        ctx.fillStyle = noseDark;
+        ctx.beginPath();
+        ctx.moveTo(0, tipY);
+        ctx.lineTo(-8, -20);
+        ctx.lineTo(0, -20);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = noseLight;
+        ctx.beginPath();
+        ctx.moveTo(0, tipY);
+        ctx.lineTo(0, -20);
+        ctx.lineTo(8, -20);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(0, tipY);
+        ctx.lineTo(-8, -20);
+        ctx.lineTo(8, -20);
+        ctx.closePath();
+        ctx.stroke();
+
+        // === 6. LV1+: NOSE BARREL (small rect at Y=-40) ===
         {
             const nbPulse = Math.sin(t * 6) * 0.3 + 0.7;
-            ctx.fillStyle = gcColors ? gcColors.NOSE_LIGHT : '#cc66ff';
-            ctx.strokeStyle = '#111';
+            ctx.fillStyle = noseLight;
+            ctx.strokeStyle = outline;
             ctx.lineWidth = 1.5;
             ctx.beginPath();
-            ctx.rect(-2, -32, 4, 4);
-            ctx.fill();
-            ctx.stroke();
+            ctx.rect(-2.5, -40, 5, 4);
+            ctx.fill(); ctx.stroke();
             // Glow tip
-            ctx.fillStyle = gcColors ? '#ff6600' : '#bb44ff';
+            ctx.fillStyle = accentGlow;
             ctx.globalAlpha = nbPulse * 0.6;
             ctx.beginPath();
-            ctx.arc(0, -32, 2, 0, Math.PI * 2);
+            ctx.arc(0, -40, 2.5, 0, Math.PI * 2);
             ctx.fill();
             ctx.globalAlpha = 1;
         }
 
-        // === LV4+: CENTRAL BARREL above nose (uses _geom) ===
+        // === 7. LV4+: CENTRAL BARREL (from _geom.barrelTop) ===
         if (level >= 4 || (this._deploy.active && this._deploy.toLevel >= 4)) {
             const barrelTop = g.barrelTop;
             const barrelW = g.barrelW;
-            ctx.fillStyle = gcColors ? gcColors.NOSE_LIGHT : '#cc66ff';
-            ctx.strokeStyle = '#111';
+            ctx.fillStyle = noseLight;
+            ctx.strokeStyle = outline;
             ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.rect(-barrelW, barrelTop, barrelW * 2, -28 - barrelTop);
-            ctx.fill();
-            ctx.stroke();
+            ctx.rect(-barrelW, barrelTop, barrelW * 2, -36 - barrelTop);
+            ctx.fill(); ctx.stroke();
 
             // LV5+: pulsing glow at barrel tip
             if (level >= 5) {
                 const bPulse = Math.sin(t * 6) * 0.3 + 0.7;
-                ctx.fillStyle = gcColors ? '#ff6600' : '#bb44ff';
+                ctx.fillStyle = accentGlow;
                 ctx.globalAlpha = bPulse * 0.8;
                 ctx.beginPath();
                 ctx.arc(0, barrelTop, 3, 0, Math.PI * 2);
@@ -1586,45 +1653,43 @@ class Player extends window.Game.Entity {
             }
         }
 
-        // === FINS ===
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = '#111';
+        // === 8. FINS (swept-back from bodyHalfW to ±40+finExt) ===
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = outline;
 
         // Left fin
-        ctx.fillStyle = gcColors ? gcColors.FIN : '#00bbcc';
+        ctx.fillStyle = finDark;
         ctx.beginPath();
-        ctx.moveTo(-bodyHalfW, 8);
-        ctx.lineTo(-34 - finExt, 16 + (finExt > 4 ? 2 : 0));
-        ctx.lineTo(-16, 18);
+        ctx.moveTo(-bodyHalfW, wingY + 2);
+        ctx.lineTo(-40 - finExt, rearY + (finExt > 4 ? 2 : 0));
+        ctx.lineTo(-bodyHalfW + 6, rearY + 2);
         ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
+        ctx.fill(); ctx.stroke();
 
         // Right fin
-        ctx.fillStyle = gcColors ? gcColors.FIN_LIGHT : '#00eeff';
+        ctx.fillStyle = finLight;
         ctx.beginPath();
-        ctx.moveTo(bodyHalfW, 8);
-        ctx.lineTo(34 + finExt, 16 + (finExt > 4 ? 2 : 0));
-        ctx.lineTo(16, 18);
+        ctx.moveTo(bodyHalfW, wingY + 2);
+        ctx.lineTo(40 + finExt, rearY + (finExt > 4 ? 2 : 0));
+        ctx.lineTo(bodyHalfW - 6, rearY + 2);
         ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
+        ctx.fill(); ctx.stroke();
 
-        // LV4+: fin thrusters (small flames at fin tips)
+        // === 9. LV4+: FIN THRUSTERS (flames at fin tips) ===
         if (level >= 4) {
             const ftH = 6 + Math.sin(t * 14) * 3;
             ctx.fillStyle = '#ff8800';
             ctx.globalAlpha = 0.7;
             ctx.beginPath();
-            ctx.moveTo(-30 - finExt, 17);
-            ctx.lineTo(-34 - finExt, 17 + ftH);
-            ctx.lineTo(-26 - finExt, 17);
+            ctx.moveTo(-36 - finExt, rearY + 1);
+            ctx.lineTo(-40 - finExt, rearY + 1 + ftH);
+            ctx.lineTo(-32 - finExt, rearY + 1);
             ctx.closePath();
             ctx.fill();
             ctx.beginPath();
-            ctx.moveTo(30 + finExt, 17);
-            ctx.lineTo(34 + finExt, 17 + ftH);
-            ctx.lineTo(26 + finExt, 17);
+            ctx.moveTo(36 + finExt, rearY + 1);
+            ctx.lineTo(40 + finExt, rearY + 1 + ftH);
+            ctx.lineTo(32 + finExt, rearY + 1);
             ctx.closePath();
             ctx.fill();
             ctx.globalAlpha = 1;
@@ -1638,75 +1703,59 @@ class Player extends window.Game.Entity {
             ctx.strokeStyle = CU.rgba(255, 100, 0, wePulse);
             ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.moveTo(-34 - finExt, 18);
-            ctx.lineTo(-38 - finExt, 28 + Math.sin(t * 7) * 4);
+            ctx.moveTo(-40 - finExt, rearY + 2);
+            ctx.lineTo(-44 - finExt, rearY + 12 + Math.sin(t * 7) * 4);
             ctx.stroke();
             ctx.beginPath();
-            ctx.moveTo(34 + finExt, 18);
-            ctx.lineTo(38 + finExt, 28 + Math.sin(t * 7 + 1) * 4);
+            ctx.moveTo(40 + finExt, rearY + 2);
+            ctx.lineTo(44 + finExt, rearY + 12 + Math.sin(t * 7 + 1) * 4);
             ctx.stroke();
             ctx.restore();
         }
 
-        // === RIM LIGHTING ===
-        ctx.strokeStyle = gcColors ? gcColors.BODY_LIGHT : this._colorLight50;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(4, -24);
-        ctx.lineTo(bodyHalfW, 10);
-        ctx.stroke();
-
-        ctx.strokeStyle = gcColors ? gcColors.NOSE_LIGHT : '#ffdd88';
-        ctx.beginPath();
-        ctx.moveTo(2, -26);
-        ctx.lineTo(8, -8);
-        ctx.stroke();
-
-        // === LV2+: GUN PODS (side cannons — uses _geom for deploy animation) ===
+        // === 10. LV2+: GUN PODS (side cannons with mount brackets) ===
         if (level >= 2 || (this._deploy.active && this._deploy.toLevel >= 2)) {
             const podTop = g.podTop;
             const podX = g.podX;
             const podW = g.podW;
-            const podBot = -10;
+            const podBot = -12;
 
             // Mount brackets (struts connecting body to pods)
-            ctx.fillStyle = gcColors ? gcColors.BODY_DARK : this._colorDark30;
-            ctx.strokeStyle = '#111';
+            ctx.fillStyle = bodyDark;
+            ctx.strokeStyle = outline;
             ctx.lineWidth = 1;
             ctx.beginPath();
-            ctx.moveTo(-6, -10);
+            ctx.moveTo(-8, -14);
+            ctx.lineTo(-podX + podW, -16);
             ctx.lineTo(-podX + podW, -12);
-            ctx.lineTo(-podX + podW, -8);
             ctx.closePath();
             ctx.fill(); ctx.stroke();
             ctx.beginPath();
-            ctx.moveTo(6, -10);
+            ctx.moveTo(8, -14);
+            ctx.lineTo(podX - podW, -16);
             ctx.lineTo(podX - podW, -12);
-            ctx.lineTo(podX - podW, -8);
             ctx.closePath();
             ctx.fill(); ctx.stroke();
 
             ctx.lineWidth = 2;
-            ctx.strokeStyle = '#111';
+            ctx.strokeStyle = outline;
 
             // Left pod
-            ctx.fillStyle = gcColors ? gcColors.NOSE : '#7722aa';
+            ctx.fillStyle = noseDark;
             ctx.beginPath();
             ctx.rect(-podX - podW, podTop, podW * 2, podBot - podTop);
-            ctx.fill();
-            ctx.stroke();
+            ctx.fill(); ctx.stroke();
 
             // Right pod
-            ctx.fillStyle = gcColors ? gcColors.NOSE_LIGHT : '#cc66ff';
+            ctx.fillStyle = noseLight;
             ctx.beginPath();
             ctx.rect(podX - podW, podTop, podW * 2, podBot - podTop);
-            ctx.fill();
-            ctx.stroke();
+            ctx.fill(); ctx.stroke();
 
             // Glow tips at pod tops
             const tipR = level >= 5 ? 4.5 : (level >= 3 ? 3.5 : 3);
             const tipAlpha = level >= 5 ? (Math.sin(t * 6) * 0.3 + 0.7) : (level >= 3 ? 0.9 : 0.7);
-            ctx.fillStyle = gcColors ? '#ff6600' : '#bb44ff';
+            ctx.fillStyle = accentGlow;
             ctx.globalAlpha = tipAlpha;
             ctx.beginPath();
             ctx.arc(-podX, podTop, tipR, 0, Math.PI * 2);
@@ -1717,59 +1766,139 @@ class Player extends window.Game.Entity {
             ctx.globalAlpha = 1;
         }
 
-        // === WINDOW ===
-        ctx.fillStyle = gcColors ? gcColors.WINDOW : '#00f0ff';
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = '#111';
+        // === 11. RIM LIGHTING (edge highlights) ===
+        ctx.strokeStyle = gcColors ? gcColors.BODY_LIGHT : '#9977cc';
+        ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.arc(0, -8, 6, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.moveTo(3, tipY + 4);
+        ctx.lineTo(bodyHalfW - 2, wingY);
         ctx.stroke();
 
-        // === GODCHAIN ENERGY LINES (circuit pattern on body) ===
+        ctx.strokeStyle = noseLight;
+        ctx.lineWidth = 1;
+        ctx.globalAlpha = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(2, tipY + 2);
+        ctx.lineTo(6, -22);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+
+        // === 12. BTC COCKPIT (path-drawn symbol) ===
+        this._drawBtcSymbolPath(ctx, 0, -2, 0.9, isGC);
+
+        // === 13. GODCHAIN ENERGY LINES + PERIMETER GLOW ===
         if (isGC) {
             ctx.save();
             ctx.globalCompositeOperation = 'lighter';
             const linePulse = Math.sin(t * 4) * 0.3 + 0.6;
             ctx.strokeStyle = CU.rgba(255, 80, 0, linePulse);
             ctx.lineWidth = 1.5;
+            // Vertical circuit lines
             ctx.beginPath();
-            ctx.moveTo(-8, -20);
-            ctx.lineTo(-8, 6);
+            ctx.moveTo(-10, -24);
+            ctx.lineTo(-10, 6);
             ctx.stroke();
             ctx.beginPath();
-            ctx.moveTo(8, -20);
-            ctx.lineTo(8, 6);
+            ctx.moveTo(10, -24);
+            ctx.lineTo(10, 6);
+            ctx.stroke();
+            // Horizontal circuit lines
+            ctx.beginPath();
+            ctx.moveTo(-10, -12);
+            ctx.lineTo(10, -12);
             ctx.stroke();
             ctx.beginPath();
-            ctx.moveTo(-8, -10);
-            ctx.lineTo(8, -10);
+            ctx.moveTo(-14, 4);
+            ctx.lineTo(14, 4);
             ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(-12, 4);
-            ctx.lineTo(12, 4);
-            ctx.stroke();
+            // Perimeter glow (LV5+)
+            if (level >= 5) {
+                ctx.strokeStyle = CU.rgba(255, 100, 0, linePulse * 0.4);
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.moveTo(0, tipY);
+                ctx.lineTo(-shoulderX, shoulderY);
+                ctx.lineTo(-bodyHalfW, wingY);
+                ctx.lineTo(-waistX, waistY);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(0, tipY);
+                ctx.lineTo(shoulderX, shoulderY);
+                ctx.lineTo(bodyHalfW, wingY);
+                ctx.lineTo(waistX, waistY);
+                ctx.stroke();
+            }
             ctx.restore();
         }
+    }
 
-        // === BTC LOGO ===
-        if (isGC) {
-            // Glowing logo under additive blend
-            ctx.save();
-            ctx.globalCompositeOperation = 'lighter';
-            const logoPulse = Math.sin(t * 5) * 0.3 + 0.5;
-            ctx.fillStyle = CU.rgba(255, 100, 0, logoPulse);
-            ctx.font = 'bold 14px Courier New';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText('\u20BF', 0, 6);
-            ctx.restore();
-        }
-        ctx.fillStyle = '#111';
-        ctx.font = 'bold 14px Courier New';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('\u20BF', 0, 6);
+    /**
+     * v5.9: Draw BTC symbol as path strokes (not text) for crisp cockpit
+     */
+    _drawBtcSymbolPath(ctx, cx, cy, scale, isGodchain) {
+        const CU = window.Game.ColorUtils;
+        const s = scale;
+        const color = isGodchain ? '#ff6600' : '#00f0ff';
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        // BTC "B" shape: two vertical spines + two right bumps
+        const drawBPath = () => {
+            ctx.beginPath();
+            // Left spine (vertical bar of B)
+            ctx.moveTo(-3 * s, -7 * s);
+            ctx.lineTo(-3 * s, 7 * s);
+            // Top serif
+            ctx.moveTo(-3 * s, -7 * s);
+            ctx.lineTo(1 * s, -7 * s);
+            // Upper bump
+            ctx.quadraticCurveTo(6 * s, -7 * s, 6 * s, -3.5 * s);
+            ctx.quadraticCurveTo(6 * s, 0, 1 * s, 0);
+            // Middle bar
+            ctx.lineTo(-3 * s, 0);
+            // Lower bump (wider)
+            ctx.moveTo(1 * s, 0);
+            ctx.quadraticCurveTo(7 * s, 0, 7 * s, 3.5 * s);
+            ctx.quadraticCurveTo(7 * s, 7 * s, 1 * s, 7 * s);
+            // Bottom serif
+            ctx.lineTo(-3 * s, 7 * s);
+            // Vertical strike-throughs
+            ctx.moveTo(-1 * s, -9 * s);
+            ctx.lineTo(-1 * s, -6 * s);
+            ctx.moveTo(2 * s, -9 * s);
+            ctx.lineTo(2 * s, -6 * s);
+            ctx.moveTo(-1 * s, 6 * s);
+            ctx.lineTo(-1 * s, 9 * s);
+            ctx.moveTo(2 * s, 6 * s);
+            ctx.lineTo(2 * s, 9 * s);
+            ctx.stroke();
+        };
+
+        // Outer glow layer
+        ctx.lineWidth = 5 * s;
+        ctx.strokeStyle = CU.rgba(
+            isGodchain ? 255 : 0,
+            isGodchain ? 100 : 240,
+            isGodchain ? 0 : 255,
+            0.3
+        );
+        drawBPath();
+
+        // Inner bright layer
+        ctx.lineWidth = 1.8 * s;
+        ctx.strokeStyle = color;
+        drawBPath();
+
+        // Core white layer
+        ctx.lineWidth = 0.8 * s;
+        ctx.strokeStyle = '#ffffff';
+        ctx.globalAlpha = 0.8;
+        drawBPath();
+
+        ctx.restore();
     }
 
     /**
@@ -1779,9 +1908,9 @@ class Player extends window.Game.Entity {
         const CU = window.Game.ColorUtils;
         const t = this._shieldAnim;
         const fade = this._shieldFade;
-        const radius = 40;
-        const hexSize = 10;
-        const rows = 5;
+        const radius = 52;
+        const hexSize = 11;
+        const rows = 6;
 
         ctx.save();
         ctx.globalAlpha = fade;
@@ -1931,7 +2060,7 @@ class Player extends window.Game.Entity {
         const muzzles = [];
         if (effectiveLevel <= 1) {
             // LV1: single shot from nose barrel tip
-            muzzles.push({ x: 0, y: -32 });
+            muzzles.push({ x: 0, y: -40 });
         } else if (effectiveLevel <= 3) {
             // LV2-3: dual from gun pod tops
             muzzles.push({ x: -gm.podX, y: gm.podTop });

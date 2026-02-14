@@ -527,8 +527,8 @@ class Bullet extends window.Game.Entity {
     // NORMAL: BTC Orange Bolt - Clean iconic crypto projectile
     // ═══════════════════════════════════════════════════════════════════
     drawNormalBullet(ctx, pulse) {
-        const w = this.width * 2.0;  // Scaled up for visibility
-        const h = this.height * 1.3;
+        const w = this.width * 1.8;  // v5.9: 2.0→1.8 (wider base bullet)
+        const h = this.height * 1.2; // v5.9: 1.3→1.2
 
         // Outer glow trail — v4.23.1: additive
         const _gc = window.Game.Balance?.GLOW;
@@ -570,7 +570,7 @@ class Bullet extends window.Game.Entity {
 
         // BTC symbol (small)
         ctx.fillStyle = '#111';
-        ctx.font = 'bold 8px Arial';
+        ctx.font = 'bold 9px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('₿', this.x, this.y + 1);
@@ -1124,8 +1124,8 @@ class Bullet extends window.Game.Entity {
     // Clean BTC-themed projectile with power indicator
     // ═══════════════════════════════════════════════════════════════════
     drawEvolutionBullet(ctx, pulse) {
-        const w = this.width * 2.0;
-        const h = this.height * 1.3;
+        const w = this.width * 1.8;  // v5.9: 2.0→1.8
+        const h = this.height * 1.2; // v5.9: 1.3→1.2
 
         // Power indicator glow (based on damageMult)
         if (this.damageMult > 1) {
@@ -1181,7 +1181,7 @@ class Bullet extends window.Game.Entity {
 
         // BTC symbol (small)
         ctx.fillStyle = '#111';
-        ctx.font = 'bold 8px Arial';
+        ctx.font = 'bold 9px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('₿', this.x, this.y + 1);
