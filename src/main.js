@@ -229,7 +229,7 @@ function initCollisionSystem() {
                     const hyperMult = Balance.HYPER.SCORE_MULT;
                     const grazePoints = Math.floor(Balance.GRAZE.POINTS_BASE * hyperMult * grazeBonus);
                     score += grazePoints;
-                    updateScore(score);
+                    updateScore(score, grazePoints);
                     createGrazeSpark(eb.x, eb.y, player.x, player.y, true);
                     createGrazeSpark(eb.x, eb.y, player.x, player.y, true);
                     if (totalTime - lastGrazeSoundTime > Balance.GRAZE.SOUND_THROTTLE) {
@@ -243,7 +243,7 @@ function initCollisionSystem() {
                     grazeMultiplier = 1 + (grazeMeter / Balance.GRAZE.MULT_DIVISOR) * (Balance.GRAZE.MULT_MAX - 1);
                     const grazePoints = Math.floor(Balance.GRAZE.POINTS_BASE * grazeMultiplier * grazeBonus);
                     score += grazePoints;
-                    updateScore(score);
+                    updateScore(score, grazePoints);
                     createGrazeSpark(eb.x, eb.y, player.x, player.y, isCloseGraze);
                     if (isCloseGraze) applyHitStop('CLOSE_GRAZE', true);
                     const soundThrottle = Balance.GRAZE.SOUND_THROTTLE || 0.1;
@@ -314,8 +314,7 @@ function initCollisionSystem() {
                 const lastEnemyMult = isLastEnemy && G.HarmonicConductor ? G.HarmonicConductor.getLastEnemyBonus() : 1;
                 const killScore = Math.floor(e.scoreVal * bearMult * perkMult * killStreakMult * grazeKillBonus * hyperMult * lastEnemyMult * comboMult * arcadeScoreMult);
                 score += killScore;
-                updateScore(score);
-                createFloatingScore(killScore, e.x, e.y - 20);
+                updateScore(score, killScore);
 
                 if (isLastEnemy && lastEnemyMult > 1) {
                     applyHitStop('STREAK_25', false);
@@ -330,7 +329,6 @@ function initCollisionSystem() {
                 }
 
                 createEnemyDeathExplosion(e.x, e.y, e.color, e.symbol || '$', e.shape);
-                createScoreParticles(e.x, e.y, e.color);
 
                 // Arcade: Volatile Rounds — AoE damage on kill
                 if (_isArcade && G.RunState.arcadeBonuses.volatileRounds && enemies.length > 0) {
@@ -455,7 +453,7 @@ function initCollisionSystem() {
                 // v4.45: Score per boss hit (was 0 — score stayed frozen during boss fight)
                 const hitScore = Math.floor(dmg * 2);
                 score += hitScore;
-                updateScore(score);
+                updateScore(score, hitScore);
                 // Proximity Kill Meter: boss hits give small meter gain (skip during HYPER)
                 const bossGain = Balance.PROXIMITY_KILL.BOSS_HIT_GAIN;
                 if (bossGain > 0 && !(player.isHyperActive && player.isHyperActive())) {
@@ -490,7 +488,7 @@ function initCollisionSystem() {
                 if (G.TransitionManager) G.TransitionManager.startFadeOut(0.8, '#ffffff');
                 const bossBonus = Balance.SCORE.BOSS_DEFEAT_BASE + (marketCycle * Balance.SCORE.BOSS_DEFEAT_PER_CYCLE);
                 score += bossBonus;
-                createFloatingScore(bossBonus, bossX, bossY - 50);
+                updateScore(score, bossBonus);
                 boss.active = false; boss = null; window.boss = null; shake = Balance.EFFECTS.SHAKE.BOSS_DEFEAT || 80; audioSys.play('explosion');
                 audioSys.setBossPhase(0);
                 if (G.Events) G.Events.emit('weather:boss_defeat');
@@ -768,6 +766,14 @@ function syncFromRunState() {
     window.marketCycle = marketCycle;
     window.currentLevel = level;
     window.fiatKillCounter = fiatKillCounter;
+    // v5.14: Reset score pulse state
+    _scorePulseAccumulator = 0;
+    _scorePulseAccTimer = 0;
+    const scoreEl = document.getElementById('scoreVal');
+    if (scoreEl) {
+        scoreEl.classList.remove('score-new-record', 'score-record-break');
+        for (let i = 0; i < _scorePulseTierClasses.length; i++) scoreEl.classList.remove(_scorePulseTierClasses[i]);
+    }
 }
 
 // Initial sync
@@ -809,17 +815,89 @@ function canSpawnEnemyBullet() {
     return enemyBullets.length < cap;
 }
 
-// Juicy score update with bump effect
-function updateScore(newScore) {
+// v5.14: Score Pulse Tier system — HUD-reactive feedback replaces floating text
+var _scorePulseTierClasses = ['score-normal', 'score-big', 'score-massive', 'score-legendary'];
+var _scorePulseAccumulator = 0;
+var _scorePulseAccTimer = 0;
+
+function _getScoreTier(gain) {
+    const tiers = Balance.JUICE?.SCORE_PULSE_TIERS;
+    if (!tiers) return 'MICRO';
+    if (gain >= (tiers.LEGENDARY?.threshold ?? 5000)) return 'LEGENDARY';
+    if (gain >= (tiers.MASSIVE?.threshold ?? 2000)) return 'MASSIVE';
+    if (gain >= (tiers.BIG?.threshold ?? 500)) return 'BIG';
+    if (gain >= (tiers.NORMAL?.threshold ?? 100)) return 'NORMAL';
+    return 'MICRO';
+}
+
+var _tierOrder = ['MICRO', 'NORMAL', 'BIG', 'MASSIVE', 'LEGENDARY'];
+
+function updateScore(newScore, scoreGain) {
     const oldScore = score;
     score = newScore;
     window.score = score;
     const el = document.getElementById('scoreVal');
-    if (el) {
-        el.textContent = Math.floor(score);
-        el.classList.remove('score-bump');
-        void el.offsetWidth; // Force reflow
-        el.classList.add('score-bump');
+    if (!el) return;
+    el.textContent = Math.floor(score);
+
+    // Determine tier from gain
+    if (scoreGain > 0) {
+        let tier = _getScoreTier(scoreGain);
+        let tierIdx = _tierOrder.indexOf(tier);
+
+        // Accumulator: rapid gains bump tier up
+        const tiers = Balance.JUICE?.SCORE_PULSE_TIERS;
+        const decayTime = tiers?.ACCUMULATOR_DECAY ?? 0.4;
+        const maxBump = tiers?.ACCUMULATOR_MAX_BUMP ?? 2;
+        if (_scorePulseAccTimer > 0 && tierIdx > 0) {
+            _scorePulseAccumulator = Math.min(_scorePulseAccumulator + 1, maxBump);
+            tierIdx = Math.min(tierIdx + _scorePulseAccumulator, _tierOrder.length - 1);
+            tier = _tierOrder[tierIdx];
+        } else {
+            _scorePulseAccumulator = 0;
+        }
+        _scorePulseAccTimer = decayTime;
+
+        // Apply CSS class for NORMAL+
+        if (tierIdx >= 1) {
+            const className = _scorePulseTierClasses[tierIdx - 1];
+            for (let i = 0; i < _scorePulseTierClasses.length; i++) {
+                el.classList.remove(_scorePulseTierClasses[i]);
+            }
+            void el.offsetWidth; // Force reflow
+            el.classList.add(className);
+
+            // BIG+: HUD particle burst
+            if (tierIdx >= 2 && G.ParticleSystem?.createScoreHudBurst) {
+                G.ParticleSystem.createScoreHudBurst(tier);
+            }
+
+            // LEGENDARY: screen glow
+            if (tierIdx >= 4) {
+                triggerScorePulse();
+            }
+        }
+    } else {
+        // No gain (direct set) — just update text, no animation
+    }
+
+    // v5.14: New high score detection
+    if (score > highScore && oldScore <= highScore && highScore > 0) {
+        // One-shot record break animation
+        for (let i = 0; i < _scorePulseTierClasses.length; i++) {
+            el.classList.remove(_scorePulseTierClasses[i]);
+        }
+        el.classList.remove('score-record-break');
+        void el.offsetWidth;
+        el.classList.add('score-record-break');
+        // Persistent magenta glow
+        el.classList.add('score-new-record');
+        // Particle burst + screen glow
+        if (G.ParticleSystem?.createScoreHudBurst) G.ParticleSystem.createScoreHudBurst('LEGENDARY');
+        triggerScorePulse();
+        // HUD message
+        showGameInfo("NEW HIGH SCORE!");
+        if (audioSys) audioSys.play('weaponDeploy');
     }
 
     // Score pulse on milestone crossing (Ikeda juice)
@@ -3485,7 +3563,7 @@ function startIntermission(msgOverride) {
         });
         if (bulletBonus > 0) {
             score += bulletBonus;
-            updateScore(score);
+            updateScore(score, bulletBonus);
             addText(`+${bulletBonus} ${t('BULLET_BONUS')}`, gameWidth / 2, gameHeight / 2 + 50, '#0ff', 18);
         }
     }
@@ -3555,7 +3633,7 @@ function startHordeTransition() {
         });
         if (bulletBonus > 0) {
             score += bulletBonus;
-            updateScore(score);
+            updateScore(score, bulletBonus);
         }
     }
 
@@ -3873,7 +3951,7 @@ function update(dt) {
                 enemyBullets.forEach(eb => createExplosion(eb.x, eb.y, eb.color || '#ff0', 6));
                 if (bulletBonus > 0) {
                     score += bulletBonus;
-                    updateScore(score);
+                    updateScore(score, bulletBonus);
                     addText(`+${bulletBonus} ${t('BULLET_BONUS')}`, gameWidth / 2, gameHeight / 2 + 50, '#0ff', 18);
                 }
             }
@@ -4062,6 +4140,8 @@ function update(dt) {
     updateFloatingTexts(dt);
     updateTypedMessages(dt);
     updatePerkIcons(dt);
+    // v5.14: Score pulse accumulator decay
+    if (_scorePulseAccTimer > 0) _scorePulseAccTimer -= dt;
     // v5.11: Evolution item fly towards player
     updateEvolutionItem(dt);
     updateParticles(dt);

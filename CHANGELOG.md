@@ -1,5 +1,19 @@
 # Changelog
 
+## v5.14.0 - 2026-02-14
+### Score Pulse System — HUD-Reactive Score Feedback
+- **feat(hud)**: Score Pulse Tiers — 5-tier reactive HUD score (MICRO/NORMAL/BIG/MASSIVE/LEGENDARY) replaces floating "+500" text. Tier determined by score gain amount, CSS animations with scale+shake+glow per tier
+- **feat(hud)**: Combo accumulator — rapid kills within 0.4s bump the tier up (max +2 levels), rewarding kill chains with intensifying visual feedback
+- **feat(vfx)**: HUD particle burst — BIG+ tiers spawn gold/orange/red sparks from HUD score position. MASSIVE/LEGENDARY add starburst ring. `ParticleSystem.createScoreHudBurst(tier)`
+- **feat(vfx)**: LEGENDARY tier triggers screen edge glow (`triggerScorePulse`) for boss kills and massive combos
+- **refactor(score)**: `updateScore(score, scoreGain)` — all call sites now pass gain amount for tier detection
+- **config**: `Balance.JUICE.SCORE_PULSE_TIERS` (thresholds, scale, duration, colors, shake, accumulator settings)
+- **config**: `Balance.JUICE.SCREEN_EFFECTS.SCORE_FLOATING_TEXT: false` — kill-switch disables old floating text (set `true` for legacy behavior)
+- **removed**: `createScoreParticles` homing particles from enemy kill (replaced by HUD burst)
+- **removed**: `createFloatingScore` calls from enemy/boss kill sites (score info now communicated via HUD pulse)
+- **feat(hud)**: New High Score indicator — one-shot `scoreRecordBreak` animation (2x scale white flash) when surpassing record, then persistent magenta pulsing glow (`.score-new-record`) for rest of run. Particle burst + screen glow + "NEW HIGH SCORE!" message + SFX
+- **css**: 4 tier keyframes (`scorePulseNormal`/`Big`/`Massive`/`Legendary`) replace single `scoreBump`. `scoreRecordBreak` + `scoreNewRecordPulse` for high score. `prefers-reduced-motion` supported
+
 ## v5.13.1 - 2026-02-14
 ### Health Check — Boss Death Race Condition + Code Hygiene
 - **fix(boss-death)**: Tracked all boss death `setTimeout` calls in `_bossDeathTimeouts[]` — restart/back-to-intro during celebration now cancels all orphan timeouts (coin rain, explosions, evolution item, celebration transition). Prevents ghost `_evolutionItem` writes and stray explosions on fresh game state

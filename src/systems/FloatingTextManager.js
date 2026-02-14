@@ -33,6 +33,8 @@
     }
 
     function createFloatingScore(scoreValue, x, y, killStreak) {
+        // v5.14: Kill-switch — disabled by default (replaced by HUD pulse system)
+        if (Balance.JUICE?.SCREEN_EFFECTS?.SCORE_FLOATING_TEXT === false) return;
         const config = Balance.JUICE?.FLOAT_SCORE;
         if (!config) return;
         if (scoreValue < (config.MIN_VALUE || 100)) return;

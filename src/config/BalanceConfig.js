@@ -344,6 +344,7 @@
                 STREAK_FLASH: false,           // Flash on kill streaks — OFF
                 GRAZE_FLASH: false,            // Flash on close graze — OFF
                 SCORE_PULSE: false,            // Edge glow every 10k — OFF
+                SCORE_FLOATING_TEXT: false,     // v5.14: floating "+500" text on kills — OFF (replaced by HUD pulse)
                 SCREEN_DIMMING: false,         // Darken screen with many bullets — OFF
 
                 // Non-gameplay flashes — ON (boss events, transitions)
@@ -370,6 +371,17 @@
                 DURATION: 0.25,           // Pulse duration
                 GLOW_COLOR: '#FFD700',    // Gold edge glow
                 GLOW_SIZE: 30             // Pixels of edge glow
+            },
+
+            // v5.14: Score Pulse Tiers — HUD-reactive score feedback
+            SCORE_PULSE_TIERS: {
+                MICRO:     { threshold: 0,    scale: 1.0, duration: 0,    color: null,      shake: 0, glow: 0 },
+                NORMAL:    { threshold: 100,  scale: 1.15, duration: 0.2, color: '#ffffff', shake: 0, glow: 0.3 },
+                BIG:       { threshold: 500,  scale: 1.3, duration: 0.3, color: '#ffaa00', shake: 2, glow: 0.6 },
+                MASSIVE:   { threshold: 2000, scale: 1.5, duration: 0.4, color: '#ff6600', shake: 4, glow: 0.8 },
+                LEGENDARY: { threshold: 5000, scale: 1.8, duration: 0.5, color: '#ff3300', shake: 6, glow: 1.0 },
+                ACCUMULATOR_DECAY: 0.4,  // seconds before combo accumulator resets
+                ACCUMULATOR_MAX_BUMP: 2  // max tier bumps from rapid kills
             },
 
             // Floating score numbers

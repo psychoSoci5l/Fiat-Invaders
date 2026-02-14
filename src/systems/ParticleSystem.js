@@ -1144,6 +1144,67 @@
         });
     }
 
+    /**
+     * v5.14: Score HUD Burst — particles explode from HUD score position
+     * @param {string} tier - 'BIG' | 'MASSIVE' | 'LEGENDARY'
+     */
+    function createScoreHudBurst(tier) {
+        const x = gameWidth / 2;
+        const y = 25;
+        const tierColors = {
+            BIG: '#ffaa00',
+            MASSIVE: '#ff6600',
+            LEGENDARY: '#ff3300'
+        };
+        const color = tierColors[tier] || '#ffaa00';
+        let count, speedBase, sizeBase;
+
+        if (tier === 'LEGENDARY') {
+            count = 10; speedBase = 200; sizeBase = 4;
+        } else if (tier === 'MASSIVE') {
+            count = 6; speedBase = 150; sizeBase = 3;
+        } else {
+            count = 3; speedBase = 100; sizeBase = 2.5;
+        }
+
+        const available = Math.min(count, MAX_PARTICLES - particles.length);
+        for (let i = 0; i < available; i++) {
+            const angle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 0.8;
+            const speed = speedBase * (0.6 + Math.random() * 0.8);
+            addParticle({
+                x: x + (Math.random() - 0.5) * 40,
+                y: y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed + (Math.random() * 40),
+                life: 0.4 + Math.random() * 0.3,
+                maxLife: 0.7,
+                color: color,
+                size: sizeBase + Math.random() * 2,
+                gravity: 120
+            });
+        }
+
+        // Starburst ring for MASSIVE/LEGENDARY
+        if (tier === 'MASSIVE' || tier === 'LEGENDARY') {
+            const ringCount = tier === 'LEGENDARY' ? 8 : 4;
+            const ringAvail = Math.min(ringCount, MAX_PARTICLES - particles.length);
+            for (let i = 0; i < ringAvail; i++) {
+                const angle = (i / ringCount) * Math.PI * 2;
+                const speed = tier === 'LEGENDARY' ? 180 : 120;
+                addParticle({
+                    x: x, y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    life: 0.3 + Math.random() * 0.2,
+                    maxLife: 0.5,
+                    color: '#ffffff',
+                    size: 1.5 + Math.random(),
+                    gravity: 0
+                });
+            }
+        }
+    }
+
     // Export to namespace
     G.ParticleSystem = {
         init,
@@ -1158,6 +1219,7 @@
         createEnemyDeathExplosion,
         createBossDeathExplosion,
         createScoreParticles,
+        createScoreHudBurst,
         createFireImpact,
         createElectricChain,
         createNapalmImpact,
