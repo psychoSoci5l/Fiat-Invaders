@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v5.9.0 FIAT vs CRYPTO";
+window.Game.VERSION = "v5.10.0 FIAT vs CRYPTO";
 
 window.Game.TEXTS = {
     EN: {
@@ -134,6 +134,7 @@ window.Game.TEXTS = {
         TUT_CONTROLS_PC: "A/D or Arrows to move. Space to fire. S for Shield.",
         TUT_CONTROLS_UNIFIED: "SWIPE LEFT & RIGHT TO MOVE",
         TUT_OBJECTIVE_UNIFIED: "Destroy 5 waves, then defeat the Boss!",
+        TUT_SHIELD_FIN: "Your fins glow cyan when Shield is ready \u2014 tap your ship to activate!",
         TUT_SURVIVAL_UNIFIED: "3 lives \u2022 1 hit = 1 life \u2022 Shield = your defense",
         // Manual v2 condensed (v4.12.0)
         MAN_OBJECTIVES: "OBJECTIVES",
@@ -300,6 +301,7 @@ window.Game.TEXTS = {
         TUT_CONTROLS_PC: "A/D o Frecce per muoverti. Spazio per sparare. S per lo Scudo.",
         TUT_CONTROLS_UNIFIED: "SCORRI A SINISTRA E DESTRA PER MUOVERTI",
         TUT_OBJECTIVE_UNIFIED: "Distruggi 5 ondate, poi sconfiggi il Boss!",
+        TUT_SHIELD_FIN: "Le alette brillano cyan quando lo Scudo \u00E8 pronto \u2014 tocca la nave per attivarlo!",
         TUT_SURVIVAL_UNIFIED: "3 vite \u2022 1 colpo = 1 vita \u2022 Lo scudo \u00E8 la tua difesa",
         // Manual v2 condensed (v4.12.0)
         MAN_OBJECTIVES: "OBIETTIVI",

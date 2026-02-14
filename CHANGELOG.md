@@ -1,5 +1,14 @@
 # Changelog
 
+## v5.10.0 - 2026-02-14
+### Shield Fin Glow + Tutorial Redesign
+- **feat(player)**: Shield Fin Glow — cyan additive glow on fins replaces SHIELD_RING circle. Cooldown: fins fill 0→100% alpha. Ready: pulsing cyan + radial glow at fin tips. Hidden during active hex shield
+- **feat(config)**: `SHIELD_FIN_GLOW` config in `DIEGETIC_HUD` (COOLDOWN_ALPHA, READY_ALPHA, READY_PULSE_SPEED/AMP, GLOW_SPREAD). `SHIELD_RING.ENABLED: false`
+- **feat(tutorial)**: Card-based mission briefing — 4 sections with colored left-border accents and icon badges (◎ magenta objective, ♥ gold survival, ◂▸ violet controls, ⬡ cyan shield)
+- **feat(tutorial)**: Two-group layout — gameplay (objective + survival) separated from controls (move + shield) by violet gradient divider
+- **feat(tutorial)**: Shield step with cyan highlight — explains fin glow mechanic to new players (i18n EN/IT)
+- **style(tutorial)**: Compact typography (14px text, 10px gap), `.tut-card`/`.tut-group`/`.tut-divider` CSS system
+
 ## v5.9.0 - 2026-02-14
 ### Ship Redesign: Crypto Viper
 - **feat(player)**: Complete ship redesign — 42px chevron silhouette (was 30px triangle), 6-vertex body with shoulder breaks, waist, flared rear

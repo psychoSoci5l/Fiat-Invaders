@@ -4498,8 +4498,8 @@ body.is-touch p.mobile-only { display: block; }
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 16px;
-    padding: 24px 20px;
+    gap: 10px;
+    padding: 22px 18px;
     max-width: 400px;
     margin: auto;
 }
@@ -4507,6 +4507,82 @@ body.is-touch p.mobile-only { display: block; }
 .tutorial-section {
     width: 100%;
     text-align: center;
+}
+
+/* --- Tutorial card system --- */
+.tut-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
+.tut-divider {
+    width: 60%;
+    height: 1px;
+    margin: 4px auto;
+    background: linear-gradient(90deg, transparent, rgba(187, 68, 255, 0.3), transparent);
+}
+
+.tut-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-align: left;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border-left: 3px solid transparent;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.tut-icon {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.tut-card--move {
+    border-left-color: #bb44ff;
+}
+.tut-card--move .tut-icon {
+    color: #bb44ff;
+    background: rgba(187, 68, 255, 0.12);
+    letter-spacing: -4px;
+}
+
+.tut-card--obj {
+    border-left-color: #ff2d95;
+}
+.tut-card--obj .tut-icon {
+    color: #ff2d95;
+    background: rgba(255, 45, 149, 0.12);
+    font-size: 20px;
+}
+
+.tut-card--shield {
+    border-left-color: #00f0ff;
+}
+.tut-card--shield .tut-icon {
+    color: #00f0ff;
+    background: rgba(0, 240, 255, 0.12);
+    font-size: 20px;
+}
+.tut-card--shield .tutorial-text {
+    color: #00f0ff;
+}
+
+.tut-card--survive {
+    border-left-color: #ffaa00;
+}
+.tut-card--survive .tut-icon {
+    color: #ffaa00;
+    background: rgba(255, 170, 0, 0.12);
 }
 
 .tutorial-tips {
@@ -4529,17 +4605,18 @@ body.is-touch p.mobile-only { display: block; }
 
 .tutorial-title {
     color: #bb44ff;
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 900;
-    letter-spacing: 4px;
-    margin: 0 0 15px 0;
+    letter-spacing: 5px;
+    margin: 0 0 6px 0;
     text-shadow: 0 0 15px rgba(187, 68, 255, 0.5);
+    text-transform: uppercase;
 }
 
 .tutorial-text {
     color: #ccc;
-    font-size: 16px;
-    line-height: 1.6;
+    font-size: 14px;
+    line-height: 1.5;
     margin: 0;
 }
 

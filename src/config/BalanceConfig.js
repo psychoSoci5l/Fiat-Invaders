@@ -848,13 +848,21 @@
                 EMPTY_ALPHA: 0.25        // Empty pip opacity
             },
             SHIELD_RING: {
+                ENABLED: false,          // v5.10: replaced by SHIELD_FIN_GLOW
+                RADIUS: 45,
+                COOLDOWN_ALPHA: 0.15,
+                READY_ALPHA: 0.35,
+                READY_PULSE_SPEED: 4,
+                READY_PULSE_AMP: 0.15,
+                LINE_WIDTH: 2
+            },
+            SHIELD_FIN_GLOW: {
                 ENABLED: true,
-                RADIUS: 45,              // Ring radius (v5.9: 35→45 chevron)
-                COOLDOWN_ALPHA: 0.15,    // Cooldown arc opacity
-                READY_ALPHA: 0.35,       // Ready state — visible pulsing ring
-                READY_PULSE_SPEED: 4,    // Pulse frequency (rad/s)
-                READY_PULSE_AMP: 0.15,   // Pulse amplitude (±alpha)
-                LINE_WIDTH: 2            // Arc line width
+                COOLDOWN_ALPHA: 0.3,     // Max alpha during cooldown fill
+                READY_ALPHA: 0.5,        // Base alpha when ready
+                READY_PULSE_SPEED: 4,    // rad/s pulsing
+                READY_PULSE_AMP: 0.2,    // ±alpha oscillation
+                GLOW_SPREAD: 6           // px blur/spread around fin edges
             },
             WEAPON_PIPS: {
                 ENABLED: true,

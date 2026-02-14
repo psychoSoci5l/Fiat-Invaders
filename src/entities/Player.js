@@ -1008,6 +1008,77 @@ class Player extends window.Game.Entity {
     }
 
     /**
+     * v5.10: Shield Fin Glow — cyan glow on fins indicating shield cooldown/ready
+     * Called from _drawShipBody after fins are drawn, in translated coords
+     */
+    _drawShieldFinGlow(ctx, bodyHalfW, finExt, wingY, rearY) {
+        const cfg = window.Game.Balance?.DIEGETIC_HUD?.SHIELD_FIN_GLOW;
+        if (!cfg?.ENABLED) return;
+        if (this.shieldActive) return; // hex shield visible, skip fin glow
+
+        const CU = window.Game.ColorUtils;
+        const maxCD = window.Game.Balance.PLAYER.SHIELD_COOLDOWN;
+        const inCooldown = this.shieldCooldown > 0;
+        const progress = inCooldown ? 1 - (this.shieldCooldown / maxCD) : 1;
+
+        if (progress <= 0) return;
+
+        let alpha;
+        if (inCooldown) {
+            alpha = cfg.COOLDOWN_ALPHA * progress;
+        } else {
+            const pulse = Math.sin(this.animTime * cfg.READY_PULSE_SPEED);
+            alpha = cfg.READY_ALPHA + pulse * cfg.READY_PULSE_AMP;
+        }
+
+        const finOffset = finExt > 4 ? 2 : 0;
+
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+
+        // Ready glow spread — radial glow at fin tips
+        if (!inCooldown && cfg.GLOW_SPREAD > 0) {
+            const gs = cfg.GLOW_SPREAD;
+            const tipLX = -40 - finExt;
+            const tipRX = 40 + finExt;
+            const tipY = rearY + finOffset;
+            const glowAlpha = alpha * 0.5;
+            const grad1 = ctx.createRadialGradient(tipLX, tipY, 0, tipLX, tipY, gs * 2);
+            grad1.addColorStop(0, CU.rgba(0, 240, 255, glowAlpha));
+            grad1.addColorStop(1, 'transparent');
+            ctx.fillStyle = grad1;
+            ctx.fillRect(tipLX - gs * 2, tipY - gs * 2, gs * 4, gs * 4);
+            const grad2 = ctx.createRadialGradient(tipRX, tipY, 0, tipRX, tipY, gs * 2);
+            grad2.addColorStop(0, CU.rgba(0, 240, 255, glowAlpha));
+            grad2.addColorStop(1, 'transparent');
+            ctx.fillStyle = grad2;
+            ctx.fillRect(tipRX - gs * 2, tipY - gs * 2, gs * 4, gs * 4);
+        }
+
+        // Fin overlay triangles (same geometry as fins)
+        ctx.fillStyle = CU.rgba(0, 240, 255, alpha);
+        ctx.lineWidth = 0;
+
+        // Left fin glow
+        ctx.beginPath();
+        ctx.moveTo(-bodyHalfW, wingY + 2);
+        ctx.lineTo(-40 - finExt, rearY + finOffset);
+        ctx.lineTo(-bodyHalfW + 6, rearY + 2);
+        ctx.closePath();
+        ctx.fill();
+
+        // Right fin glow
+        ctx.beginPath();
+        ctx.moveTo(bodyHalfW, wingY + 2);
+        ctx.lineTo(40 + finExt, rearY + finOffset);
+        ctx.lineTo(bodyHalfW - 6, rearY + 2);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.restore();
+    }
+
+    /**
      * v4.4: Diegetic HUD - ship-attached visual elements
      * Called from draw() in translated coordinate space (0,0 = ship center)
      */
@@ -1712,6 +1783,9 @@ class Player extends window.Game.Entity {
             ctx.stroke();
             ctx.restore();
         }
+
+        // === 8b. SHIELD FIN GLOW (cooldown fill / ready pulse on fins) ===
+        this._drawShieldFinGlow(ctx, bodyHalfW, finExt, wingY, rearY);
 
         // === 10. LV2+: GUN PODS (side cannons with mount brackets) ===
         if (level >= 2 || (this._deploy.active && this._deploy.toLevel >= 2)) {

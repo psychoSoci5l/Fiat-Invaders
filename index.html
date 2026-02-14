@@ -318,19 +318,31 @@
     <div id="tutorial-overlay" style="display: none;">
         <div class="tutorial-container tutorial-unified">
             <h2 class="tutorial-title" data-i18n="TUT_TITLE">HOW TO PLAY</h2>
-            <div class="tutorial-section">
-                <div class="desktop-only">
-                    <p class="tutorial-text" data-i18n="TUT_CONTROLS_PC">A/D or Arrows to move. Space to fire. S for Shield.</p>
+            <div class="tut-group">
+                <div class="tutorial-section tut-card tut-card--obj">
+                    <span class="tut-icon">&#x25CE;</span>
+                    <p class="tutorial-text" data-i18n="TUT_OBJECTIVE_UNIFIED">Destroy 5 waves, then defeat the Boss!</p>
                 </div>
-                <div class="mobile-only">
-                    <p class="tutorial-text" data-i18n="TUT_CONTROLS_UNIFIED">SWIPE LEFT & RIGHT TO MOVE</p>
+                <div class="tutorial-section tut-card tut-card--survive">
+                    <span class="tut-icon">&#x2665;</span>
+                    <p class="tutorial-text tutorial-tips" data-i18n="TUT_SURVIVAL_UNIFIED">3 lives &#8226; 1 hit = 1 life &#8226; Shield = your defense</p>
                 </div>
             </div>
-            <div class="tutorial-section">
-                <p class="tutorial-text" data-i18n="TUT_OBJECTIVE_UNIFIED">Destroy 5 waves, then defeat the Boss!</p>
-            </div>
-            <div class="tutorial-section">
-                <p class="tutorial-text tutorial-tips" data-i18n="TUT_SURVIVAL_UNIFIED">3 lives &#8226; 1 hit = 1 life &#8226; Shield = your defense</p>
+            <div class="tut-divider"></div>
+            <div class="tut-group">
+                <div class="tutorial-section tut-card tut-card--move">
+                    <span class="tut-icon">&#x25C2;&#x25B8;</span>
+                    <div class="desktop-only">
+                        <p class="tutorial-text" data-i18n="TUT_CONTROLS_PC">A/D or Arrows to move. Space to fire. S for Shield.</p>
+                    </div>
+                    <div class="mobile-only">
+                        <p class="tutorial-text" data-i18n="TUT_CONTROLS_UNIFIED">SWIPE LEFT & RIGHT TO MOVE</p>
+                    </div>
+                </div>
+                <div class="tutorial-section tut-card tut-card--shield">
+                    <span class="tut-icon">&#x2B21;</span>
+                    <p class="tutorial-text" data-i18n="TUT_SHIELD_FIN">Your fins glow cyan when Shield is ready &#8212; tap your ship to activate!</p>
+                </div>
             </div>
             <div class="tutorial-actions">
                 <button class="btn btn-primary btn-lg" id="tut-go-btn" onclick="completeTutorial()" data-i18n="GO">GO!</button>
