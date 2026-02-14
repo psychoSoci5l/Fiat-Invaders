@@ -525,6 +525,8 @@ function initCollisionSystem() {
                 if (G.Debug) G.Debug.trackCycleStart(marketCycle);
                 // v5.4.0: checkWeaponUnlocks moved to startIntermission (delayed 2s)
                 waveMgr.reset();
+                // v5.10.3: Block WM from acting during boss celebration — startIntermission() clears this
+                waveMgr.waveInProgress = true;
                 fiatKillCounter = { '¥': 0, '₽': 0, '₹': 0, '€': 0, '£': 0, '₣': 0, '₺': 0, '$': 0, '元': 0, 'Ⓒ': 0 };
                 if (G.HarmonicConductor) { G.HarmonicConductor.reset(); G.HarmonicConductor.setDifficulty(level, marketCycle, isBearMarket); }
                 const campaignState2 = G.CampaignState;
@@ -3875,6 +3877,7 @@ function update(dt) {
                     if (!canSpawnEnemyBullet()) break;
                     var bd = bossBullets[bi];
                     var bullet = G.Bullet.Pool.acquire(bd.x, bd.y, bd.vx, bd.vy, bd.color, bd.w, bd.h, false);
+                    bullet.isBossBullet = true; // v5.10.3: Tag for BOSS_PATTERN collision radius
                     if (bd.isHoming) {
                         bullet.isHoming = true;
                         bullet.homingStrength = bd.homingStrength || 2.5;
@@ -5180,6 +5183,9 @@ function updatePowerUps(dt) {
             powerUps.splice(i, 1);
         } else {
             if (Math.abs(p.x - player.x) < 40 && Math.abs(p.y - player.y) < 40) {
+                // v5.10.3: Don't collect PERK during cooldown — let it float
+                if (p.type === 'PERK' && perkCooldown > 0) continue;
+
                 // Pickup effect!
                 createPowerUpPickupEffect(p.x, p.y, p.config.color);
 

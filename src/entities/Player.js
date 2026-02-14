@@ -1304,7 +1304,7 @@ class Player extends window.Game.Entity {
 
                 // v4.60: GODCHAIN no longer triggered by weapon level (now via elemental perks)
             } else {
-                // Already max weapon level — no action (GODCHAIN via perks now)
+                // Already max weapon level — no action
             }
             return;
         }

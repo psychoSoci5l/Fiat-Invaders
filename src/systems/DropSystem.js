@@ -158,10 +158,16 @@
                 }
             }
 
-            // Check for guaranteed UPGRADE (pity timer) — also works at max level for GODCHAIN recharge
+            // Check for guaranteed UPGRADE (pity timer)
             const killsSinceUpgrade = this.totalKills - this.lastUpgradeKillCount;
             if (killsSinceUpgrade >= WE.KILLS_FOR_UPGRADE) {
                 this.lastUpgradeKillCount = this.totalKills;
+                // v5.10.3: At max weapon, redirect to SPECIAL (UPGRADE has no effect)
+                const maxWpn = WE.MAX_WEAPON_LEVEL || 5;
+                if (playerState && playerState.weaponLevel >= maxWpn) {
+                    const type = this.getWeightedSpecial(WE);
+                    return { type, category: 'special' };
+                }
                 return { type: 'UPGRADE', category: 'upgrade' };
             }
 
@@ -305,8 +311,9 @@
 
             // v4.48: Need scores responsive to full player state
             const maxWpn = G.Balance.WEAPON_EVOLUTION.MAX_WEAPON_LEVEL;
+            // v5.10.3: No UPGRADE need at max weapon (GODCHAIN recharge via perks since v4.60)
             const upgradeNeed = playerState.weaponLevel >= maxWpn
-                ? (AD.GODCHAIN_RECHARGE_NEED || 0.35)
+                ? 0
                 : (maxWpn - playerState.weaponLevel) / (maxWpn - 1);
             const specialNeed = playerState.hasSpecial ? 0.1 : 0.7;
             const utilityNeed = (playerState.hasShield || playerState.hasSpeed) ? 0.2 : 0.5;

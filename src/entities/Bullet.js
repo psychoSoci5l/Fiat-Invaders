@@ -14,6 +14,7 @@ class Bullet extends window.Game.Entity {
         this.age = 0; // Animation timer
         this.grazed = false; // Graze tracking
         this.shape = null; // Enemy shape for visual differentiation (coin/bill/bar/card)
+        this.isBossBullet = false; // v5.10.3: Boss bullet tag for collision radius
 
         // === WEAPON EVOLUTION v3.0 properties ===
         this.damageMult = 1;      // From POWER modifier
@@ -48,6 +49,7 @@ class Bullet extends window.Game.Entity {
         this.homingSpeed = 0; // Turn rate for homing
         this.shape = null; // Enemy shape for visual differentiation
         this.ownerColor = null; // v4.56: Enemy color for bullet core tint
+        this.isBossBullet = false; // v5.10.3: Boss bullet tag for collision radius
 
         // === WEAPON EVOLUTION v3.0 reset ===
         this.damageMult = 1;
@@ -150,6 +152,8 @@ class Bullet extends window.Game.Entity {
             if (this.special === 'HOMING' || this.homing) return cfg.PLAYER_HOMING.collisionRadius;
             return cfg.PLAYER_NORMAL.collisionRadius;
         }
+        // v5.10.3: Boss bullets use larger BOSS_PATTERN collision radius
+        if (this.isBossBullet && cfg.BOSS_PATTERN) return cfg.BOSS_PATTERN.collisionRadius;
         return cfg.ENEMY_DEFAULT.collisionRadius;  // Enemy bullet
     }
 

@@ -934,7 +934,7 @@
             // Enemy bullets (all shapes)
             ENEMY_DEFAULT:  { speed: null, collisionRadius: 4, piercing: false, explosion: null },
             // Boss patterns
-            BOSS_PATTERN:   { speed: null, collisionRadius: 5, piercing: false, explosion: null },
+            BOSS_PATTERN:   { speed: null, collisionRadius: 8, piercing: false, explosion: null }, // v5.10.3: 5→8 (44% of visual r=18)
             // Collision targets
             ENEMY_HITBOX_RADIUS: 29,     // Half of 58px enemy size (v4.25)
             PLAYER_CORE_RADIUS: 8        // Default, overridden by stats.coreHitboxSize (v5.9: 6→8)
@@ -1044,8 +1044,7 @@
                 UTILITY: 0.8,           // Base weight for utility need
                 PERK: 1.2              // v4.61: Base weight for elemental perk need
             },
-            MIN_CATEGORY_WEIGHT: 0.05,  // Minimum weight to prevent zero-chance
-            GODCHAIN_RECHARGE_NEED: 0.35  // v4.48: Need per UPGRADE al max weapon level (GODCHAIN recharges)
+            MIN_CATEGORY_WEIGHT: 0.05   // Minimum weight to prevent zero-chance
         },
 
         // --- ADAPTIVE POWER CALIBRATION v4.59 ---

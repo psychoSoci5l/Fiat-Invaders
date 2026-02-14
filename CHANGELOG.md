@@ -1,5 +1,12 @@
 # Changelog
 
+## v5.10.3 - 2026-02-14
+### Boss Flow Fixes + Bullet Collision + Drop Economy
+- **fix(boss)**: Boss defeat no longer double-spawns next wave — `waveInProgress` flag blocks WaveManager during 2s celebration, preventing spurious START_INTERMISSION before story screen
+- **fix(boss)**: Boss bullet collision radius 4→8px — tagged `isBossBullet` uses `BOSS_PATTERN.collisionRadius` (44% of visual radius ~18px), matching enemy bullet proportions
+- **fix(drops)**: PERK diamond not consumed during cooldown — pickup skipped if `perkCooldown > 0`, diamond floats until collectible
+- **fix(drops)**: UPGRADE drops at max weapon redirected to SPECIAL — removed stale `GODCHAIN_RECHARGE_NEED` (dead since v4.60), pity timer also redirects at WPN max
+
 ## v5.10.2 - 2026-02-14
 ### Shield Duration + Boss Celebration + PWA Bottom Inset
 - **fix(player)**: Shield duration 2s→5s — configurable via `Balance.PLAYER.SHIELD_DURATION`, all 3 shield activation paths now read from config
