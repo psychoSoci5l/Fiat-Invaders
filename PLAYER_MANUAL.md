@@ -24,7 +24,7 @@ Destroy waves of fiat currencies, face the Central Bank bosses (FED, ECB, BOJ) a
 |--------|---------|
 | **Move** | **Touch and drag** anywhere on screen |
 | **Fire** | **Automatic** while touching |
-| **Shield** | **Quick tap on your ship** (when ring is pulsing) |
+| **Shield** | **Quick tap on your ship** (when fins glow cyan) |
 | **HYPER Mode** | Tap **HYPER button** (when available) |
 
 ---
@@ -33,11 +33,10 @@ Destroy waves of fiat currencies, face the Central Bank bosses (FED, ECB, BOJ) a
 
 ### The Game Loop
 1. **Destroy enemies** - Waves of fiat currencies descend from above
-2. **Collect UPGRADE drops** - Power up your weapon through 5 levels
-3. **Grab specials & utilities** - HOMING, PIERCE, MISSILE, SHIELD, SPEED
-4. **Survive 5 waves** - Each cycle has 5 waves of 2 hordes each
-5. **Defeat the Boss** - The Central Bank awaits!
-6. **New cycle** - Difficulty increases, enemies get tougher
+2. **Grab specials & utilities** - HOMING, PIERCE, MISSILE, SHIELD, SPEED
+3. **Survive 5 waves** - Each cycle has 5 waves of 2 hordes each
+4. **Defeat the Boss** - Collect the **Evolution Core** to upgrade your weapon!
+5. **New cycle** - Difficulty increases, enemies get tougher
 
 ### How to Win
 Achieve the **highest score possible**! Master these mechanics:
@@ -46,7 +45,7 @@ Achieve the **highest score possible**! Master these mechanics:
 - **Collect all 3 Elemental Perks** to unlock GODCHAIN
 
 ### Game Over
-Lose all your **lives** (hearts in top left). Each death costs you **1 weapon level** and your current special weapon.
+Lose all your **lives** (hearts in top left). Each death removes your current special weapon and resets all elemental perks.
 
 ### Bear Market Mode
 Want a challenge? Activate **Bear Market** for increased difficulty and higher scores!
@@ -55,26 +54,27 @@ Want a challenge? Activate **Bear Market** for increased difficulty and higher s
 
 ## 4. Power-Ups & Drops
 
-Enemies drop power-ups when destroyed. Four categories:
+Enemies drop power-ups when destroyed. Three categories:
 
-### Weapon UPGRADE (permanent)
-| Drop | Effect |
-|------|--------|
-| **UPGRADE** | Weapon level **+1** (up to level 5) |
-
-Your weapon evolves as you collect UPGRADE drops:
+### Weapon Evolution (permanent, from Boss kills)
+Weapons no longer drop from enemies. Instead, defeating a **Boss** spawns an **Evolution Core** — a glowing cyan diamond that flies to your ship with a cinematic sequence (slowmo + shockwave), upgrading your weapon permanently for the run.
 
 | Level | Name | Bullets | Damage | Fire Rate |
 |-------|------|---------|--------|-----------|
 | 1 | **Single** | 1 | Normal | Normal |
-| 2 | **Dual** | 2 | Normal | Normal |
-| 3 | **Dual+** | 2 | +25% | +15% faster |
-| 4 | **Triple** | 3 | +50% | +30% faster |
-| 5 | **Triple MAX** | 3 | +75% | +45% faster |
+| 2 | **Dual** | 2 | +30% | +15% faster |
+| 3 | **Triple MAX** | 3 | +70% | +35% faster |
+
+HYPER mode temporarily boosts your weapon by +2 levels (max effective LV5):
+
+| Level | Name | Bullets | Damage | Fire Rate |
+|-------|------|---------|--------|-----------|
+| 4 | **HYPER+** | 3 | +100% | +55% faster |
+| 5 | **HYPER++** | 3 | +125% | +70% faster |
 
 Each weapon level changes the ship visually — bigger pods, longer barrels — and the **muzzle flash** fires from the actual cannon positions, growing brighter and larger as you power up. Elemental perks tint the flash (red/cyan/violet/fire).
 
-**Death penalty**: Each death drops your weapon **1 level** and removes your special.
+**No death penalty on weapons** — your weapon level is permanent for the entire run. Death removes your special weapon and resets elemental perks.
 
 ### Special Weapons (temporary, 12s)
 Exclusive — collecting one replaces the current special.
@@ -86,15 +86,17 @@ Exclusive — collecting one replaces the current special.
 | **MISSILE** | Fewer bullets but huge AoE explosions |
 
 ### Elemental Perks (permanent, drop as diamond crystals)
-Collected in fixed order. Each adds a permanent elemental effect to your bullets:
+Collected in fixed order. Each adds a permanent elemental effect to your bullets and a **visible ship aura**:
 
-| Order | Element | Effect |
-|-------|---------|--------|
-| 1st | **Fire** | Kills cause splash damage (30%) to nearby enemies |
-| 2nd | **Laser** | Fires a Gradius-style beam bolt (+25% speed, +1 pierce). Multi-cannon levels merge into one powerful beam |
-| 3rd | **Electric** | Kills chain lightning to 1-2 nearby enemies (20% damage) |
+| Order | Element | Effect | Ship Aura |
+|-------|---------|--------|-----------|
+| 1st | **Fire** | Kills cause napalm splash — expanding ring + flame tongues + embers | Orange glow, rising embers |
+| 2nd | **Laser** | Fires a Gradius-style beam bolt (+25% speed, +1 pierce) with impact sparks and pierce flash | Cyan glow, trail particles |
+| 3rd | **Electric** | Kills unleash jagged lightning bolts to 1-2 nearby enemies | Violet glow, crackling arcs |
 
-Collecting all 3 activates **GODCHAIN**! Further perk drops re-trigger it. Death resets all perks.
+Each perk pickup triggers a **colored screen flash** and **elemental burst** matching the element. Contagion cascade kills show visible **connection lines** between chained enemies.
+
+Collecting all 3 activates **GODCHAIN** with a spectacular apotheosis burst (symbol explosion + gold rings)! Further perk drops re-trigger it. Death resets all perks.
 
 ### Utility Drops (temporary, 12s)
 Capsule-shaped pickups with distinct visuals.
@@ -149,6 +151,8 @@ Every 5 waves you face a boss. Rotation: **FED → ECB → BOJ**
 
 **Boss Drops**: Every **40 hits** on a boss drops a power-up. Keep shooting!
 
+**Evolution Core**: When a boss is defeated, it drops an **Evolution Core** — a cinematic sequence with chain explosions, coin rain, and a glowing diamond that flies to your ship, upgrading your weapon by +1 level.
+
 ---
 
 ## 7. Advanced Mechanics
@@ -161,7 +165,7 @@ Kill enemies at close range to fill the **DIP meter**. When it reaches 100%, HYP
 |--------|--------|
 | **Duration** | 10 seconds (fixed) |
 | **Score** | **5x multiplier** on ALL points |
-| **Weapon** | Temporary **+2 weapon levels** (LV6/LV7!) |
+| **Weapon** | Temporary **+2 weapon levels** (LV4/LV5!) |
 | **Hitbox** | 50% LARGER (more risk!) |
 | **Death** | **INSTANT** if hit (bypasses lives) |
 | **Cooldown** | 8 seconds after HYPER ends |
@@ -174,7 +178,7 @@ Kill enemies at close range to fill the **DIP meter**. When it reaches 100%, HYP
 When you collect **all 3 Elemental Perks** (Fire + Laser + Electric), GODCHAIN activates automatically:
 - 10 second duration with massive visual effects (golden aura, meteors)
 - Further perk drops **re-trigger GODCHAIN**
-- GODCHAIN combined with HYPER reaches weapon levels 6-7 — absolute destruction!
+- GODCHAIN combined with HYPER reaches weapon levels 4-5 — absolute destruction!
 
 **The cycle**: Collect perk drops → Fire → Laser → Electric → GODCHAIN! → collect more perks → GODCHAIN again!
 
@@ -255,16 +259,17 @@ Kill enemies when they're **close to your ship** vertically:
 - Boss hits also contribute to the meter
 
 ### Tactical Shield
-Activate your shield to become **invulnerable for 2 seconds** (10s cooldown):
+Activate your shield to become **invulnerable for 5 seconds** (10s cooldown):
 - **PC**: Press **Down Arrow** or **S**
-- **Mobile**: **Quick tap on your ship** — look for the pulsing cyan ring!
+- **Mobile**: **Quick tap on your ship** — look for the glowing cyan fins!
 - A glowing hexagonal energy grid surrounds your ship while active
-- The ring around your ship shows cooldown progress — when it pulses with rotating dashes, shield is ready
+- Your ship's fins glow cyan to show cooldown progress — when they pulse brightly, shield is ready
 
-### Weapon Level Management
-- **Death costs 1 level** and **resets all elemental perks**
-- Prioritize both UPGRADE and PERK drops to rebuild after death
-- After death, UPGRADE drops help you recover weapon level quickly
+### Weapon & Perk Management
+- **Weapon level is permanent** — death does NOT reduce it
+- **Death resets all elemental perks** and removes your special weapon
+- Prioritize PERK diamond drops to rebuild your elemental chain after death
+- Weapons only upgrade from boss Evolution Cores — defeat bosses to grow stronger!
 
 ### Wave Strategy
 Waves get harder as you clear them:
@@ -293,4 +298,4 @@ Waves get harder as you clear them:
 *"There is no second best"* - Michael Saylor
 
 ---
-v5.8.0 FIAT vs CRYPTO
+v5.13.0 FIAT vs CRYPTO

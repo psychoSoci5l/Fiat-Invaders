@@ -211,6 +211,12 @@ window.Game = window.Game || {};
                     const shouldDie = e.takeDamage(dmg);
                     cb.onEnemyHit(e, bullet, shouldDie);
 
+                    // v5.13: Laser beam impact VFX
+                    if (isBeam && G.ParticleSystem?.createLaserBeamImpact) {
+                        const bAngle = Math.atan2(bullet.vy, bullet.vx);
+                        G.ParticleSystem.createLaserBeamImpact(e.x, e.y, bAngle);
+                    }
+
                     if (shouldDie) {
                         const eIdx = enemies.indexOf(e);
                         if (eIdx >= 0) enemies.splice(eIdx, 1);
@@ -232,6 +238,10 @@ window.Game = window.Game || {};
                         G.Bullet.Pool.release(bullet);
                         bullets.splice(bIdx, 1);
                         return; // Non-penetrating stops
+                    }
+                    // v5.13: Laser pierce-through flash
+                    if (isBeam && G.ParticleSystem?.createLaserPierceFlash) {
+                        G.ParticleSystem.createLaserPierceFlash(e.x, e.y);
                     }
                     // v5.0.8: Pierce decay — reduce damage after each enemy pierced
                     const pd = Balance.WEAPON_EVOLUTION?.PIERCE_DECAY;
@@ -369,9 +379,28 @@ window.Game = window.Game || {};
                             this._applyElementalOnKill(en, bullet, decayedDmg, enemies, depth + 1);
                         }
                     }
-                    // Fire impact particles
-                    if (G.ParticleSystem && G.ParticleSystem.createFireImpact) {
-                        G.ParticleSystem.createFireImpact(en.x, en.y);
+                    // v5.13: Napalm impact (fallback to fire impact if disabled)
+                    if (G.ParticleSystem) {
+                        if (G.ParticleSystem.createNapalmImpact) {
+                            G.ParticleSystem.createNapalmImpact(en.x, en.y);
+                        } else if (G.ParticleSystem.createFireImpact) {
+                            G.ParticleSystem.createFireImpact(en.x, en.y);
+                        }
+                    }
+                    // v5.13: Contagion cascade VFX (line from source to splash target)
+                    if (depth > 0 && G.ParticleSystem?.addCanvasEffect) {
+                        const cvfx = G.Balance?.ELEMENTAL?.CONTAGION_VFX;
+                        if (cvfx?.ENABLED) {
+                            G.ParticleSystem.addCanvasEffect({
+                                type: 'contagion_line', timer: cvfx.LINE_DURATION, maxTimer: cvfx.LINE_DURATION,
+                                x1: deadEnemy.x, y1: deadEnemy.y, x2: en.x, y2: en.y,
+                                color: cvfx.COLORS.FIRE, width: cvfx.LINE_WIDTH
+                            });
+                            G.ParticleSystem.addCanvasEffect({
+                                type: 'ripple', timer: cvfx.RIPPLE_DURATION, maxTimer: cvfx.RIPPLE_DURATION,
+                                x: en.x, y: en.y, color: cvfx.COLORS.FIRE, radius: cvfx.RIPPLE_RADIUS
+                            });
+                        }
                     }
                 }
             }
@@ -414,9 +443,28 @@ window.Game = window.Game || {};
                         this._applyElementalOnKill(tgt.enemy, bullet, decayedDmg, enemies, depth + 1);
                     }
                 }
-                // Electric chain particles
-                if (G.ParticleSystem && G.ParticleSystem.createElectricChain) {
-                    G.ParticleSystem.createElectricChain(deadEnemy.x, deadEnemy.y, tgt.enemy.x, tgt.enemy.y);
+                // v5.13: Lightning bolt (fallback to electric chain if disabled)
+                if (G.ParticleSystem) {
+                    if (G.ParticleSystem.createLightningBolt) {
+                        G.ParticleSystem.createLightningBolt(deadEnemy.x, deadEnemy.y, tgt.enemy.x, tgt.enemy.y);
+                    } else if (G.ParticleSystem.createElectricChain) {
+                        G.ParticleSystem.createElectricChain(deadEnemy.x, deadEnemy.y, tgt.enemy.x, tgt.enemy.y);
+                    }
+                }
+                // v5.13: Contagion cascade VFX (line + ripple)
+                if (depth > 0 && G.ParticleSystem?.addCanvasEffect) {
+                    const cvfx = G.Balance?.ELEMENTAL?.CONTAGION_VFX;
+                    if (cvfx?.ENABLED) {
+                        G.ParticleSystem.addCanvasEffect({
+                            type: 'contagion_line', timer: cvfx.LINE_DURATION, maxTimer: cvfx.LINE_DURATION,
+                            x1: deadEnemy.x, y1: deadEnemy.y, x2: tgt.enemy.x, y2: tgt.enemy.y,
+                            color: cvfx.COLORS.ELECTRIC, width: cvfx.LINE_WIDTH
+                        });
+                        G.ParticleSystem.addCanvasEffect({
+                            type: 'ripple', timer: cvfx.RIPPLE_DURATION, maxTimer: cvfx.RIPPLE_DURATION,
+                            x: tgt.enemy.x, y: tgt.enemy.y, color: cvfx.COLORS.ELECTRIC, radius: cvfx.RIPPLE_RADIUS
+                        });
+                    }
                 }
             }
         }

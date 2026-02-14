@@ -118,6 +118,125 @@
                 ENABLED: true,
                 MAX_DEPTH: [1, 2, 2],     // max cascade depth per perkLevel 1/2/3+
                 DAMAGE_DECAY: 0.7          // v5.0.8: 0.5→0.6→0.7 (cascades retain 70% damage)
+            },
+            // v5.13: Contagion cascade VFX (line + ripple)
+            CONTAGION_VFX: {
+                ENABLED: true,
+                LINE_DURATION: 0.20,       // seconds
+                LINE_WIDTH: 2,
+                COLORS: {
+                    FIRE: '#ff6600',
+                    ELECTRIC: '#8844ff'
+                },
+                RIPPLE_DURATION: 0.20,
+                RIPPLE_RADIUS: 18
+            }
+        },
+
+        // --- ELEMENTAL VFX v5.13 (Spectacular perk visuals) ---
+        ELEMENTAL_VFX: {
+            // Pickup surge (flash + burst + pulse on perk collect)
+            PICKUP_SURGE: {
+                FLASH_DURATION: 0.10,
+                FLASH_OPACITY: 0.20,
+                PARTICLE_COUNT: 12,
+                SHIP_PULSE_DURATION: 0.35,
+                COLORS: {
+                    FIRE:     { hex: '#ff6600', rgb: [255, 102, 0] },
+                    LASER:    { hex: '#00f0ff', rgb: [0, 240, 255] },
+                    ELECTRIC: { hex: '#bb44ff', rgb: [187, 68, 255] },
+                    GODCHAIN: { hex: '#FFD700', rgb: [255, 215, 0] }
+                }
+            },
+            // Ship aura (persistent glow + ambient particles per element)
+            SHIP_AURA: {
+                ENABLED: true,
+                FIRE: {
+                    GLOW_RADIUS: 38,
+                    GLOW_ALPHA: 0.12,
+                    COLOR: [255, 102, 0],    // rgb for CU.rgba
+                    EMBER_INTERVAL: 5,       // frames between ember emissions
+                    EMBER_SPEED: 30,
+                    EMBER_LIFE: 0.5,
+                    EMBER_SIZE: 2.0
+                },
+                LASER: {
+                    GLOW_RADIUS: 35,
+                    GLOW_ALPHA: 0.10,
+                    COLOR: [0, 240, 255],
+                    TRAIL_INTERVAL: 4,
+                    TRAIL_SPEED: 15,
+                    TRAIL_LIFE: 0.35,
+                    TRAIL_SIZE: 1.8
+                },
+                ELECTRIC: {
+                    GLOW_RADIUS: 36,
+                    GLOW_ALPHA: 0.11,
+                    COLOR: [187, 68, 255],
+                    ARC_INTERVAL: 8,         // frames between arc re-randomize
+                    ARC_COUNT: 3,
+                    ARC_RADIUS: 28,
+                    ARC_SEGMENTS: 5,
+                    ARC_JITTER: 6
+                },
+                STACK_ALPHA_MULT: 0.7        // alpha mult per additional aura
+            },
+            // GODCHAIN apotheosis burst
+            GODCHAIN_APOTHEOSIS: {
+                SYMBOLS: ['🔥', '⚡', '💎'],
+                SYMBOL_SPEED: 120,
+                SYMBOL_LIFE: 0.8,
+                SYMBOL_SIZE: 22,
+                RING_COUNT: 2,
+                RING_COLOR: '#FFD700',
+                GLOW_RADIUS: 30,
+                GLOW_COLOR: '#FFD700'
+            },
+            // Napalm impact (replaces basic fire particles)
+            NAPALM: {
+                ENABLED: true,
+                RING_SIZE: 10,
+                RING_EXPAND: 40,
+                RING_LIFE: 0.30,
+                RING_COLOR: '#ff6600',
+                TONGUE_COUNT: 6,
+                TONGUE_SPEED_MIN: 100,
+                TONGUE_SPEED_MAX: 200,
+                TONGUE_LIFE: 0.25,
+                TONGUE_SIZE: 3,
+                TONGUE_COLORS: ['#ff4400', '#ff6600', '#ffaa00'],
+                EMBER_COUNT: 5,
+                EMBER_SPEED: 40,
+                EMBER_LIFE: 0.45,
+                EMBER_SIZE: 1.8,
+                EMBER_GRAVITY: 120
+            },
+            // Lightning bolt (replaces basic electric chain)
+            LIGHTNING: {
+                ENABLED: true,
+                SEGMENTS: 8,
+                JITTER: 12,
+                BRANCH_CHANCE: 0.3,
+                BRANCH_LENGTH: 15,
+                BRANCH_SEGMENTS: 3,
+                DURATION: 0.25,
+                CORE_WIDTH: 2,
+                GLOW_WIDTH: 6,
+                CORE_COLOR: '#ffffff',
+                GLOW_COLOR: '#8844ff',
+                BRANCH_COLOR: '#bb88ff',
+                ENDPOINT_GLOW_SIZE: 12
+            },
+            // Laser beam impact sparks
+            BEAM_IMPACT: {
+                SPARK_COUNT: 3,
+                SPARK_SPEED: 150,
+                SPARK_LIFE: 0.12,
+                SPARK_SIZE: 2,
+                SPARK_COLOR: '#00f0ff',
+                PIERCE_FLASH_SIZE: 10,
+                PIERCE_FLASH_LIFE: 0.08,
+                PIERCE_FLASH_COLOR: '#ffffff'
             }
         },
 
@@ -208,7 +327,9 @@
                 WEAPON_UPGRADE: { duration: 0.15, opacity: 0.40, color: '#FFFFFF' },
                 PLAYER_HIT: { duration: 0.04, opacity: 0.15, color: '#FF0000' },
                 WAVE_START: { duration: 0.05, opacity: 0.25, color: '#FFFFFF' },
-                MULTI_KILL: { duration: 0.08, opacity: 0.20, color: '#FFFFFF' }  // v4.5
+                MULTI_KILL: { duration: 0.08, opacity: 0.20, color: '#FFFFFF' },  // v4.5
+                PERK_PICKUP: { duration: 0.10, opacity: 0.20, color: '#bb44ff' },       // v5.13: overridden per-element at runtime
+                GODCHAIN_ACTIVATE: { duration: 0.15, opacity: 0.30, color: '#FFD700' }  // v5.13
             },
 
             // Master toggles for screen effects (modularity)
@@ -232,6 +353,10 @@
 
                 // Mode-specific overlays — ON (tints, not interruptions)
                 HYPER_OVERLAY: false,          // Golden tint during HYPER (disabled — obscures bullets)
+
+                // v5.13: Elemental pickup/godchain flashes
+                PERK_PICKUP_FLASH: true,
+                GODCHAIN_ACTIVATE_FLASH: true,
 
                 // Bear Market atmosphere
                 LIGHTNING: true,               // Purple lightning flashes

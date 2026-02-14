@@ -1,7 +1,28 @@
 # Roadmap: FIAT vs CRYPTO
 
-> **Versione attuale**: v5.9.0 (2026-02-14)
+> **Versione attuale**: v5.13.0 (2026-02-14)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
+
+---
+
+## COMPLETATO — Spectacular Elemental VFX (v5.13.0)
+
+- [x] Napalm impact: expanding ring + 6 directional flame tongues + 5 gravity embers (replaces 8 plain circles)
+- [x] Lightning bolt: jagged multi-segment lines with random branches, 3-layer glow, alpha fade
+- [x] Laser beam impact: perpendicular spark burst on hit, white pierce flash on penetration
+- [x] Contagion cascade VFX: visible connection lines + ripple rings between chained kills
+- [x] Canvas effect system: `canvasEffects[]` in ParticleSystem (lightning, lines, ripples), capped at 20
+- [x] Ship aura per element: fire embers, laser trail, electric mini-arcs — additive glow with stacking
+- [x] Elemental pickup burst + ship pulse + colored screen flash per element
+- [x] GODCHAIN apotheosis: symbol burst (emoji) + gold expanding rings + central glow
+- [x] Full config in `Balance.ELEMENTAL_VFX` with kill-switches for every effect
+
+---
+
+## COMPLETATO — Progressive Tutorial (v5.12.0)
+
+- [x] 3-step sequential tutorial (Mission/Controls/Shield) with slide animations
+- [x] Progress dots, platform-aware text, `prefers-reduced-motion` support
 
 ---
 

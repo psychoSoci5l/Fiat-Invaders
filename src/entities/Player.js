@@ -88,6 +88,11 @@ class Player extends window.Game.Entity {
         this.trail = []; // Kept for compatibility with draw()
 
         this.hyperParticles = []; // Golden particles during HYPER
+
+        // v5.13: Elemental VFX state
+        this._elemPulse = { active: false, timer: 0, duration: 0, color: '', alpha: 0 };
+        this._elemFrameCount = 0;
+        this._electricArcs = [];
     }
 
     configure(type) {
@@ -138,6 +143,12 @@ class Player extends window.Game.Entity {
         // Weapon deploy animation reset
         this._deploy.active = false;
 
+        // v5.13: Elemental VFX reset
+        this._elemPulse.active = false;
+        this._elemPulse.timer = 0;
+        this._elemFrameCount = 0;
+        this._electricArcs = [];
+
         // Weapon Evolution reset (soft reset - keep weaponLevel on normal reset)
         // Note: applyDeathPenalty() handles death penalty separately
         this.special = null;
@@ -150,6 +161,21 @@ class Player extends window.Game.Entity {
     fullReset() {
         this.weaponLevel = 1;
         this.resetState();
+    }
+
+    /**
+     * v5.13: Trigger elemental pickup pulse on ship
+     * @param {string} elementType - FIRE/LASER/ELECTRIC/GODCHAIN
+     */
+    triggerElementalPulse(elementType) {
+        const cfg = window.Game.Balance?.ELEMENTAL_VFX?.PICKUP_SURGE;
+        if (!cfg) return;
+        const colorCfg = cfg.COLORS[elementType] || cfg.COLORS.FIRE;
+        this._elemPulse.active = true;
+        this._elemPulse.timer = cfg.SHIP_PULSE_DURATION;
+        this._elemPulse.duration = cfg.SHIP_PULSE_DURATION;
+        this._elemPulse.color = colorCfg.hex;
+        this._elemPulse.alpha = 0.5;
     }
 
     /**
@@ -206,6 +232,13 @@ class Player extends window.Game.Entity {
         // Animation timer for visual effects
         this.animTime += dt;
         if (this.muzzleFlash > 0) this.muzzleFlash -= dt;
+
+        // v5.13: Elemental pulse timer + frame counter
+        this._elemFrameCount++;
+        if (this._elemPulse.active) {
+            this._elemPulse.timer -= dt;
+            if (this._elemPulse.timer <= 0) this._elemPulse.active = false;
+        }
 
         // Weapon deployment animation tick
         if (this._deploy.active) this._updateDeploy(dt);
@@ -949,8 +982,14 @@ class Player extends window.Game.Entity {
             }
         }
 
+        // v5.13: Elemental aura (before ship body, behind it)
+        this._drawElementalAura(ctx);
+
         // v4.55: Ship evolution — visual form scales with weaponLevel
         this._drawShipBody(ctx);
+
+        // v5.13: Elemental pickup pulse (over ship body)
+        this._drawElementalPulse(ctx);
 
         // v5.1: Directional muzzle flash (canvas V-flash)
         this._drawMuzzleFlash(ctx);
@@ -1075,6 +1114,145 @@ class Player extends window.Game.Entity {
         ctx.closePath();
         ctx.fill();
 
+        ctx.restore();
+    }
+
+    /**
+     * v5.13: Elemental aura — persistent glow + ambient particles per active perk
+     * Called in translated coords (0,0 = ship center)
+     */
+    _drawElementalAura(ctx) {
+        const auraCfg = window.Game.Balance?.ELEMENTAL_VFX?.SHIP_AURA;
+        if (!auraCfg?.ENABLED) return;
+        const glowEnabled = window.Game.Balance?.GLOW?.ENABLED;
+        if (!glowEnabled) return;
+
+        const rs = window.Game.RunState;
+        if (!rs) return;
+        const perkLvl = rs.perkLevel || 0;
+        if (perkLvl <= 0) return;
+
+        const CU = window.Game.ColorUtils;
+        const PS = window.Game.ParticleSystem;
+        let alphaMult = 1.0;
+
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+
+        // Fire aura (perkLevel >= 1)
+        if (perkLvl >= 1) {
+            const fc = auraCfg.FIRE;
+            const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, fc.GLOW_RADIUS);
+            grad.addColorStop(0, CU.rgba(fc.COLOR[0], fc.COLOR[1], fc.COLOR[2], fc.GLOW_ALPHA * alphaMult));
+            grad.addColorStop(1, 'transparent');
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(0, 0, fc.GLOW_RADIUS, 0, Math.PI * 2);
+            ctx.fill();
+            // Emit ember particle (world coords)
+            if (PS && this._elemFrameCount % fc.EMBER_INTERVAL === 0) {
+                const angle = Math.random() * Math.PI * 2;
+                PS.addParticle({
+                    x: this.x + (Math.random() - 0.5) * 10,
+                    y: this.y + 5,
+                    vx: Math.cos(angle) * fc.EMBER_SPEED * 0.5,
+                    vy: -fc.EMBER_SPEED + Math.random() * 10,
+                    life: fc.EMBER_LIFE, maxLife: fc.EMBER_LIFE,
+                    color: '#ff6600', size: fc.EMBER_SIZE,
+                    gravity: -30
+                });
+            }
+            alphaMult *= auraCfg.STACK_ALPHA_MULT;
+        }
+
+        // Laser aura (perkLevel >= 2)
+        if (perkLvl >= 2) {
+            const lc = auraCfg.LASER;
+            const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, lc.GLOW_RADIUS);
+            grad.addColorStop(0, CU.rgba(lc.COLOR[0], lc.COLOR[1], lc.COLOR[2], lc.GLOW_ALPHA * alphaMult));
+            grad.addColorStop(1, 'transparent');
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(0, 0, lc.GLOW_RADIUS, 0, Math.PI * 2);
+            ctx.fill();
+            // Emit trail dot behind ship (world coords)
+            if (PS && this._elemFrameCount % lc.TRAIL_INTERVAL === 0) {
+                PS.addParticle({
+                    x: this.x + (Math.random() - 0.5) * 4,
+                    y: this.y + 18,
+                    vx: (Math.random() - 0.5) * lc.TRAIL_SPEED,
+                    vy: lc.TRAIL_SPEED,
+                    life: lc.TRAIL_LIFE, maxLife: lc.TRAIL_LIFE,
+                    color: '#00f0ff', size: lc.TRAIL_SIZE,
+                    isSpark: true
+                });
+            }
+            alphaMult *= auraCfg.STACK_ALPHA_MULT;
+        }
+
+        // Electric aura (perkLevel >= 3)
+        if (perkLvl >= 3) {
+            const ec = auraCfg.ELECTRIC;
+            const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, ec.GLOW_RADIUS);
+            grad.addColorStop(0, CU.rgba(ec.COLOR[0], ec.COLOR[1], ec.COLOR[2], ec.GLOW_ALPHA * alphaMult));
+            grad.addColorStop(1, 'transparent');
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(0, 0, ec.GLOW_RADIUS, 0, Math.PI * 2);
+            ctx.fill();
+            // Mini arcs around ship (re-randomize every N frames)
+            if (this._elemFrameCount % ec.ARC_INTERVAL === 0) {
+                this._electricArcs = [];
+                for (let a = 0; a < ec.ARC_COUNT; a++) {
+                    const startAngle = Math.random() * Math.PI * 2;
+                    const segs = [];
+                    for (let s = 0; s <= ec.ARC_SEGMENTS; s++) {
+                        const t = s / ec.ARC_SEGMENTS;
+                        const r = ec.ARC_RADIUS + (Math.random() - 0.5) * ec.ARC_JITTER * 2;
+                        const ang = startAngle + t * 1.2;
+                        segs.push({ x: Math.cos(ang) * r, y: Math.sin(ang) * r });
+                    }
+                    this._electricArcs.push(segs);
+                }
+            }
+            // Draw arcs
+            ctx.strokeStyle = '#bb88ff';
+            ctx.lineWidth = 1.5;
+            ctx.globalAlpha = 0.6 * alphaMult;
+            for (let a = 0; a < this._electricArcs.length; a++) {
+                const segs = this._electricArcs[a];
+                ctx.beginPath();
+                for (let s = 0; s < segs.length; s++) {
+                    if (s === 0) ctx.moveTo(segs[s].x, segs[s].y);
+                    else ctx.lineTo(segs[s].x, segs[s].y);
+                }
+                ctx.stroke();
+            }
+        }
+
+        ctx.restore();
+    }
+
+    /**
+     * v5.13: Elemental pickup pulse — brief radial flash on perk collect
+     * Called in translated coords (0,0 = ship center)
+     */
+    _drawElementalPulse(ctx) {
+        if (!this._elemPulse.active) return;
+        const t = this._elemPulse.timer / this._elemPulse.duration;
+        if (t <= 0) return;
+
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = t * this._elemPulse.alpha;
+        const radius = 30 + (1 - t) * 25; // expand outward
+        const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
+        grad.addColorStop(0, this._elemPulse.color);
+        grad.addColorStop(1, 'transparent');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
+        ctx.fill();
         ctx.restore();
     }
 

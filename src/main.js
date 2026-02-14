@@ -5388,15 +5388,43 @@ function updatePowerUps(dt) {
                 // v5.10.3: Don't collect PERK during cooldown — let it float
                 if (p.type === 'PERK' && perkCooldown > 0) continue;
 
-                // Pickup effect!
-                createPowerUpPickupEffect(p.x, p.y, p.config.color);
-
                 // v5.0.8: Snapshot BEFORE pickup
                 const before = G.Debug ? _snapPlayerState() : null;
 
                 // v4.61: PERK drop — apply elemental perk via PerkManager
                 if (p.type === 'PERK') {
+                    // v5.13: Determine element type from current perkLevel (before increment)
+                    const plBefore = G.RunState ? (G.RunState.perkLevel || 0) : 0;
+                    const elemTypes = ['FIRE', 'LASER', 'ELECTRIC'];
+                    const elemType = plBefore < 3 ? elemTypes[plBefore] : 'GODCHAIN';
+
+                    // v5.13: Elemental pickup burst (replaces generic effect)
+                    if (G.ParticleSystem?.createElementalPickupBurst) {
+                        G.ParticleSystem.createElementalPickupBurst(p.x, p.y, elemType);
+                    } else {
+                        createPowerUpPickupEffect(p.x, p.y, p.config.color);
+                    }
+
+                    // v5.13: Screen flash with elemental color
+                    const elemColor = G.Balance?.ELEMENTAL_VFX?.PICKUP_SURGE?.COLORS?.[elemType];
+                    if (elemColor && G.Balance?.JUICE?.FLASH?.PERK_PICKUP) {
+                        G.Balance.JUICE.FLASH.PERK_PICKUP.color = elemColor.hex;
+                    }
+                    if (G.triggerScreenFlash) G.triggerScreenFlash('PERK_PICKUP');
+
                     applyRandomPerk();
+
+                    // v5.13: Ship pulse + GODCHAIN apotheosis check
+                    if (player.triggerElementalPulse) player.triggerElementalPulse(elemType);
+                    const plAfter = G.RunState ? (G.RunState.perkLevel || 0) : 0;
+                    if (plAfter >= 3 && plBefore < 3) {
+                        // GODCHAIN just triggered!
+                        if (G.ParticleSystem?.createGodchainApotheosis) {
+                            G.ParticleSystem.createGodchainApotheosis(player.x, player.y);
+                        }
+                        if (G.triggerScreenFlash) G.triggerScreenFlash('GODCHAIN_ACTIVATE');
+                    }
+
                     const meme = POWERUP_MEMES[p.type] || 'PERK!';
                     showPickup(meme);
                     if (G.Debug) {
@@ -5408,6 +5436,9 @@ function updatePowerUps(dt) {
                     emitEvent('powerup_pickup', { type: p.type, category: 'perk' });
                     continue;
                 }
+
+                // Pickup effect for non-PERK power-ups
+                createPowerUpPickupEffect(p.x, p.y, p.config.color);
 
                 // WEAPON EVOLUTION v3.0: Use applyPowerUp for new types
                 const evolutionTypes = ['UPGRADE', 'HOMING', 'PIERCE', 'MISSILE', 'SHIELD', 'SPEED'];

@@ -10,26 +10,26 @@
 *   **Responsive**: "Notch-safe" UI design that adapts to all mobile screens.
 *   **Localization**: Fully localized in English (EN) and Italian (IT).
 
-## 🧠 Current Gameplay Rules (v5.9)
+## 🧠 Current Gameplay Rules (v5.13)
 
 *   **Two Game Modes**: **Story Mode** (3 acts with narrative chapters, boss progression FED→BCE→BOJ) and **Arcade Mode** ("Rogue Protocol" — roguelike modifier system, combo scoring, enhanced mini-bosses, infinite scaling).
 *   **Wave System**: 15 unique waves (5 per cycle × 3 cycles) with 16 formation patterns and thematic currency groups.
 *   **Seamless Flow**: Waves transition instantly — no countdown between waves. Boss-defeat celebrations preserved.
 *   **HarmonicConductor**: Beat-synced enemy firing with wave intensity phases (Setup → Build → Panic).
-*   **Weapon Evolution**: Linear 5-level system (Single → Dual → Dual+ → Triple → Triple MAX). UPGRADE drops increase level permanently. Death costs -1 level.
+*   **Weapon Evolution**: 3-level system (Single → Dual → Triple MAX). Boss kills drop an **Evolution Core** that upgrades weapons cinematically. HYPER adds +2 temp levels (LV4-5). No weapon death penalty.
 *   **Special Weapons**: 3 exclusive specials (HOMING, PIERCE, MISSILE) — 12s duration each.
 *   **Utility Drops**: SHIELD (absorbs hit) and SPEED (+40% movement) — capsule-shaped, 12s duration.
-*   **Elemental Perks**: Fixed sequential order (Fire → Laser → Electric). Diamond crystal drops every 50 kills. Fire = splash damage, Laser = speed + pierce, Electric = chain lightning.
+*   **Elemental Perks**: Fixed sequential order (Fire → Laser → Electric). Diamond crystal drops every 50 kills. Fire = napalm splash, Laser = beam + impact sparks, Electric = chain lightning bolts. Each perk adds a persistent ship aura with ambient particles.
 *   **HYPER Mode**: Proximity kills fill the DIP meter. At 100%, HYPER activates — 5x score, +2 temp weapon levels, 50% bigger hitbox (high risk/reward).
-*   **GODCHAIN Mode**: Activates when 3 elemental perks collected — energy form ship, max firepower. Further perks re-trigger it.
+*   **GODCHAIN Mode**: Activates when 3 elemental perks collected — apotheosis burst (symbol explosion + gold rings), energy form ship, max firepower. Further perks re-trigger it.
 *   **Arcade Rogue Protocol**: 15 roguelike modifiers (OFFENSE/DEFENSE/WILD) chosen after boss and mini-boss defeats. Combo scoring (chain kills for up to 5x multiplier). Aggressive pacing, post-C3 infinite scaling.
 *   **Dynamic Difficulty (Rank System)**: Game adapts to player skill in real-time (-1.0 to +1.0 rank).
-*   **3 Unique Bosses**: FED (MEGA-BILL), BCE (MEGA-COIN), BOJ (MEGA-BAR) with exclusive attack patterns and 3 phases each.
+*   **3 Unique Bosses**: FED (Corrupted Printer pyramid), BCE (Star Fortress), BOJ (Golden Torii) with exclusive attack patterns, 3 phases each, and cinematic death sequences.
 *   **10 Fiat Currencies**: Each with unique shape, tier, and fire pattern.
 *   **Compact HUD**: Minimal 45px top bar with diegetic ship indicators.
 *   **Reactive Feedback**: Score colors on streaks, danger pulse at low HP, wave sweep transitions.
 *   **Meme Popup System**: Full-width neon cartoon popup above player ship with 3-tier priority queue (CRITICAL/HIGH/NORMAL), spring-pop animation, 10 event types.
-*   **First-Run Tutorial**: 3-step mode-aware onboarding (Controls, Objective, Survival) — separate content for Story vs Arcade.
+*   **First-Run Tutorial**: Progressive 3-step mission briefing (Mission, Controls, Shield) with slide animations — separate content for Story vs Arcade, platform-aware (PC/mobile).
 *   **Accessibility**: WCAG 2.1 AA+ contrast ratios, 48px+ touch targets, `prefers-reduced-motion` support.
 
 ## 🎮 How to Play
@@ -162,8 +162,8 @@ All tuning is centralized in `src/config/BalanceConfig.js` via `window.Game.Bala
 * **Enemy firing**: `Balance.CHOREOGRAPHY` (HarmonicConductor controls all firing)
 * **Wave definitions**: `Balance.WAVE_DEFINITIONS` (15 waves, formations, currencies)
 * **Boss stats**: `Balance.BOSS` (HP, fire rates, movement per boss per phase, attack patterns)
-* **Weapon evolution**: `Balance.WEAPON_EVOLUTION` (level table, specials, utilities, GODCHAIN)
-* **Drop system**: `Balance.ADAPTIVE_DROPS` (suppression, category weights, GODCHAIN recharge)
+* **Weapon evolution**: `Balance.WEAPON_EVOLUTION` (3-level table, specials, utilities, boss Evolution Core)
+* **Drop system**: `Balance.ADAPTIVE_DROPS` (suppression, category weights: SPECIAL/UTILITY/PERK)
 * **Dynamic difficulty**: `Balance.RANK` (fire rate/enemy count adjustment range)
 * **Proximity kills**: `Balance.PROXIMITY_KILL` (DIP meter gain, HYPER trigger)
 
@@ -174,7 +174,7 @@ All tuning is centralized in `src/config/BalanceConfig.js` via `window.Game.Bala
 * **Player dies too quickly** → Reduce `Balance.RANK.FIRE_RATE_RANGE` or lower difficulty
 * **Boss too tanky** → Lower `Balance.BOSS.HP` (BASE, PER_LEVEL, CYCLE_MULT)
 * **Weapon levels too fast** → Increase `Balance.WEAPON_EVOLUTION.KILLS_FOR_UPGRADE`
-* **GODCHAIN too rare** → Increase `Balance.ADAPTIVE_DROPS.GODCHAIN_RECHARGE_NEED`
+* **GODCHAIN too rare** → Lower `Balance.WEAPON_EVOLUTION.KILLS_FOR_PERK` (perk diamond frequency)
 
 ## 🧩 Known Issues / Watchlist
 

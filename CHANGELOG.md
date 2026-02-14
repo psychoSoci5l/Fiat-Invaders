@@ -1,5 +1,22 @@
 # Changelog
 
+## v5.13.0 - 2026-02-14
+### Spectacular Elemental VFX
+- **feat(vfx)**: Napalm impact — fire kills now produce expanding ring + 6 directional flame tongues + 5 gravity embers (replaces 8 plain circles). Kill-switch: `ELEMENTAL_VFX.NAPALM.ENABLED`
+- **feat(vfx)**: Lightning bolt — electric chains now render as jagged multi-segment bolts with random branches, 3-layer glow (core/mid/branches), alpha fade. Kill-switch: `ELEMENTAL_VFX.LIGHTNING.ENABLED`
+- **feat(vfx)**: Laser beam impact — perpendicular spark burst on every beam hit, white pierce-through flash on penetration
+- **feat(vfx)**: Contagion cascade lines — visible connection lines + ripple rings when elemental kills cascade to nearby enemies
+- **feat(vfx)**: Canvas effect system — new `canvasEffects[]` array in ParticleSystem for non-particle visual effects (lightning, lines, ripples), capped at 20, rendered in additive pass
+- **feat(vfx)**: Elemental ship aura — per-perk persistent glow + ambient particles: fire embers rise from ship, laser cyan trail dots behind ship, electric mini-arcs crackle around ship. Stacking alpha reduction for multiple auras. Kill-switch: `ELEMENTAL_VFX.SHIP_AURA.ENABLED`
+- **feat(vfx)**: Elemental pickup burst — perk collection produces colored ring + 12 radial sparks + central glow (color matches element type)
+- **feat(vfx)**: Elemental pickup pulse — brief radial flash on ship body when perk collected, color per element
+- **feat(vfx)**: Screen flash on perk pickup (color per element) + GODCHAIN activation flash (gold). Kill-switches in `JUICE.SCREEN_EFFECTS`
+- **feat(vfx)**: GODCHAIN apotheosis — symbol burst (fire/lightning/diamond emoji) + 2 expanding gold rings + central glow when 3rd perk triggers GODCHAIN
+- **config**: `Balance.ELEMENTAL_VFX` — new top-level config section with PICKUP_SURGE, SHIP_AURA, GODCHAIN_APOTHEOSIS, NAPALM, LIGHTNING, BEAM_IMPACT subsections
+- **config**: `Balance.ELEMENTAL.CONTAGION_VFX` — cascade line/ripple visual config
+- **config**: `Balance.JUICE.FLASH.PERK_PICKUP/GODCHAIN_ACTIVATE` — new screen flash entries
+- **config**: `Balance.JUICE.SCREEN_EFFECTS.PERK_PICKUP_FLASH/GODCHAIN_ACTIVATE_FLASH` — new kill-switches
+
 ## v5.12.0 - 2026-02-14
 ### Progressive Step-by-Step Tutorial
 - **feat(tutorial)**: Redesigned tutorial from 4 static cards to 3 sequential animated steps: Mission (magenta), Controls (violet), Shield (cyan)

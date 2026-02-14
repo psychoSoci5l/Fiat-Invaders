@@ -12,11 +12,15 @@
 
     // Configuration
     const MAX_PARTICLES = 180; // v4.5: Increased from 120 for richer VFX
+    const MAX_CANVAS_EFFECTS = 20; // v5.13: Cap for canvas-drawn effects
 
     // Particle state
     let particles = [];
     let gameWidth = 0;
     let gameHeight = 0;
+
+    // v5.13: Canvas effects (lightning bolts, contagion lines, ripples)
+    let canvasEffects = [];
 
     /**
      * Initialize particle system with canvas dimensions
@@ -56,6 +60,15 @@
      */
     function releaseParticle(p) {
         if (G.ParticlePool) G.ParticlePool.release(p);
+    }
+
+    /**
+     * v5.13: Add a canvas effect (lightning, contagion line, ripple)
+     * @param {Object} effect - { type, timer, ... } — decremented in update
+     */
+    function addCanvasEffect(effect) {
+        if (canvasEffects.length >= MAX_CANVAS_EFFECTS) return;
+        canvasEffects.push(effect);
     }
 
     /**
@@ -576,6 +589,18 @@
             }
         }
         particles.length = writeIdx;
+
+        // v5.13: Update canvas effects
+        let ceWrite = 0;
+        for (let i = 0; i < canvasEffects.length; i++) {
+            const ce = canvasEffects[i];
+            ce.timer -= dt;
+            if (ce.timer > 0) {
+                if (ceWrite !== i) canvasEffects[ceWrite] = ce;
+                ceWrite++;
+            }
+        }
+        canvasEffects.length = ceWrite;
     }
 
     /**
@@ -665,7 +690,70 @@
             }
         }
 
-        if (_useAdditive) ctx.globalCompositeOperation = 'source-over';
+        // === v5.13: Canvas effects (lightning, contagion lines, ripples) ===
+        if (canvasEffects.length > 0) {
+            if (!_useAdditive) ctx.globalCompositeOperation = 'lighter';
+            for (let i = 0; i < canvasEffects.length; i++) {
+                const ce = canvasEffects[i];
+                const alpha = ce.timer / ce.maxTimer;
+                ctx.globalAlpha = alpha;
+
+                if (ce.type === 'lightning') {
+                    // Core line
+                    ctx.strokeStyle = ce.coreColor;
+                    ctx.lineWidth = ce.coreWidth;
+                    ctx.beginPath();
+                    for (let s = 0; s < ce.segments.length; s++) {
+                        const seg = ce.segments[s];
+                        if (s === 0) ctx.moveTo(seg.x, seg.y);
+                        else ctx.lineTo(seg.x, seg.y);
+                    }
+                    ctx.stroke();
+                    // Glow line (wider, lower alpha)
+                    ctx.globalAlpha = alpha * 0.5;
+                    ctx.strokeStyle = ce.glowColor;
+                    ctx.lineWidth = ce.glowWidth;
+                    ctx.beginPath();
+                    for (let s = 0; s < ce.segments.length; s++) {
+                        const seg = ce.segments[s];
+                        if (s === 0) ctx.moveTo(seg.x, seg.y);
+                        else ctx.lineTo(seg.x, seg.y);
+                    }
+                    ctx.stroke();
+                    // Branches
+                    if (ce.branches) {
+                        ctx.globalAlpha = alpha * 0.4;
+                        ctx.strokeStyle = ce.branchColor;
+                        ctx.lineWidth = 1;
+                        for (let b = 0; b < ce.branches.length; b++) {
+                            const br = ce.branches[b];
+                            ctx.beginPath();
+                            for (let s = 0; s < br.length; s++) {
+                                if (s === 0) ctx.moveTo(br[s].x, br[s].y);
+                                else ctx.lineTo(br[s].x, br[s].y);
+                            }
+                            ctx.stroke();
+                        }
+                    }
+                } else if (ce.type === 'contagion_line') {
+                    ctx.strokeStyle = ce.color;
+                    ctx.lineWidth = ce.width || 2;
+                    ctx.beginPath();
+                    ctx.moveTo(ce.x1, ce.y1);
+                    ctx.lineTo(ce.x2, ce.y2);
+                    ctx.stroke();
+                } else if (ce.type === 'ripple') {
+                    const expand = (1 - alpha) * (ce.radius || 18);
+                    ctx.strokeStyle = ce.color;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(ce.x, ce.y, 4 + expand, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+            }
+        }
+
+        if (_useAdditive || canvasEffects.length > 0) ctx.globalCompositeOperation = 'source-over';
         ctx.globalAlpha = 1;
         ctx.restore();
     }
@@ -676,6 +764,7 @@
     function clear() {
         particles.forEach(p => releaseParticle(p));
         particles = [];
+        canvasEffects = [];
     }
 
     /**
@@ -836,11 +925,231 @@
         }
     }
 
+    // v5.13: Napalm impact (ring + flame tongues + embers)
+    function createNapalmImpact(x, y) {
+        const cfg = G.Balance?.ELEMENTAL_VFX?.NAPALM;
+        if (!cfg?.ENABLED) { createFireImpact(x, y); return; }
+
+        // Expanding ring
+        addParticle({
+            x, y, vx: 0, vy: 0,
+            life: cfg.RING_LIFE, maxLife: cfg.RING_LIFE,
+            color: cfg.RING_COLOR,
+            size: cfg.RING_SIZE, baseSize: cfg.RING_EXPAND,
+            isRing: true, explosionGrow: true
+        });
+
+        // Flame tongues (fast directional sparks)
+        const tongueColors = cfg.TONGUE_COLORS;
+        for (let i = 0; i < cfg.TONGUE_COUNT; i++) {
+            const angle = (Math.PI * 2 / cfg.TONGUE_COUNT) * i + Math.random() * 0.5;
+            const speed = cfg.TONGUE_SPEED_MIN + Math.random() * (cfg.TONGUE_SPEED_MAX - cfg.TONGUE_SPEED_MIN);
+            addParticle({
+                x, y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                life: cfg.TONGUE_LIFE, maxLife: cfg.TONGUE_LIFE,
+                color: tongueColors[i % tongueColors.length],
+                size: cfg.TONGUE_SIZE, baseSize: cfg.TONGUE_SIZE,
+                isSpark: true, explosionGrow: true
+            });
+        }
+
+        // Embers with gravity
+        for (let i = 0; i < cfg.EMBER_COUNT; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = cfg.EMBER_SPEED + Math.random() * 30;
+            addParticle({
+                x, y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed - 20,
+                life: cfg.EMBER_LIFE, maxLife: cfg.EMBER_LIFE,
+                color: tongueColors[Math.floor(Math.random() * tongueColors.length)],
+                size: cfg.EMBER_SIZE,
+                gravity: cfg.EMBER_GRAVITY
+            });
+        }
+    }
+
+    // v5.13: Lightning bolt (jagged line + branches + endpoint glow)
+    function createLightningBolt(x1, y1, x2, y2) {
+        const cfg = G.Balance?.ELEMENTAL_VFX?.LIGHTNING;
+        if (!cfg?.ENABLED) { createElectricChain(x1, y1, x2, y2); return; }
+
+        // Pre-calculate jagged segments
+        const segments = [];
+        const dx = x2 - x1, dy = y2 - y1;
+        const len = Math.sqrt(dx * dx + dy * dy) || 1;
+        const nx = -dy / len, ny = dx / len; // perpendicular normal
+        for (let i = 0; i <= cfg.SEGMENTS; i++) {
+            const t = i / cfg.SEGMENTS;
+            const jitter = (i === 0 || i === cfg.SEGMENTS) ? 0 : (Math.random() - 0.5) * 2 * cfg.JITTER;
+            segments.push({
+                x: x1 + dx * t + nx * jitter,
+                y: y1 + dy * t + ny * jitter
+            });
+        }
+
+        // Branches
+        const branches = [];
+        for (let i = 1; i < segments.length - 1; i++) {
+            if (Math.random() < cfg.BRANCH_CHANCE) {
+                const branchSegs = [{ x: segments[i].x, y: segments[i].y }];
+                const bAngle = Math.atan2(dy, dx) + (Math.random() - 0.5) * 1.5;
+                let bx = segments[i].x, by = segments[i].y;
+                for (let s = 0; s < cfg.BRANCH_SEGMENTS; s++) {
+                    bx += Math.cos(bAngle) * (cfg.BRANCH_LENGTH / cfg.BRANCH_SEGMENTS) + (Math.random() - 0.5) * 4;
+                    by += Math.sin(bAngle) * (cfg.BRANCH_LENGTH / cfg.BRANCH_SEGMENTS) + (Math.random() - 0.5) * 4;
+                    branchSegs.push({ x: bx, y: by });
+                }
+                branches.push(branchSegs);
+            }
+        }
+
+        addCanvasEffect({
+            type: 'lightning',
+            timer: cfg.DURATION,
+            maxTimer: cfg.DURATION,
+            segments,
+            branches,
+            coreColor: cfg.CORE_COLOR,
+            glowColor: cfg.GLOW_COLOR,
+            branchColor: cfg.BRANCH_COLOR,
+            coreWidth: cfg.CORE_WIDTH,
+            glowWidth: cfg.GLOW_WIDTH
+        });
+
+        // Endpoint glow particle
+        addParticle({
+            x: x2, y: y2, vx: 0, vy: 0,
+            life: cfg.DURATION, maxLife: cfg.DURATION,
+            color: cfg.GLOW_COLOR,
+            size: cfg.ENDPOINT_GLOW_SIZE,
+            isGlow: true
+        });
+    }
+
+    // v5.13: Laser beam impact sparks
+    function createLaserBeamImpact(x, y, angle) {
+        const cfg = G.Balance?.ELEMENTAL_VFX?.BEAM_IMPACT;
+        if (!cfg) return;
+        const perpAngle = (angle || 0) + Math.PI / 2;
+        for (let i = 0; i < cfg.SPARK_COUNT; i++) {
+            const spread = (i - (cfg.SPARK_COUNT - 1) / 2) * 0.6;
+            const a = perpAngle + spread + (Math.random() - 0.5) * 0.3;
+            addParticle({
+                x, y,
+                vx: Math.cos(a) * cfg.SPARK_SPEED,
+                vy: Math.sin(a) * cfg.SPARK_SPEED,
+                life: cfg.SPARK_LIFE, maxLife: cfg.SPARK_LIFE,
+                color: cfg.SPARK_COLOR,
+                size: cfg.SPARK_SIZE, baseSize: cfg.SPARK_SIZE,
+                isSpark: true, explosionGrow: true
+            });
+        }
+    }
+
+    // v5.13: Laser pierce-through flash
+    function createLaserPierceFlash(x, y) {
+        const cfg = G.Balance?.ELEMENTAL_VFX?.BEAM_IMPACT;
+        if (!cfg) return;
+        addParticle({
+            x, y, vx: 0, vy: 0,
+            life: cfg.PIERCE_FLASH_LIFE, maxLife: cfg.PIERCE_FLASH_LIFE,
+            color: cfg.PIERCE_FLASH_COLOR,
+            size: cfg.PIERCE_FLASH_SIZE,
+            isGlow: true
+        });
+    }
+
+    // v5.13: Elemental pickup burst (ring + radial sparks + central glow)
+    function createElementalPickupBurst(x, y, elementType) {
+        const cfg = G.Balance?.ELEMENTAL_VFX?.PICKUP_SURGE;
+        if (!cfg) { createPowerUpPickupEffect(x, y, '#bb44ff'); return; }
+        const colorCfg = cfg.COLORS[elementType] || cfg.COLORS.FIRE;
+        const hex = colorCfg.hex;
+
+        // Expanding ring
+        addParticle({
+            x, y, vx: 0, vy: 0,
+            life: 0.35, maxLife: 0.35,
+            color: hex, size: 8, baseSize: 45,
+            isRing: true, explosionGrow: true
+        });
+
+        // Radial sparks
+        const count = Math.min(cfg.PARTICLE_COUNT, MAX_PARTICLES - particles.length - 2);
+        for (let i = 0; i < count; i++) {
+            const angle = (Math.PI * 2 / count) * i + Math.random() * 0.3;
+            const speed = 140 + Math.random() * 80;
+            addParticle({
+                x, y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                life: 0.35, maxLife: 0.40,
+                color: i % 3 === 0 ? '#ffffff' : hex,
+                size: 2.5, baseSize: 3,
+                isSpark: true, explosionGrow: true
+            });
+        }
+
+        // Central glow
+        addParticle({
+            x, y, vx: 0, vy: 0,
+            life: 0.25, maxLife: 0.25,
+            color: hex, size: 22,
+            isGlow: true
+        });
+    }
+
+    // v5.13: GODCHAIN apotheosis burst (symbols + gold rings + glow)
+    function createGodchainApotheosis(x, y) {
+        const cfg = G.Balance?.ELEMENTAL_VFX?.GODCHAIN_APOTHEOSIS;
+        if (!cfg) return;
+
+        // Symbol particles outward
+        const symbols = cfg.SYMBOLS;
+        for (let i = 0; i < symbols.length; i++) {
+            const angle = (Math.PI * 2 / symbols.length) * i - Math.PI / 2;
+            addParticle({
+                x, y,
+                vx: Math.cos(angle) * cfg.SYMBOL_SPEED,
+                vy: Math.sin(angle) * cfg.SYMBOL_SPEED,
+                life: cfg.SYMBOL_LIFE, maxLife: cfg.SYMBOL_LIFE,
+                color: cfg.RING_COLOR,
+                size: cfg.SYMBOL_SIZE,
+                symbol: symbols[i],
+                rotation: 0, rotSpeed: 3
+            });
+        }
+
+        // Gold rings
+        for (let i = 0; i < cfg.RING_COUNT; i++) {
+            addParticle({
+                x, y, vx: 0, vy: 0,
+                life: 0.4 + i * 0.1, maxLife: 0.5 + i * 0.1,
+                color: cfg.RING_COLOR,
+                size: 10 + i * 5, baseSize: 50 + i * 15,
+                isRing: true, explosionGrow: true
+            });
+        }
+
+        // Central glow
+        addParticle({
+            x, y, vx: 0, vy: 0,
+            life: 0.3, maxLife: 0.3,
+            color: cfg.GLOW_COLOR,
+            size: cfg.GLOW_RADIUS,
+            isGlow: true
+        });
+    }
+
     // Export to namespace
     G.ParticleSystem = {
         init,
         setDimensions,
         addParticle,
+        addCanvasEffect,
         createBulletSpark,
         createGrazeSpark,
         createPowerUpPickupEffect,
@@ -851,6 +1160,12 @@
         createScoreParticles,
         createFireImpact,
         createElectricChain,
+        createNapalmImpact,
+        createLightningBolt,
+        createLaserBeamImpact,
+        createLaserPierceFlash,
+        createElementalPickupBurst,
+        createGodchainApotheosis,
         createWeaponUpgradeEffect,
         createCoinRain,
         createEvolutionItemTrail,

@@ -130,6 +130,8 @@
             if (type === 'HYPER_ACTIVATE' && !effects.HYPER_ACTIVATE_FLASH) return;
             if (type === 'CLOSE_GRAZE' && !effects.GRAZE_FLASH) return;
             if ((type === 'STREAK_10' || type === 'STREAK_25' || type === 'STREAK_50') && !effects.STREAK_FLASH) return;
+            if (type === 'PERK_PICKUP' && !effects.PERK_PICKUP_FLASH) return;
+            if (type === 'GODCHAIN_ACTIVATE' && !effects.GODCHAIN_ACTIVATE_FLASH) return;
         }
 
         const flash = Balance?.JUICE?.FLASH?.[type];
