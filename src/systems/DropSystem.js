@@ -357,6 +357,14 @@
             // Base drop chance from enemy tier
             let dropChance = Balance.getDropChance(enemySymbol);
 
+            // Arcade modifier: drop rate
+            const _isArcadeDrop = G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode();
+            if (_isArcadeDrop && Balance.ARCADE) {
+                dropChance *= Balance.ARCADE.DROP_RATE_MULT;
+                const ab = G.RunState && G.RunState.arcadeBonuses;
+                if (ab && ab.dropRateMult !== 1.0) dropChance *= ab.dropRateMult;
+            }
+
             // Cycle bonus
             if (Balance.DROP_SCALING) {
                 dropChance += (cycle - 1) * Balance.DROP_SCALING.CYCLE_BONUS;
@@ -369,6 +377,11 @@
             }
             const apcAdj = (G.RunState && G.RunState.cyclePower) ? G.RunState.cyclePower.pityAdj : 0;
             if (apcAdj) pityThreshold = Math.max(10, pityThreshold + apcAdj);
+            // Arcade modifier: pity multiplier
+            if (_isArcadeDrop) {
+                const ab2 = G.RunState && G.RunState.arcadeBonuses;
+                if (ab2 && ab2.pityMult !== 1.0) pityThreshold = Math.max(5, Math.floor(pityThreshold * ab2.pityMult));
+            }
             const pityDrop = this.killsSinceLastDrop >= pityThreshold;
 
             // === WEAPON EVOLUTION ===

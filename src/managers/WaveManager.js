@@ -51,6 +51,10 @@ window.Game.WaveManager = {
 
     getHordeTransitionDuration() {
         const Balance = window.Game.Balance;
+        const G = window.Game;
+        if (G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode() && Balance.ARCADE) {
+            return Balance.ARCADE.HORDE_TRANSITION_DURATION || 0.5;
+        }
         return Balance?.WAVES?.HORDE_TRANSITION_DURATION || 0.8;
     },
 
@@ -139,6 +143,13 @@ window.Game.WaveManager = {
             // v4.6.1: Cycle scaling — more enemies in later cycles to match player power
             const cycleMult = Balance.WAVE_DEFINITIONS.CYCLE_COUNT_MULT?.[Math.min(cycle - 1, 2)] || 1.0;
             targetCount = Math.floor(targetCount * cycleMult);
+
+            // Arcade: +15% enemy count
+            const _arcadeCfg = Balance.ARCADE;
+            const _isArcadeWM = G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode();
+            if (_isArcadeWM && _arcadeCfg) {
+                targetCount = Math.floor(targetCount * (_arcadeCfg.ENEMY_COUNT_MULT || 1.15));
+            }
 
             // v4.1.0: Rank-based enemy count adjustment
             if (G.RankSystem) {
@@ -232,7 +243,15 @@ window.Game.WaveManager = {
         // Scale HP based on difficulty + APC multiplier (v4.59)
         const diff = Balance.calculateDifficulty(level, cycle);
         const apcMult = (G.RunState && G.RunState.cyclePower) ? G.RunState.cyclePower.hpMult : 1.0;
-        const scaledHP = Balance.calculateEnemyHP(diff, cycle) * apcMult;
+        let scaledHP = Balance.calculateEnemyHP(diff, cycle) * apcMult;
+        // Arcade modifiers: enemy HP scaling
+        const _arcadeCfg = Balance.ARCADE;
+        const _isArcadeWM = G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode();
+        if (_isArcadeWM && _arcadeCfg) {
+            scaledHP *= _arcadeCfg.ENEMY_HP_MULT;
+            const ab = G.RunState && G.RunState.arcadeBonuses;
+            if (ab && ab.enemyHpMult !== 1.0) scaledHP *= ab.enemyHpMult;
+        }
         const scaledType = Object.assign({}, currencyType, {
             hp: currencyType.hp * scaledHP
         });

@@ -1,5 +1,27 @@
 # Changelog
 
+## v5.8.0 - 2026-02-14
+### Arcade Mode: Rogue Protocol
+- **feat(arcade)**: Arcade mode unlocked — fully playable roguelike shooter mode with infinite scaling
+- **feat(arcade)**: Roguelike modifier system — 15 modifiers across 3 categories (OFFENSE/DEFENSE/WILD), selectable after boss and mini-boss defeats
+- **feat(arcade)**: Post-boss modifier choice — 3-card fullscreen modal with category colors, stack indicators, slide-in animation
+- **feat(arcade)**: Post-mini-boss modifier choice — 2-card compact selection for quick picks
+- **feat(arcade)**: Combo scoring system — kill chain counter with 3s timeout, graze extends +0.5s, multiplier up to 5.0x (combo 80), death/hit resets
+- **feat(arcade)**: Combo HUD — canvas-drawn "xN COMBO" below score, color gradient (white/yellow/orange/red), pulse animation, fade-out on reset
+- **feat(arcade)**: Mini-boss enhancements — lower kill thresholds (x0.65), 10s cooldown (vs 15s), max 3/wave, 50% boss HP (vs 60%)
+- **feat(arcade)**: Aggressive pacing — 2s intermission (vs 3.2s), 4s boss celebration (vs 6s), 0.5s horde transition (vs 0.8s)
+- **feat(arcade)**: Enemy scaling — +15% count, -15% HP per wave (swarm-friendly, combo-friendly), +10% drop rate
+- **feat(arcade)**: Post-C3 infinite scaling — wave definitions cycle C1-C3, formations remixed (40% chance), +20% difficulty per cycle beyond C3
+- **feat(arcade)**: Modifier effects — fire rate, damage, pierce, player speed, enemy HP/bullet speed, drop rate, pity timer, score multiplier, graze radius
+- **feat(arcade)**: Special modifiers — Volatile Rounds (AoE on kill), Chain Lightning (chain to nearby), Critical Hit (15% chance 3x), Nano Shield (auto 45s), Last Stand (survive lethal 1x/cycle)
+- **feat(arcade)**: Wild modifiers — Double Score (+2x score, +25% enemy HP), Bullet Hell (+40% fire, +60% drops), Speed Demon (+25% all speed), Jackpot (halved pity, -1 life), Berserker (+50% dmg, no shield drops)
+- **feat(arcade)**: Gameover stats — best combo, protocol count alongside cycle/level/wave
+- **feat(ui)**: Modifier overlay — z-index 9800, backdrop blur, responsive card layout
+- **feat(i18n)**: Arcade mode descriptions updated for EN/IT ("Roguelike protocols. Infinite runs.")
+- **fix(ui)**: Removed WIP tag and disabled state from Arcade button
+- **new files**: `src/systems/ArcadeModifiers.js`, `src/ui/ModifierChoiceScreen.js`
+- **config**: `Balance.ARCADE` section — pacing, combo, mini-boss, scaling, modifier counts
+
 ## v5.7.0 - 2026-02-14
 ### Premium Boss Redesign + Tap Shield + Visual Polish
 - **feat(boss)**: FED "The Corrupted Printer" — pyramid body with All-Seeing Eye (iris gradient + tracking pupil), neon green edges, CRT scan lines, orbiting $ symbols, P2 glitch artifacts + side emitters, P3 wireframe flicker + matrix rain $ + afterimage pupil trail

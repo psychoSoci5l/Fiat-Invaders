@@ -198,7 +198,10 @@ class Player extends window.Game.Entity {
         if (this._godchainActive && Balance.GODCHAIN) {
             speedMult *= Balance.GODCHAIN.SPEED_BONUS;
         }
-        const speed = this.stats.speed * this.getRunMod('speedMult', 1) * speedMult;
+        let speed = this.stats.speed * this.getRunMod('speedMult', 1) * speedMult;
+        // Arcade modifier: player speed
+        const _abSpeed = window.Game.RunState && window.Game.RunState.arcadeBonuses;
+        if (_abSpeed && _abSpeed.speedMult !== 1.0) speed *= _abSpeed.speedMult;
 
         // Animation timer for visual effects
         this.animTime += dt;
@@ -571,10 +574,17 @@ class Player extends window.Game.Entity {
 
         // Calculate fire rate from level table
         let cooldown = this.stats.fireRate * levelData.cooldownMult;
+        // Arcade modifier: fire rate
+        const _ab = window.Game.RunState && window.Game.RunState.arcadeBonuses;
+        if (_ab && _ab.fireRateMult !== 1.0) cooldown *= _ab.fireRateMult;
         this.cooldown = cooldown;
 
         // Damage multiplier from level table
-        const damageMult = levelData.damageMult;
+        let damageMult = levelData.damageMult;
+        // Arcade modifier: damage
+        if (_ab && _ab.damageMult !== 1.0) damageMult *= _ab.damageMult;
+        // Arcade modifier: critical hit
+        if (_ab && _ab.critChance > 0 && Math.random() < _ab.critChance) damageMult *= _ab.critMult;
 
         // Spread angle from level table
         const spreadAngle = levelData.spreadDeg * (Math.PI / 180);
@@ -650,6 +660,9 @@ class Player extends window.Game.Entity {
                     + Math.floor(effectiveLevel * (BP.LEVEL_BONUS || 0.5))
                     + pierceBonusHP;
             }
+
+            // Arcade modifier: extra pierce
+            if (_ab && _ab.piercePlus > 0) b.pierceHP += _ab.piercePlus;
 
             b.weaponType = this.special || 'EVOLUTION';
             if (this.hyperActive) b._isHyper = true;

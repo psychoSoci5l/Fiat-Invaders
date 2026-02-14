@@ -81,6 +81,8 @@ All modules attach to `window.Game` (alias `G`). Script load order in `index.htm
 - `G.Bullet.Pool`, `G.ParticlePool`, `G.ParticleSystem` - Pooling & particles
 - `G.ColorUtils`, `G.MathUtils` - Utilities
 - `G.CampaignState` - Story mode progression
+- `G.ArcadeModifiers` - Arcade roguelike modifier system (definitions, pool, apply)
+- `G.ModifierChoiceScreen` - DOM modal for modifier card selection (post-boss/mini-boss)
 - `G._currentLang` - Current language ('EN' or 'IT')
 - `window.isBearMarket` - Hard mode flag
 - `window.marketCycle` - Current difficulty cycle
@@ -107,7 +109,7 @@ Detailed tables, parameters, and implementation specifics → **SYSTEM_REFERENCE
 - **Weapon Evolution** — `Balance.WEAPON_EVOLUTION`. Linear 5-level system (`LEVELS` table 1-7). HYPER adds +2 temp levels. 3 specials (HOMING/PIERCE/MISSILE, 12s). 2 utilities (SHIELD/SPEED, capsule visual). Death: -1 weapon level, lose special
 - **GODCHAIN** — `Balance.GODCHAIN`. Activates when 3 elemental perks collected (10s timer, re-triggerable via further bullet cancels)
 - **Enemy System** — `Balance.ENEMY_BEHAVIOR`. 10 currencies, 3 tiers, 4 shapes. Fire budget: C1=25/C2=45/C3=70 bullets/sec
-- **Wave System** — `Balance.WAVE_DEFINITIONS`. 15 waves (5×3 cycles), 16 formations, legacy fallback cycle 4+
+- **Wave System** — `Balance.WAVE_DEFINITIONS`. 15 waves (5×3 cycles), 16 formations. Arcade post-C3: cycles through C1-C3 definitions with formation remix
 - **Boss System** — `Balance.BOSS`. FED/BCE/BOJ, 3 phases each, HP formula in config, rotation `marketCycle % 3`
 - **Drop System** — `Balance.ADAPTIVE_DROPS`. Rates 3%/2.5%/1% by tier, pity 55 kills, adaptive suppression. 3 categories: UPGRADE/SPECIAL/UTILITY
 - **Collision** — `CollisionSystem.js`. 4 loops, callback pattern, init via `initCollisionSystem()`
@@ -115,6 +117,7 @@ Detailed tables, parameters, and implementation specifics → **SYSTEM_REFERENCE
 - **Proximity Kill Meter** — `Balance.PROXIMITY_KILL`. Vertical-distance kills fill DIP meter (replaces graze as HYPER source). Boss hits +0.4, phase transitions +15. `Game.addProximityMeter(gain)` API
 - **Elemental Perk System** — `Upgrades.js` + `PerkManager.js`. Fixed order: Fire (splash 30%), Laser (+25% speed, +1 pierce), Electric (chain 20% to 1-2 nearby). No stacking. Perk 3 → triggers GODCHAIN. Perk 4+ → re-triggers GODCHAIN. Death resets all. Config in `Balance.ELEMENTAL`. Drops as diamond power-ups via DropSystem (pity 50 kills)
 - **Adaptive Power Calibration** — `Balance.ADAPTIVE_POWER`. At cycle transitions (C2+), snapshots player power (weapon level, perk stacks, special). Adjusts enemy HP (0.85–1.35×) and drop pity timer. Debug: APC section in `dbg.report()`
+- **Arcade Rogue Protocol** — `Balance.ARCADE`. Roguelike Arcade mode with combo scoring, accumulating modifiers, enhanced mini-bosses. Config: `COMBO` (3s timeout, 0.05x/kill cap 5.0x), `MINI_BOSS` (lower thresholds, 10s cooldown, modifier rewards), `MODIFIERS` (3 post-boss / 2 post-mini-boss picks). Pacing: 2s intermission, +15% enemy count, -15% enemy HP. Post-C3 infinite scaling (+20%/cycle). `ArcadeModifiers.js` (15 modifiers: 5 OFFENSE/5 DEFENSE/5 WILD), `ModifierChoiceScreen.js` (DOM card selection). `RunState.arcadeModifiers[]`, `RunState.arcadeBonuses{}`, `RunState.comboCount/comboTimer/comboMult`
 
 ### UI & Presentation
 - **HUD & Messages** — `Balance.MESSAGE_STRIP`. 2 DOM (#message-strip, #meme-popup) + 2 canvas (SHIP_STATUS, WAVE_SWEEP)
@@ -139,7 +142,7 @@ Detailed tables, parameters, and implementation specifics → **SYSTEM_REFERENCE
 - **Audio System** — `Balance.AUDIO`. Procedural music (MusicData.js), separate Music/SFX gain. `toggleMusic()`/`toggleSfx()`. Bear market: -1 semitone, +10% tempo
 
 ### Debug
-- **Debug System** — `dbg.*` console API. Key commands: `dbg.balanceTest()`, `dbg.report()`, `dbg.hitboxes()`, `dbg.maxWeapon()`. Full reference in SYSTEM_REFERENCE.md
+- **Debug System** — `dbg.*` console API. Key commands: `dbg.balanceTest()`, `dbg.report()`, `dbg.hitboxes()`, `dbg.maxWeapon()`, `dbg.arcade()`, `dbg.arcadeHelp()`. Full reference in SYSTEM_REFERENCE.md
 
 ---
 
@@ -155,6 +158,7 @@ Detailed tables, parameters, and implementation specifics → **SYSTEM_REFERENCE
 |---------|---------|----------|
 | `#splash-layer` | 9999 | Outside game-container |
 | `#tutorial-overlay` | 9500 | Outside game-container |
+| `#modifier-overlay` | 9800 | Outside game-container |
 | `#curtain-overlay` | 9000 | Outside game-container |
 | Modals | 1000-1100 | Outside game-container |
 | `#intro-screen` | 250 | Inside game-container |

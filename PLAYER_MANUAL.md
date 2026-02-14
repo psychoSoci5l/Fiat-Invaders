@@ -180,7 +180,73 @@ When you collect **all 3 Elemental Perks** (Fire + Laser + Electric), GODCHAIN a
 
 ---
 
-## 8. Pro Tips
+## 8. Arcade Mode — Rogue Protocol
+
+Arcade Mode is a distinct roguelike experience. No story, no chapters — just pure combat with escalating challenge and accumulating power.
+
+### How It Works
+1. Play through 5 waves → defeat the Boss
+2. **Choose a Modifier** (pick 1 of 3 cards) — permanent for the rest of the run
+3. Repeat — every cycle gets harder, but you get stronger
+4. No ending — survive as long as you can!
+
+### Combo System
+- Kill enemies in quick succession to build a **combo chain**
+- Each kill resets a 3-second timer — let it expire and combo resets to 0
+- **Graze** enemy bullets to extend the timer by 0.5s
+- Score multiplier: **1.0x + (combo × 0.05)**, capped at **5.0x** (80 combo)
+- Displayed as "×N COMBO" in the top-right corner, color shifts white → yellow → orange → red
+- Getting hit resets the combo
+
+### Modifiers (15 total)
+Modifiers are permanent upgrades chosen after boss and mini-boss defeats.
+
+**OFFENSE (Red)**
+| Name | Effect |
+|------|--------|
+| **Overclock** | Fire rate +20% (stacks 2x) |
+| **Armor Piercing** | All bullets +1 pierce (stacks) |
+| **Volatile Rounds** | Kills cause 30px AoE (50% damage) |
+| **Critical Hit** | 15% chance for 3x damage (stacks to 30%) |
+| **Chain Lightning** | Kills chain to 1 nearby enemy (30% damage) |
+
+**DEFENSE (Cyan)**
+| Name | Effect |
+|------|--------|
+| **Nano Shield** | Auto-shield every 45s |
+| **Extra Life** | +1 life (stacks) |
+| **Bullet Time** | Enemy bullets -20% speed (stacks 2x) |
+| **Wider Graze** | Graze radius +40% |
+| **Last Stand** | Survive one lethal hit per cycle |
+
+**WILD (Magenta)** — High risk, high reward!
+| Name | Effect |
+|------|--------|
+| **Double Score** | Score 2x but enemies +25% HP |
+| **Bullet Hell** | Enemies fire +40% but drops +60% |
+| **Speed Demon** | Everything +25% speed (you AND enemies) |
+| **Jackpot** | Pity timers halved but -1 life |
+| **Berserker** | Damage +50% but no shield drops |
+
+### Mini-Bosses
+In Arcade, mini-bosses spawn more frequently (lower kill thresholds, 10s cooldown). Defeating one lets you **pick 1 of 2 modifier cards** — a bonus power-up!
+
+### Post-Cycle 3 Scaling
+After defeating all 3 bosses (FED→ECB→BOJ), the game loops back through wave definitions with:
+- +20% difficulty per extra cycle
+- 40% chance of remixed formations
+- Boss rotation continues: C4=FED, C5=ECB, C6=BOJ...
+- No cap — how far can you go?
+
+### Arcade Pacing
+- Faster intermissions (2s vs Story's 3.2s)
+- +15% more enemies per wave
+- -15% enemy HP (more kills = more combos!)
+- Higher base drop rate (+10%)
+
+---
+
+## 9. Pro Tips
 
 ### Kill Close for DIP
 Kill enemies when they're **close to your ship** vertically:
@@ -208,7 +274,7 @@ Waves get harder as you clear them:
 
 ---
 
-## 9. Crypto Terminology
+## 10. Crypto Terminology
 
 | Term | In-Game Meaning |
 |------|-----------------|
@@ -227,4 +293,4 @@ Waves get harder as you clear them:
 *"There is no second best"* - Michael Saylor
 
 ---
-v4.61.0 FIAT vs CRYPTO
+v5.8.0 FIAT vs CRYPTO

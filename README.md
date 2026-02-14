@@ -10,9 +10,9 @@
 *   **Responsive**: "Notch-safe" UI design that adapts to all mobile screens.
 *   **Localization**: Fully localized in English (EN) and Italian (IT).
 
-## 🧠 Current Gameplay Rules (v5.0)
+## 🧠 Current Gameplay Rules (v5.8)
 
-*   **Two Game Modes**: **Story Mode** (3 acts with narrative chapters, boss progression FED→BCE→BOJ) and **Arcade Mode** (endless waves, high scores, mini-bosses).
+*   **Two Game Modes**: **Story Mode** (3 acts with narrative chapters, boss progression FED→BCE→BOJ) and **Arcade Mode** ("Rogue Protocol" — roguelike modifier system, combo scoring, enhanced mini-bosses, infinite scaling).
 *   **Wave System**: 15 unique waves (5 per cycle × 3 cycles) with 16 formation patterns and thematic currency groups.
 *   **Seamless Flow**: Waves transition instantly — no countdown between waves. Boss-defeat celebrations preserved.
 *   **HarmonicConductor**: Beat-synced enemy firing with wave intensity phases (Setup → Build → Panic).
@@ -22,6 +22,7 @@
 *   **Elemental Perks**: Fixed sequential order (Fire → Laser → Electric). Diamond crystal drops every 50 kills. Fire = splash damage, Laser = speed + pierce, Electric = chain lightning.
 *   **HYPER Mode**: Proximity kills fill the DIP meter. At 100%, HYPER activates — 5x score, +2 temp weapon levels, 50% bigger hitbox (high risk/reward).
 *   **GODCHAIN Mode**: Activates when 3 elemental perks collected — energy form ship, max firepower. Further perks re-trigger it.
+*   **Arcade Rogue Protocol**: 15 roguelike modifiers (OFFENSE/DEFENSE/WILD) chosen after boss and mini-boss defeats. Combo scoring (chain kills for up to 5x multiplier). Aggressive pacing, post-C3 infinite scaling.
 *   **Dynamic Difficulty (Rank System)**: Game adapts to player skill in real-time (-1.0 to +1.0 rank).
 *   **3 Unique Bosses**: FED (MEGA-BILL), BCE (MEGA-COIN), BOJ (MEGA-BAR) with exclusive attack patterns and 3 phases each.
 *   **10 Fiat Currencies**: Each with unique shape, tier, and fire pattern.
@@ -74,8 +75,8 @@ This project is a static site. You can deploy it instantly to:
   /config        # BalanceConfig (single source of truth)
   /core          # Audio, Input, Object Pools, EventBus
   /entities      # Game Objects (Player, Enemy, Boss, Bullet, PowerUp)
-  /managers      # WaveManager, CampaignState
-  /systems       # HarmonicConductor, ParticleSystem, RankSystem, Effects, Sky, etc.
+  /managers      # WaveManager, CampaignState, MiniBossManager, PerkManager
+  /systems       # HarmonicConductor, ParticleSystem, RankSystem, ArcadeModifiers, etc.
   /utils         # Constants, DebugSystem, ColorUtils, MathUtils, Upgrades
   main.js        # Game Loop & State Machine
 index.html       # DOM Structure & UI Overlay
@@ -137,6 +138,20 @@ dbg.maxWeapon()     // Max weapon level + activate GODCHAIN
 dbg.weaponStatus()  // Current weapon state snapshot
 dbg.godchain()      // Force GODCHAIN mode
 dbg.godchainStatus()// GODCHAIN timer and state
+```
+
+### Arcade Debug
+```javascript
+dbg.arcade()        // Full arcade status (modifiers, combo, bonuses)
+dbg.arcadeMod(id)   // Force-apply modifier (e.g. 'OVERCLOCK')
+dbg.arcadePick(3)   // Open modifier choice screen
+dbg.arcadeCombo(50) // Set combo counter
+dbg.arcadeMax()     // Apply all offense modifiers
+dbg.arcadeTank()    // Apply all defense modifiers + extra lives
+dbg.arcadeWild()    // Apply all wild modifiers
+dbg.arcadeReset()   // Clear all modifiers and combo
+dbg.arcadeCycle(5)  // Jump to cycle N
+dbg.arcadeHelp()    // List all arcade debug commands
 ```
 
 ## 🔧 Common Tweaks

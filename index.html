@@ -114,7 +114,7 @@
         <div class="mode-selector" id="mode-selector">
             <div class="mode-pills">
                 <button class="mode-pill active" id="mode-pill-story" onclick="setGameMode('campaign')">STORY</button>
-                <button class="mode-pill mode-pill-wip" id="mode-pill-arcade" onclick="setGameMode('arcade')">ARCADE <span class="wip-tag">WIP</span></button>
+                <button class="mode-pill" id="mode-pill-arcade" onclick="setGameMode('arcade')">ARCADE</button>
             </div>
         </div>
 
@@ -124,7 +124,7 @@
                 Follow Bitcoin's rise against central banks.
             </p>
             <p class="mode-desc" id="mode-arcade-desc" data-i18n="MODE_ARCADE_DESC" style="display: none;">
-                Endless waves. High scores. Pure action.
+                Roguelike protocols. Infinite runs. Every choice matters.
             </p>
         </div>
 
@@ -253,11 +253,21 @@
             <span>LEVEL <b id="arcadeLevelVal">1</b></span>
             <span>WAVE <b id="arcadeWaveVal">1</b></span>
         </div>
+        <div id="arcade-combo-row" style="display: none;">
+            <span>BEST COMBO <b id="arcadeBestCombo">0</b></span>
+            <span>PROTOCOLS <b id="arcadeModCount">0</b></span>
+        </div>
         <div id="new-best-badge" style="display: none;">NEW BEST!</div>
         <div class="gameover-actions">
             <button class="btn btn-primary btn-lg" id="btn-retry" onclick="restartFromGameOver()">RETRY</button>
             <button class="btn btn-secondary" onclick="backToIntro()">MENU</button>
         </div>
+    </div>
+
+    <!-- Arcade Modifier Choice Overlay -->
+    <div id="modifier-overlay" style="display: none;">
+        <div class="modifier-header">CHOOSE YOUR PROTOCOL</div>
+        <div id="modifier-cards" class="modifier-cards"></div>
     </div>
 
     <!-- Control zone hint — grey area below graze meter -->
@@ -643,6 +653,9 @@
     <script src="src/systems/PerkIconManager.js"></script>
     <script src="src/managers/PerkManager.js"></script>
     <script src="src/managers/MiniBossManager.js"></script>
+    <!-- Arcade Rogue Protocol -->
+    <script src="src/systems/ArcadeModifiers.js"></script>
+    <script src="src/ui/ModifierChoiceScreen.js"></script>
     <script type="module" src="src/main.js"></script>
     <script>
         if ('serviceWorker' in navigator) {

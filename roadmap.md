@@ -1,7 +1,24 @@
 # Roadmap: FIAT vs CRYPTO
 
-> **Versione attuale**: v5.7.0 (2026-02-14)
+> **Versione attuale**: v5.8.0 (2026-02-14)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
+
+---
+
+## COMPLETATO — Arcade "Rogue Protocol" (v5.8.0)
+
+- [x] Arcade mode unlocked — fully playable distinct experience
+- [x] 15 roguelike modifiers (5 OFFENSE / 5 DEFENSE / 5 WILD) with apply/stack/recalculate
+- [x] Post-boss 3-card modifier choice, post-mini-boss 2-card choice (DOM modal)
+- [x] Combo scoring system (3s timeout, graze extends, 0.05x/kill, cap 5.0x at 80 combo)
+- [x] Canvas combo HUD with color gradient (white→yellow→orange→red) and pulse animation
+- [x] Arcade pacing: 2s intermission, 0.5s horde transition, +15% enemies, -15% enemy HP
+- [x] Mini-boss enhancement: lower thresholds (×0.65), 10s cooldown, max 3/wave, modifier rewards
+- [x] Post-C3 infinite scaling: wave definitions cycle C1→C3, +20%/cycle difficulty, formation remix 40%
+- [x] Modifier effects: fire rate, damage, pierce, critical hit, AoE, chain lightning, bullet time, nano shield, last stand, etc.
+- [x] Arcade gameover stats: best combo, modifier picks
+- [x] Comprehensive debug utility: `dbg.arcade()`, `dbg.arcadeMod()`, `dbg.arcadePick()`, presets
+- [x] New files: `ArcadeModifiers.js`, `ModifierChoiceScreen.js`
 
 ---
 
@@ -137,7 +154,7 @@
 - New enemy types (elite variants, shield enemies)
 - ~~Boss attack pattern variety (per-phase unique patterns)~~ ✅ v5.0.4
 - ~~Boss visual redesign (premium cyberpunk aesthetic)~~ ✅ v5.7.0
-- Combo system (chain kills for multiplier)
+- ~~Combo system (chain kills for multiplier)~~ ✅ v5.8.0
 - Daily challenge mode
 - Leaderboard (local, no server)
 

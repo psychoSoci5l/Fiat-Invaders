@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v5.7.0 FIAT vs CRYPTO";
+window.Game.VERSION = "v5.8.0 FIAT vs CRYPTO";
 
 window.Game.TEXTS = {
     EN: {
@@ -33,7 +33,7 @@ window.Game.TEXTS = {
         RESTART_RUN: "RESTART RUN",
         // Mode descriptions
         MODE_STORY_DESC: "Follow Bitcoin's rise against central banks.",
-        MODE_ARCADE_DESC: "Endless waves. High scores. Pure action.",
+        MODE_ARCADE_DESC: "Roguelike protocols. Infinite runs. Every choice matters.",
         // Manual
         MANUAL: "MANUAL", MANUAL_TITLE: "PLAYER MANUAL",
         TAB_WELCOME: "WELCOME", TAB_CONTROLS: "CONTROLS", TAB_POWERUPS: "POWER-UPS",
@@ -158,7 +158,8 @@ window.Game.TEXTS = {
         MODE_STORY: "STORY",
         MODE_ARCADE: "ARCADE",
         MODE_STORY_DESC: "Experience Bitcoin's story through 3 epic chapters",
-        MODE_ARCADE_DESC: "Endless high-score challenge",
+        MODE_ARCADE_DESC: "Roguelike protocols. Infinite runs. Every choice matters.",
+        ARCADE_CHOOSE: "CHOOSE YOUR PROTOCOL",
         CHANGE_MODE: "change mode",
         TITLE_SUBTITLE: "Currencies",
         GO: "GO!",
@@ -198,7 +199,7 @@ window.Game.TEXTS = {
         RESTART_RUN: "RICOMINCIA",
         // Mode descriptions
         MODE_STORY_DESC: "Segui l'ascesa di Bitcoin contro le banche centrali.",
-        MODE_ARCADE_DESC: "Ondate infinite. Punteggi alti. Pura azione.",
+        MODE_ARCADE_DESC: "Protocolli roguelike. Run infinite. Ogni scelta conta.",
         // Manual
         MANUAL: "MANUALE", MANUAL_TITLE: "MANUALE GIOCATORE",
         TAB_WELCOME: "BENVENUTO", TAB_CONTROLS: "CONTROLLI", TAB_POWERUPS: "POWER-UP",
@@ -323,8 +324,9 @@ window.Game.TEXTS = {
         MODE_STORY: "STORIA",
         MODE_ARCADE: "ARCADE",
         MODE_STORY_DESC: "Vivi la storia di Bitcoin attraverso 3 capitoli epici",
-        MODE_ARCADE_DESC: "Sfida infinita per il punteggio",
-        CHANGE_MODE: "cambia modalità",
+        MODE_ARCADE_DESC: "Protocolli roguelike. Run infinite. Ogni scelta conta.",
+        ARCADE_CHOOSE: "SCEGLI IL TUO PROTOCOLLO",
+        CHANGE_MODE: "cambia modalita",
         TITLE_SUBTITLE: "Valute",
         GO: "VIA!",
         // Arcade records (v4.50)

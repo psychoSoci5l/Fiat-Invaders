@@ -65,6 +65,38 @@ class RunState {
         // --- Per-frame counters ---
         this._frameKills = 0;
         this._hyperAmbientTimer = 0;
+
+        // --- Arcade: Combo system ---
+        this.comboCount = 0;
+        this.comboTimer = 0;          // Seconds remaining before combo resets
+        this.comboMult = 1.0;
+        this.bestCombo = 0;
+        this.comboDecayAnim = 0;      // Fade-out animation timer
+
+        // --- Arcade: Roguelike modifiers ---
+        this.arcadeModifiers = [];    // Array of modifier IDs
+        this.arcadeBonuses = {
+            fireRateMult: 1.0,
+            damageMult: 1.0,
+            piercePlus: 0,
+            speedMult: 1.0,
+            enemyHpMult: 1.0,
+            enemyBulletSpeedMult: 1.0,
+            dropRateMult: 1.0,
+            scoreMult: 1.0,
+            grazeRadiusMult: 1.0,
+            pityMult: 1.0,
+            extraLives: 0,
+            nanoShieldTimer: 0,
+            nanoShieldCooldown: 0,
+            lastStandAvailable: false,
+            noShieldDrops: false,
+            volatileRounds: false,
+            chainLightning: false,
+            critChance: 0,
+            critMult: 3.0
+        };
+        this.arcadeModifierPicks = 0; // Total picks made
     }
 
 }

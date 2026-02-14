@@ -74,6 +74,10 @@ class Enemy extends window.Game.Entity {
     // Note: attemptFire() removed in v2.13.0 - all firing now handled by HarmonicConductor
 
     buildBullet(target, bulletSpeed, aimSpreadMult, extraAngle = 0) {
+        // Arcade modifier: enemy bullet speed
+        const _ab = window.Game.RunState && window.Game.RunState.arcadeBonuses;
+        if (_ab && _ab.enemyBulletSpeedMult !== 1.0) bulletSpeed *= _ab.enemyBulletSpeedMult;
+
         // Aiming Logic
         let vx = 0;
         let vy = bulletSpeed;

@@ -1885,7 +1885,13 @@
         calculateDifficulty(level, cycle) {
             // Get base difficulty for this cycle (stepped)
             const cycleIndex = Math.min(cycle - 1, this.DIFFICULTY.CYCLE_BASE.length - 1);
-            const baseDiff = this.DIFFICULTY.CYCLE_BASE[cycleIndex];
+            let baseDiff = this.DIFFICULTY.CYCLE_BASE[cycleIndex];
+
+            // Arcade post-C3: continued difficulty scaling
+            const _isArcade = window.Game.ArcadeModifiers && window.Game.ArcadeModifiers.isArcadeMode();
+            if (_isArcade && cycle > 3 && this.ARCADE) {
+                baseDiff += (cycle - 3) * (this.ARCADE.POST_C3_DIFF_PER_CYCLE || 0.20);
+            }
 
             // Calculate wave within current cycle (0-4)
             const waveInCycle = ((level - 1) % this.WAVES.PER_CYCLE);
@@ -2084,18 +2090,32 @@
          */
         getWaveDefinition(cycle, waveInCycle) {
             const defs = this.WAVE_DEFINITIONS.WAVES;
-            // Cap cycle at 3 (repeat cycle 3 for cycles 4+)
-            const effectiveCycle = Math.min(cycle, 3);
+            const _isArcade = window.Game.ArcadeModifiers && window.Game.ArcadeModifiers.isArcadeMode();
+            const arcadeCfg = this.ARCADE;
+
+            // Arcade post-C3: cycle through C1-C3 definitions
+            // C4=C1 waves, C5=C2, C6=C3, C7=C1, ...
+            let effectiveCycle;
+            if (_isArcade && cycle >= 4) {
+                effectiveCycle = ((cycle - 1) % 3) + 1;
+            } else {
+                effectiveCycle = Math.min(cycle, 3);
+            }
+
             const base = defs.find(w => w.cycle === effectiveCycle && w.wave === waveInCycle) || null;
-            // Cycle 4+: 30% chance to swap formation with a currency symbol
+
+            // Cycle 4+: remix formations
             if (base && cycle >= 4) {
-                const symbolForms = ['BTC_SYMBOL', 'DOLLAR_SIGN', 'EURO_SIGN', 'YEN_SIGN', 'POUND_SIGN'];
+                const allFormations = ['DIAMOND', 'ARROW', 'PINCER', 'CHEVRON', 'FORTRESS', 'SCATTER',
+                    'SPIRAL', 'CROSS', 'WALL', 'GAUNTLET', 'VORTEX', 'FLANKING', 'STAIRCASE',
+                    'HURRICANE', 'FINAL_FORM', 'BTC_SYMBOL', 'DOLLAR_SIGN', 'EURO_SIGN', 'YEN_SIGN', 'POUND_SIGN'];
+                const remixChance = (_isArcade && arcadeCfg) ? arcadeCfg.POST_C3_FORMATION_REMIX : 0.30;
                 const clone = JSON.parse(JSON.stringify(base));
-                if (Math.random() < 0.3) {
-                    clone.horde1.formation = symbolForms[Math.floor(Math.random() * symbolForms.length)];
+                if (Math.random() < remixChance) {
+                    clone.horde1.formation = allFormations[Math.floor(Math.random() * allFormations.length)];
                 }
-                if (Math.random() < 0.3) {
-                    clone.horde2.formation = symbolForms[Math.floor(Math.random() * symbolForms.length)];
+                if (Math.random() < remixChance) {
+                    clone.horde2.formation = allFormations[Math.floor(Math.random() * allFormations.length)];
                 }
                 return clone;
             }
@@ -2119,6 +2139,54 @@
         getHordeModifiers(hordeNumber) {
             return this.WAVE_DEFINITIONS.HORDE_MODIFIERS[hordeNumber] ||
                    this.WAVE_DEFINITIONS.HORDE_MODIFIERS[1];
+        },
+
+        // --- ARCADE MODE: ROGUE PROTOCOL ---
+        ARCADE: {
+            // Pacing overrides
+            INTERMISSION_DURATION: 2.0,         // Faster wave transitions (vs 3.2s Story)
+            INTERMISSION_BOSS_DURATION: 4.0,    // Shorter boss celebration (vs 6.0s)
+            HORDE_TRANSITION_DURATION: 0.5,     // Faster horde switch (vs 0.8s)
+
+            // Enemy scaling
+            ENEMY_COUNT_MULT: 1.15,             // +15% enemies per wave
+            ENEMY_HP_MULT: 0.85,                // -15% HP (swarm-friendly, combo-friendly)
+            DROP_RATE_MULT: 1.10,               // +10% drop rate
+
+            // Post-C3 scaling
+            POST_C3_DIFF_PER_CYCLE: 0.20,       // +20% difficulty per cycle beyond C3
+            POST_C3_FORMATION_REMIX: 0.40,      // 40% chance to remix formation
+
+            // Combo system
+            COMBO: {
+                TIMEOUT: 3.0,                   // Seconds before combo resets
+                GRAZE_EXTEND: 0.5,              // Seconds added per graze
+                MULT_PER_COMBO: 0.05,           // Score multiplier per combo kill
+                MULT_CAP: 5.0,                  // Max combo multiplier
+                DECAY_ANIM: 0.5,                // Fade-out duration on reset
+                // HUD colors by threshold
+                COLORS: {
+                    WHITE: 10,                  // 1-10
+                    YELLOW: 30,                 // 11-30
+                    ORANGE: 50,                 // 31-50
+                    RED: 999                    // 51+
+                }
+            },
+
+            // Mini-boss Arcade overrides
+            MINI_BOSS: {
+                COOLDOWN: 10.0,                 // 10s (vs 15s Story)
+                MAX_PER_WAVE: 3,                // 3 (vs 2 Story)
+                HP_MULT: 0.50,                  // 50% of full boss HP (vs 60%)
+                THRESHOLD_MULT: 0.65            // Kill thresholds × 0.65 (lower = more frequent)
+            },
+
+            // Modifier system
+            MODIFIERS: {
+                POST_BOSS_PICKS: 3,             // Cards shown after boss defeat
+                POST_MINIBOSS_PICKS: 2,         // Cards shown after mini-boss defeat
+                MAX_MODIFIERS: 20               // Safety cap
+            }
         }
     };
 })();

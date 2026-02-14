@@ -180,7 +180,73 @@ Quando raccogli **tutti e 3 i Perk Elementali** (Fire + Laser + Electric), la GO
 
 ---
 
-## 8. Consigli da Pro
+## 8. Modalita Arcade — Rogue Protocol
+
+La Modalita Arcade e un'esperienza roguelike distinta. Niente storia, niente capitoli — solo combattimento puro con sfida crescente e potere accumulabile.
+
+### Come Funziona
+1. Gioca 5 ondate → sconfiggi il Boss
+2. **Scegli un Modificatore** (1 su 3 carte) — permanente per il resto della run
+3. Ripeti — ogni ciclo diventa piu difficile, ma tu diventi piu forte
+4. Nessun finale — sopravvivi il piu a lungo possibile!
+
+### Sistema Combo
+- Uccidi nemici in rapida successione per costruire una **catena combo**
+- Ogni uccisione resetta un timer di 3 secondi — se scade, la combo si azzera
+- Fai **graze** sui proiettili nemici per estendere il timer di 0.5s
+- Moltiplicatore punteggio: **1.0x + (combo × 0.05)**, max **5.0x** (combo 80)
+- Visualizzato come "×N COMBO" in alto a destra, colore da bianco → giallo → arancio → rosso
+- Essere colpiti resetta la combo
+
+### Modificatori (15 totali)
+I modificatori sono potenziamenti permanenti scelti dopo la sconfitta di boss e mini-boss.
+
+**OFFENSE (Rosso)**
+| Nome | Effetto |
+|------|---------|
+| **Overclock** | Cadenza di fuoco +20% (cumulabile 2x) |
+| **Armor Piercing** | Tutti i proiettili +1 perforazione (cumulabile) |
+| **Volatile Rounds** | Le uccisioni causano AoE 30px (50% danno) |
+| **Critical Hit** | 15% probabilita danno 3x (cumulabile fino a 30%) |
+| **Chain Lightning** | Le uccisioni colpiscono 1 nemico vicino (30% danno) |
+
+**DEFENSE (Ciano)**
+| Nome | Effetto |
+|------|---------|
+| **Nano Shield** | Auto-scudo ogni 45s |
+| **Extra Life** | +1 vita (cumulabile) |
+| **Bullet Time** | Proiettili nemici -20% velocita (cumulabile 2x) |
+| **Wider Graze** | Raggio graze +40% |
+| **Last Stand** | Sopravvivi a un colpo letale 1x per ciclo |
+
+**WILD (Magenta)** — Alto rischio, alta ricompensa!
+| Nome | Effetto |
+|------|---------|
+| **Double Score** | Punteggio 2x ma nemici +25% HP |
+| **Bullet Hell** | Nemici sparano +40% ma drop +60% |
+| **Speed Demon** | Tutto +25% velocita (tu E nemici) |
+| **Jackpot** | Pity timer dimezzati ma -1 vita |
+| **Berserker** | Danno +50% ma niente drop scudo |
+
+### Mini-Boss
+In Arcade, i mini-boss spawnano piu frequentemente (soglie piu basse, cooldown 10s). Sconfiggerne uno ti permette di **scegliere 1 su 2 carte modificatore** — un bonus power-up!
+
+### Scaling Post-Ciclo 3
+Dopo aver sconfitto tutti e 3 i boss (FED→BCE→BOJ), il gioco ricomincia le definizioni wave con:
+- +20% difficolta per ogni ciclo extra
+- 40% probabilita di formazioni rimescolate
+- Rotazione boss continua: C4=FED, C5=BCE, C6=BOJ...
+- Nessun limite — fino a dove puoi arrivare?
+
+### Pacing Arcade
+- Intermissioni piu rapide (2s vs 3.2s della Story)
+- +15% nemici per ondata
+- -15% HP nemici (piu uccisioni = piu combo!)
+- Drop rate base aumentato (+10%)
+
+---
+
+## 9. Consigli da Pro
 
 ### Uccidi da Vicino per il DIP
 Uccidi i nemici quando sono **vicini alla tua nave** verticalmente:
@@ -208,7 +274,7 @@ Le ondate diventano più difficili man mano che le svuoti:
 
 ---
 
-## 9. Terminologia Crypto
+## 10. Terminologia Crypto
 
 | Termine | Significato nel Gioco |
 |---------|----------------------|
@@ -227,4 +293,4 @@ Le ondate diventano più difficili man mano che le svuoti:
 *"There is no second best"* - Michael Saylor
 
 ---
-v4.61.0 FIAT vs CRYPTO
+v5.8.0 FIAT vs CRYPTO

@@ -240,6 +240,10 @@ function initCollisionSystem() {
                     }
                     if (grazeCount > 0 && grazeCount % 10 === 0) audioSys.play('grazeStreak');
                 }
+                // Arcade: graze extends combo timer
+                if (G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode() && G.RunState.comboTimer > 0) {
+                    G.RunState.comboTimer += Balance.ARCADE.COMBO.GRAZE_EXTEND;
+                }
                 updateGrazeUI();
             },
             // Enemy hit (but not killed)
@@ -271,6 +275,23 @@ function initCollisionSystem() {
                 }
                 lastKillTime = now;
 
+                // Arcade combo system
+                const _isArcade = G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode();
+                const comboCfg = Balance.ARCADE && Balance.ARCADE.COMBO;
+                let comboMult = 1.0;
+                if (_isArcade && comboCfg) {
+                    const rs = G.RunState;
+                    rs.comboCount++;
+                    rs.comboTimer = comboCfg.TIMEOUT;
+                    rs.comboDecayAnim = 0;
+                    comboMult = Math.min(comboCfg.MULT_CAP, 1.0 + rs.comboCount * comboCfg.MULT_PER_COMBO);
+                    rs.comboMult = comboMult;
+                    if (rs.comboCount > rs.bestCombo) rs.bestCombo = rs.comboCount;
+                }
+
+                // Arcade modifier score multiplier
+                const arcadeScoreMult = (_isArcade && G.RunState.arcadeBonuses) ? G.RunState.arcadeBonuses.scoreMult : 1;
+
                 // Score calculation
                 const perkMult = 1;
                 const bearMult = isBearMarket ? Balance.SCORE.BEAR_MARKET_MULT : 1;
@@ -278,7 +299,7 @@ function initCollisionSystem() {
                 const hyperMult = (player.isHyperActive && player.isHyperActive()) ? Balance.HYPER.SCORE_MULT : 1;
                 const isLastEnemy = enemies.length === 0;
                 const lastEnemyMult = isLastEnemy && G.HarmonicConductor ? G.HarmonicConductor.getLastEnemyBonus() : 1;
-                const killScore = Math.floor(e.scoreVal * bearMult * perkMult * killStreakMult * grazeKillBonus * hyperMult * lastEnemyMult);
+                const killScore = Math.floor(e.scoreVal * bearMult * perkMult * killStreakMult * grazeKillBonus * hyperMult * lastEnemyMult * comboMult * arcadeScoreMult);
                 score += killScore;
                 updateScore(score);
                 createFloatingScore(killScore, e.x, e.y - 20);
@@ -297,6 +318,40 @@ function initCollisionSystem() {
 
                 createEnemyDeathExplosion(e.x, e.y, e.color, e.symbol || '$', e.shape);
                 createScoreParticles(e.x, e.y, e.color);
+
+                // Arcade: Volatile Rounds — AoE damage on kill
+                if (_isArcade && G.RunState.arcadeBonuses.volatileRounds && enemies.length > 0) {
+                    const aoeRadius = 30;
+                    const aoeDmg = Math.floor((player.stats.baseDamage || 14) * 0.5);
+                    for (let vi = enemies.length - 1; vi >= 0; vi--) {
+                        const ve = enemies[vi];
+                        if (!ve || !ve.active) continue;
+                        const dx = ve.x - e.x, dy = ve.y - e.y;
+                        if (dx * dx + dy * dy < aoeRadius * aoeRadius) {
+                            ve.hp -= aoeDmg;
+                            ve.hitFlash = 0.1;
+                            createExplosion(ve.x, ve.y, e.color, 4);
+                        }
+                    }
+                }
+
+                // Arcade: Chain Lightning — kill chains to 1 nearby enemy
+                if (_isArcade && G.RunState.arcadeBonuses.chainLightning && enemies.length > 0) {
+                    let closest = null, closestDist = 100 * 100;
+                    for (let ci = 0; ci < enemies.length; ci++) {
+                        const ce = enemies[ci];
+                        if (!ce || !ce.active) continue;
+                        const dx = ce.x - e.x, dy = ce.y - e.y;
+                        const d2 = dx * dx + dy * dy;
+                        if (d2 < closestDist) { closest = ce; closestDist = d2; }
+                    }
+                    if (closest) {
+                        const chainDmg = Math.floor((player.stats.baseDamage || 14) * 0.3);
+                        closest.hp -= chainDmg;
+                        closest.hitFlash = 0.15;
+                        createExplosion(closest.x, closest.y, '#00f0ff', 5);
+                    }
+                }
 
                 // Multi-kill
                 _frameKills++;
@@ -343,10 +398,14 @@ function initCollisionSystem() {
 
 
                 // Mini-boss trigger
-                if (!(G.CampaignState && G.CampaignState.isEnabled()) && e.symbol && fiatKillCounter[e.symbol] !== undefined && !miniBoss && !boss && !e.isMinion && bossWarningTimer <= 0 && (totalTime - lastMiniBossSpawnTime) >= Balance.MINI_BOSS.COOLDOWN && miniBossThisWave < (Balance.MINI_BOSS.MAX_PER_WAVE || 2)) {
+                const _arcadeMini = (G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode() && Balance.ARCADE) ? Balance.ARCADE.MINI_BOSS : null;
+                const _mbCooldown = _arcadeMini ? _arcadeMini.COOLDOWN : Balance.MINI_BOSS.COOLDOWN;
+                const _mbMaxWave = _arcadeMini ? _arcadeMini.MAX_PER_WAVE : (Balance.MINI_BOSS.MAX_PER_WAVE || 2);
+                if (!(G.CampaignState && G.CampaignState.isEnabled()) && e.symbol && fiatKillCounter[e.symbol] !== undefined && !miniBoss && !boss && !e.isMinion && bossWarningTimer <= 0 && (totalTime - lastMiniBossSpawnTime) >= _mbCooldown && miniBossThisWave < _mbMaxWave) {
                     fiatKillCounter[e.symbol]++;
                     const mapping = Balance.MINI_BOSS.CURRENCY_BOSS_MAP?.[e.symbol];
-                    const threshold = mapping?.threshold || Balance.MINI_BOSS.KILL_THRESHOLD;
+                    const _threshMult = _arcadeMini ? (_arcadeMini.THRESHOLD_MULT || 0.65) : 1.0;
+                    const threshold = Math.floor((mapping?.threshold || Balance.MINI_BOSS.KILL_THRESHOLD) * _threshMult);
                     G.Debug.log('MINIBOSS', `Kill ${e.symbol}: ${fiatKillCounter[e.symbol]}/${threshold}`);
                     if (fiatKillCounter[e.symbol] >= threshold) {
                         let bossType = mapping?.boss || 'FEDERAL_RESERVE';
@@ -469,10 +528,36 @@ function initCollisionSystem() {
                 fiatKillCounter = { '¥': 0, '₽': 0, '₹': 0, '€': 0, '£': 0, '₣': 0, '₺': 0, '$': 0, '元': 0, 'Ⓒ': 0 };
                 if (G.HarmonicConductor) { G.HarmonicConductor.reset(); G.HarmonicConductor.setDifficulty(level, marketCycle, isBearMarket); }
                 const campaignState2 = G.CampaignState;
+                const _isArcadeMode = !(campaignState2 && campaignState2.isEnabled());
                 const campaignComplete = !!(campaignState2 && campaignState2.isEnabled() && defeatedBossType === 'BOJ');
                 const chapterId = G.BOSS_TO_CHAPTER && G.BOSS_TO_CHAPTER[defeatedBossType];
                 const shouldShowChapter = chapterId && shouldShowStory(chapterId);
-                if (campaignComplete && shouldShowChapter) {
+
+                // Arcade: show modifier choice, then intermission
+                if (_isArcadeMode && G.ModifierChoiceScreen) {
+                    const picks = Balance.ARCADE.MODIFIERS.POST_BOSS_PICKS || 3;
+                    // Reset Last Stand per cycle
+                    if (G.RunState.arcadeBonuses.lastStandAvailable) {
+                        G.RunState.arcadeBonuses.lastStandAvailable = true;
+                    }
+                    startIntermission(t('CYCLE') + ' ' + marketCycle + ' ' + t('BEGINS'));
+                    // Show modifier choice after a brief delay (let boss celebration play)
+                    setTimeout(() => {
+                        G.ModifierChoiceScreen.show(picks, () => {
+                            // Apply extra lives from modifier
+                            const extraL = G.RunState.arcadeBonuses.extraLives;
+                            if (extraL > 0) {
+                                lives += extraL;
+                                G.RunState.arcadeBonuses.extraLives = 0;
+                                updateLivesUI();
+                            } else if (extraL < 0) {
+                                lives = Math.max(1, lives + extraL);
+                                G.RunState.arcadeBonuses.extraLives = 0;
+                                updateLivesUI();
+                            }
+                        });
+                    }, 1500);
+                } else if (campaignComplete && shouldShowChapter) {
                     showStoryScreen(chapterId, () => { showCampaignVictory(); });
                 } else if (campaignComplete) {
                     showCampaignVictory();
@@ -1092,8 +1177,6 @@ window.cycleShip = function(dir) {
 
 // --- GAME MODE SELECTION (Arcade vs Campaign) ---
 window.setGameMode = function(mode) {
-    // Arcade mode disabled (WIP) — force Story only
-    if (mode === 'arcade') return;
     const campaignState = G.CampaignState;
     const isEnabled = mode === 'campaign';
 
@@ -3127,9 +3210,10 @@ function startIntermission(msgOverride) {
     setGameState('INTERMISSION');
     // v5.4.0: Boss defeat uses longer intermission (6s, skippable)
     const isBossDefeat = !!msgOverride;
+    const _isArcade2 = G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode();
     const duration = isBossDefeat
-        ? (Balance.TIMING.INTERMISSION_BOSS_DURATION || 6.0)
-        : Balance.TIMING.INTERMISSION_DURATION;
+        ? (_isArcade2 ? (Balance.ARCADE.INTERMISSION_BOSS_DURATION || 4.0) : (Balance.TIMING.INTERMISSION_BOSS_DURATION || 6.0))
+        : (_isArcade2 ? (Balance.ARCADE.INTERMISSION_DURATION || 2.0) : Balance.TIMING.INTERMISSION_DURATION);
     waveMgr.intermissionTimer = duration;
     waveMgr.waveInProgress = false; // Safety reset
 
@@ -3450,6 +3534,34 @@ function update(dt) {
             player.hyperAvailable = false;
         }
         updateGrazeUI();
+    }
+
+    // Arcade combo timer decay
+    if (G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode()) {
+        const rs = G.RunState;
+        if (rs.comboTimer > 0) {
+            rs.comboTimer -= dt;
+            if (rs.comboTimer <= 0) {
+                rs.comboTimer = 0;
+                if (rs.comboCount > 0) {
+                    rs.comboDecayAnim = Balance.ARCADE.COMBO.DECAY_ANIM;
+                    rs.comboCount = 0;
+                    rs.comboMult = 1.0;
+                }
+            }
+        }
+        if (rs.comboDecayAnim > 0) {
+            rs.comboDecayAnim -= dt;
+        }
+        // Nano Shield auto-trigger
+        const ab = rs.arcadeBonuses;
+        if (ab.nanoShieldCooldown > 0 && ab.nanoShieldTimer > 0) {
+            ab.nanoShieldTimer -= dt;
+            if (ab.nanoShieldTimer <= 0 && player && !player.shieldActive) {
+                player.activateShield();
+                ab.nanoShieldTimer = ab.nanoShieldCooldown;
+            }
+        }
     }
 
     // HYPER activation check (game loop fallback — catches meter reaching threshold between kills)
@@ -3906,6 +4018,60 @@ function drawGodchainUI(ctx) {
 }
 
 
+function drawArcadeComboHUD(ctx) {
+    if (!G.ArcadeModifiers || !G.ArcadeModifiers.isArcadeMode()) return;
+    const rs = G.RunState;
+    const combo = rs.comboCount;
+    const decayAnim = rs.comboDecayAnim;
+    if (combo <= 0 && decayAnim <= 0) return;
+
+    ctx.save();
+    const comboCfg = Balance.ARCADE.COMBO;
+    const colors = comboCfg.COLORS;
+
+    let alpha = 1;
+    let displayCombo = combo;
+    if (combo <= 0 && decayAnim > 0) {
+        alpha = decayAnim / comboCfg.DECAY_ANIM;
+        displayCombo = rs.bestCombo; // Show last combo during fade
+    }
+
+    // Color based on combo level
+    let color;
+    if (displayCombo >= colors.ORANGE) color = '#ff3333';
+    else if (displayCombo >= colors.YELLOW) color = '#ff8800';
+    else if (displayCombo >= colors.WHITE) color = '#ffcc00';
+    else color = '#ffffff';
+
+    // Position: right side, below score
+    const x = gameWidth - 12;
+    const y = 32;
+
+    // Pulse effect
+    const pulse = combo > 0 ? 1 + Math.sin(totalTime * 10) * 0.04 * Math.min(combo / 20, 1) : 1;
+    const fontSize = Math.min(22, 14 + displayCombo * 0.1);
+
+    ctx.globalAlpha = alpha;
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'top';
+    ctx.font = G.ColorUtils.font('bold', Math.round(fontSize * pulse), '"Courier New", monospace');
+    ctx.fillStyle = color;
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 3;
+    const text = '\u00D7' + displayCombo;
+    ctx.strokeText(text, x, y);
+    ctx.fillText(text, x, y);
+
+    // Small "COMBO" label
+    if (displayCombo >= 5) {
+        ctx.font = G.ColorUtils.font('bold', 9, '"Courier New", monospace');
+        ctx.fillStyle = 'rgba(255,255,255,' + (alpha * 0.6) + ')';
+        ctx.fillText('COMBO', x, y + fontSize * pulse + 2);
+    }
+
+    ctx.restore();
+}
+
 // v4.28.0: checkBulletCollisions removed — logic moved to CollisionSystem.processPlayerBulletVsEnemy
 
 function updateEnemies(dt) {
@@ -3997,8 +4163,34 @@ function startDeathSequence() {
 }
 
 function executeDeath() {
+    // Arcade: Last Stand — survive lethal hit once per cycle
+    const _abDeath = G.RunState && G.RunState.arcadeBonuses;
+    if (_abDeath && _abDeath.lastStandAvailable && lives <= 1) {
+        _abDeath.lastStandAvailable = false;
+        player.hp = 1;
+        player.invulnTimer = Balance.TIMING.INVULNERABILITY * 1.5;
+        showGameInfo("LAST STAND!");
+        G.MemeEngine.queueMeme('DEATH', 'LAST STAND ACTIVATED!', 'NGMI');
+        audioSys.play('hyperReady');
+        triggerScreenFlash('STREAK_50');
+        // Reset combo on hit
+        G.RunState.comboCount = 0;
+        G.RunState.comboTimer = 0;
+        G.RunState.comboMult = 1.0;
+        G.RunState.comboDecayAnim = Balance.ARCADE.COMBO.DECAY_ANIM;
+        return;
+    }
+
     lives--;
     setUI('livesText', lives);
+
+    // Arcade: reset combo on death
+    if (G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode()) {
+        G.RunState.comboCount = 0;
+        G.RunState.comboTimer = 0;
+        G.RunState.comboMult = 1.0;
+        G.RunState.comboDecayAnim = Balance.ARCADE.COMBO.DECAY_ANIM;
+    }
 
     // Track death in analytics (skip if already tracked, e.g., HYPER death)
     if (G.Debug && !deathAlreadyTracked) {
@@ -4169,6 +4361,9 @@ function draw() {
         // HYPER MODE UI (timer when active, "READY" when available)
         drawHyperUI(ctx);
         drawGodchainUI(ctx);
+
+        // Arcade combo HUD
+        drawArcadeComboHUD(ctx);
 
         // v4.21: Intermission countdown removed (seamless wave transitions)
         // Boss-defeat intermission still uses timer but no visual countdown overlay
@@ -4509,6 +4704,13 @@ function triggerScreenFlash(type) {
 window.Game.applyHitStop = applyHitStop;
 window.Game.triggerScreenFlash = triggerScreenFlash;
 
+// Arcade: adjust lives from modifier choice
+window.Game.adjustLives = function(delta) {
+    lives = Math.max(1, lives + delta);
+    setUI('livesText', lives);
+    updateLivesUI();
+};
+
 // Expose proximity meter gain for boss phase transitions
 window.Game.addProximityMeter = function(gain) {
     // v4.61: Skip accumulation during HYPER
@@ -4801,6 +5003,13 @@ function triggerGameOver() {
             setUI('arcadeLevelVal', level);
             setUI('arcadeWaveVal', waveMgr.wave);
         }
+        // Arcade combo + modifier stats
+        const comboRow = document.getElementById('arcade-combo-row');
+        if (comboRow) {
+            comboRow.style.display = 'flex';
+            setUI('arcadeBestCombo', G.RunState.bestCombo || 0);
+            setUI('arcadeModCount', G.RunState.arcadeModifierPicks || 0);
+        }
         const result = checkArcadeRecords();
         if (bestBadge) {
             bestBadge.style.display = result.newBest ? 'inline-block' : 'none';
@@ -4809,6 +5018,8 @@ function triggerGameOver() {
     } else {
         if (statsRow) statsRow.style.display = 'none';
         if (bestBadge) bestBadge.style.display = 'none';
+        const comboRow2 = document.getElementById('arcade-combo-row');
+        if (comboRow2) comboRow2.style.display = 'none';
     }
 
     // Story: Game over dialogue

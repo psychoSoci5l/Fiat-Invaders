@@ -53,7 +53,9 @@
             const perkCount = (runState() && runState().perks) ? runState().perks.length : 0;
             const perkScaling = 1 + (perkCount * Balance.BOSS.HP.PERK_SCALE);
             const fullBossHp = Balance.calculateBossHP(level(), marketCycle());
-            const miniBossHp = Math.floor(fullBossHp * 0.6 * perkScaling);
+            const _arcadeMB = (G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode() && Balance.ARCADE) ? Balance.ARCADE.MINI_BOSS : null;
+            const hpMult = _arcadeMB ? (_arcadeMB.HP_MULT || 0.50) : 0.6;
+            const miniBossHp = Math.floor(fullBossHp * hpMult * perkScaling);
             miniBoss.hp = miniBossHp;
             miniBoss.maxHp = miniBossHp;
 
@@ -334,6 +336,21 @@
 
                 if (G.HarmonicConductor) G.HarmonicConductor.enemies = restored;
                 if (waveMgr) waveMgr.miniBossActive = false;
+
+                // Arcade: mini-boss defeat → modifier choice (2-card)
+                if (G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode() && G.ModifierChoiceScreen) {
+                    const picks = (G.Balance.ARCADE && G.Balance.ARCADE.MODIFIERS && G.Balance.ARCADE.MODIFIERS.POST_MINIBOSS_PICKS) || 2;
+                    setTimeout(() => {
+                        G.ModifierChoiceScreen.show(picks, () => {
+                            const rs = G.RunState;
+                            const extraL = rs.arcadeBonuses.extraLives;
+                            if (extraL !== 0 && G.adjustLives) {
+                                G.adjustLives(extraL);
+                                rs.arcadeBonuses.extraLives = 0;
+                            }
+                        });
+                    }, 800);
+                }
 
                 miniBoss = null;
                 window.miniBoss = null;

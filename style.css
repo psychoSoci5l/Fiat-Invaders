@@ -1430,18 +1430,7 @@ body {
     box-shadow: 0 0 15px rgba(187, 68, 255, 0.3);
 }
 
-.mode-pill.mode-pill-wip {
-    opacity: 0.4;
-    pointer-events: none;
-    position: relative;
-}
-
-.wip-tag {
-    font-size: 9px;
-    letter-spacing: 1px;
-    color: #ff2d95;
-    vertical-align: super;
-}
+/* .mode-pill-wip and .wip-tag removed — Arcade enabled (v5.8.0) */
 
 /* Mode Explanation (SPLASH only) */
 .mode-explanation {
@@ -4601,5 +4590,123 @@ body.is-touch p.mobile-only { display: block; }
     * {
         transition-duration: 0.01s !important;
     }
+}
+
+/* === ARCADE MODIFIER CHOICE OVERLAY === */
+#modifier-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9800;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(3, 3, 8, 0.92);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    padding: 20px;
+}
+
+.modifier-header {
+    font: bold 22px 'Courier New', monospace;
+    color: var(--neon-violet);
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    margin-bottom: 24px;
+    text-shadow: 0 0 10px rgba(187, 68, 255, 0.6);
+}
+
+.modifier-cards {
+    display: flex;
+    gap: 14px;
+    justify-content: center;
+    flex-wrap: wrap;
+    max-width: 500px;
+}
+.modifier-cards-2 {
+    max-width: 340px;
+}
+
+.modifier-card {
+    flex: 0 0 140px;
+    background: rgba(10, 8, 37, 0.95);
+    border: 1px solid rgba(187, 68, 255, 0.35);
+    border-radius: 12px;
+    padding: 18px 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+    animation: modCardEnter 0.35s ease-out both;
+    position: relative;
+    overflow: hidden;
+}
+.modifier-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(var(--cat-color-rgb, 187, 68, 255), 0.08) 0%, transparent 60%);
+    pointer-events: none;
+}
+.modifier-card:hover, .modifier-card:active {
+    transform: scale(1.06);
+    border-color: var(--cat-color, var(--neon-violet));
+    box-shadow: 0 0 20px rgba(187, 68, 255, 0.35);
+}
+
+.mod-icon {
+    font-size: 36px;
+    margin-bottom: 8px;
+}
+.mod-name {
+    font: bold 14px 'Courier New', monospace;
+    color: #fff;
+    margin-bottom: 6px;
+}
+.mod-stack {
+    color: var(--neon-cyan);
+    font-size: 12px;
+}
+.mod-desc {
+    font: 11px 'Courier New', monospace;
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.3;
+    margin-bottom: 8px;
+    min-height: 28px;
+}
+.mod-category {
+    font: bold 9px 'Courier New', monospace;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.modifier-card-selected {
+    transform: scale(1.12);
+    border-color: #39ff14;
+    box-shadow: 0 0 30px rgba(57, 255, 20, 0.5);
+    transition: all 0.3s ease-out;
+}
+.modifier-card-rejected {
+    opacity: 0;
+    transform: scale(0.8);
+    transition: all 0.3s ease-out;
+    pointer-events: none;
+}
+
+@keyframes modCardEnter {
+    from { opacity: 0; transform: translateY(40px) scale(0.9); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Arcade gameover extra rows */
+#arcade-combo-row {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    font: 12px 'Courier New', monospace;
+    color: rgba(255, 255, 255, 0.7);
+    margin-top: 6px;
+}
+#arcade-combo-row b {
+    color: var(--neon-cyan);
 }
 

@@ -2307,6 +2307,203 @@ window.Game.Debug = {
         line(`>100 pBul samples: ${pBulHigh100} (${totalSamples ? ((pBulHigh100/totalSamples)*100).toFixed(1) : 0}%)`);
         line(`>200 pBul samples: ${pBulHigh200} (${totalSamples ? ((pBulHigh200/totalSamples)*100).toFixed(1) : 0}%)`);
         console.log('%c╚══════════════════════════════════════════════════════════╝', 'color:#3498db');
+    },
+
+    // ═══════════════════════════════════════════════════════════
+    // ARCADE: ROGUE PROTOCOL DEBUG UTILITIES (v5.8.0)
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * dbg.arcade() — Full Arcade status report
+     */
+    arcade() {
+        const G = window.Game;
+        const rs = G.RunState;
+        if (!rs) { console.log('[DEBUG] RunState not loaded'); return; }
+
+        const isArcade = G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode();
+        const ab = rs.arcadeBonuses;
+        const mods = rs.arcadeModifiers;
+
+        console.log('');
+        console.log('%c╔══════════════════════════════════════════════════════════╗', 'color:#bb44ff');
+        console.log('%c║            ARCADE: ROGUE PROTOCOL STATUS                ║', 'color:#bb44ff');
+        console.log('%c╠══════════════════════════════════════════════════════════╣', 'color:#bb44ff');
+        const l = (t) => console.log(`%c║ ${t.padEnd(56)}║`, 'color:#bb44ff');
+
+        l(`Mode: ${isArcade ? 'ARCADE' : 'STORY'}`);
+        l(`Cycle: ${window.marketCycle || 1}  Level: ${window.currentLevel || 1}`);
+        l('');
+        l('--- COMBO ---');
+        l(`Combo: ${rs.comboCount}  Timer: ${rs.comboTimer.toFixed(1)}s  Mult: ${rs.comboMult.toFixed(2)}x`);
+        l(`Best Combo: ${rs.bestCombo}  Picks: ${rs.arcadeModifierPicks}`);
+        l('');
+        l('--- MODIFIERS (' + mods.length + ') ---');
+        if (mods.length === 0) {
+            l('  (none)');
+        } else {
+            const counts = {};
+            mods.forEach(id => counts[id] = (counts[id] || 0) + 1);
+            Object.keys(counts).forEach(id => {
+                const mod = G.ArcadeModifiers.getModifierById(id);
+                const name = mod ? mod.name : id;
+                const cat = mod ? mod.category : '?';
+                l(`  ${name} x${counts[id]} [${cat}]`);
+            });
+        }
+        l('');
+        l('--- BONUSES ---');
+        l(`FireRate: ${ab.fireRateMult.toFixed(2)}x  Damage: ${ab.damageMult.toFixed(2)}x`);
+        l(`Pierce+: ${ab.piercePlus}  Speed: ${ab.speedMult.toFixed(2)}x`);
+        l(`Score: ${ab.scoreMult.toFixed(2)}x  DropRate: ${ab.dropRateMult.toFixed(2)}x`);
+        l(`EnemyHP: ${ab.enemyHpMult.toFixed(2)}x  EnemyBulSpd: ${ab.enemyBulletSpeedMult.toFixed(2)}x`);
+        l(`Crit: ${(ab.critChance * 100).toFixed(0)}%  GrazeRadius: ${ab.grazeRadiusMult.toFixed(2)}x`);
+        l(`Pity: ${ab.pityMult.toFixed(2)}x  NanoShield: ${ab.nanoShieldCooldown > 0 ? ab.nanoShieldTimer.toFixed(0) + 's' : 'OFF'}`);
+        l(`LastStand: ${ab.lastStandAvailable ? 'READY' : 'used/off'}  Volatile: ${ab.volatileRounds}`);
+        l(`Chain: ${ab.chainLightning}  NoShield: ${ab.noShieldDrops}`);
+        console.log('%c╚══════════════════════════════════════════════════════════╝', 'color:#bb44ff');
+    },
+
+    /**
+     * dbg.arcadeMod(id) — Force-apply a modifier by ID
+     * Usage: dbg.arcadeMod('OVERCLOCK')  dbg.arcadeMod('BERSERKER')
+     */
+    arcadeMod(id) {
+        const G = window.Game;
+        if (!G.ArcadeModifiers) { console.log('[DEBUG] ArcadeModifiers not loaded'); return; }
+        const mod = G.ArcadeModifiers.getModifierById(id);
+        if (!mod) {
+            console.log(`[DEBUG] Unknown modifier: "${id}". Available:`);
+            G.ArcadeModifiers.MODIFIER_POOL.forEach(m => console.log(`  ${m.id} — ${m.name} [${m.category}]`));
+            return;
+        }
+        G.ArcadeModifiers.applyModifier(id);
+        console.log(`[DEBUG] Applied modifier: ${mod.name} [${mod.category}]`);
+        // Show updated bonuses
+        this.arcade();
+    },
+
+    /**
+     * dbg.arcadePick(count) — Force-open modifier choice screen
+     * Usage: dbg.arcadePick()  dbg.arcadePick(2)
+     */
+    arcadePick(count) {
+        const G = window.Game;
+        if (!G.ModifierChoiceScreen) { console.log('[DEBUG] ModifierChoiceScreen not loaded'); return; }
+        const n = count || 3;
+        G.ModifierChoiceScreen.show(n, () => {
+            console.log('[DEBUG] Modifier picked! Updated state:');
+            this.arcade();
+        });
+        console.log(`[DEBUG] Opened modifier choice (${n} cards)`);
+    },
+
+    /**
+     * dbg.arcadeCombo(n) — Set combo to N instantly
+     * Usage: dbg.arcadeCombo(50)
+     */
+    arcadeCombo(n) {
+        const rs = window.Game.RunState;
+        if (!rs) { console.log('[DEBUG] RunState not loaded'); return; }
+        const combo = n || 50;
+        rs.comboCount = combo;
+        rs.comboTimer = 3.0;
+        rs.comboMult = Math.min(5.0, 1.0 + combo * 0.05);
+        rs.comboDecayAnim = 0;
+        if (combo > rs.bestCombo) rs.bestCombo = combo;
+        console.log(`[DEBUG] Combo set to ${combo} (mult: ${rs.comboMult.toFixed(2)}x, timer: 3.0s)`);
+    },
+
+    /**
+     * dbg.arcadeMax() — Apply all offensive modifiers for max power testing
+     */
+    arcadeMax() {
+        const G = window.Game;
+        if (!G.ArcadeModifiers) { console.log('[DEBUG] ArcadeModifiers not loaded'); return; }
+        ['OVERCLOCK', 'OVERCLOCK', 'ARMOR_PIERCING', 'CRITICAL_HIT', 'VOLATILE_ROUNDS', 'CHAIN_LIGHTNING'].forEach(id => {
+            G.ArcadeModifiers.applyModifier(id);
+        });
+        console.log('[DEBUG] Applied max offense loadout: OVERCLOCK x2, ARMOR_PIERCING, CRITICAL_HIT, VOLATILE_ROUNDS, CHAIN_LIGHTNING');
+        this.arcade();
+    },
+
+    /**
+     * dbg.arcadeTank() — Apply all defensive modifiers
+     */
+    arcadeTank() {
+        const G = window.Game;
+        if (!G.ArcadeModifiers) { console.log('[DEBUG] ArcadeModifiers not loaded'); return; }
+        ['NANO_SHIELD', 'EXTRA_LIFE', 'EXTRA_LIFE', 'BULLET_TIME', 'BULLET_TIME', 'WIDER_GRAZE', 'EMERGENCY_HEAL'].forEach(id => {
+            G.ArcadeModifiers.applyModifier(id);
+        });
+        if (G.adjustLives) G.adjustLives(2); // Apply extra lives immediately
+        console.log('[DEBUG] Applied max defense loadout: NANO_SHIELD, EXTRA_LIFE x2, BULLET_TIME x2, WIDER_GRAZE, EMERGENCY_HEAL');
+        this.arcade();
+    },
+
+    /**
+     * dbg.arcadeWild() — Apply all wild modifiers for chaos testing
+     */
+    arcadeWild() {
+        const G = window.Game;
+        if (!G.ArcadeModifiers) { console.log('[DEBUG] ArcadeModifiers not loaded'); return; }
+        ['DOUBLE_SCORE', 'BULLET_HELL', 'SPEED_DEMON'].forEach(id => {
+            G.ArcadeModifiers.applyModifier(id);
+        });
+        console.log('[DEBUG] Applied wild loadout: DOUBLE_SCORE, BULLET_HELL, SPEED_DEMON');
+        this.arcade();
+    },
+
+    /**
+     * dbg.arcadeReset() — Clear all modifiers and reset bonuses
+     */
+    arcadeReset() {
+        const rs = window.Game.RunState;
+        if (!rs) { console.log('[DEBUG] RunState not loaded'); return; }
+        rs.arcadeModifiers = [];
+        rs.arcadeModifierPicks = 0;
+        rs.comboCount = 0;
+        rs.comboTimer = 0;
+        rs.comboMult = 1.0;
+        rs.bestCombo = 0;
+        rs.comboDecayAnim = 0;
+        if (window.Game.ArcadeModifiers) window.Game.ArcadeModifiers.recalculateBonuses();
+        console.log('[DEBUG] Arcade state reset — all modifiers cleared');
+    },
+
+    /**
+     * dbg.arcadeCycle(n) — Jump to cycle N for testing post-C3 scaling
+     * Usage: dbg.arcadeCycle(5)
+     */
+    arcadeCycle(n) {
+        const cycle = n || 4;
+        window.marketCycle = cycle;
+        if (window.Game.RunState) window.Game.RunState.marketCycle = cycle;
+        const diff = window.Game.Balance.calculateDifficulty(window.currentLevel || 1, cycle);
+        console.log(`[DEBUG] Market cycle set to ${cycle}. Difficulty: ${diff.toFixed(3)}`);
+        console.log(`[DEBUG] Post-C3 scaling: ${cycle > 3 ? '+' + ((cycle - 3) * 20) + '% difficulty' : 'N/A (within C1-C3)'}`);
+    },
+
+    /**
+     * dbg.arcadeHelp() — Show all arcade debug commands
+     */
+    arcadeHelp() {
+        console.log('');
+        console.log('%c ARCADE DEBUG COMMANDS ', 'background:#bb44ff;color:#000;font-weight:bold;padding:2px 8px');
+        console.log('  dbg.arcade()          — Full status report');
+        console.log('  dbg.arcadeMod(id)     — Apply modifier by ID');
+        console.log('  dbg.arcadePick(n)     — Open modifier choice (2 or 3 cards)');
+        console.log('  dbg.arcadeCombo(n)    — Set combo counter to N');
+        console.log('  dbg.arcadeMax()       — Apply all offense modifiers');
+        console.log('  dbg.arcadeTank()      — Apply all defense modifiers');
+        console.log('  dbg.arcadeWild()      — Apply all wild modifiers');
+        console.log('  dbg.arcadeReset()     — Clear all modifiers');
+        console.log('  dbg.arcadeCycle(n)    — Jump to cycle N');
+        console.log('  dbg.arcadeHelp()      — This help');
+        console.log('');
+        console.log('  Modifier IDs: OVERCLOCK, ARMOR_PIERCING, VOLATILE_ROUNDS, CRITICAL_HIT,');
+        console.log('    CHAIN_LIGHTNING, NANO_SHIELD, EXTRA_LIFE, BULLET_TIME, WIDER_GRAZE,');
+        console.log('    EMERGENCY_HEAL, DOUBLE_SCORE, BULLET_HELL, SPEED_DEMON, JACKPOT, BERSERKER');
     }
 };
 
@@ -2314,4 +2511,4 @@ window.Game.Debug = {
 window.dbg = window.Game.Debug;
 
 // Console helper message
-console.log('[DEBUG] DebugSystem loaded. Commands: dbg.stats(), dbg.showOverlay(), dbg.perf(), dbg.perfReport(), dbg.entityReport(), dbg.boss(type), dbg.debugBoss(), dbg.debugHUD(), dbg.hudStatus(), dbg.toggleHudMsg(key), dbg.maxWeapon(), dbg.weaponStatus(), dbg.godchain(), dbg.godchainStatus(), dbg.powerUpReport(), dbg.progressionReport(), dbg.contagionReport(), dbg.hitboxes(), dbg.formations()');
+console.log('[DEBUG] DebugSystem loaded. Commands: dbg.stats(), dbg.showOverlay(), dbg.perf(), dbg.perfReport(), dbg.entityReport(), dbg.boss(type), dbg.debugBoss(), dbg.debugHUD(), dbg.hudStatus(), dbg.toggleHudMsg(key), dbg.maxWeapon(), dbg.weaponStatus(), dbg.godchain(), dbg.godchainStatus(), dbg.powerUpReport(), dbg.progressionReport(), dbg.contagionReport(), dbg.hitboxes(), dbg.formations(), dbg.arcade(), dbg.arcadeHelp()');
