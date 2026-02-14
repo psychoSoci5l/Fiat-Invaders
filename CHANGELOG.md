@@ -1,5 +1,9 @@
 # Changelog
 
+## v5.11.1 - 2026-02-14
+### Bugfix: Death Penalty
+- **fix(player)**: `DEATH_PENALTY: 0` was ignored — JS `||` operator treats 0 as falsy, so `0 || 1 = 1` applied -1 weapon level on death despite config. Fixed with nullish coalescing `??`
+
 ## v5.11.0 - 2026-02-14
 ### Cinematic Boss Evolution + 3-Level Weapon System
 - **feat(weapon)**: 3-level weapon system (was 5) — LV1 Single, LV2 Dual, LV3 Triple MAX. HYPER adds +2 temp levels (max effective LV5). Cleaner progression tied to boss kills
