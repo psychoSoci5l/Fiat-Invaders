@@ -50,7 +50,7 @@
             scale *= (1 + streakBonus);
         }
 
-        const baseSize = 18;
+        const baseSize = 20;
         const size = Math.floor(baseSize * scale);
         const duration = config.DURATION || 1.2;
         const velocity = config.VELOCITY || -80;

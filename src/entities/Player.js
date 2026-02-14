@@ -32,6 +32,8 @@ class Player extends window.Game.Entity {
         this.shieldActive = false;
         this.shieldTimer = 0;
         this.shieldCooldown = 0;
+        this._shieldAnim = 0;       // v5.7: hexgrid animation timer
+        this._shieldFade = 0;       // v5.7: deactivation fade (1→0)
 
         // v4.0.2: ETH Smart Contract - consecutive hit tracking
         this.smartContractTarget = null;  // Enemy ID being hit consecutively
@@ -261,16 +263,26 @@ class Player extends window.Game.Entity {
         const margin = Balance.PLAYER.BOUNDARY_MARGIN;
         this.x = Math.max(margin, Math.min(this.gameWidth - margin, this.x));
 
+        // v5.7: Update position for tap-on-ship shield detection
+        if (window.Game.Input) window.Game.Input.updatePlayerPos(this.x, this.y);
+
         // Bank angle for visual effect (optional extra juice)
         this.rotation = this.vx * 0.0005;
 
         // Timers
         if (this.shieldActive) {
             this.shieldTimer -= dt;
+            this._shieldAnim += dt;
+            this._shieldFade = 1;
             if (this.shieldTimer <= 0) {
                 this.shieldActive = false;
+                this._shieldFade = 1; // start fade-out
                 if (window.Game.Audio) window.Game.Audio.play('shieldDeactivate');
             }
+        } else if (this._shieldFade > 0) {
+            this._shieldFade -= dt * 3; // 0.33s fade-out
+            this._shieldAnim += dt;
+            if (this._shieldFade <= 0) this._shieldFade = 0;
         }
         if (this.shieldCooldown > 0) this.shieldCooldown -= dt;
 
@@ -927,13 +939,9 @@ class Player extends window.Game.Entity {
         // v5.1: Directional muzzle flash (canvas V-flash)
         this._drawMuzzleFlash(ctx);
 
-        // Shield Overlay
-        if (this.shieldActive) {
-            ctx.beginPath();
-            ctx.arc(0, 0, 35, 0, Math.PI * 2);
-            ctx.strokeStyle = '#0aa';
-            ctx.lineWidth = 3;
-            ctx.stroke();
+        // v5.7: Hexgrid Energy Shield
+        if (this.shieldActive || this._shieldFade > 0) {
+            this._drawHexShield(ctx);
         }
 
         // === DIEGETIC HUD v4.4 ===
@@ -1020,28 +1028,55 @@ class Player extends window.Game.Entity {
             }
         }
 
-        // 2. SHIELD COOLDOWN RING
+        // 2. SHIELD COOLDOWN / READY RING (v5.7: prominent ready indicator for tap-on-ship)
         if (config.SHIELD_RING?.ENABLED) {
             const sr = config.SHIELD_RING;
 
             if (!this.shieldActive && this.shieldCooldown > 0) {
                 // Cooldown: partial arc filling clockwise
-                const maxCooldown = window.Game.Balance.PLAYER.SHIELD_COOLDOWN; // Shield cooldown from config
+                const maxCooldown = window.Game.Balance.PLAYER.SHIELD_COOLDOWN;
                 const progress = 1 - (this.shieldCooldown / maxCooldown);
                 const angle = Math.PI * 2 * Math.min(1, progress);
 
-                ctx.strokeStyle = CU.rgba(0, 170, 170, sr.COOLDOWN_ALPHA);
+                ctx.strokeStyle = CU.rgba(0, 240, 255, sr.COOLDOWN_ALPHA);
                 ctx.lineWidth = sr.LINE_WIDTH;
                 ctx.beginPath();
                 ctx.arc(0, 0, sr.RADIUS, -Math.PI / 2, -Math.PI / 2 + angle);
                 ctx.stroke();
             } else if (!this.shieldActive && this.shieldCooldown <= 0) {
-                // Ready: very faint full ring
-                ctx.strokeStyle = CU.rgba(0, 170, 170, sr.READY_ALPHA);
+                // READY: pulsing cyan ring + glow — clearly indicates "tap here for shield"
+                const pulse = Math.sin(this.animTime * (sr.READY_PULSE_SPEED || 4));
+                const alpha = sr.READY_ALPHA + pulse * (sr.READY_PULSE_AMP || 0.15);
+
+                // Outer glow (additive)
+                ctx.save();
+                ctx.globalCompositeOperation = 'lighter';
+                const glowGrad = ctx.createRadialGradient(0, 0, sr.RADIUS - 4, 0, 0, sr.RADIUS + 10);
+                glowGrad.addColorStop(0, CU.rgba(0, 240, 255, alpha * 0.4));
+                glowGrad.addColorStop(1, 'transparent');
+                ctx.fillStyle = glowGrad;
+                ctx.beginPath();
+                ctx.arc(0, 0, sr.RADIUS + 10, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+
+                // Main ring
+                ctx.strokeStyle = CU.rgba(0, 240, 255, alpha);
                 ctx.lineWidth = sr.LINE_WIDTH;
                 ctx.beginPath();
                 ctx.arc(0, 0, sr.RADIUS, 0, Math.PI * 2);
                 ctx.stroke();
+
+                // Rotating dash accent (2 small arcs spinning around the ring)
+                const rot = this.animTime * 2;
+                ctx.strokeStyle = CU.rgba(0, 240, 255, alpha * 1.5);
+                ctx.lineWidth = sr.LINE_WIDTH + 1;
+                for (let i = 0; i < 2; i++) {
+                    const a = rot + i * Math.PI;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, sr.RADIUS, a, a + 0.4);
+                    ctx.stroke();
+                }
             }
         }
 
@@ -1722,6 +1757,105 @@ class Player extends window.Game.Entity {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('\u20BF', 0, 6);
+    }
+
+    /**
+     * v5.7: Hexgrid Energy Shield — honeycomb pattern with radial wave, glow layers
+     */
+    _drawHexShield(ctx) {
+        const CU = window.Game.ColorUtils;
+        const t = this._shieldAnim;
+        const fade = this._shieldFade;
+        const radius = 40;
+        const hexSize = 10;
+        const rows = 5;
+
+        ctx.save();
+        ctx.globalAlpha = fade;
+
+        // Outer glow layer (additive)
+        const prevComp = ctx.globalCompositeOperation;
+        ctx.globalCompositeOperation = 'lighter';
+
+        // Pulsing outer aura
+        const auraPulse = 0.3 + Math.sin(t * 6) * 0.15;
+        const auraR = radius + 8 + Math.sin(t * 4) * 3;
+        const auraGrad = ctx.createRadialGradient(0, 0, radius * 0.5, 0, 0, auraR);
+        auraGrad.addColorStop(0, CU.rgba(0, 240, 255, 0));
+        auraGrad.addColorStop(0.6, CU.rgba(0, 240, 255, auraPulse * 0.3));
+        auraGrad.addColorStop(1, CU.rgba(0, 240, 255, 0));
+        ctx.beginPath();
+        ctx.arc(0, 0, auraR, 0, Math.PI * 2);
+        ctx.fillStyle = auraGrad;
+        ctx.fill();
+
+        // Hexagon grid
+        const cos30 = Math.cos(Math.PI / 6);
+        const hexW = hexSize * 2;
+        const hexH = hexSize * cos30 * 2;
+        const colStep = hexW * 0.75;
+        const rowStep = hexH;
+
+        // Radial wave: bright ring expanding outward
+        const waveRadius = (t * 60) % (radius + 20);
+        const waveWidth = 15;
+
+        for (let col = -rows; col <= rows; col++) {
+            for (let row = -rows; row <= rows; row++) {
+                const cx = col * colStep;
+                const cy = row * rowStep + (col % 2 !== 0 ? rowStep * 0.5 : 0);
+                const dist = Math.sqrt(cx * cx + cy * cy);
+
+                // Only draw hexagons within shield radius
+                if (dist > radius + hexSize) continue;
+
+                // Radial wave brightness
+                const waveDist = Math.abs(dist - waveRadius);
+                const waveBright = waveDist < waveWidth ? 1 - (waveDist / waveWidth) : 0;
+
+                // Base alpha: edge hexagons dimmer, inner brighter
+                const edgeFade = 1 - Math.max(0, (dist - radius + hexSize * 2) / (hexSize * 2));
+                const baseAlpha = 0.15 + waveBright * 0.5;
+                const alpha = baseAlpha * Math.min(1, edgeFade) * fade;
+
+                if (alpha < 0.02) continue;
+
+                // Draw hexagon
+                ctx.beginPath();
+                for (let i = 0; i < 6; i++) {
+                    const angle = (Math.PI / 3) * i + Math.PI / 6;
+                    const hx = cx + hexSize * 0.85 * Math.cos(angle);
+                    const hy = cy + hexSize * 0.85 * Math.sin(angle);
+                    if (i === 0) ctx.moveTo(hx, hy);
+                    else ctx.lineTo(hx, hy);
+                }
+                ctx.closePath();
+
+                // Fill with wave-modulated cyan
+                ctx.fillStyle = CU.rgba(0, 240, 255, alpha * 0.4);
+                ctx.fill();
+                ctx.strokeStyle = CU.rgba(0, 240, 255, alpha);
+                ctx.lineWidth = waveBright > 0.3 ? 1.5 : 0.8;
+                ctx.stroke();
+            }
+        }
+
+        // Inner bright ring border
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
+        ctx.strokeStyle = CU.rgba(0, 240, 255, 0.4 * fade);
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Outer soft ring
+        ctx.beginPath();
+        ctx.arc(0, 0, radius + 4, 0, Math.PI * 2);
+        ctx.strokeStyle = CU.rgba(0, 240, 255, 0.15 * fade);
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        ctx.globalCompositeOperation = prevComp;
+        ctx.restore();
     }
 
     /**

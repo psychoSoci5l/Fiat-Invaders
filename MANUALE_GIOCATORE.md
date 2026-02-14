@@ -15,6 +15,7 @@ Distruggi le ondate di valute fiat, affronta i boss delle Banche Centrali (FED, 
 |--------|-------|
 | **Muovi** | **A/D** oppure **Frecce SX/DX** |
 | **Spara** | **Spazio** oppure **Freccia SU** |
+| **Scudo** | **Freccia GIU** oppure **S** |
 | **Modalità HYPER** | **H** (quando il meter è pieno) |
 | **Pausa** | **ESC** |
 
@@ -23,6 +24,7 @@ Distruggi le ondate di valute fiat, affronta i boss delle Banche Centrali (FED, 
 |--------|-------|
 | **Muovi** | **Tocca e trascina** ovunque sullo schermo |
 | **Spara** | **Automatico** mentre tocchi |
+| **Scudo** | **Tap rapido sulla nave** (quando l'anello pulsa) |
 | **Modalità HYPER** | Tocca il **pulsante HYPER** (quando disponibile) |
 
 ---
@@ -186,11 +188,12 @@ Uccidi i nemici quando sono **vicini alla tua nave** verticalmente:
 - Meter pieno = HYPER PRONTO!
 - Anche i colpi ai boss contribuiscono al meter
 
-### Scudo Tattico (Drop Utility)
-Quando raccogli una capsula SHIELD:
-- Assorbe il **prossimo colpo** per 12 secondi
-- Non si accumula — raccoglilo quando serve protezione
-- Ottimo per sopravvivere alla Fase 3 dei boss
+### Scudo Tattico
+Attiva lo scudo per diventare **invulnerabile per 2 secondi** (cooldown 10s):
+- **PC**: Premi **Freccia GIU** oppure **S**
+- **Mobile**: **Tap rapido sulla nave** — cerca l'anello cyan pulsante!
+- Una griglia esagonale di energia luminosa circonda la nave mentre e attivo
+- L'anello attorno alla nave mostra il progresso del cooldown — quando pulsa con trattini rotanti, lo scudo e pronto
 
 ### Gestione Livello Arma
 - **Morire costa 1 livello** e **resetta tutti i perk elementali**

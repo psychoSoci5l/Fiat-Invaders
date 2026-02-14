@@ -15,6 +15,7 @@ Destroy waves of fiat currencies, face the Central Bank bosses (FED, ECB, BOJ) a
 |--------|------|
 | **Move** | **A/D** or **Left/Right Arrows** |
 | **Fire** | **Space** or **Up Arrow** |
+| **Shield** | **Down Arrow** or **S** |
 | **HYPER Mode** | **H** (when meter full) |
 | **Pause** | **ESC** |
 
@@ -23,6 +24,7 @@ Destroy waves of fiat currencies, face the Central Bank bosses (FED, ECB, BOJ) a
 |--------|---------|
 | **Move** | **Touch and drag** anywhere on screen |
 | **Fire** | **Automatic** while touching |
+| **Shield** | **Quick tap on your ship** (when ring is pulsing) |
 | **HYPER Mode** | Tap **HYPER button** (when available) |
 
 ---
@@ -186,11 +188,12 @@ Kill enemies when they're **close to your ship** vertically:
 - Full meter = HYPER READY!
 - Boss hits also contribute to the meter
 
-### Tactical Shield (Utility Drop)
-When you pick up a SHIELD capsule:
-- Absorbs the **next hit** for 12 seconds
-- Doesn't stack — grab it when you need protection
-- Great for surviving Boss Phase 3 attacks
+### Tactical Shield
+Activate your shield to become **invulnerable for 2 seconds** (10s cooldown):
+- **PC**: Press **Down Arrow** or **S**
+- **Mobile**: **Quick tap on your ship** — look for the pulsing cyan ring!
+- A glowing hexagonal energy grid surrounds your ship while active
+- The ring around your ship shows cooldown progress — when it pulses with rotating dashes, shield is ready
 
 ### Weapon Level Management
 - **Death costs 1 level** and **resets all elemental perks**

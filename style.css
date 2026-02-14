@@ -1928,7 +1928,7 @@ body {
 
 .shield-radial-bg {
     fill: none;
-    stroke: rgba(0, 0, 0, 0.3);
+    stroke: rgba(0, 240, 255, 0.15);
     stroke-width: 4;
 }
 
@@ -1950,14 +1950,15 @@ body {
     height: 56px;
     border-radius: 50%;
     background: linear-gradient(135deg, #0ff 0%, #088 100%);
-    border: 3px solid #000;
+    border: 2px solid rgba(0, 240, 255, 0.7);
     display: flex;
     justify-content: center;
     align-items: center;
     box-shadow:
         inset 2px 2px 4px rgba(255, 255, 255, 0.3),
         inset -2px -2px 4px rgba(0, 0, 0, 0.2),
-        0 4px 8px rgba(0, 0, 0, 0.4);
+        0 4px 8px rgba(0, 0, 0, 0.4),
+        0 0 8px rgba(0, 240, 255, 0.4);
     transition: transform 0.1s ease, box-shadow 0.2s ease, background 0.2s ease;
     pointer-events: none;
 }
@@ -2006,7 +2007,7 @@ body {
 /* COOLDOWN state - Grey, no glow, radial fills up */
 .shield-btn-wrapper.cooldown .shield-btn-face {
     background: linear-gradient(135deg, #666 0%, #333 100%);
-    border-color: #333;
+    border-color: rgba(100, 100, 100, 0.6);
     box-shadow:
         inset 2px 2px 4px rgba(255, 255, 255, 0.1),
         inset -2px -2px 4px rgba(0, 0, 0, 0.3),
@@ -2736,7 +2737,7 @@ body.bear-mode .neon-title {
 }
 #message-strip.type-wave .strip-text {
     color: #bb44ff;
-    font-size: 12px;
+    font-size: 14px;
 }
 
 /* Type: Danger — high attention */
@@ -2747,7 +2748,7 @@ body.bear-mode .neon-title {
 }
 #message-strip.type-danger .strip-text {
     color: #FF4444;
-    font-size: 16px;
+    font-size: 18px;
     letter-spacing: 2px;
     text-shadow:
         -2px -2px 0 #000,
@@ -2770,7 +2771,7 @@ body.bear-mode .neon-title {
 }
 #message-strip.type-victory .strip-text {
     color: #bb44ff;
-    font-size: 16px;
+    font-size: 18px;
     letter-spacing: 2px;
     text-shadow:
         -2px -2px 0 #000,
@@ -2787,7 +2788,7 @@ body.bear-mode .neon-title {
 }
 #message-strip.type-info .strip-text {
     color: #00E5FF;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: normal;
     opacity: 0.85;
     text-shadow:
@@ -2805,7 +2806,7 @@ body.bear-mode .neon-title {
 }
 #message-strip.type-pickup .strip-text {
     color: #00f0ff;
-    font-size: 11px;
+    font-size: 13px;
     text-shadow:
         -1px -1px 0 #000,
          1px -1px 0 #000,
@@ -2841,20 +2842,20 @@ body.bear-mode .neon-title {
 }
 
 @media (max-width: 380px) {
-    .strip-text { font-size: 10px; }
+    .strip-text { font-size: 12px; }
     #message-strip.type-danger .strip-text,
-    #message-strip.type-victory .strip-text { font-size: 13px; }
-    #message-strip.type-info .strip-text { font-size: 9px; }
-    #message-strip.type-pickup .strip-text { font-size: 10px; }
+    #message-strip.type-victory .strip-text { font-size: 15px; }
+    #message-strip.type-info .strip-text { font-size: 11px; }
+    #message-strip.type-pickup .strip-text { font-size: 12px; }
     #message-strip { padding: 4px 10px; }
 }
 
 @media (max-width: 320px) {
-    .strip-text { font-size: 9px; }
+    .strip-text { font-size: 11px; }
     #message-strip.type-danger .strip-text,
-    #message-strip.type-victory .strip-text { font-size: 11px; }
-    #message-strip.type-info .strip-text { font-size: 8px; }
-    #message-strip.type-pickup .strip-text { font-size: 9px; }
+    #message-strip.type-victory .strip-text { font-size: 13px; }
+    #message-strip.type-info .strip-text { font-size: 10px; }
+    #message-strip.type-pickup .strip-text { font-size: 11px; }
 }
 
 /* --- PERK CHOICE MODAL --- */

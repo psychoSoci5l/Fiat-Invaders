@@ -4,6 +4,9 @@ class InputSystem {
     constructor() {
         this.keys = {};
         this.touch = { active: false, x: 0, shield: false, hyper: false, axisX: 0, joystickActive: false, joystickId: null, useJoystick: false, deadzone: 0.15, sensitivity: 1.0 };
+        // v5.7: Tap-on-ship shield activation
+        this._tapStart = null; // {x, y, time}
+        this._playerPos = { x: 0, y: 0 }; // Canvas coords, updated by Player
         this.callbacks = {};
         this.debugMode = false;  // Touch debug overlay
         this.debugOverlay = null;
@@ -28,6 +31,11 @@ class InputSystem {
                 return;
             }
 
+            // v5.7: Record tap start for shield (before joystick check, works in all modes)
+            if (e.type === 'touchstart' && e.touches.length > 0) {
+                this._tapStart = { x: e.touches[0].clientX, y: e.touches[0].clientY, time: Date.now() };
+            }
+
             if (this.touch.useJoystick) return;
             if (this.touch.joystickActive) return;
             if (e.cancelable) e.preventDefault();
@@ -42,17 +50,26 @@ class InputSystem {
 
         window.addEventListener('touchstart', handleTouch, { passive: false });
         window.addEventListener('touchmove', handleTouch, { passive: false });
-        window.addEventListener('touchend', () => { if (!this.touch.joystickActive) this.touch.active = false; }, { passive: true });
+        window.addEventListener('touchend', (e) => {
+            if (!this.touch.joystickActive) this.touch.active = false;
+            // v5.7: Tap-on-ship shield activation
+            if (this._tapStart && e.changedTouches.length > 0) {
+                const t = e.changedTouches[0];
+                const elapsed = Date.now() - this._tapStart.time;
+                const dx = t.clientX - this._tapStart.x;
+                const dy = t.clientY - this._tapStart.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (elapsed < 300 && dist < 20 && this._isNearShip(t.clientX, t.clientY)) {
+                    this.touch.shield = true;
+                    setTimeout(() => { this.touch.shield = false; }, 150);
+                }
+                this._tapStart = null;
+            }
+        }, { passive: true });
 
-        // Shield button - with dynamic fallback creation
-        let tShield = document.getElementById('t-shield');
-        if (!tShield) {
-            tShield = this._createShieldButton();
-        }
-        if (tShield) {
-            tShield.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); this.touch.shield = true; }, { passive: false });
-            tShield.addEventListener('touchend', (e) => { e.preventDefault(); e.stopPropagation(); this.touch.shield = false; }, { passive: false });
-        }
+        // v5.7: Shield button removed — shield activates via tap-on-ship
+        const tShield = document.getElementById('t-shield');
+        if (tShield) tShield.style.display = 'none';
 
         // v4.0.4: HYPER button touch handler
         const tHyper = document.getElementById('t-hyper');
@@ -214,23 +231,22 @@ class InputSystem {
         return sign * remapped;
     }
 
-    // === FALLBACK: Create shield button dynamically if missing ===
-    _createShieldButton() {
-        const container = document.getElementById('game-container') || document.body;
-        const btn = document.createElement('div');
-        btn.id = 't-shield';
-        btn.className = 'shield-btn-wrapper ready';
-        btn.innerHTML = `
-            <svg class="shield-radial" viewBox="0 0 68 68">
-                <circle class="shield-radial-bg" cx="34" cy="34" r="30" />
-                <circle class="shield-radial-progress" cx="34" cy="34" r="30" />
-            </svg>
-            <div class="shield-btn-face">
-                <span class="shield-icon">🛡️</span>
-            </div>
-        `;
-        container.appendChild(btn);
-        return btn;
+    // === v5.7: Tap-on-ship shield — player position tracking ===
+    updatePlayerPos(x, y) {
+        this._playerPos.x = x;
+        this._playerPos.y = y;
+    }
+
+    _isNearShip(clientX, clientY) {
+        const canvas = document.getElementById('gameCanvas');
+        if (!canvas) return false;
+        const rect = canvas.getBoundingClientRect();
+        // Convert screen coords to canvas coords (handles CSS scaling)
+        const canvasX = (clientX - rect.left) * (canvas.width / rect.width);
+        const canvasY = (clientY - rect.top) * (canvas.height / rect.height);
+        const dx = canvasX - this._playerPos.x;
+        const dy = canvasY - this._playerPos.y;
+        return (dx * dx + dy * dy) < 55 * 55; // 55px radius tap zone
     }
 
     // === VIBRATION with visual fallback ===

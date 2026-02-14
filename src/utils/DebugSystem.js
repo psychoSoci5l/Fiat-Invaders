@@ -1544,6 +1544,48 @@ window.Game.Debug = {
     },
 
     /**
+     * v5.7: Instantly spawn a boss for testing. Usage:
+     *   dbg.boss()        → FED (default)
+     *   dbg.boss('bce')   → BCE
+     *   dbg.boss('boj')   → BOJ
+     *   dbg.boss('fed')   → FED
+     * Must be in PLAY state (start a game first, then call from console).
+     */
+    boss(type) {
+        const G = window.Game;
+        const map = { fed: 'FEDERAL_RESERVE', bce: 'BCE', boj: 'BOJ' };
+        const bossType = map[(type || 'fed').toLowerCase()] || 'FEDERAL_RESERVE';
+
+        if (!G.GameState?.is('PLAY') && !G.GameState?.is('WARMUP')) {
+            console.warn('[DEBUG] Start a game first (need PLAY state). Then call dbg.boss()');
+            return;
+        }
+
+        // Force PLAY state if in WARMUP
+        if (G.GameState?.is('WARMUP')) G._setGameState('PLAY');
+
+        // Clear enemies
+        if (G.enemies) { G.enemies.length = 0; }
+        if (window.enemyBullets) { window.enemyBullets.length = 0; }
+
+        // Override boss rotation to force specific type
+        const origRotation = G.BOSS_ROTATION;
+        G.BOSS_ROTATION = [bossType];
+        window.marketCycle = 1; // Cycle 1 for consistent rotation
+
+        // Spawn
+        if (G._spawnBoss) {
+            G._spawnBoss();
+            console.log(`[DEBUG] 🎯 Boss spawned: ${bossType}. Use dbg.boss('bce') or dbg.boss('boj') to try others.`);
+        } else {
+            console.warn('[DEBUG] _spawnBoss not available. Is main.js loaded?');
+        }
+
+        // Restore rotation
+        G.BOSS_ROTATION = origRotation;
+    },
+
+    /**
      * Quick setup for wave debugging
      */
     debugWaves() {
@@ -2272,4 +2314,4 @@ window.Game.Debug = {
 window.dbg = window.Game.Debug;
 
 // Console helper message
-console.log('[DEBUG] DebugSystem loaded. Commands: dbg.stats(), dbg.showOverlay(), dbg.perf(), dbg.perfReport(), dbg.entityReport(), dbg.debugBoss(), dbg.debugHUD(), dbg.hudStatus(), dbg.toggleHudMsg(key), dbg.maxWeapon(), dbg.weaponStatus(), dbg.godchain(), dbg.godchainStatus(), dbg.powerUpReport(), dbg.progressionReport(), dbg.contagionReport(), dbg.hitboxes(), dbg.formations()');
+console.log('[DEBUG] DebugSystem loaded. Commands: dbg.stats(), dbg.showOverlay(), dbg.perf(), dbg.perfReport(), dbg.entityReport(), dbg.boss(type), dbg.debugBoss(), dbg.debugHUD(), dbg.hudStatus(), dbg.toggleHudMsg(key), dbg.maxWeapon(), dbg.weaponStatus(), dbg.godchain(), dbg.godchainStatus(), dbg.powerUpReport(), dbg.progressionReport(), dbg.contagionReport(), dbg.hitboxes(), dbg.formations()');

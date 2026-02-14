@@ -847,656 +847,668 @@ class Boss extends window.Game.Entity {
         }
     }
 
+    // v5.7: FED — The Corrupted Printer (massive All-Seeing Eye with money aura)
     drawFED(ctx) {
-        const x = this.x;
-        const y = this.y;
-        const w = this.width;  // 160
-        const h = this.height; // 140
-        const cx = x + w / 2;
-        const cy = y + h / 2;
+        const CU = window.Game.ColorUtils;
+        const x = this.x, y = this.y, w = this.width, h = this.height;
+        const cx = x + w / 2, cy = y + h / 2;
+        const t = this.animTime;
+        const isHit = this.hitTimer > 0;
+        const p = this.phase;
 
         ctx.save();
 
-        const isHit = this.hitTimer > 0;
+        // Phase accent RGB: P1 neon green, P2 warning orange, P3 corruption red
+        const acR = p === 3 ? 255 : (p === 2 ? 255 : 57);
+        const acG = p === 3 ? 34 : (p === 2 ? 170 : 255);
+        const acB = p === 3 ? 68 : (p === 2 ? 0 : 20);
 
-        // MEGA-BILL Design - Giant banknote shape
-        // Phase colors: Green → Cracked → Burning red
-        const baseGreen = this.phase === 3 ? '#003311' : (this.phase === 2 ? '#005522' : '#00ff66');
-        const accentColor = this.phase === 3 ? '#ff2244' : (this.phase === 2 ? '#ffaa00' : '#00cc55');
-
-        // Aura (money printing energy)
-        const auraPulse = Math.sin(this.animTime * 4) * 0.15 + 0.25;
-        ctx.fillStyle = accentColor;
-        ctx.globalAlpha = auraPulse * (0.3 + this.phase * 0.15);
-        ctx.beginPath();
-        ctx.ellipse(cx, cy, w / 2 + 25 + this.phase * 8, h / 2 + 15, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.globalAlpha = 1;
-
-        // Main bill body (rectangular banknote)
-        const billX = x + 5;
-        const billY = y + 15;
-        const billW = w - 10;
-        const billH = h - 30;
-
-        // Bill shadow/3D effect
-        ctx.fillStyle = '#002208';
-        ctx.beginPath();
-        ctx.roundRect(billX + 4, billY + 4, billW, billH, 6);
-        ctx.fill();
-
-        // Bill main body
-        ctx.fillStyle = isHit ? '#ffffff' : baseGreen;
-        ctx.strokeStyle = '#002208';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.roundRect(billX, billY, billW, billH, 6);
-        ctx.fill();
-        ctx.stroke();
-
-        // Decorative border pattern (banknote style)
-        ctx.strokeStyle = accentColor;
-        ctx.lineWidth = 2;
-        ctx.setLineDash([4, 4]);
-        ctx.beginPath();
-        ctx.roundRect(billX + 8, billY + 8, billW - 16, billH - 16, 4);
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        // Corner decorations (ornate bill corners)
-        const cornerSize = 15;
-        ctx.fillStyle = accentColor;
-        ctx.globalAlpha = 0.6;
-        // Top-left
-        ctx.fillRect(billX + 4, billY + 4, cornerSize, 4);
-        ctx.fillRect(billX + 4, billY + 4, 4, cornerSize);
-        // Top-right
-        ctx.fillRect(billX + billW - cornerSize - 4, billY + 4, cornerSize, 4);
-        ctx.fillRect(billX + billW - 8, billY + 4, 4, cornerSize);
-        // Bottom-left
-        ctx.fillRect(billX + 4, billY + billH - 8, cornerSize, 4);
-        ctx.fillRect(billX + 4, billY + billH - cornerSize - 4, 4, cornerSize);
-        // Bottom-right
-        ctx.fillRect(billX + billW - cornerSize - 4, billY + billH - 8, cornerSize, 4);
-        ctx.fillRect(billX + billW - 8, billY + billH - cornerSize - 4, 4, cornerSize);
-        ctx.globalAlpha = 1;
-
-        // Central seal (with eyes!)
-        const sealRadius = 28;
-        const sealY = cy - 5;
-
-        // Seal outer glow
-        if (this.eyeGlow > 0 || this.phase === 3) {
-            const CU = window.Game.ColorUtils;
-            const glowAlpha = this.phase === 3 ? 0.4 + Math.sin(this.animTime * 8) * 0.3 : this.eyeGlow * 0.5;
-            ctx.fillStyle = CU.rgba(255, 100, 100, glowAlpha);
-            ctx.beginPath();
-            ctx.arc(cx, sealY, sealRadius + 12, 0, Math.PI * 2);
-            ctx.fill();
-        }
-
-        // Seal background
-        ctx.fillStyle = '#002208';
-        ctx.beginPath();
-        ctx.arc(cx, sealY, sealRadius, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Seal inner ring
-        ctx.strokeStyle = accentColor;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(cx, sealY, sealRadius - 4, 0, Math.PI * 2);
-        ctx.stroke();
-
-        // EYES in the seal (creepy dollar watching you)
-        const eyeSpacing = 12;
-        const eyeSize = 8 + this.phase;
-        const eyeY = sealY - 2;
-
-        // Eye whites
-        ctx.fillStyle = this.phase === 3 ? '#ffcccc' : '#fff';
-        ctx.beginPath();
-        ctx.ellipse(cx - eyeSpacing, eyeY, eyeSize, eyeSize * 0.8, 0, 0, Math.PI * 2);
-        ctx.ellipse(cx + eyeSpacing, eyeY, eyeSize, eyeSize * 0.8, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Pupils (tracking movement in phase 3)
-        let pupilOffsetX = 0, pupilOffsetY = 0;
-        if (this.phase >= 2) {
-            pupilOffsetX = Math.sin(this.animTime * 3) * 2;
-            pupilOffsetY = Math.cos(this.animTime * 2) * 1.5;
-        }
-        if (this.phase === 3) {
-            pupilOffsetX = Math.cos(this.animTime * 6) * 3;
-            pupilOffsetY = Math.sin(this.animTime * 6) * 2;
-        }
-
-        ctx.fillStyle = this.phase === 3 ? '#39ff14' : '#111';
-        ctx.beginPath();
-        ctx.arc(cx - eyeSpacing + pupilOffsetX, eyeY + pupilOffsetY, eyeSize * 0.5, 0, Math.PI * 2);
-        ctx.arc(cx + eyeSpacing + pupilOffsetX, eyeY + pupilOffsetY, eyeSize * 0.5, 0, Math.PI * 2);
-        ctx.fill();
-
-        // $ symbol below eyes in seal
-        ctx.fillStyle = accentColor;
-        ctx.font = 'bold 16px Arial';
+        // === FLOATING $ ORBIT (background layer) ===
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.font = CU.font('bold', 14, 'monospace');
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('$', cx, sealY + 14);
-
-        // "FEDERAL RESERVE NOTE" text at top
-        ctx.fillStyle = accentColor;
-        ctx.font = 'bold 8px Arial';
-        ctx.fillText('FEDERAL RESERVE NOTE', cx, billY + 16);
-
-        // Phase 2: OVERPRINTED watermark effect
-        if (this.phase >= 2) {
-            ctx.globalAlpha = 0.2 + Math.sin(this.animTime * 2) * 0.1;
-            ctx.fillStyle = '#ff8800';
-            ctx.font = 'bold 12px Arial';
-            ctx.save();
-            ctx.translate(cx, cy + 20);
-            ctx.rotate(-0.15);
-            ctx.fillText('OVERPRINTED', 0, 0);
-            ctx.restore();
-            ctx.globalAlpha = 1;
-
-            // Cracks at edges
-            ctx.strokeStyle = '#003300';
-            ctx.lineWidth = 1.5;
-            ctx.globalAlpha = 0.6;
-            // Left crack
-            ctx.beginPath();
-            ctx.moveTo(billX, billY + 30);
-            ctx.lineTo(billX + 15, billY + 45);
-            ctx.lineTo(billX + 8, billY + 60);
-            ctx.stroke();
-            // Right crack
-            ctx.beginPath();
-            ctx.moveTo(billX + billW, billY + billH - 40);
-            ctx.lineTo(billX + billW - 12, billY + billH - 55);
-            ctx.stroke();
-            ctx.globalAlpha = 1;
+        for (let i = 0; i < 8; i++) {
+            const orbA = t * (0.4 + i * 0.08) + i * Math.PI / 4;
+            const orbR = 70 + Math.sin(t * 2 + i) * 10;
+            const orbX = cx + Math.cos(orbA) * orbR;
+            const orbY = cy + Math.sin(orbA) * orbR * 0.55;
+            const orbAlpha = 0.12 + Math.sin(t * 3 + i * 1.5) * 0.06;
+            ctx.fillStyle = CU.rgba(acR, acG, acB, orbAlpha);
+            ctx.fillText('$', orbX, orbY);
         }
+        ctx.globalCompositeOperation = 'source-over';
 
-        // Phase 3: Burning edges effect
-        if (this.phase === 3) {
-            // Flame particles at edges
-            for (let i = 0; i < 6; i++) {
-                const flameT = (this.animTime * 3 + i * 0.5) % 1;
-                const flameX = billX + Math.random() * billW;
-                const flameY = billY + billH - 5 - flameT * 15;
-                const flameSize = 4 + Math.random() * 4;
+        // === OUTER AURA (layered radial glow) ===
+        ctx.globalCompositeOperation = 'lighter';
+        const auraPulse = 0.15 + Math.sin(t * 2.5) * 0.08 + p * 0.05;
+        const aR = 85 + p * 10;
+        const aGrad = ctx.createRadialGradient(cx, cy, 10, cx, cy, aR);
+        aGrad.addColorStop(0, CU.rgba(acR, acG, acB, auraPulse * 0.6));
+        aGrad.addColorStop(0.4, CU.rgba(acR, acG, acB, auraPulse * 0.25));
+        aGrad.addColorStop(0.7, CU.rgba(acR, acG, acB, auraPulse * 0.08));
+        aGrad.addColorStop(1, CU.rgba(acR, acG, acB, 0));
+        ctx.fillStyle = aGrad;
+        ctx.beginPath();
+        ctx.arc(cx, cy, aR, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalCompositeOperation = 'source-over';
 
-                ctx.fillStyle = window.Game.ColorUtils.rgba(255, 100 + Math.floor(Math.random() * 100), 0, 0.7 - flameT * 0.5);
+        // === PYRAMID BODY (filled, gradient) ===
+        const pyrH = 90, pyrW = 110;
+        const pyrTop = cy - pyrH * 0.45;
+        const pyrBot = cy + pyrH * 0.55;
+        const pyrFlicker = p === 3 ? (Math.sin(t * 12) > -0.3 ? 1 : 0.3) : 1;
+
+        // Pyramid fill — dark gradient with accent edge
+        const pyrGrad = ctx.createLinearGradient(cx, pyrTop, cx, pyrBot);
+        pyrGrad.addColorStop(0, isHit ? '#fff' : CU.rgba(0, 30 + p * 5, 10, 0.9 * pyrFlicker));
+        pyrGrad.addColorStop(0.5, isHit ? '#fff' : CU.rgba(0, 15, 5, 0.8 * pyrFlicker));
+        pyrGrad.addColorStop(1, isHit ? '#fff' : CU.rgba(0, 8, 2, 0.7 * pyrFlicker));
+        ctx.fillStyle = pyrGrad;
+        ctx.beginPath();
+        ctx.moveTo(cx, pyrTop);
+        ctx.lineTo(cx + pyrW / 2, pyrBot);
+        ctx.lineTo(cx - pyrW / 2, pyrBot);
+        ctx.closePath();
+        ctx.fill();
+
+        // Pyramid neon edge
+        ctx.strokeStyle = CU.rgba(acR, acG, acB, 0.7 * pyrFlicker);
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Pyramid edge glow (additive)
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = CU.rgba(acR, acG, acB, 0.2 * pyrFlicker);
+        ctx.lineWidth = 6;
+        ctx.stroke();
+        ctx.globalCompositeOperation = 'source-over';
+
+        // Inner tier line (pyramid segment)
+        const tierY = pyrTop + pyrH * 0.35;
+        const tierHalf = pyrW * 0.32;
+        ctx.strokeStyle = CU.rgba(acR, acG, acB, 0.35);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(cx - tierHalf, tierY);
+        ctx.lineTo(cx + tierHalf, tierY);
+        ctx.stroke();
+
+        // === SCAN LINES inside pyramid ===
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(cx, pyrTop + 3);
+        ctx.lineTo(cx + pyrW / 2 - 3, pyrBot - 2);
+        ctx.lineTo(cx - pyrW / 2 + 3, pyrBot - 2);
+        ctx.closePath();
+        ctx.clip();
+        ctx.globalAlpha = p === 3 ? 0.12 : 0.06;
+        ctx.fillStyle = CU.rgba(acR, acG, acB, 1);
+        for (let sy = pyrTop; sy < pyrBot; sy += 4) {
+            ctx.fillRect(cx - pyrW / 2, sy, pyrW, 1);
+        }
+        ctx.globalAlpha = 1;
+
+        // Scrolling $ watermark inside pyramid
+        ctx.globalAlpha = 0.05 + (p >= 2 ? 0.04 : 0);
+        ctx.fillStyle = CU.rgba(acR, acG, acB, 1);
+        ctx.font = CU.font('bold', 12, 'monospace');
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const scrollOff = (t * 25) % 24;
+        for (let row = -1; row < pyrH / 18 + 1; row++) {
+            for (let col = -2; col <= 2; col++) {
+                ctx.fillText('$', cx + col * 22, pyrTop + 15 + row * 18 + scrollOff);
+            }
+        }
+        ctx.globalAlpha = 1;
+        ctx.restore();
+
+        // === ALL-SEEING EYE (large, central) ===
+        const eyeY = cy - 2;
+        const eyeW = 28, eyeH = 16;
+
+        // Eye glow halo (additive)
+        ctx.globalCompositeOperation = 'lighter';
+        const egR = 30 + Math.sin(t * 4) * 5 + this.eyeGlow * 15;
+        const egGrad = ctx.createRadialGradient(cx, eyeY, 0, cx, eyeY, egR);
+        egGrad.addColorStop(0, CU.rgba(acR, acG, acB, 0.5 + this.eyeGlow * 0.3));
+        egGrad.addColorStop(0.5, CU.rgba(acR, acG, acB, 0.15));
+        egGrad.addColorStop(1, CU.rgba(acR, acG, acB, 0));
+        ctx.fillStyle = egGrad;
+        ctx.beginPath();
+        ctx.arc(cx, eyeY, egR, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalCompositeOperation = 'source-over';
+
+        // Eye white (almond shape)
+        ctx.fillStyle = p === 3 ? CU.rgba(57, 255, 20, 0.9) : CU.rgba(255, 255, 255, 0.95);
+        ctx.beginPath();
+        ctx.ellipse(cx, eyeY, eyeW, eyeH, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Eye iris ring
+        ctx.strokeStyle = CU.rgba(acR, acG, acB, 0.6);
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(cx, eyeY, 10, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Eye iris fill
+        const irisGrad = ctx.createRadialGradient(cx, eyeY, 2, cx, eyeY, 10);
+        irisGrad.addColorStop(0, p === 3 ? '#39ff14' : CU.rgba(acR, acG, acB, 0.8));
+        irisGrad.addColorStop(1, p === 3 ? '#1a8a0a' : CU.rgba(acR * 0.3, acG * 0.3, acB * 0.3, 0.6));
+        ctx.fillStyle = irisGrad;
+        ctx.beginPath();
+        ctx.arc(cx, eyeY, 10, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Pupil — tracks via animation
+        let pupOX = 0, pupOY = 0;
+        if (p >= 2) { pupOX = Math.sin(t * 3) * 4; pupOY = Math.cos(t * 2) * 2.5; }
+        if (p === 3) { pupOX = Math.cos(t * 6) * 6; pupOY = Math.sin(t * 5) * 3.5; }
+        ctx.fillStyle = '#000';
+        ctx.beginPath();
+        ctx.arc(cx + pupOX, eyeY + pupOY, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+        // Pupil highlight
+        ctx.fillStyle = CU.rgba(255, 255, 255, 0.6);
+        ctx.beginPath();
+        ctx.arc(cx + pupOX - 1.5, eyeY + pupOY - 1.5, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // P3: pupil afterimage trail
+        if (p === 3) {
+            for (let i = 1; i <= 4; i++) {
+                const tOX = Math.cos((t - i * 0.04) * 6) * 6;
+                const tOY = Math.sin((t - i * 0.04) * 5) * 3.5;
+                ctx.fillStyle = CU.rgba(57, 255, 20, 0.2 - i * 0.04);
                 ctx.beginPath();
-                ctx.arc(flameX, flameY, flameSize, 0, Math.PI * 2);
+                ctx.arc(cx + tOX, eyeY + tOY, 4.5, 0, Math.PI * 2);
                 ctx.fill();
             }
-
-            // Red inflation tint
-            ctx.fillStyle = 'rgba(255, 0, 0, 0.15)';
-            ctx.beginPath();
-            ctx.roundRect(billX, billY, billW, billH, 6);
-            ctx.fill();
-
-            // Sparks
-            ctx.strokeStyle = '#39ff14';
-            ctx.lineWidth = 2;
-            for (let i = 0; i < 3; i++) {
-                const sparkAngle = this.animTime * 10 + i * Math.PI * 2 / 3;
-                const sparkDist = 75 + Math.sin(this.animTime * 15 + i) * 10;
-                const sparkX = cx + Math.cos(sparkAngle) * sparkDist;
-                const sparkY = cy + Math.sin(sparkAngle) * sparkDist * 0.5;
-                ctx.globalAlpha = 0.5 + Math.sin(this.animTime * 20 + i * 2) * 0.4;
-                ctx.beginPath();
-                ctx.moveTo(sparkX - 3, sparkY - 5);
-                ctx.lineTo(sparkX + 1, sparkY);
-                ctx.lineTo(sparkX - 1, sparkY + 2);
-                ctx.lineTo(sparkX + 3, sparkY + 5);
-                ctx.stroke();
-            }
-            ctx.globalAlpha = 1;
         }
 
-        // Side cannons (Phase 2+)
-        if (this.phase >= 2) {
-            ctx.fillStyle = '#003311';
-            ctx.strokeStyle = '#002208';
-            ctx.lineWidth = 2;
-            // Left cannon
-            ctx.beginPath();
-            ctx.roundRect(x - 8, cy - 15, 15, 30, 3);
-            ctx.fill();
-            ctx.stroke();
-            // Right cannon
-            ctx.beginPath();
-            ctx.roundRect(x + w - 7, cy - 15, 15, 30, 3);
-            ctx.fill();
-            ctx.stroke();
-            // Cannon glow
-            ctx.fillStyle = accentColor;
-            ctx.globalAlpha = 0.5 + Math.sin(this.animTime * 6) * 0.3;
-            ctx.beginPath();
-            ctx.arc(x - 1, cy + 10, 4, 0, Math.PI * 2);
-            ctx.arc(x + w + 1, cy + 10, 4, 0, Math.PI * 2);
-            ctx.fill();
+        // Eye outline (neon almond)
+        ctx.strokeStyle = CU.rgba(acR, acG, acB, 0.8);
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.ellipse(cx, eyeY, eyeW, eyeH, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        // Eye outline glow
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = CU.rgba(acR, acG, acB, 0.2);
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.ellipse(cx, eyeY, eyeW + 2, eyeH + 2, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalCompositeOperation = 'source-over';
+
+        // === $ BELOW EYE ===
+        ctx.fillStyle = CU.rgba(acR, acG, acB, 0.6);
+        ctx.font = CU.font('bold', 18, 'monospace');
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('$', cx, eyeY + 30);
+
+        // === "FEDERAL RESERVE" text (bottom of pyramid) ===
+        ctx.fillStyle = CU.rgba(acR, acG, acB, 0.4);
+        ctx.font = CU.font('bold', 9, 'monospace');
+        ctx.fillText('FEDERAL RESERVE', cx, pyrBot - 8);
+
+        // === GLITCH ARTIFACTS (P2+) ===
+        if (p >= 2) {
+            const glitchN = p === 3 ? 5 : 2;
+            for (let i = 0; i < glitchN; i++) {
+                const gy = pyrTop + 10 + ((t * 55 + i * 31) % (pyrH - 20));
+                const gw = 20 + Math.sin(t * 9 + i * 2) * 12;
+                const gx = cx + Math.sin(t * 7 + i * 2.3) * 20;
+                ctx.fillStyle = CU.rgba(acR, acG, acB, 0.2);
+                ctx.fillRect(gx - gw / 2, gy, gw, 2);
+            }
+        }
+
+        // === P3: MATRIX RAIN $ (falling outside pyramid) ===
+        if (p === 3) {
+            ctx.globalAlpha = 0.35;
+            ctx.fillStyle = '#39ff14';
+            ctx.font = CU.font('bold', 11, 'monospace');
+            for (let i = 0; i < 10; i++) {
+                const rainX = cx - 65 + (i * 13);
+                const rainY = pyrTop + ((t * 90 + i * 19) % (pyrH + 30)) - 15;
+                ctx.fillText('$', rainX, rainY);
+            }
             ctx.globalAlpha = 1;
+
+            // Red corruption tint on pyramid
+            ctx.fillStyle = CU.rgba(255, 0, 0, 0.07 + Math.sin(t * 6) * 0.04);
+            ctx.beginPath();
+            ctx.moveTo(cx, pyrTop);
+            ctx.lineTo(cx + pyrW / 2, pyrBot);
+            ctx.lineTo(cx - pyrW / 2, pyrBot);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // === SIDE EMITTERS (P2+) ===
+        if (p >= 2) {
+            const emY = cy + 15;
+            // Left
+            ctx.fillStyle = CU.rgba(0, 15, 5, 0.85);
+            ctx.beginPath();
+            ctx.roundRect(x - 4, emY - 12, 10, 24, 2);
+            ctx.fill();
+            ctx.strokeStyle = CU.rgba(acR, acG, acB, 0.5);
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            // Right
+            ctx.beginPath();
+            ctx.roundRect(x + w - 6, emY - 12, 10, 24, 2);
+            ctx.fill();
+            ctx.stroke();
+            // Emitter glow
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.fillStyle = CU.rgba(acR, acG, acB, 0.4 + Math.sin(t * 8) * 0.3);
+            ctx.beginPath();
+            ctx.arc(x + 1, emY + 4, 4, 0, Math.PI * 2);
+            ctx.arc(x + w + 1, emY + 4, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalCompositeOperation = 'source-over';
         }
 
         this.drawHPBar(ctx, x, y, w, 'THE FED');
         ctx.restore();
     }
 
+    // v5.7: BCE — The Star Fortress (holographic EU star fortress)
     drawBCE(ctx) {
-        const x = this.x;
-        const y = this.y;
-        const w = this.width;  // 160
-        const h = this.height; // 140
-        const cx = x + w / 2;
-        const cy = y + h / 2;
+        const CU = window.Game.ColorUtils;
+        const x = this.x, y = this.y, w = this.width, h = this.height;
+        const cx = x + w / 2, cy = y + h / 2;
+        const t = this.animTime;
+        const isHit = this.hitTimer > 0;
+        const p = this.phase;
 
         ctx.save();
 
-        const isHit = this.hitTimer > 0;
+        // EU blue RGB by phase
+        const blR = 0, blG = p === 3 ? 17 : (p === 2 ? 26 : 51), blB = p === 3 ? 51 : (p === 2 ? 77 : 153);
+        const gdR = 255, gdG = 221, gdB = 0; // gold
+        const coreR = 55; // core radius
 
-        // MEGA-COIN Design - Giant Euro coin
-        const baseBlue = this.phase === 3 ? '#001133' : (this.phase === 2 ? '#001a4d' : '#003399');
-        const goldColor = '#ffdd00';
-        const coinRadius = 60;
+        // === OUTER AURA (additive) ===
+        ctx.globalCompositeOperation = 'lighter';
+        const auraSize = coreR + 25 + p * 8;
+        const auraPulse = 0.1 + Math.sin(t * 2.5) * 0.06;
+        const aGrad = ctx.createRadialGradient(cx, cy, coreR * 0.4, cx, cy, auraSize);
+        aGrad.addColorStop(0, CU.rgba(blR, blG, blB, auraPulse));
+        aGrad.addColorStop(0.5, CU.rgba(gdR, gdG, gdB, auraPulse * 0.3));
+        aGrad.addColorStop(1, CU.rgba(gdR, gdG, gdB, 0));
+        ctx.fillStyle = aGrad;
+        ctx.beginPath();
+        ctx.arc(cx, cy, auraSize, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalCompositeOperation = 'source-over';
 
-        // Phase 3: Fragmented - stars orbit erratically
-        const starSpeedMult = this.phase === 3 ? 2.5 : (this.phase === 2 ? 1.5 : 1);
-
-        // EU Stars orbiting (12 stars for EU flag)
+        // === ENERGY CONNECTIONS (nodes → center & node-to-node) ===
         for (let i = 0; i < 12; i++) {
             const star = this.stars[i];
-            let starDist = star.dist;
-            let starAlpha = 0.9;
+            let dist = star.dist;
+            if (p === 3) dist = star.dist + 20 + Math.sin(t * 4 + i) * 15;
 
-            // Phase 3: Stars detach and move outward
-            if (this.phase === 3) {
-                starDist = star.dist + 20 + Math.sin(this.animTime * 4 + i) * 15;
-                starAlpha = 0.6 + Math.sin(this.animTime * 6 + i * 0.5) * 0.3;
-            }
+            const nx = cx + Math.cos(star.angle) * dist;
+            const ny = cy + Math.sin(star.angle) * dist * 0.6;
 
-            const starX = cx + Math.cos(star.angle) * starDist;
-            const starY = cy + Math.sin(star.angle) * starDist * 0.6;
-
-            ctx.globalAlpha = starAlpha;
-            ctx.fillStyle = goldColor;
-            ctx.beginPath();
-            this.drawStar(ctx, starX, starY, 5, 10, 5);
-            ctx.fill();
-
-            // Phase 2+: Stars pulse
-            if (this.phase >= 2) {
-                const pulseSize = 3 + Math.sin(this.animTime * 5 + i) * 2;
-                ctx.globalAlpha = 0.3;
+            // Line to center
+            if (p < 3 || Math.sin(t * 3 + i) > -0.5) {
+                ctx.strokeStyle = CU.rgba(gdR, gdG, gdB, p === 3 ? 0.1 : 0.2);
+                ctx.lineWidth = 1;
                 ctx.beginPath();
-                this.drawStar(ctx, starX, starY, 5, 10 + pulseSize, 5 + pulseSize / 2);
-                ctx.fill();
-            }
-        }
-        ctx.globalAlpha = 1;
-
-        // Coin aura
-        const auraPulse = Math.sin(this.animTime * 3) * 0.1 + 0.2;
-        ctx.fillStyle = baseBlue;
-        ctx.globalAlpha = auraPulse * (0.3 + this.phase * 0.15);
-        ctx.beginPath();
-        ctx.arc(cx, cy, coinRadius + 20 + this.phase * 5, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.globalAlpha = 1;
-
-        // 3D coin edge (shows thickness)
-        const tiltAngle = this.phase >= 2 ? Math.sin(this.animTime * 1.5) * 0.15 : 0;
-        const edgeWidth = 12 + (this.phase >= 2 ? Math.abs(Math.sin(this.animTime * 2)) * 8 : 0);
-
-        // Coin edge (3D effect)
-        ctx.fillStyle = '#997700';
-        ctx.beginPath();
-        ctx.ellipse(cx, cy + 8, coinRadius, coinRadius * 0.3, tiltAngle, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Coin face - outer ring (gold/silver bi-metal style)
-        ctx.fillStyle = isHit ? '#ffffff' : goldColor;
-        ctx.strokeStyle = '#997700';
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.arc(cx, cy, coinRadius, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-
-        // Inner blue circle (EU blue)
-        ctx.fillStyle = isHit ? '#ffffff' : baseBlue;
-        ctx.beginPath();
-        ctx.arc(cx, cy, coinRadius - 15, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Decorative ridges around edge
-        ctx.strokeStyle = '#cc9900';
-        ctx.lineWidth = 1;
-        for (let i = 0; i < 36; i++) {
-            const angle = (i / 36) * Math.PI * 2;
-            const innerR = coinRadius - 3;
-            const outerR = coinRadius + 1;
-            ctx.beginPath();
-            ctx.moveTo(cx + Math.cos(angle) * innerR, cy + Math.sin(angle) * innerR);
-            ctx.lineTo(cx + Math.cos(angle) * outerR, cy + Math.sin(angle) * outerR);
-            ctx.stroke();
-        }
-
-        // Inner star circle pattern (6 mini stars)
-        ctx.fillStyle = goldColor;
-        for (let i = 0; i < 6; i++) {
-            const angle = (i / 6) * Math.PI * 2 - Math.PI / 2;
-            const sx = cx + Math.cos(angle) * 28;
-            const sy = cy + Math.sin(angle) * 28;
-            ctx.globalAlpha = 0.7;
-            ctx.beginPath();
-            this.drawStar(ctx, sx, sy, 5, 6, 3);
-            ctx.fill();
-        }
-        ctx.globalAlpha = 1;
-
-        // Big Euro symbol in center
-        ctx.fillStyle = goldColor;
-        if (this.phase === 3) {
-            // v4.11: Glow circle instead of GPU-expensive shadowBlur
-            const glowR = 30 + Math.sin(this.animTime * 8) * 8;
-            ctx.globalAlpha = 0.4;
-            ctx.beginPath();
-            ctx.arc(cx, cy, glowR, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.globalAlpha = 1;
-        }
-        ctx.font = 'bold 42px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('€', cx, cy);
-
-        // "1 EURO" text
-        ctx.fillStyle = goldColor;
-        ctx.font = 'bold 10px Arial';
-        ctx.fillText('1 EURO', cx, cy + coinRadius - 25);
-
-        // Phase 2: Coin tilts showing thickness
-        if (this.phase >= 2) {
-            // Show coin edge more prominently
-            ctx.strokeStyle = '#775500';
-            ctx.lineWidth = 3;
-            const edgeY = cy + coinRadius * 0.9;
-            ctx.globalAlpha = 0.5;
-            ctx.beginPath();
-            ctx.ellipse(cx, edgeY, coinRadius * 0.8, 8, 0, 0, Math.PI);
-            ctx.stroke();
-            ctx.globalAlpha = 1;
-        }
-
-        // Phase 3: Fragmentation cracks
-        if (this.phase === 3) {
-            ctx.strokeStyle = '#ff2244';
-            ctx.lineWidth = 2;
-            ctx.globalAlpha = 0.5 + Math.sin(this.animTime * 10) * 0.3;
-
-            // Cracks radiating from center
-            for (let i = 0; i < 4; i++) {
-                const crackAngle = (i / 4) * Math.PI * 2 + this.animTime * 0.3;
-                ctx.beginPath();
-                ctx.moveTo(cx + Math.cos(crackAngle) * 15, cy + Math.sin(crackAngle) * 15);
-                ctx.lineTo(cx + Math.cos(crackAngle) * 35, cy + Math.sin(crackAngle) * 35);
-                ctx.lineTo(cx + Math.cos(crackAngle + 0.2) * 50, cy + Math.sin(crackAngle + 0.2) * 50);
+                ctx.moveTo(cx, cy);
+                ctx.lineTo(nx, ny);
                 ctx.stroke();
             }
-            ctx.globalAlpha = 1;
 
-            // Chip particles breaking off
-            for (let i = 0; i < 3; i++) {
-                const chipAngle = this.animTime * 2 + i * Math.PI * 2 / 3;
-                const chipDist = coinRadius + 15 + Math.sin(this.animTime * 5 + i) * 10;
-                const chipX = cx + Math.cos(chipAngle) * chipDist;
-                const chipY = cy + Math.sin(chipAngle) * chipDist * 0.7;
-                ctx.fillStyle = goldColor;
-                ctx.globalAlpha = 0.6;
+            // Node-to-node ring (P1-P2 only)
+            if (p < 3) {
+                const next = this.stars[(i + 1) % 12];
+                const nnx = cx + Math.cos(next.angle) * next.dist;
+                const nny = cy + Math.sin(next.angle) * next.dist * 0.6;
+                ctx.strokeStyle = CU.rgba(gdR, gdG, gdB, 0.12);
+                ctx.lineWidth = 0.5;
                 ctx.beginPath();
-                ctx.arc(chipX, chipY, 4 + Math.random() * 2, 0, Math.PI * 2);
+                ctx.moveTo(nx, ny);
+                ctx.lineTo(nnx, nny);
+                ctx.stroke();
+            }
+        }
+
+        // === SEGMENTED GOLDEN RING ===
+        const segments = 12;
+        const segGap = 0.06;
+        for (let i = 0; i < segments; i++) {
+            const segStart = (i / segments) * Math.PI * 2 + t * 0.2;
+            const segEnd = segStart + (Math.PI * 2 / segments) - segGap;
+            if (p === 3 && (i % 3 === Math.floor(t) % 3)) continue; // missing segments
+
+            ctx.strokeStyle = isHit ? '#fff' : CU.rgba(gdR, gdG, gdB, 0.7);
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.arc(cx, cy, coreR, segStart, segEnd);
+            ctx.stroke();
+
+            // Glow
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.strokeStyle = CU.rgba(gdR, gdG, gdB, 0.15);
+            ctx.lineWidth = 8;
+            ctx.beginPath();
+            ctx.arc(cx, cy, coreR, segStart, segEnd);
+            ctx.stroke();
+            ctx.globalCompositeOperation = 'source-over';
+        }
+
+        // === INNER CORE (EU blue) ===
+        const cGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreR - 10);
+        cGrad.addColorStop(0, isHit ? '#fff' : CU.rgba(blR, blG + 30, blB + 50, 0.9));
+        cGrad.addColorStop(1, isHit ? '#fff' : CU.rgba(blR, blG, blB, 0.7));
+        ctx.fillStyle = cGrad;
+        ctx.beginPath();
+        ctx.arc(cx, cy, coreR - 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = CU.rgba(gdR, gdG, gdB, 0.3);
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // === ENERGY NODES (12 stars) ===
+        for (let i = 0; i < 12; i++) {
+            const star = this.stars[i];
+            let dist = star.dist;
+            let nAlpha = 0.9;
+            if (p === 3) {
+                dist = star.dist + 20 + Math.sin(t * 4 + i) * 15;
+                nAlpha = 0.5 + Math.sin(t * 6 + i * 0.5) * 0.3;
+            }
+
+            const nx = cx + Math.cos(star.angle) * dist;
+            const ny = cy + Math.sin(star.angle) * dist * 0.6;
+
+            // Node glow (additive)
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.fillStyle = CU.rgba(gdR, gdG, gdB, nAlpha * 0.3);
+            ctx.beginPath();
+            ctx.arc(nx, ny, 8 + (p >= 2 ? Math.sin(t * 5 + i) * 3 : 0), 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalCompositeOperation = 'source-over';
+
+            // Node star shape
+            ctx.globalAlpha = nAlpha;
+            ctx.fillStyle = '#ffdd00';
+            ctx.beginPath();
+            this.drawStar(ctx, nx, ny, 5, 6, 3);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+        }
+
+        // === € HOLOGRAM ===
+        // Glow
+        ctx.globalCompositeOperation = 'lighter';
+        const euroGlow = 15 + Math.sin(t * 4) * 5;
+        ctx.fillStyle = CU.rgba(gdR, gdG, gdB, 0.15);
+        ctx.beginPath();
+        ctx.arc(cx, cy, euroGlow, 0, Math.PI * 2);
+        ctx.fill();
+
+        // P3: intense pulse
+        if (p === 3) {
+            const pulseR = 25 + Math.sin(t * 8) * 10;
+            ctx.fillStyle = CU.rgba(gdR, gdG, gdB, 0.25);
+            ctx.beginPath();
+            ctx.arc(cx, cy, pulseR, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.globalCompositeOperation = 'source-over';
+
+        // € text
+        ctx.fillStyle = '#ffdd00';
+        ctx.font = CU.font('bold', 36, 'Arial');
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.strokeStyle = CU.rgba(0, 0, 0, 0.5);
+        ctx.lineWidth = 2;
+        ctx.strokeText('€', cx, cy);
+        ctx.fillText('€', cx, cy);
+
+        // === P3: CRACKS WITH LIGHT LEAKING ===
+        if (p === 3) {
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.strokeStyle = CU.rgba(255, 200, 100, 0.4 + Math.sin(t * 10) * 0.2);
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 5; i++) {
+                const crA = (i / 5) * Math.PI * 2 + t * 0.3;
+                ctx.beginPath();
+                ctx.moveTo(cx + Math.cos(crA) * 12, cy + Math.sin(crA) * 12);
+                ctx.lineTo(cx + Math.cos(crA) * 35, cy + Math.sin(crA) * 35);
+                ctx.lineTo(cx + Math.cos(crA + 0.15) * 50, cy + Math.sin(crA + 0.15) * 50);
+                ctx.stroke();
+            }
+            ctx.globalCompositeOperation = 'source-over';
+
+            // Debris particles
+            for (let i = 0; i < 3; i++) {
+                const debA = t * 2 + i * Math.PI * 2 / 3;
+                const debD = coreR + 15 + Math.sin(t * 5 + i) * 10;
+                ctx.fillStyle = CU.rgba(gdR, gdG, gdB, 0.5);
+                ctx.beginPath();
+                ctx.arc(cx + Math.cos(debA) * debD, cy + Math.sin(debA) * debD * 0.7, 3, 0, Math.PI * 2);
                 ctx.fill();
             }
-            ctx.globalAlpha = 1;
         }
 
         this.drawHPBar(ctx, x, y, w, 'BCE');
         ctx.restore();
     }
 
+    // v5.7: BOJ — The Golden Torii (floating torii gate → meltdown)
     drawBOJ(ctx) {
-        const x = this.x;
-        const y = this.y;
-        const w = this.width;  // 160
-        const h = this.height; // 140
-        const cx = x + w / 2;
-        const cy = y + h / 2;
+        const CU = window.Game.ColorUtils;
+        const x = this.x, y = this.y, w = this.width, h = this.height;
+        const cx = x + w / 2, cy = y + h / 2;
+        const t = this.animTime;
+        const isHit = this.hitTimer > 0;
+        const p = this.phase;
 
         ctx.save();
 
-        const isHit = this.hitTimer > 0;
+        // Color channels
+        const gdR = 255, gdG = 215, gdB = 0; // gold
+        const rdR = p === 3 ? 107 : (p === 2 ? 139 : 188);
+        const rdG = 0;
+        const rdB = p === 3 ? 25 : (p === 2 ? 35 : 45);
 
-        // MEGA-BAR Design - Giant gold ingot with rising sun
-        const baseRed = this.phase === 3 ? '#6b0019' : (this.phase === 2 ? '#8b0023' : '#bc002d');
-        const goldColor = '#FFD700';
-        const goldDark = '#B8860B';
-        const goldLight = '#FFEC8B';
-
-        // Rising sun rays (aura)
+        // === RISING SUN RAYS (additive) ===
         const rayCount = 16;
-        const rayAlpha = this.phase === 3 ? 0.5 : (this.phase === 2 ? 0.4 : 0.3);
-        const raySpeed = this.phase === 3 ? 0.5 : 0.2;
-        const rayLength = 100 + this.phase * 15;
+        const rayLen = 95 + p * 12;
+        const raySpeed = p === 3 ? 0.6 : (p === 2 ? 0.4 : 0.15);
 
-        ctx.globalAlpha = rayAlpha;
+        ctx.globalCompositeOperation = 'lighter';
         for (let i = 0; i < rayCount; i++) {
-            const angle = (i / rayCount) * Math.PI * 2 + this.animTime * raySpeed;
-            ctx.fillStyle = i % 2 === 0 ? baseRed : '#ffffff';
+            const angle = (i / rayCount) * Math.PI * 2 + t * raySpeed;
+            const nextA = angle + Math.PI / rayCount * 0.7;
+            const alpha = (i % 2 === 0 ? 0.12 : 0.06) + p * 0.03;
+            ctx.fillStyle = i % 2 === 0
+                ? CU.rgba(rdR, rdG, rdB, alpha)
+                : CU.rgba(255, 255, 255, alpha * 0.5);
             ctx.beginPath();
             ctx.moveTo(cx, cy);
-            ctx.lineTo(
-                cx + Math.cos(angle) * rayLength,
-                cy + Math.sin(angle) * rayLength * 0.5
-            );
-            ctx.lineTo(
-                cx + Math.cos(angle + Math.PI / rayCount) * rayLength,
-                cy + Math.sin(angle + Math.PI / rayCount) * rayLength * 0.5
-            );
+            ctx.lineTo(cx + Math.cos(angle) * rayLen, cy + Math.sin(angle) * rayLen * 0.5);
+            ctx.lineTo(cx + Math.cos(nextA) * rayLen, cy + Math.sin(nextA) * rayLen * 0.5);
             ctx.closePath();
             ctx.fill();
         }
-        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = 'source-over';
 
-        // Gold aura
-        const auraPulse = Math.sin(this.animTime * 2) * 0.1 + 0.2;
-        ctx.fillStyle = goldColor;
-        ctx.globalAlpha = auraPulse * (0.2 + this.phase * 0.1);
+        // === GOLD AURA ===
+        ctx.globalCompositeOperation = 'lighter';
+        const aGrad = ctx.createRadialGradient(cx, cy, 20, cx, cy, w / 2 + 20);
+        aGrad.addColorStop(0, CU.rgba(gdR, gdG, gdB, 0.1));
+        aGrad.addColorStop(1, CU.rgba(gdR, gdG, gdB, 0));
+        ctx.fillStyle = aGrad;
         ctx.beginPath();
-        ctx.ellipse(cx, cy, w / 2 + 25, h / 3 + 10, 0, 0, Math.PI * 2);
+        ctx.arc(cx, cy, w / 2 + 20, 0, Math.PI * 2);
         ctx.fill();
-        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = 'source-over';
 
-        // Gold ingot shape (3D trapezoid)
-        const barW = 140;
-        const barH = 80;
-        const barTopW = 100;
-        const barX = cx - barW / 2;
-        const barY = cy - barH / 2 + 10;
+        // === TORII GATE STRUCTURE ===
+        const pillarW = 10;
+        const pillarH = 65;
+        const pillarSpacing = 55;
+        const kasagiY = cy - pillarH / 2 + 5;
+        const nukiY = kasagiY + 18;
+        const kasagiW = pillarSpacing * 2 + 30;
+        const kasagiH = 8;
+        const nukiH = 5;
 
-        // Bottom face (shadow)
-        ctx.fillStyle = '#8B7500';
+        // P3: wave distortion
+        const distort = p === 3 ? Math.sin(t * 6) * 3 : 0;
+
+        // Gold fill (P3 flickers between gold and incandescent orange)
+        const goldAlpha = isHit ? 1 : (p === 3 ? 0.7 + Math.sin(t * 4) * 0.2 : 0.9);
+        const gfR = p === 3 ? 255 : gdR;
+        const gfG = p === 3 ? 150 + Math.floor(Math.sin(t * 3) * 50) : gdG;
+        const gfB = p === 3 ? 0 : gdB;
+        const goldFill = isHit ? '#fff' : CU.rgba(gfR, gfG, gfB, goldAlpha);
+
+        // Left pillar
+        ctx.fillStyle = goldFill;
+        ctx.fillRect(cx - pillarSpacing - pillarW / 2 + distort, kasagiY + kasagiH, pillarW, pillarH);
+        // Right pillar
+        ctx.fillRect(cx + pillarSpacing - pillarW / 2 - distort, kasagiY + kasagiH, pillarW, pillarH);
+
+        // Kasagi (top crossbar — curved upward at ends)
         ctx.beginPath();
-        ctx.moveTo(barX, barY + barH);
-        ctx.lineTo(barX + barW, barY + barH);
-        ctx.lineTo(barX + barW - 10, barY + barH + 8);
-        ctx.lineTo(barX + 10, barY + barH + 8);
+        ctx.moveTo(cx - kasagiW / 2, kasagiY + kasagiH);
+        ctx.lineTo(cx - kasagiW / 2 - 5, kasagiY - 3);
+        ctx.lineTo(cx + kasagiW / 2 + 5, kasagiY - 3);
+        ctx.lineTo(cx + kasagiW / 2, kasagiY + kasagiH);
         ctx.closePath();
         ctx.fill();
 
-        // Right face (3D)
-        ctx.fillStyle = goldDark;
-        ctx.beginPath();
-        ctx.moveTo(barX + barW, barY + 10);
-        ctx.lineTo(barX + barW, barY + barH);
-        ctx.lineTo(barX + barW - 10, barY + barH + 8);
-        ctx.lineTo(barX + (barW + barTopW) / 2, barY);
-        ctx.closePath();
-        ctx.fill();
+        // Nuki (second crossbar)
+        ctx.fillRect(cx - pillarSpacing + pillarW / 2, nukiY, pillarSpacing * 2 - pillarW, nukiH);
 
-        // Top face (main gold surface)
-        const gradient = ctx.createLinearGradient(barX, barY, barX + barW, barY + barH);
-        gradient.addColorStop(0, goldLight);
-        gradient.addColorStop(0.3, goldColor);
-        gradient.addColorStop(0.7, goldColor);
-        gradient.addColorStop(1, goldDark);
-
-        ctx.fillStyle = isHit ? '#ffffff' : gradient;
-        ctx.strokeStyle = goldDark;
-        ctx.lineWidth = 2;
+        // === NEON EDGE GLOW (additive) ===
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = CU.rgba(gdR, gdG, gdB, 0.35);
+        ctx.lineWidth = 3;
+        // Pillars
+        ctx.strokeRect(cx - pillarSpacing - pillarW / 2 + distort, kasagiY + kasagiH, pillarW, pillarH);
+        ctx.strokeRect(cx + pillarSpacing - pillarW / 2 - distort, kasagiY + kasagiH, pillarW, pillarH);
+        // Kasagi
         ctx.beginPath();
-        ctx.moveTo(barX + (barW - barTopW) / 2, barY);
-        ctx.lineTo(barX + (barW + barTopW) / 2, barY);
-        ctx.lineTo(barX + barW, barY + barH);
-        ctx.lineTo(barX, barY + barH);
+        ctx.moveTo(cx - kasagiW / 2, kasagiY + kasagiH);
+        ctx.lineTo(cx - kasagiW / 2 - 5, kasagiY - 3);
+        ctx.lineTo(cx + kasagiW / 2 + 5, kasagiY - 3);
+        ctx.lineTo(cx + kasagiW / 2, kasagiY + kasagiH);
         ctx.closePath();
-        ctx.fill();
         ctx.stroke();
+        // Nuki
+        ctx.strokeRect(cx - pillarSpacing + pillarW / 2, nukiY, pillarSpacing * 2 - pillarW, nukiH);
+        ctx.globalCompositeOperation = 'source-over';
 
-        // Stamped text "GOLD" effect
-        ctx.fillStyle = goldDark;
-        ctx.globalAlpha = 0.4;
-        ctx.font = 'bold 12px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('FINE GOLD', cx, barY + 20);
-        ctx.fillText('999.9', cx, barY + barH - 12);
-        ctx.globalAlpha = 1;
+        // === ¥ SYMBOL (center below nuki) ===
+        const yenY = nukiY + nukiH + 22;
 
-        // Engraved ¥ symbol in center
-        ctx.fillStyle = goldDark;
-        ctx.strokeStyle = goldLight;
-        ctx.lineWidth = 2;
-        if (this.phase === 3) {
-            // v4.11: Glow circle instead of GPU-expensive shadowBlur
-            const glowR = 30 + Math.sin(this.animTime * 8) * 8;
-            ctx.fillStyle = '#ffffff';
-            ctx.globalAlpha = 0.35;
-            ctx.beginPath();
-            ctx.arc(cx, cy + 10, glowR, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.globalAlpha = 1;
-            ctx.fillStyle = goldDark;
-        }
-        ctx.font = 'bold 48px Arial';
+        // Glow
+        ctx.globalCompositeOperation = 'lighter';
+        const yenGlow = 20 + Math.sin(t * (p === 3 ? 8 : 3)) * (p === 3 ? 10 : 5);
+        ctx.fillStyle = CU.rgba(gdR, gdG, gdB, 0.15);
+        ctx.beginPath();
+        ctx.arc(cx, yenY, yenGlow, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalCompositeOperation = 'source-over';
+
+        // ¥ text
+        ctx.fillStyle = p === 3 ? '#fff' : CU.rgba(gdR, gdG, gdB, 1);
+        ctx.font = CU.font('bold', 38, 'Arial');
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        // Shadow effect for engraving
-        ctx.fillText('¥', cx + 2, cy + 12);
-        ctx.fillStyle = goldLight;
-        ctx.fillText('¥', cx, cy + 10);
+        ctx.strokeStyle = CU.rgba(0, 0, 0, 0.5);
+        ctx.lineWidth = 2;
+        ctx.strokeText('¥', cx, yenY);
+        ctx.fillText('¥', cx, yenY);
 
-        // Reflective shine effect (moving highlight)
-        ctx.globalAlpha = 0.3 + Math.sin(this.animTime * 2) * 0.15;
-        ctx.fillStyle = '#ffffff';
-        const shineX = barX + 20 + ((this.animTime * 30) % (barW - 40));
-        ctx.beginPath();
-        ctx.ellipse(shineX, barY + barH / 3, 15, 8, 0.3, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.globalAlpha = 1;
-
-        // Phase 2: Yield curve overlay
-        if (this.phase >= 2) {
-            ctx.strokeStyle = baseRed;
-            ctx.lineWidth = 2;
-            ctx.globalAlpha = 0.6 + Math.sin(this.animTime * 4) * 0.3;
-
-            // Yield curve line
+        // === P2+: YIELD CURVE EKG ===
+        if (p >= 2) {
+            ctx.strokeStyle = CU.rgba(rdR, rdG, rdB, 0.5 + Math.sin(t * 4) * 0.2);
+            ctx.lineWidth = 1.5;
             ctx.beginPath();
-            ctx.moveTo(barX + 15, barY + barH - 20);
-            for (let i = 0; i <= 10; i++) {
-                const t = i / 10;
-                const curveX = barX + 15 + t * (barW - 30);
-                // Flat/inverted yield curve shape
-                const curveY = barY + barH - 20 - Math.sin(t * Math.PI) * 15 - t * 5;
-                ctx.lineTo(curveX, curveY);
+            const eW = pillarSpacing * 2 - 20;
+            for (let i = 0; i <= 20; i++) {
+                const tN = i / 20;
+                const ex = cx - eW / 2 + tN * eW;
+                const ey = cy + 28 - Math.sin(tN * Math.PI) * 10 - tN * 4 + Math.sin(t * 8 + tN * 10) * 2;
+                if (i === 0) ctx.moveTo(ex, ey);
+                else ctx.lineTo(ex, ey);
             }
             ctx.stroke();
-            ctx.globalAlpha = 1;
 
-            // "INTERVENTION" flash text
-            if (this.interventionCooldown > 0 || Math.floor(this.animTime * 3) % 5 === 0) {
-                ctx.fillStyle = '#ff0';
-                ctx.globalAlpha = 0.5 + Math.sin(this.animTime * 15) * 0.5;
-                ctx.font = 'bold 11px Arial';
-                ctx.fillText('INTERVENTION!', cx, barY - 15);
-                ctx.globalAlpha = 1;
+            // INTERVENTION flash
+            if (this.interventionCooldown > 0 || Math.floor(t * 3) % 5 === 0) {
+                ctx.fillStyle = CU.rgba(255, 255, 0, 0.4 + Math.sin(t * 15) * 0.4);
+                ctx.font = CU.font('bold', 12, 'monospace');
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('INTERVENTION!', cx, kasagiY - 15);
             }
         }
 
-        // Phase 3: Incandescent bar with laser rays
-        if (this.phase === 3) {
-            // Incandescent glow
-            ctx.fillStyle = 'rgba(255, 200, 100, 0.3)';
-            ctx.beginPath();
-            ctx.moveTo(barX + (barW - barTopW) / 2 - 5, barY - 5);
-            ctx.lineTo(barX + (barW + barTopW) / 2 + 5, barY - 5);
-            ctx.lineTo(barX + barW + 5, barY + barH + 5);
-            ctx.lineTo(barX - 5, barY + barH + 5);
-            ctx.closePath();
-            ctx.fill();
+        // === P3: MELTDOWN EFFECTS ===
+        if (p === 3) {
+            // Incandescent overlay
+            ctx.fillStyle = CU.rgba(255, 200, 100, 0.1 + Math.sin(t * 5) * 0.05);
+            ctx.fillRect(x, y, w, h);
 
-            // Rising sun rays become dangerous lasers (visual hint)
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 3;
-            for (let i = 0; i < 8; i++) {
-                const laserAngle = (i / 8) * Math.PI * 2 + this.animTime * 0.8;
-                const laserAlpha = 0.3 + Math.sin(this.animTime * 12 + i * 1.5) * 0.3;
-                ctx.globalAlpha = laserAlpha;
+            // Heat haze lines above gate
+            for (let i = 0; i < 5; i++) {
+                const hazeY = kasagiY - 10 - i * 7 - (t * 25) % 12;
+                ctx.strokeStyle = CU.rgba(255, 200, 100, 0.2 - i * 0.03);
+                ctx.lineWidth = 1.5;
                 ctx.beginPath();
-                ctx.moveTo(cx + Math.cos(laserAngle) * 50, cy + Math.sin(laserAngle) * 25);
-                ctx.lineTo(cx + Math.cos(laserAngle) * 110, cy + Math.sin(laserAngle) * 55);
-                ctx.stroke();
-            }
-            ctx.globalAlpha = 1;
-
-            // Heat waves
-            for (let i = 0; i < 4; i++) {
-                const waveY = barY - 10 - i * 8 - (this.animTime * 20) % 15;
-                ctx.strokeStyle = window.Game.ColorUtils.rgba(255, 200, 100, 0.3 - i * 0.07);
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.moveTo(barX + 20, waveY);
+                ctx.moveTo(cx - kasagiW / 2 + 10, hazeY);
                 ctx.bezierCurveTo(
-                    barX + 50, waveY - 5,
-                    barX + barW - 50, waveY + 5,
-                    barX + barW - 20, waveY
+                    cx - 20, hazeY - 3 + Math.sin(t * 6 + i) * 2,
+                    cx + 20, hazeY + 3 + Math.cos(t * 6 + i) * 2,
+                    cx + kasagiW / 2 - 10, hazeY
                 );
                 ctx.stroke();
             }
+
+            // Molten drips from crossbar
+            for (let i = 0; i < 4; i++) {
+                const dripX = cx - pillarSpacing + 20 + i * 25;
+                const dripLen = 8 + ((t * 30 + i * 17) % 20);
+                const dripAlpha = Math.max(0.1, 0.5 - (dripLen / 30));
+                ctx.fillStyle = CU.rgba(gdR, gdG - 50, 0, dripAlpha);
+                ctx.beginPath();
+                ctx.ellipse(dripX, kasagiY + kasagiH + dripLen, 2, dripLen / 3, 0, 0, Math.PI * 2);
+                ctx.fill();
+            }
         }
 
-        // v4.0.2: Telegraph warning lines for intervention burst
+        // === TELEGRAPH WARNING (intervention burst) ===
         if (this.bojTelegraphTarget && this.bojTelegraphTimer > 0) {
-            const tProg = 1 - (this.bojTelegraphTimer / 0.4); // 0→1 as telegraph completes
-            const flashAlpha = 0.3 + tProg * 0.5 + Math.sin(this.animTime * 30) * 0.15;
+            const tProg = 1 - (this.bojTelegraphTimer / 0.4);
+            const flashAlpha = 0.3 + tProg * 0.5 + Math.sin(t * 30) * 0.15;
             ctx.save();
             ctx.globalAlpha = flashAlpha;
             ctx.strokeStyle = '#ff0000';
             ctx.lineWidth = 2 + tProg * 2;
             ctx.setLineDash([8, 6]);
-            // Draw warning line from boss center to target
-            const bx = cx;
-            const by = y + h;
             ctx.beginPath();
-            ctx.moveTo(bx, by);
+            ctx.moveTo(cx, y + h);
             ctx.lineTo(this.bojTelegraphTarget.x, this.bojTelegraphTarget.y);
             ctx.stroke();
-            // Draw target crosshair
             const tx = this.bojTelegraphTarget.x;
             const ty = this.bojTelegraphTarget.y;
             const cr = 15 + tProg * 10;
@@ -1538,37 +1550,80 @@ class Boss extends window.Game.Entity {
         ctx.lineTo(cx, cy - outerRadius);
     }
 
+    // v5.7: Redesigned HP bar with glow, segments, monospace
     drawHPBar(ctx, x, y, w, name) {
+        const CU = window.Game.ColorUtils;
         const hpPct = Math.max(0, this.hp / this.maxHp);
         const barW = w + 40;
-        const barH = 12;
+        const barH = 10;
         const barX = x - 20;
-        const barY = y - 30;
+        const barY = y - 28;
+        const centerX = x + w / 2;
+        const p = this.phase;
 
-        // Bar background
-        ctx.fillStyle = '#330000';
-        ctx.fillRect(barX, barY, barW, barH);
+        // Phase fill RGB
+        const fR = p === 3 ? 255 : (p === 2 ? 255 : 57);
+        const fG = p === 3 ? 34 : (p === 2 ? 170 : 255);
+        const fB = p === 3 ? 68 : (p === 2 ? 0 : 20);
 
-        // HP fill with phase colors
-        const hpColor = this.phase === 3 ? '#ff0000' : (this.phase === 2 ? '#ffaa00' : this.accentColor || '#00ff66');
-        ctx.fillStyle = hpColor;
-        ctx.fillRect(barX, barY, barW * hpPct, barH);
+        // Background
+        ctx.fillStyle = CU.rgba(20, 0, 0, 0.8);
+        ctx.beginPath();
+        ctx.roundRect(barX, barY, barW, barH, 3);
+        ctx.fill();
 
-        // Bar border
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(barX, barY, barW, barH);
+        // Phase threshold markers
+        const thresh = window.Game.Balance?.BOSS?.PHASE_THRESHOLDS;
+        if (thresh) {
+            ctx.strokeStyle = CU.rgba(255, 255, 255, 0.12);
+            ctx.lineWidth = 1;
+            for (let i = 0; i < thresh.length; i++) {
+                const mx = barX + barW * thresh[i];
+                ctx.beginPath();
+                ctx.moveTo(mx, barY);
+                ctx.lineTo(mx, barY + barH);
+                ctx.stroke();
+            }
+        }
 
-        // Phase indicator
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 10px Arial';
+        // HP fill with gradient
+        if (hpPct > 0) {
+            const fillW = barW * hpPct;
+            const fGrad = ctx.createLinearGradient(barX, barY, barX + fillW, barY);
+            fGrad.addColorStop(0, CU.rgba(fR, fG, fB, 0.9));
+            fGrad.addColorStop(1, CU.rgba(fR, fG, fB, 0.7));
+            ctx.fillStyle = fGrad;
+            ctx.beginPath();
+            ctx.roundRect(barX, barY, fillW, barH, 3);
+            ctx.fill();
+
+            // Glow on fill (additive)
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.fillStyle = CU.rgba(fR, fG, fB, 0.15);
+            ctx.beginPath();
+            ctx.roundRect(barX, barY - 2, fillW, barH + 4, 4);
+            ctx.fill();
+            ctx.globalCompositeOperation = 'source-over';
+        }
+
+        // Border
+        ctx.strokeStyle = CU.rgba(255, 255, 255, 0.4);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(barX, barY, barW, barH, 3);
+        ctx.stroke();
+
+        // Phase text
+        ctx.fillStyle = CU.rgba(255, 255, 255, 0.7);
+        ctx.font = CU.font('bold', 10, 'monospace');
         ctx.textAlign = 'center';
-        const cx = x + w / 2;
-        ctx.fillText(`PHASE ${this.phase}`, cx, barY - 8);
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`PHASE ${p}`, centerX, barY - 7);
 
         // Boss name
-        ctx.font = 'bold 16px Arial';
-        ctx.fillText(name, cx, barY - 22);
+        ctx.fillStyle = '#fff';
+        ctx.font = CU.font('bold', 14, 'monospace');
+        ctx.fillText(name, centerX, barY - 20);
     }
 
 }

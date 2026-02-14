@@ -763,8 +763,8 @@
             WAVE_STRIP_CONFIG: {
                 Y: 95,                    // Y position (below compact HUD)
                 HEIGHT: 28,               // Strip height
-                FONT_SIZE: 14,            // Primary text size
-                SUBTITLE_SIZE: 10,        // Flavor text size
+                FONT_SIZE: 16,            // Primary text size (v5.7: was 14)
+                SUBTITLE_SIZE: 12,        // Flavor text size (v5.7: was 10)
                 DURATION: 2.5,            // Display duration (seconds)
                 BG_ALPHA: 0.5             // Background opacity
             },
@@ -772,7 +772,7 @@
             // Meme whisper config
             MEME_WHISPER_CONFIG: {
                 MAX_ON_SCREEN: 2,         // Max simultaneous whispers
-                FONT_SIZE: 13,            // Italic font size
+                FONT_SIZE: 15,            // Italic font size (v5.7: was 13)
                 ALPHA: 0.35,              // Starting opacity (v4.12: was 0.45, less distracting)
                 DRIFT_SPEED: 15,          // Upward drift px/s
                 LIFETIME: 3.0,            // Seconds to live
@@ -782,7 +782,7 @@
             // Ship status config
             SHIP_STATUS_CONFIG: {
                 Y_OFFSET: -60,            // Above player
-                FONT_SIZE: 11,            // Text size
+                FONT_SIZE: 13,            // Text size (v5.7: was 11)
                 DURATION: 2.0,            // Display duration
                 ICON_SIZE: 16             // Icon size
             },
@@ -850,9 +850,11 @@
             SHIELD_RING: {
                 ENABLED: true,
                 RADIUS: 35,              // Ring radius
-                COOLDOWN_ALPHA: 0.12,    // Cooldown arc opacity
-                READY_ALPHA: 0.06,       // Ready state (very faint)
-                LINE_WIDTH: 1.5          // Arc line width
+                COOLDOWN_ALPHA: 0.15,    // Cooldown arc opacity
+                READY_ALPHA: 0.35,       // Ready state — visible pulsing ring
+                READY_PULSE_SPEED: 4,    // Pulse frequency (rad/s)
+                READY_PULSE_AMP: 0.15,   // Pulse amplitude (±alpha)
+                LINE_WIDTH: 2            // Arc line width
             },
             WEAPON_PIPS: {
                 ENABLED: true,

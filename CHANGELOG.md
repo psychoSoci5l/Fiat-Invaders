@@ -1,5 +1,21 @@
 # Changelog
 
+## v5.7.0 - 2026-02-14
+### Premium Boss Redesign + Tap Shield + Visual Polish
+- **feat(boss)**: FED "The Corrupted Printer" — pyramid body with All-Seeing Eye (iris gradient + tracking pupil), neon green edges, CRT scan lines, orbiting $ symbols, P2 glitch artifacts + side emitters, P3 wireframe flicker + matrix rain $ + afterimage pupil trail
+- **feat(boss)**: BCE "The Star Fortress" — EU star fortress with 12 energy nodes connected by gold lines, segmented golden ring, holographic € center, P2 nodes pulse independently, P3 ring fragments + light-leak cracks + autonomous debris
+- **feat(boss)**: BOJ "The Golden Torii" — floating torii gate in neon gold with rising sun rays, ¥ glow center, P2 yield curve EKG + INTERVENTION flash, P3 meltdown (wave distortion, heat haze, molten drips, incandescent color shift)
+- **feat(boss)**: HP bar redesign — rounded rect, gradient fill, additive glow, phase threshold markers at 66%/20%, monospace typography
+- **feat(shield)**: hexgrid energy shield — honeycomb hexagon pattern with radial wave animation, multi-layer additive glow, 0.33s sequential fade-out on deactivation, replaces flat cyan circle
+- **feat(shield)**: tap-on-ship activation — shield button removed, tap on ship to activate shield on mobile; pulsing cyan ring with rotating dash accents indicates "ready" state; keyboard (Down/S) unchanged on desktop
+- **feat(shield)**: diegetic ready indicator — pulsing ring (alpha 0.20–0.50) + outer additive glow + 2 rotating dash arcs around ship when shield is available
+- **feat(ui)**: status text sizes +2-3px across all message types — wave 12→14, danger/victory 16→18, info 10→12, pickup 11→13, HYPER/GODCHAIN 11→13, floating score 18→20, perk card headers/desc +2px
+- **feat(ui)**: mobile text breakpoints bumped — 380px and 320px media queries increased proportionally
+- **fix(ui)**: removed asymmetric left boundary margin (shield button no longer occupies that space)
+- **debug**: `dbg.boss(type)` — spawn any boss instantly during gameplay (fed/bce/boj)
+- **config**: all boss rendering uses `ColorUtils.rgba()` and `ColorUtils.font()` for GC-friendly per-frame drawing
+- **config**: all boss rendering uses additive compositing (`'lighter'`) for glow layers (consistent with rest of game)
+
 ## v5.6.0 - 2026-02-14
 ### Digital Scanline Void (replaces Paper Tear)
 - **feat(vfx)**: digital scanline void — neon violet horizontal split replaces cartoon paper tear effect

@@ -676,9 +676,10 @@ function setUI(id, val) { var el = _cachedEl(id); if (el) el.innerText = val; }
 function emitEvent(name, payload) { if (events && events.emit) events.emit(name, payload); }
 function _countActive(arr) { var c = 0; for (var i = 0, len = arr.length; i < len; i++) { if (arr[i] && arr[i].life > 0) c++; } return c; }
 
-// Shield button radial indicator update
+// Shield button radial indicator update (v5.7: button hidden, tap-on-ship replaces it)
 var _shieldBtn = null, _shieldProgress = null, _shieldCached = false;
 function updateShieldButton(player) {
+    return; // v5.7: Shield button removed — cooldown shown via diegetic ring on ship
     if (!_shieldCached) { _shieldBtn = document.getElementById('t-shield'); _shieldCached = true; }
     var btn = _shieldBtn;
     if (!btn) return;
@@ -2026,6 +2027,16 @@ window.togglePrivacyPanel = function () {
 
 // What's New panel (v4.50)
 const WHATS_NEW = [
+    {
+        version: 'v5.7.0', date: '2026-02-14', title: 'Boss Redesign + Tap Shield',
+        items: [
+            'NEW: All 3 bosses completely redesigned — FED (Illuminati Pyramid), BCE (Star Fortress), BOJ (Golden Torii)',
+            'NEW: Hexgrid energy shield — honeycomb pattern with radial wave animation replaces flat circle',
+            'NEW: Tap on your ship to activate shield (mobile) — pulsing cyan ring shows when ready',
+            'Boss HP bar redesigned with gradient fill, glow, and phase markers',
+            'Status texts slightly larger across all message types for better readability'
+        ]
+    },
     {
         version: 'v5.3.0', date: '2026-02-13', title: 'Gradius-Style Laser Beam',
         items: [
@@ -3381,6 +3392,8 @@ function spawnBoss() {
     }
 }
 
+G._spawnBoss = spawnBoss; // v5.7: debug access
+
 // Mini-Boss System - v2.18.0: Spawns actual boss types based on currency mapping
 // bossTypeOrSymbol: Either a boss type ('FEDERAL_RESERVE', 'BCE', 'BOJ') or currency symbol for legacy
 // triggerColor: Color of the triggering currency (for visual theming)
@@ -3781,7 +3794,7 @@ function drawHyperUI(ctx) {
         ctx.strokeRect(barX, barY, barWidth, barHeight);
 
         // Combined text: "HYPER x5  8.3s"
-        ctx.font = G.ColorUtils.font('bold', 11, '"Courier New", monospace');
+        ctx.font = G.ColorUtils.font('bold', 13, '"Courier New", monospace');
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillStyle = '#fff';
@@ -3879,7 +3892,7 @@ function drawGodchainUI(ctx) {
     ctx.strokeRect(barX, barY, barWidth, barHeight);
 
     // GODCHAIN text + timer inside bar
-    ctx.font = G.ColorUtils.font('bold', 11, '"Courier New", monospace');
+    ctx.font = G.ColorUtils.font('bold', 13, '"Courier New", monospace');
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#fff';
@@ -4297,23 +4310,23 @@ function drawPerkPauseOverlay(ctx) {
     ctx.shadowBlur = 0;
 
     // "PERK ACQUIRED" header
-    ctx.font = 'bold 14px "Courier New", monospace';
+    ctx.font = 'bold 16px "Courier New", monospace';
     ctx.textAlign = 'center';
     ctx.fillStyle = rarityColor;
     ctx.fillText('PERK ACQUIRED', centerX, cardY + 22);
 
     // Icon + Name
-    ctx.font = 'bold 28px "Courier New", monospace';
+    ctx.font = 'bold 30px "Courier New", monospace';
     ctx.fillStyle = '#fff';
     ctx.fillText(`${perkPauseData.icon} ${perkPauseData.name}`, centerX, cardY + 60);
 
     // Description
-    ctx.font = '14px "Courier New", monospace';
+    ctx.font = '16px "Courier New", monospace';
     ctx.fillStyle = '#aaa';
     ctx.fillText(perkPauseData.desc, centerX, cardY + 90);
 
     // Rarity badge
-    ctx.font = 'bold 12px "Courier New", monospace';
+    ctx.font = 'bold 14px "Courier New", monospace';
     ctx.fillStyle = rarityColor;
     ctx.fillText(perkPauseData.rarity.toUpperCase(), centerX, cardY + 120);
 

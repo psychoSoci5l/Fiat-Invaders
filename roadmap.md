@@ -1,7 +1,35 @@
 # Roadmap: FIAT vs CRYPTO
 
-> **Versione attuale**: v5.2.0 (2026-02-13)
+> **Versione attuale**: v5.7.0 (2026-02-14)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
+
+---
+
+## COMPLETATO — Premium Boss Redesign + Tap Shield (v5.7.0)
+
+- [x] FED boss: Illuminati Pyramid — All-Seeing Eye with tracking pupil, orbiting $, CRT scanlines, P3 matrix rain
+- [x] BCE boss: Star Fortress — 12 energy nodes, segmented golden ring, holographic €, P3 light-leak cracks
+- [x] BOJ boss: Golden Torii — rising sun rays, ¥ glow, P2 yield curve EKG, P3 meltdown with heat haze
+- [x] Boss HP bar: rounded rect, gradient fill, additive glow, phase threshold markers
+- [x] Hexgrid energy shield: honeycomb pattern, radial wave, multi-layer glow, fade-out
+- [x] Tap-on-ship shield activation (mobile) — replaces shield button
+- [x] Pulsing diegetic ready indicator with rotating dash accents
+- [x] Status text sizes +2-3px for better readability
+- [x] `dbg.boss(type)` debug command for boss testing
+
+---
+
+## COMPLETATO — Digital Scanline Void (v5.6.0)
+
+- [x] Neon violet scanline split replaces paper tear effect
+- [x] Glitch segments, CRT void scanlines, shimmer/breathing, opening/closing flash
+
+---
+
+## COMPLETATO — Cinematic Story Backgrounds (v5.5.0)
+
+- [x] Per-chapter animated backgrounds (falling coins, Matrix rain, network nodes, lightning globe)
+- [x] Kill-switch + legacy stars fallback
 
 ---
 
@@ -108,6 +136,7 @@
 ### Gameplay
 - New enemy types (elite variants, shield enemies)
 - ~~Boss attack pattern variety (per-phase unique patterns)~~ ✅ v5.0.4
+- ~~Boss visual redesign (premium cyberpunk aesthetic)~~ ✅ v5.7.0
 - Combo system (chain kills for multiplier)
 - Daily challenge mode
 - Leaderboard (local, no server)
