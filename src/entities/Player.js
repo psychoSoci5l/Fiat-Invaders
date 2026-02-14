@@ -1390,7 +1390,7 @@ class Player extends window.Game.Entity {
         const WE = window.Game.Balance.WEAPON_EVOLUTION;
         if (!WE) return;
 
-        const penalty = WE.DEATH_PENALTY || 1;
+        const penalty = WE.DEATH_PENALTY ?? 1;
 
         // Weapon level: min 1
         this.weaponLevel = Math.max(1, this.weaponLevel - penalty);
