@@ -2760,8 +2760,9 @@ window.launchShipAndStart = function () {
     requestAnimationFrame(animateLaunch);
 }
 
-// === Tutorial System (v4.37 unified) ===
+// === Tutorial System (v5.12 progressive steps) ===
 let tutorialCallback = null;
+let tutorialStep = 0;
 
 function showTutorialOverlay() {
     const overlay = document.getElementById('tutorial-overlay');
@@ -2772,11 +2773,65 @@ function showTutorialOverlay() {
         const key = el.getAttribute('data-i18n');
         if (T[key]) el.textContent = T[key];
     });
+    // Reset to step 0
+    tutorialStep = 0;
+    for (let i = 0; i < 3; i++) {
+        const step = document.getElementById('tut-step-' + i);
+        if (step) {
+            step.className = 'tut-step' + (i === 0 ? ' tut-step--active' : '');
+        }
+    }
+    // Update dots
+    updateTutDots(0);
+    // Button text = NEXT
+    const btn = document.getElementById('tut-go-btn');
+    if (btn) {
+        btn.textContent = T.TUT_NEXT || 'NEXT';
+        btn.onclick = handleTutorialButton;
+    }
     overlay.style.display = 'flex';
     tutorialCallback = endWarmup;
 }
 
-window.completeTutorial = function() {
+function updateTutDots(activeIdx) {
+    const dots = document.querySelectorAll('.tut-dot');
+    dots.forEach((dot, i) => {
+        dot.classList.toggle('active', i === activeIdx);
+    });
+}
+
+function advanceTutorial() {
+    const curStep = document.getElementById('tut-step-' + tutorialStep);
+    tutorialStep++;
+    const nextStep = document.getElementById('tut-step-' + tutorialStep);
+    if (!curStep || !nextStep) return;
+
+    // Animate out current
+    curStep.className = 'tut-step tut-step--out';
+    // After out animation, show next
+    setTimeout(() => {
+        curStep.className = 'tut-step';
+        nextStep.className = 'tut-step tut-step--active';
+        updateTutDots(tutorialStep);
+        // Last step → change button to GO!
+        if (tutorialStep === 2) {
+            const T = G.TEXTS[G._currentLang || 'EN'] || G.TEXTS.EN;
+            const btn = document.getElementById('tut-go-btn');
+            if (btn) btn.textContent = T.GO || 'GO!';
+        }
+    }, 250);
+}
+
+function handleTutorialButton() {
+    if (tutorialStep < 2) {
+        advanceTutorial();
+    } else {
+        completeTutorial();
+    }
+}
+
+window.completeTutorial = completeTutorial;
+function completeTutorial() {
     const tutMode = (G.CampaignState && G.CampaignState.isEnabled()) ? 'story' : 'arcade';
     localStorage.setItem('fiat_tutorial_' + tutMode + '_seen', '1');
     const overlay = document.getElementById('tutorial-overlay');
@@ -2791,7 +2846,7 @@ window.completeTutorial = function() {
     }
     if (tutorialCallback) tutorialCallback();
     tutorialCallback = null;
-};
+}
 
 window.togglePause = function () {
     if (gameState === 'PLAY' || gameState === 'WARMUP' || gameState === 'INTERMISSION') {

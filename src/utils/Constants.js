@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v5.11.1 FIAT vs CRYPTO";
+window.Game.VERSION = "v5.12.0 FIAT vs CRYPTO";
 
 window.Game.TEXTS = {
     EN: {
@@ -129,13 +129,14 @@ window.Game.TEXTS = {
         PWA_INSTALL_IOS: 'Install: tap <svg class="pwa-share-icon" viewBox="0 0 24 24" fill="none" stroke="#bb44ff" stroke-width="2"><path d="M12 3v12M5 10l7-7 7 7"/><path d="M5 21h14a1 1 0 001-1v-6H4v6a1 1 0 001 1z"/></svg> then "Add to Home Screen"',
         PWA_INSTALL_ANDROID: "Install the app for the best experience",
         PWA_INSTALL_BTN: "INSTALL",
-        // Tutorial (v4.37 unified)
-        TUT_TITLE: "HOW TO PLAY",
-        TUT_CONTROLS_PC: "A/D or Arrows to move. Space to fire. S for Shield.",
-        TUT_CONTROLS_UNIFIED: "SWIPE LEFT & RIGHT TO MOVE",
-        TUT_OBJECTIVE_UNIFIED: "Destroy 5 waves, then defeat the Boss!",
-        TUT_SHIELD_FIN: "Your fins glow cyan when Shield is ready \u2014 tap your ship to activate!",
-        TUT_SURVIVAL_UNIFIED: "3 lives \u2022 1 hit = 1 life \u2022 Shield = your defense",
+        // Tutorial (v5.12 progressive steps)
+        TUT_TITLE: "MISSION BRIEFING",
+        TUT_STEP_MISSION: "FIAT currencies are attacking!\nDestroy 5 waves, then face the Central Bank Boss.",
+        TUT_STEP_CONTROLS_PC: "\u2190 \u2192 or A/D to move\nSPACE to fire\nAutofire while moving",
+        TUT_STEP_CONTROLS_MOBILE: "Drag to move\nAutofire while touching",
+        TUT_STEP_SHIELD_PC: "Fins glow cyan = Shield ready!\nPress S or \u2193 to activate",
+        TUT_STEP_SHIELD_MOBILE: "Fins glow cyan = Shield ready!\nTap your ship to activate",
+        TUT_NEXT: "NEXT",
         // Manual v2 condensed (v4.12.0)
         MAN_OBJECTIVES: "OBJECTIVES",
         MAN_OBJ_TEXT: "Destroy waves of fiat enemies, collect power-ups, survive 5 waves per level, then defeat the Boss. Each cycle increases difficulty and rewards.",
@@ -296,13 +297,14 @@ window.Game.TEXTS = {
         PWA_INSTALL_IOS: 'Installa: tap <svg class="pwa-share-icon" viewBox="0 0 24 24" fill="none" stroke="#bb44ff" stroke-width="2"><path d="M12 3v12M5 10l7-7 7 7"/><path d="M5 21h14a1 1 0 001-1v-6H4v6a1 1 0 001 1z"/></svg> poi "Aggiungi a Home"',
         PWA_INSTALL_ANDROID: "Installa l'app per la migliore esperienza",
         PWA_INSTALL_BTN: "INSTALLA",
-        // Tutorial (v4.37 unified)
-        TUT_TITLE: "COME SI GIOCA",
-        TUT_CONTROLS_PC: "A/D o Frecce per muoverti. Spazio per sparare. S per lo Scudo.",
-        TUT_CONTROLS_UNIFIED: "SCORRI A SINISTRA E DESTRA PER MUOVERTI",
-        TUT_OBJECTIVE_UNIFIED: "Distruggi 5 ondate, poi sconfiggi il Boss!",
-        TUT_SHIELD_FIN: "Le alette brillano cyan quando lo Scudo \u00E8 pronto \u2014 tocca la nave per attivarlo!",
-        TUT_SURVIVAL_UNIFIED: "3 vite \u2022 1 colpo = 1 vita \u2022 Lo scudo \u00E8 la tua difesa",
+        // Tutorial (v5.12 progressive steps)
+        TUT_TITLE: "BRIEFING MISSIONE",
+        TUT_STEP_MISSION: "Le valute FIAT attaccano!\nDistruggi 5 ondate e affronta il Boss della Banca Centrale.",
+        TUT_STEP_CONTROLS_PC: "\u2190 \u2192 o A/D per muoverti\nSPAZIO per sparare\nSparo automatico in movimento",
+        TUT_STEP_CONTROLS_MOBILE: "Trascina per muoverti\nSparo automatico al tocco",
+        TUT_STEP_SHIELD_PC: "Alette cyan = Scudo pronto!\nPremi S o \u2193 per attivarlo",
+        TUT_STEP_SHIELD_MOBILE: "Alette cyan = Scudo pronto!\nTocca la nave per attivarlo",
+        TUT_NEXT: "AVANTI",
         // Manual v2 condensed (v4.12.0)
         MAN_OBJECTIVES: "OBIETTIVI",
         MAN_OBJ_TEXT: "Distruggi ondate di nemici fiat, raccogli power-up, sopravvivi a 5 ondate per livello, poi sconfiggi il Boss. Ogni ciclo aumenta difficolt\u00E0 e ricompense.",

@@ -4509,41 +4509,73 @@ body.is-touch p.mobile-only { display: block; }
     text-align: center;
 }
 
-/* --- Tutorial card system --- */
-.tut-group {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+/* --- Tutorial step system (v5.12 progressive) --- */
+.tut-step {
+    display: none;
     width: 100%;
 }
+.tut-step--active {
+    display: block;
+    animation: tutStepIn 0.35s ease-out both;
+}
+.tut-step--out {
+    display: block;
+    animation: tutStepOut 0.25s ease-in forwards;
+}
 
-.tut-divider {
-    width: 60%;
-    height: 1px;
-    margin: 4px auto;
-    background: linear-gradient(90deg, transparent, rgba(187, 68, 255, 0.3), transparent);
+@keyframes tutStepIn {
+    from { opacity: 0; transform: translateY(40px) scale(0.9); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes tutStepOut {
+    from { opacity: 1; transform: translateX(0); }
+    to   { opacity: 0; transform: translateX(-60px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tut-step--active { animation: none; }
+    .tut-step--out { animation: none; opacity: 0; }
+}
+
+/* Progress dots */
+.tut-dots {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 10px;
+}
+.tut-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    transition: background 0.3s, box-shadow 0.3s;
+}
+.tut-dot.active {
+    background: #bb44ff;
+    box-shadow: 0 0 8px rgba(187, 68, 255, 0.6);
 }
 
 .tut-card {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
     text-align: left;
-    padding: 10px 14px;
-    border-radius: 10px;
+    padding: 16px 18px;
+    border-radius: 12px;
     border-left: 3px solid transparent;
-    background: rgba(255, 255, 255, 0.03);
+    background: rgba(255, 255, 255, 0.04);
 }
 
 .tut-icon {
     flex-shrink: 0;
-    width: 32px;
-    height: 32px;
+    width: 40px;
+    height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
-    border-radius: 8px;
+    font-size: 20px;
+    border-radius: 10px;
     background: rgba(255, 255, 255, 0.06);
 }
 
@@ -4562,7 +4594,7 @@ body.is-touch p.mobile-only { display: block; }
 .tut-card--obj .tut-icon {
     color: #ff2d95;
     background: rgba(255, 45, 149, 0.12);
-    font-size: 20px;
+    font-size: 22px;
 }
 
 .tut-card--shield {
@@ -4571,23 +4603,10 @@ body.is-touch p.mobile-only { display: block; }
 .tut-card--shield .tut-icon {
     color: #00f0ff;
     background: rgba(0, 240, 255, 0.12);
-    font-size: 20px;
+    font-size: 22px;
 }
 .tut-card--shield .tutorial-text {
     color: #00f0ff;
-}
-
-.tut-card--survive {
-    border-left-color: #ffaa00;
-}
-.tut-card--survive .tut-icon {
-    color: #ffaa00;
-    background: rgba(255, 170, 0, 0.12);
-}
-
-.tutorial-tips {
-    font-size: 14px;
-    color: rgba(255, 255, 255, 0.6);
 }
 
 /* Control zone hint — grey area below graze meter, visible during PLAY only */
@@ -4618,6 +4637,7 @@ body.is-touch p.mobile-only { display: block; }
     font-size: 14px;
     line-height: 1.5;
     margin: 0;
+    white-space: pre-line;
 }
 
 .tutorial-actions {

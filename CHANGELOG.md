@@ -1,5 +1,15 @@
 # Changelog
 
+## v5.12.0 - 2026-02-14
+### Progressive Step-by-Step Tutorial
+- **feat(tutorial)**: Redesigned tutorial from 4 static cards to 3 sequential animated steps: Mission (magenta), Controls (violet), Shield (cyan)
+- **feat(tutorial)**: Step-by-step flow with NEXT/GO! button, slide-up entrance + slide-left exit animations
+- **feat(tutorial)**: Progress dots indicator (3 dots, active = violet glow)
+- **feat(tutorial)**: Platform-aware controls text (PC keyboard vs mobile touch) per step
+- **feat(tutorial)**: `prefers-reduced-motion` support — instant transitions, no animations
+- **feat(i18n)**: New tutorial keys: `TUT_STEP_MISSION`, `TUT_STEP_CONTROLS_PC/MOBILE`, `TUT_STEP_SHIELD_PC/MOBILE`, `TUT_NEXT` (EN + IT)
+- **refactor**: Removed old `.tut-group`, `.tut-divider`, `.tut-card--survive` CSS and unused i18n keys
+
 ## v5.11.1 - 2026-02-14
 ### Bugfix: Death Penalty
 - **fix(player)**: `DEATH_PENALTY: 0` was ignored — JS `||` operator treats 0 as falsy, so `0 || 1 = 1` applied -1 weapon level on death despite config. Fixed with nullish coalescing `??`

@@ -314,38 +314,50 @@
 
     </div><!-- /game-container -->
 
-    <!-- TUTORIAL OVERLAY (v4.37 unified) - Outside game-container for proper stacking above curtain -->
+    <!-- TUTORIAL OVERLAY (v5.12 progressive steps) - Outside game-container for proper stacking above curtain -->
     <div id="tutorial-overlay" style="display: none;">
         <div class="tutorial-container tutorial-unified">
-            <h2 class="tutorial-title" data-i18n="TUT_TITLE">HOW TO PLAY</h2>
-            <div class="tut-group">
-                <div class="tutorial-section tut-card tut-card--obj">
+            <h2 class="tutorial-title" data-i18n="TUT_TITLE">MISSION BRIEFING</h2>
+            <div class="tut-dots"><span class="tut-dot active"></span><span class="tut-dot"></span><span class="tut-dot"></span></div>
+            <!-- Step 0: Mission -->
+            <div class="tut-step tut-step--active" id="tut-step-0">
+                <div class="tut-card tut-card--obj">
                     <span class="tut-icon">&#x25CE;</span>
-                    <p class="tutorial-text" data-i18n="TUT_OBJECTIVE_UNIFIED">Destroy 5 waves, then defeat the Boss!</p>
-                </div>
-                <div class="tutorial-section tut-card tut-card--survive">
-                    <span class="tut-icon">&#x2665;</span>
-                    <p class="tutorial-text tutorial-tips" data-i18n="TUT_SURVIVAL_UNIFIED">3 lives &#8226; 1 hit = 1 life &#8226; Shield = your defense</p>
+                    <p class="tutorial-text" data-i18n="TUT_STEP_MISSION">FIAT currencies are attacking!
+Destroy 5 waves, then face the Central Bank Boss.</p>
                 </div>
             </div>
-            <div class="tut-divider"></div>
-            <div class="tut-group">
-                <div class="tutorial-section tut-card tut-card--move">
+            <!-- Step 1: Controls -->
+            <div class="tut-step" id="tut-step-1">
+                <div class="tut-card tut-card--move">
                     <span class="tut-icon">&#x25C2;&#x25B8;</span>
                     <div class="desktop-only">
-                        <p class="tutorial-text" data-i18n="TUT_CONTROLS_PC">A/D or Arrows to move. Space to fire. S for Shield.</p>
+                        <p class="tutorial-text" data-i18n="TUT_STEP_CONTROLS_PC">&#x2190; &#x2192; or A/D to move
+SPACE to fire
+Autofire while moving</p>
                     </div>
                     <div class="mobile-only">
-                        <p class="tutorial-text" data-i18n="TUT_CONTROLS_UNIFIED">SWIPE LEFT & RIGHT TO MOVE</p>
+                        <p class="tutorial-text" data-i18n="TUT_STEP_CONTROLS_MOBILE">Drag to move
+Autofire while touching</p>
                     </div>
                 </div>
-                <div class="tutorial-section tut-card tut-card--shield">
+            </div>
+            <!-- Step 2: Shield -->
+            <div class="tut-step" id="tut-step-2">
+                <div class="tut-card tut-card--shield">
                     <span class="tut-icon">&#x2B21;</span>
-                    <p class="tutorial-text" data-i18n="TUT_SHIELD_FIN">Your fins glow cyan when Shield is ready &#8212; tap your ship to activate!</p>
+                    <div class="desktop-only">
+                        <p class="tutorial-text" data-i18n="TUT_STEP_SHIELD_PC">Fins glow cyan = Shield ready!
+Press S or &#x2193; to activate</p>
+                    </div>
+                    <div class="mobile-only">
+                        <p class="tutorial-text" data-i18n="TUT_STEP_SHIELD_MOBILE">Fins glow cyan = Shield ready!
+Tap your ship to activate</p>
+                    </div>
                 </div>
             </div>
             <div class="tutorial-actions">
-                <button class="btn btn-primary btn-lg" id="tut-go-btn" onclick="completeTutorial()" data-i18n="GO">GO!</button>
+                <button class="btn btn-primary btn-lg" id="tut-go-btn" data-i18n="TUT_NEXT">NEXT</button>
             </div>
         </div>
     </div>
