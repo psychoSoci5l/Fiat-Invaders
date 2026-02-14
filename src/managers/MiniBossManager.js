@@ -23,7 +23,7 @@
                 enemyBullets: getEnemyBullets, setEnemyBullets,
                 applyHitStop, showDanger, canSpawnEnemyBullet } = _deps;
 
-        applyHitStop('BOSS_DEFEAT', false);
+        applyHitStop('BOSS_DEFEAT_SLOWMO', false);
 
         // Clear enemy bullets
         const eb = getEnemyBullets();
@@ -325,7 +325,7 @@
                 setShake(40);
                 G.Audio.play('explosion');
 
-                if (window.Game.applyHitStop) window.Game.applyHitStop('BOSS_DEFEAT', false);
+                if (window.Game.applyHitStop) window.Game.applyHitStop('BOSS_DEFEAT_SLOWMO', false);
                 if (window.Game.triggerScreenFlash) window.Game.triggerScreenFlash('BOSS_DEFEAT');
 
                 // Restore enemies

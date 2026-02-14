@@ -191,7 +191,9 @@
                 PLAYER_HIT: 0,
                 // Non-gameplay — preserved (boss cinematic moments)
                 BOSS_PHASE: 0.30,         // 300ms on boss phase transition
-                BOSS_DEFEAT: 1.00,        // 1s on boss death (dramatic slowmo)
+                BOSS_DEFEAT_FREEZE: 0.50, // v5.11: 500ms total freeze on boss death
+                BOSS_DEFEAT_SLOWMO: 1.50, // v5.11: 1.5s slowmo after freeze
+                WEAPON_UPGRADE: 0.40,     // v5.11: 400ms slowmo during evolution transform
             },
 
             // Screen flash effects (values used when enabled)
@@ -203,6 +205,7 @@
                 STREAK_50: { duration: 0.10, opacity: 0.25, color: '#9B59B6' },
                 BOSS_PHASE: { duration: 0.12, opacity: 0.25, color: '#FF6600' },
                 BOSS_DEFEAT: { duration: 0.20, opacity: 0.50, color: '#FFFFFF' },
+                WEAPON_UPGRADE: { duration: 0.15, opacity: 0.40, color: '#FFFFFF' },
                 PLAYER_HIT: { duration: 0.04, opacity: 0.15, color: '#FF0000' },
                 WAVE_START: { duration: 0.05, opacity: 0.25, color: '#FFFFFF' },
                 MULTI_KILL: { duration: 0.08, opacity: 0.20, color: '#FFFFFF' }  // v4.5
@@ -685,7 +688,7 @@
             // State transitions
             SPLASH_TIMEOUT: 4.0,           // Video splash screen max duration
             INTERMISSION_DURATION: 3.2,    // Between waves (3-2-1 countdown, ceil(3.2)=4 but we cap at 3)
-            BOSS_CELEBRATION_DELAY: 2.0,   // Seconds before intermission after boss death
+            BOSS_CELEBRATION_DELAY: 5.0,   // v5.11: 2→5s — chain explosions + evolution item flight + transform
             INTERMISSION_BOSS_DURATION: 6.0, // Boss defeat intermission (skippable)
             DEATH_DURATION: 2.0,           // Death sequence length
             INVULNERABILITY: 2.1,          // Post-hit protection
@@ -958,30 +961,29 @@
             AUTO_DELETE_Y: 1000           // Y position to auto-remove
         },
 
-        // --- WEAPON EVOLUTION SYSTEM (v4.47 Redesign) ---
-        // Linear 5-level weapon progression (permanent, -1 on death)
-        // HYPER adds +2 temporary levels (max effective LV7)
+        // --- WEAPON EVOLUTION SYSTEM (v5.11 Boss Evolution Redesign) ---
+        // 3-level weapon progression (permanent, no death penalty)
+        // Upgrades ONLY from boss kills (Evolution Core item)
+        // HYPER adds +2 temporary levels (max effective LV5)
         // Specials: 3 weapon types (HOMING/PIERCE/MISSILE), exclusive, 12s
         // Utilities: SHIELD/SPEED (separate non-weapon drops)
         WEAPON_EVOLUTION: {
-            // Weapon levels (permanent until death, -1 per death)
-            MAX_WEAPON_LEVEL: 5,
-            KILLS_FOR_UPGRADE: 50,        // v5.0.4: 60→50 (LV2@W1H2 end — avoids 3-hit slog at W2)
+            // Weapon levels (permanent for entire run — no death penalty)
+            MAX_WEAPON_LEVEL: 3,
             KILLS_FOR_PERK: 70,           // v5.0.4: 80→70 (perk@W2H1, perk@W3H2, GODCHAIN@W5H1)
 
             // HYPER mode weapon boost
-            HYPER_LEVEL_BOOST: 2,         // +2 weapon levels during HYPER
+            HYPER_LEVEL_BOOST: 2,         // +2 weapon levels during HYPER (max effective LV5)
 
-            // Level table: stats lookup by weapon level (1-7)
-            // LV 6-7 only reachable during HYPER
+            // Level table: stats lookup by weapon level (1-5)
+            // LV 4-5 only reachable during HYPER
             LEVELS: {
                 1: { name: 'Single',     bullets: 1, cooldownMult: 1.00, damageMult: 1.00, spreadDeg: 0 },
-                2: { name: 'Dual',       bullets: 2, cooldownMult: 1.00, damageMult: 1.00, spreadDeg: 0 },
-                3: { name: 'Dual+',      bullets: 2, cooldownMult: 0.85, damageMult: 1.25, spreadDeg: 0 },
-                4: { name: 'Triple',     bullets: 3, cooldownMult: 0.70, damageMult: 1.50, spreadDeg: 5 },
-                5: { name: 'Triple MAX', bullets: 3, cooldownMult: 0.55, damageMult: 1.75, spreadDeg: 8 },
-                6: { name: 'HYPER+',     bullets: 3, cooldownMult: 0.40, damageMult: 2.00, spreadDeg: 10 },
-                7: { name: 'HYPER++',    bullets: 3, cooldownMult: 0.30, damageMult: 2.25, spreadDeg: 12 }
+                2: { name: 'Dual',       bullets: 2, cooldownMult: 0.85, damageMult: 1.30, spreadDeg: 0 },
+                3: { name: 'Triple MAX', bullets: 3, cooldownMult: 0.65, damageMult: 1.70, spreadDeg: 6 },
+                // HYPER-only levels (not reachable without HYPER):
+                4: { name: 'HYPER+',     bullets: 3, cooldownMult: 0.45, damageMult: 2.00, spreadDeg: 10 },
+                5: { name: 'HYPER++',    bullets: 3, cooldownMult: 0.30, damageMult: 2.25, spreadDeg: 12 }
             },
 
             // v4.48: Missile optimization — fewer projectiles, more damage
@@ -995,7 +997,7 @@
             UTILITY_DURATION: 12,
 
             // Death penalty
-            DEATH_PENALTY: 1,             // Weapon levels lost on death
+            DEATH_PENALTY: 0,             // v5.11: No weapon loss on death (evolution is permanent)
 
             // Speed utility effect
             SPEED_MULTIPLIER: 1.4,        // Movement speed during SPEED utility
@@ -1293,6 +1295,34 @@
                 DURATION: 0.35,             // Animation duration (s)
                 LOCK_AT: 0.85,              // Shake + audio lock at this % of progress
                 SHAKE_INTENSITY: 6,         // Screen shake at lock-in (px)
+                HITSTOP: true,              // v5.11: Kill-switch for cinematic upgrade effects
+                UPGRADE_SHAKE: 10,          // v5.11: Shake intensity on evolution collect
+            },
+
+            // v5.11: Boss death cinematic sequence
+            BOSS_DEATH: {
+                CHAIN_EXPLOSIONS: 6,
+                CHAIN_TIMES: [0.0, 0.4, 0.8, 1.3, 1.8, 2.5],
+                CHAIN_OFFSETS: [[0,0], [-50,-30], [40,20], [-30,40], [50,-20], [0,10]],
+                CHAIN_SCALE: [1.0, 0.8, 0.9, 1.0, 1.1, 1.5],
+                COIN_RAIN: {
+                    ENABLED: true,
+                    COUNT: 25,
+                    SPAWN_DURATION: 1.5,
+                    START_DELAY: 0.3,
+                    FALL_SPEED: { MIN: 60, MAX: 120 },
+                    WOBBLE: { SPEED: 3, AMOUNT: 30 },
+                    LIFE: 3.0,
+                    SYMBOLS: ['$', '€', '¥', '£', '₿'],
+                    COLORS: ['#FFD700', '#ffaa00', '#00ff66', '#fff']
+                },
+                EVOLUTION_ITEM: {
+                    SPAWN_DELAY: 2.8,
+                    FLY_DURATION: 1.2,
+                    SIZE: 28,
+                    GLOW_COLOR: '#00f0ff',
+                    TRAIL_PARTICLES: 8
+                }
             },
 
             // v5.1: Directional muzzle flash (canvas + particles)

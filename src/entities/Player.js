@@ -20,9 +20,9 @@ class Player extends window.Game.Entity {
         this.shipPowerUp = null;
         this.shipPowerUpTimer = 0;
 
-        // === WEAPON EVOLUTION v4.47 (Linear 5-Level) ===
-        // Weapon level (1-5): permanent until death (-1 per death)
-        // HYPER adds +2 temporary levels (max effective LV7)
+        // === WEAPON EVOLUTION v5.11 (3-Level Boss Evolution) ===
+        // Weapon level (1-3): permanent for entire run (no death penalty)
+        // HYPER adds +2 temporary levels (max effective LV5)
         this.weaponLevel = 1;
 
         // Special (exclusive, temp): HOMING/PIERCE/MISSILE
@@ -563,10 +563,10 @@ class Player extends window.Game.Entity {
         const WE = Balance.WEAPON_EVOLUTION;
         const bullets = [];
 
-        // Effective weapon level: base + HYPER boost (capped at 7)
+        // v5.11: Effective weapon level: base + HYPER boost (capped at 5)
         let effectiveLevel = this.weaponLevel;
         if (this.hyperActive) {
-            effectiveLevel = Math.min(7, effectiveLevel + (WE.HYPER_LEVEL_BOOST || 2));
+            effectiveLevel = Math.min(5, effectiveLevel + (WE.HYPER_LEVEL_BOOST || 2));
         }
 
         // Lookup level data from table
@@ -1344,6 +1344,45 @@ class Player extends window.Game.Entity {
     }
 
     /**
+     * v5.11: Collect Evolution Core from boss kill — cinematic weapon upgrade
+     * Called when the evolution item reaches the player position.
+     */
+    collectEvolution() {
+        const WE = window.Game.Balance.WEAPON_EVOLUTION;
+        if (!WE) return;
+        if (this.weaponLevel >= WE.MAX_WEAPON_LEVEL) return;
+
+        const fromLevel = this.weaponLevel;
+        this.weaponLevel++;
+        this._startDeploy(fromLevel, this.weaponLevel);
+
+        // Cinematic effects
+        const deployCfg = window.Game.Balance?.VFX?.WEAPON_DEPLOY;
+        if (deployCfg && deployCfg.HITSTOP) {
+            if (window.Game.applyHitStop) window.Game.applyHitStop('WEAPON_UPGRADE', false);
+            if (window.Game.triggerScreenFlash) window.Game.triggerScreenFlash('WEAPON_UPGRADE');
+            if (window.Game.EffectsRenderer) {
+                window.Game.EffectsRenderer.applyShake(deployCfg.UPGRADE_SHAKE || 10);
+            }
+        }
+
+        // Particle burst
+        if (window.Game.ParticleSystem) {
+            window.Game.ParticleSystem.createWeaponUpgradeEffect(this.x, this.y, this.weaponLevel);
+        }
+
+        // Audio
+        const Audio = window.Game.Audio;
+        if (Audio) Audio.play('levelUp');
+
+        // Debug tracking
+        if (window.Game.Debug) window.Game.Debug.trackWeaponEvent('EVOLUTION', 'WPN_LV' + this.weaponLevel);
+        if (window.Game.Events) {
+            window.Game.Events.emit('WEAPON_LEVEL_UP', { level: this.weaponLevel });
+        }
+    }
+
+    /**
      * Apply death penalty: reduce weapon level, clear special
      * Called when player loses a life
      */
@@ -1378,14 +1417,15 @@ class Player extends window.Game.Entity {
      */
     _computeGeomForLevel(level) {
         const isGC = this._godchainActive;
+        // v5.11: 3 base levels (LV1=base, LV2=pods+panels+fins, LV3=armor+barrel+thrusters)
         return {
-            bodyHalfW: isGC ? 33 : (level >= 5 ? 31 : (level >= 4 ? 29 : (level >= 3 ? 27 : (level >= 2 ? 25 : 22)))),
-            podX:      level >= 4 ? 20 : (level >= 3 ? 18 : 16),
-            podTop:    isGC ? -38 : (level >= 5 ? -38 : (level >= 4 ? -36 : (level >= 3 ? -34 : -28))),
-            podW:      isGC ? 6 : (level >= 5 ? 6 : (level >= 4 ? 5.5 : (level >= 3 ? 5 : 4.5))),
-            barrelTop: level >= 5 ? -48 : -44,
-            barrelW:   isGC ? 4.5 : (level >= 5 ? 4.5 : 3.5),
-            finExt:    isGC ? 10 : (level >= 5 ? 8 : (level >= 4 ? 6 : (level >= 3 ? 4 : 0)))
+            bodyHalfW: isGC ? 33 : (level >= 3 ? 31 : (level >= 2 ? 27 : 22)),
+            podX:      level >= 3 ? 20 : (level >= 2 ? 18 : 16),
+            podTop:    isGC ? -38 : (level >= 3 ? -38 : (level >= 2 ? -34 : -28)),
+            podW:      isGC ? 6 : (level >= 3 ? 6 : (level >= 2 ? 5 : 4.5)),
+            barrelTop: level >= 3 ? -48 : -44,
+            barrelW:   isGC ? 4.5 : (level >= 3 ? 4.5 : 3.5),
+            finExt:    isGC ? 10 : (level >= 3 ? 8 : (level >= 2 ? 4 : 0))
         };
     }
 
@@ -1410,8 +1450,8 @@ class Player extends window.Game.Entity {
             fromGeom.podTop = -14;
             fromGeom.podW = 3.5;
         }
-        if (fromLevel < 4) {
-            // Barrel hidden at nose tip
+        if (fromLevel < 3) {
+            // v5.11: Barrel hidden at nose tip (appears at LV3)
             fromGeom.barrelTop = -36;
             fromGeom.barrelW = 2.5;
         }
@@ -1488,8 +1528,8 @@ class Player extends window.Game.Entity {
     }
 
     /**
-     * v5.9: Chevron ship body — metallic tech design with BTC cockpit path
-     * LV1: base chevron. LV2: +side pods. LV3: +panel lines+fins. LV4: +barrel+fin thrusters. LV5: +armor. GODCHAIN: energy form.
+     * v5.11: Chevron ship body — metallic tech design with BTC cockpit path
+     * LV1: base chevron. LV2: +pods+panels+fins. LV3: +armor+barrel+thrusters (MAX). GODCHAIN: energy form.
      */
     _drawShipBody(ctx) {
         const CU = window.Game.ColorUtils;
@@ -1538,8 +1578,8 @@ class Player extends window.Game.Entity {
         const rearY = 16;
         const centerRearY = 10;
 
-        // === 1. LV5+: ARMOR PLATES (behind body) ===
-        if (level >= 5) {
+        // === 1. LV3+: ARMOR PLATES (behind body) ===
+        if (level >= 3) {
             ctx.save();
             ctx.lineWidth = 2;
             ctx.strokeStyle = outline;
@@ -1618,19 +1658,19 @@ class Player extends window.Game.Entity {
         ctx.stroke();
         ctx.restore();
 
-        // === 4. PANEL LINES (LV3+) ===
-        if (level >= 3) {
+        // === 4. PANEL LINES (LV2+) ===
+        if (level >= 2) {
             ctx.save();
             ctx.strokeStyle = accentGlow;
-            ctx.lineWidth = level >= 5 ? 2.5 : 2;
+            ctx.lineWidth = level >= 3 ? 2.5 : 2;
             ctx.globalAlpha = isGC ? 0.9 : 0.65;
             // Horizontal accent
             ctx.beginPath();
             ctx.moveTo(-bodyHalfW + 5, 0);
             ctx.lineTo(bodyHalfW - 5, 0);
             ctx.stroke();
-            // LV4+: diagonal panel lines
-            if (level >= 4) {
+            // LV3+: diagonal panel lines
+            if (level >= 3) {
                 ctx.lineWidth = 1.5;
                 ctx.globalAlpha = isGC ? 0.7 : 0.4;
                 ctx.beginPath();
@@ -1689,8 +1729,8 @@ class Player extends window.Game.Entity {
             ctx.globalAlpha = 1;
         }
 
-        // === 7. LV4+: CENTRAL BARREL (from _geom.barrelTop) ===
-        if (level >= 4 || (this._deploy.active && this._deploy.toLevel >= 4)) {
+        // === 7. LV3+: CENTRAL BARREL (from _geom.barrelTop) ===
+        if (level >= 3 || (this._deploy.active && this._deploy.toLevel >= 3)) {
             const barrelTop = g.barrelTop;
             const barrelW = g.barrelW;
             ctx.fillStyle = noseLight;
@@ -1700,8 +1740,8 @@ class Player extends window.Game.Entity {
             ctx.rect(-barrelW, barrelTop, barrelW * 2, -36 - barrelTop);
             ctx.fill(); ctx.stroke();
 
-            // LV5+: pulsing glow at barrel tip
-            if (level >= 5) {
+            // LV3+: pulsing glow at barrel tip
+            if (level >= 3) {
                 const bPulse = Math.sin(t * 6) * 0.3 + 0.7;
                 ctx.fillStyle = accentGlow;
                 ctx.globalAlpha = bPulse * 0.8;
@@ -1746,8 +1786,8 @@ class Player extends window.Game.Entity {
         ctx.closePath();
         ctx.fill(); ctx.stroke();
 
-        // === 9. LV4+: FIN THRUSTERS (flames at fin tips) ===
-        if (level >= 4) {
+        // === 9. LV3+: FIN THRUSTERS (flames at fin tips) ===
+        if (level >= 3) {
             const ftH = 6 + Math.sin(t * 14) * 3;
             ctx.fillStyle = '#ff8800';
             ctx.globalAlpha = 0.7;
@@ -1827,8 +1867,8 @@ class Player extends window.Game.Entity {
             ctx.fill(); ctx.stroke();
 
             // Glow tips at pod tops
-            const tipR = level >= 5 ? 4.5 : (level >= 3 ? 3.5 : 3);
-            const tipAlpha = level >= 5 ? (Math.sin(t * 6) * 0.3 + 0.7) : (level >= 3 ? 0.9 : 0.7);
+            const tipR = level >= 3 ? 4.5 : 3.5;
+            const tipAlpha = level >= 3 ? (Math.sin(t * 6) * 0.3 + 0.7) : 0.7;
             ctx.fillStyle = accentGlow;
             ctx.globalAlpha = tipAlpha;
             ctx.beginPath();
@@ -2091,7 +2131,7 @@ class Player extends window.Game.Entity {
         // Effective weapon level (includes HYPER boost)
         let effectiveLevel = this.weaponLevel || 1;
         if (this.hyperActive) {
-            effectiveLevel = Math.min(7, effectiveLevel + (WE.HYPER_LEVEL_BOOST || 2));
+            effectiveLevel = Math.min(5, effectiveLevel + (WE.HYPER_LEVEL_BOOST || 2));
         }
         const isGC = this._godchainActive;
 
@@ -2131,16 +2171,17 @@ class Player extends window.Game.Entity {
         // Compute actual muzzle points from ship geometry (_geom for deploy animation)
         // {x, y} in local coords — y points up = more negative
         const gm = this._geom;
+        // v5.11: Muzzle points mapped to 3-level system
         const muzzles = [];
         if (effectiveLevel <= 1) {
             // LV1: single shot from nose barrel tip
             muzzles.push({ x: 0, y: -40 });
-        } else if (effectiveLevel <= 3) {
-            // LV2-3: dual from gun pod tops
+        } else if (effectiveLevel === 2) {
+            // LV2: dual from gun pod tops
             muzzles.push({ x: -gm.podX, y: gm.podTop });
             muzzles.push({ x: gm.podX, y: gm.podTop });
         } else {
-            // LV4+: triple — side pods + central barrel
+            // LV3+: triple — side pods + central barrel
             muzzles.push({ x: -gm.podX, y: gm.podTop });
             muzzles.push({ x: 0, y: gm.barrelTop || -28 });
             muzzles.push({ x: gm.podX, y: gm.podTop });

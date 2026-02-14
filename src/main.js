@@ -460,14 +460,16 @@ function initCollisionSystem() {
                     if (G.Debug) G.Debug.trackDropSpawned(bossDropInfo.type, bossDropInfo.category, 'boss');
                 }
             },
-            // Boss killed
+            // Boss killed — v5.11: Cinematic boss evolution flow
             onBossDeath(deadBoss) {
                 const defeatedBossType = deadBoss.bossType || 'FEDERAL_RESERVE';
                 const defeatedBossName = deadBoss.name || 'THE FED';
                 const bossX = deadBoss.x + deadBoss.width / 2;
                 const bossY = deadBoss.y + deadBoss.height / 2;
+
+                // T=0: Main explosion + FREEZE
                 createBossDeathExplosion(bossX, bossY);
-                applyHitStop('BOSS_DEFEAT', false);
+                applyHitStop('BOSS_DEFEAT_FREEZE', true);
                 triggerScreenFlash('BOSS_DEFEAT');
                 if (G.TransitionManager) G.TransitionManager.startFadeOut(0.8, '#ffffff');
                 const bossBonus = Balance.SCORE.BOSS_DEFEAT_BASE + (marketCycle * Balance.SCORE.BOSS_DEFEAT_PER_CYCLE);
@@ -476,15 +478,12 @@ function initCollisionSystem() {
                 boss.active = false; boss = null; window.boss = null; shake = Balance.EFFECTS.SHAKE.BOSS_DEFEAT || 80; audioSys.play('explosion');
                 audioSys.setBossPhase(0);
                 if (G.Events) G.Events.emit('weather:boss_defeat');
-                // v4.42: Restore ambient without boss
                 if (G.WeatherController) G.WeatherController.setLevel(level, isBearMarket, false);
                 enemyBullets.forEach(b => G.Bullet.Pool.release(b));
                 enemyBullets.length = 0;
                 window.enemyBullets = enemyBullets;
                 bossJustDefeated = true;
-                // v4.44: Deactivate HYPER on boss defeat (prevents carry-over into next cycle)
                 if (player && player.hyperActive) player.deactivateHyper();
-                // v4.40: Reset proximity meter on boss defeat (clean slate for next cycle)
                 grazeMeter = 0;
                 updateGrazeUI();
                 enemies.length = 0;
@@ -500,7 +499,8 @@ function initCollisionSystem() {
                 if (G.Debug) { G.Debug.trackBossFightEnd(defeatedBossType, marketCycle); G.Debug.trackCycleEnd(marketCycle, Math.floor(score)); }
                 marketCycle++;
                 window.marketCycle = marketCycle;
-                // v4.59: Adaptive Power Calibration — snapshot player strength for next cycle
+
+                // v5.11: APC with 3-level formula
                 const APC = G.Balance.ADAPTIVE_POWER;
                 if (APC && APC.ENABLED && marketCycle >= 2) {
                     const wl = player ? (player.weaponLevel || 1) : 1;
@@ -509,7 +509,7 @@ function initCollisionSystem() {
                     for (const k in stacks) totalStacks += stacks[k];
                     const hasSpec = !!(player && player.special);
                     const W = APC.WEIGHTS;
-                    const weaponScore = (wl - 1) / 4;
+                    const weaponScore = (wl - 1) / 2; // v5.11: 3 levels (0, 0.5, 1.0)
                     const perkScore = Math.min(totalStacks / 8, 1);
                     const specialScore = hasSpec ? 1.0 : 0.0;
                     const ps = W.WEAPON * weaponScore + W.PERKS * perkScore + W.SPECIAL * specialScore;
@@ -523,9 +523,7 @@ function initCollisionSystem() {
                 console.log(`[BOSS DEFEATED] Cycle incremented to ${marketCycle}, calling waveMgr.reset()`);
                 G.Debug.trackCycleUp(marketCycle);
                 if (G.Debug) G.Debug.trackCycleStart(marketCycle);
-                // v5.4.0: checkWeaponUnlocks moved to startIntermission (delayed 2s)
                 waveMgr.reset();
-                // v5.10.3: Block WM from acting during boss celebration — startIntermission() clears this
                 waveMgr.waveInProgress = true;
                 fiatKillCounter = { '¥': 0, '₽': 0, '₹': 0, '€': 0, '£': 0, '₣': 0, '₺': 0, '$': 0, '元': 0, 'Ⓒ': 0 };
                 if (G.HarmonicConductor) { G.HarmonicConductor.reset(); G.HarmonicConductor.setDifficulty(level, marketCycle, isBearMarket); }
@@ -535,22 +533,79 @@ function initCollisionSystem() {
                 const chapterId = G.BOSS_TO_CHAPTER && G.BOSS_TO_CHAPTER[defeatedBossType];
                 const shouldShowChapter = chapterId && shouldShowStory(chapterId);
 
-                // Chain reaction explosions during celebration
-                setTimeout(() => { createBossDeathExplosion(bossX, bossY - 30); }, 600);
-                setTimeout(() => { createBossDeathExplosion(bossX + 20, bossY + 20); }, 1100);
+                // === v5.11: Cinematic boss death sequence ===
+                const BD = Balance.VFX?.BOSS_DEATH;
+
+                // T=0.3: Coin rain
+                if (BD?.COIN_RAIN?.ENABLED && G.ParticleSystem) {
+                    setTimeout(() => {
+                        const cw = G.Balance.GAME?.BASE_WIDTH || 600;
+                        const ch = G.Balance.GAME?.BASE_HEIGHT || 800;
+                        G.ParticleSystem.createCoinRain(cw, ch);
+                    }, (BD.COIN_RAIN.START_DELAY || 0.3) * 1000);
+                }
+
+                // T=0.5: Freeze ends → SLOWMO
+                setTimeout(() => {
+                    applyHitStop('BOSS_DEFEAT_SLOWMO', false);
+                }, 500);
+
+                // Chain explosions (config-driven)
+                if (BD) {
+                    const chainCount = BD.CHAIN_EXPLOSIONS || 6;
+                    const times = BD.CHAIN_TIMES || [0.0, 0.4, 0.8, 1.3, 1.8, 2.5];
+                    const offsets = BD.CHAIN_OFFSETS || [[0,0],[-50,-30],[40,20],[-30,40],[50,-20],[0,10]];
+                    const scales = BD.CHAIN_SCALE || [1.0, 0.8, 0.9, 1.0, 1.1, 1.5];
+                    for (let i = 1; i < chainCount; i++) { // i=0 is the main explosion already fired
+                        const delay = (times[i] || i * 0.4) * 1000;
+                        const ox = offsets[i] ? offsets[i][0] : 0;
+                        const oy = offsets[i] ? offsets[i][1] : 0;
+                        const sc = scales[i] || 1.0;
+                        setTimeout(() => {
+                            createBossDeathExplosion(bossX + ox, bossY + oy);
+                            if (sc >= 1.5) {
+                                // Climax explosion: extra flash + shake
+                                triggerScreenFlash('BOSS_DEFEAT');
+                                shake = Math.max(shake, 40);
+                            }
+                            audioSys.play('explosion');
+                        }, delay);
+                    }
+                }
+
+                // Evolution item spawn + fly
+                const WE = Balance.WEAPON_EVOLUTION;
+                const canEvolve = player && player.weaponLevel < (WE?.MAX_WEAPON_LEVEL || 3);
+                if (canEvolve && BD?.EVOLUTION_ITEM) {
+                    const evoConf = BD.EVOLUTION_ITEM;
+                    const spawnDelay = (evoConf.SPAWN_DELAY || 2.8) * 1000;
+                    const flyDuration = (evoConf.FLY_DURATION || 1.2) * 1000;
+
+                    setTimeout(() => {
+                        // Create evolution item object (managed inline)
+                        const evoItem = {
+                            x: bossX, y: bossY,
+                            startX: bossX, startY: bossY,
+                            timer: 0,
+                            duration: flyDuration,
+                            active: true,
+                            size: evoConf.SIZE || 28,
+                            glowColor: evoConf.GLOW_COLOR || '#00f0ff'
+                        };
+                        // Store on window for game loop access
+                        window._evolutionItem = evoItem;
+                    }, spawnDelay);
+                }
 
                 // Delayed transition — let the celebration breathe
-                const celebDelay = (Balance.TIMING.BOSS_CELEBRATION_DELAY || 2.0) * 1000;
+                const celebDelay = (Balance.TIMING.BOSS_CELEBRATION_DELAY || 5.0) * 1000;
                 setTimeout(() => {
-                    // Arcade: show modifier choice, then intermission
                     if (_isArcadeMode && G.ModifierChoiceScreen) {
                         const picks = Balance.ARCADE.MODIFIERS.POST_BOSS_PICKS || 3;
-                        // Reset Last Stand per cycle
                         if (G.RunState.arcadeBonuses.lastStandAvailable) {
                             G.RunState.arcadeBonuses.lastStandAvailable = true;
                         }
                         startIntermission(t('CYCLE') + ' ' + marketCycle + ' ' + t('BEGINS'));
-                        // Show modifier choice after a brief delay
                         setTimeout(() => {
                             G.ModifierChoiceScreen.show(picks, () => {
                                 const extraL = G.RunState.arcadeBonuses.extraLives;
@@ -3192,6 +3247,7 @@ function startGame() {
     G.enemies = enemies;
     window.enemyBullets = enemyBullets;
     window.boss = null; window.miniBoss = null; // v2.22.5: Sync for debug overlay
+    window._evolutionItem = null; // v5.11: Clear any pending evolution item
     if (G.HarmonicConductor) G.HarmonicConductor.enemies = enemies;
     updateGrazeUI(); // Reset grazing UI
 
@@ -3929,6 +3985,8 @@ function update(dt) {
     updateFloatingTexts(dt);
     updateTypedMessages(dt);
     updatePerkIcons(dt);
+    // v5.11: Evolution item fly towards player
+    updateEvolutionItem(dt);
     updateParticles(dt);
     if (G.TransitionManager) G.TransitionManager.update(dt);
 }
@@ -4470,6 +4528,7 @@ function draw() {
         }
 
         drawParticles(ctx);
+        drawEvolutionItem(ctx);
 
         // Floating texts (delegated to FloatingTextManager)
         G.FloatingTextManager.draw(ctx, gameWidth);
@@ -4797,6 +4856,94 @@ function createBossDeathExplosion(x, y) {
 
 function createScoreParticles(x, y, color) {
     if (G.ParticleSystem) G.ParticleSystem.createScoreParticles(x, y, color);
+}
+
+// v5.11: Evolution item — flies from boss death position to player with curved path
+function updateEvolutionItem(dt) {
+    const evo = window._evolutionItem;
+    if (!evo || !evo.active) return;
+
+    evo.timer += dt * 1000; // Convert to ms
+    const t = Math.min(1, evo.timer / evo.duration);
+
+    // Ease-in-out cubic for smooth flight
+    const ease = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+    // Update target to current player position
+    if (player) {
+        evo.targetX = player.x;
+        evo.targetY = player.y;
+    }
+
+    // Curved path: slight arc above the straight line
+    const arcHeight = -80; // Upward arc
+    const arcT = Math.sin(t * Math.PI); // Peak at t=0.5
+    evo.x = evo.startX + (evo.targetX - evo.startX) * ease;
+    evo.y = evo.startY + (evo.targetY - evo.startY) * ease + arcHeight * arcT;
+
+    // Trail particles
+    if (G.ParticleSystem && t > 0.05) {
+        G.ParticleSystem.createEvolutionItemTrail(evo.x, evo.y);
+    }
+
+    // Reached player
+    if (t >= 1) {
+        evo.active = false;
+        window._evolutionItem = null;
+        if (player && player.collectEvolution) {
+            player.collectEvolution();
+        }
+    }
+}
+
+// v5.11: Draw evolution item (called from draw loop)
+function drawEvolutionItem(ctx) {
+    const evo = window._evolutionItem;
+    if (!evo || !evo.active) return;
+
+    const CU = G.ColorUtils;
+    const t = evo.timer / evo.duration;
+    const pulse = Math.sin(t * 20) * 0.2 + 0.8;
+    const size = evo.size || 28;
+
+    ctx.save();
+    ctx.translate(evo.x, evo.y);
+
+    // Outer glow (additive)
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = CU ? CU.rgba(0, 240, 255, 0.3 * pulse) : 'rgba(0,240,255,0.24)';
+    ctx.beginPath();
+    ctx.arc(0, 0, size * 0.8, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Core diamond shape
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = evo.glowColor || '#00f0ff';
+    ctx.globalAlpha = pulse;
+    ctx.beginPath();
+    ctx.moveTo(0, -size * 0.5);
+    ctx.lineTo(size * 0.35, 0);
+    ctx.lineTo(0, size * 0.5);
+    ctx.lineTo(-size * 0.35, 0);
+    ctx.closePath();
+    ctx.fill();
+
+    // Inner bright core
+    ctx.fillStyle = '#ffffff';
+    ctx.globalAlpha = pulse * 0.9;
+    ctx.beginPath();
+    ctx.arc(0, 0, size * 0.15, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Arrow symbol (⬆) inside
+    ctx.fillStyle = '#ffffff';
+    ctx.globalAlpha = pulse * 0.7;
+    ctx.font = `bold ${Math.floor(size * 0.4)}px monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('⬆', 0, 0);
+
+    ctx.restore();
 }
 
 function updateParticles(dt) {
@@ -5160,7 +5307,7 @@ function _snapPlayerState() {
     const BP = G.Balance.BULLET_PIERCE;
     const rs = G.RunState;
     let effLv = player.weaponLevel;
-    if (player.hyperActive) effLv = Math.min(7, effLv + (WE?.HYPER_LEVEL_BOOST || 2));
+    if (player.hyperActive) effLv = Math.min(5, effLv + (WE?.HYPER_LEVEL_BOOST || 2));
     const pierceHP = BP ? BP.BASE_HP + Math.floor(effLv * (BP.LEVEL_BONUS || 0.5)) : 0;
     return {
         weaponLevel: player.weaponLevel,

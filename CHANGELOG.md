@@ -1,5 +1,21 @@
 # Changelog
 
+## v5.11.0 - 2026-02-14
+### Cinematic Boss Evolution + 3-Level Weapon System
+- **feat(weapon)**: 3-level weapon system (was 5) — LV1 Single, LV2 Dual, LV3 Triple MAX. HYPER adds +2 temp levels (max effective LV5). Cleaner progression tied to boss kills
+- **feat(boss)**: Evolution Core item — boss defeat spawns a glowing cyan diamond that flies to the player with curved path + trail particles, triggering cinematic weapon upgrade (slowmo 0.4s + flash + shockwave burst)
+- **feat(boss)**: Cinematic boss death sequence — 500ms freeze → 1.5s slowmo, 6 config-driven chain explosions with offsets/scale (climax explosion at t=2.5s), coin rain (25 symbols with gravity+wobble)
+- **feat(vfx)**: `createWeaponUpgradeEffect` — expanding shockwave ring + 14 radial energy sparks + central flash glow
+- **feat(vfx)**: `createCoinRain` — celebratory currency symbols ($€¥£₿) falling with sinusoidal wobble
+- **feat(vfx)**: `createEvolutionItemTrail` — cyan spark trail during evolution item flight
+- **feat(particles)**: Gravity + wobble physics support in particle update loop
+- **balance(drops)**: UPGRADE removed from enemy drop table — weapons only evolve via boss Evolution Core. Drop pool: 60% SPECIAL, 20% UTILITY, 20% PERK
+- **balance(death)**: No weapon loss on death (`DEATH_PENALTY: 0`) — evolution is permanent for the run
+- **balance(timing)**: `BOSS_CELEBRATION_DELAY` 2→5s to accommodate chain explosions + evolution item flight + transform
+- **balance(APC)**: Adaptive Power Calibration formula updated for 3-level range: `(wl-1)/2` (0, 0.5, 1.0)
+- **config**: `Balance.VFX.BOSS_DEATH` — new section with CHAIN_EXPLOSIONS, COIN_RAIN, EVOLUTION_ITEM configs
+- **config**: `Balance.JUICE.HIT_STOP` — BOSS_DEFEAT replaced by BOSS_DEFEAT_FREEZE (0.5s) + BOSS_DEFEAT_SLOWMO (1.5s) + WEAPON_UPGRADE (0.4s)
+
 ## v5.10.3 - 2026-02-14
 ### Boss Flow Fixes + Bullet Collision + Drop Economy
 - **fix(boss)**: Boss defeat no longer double-spawns next wave — `waveInProgress` flag blocks WaveManager during 2s celebration, preventing spurious START_INTERMISSION before story screen

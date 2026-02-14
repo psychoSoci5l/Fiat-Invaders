@@ -1,8 +1,8 @@
 /**
  * DropSystem.js - Unified Power-Up Drop Management
  *
- * WEAPON EVOLUTION v4.47 REDESIGN:
- * - UPGRADE drops (guaranteed every N kills, increases weapon level 1→5)
+ * WEAPON EVOLUTION v5.11 REDESIGN:
+ * - UPGRADE no longer drops from enemies (only from boss Evolution Core)
  * - SPECIAL drops (HOMING/PIERCE/MISSILE - exclusive, temporary 12s)
  * - UTILITY drops (SHIELD/SPEED - non-weapon, separate visual)
  *
@@ -138,13 +138,10 @@
 
             // Backward compat — wrap number in minimal playerState
             let playerState;
-            let currentWeaponLevel;
             if (typeof playerStateOrWeaponLevel === 'number') {
-                currentWeaponLevel = playerStateOrWeaponLevel;
                 playerState = null;
             } else {
                 playerState = playerStateOrWeaponLevel;
-                currentWeaponLevel = playerState.weaponLevel;
             }
 
             // v4.61: Check for guaranteed PERK drop (pity timer)
@@ -158,38 +155,24 @@
                 }
             }
 
-            // Check for guaranteed UPGRADE (pity timer)
-            const killsSinceUpgrade = this.totalKills - this.lastUpgradeKillCount;
-            if (killsSinceUpgrade >= WE.KILLS_FOR_UPGRADE) {
-                this.lastUpgradeKillCount = this.totalKills;
-                // v5.10.3: At max weapon, redirect to SPECIAL (UPGRADE has no effect)
-                const maxWpn = WE.MAX_WEAPON_LEVEL || 5;
-                if (playerState && playerState.weaponLevel >= maxWpn) {
-                    const type = this.getWeightedSpecial(WE);
-                    return { type, category: 'special' };
-                }
-                return { type: 'UPGRADE', category: 'upgrade' };
-            }
-
-            // Need-based category selection when adaptive drops enabled
+            // v5.11: UPGRADE no longer drops from enemies — only from boss Evolution Core
+            // Need-based category selection: SPECIAL, UTILITY, PERK only
             const AD = G.Balance.ADAPTIVE_DROPS;
             if (AD && AD.ENABLED && playerState) {
                 const category = this.selectNeedBasedCategory(playerState);
 
                 if (category === 'perk') {
-                    // v4.61: Perk drop via DropSystem
                     this.lastPerkKillCount = this.totalKills;
                     this.killsSincePerkDrop = 0;
                     return { type: 'PERK', category: 'perk' };
                 } else if (category === 'upgrade') {
-                    // v4.48: At max level, UPGRADE still drops → Player.js sets _godchainPending = true
-                    this.lastUpgradeKillCount = this.totalKills;
-                    return { type: 'UPGRADE', category: 'upgrade' };
+                    // v5.11: Redirect UPGRADE → SPECIAL (upgrades only from boss)
+                    const type = this.getWeightedSpecial(WE);
+                    return { type, category: 'special' };
                 } else if (category === 'special') {
                     const type = this.getWeightedSpecial(WE);
                     return { type, category: 'special' };
                 } else {
-                    // utility
                     const utilities = ['SHIELD', 'SPEED'];
                     const type = utilities[Math.floor(Math.random() * utilities.length)];
                     return { type, category: 'utility' };
@@ -197,23 +180,23 @@
             }
 
             // Legacy fixed split (when adaptive is off or no playerState)
+            // v5.11: No UPGRADE — 60% special, 20% utility, 20% perk
             const roll = Math.random();
-            if (roll < 0.5) {
-                // 50% chance: UPGRADE if not maxed, else special
-                if (currentWeaponLevel < (WE.MAX_WEAPON_LEVEL || 5)) {
-                    return { type: 'UPGRADE', category: 'upgrade' };
-                }
+            if (roll < 0.60) {
                 const type = this.getWeightedSpecial(WE);
                 return { type, category: 'special' };
-            } else if (roll < 0.8) {
-                // 30% chance: special
-                const type = this.getWeightedSpecial(WE);
-                return { type, category: 'special' };
-            } else {
-                // 20% chance: utility
+            } else if (roll < 0.80) {
                 const utilities = ['SHIELD', 'SPEED'];
                 const type = utilities[Math.floor(Math.random() * utilities.length)];
                 return { type, category: 'utility' };
+            } else {
+                if (G.Balance.PERK && G.Balance.PERK.ENABLED) {
+                    this.lastPerkKillCount = this.totalKills;
+                    this.killsSincePerkDrop = 0;
+                    return { type: 'PERK', category: 'perk' };
+                }
+                const type = this.getWeightedSpecial(WE);
+                return { type, category: 'special' };
             }
         }
 
@@ -243,18 +226,7 @@
             return 'HOMING';
         }
 
-        /**
-         * Check if we should force an UPGRADE drop (for pity timer)
-         * @param {number} currentWeaponLevel - Player's current weapon level
-         * @returns {boolean}
-         */
-        shouldForceUpgrade(currentWeaponLevel) {
-            const WE = G.Balance.WEAPON_EVOLUTION;
-            if (!WE || currentWeaponLevel >= WE.MAX_WEAPON_LEVEL) return false;
-
-            const killsSinceUpgrade = this.totalKills - this.lastUpgradeKillCount;
-            return killsSinceUpgrade >= WE.KILLS_FOR_UPGRADE;
-        }
+        // v5.11: shouldForceUpgrade removed — UPGRADE no longer drops from enemies
 
         // === ADAPTIVE DROPS v4.47 ===
 
@@ -268,7 +240,7 @@
             const AD = G.Balance.ADAPTIVE_DROPS;
             if (!AD) return 0;
 
-            const weaponScore = (playerState.weaponLevel - 1) / 4; // 0.0 at LV1, 1.0 at LV5
+            const weaponScore = (playerState.weaponLevel - 1) / 2; // v5.11: 0.0 at LV1, 0.5 at LV2, 1.0 at LV3
             const specialScore = playerState.hasSpecial ? 1.0 : 0.0;
 
             return AD.WEAPON_WEIGHT * weaponScore
@@ -309,12 +281,8 @@
             const CW = AD.CATEGORY_WEIGHTS;
             const MIN = AD.MIN_CATEGORY_WEIGHT;
 
-            // v4.48: Need scores responsive to full player state
-            const maxWpn = G.Balance.WEAPON_EVOLUTION.MAX_WEAPON_LEVEL;
-            // v5.10.3: No UPGRADE need at max weapon (GODCHAIN recharge via perks since v4.60)
-            const upgradeNeed = playerState.weaponLevel >= maxWpn
-                ? 0
-                : (maxWpn - playerState.weaponLevel) / (maxWpn - 1);
+            // v5.11: UPGRADE need always 0 — upgrades only from boss Evolution Core
+            const upgradeNeed = 0;
             const specialNeed = playerState.hasSpecial ? 0.1 : 0.7;
             const utilityNeed = (playerState.hasShield || playerState.hasSpeed) ? 0.2 : 0.5;
 
@@ -404,19 +372,7 @@
                         : 1;
                 }
 
-                // Check for forced UPGRADE (pity timer for weapon level)
-                if (this.shouldForceUpgrade(currentWeaponLevel)) {
-                    this.killsSinceLastDrop = 0;
-                    this.lastUpgradeKillCount = this.totalKills;
-                    this.lastEnemyDropTime = totalTime;
-                    this.lastDropType = 'UPGRADE';
-                    return {
-                        type: 'UPGRADE',
-                        category: 'upgrade',
-                        x: enemyX,
-                        y: enemyY
-                    };
-                }
+                // v5.11: No forced UPGRADE from enemies — upgrades come from boss Evolution Core only
 
                 // Normal drop chance check
                 if (pityDrop || Math.random() < dropChance) {

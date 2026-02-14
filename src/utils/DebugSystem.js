@@ -1733,7 +1733,7 @@ window.Game.Debug = {
             console.log('[DEBUG] No player found');
             return;
         }
-        const max = window.Game.Balance?.WEAPON_EVOLUTION?.MAX_WEAPON_LEVEL || 5;
+        const max = window.Game.Balance?.WEAPON_EVOLUTION?.MAX_WEAPON_LEVEL || 3;
         player.weaponLevel = Math.max(1, Math.min(max, level));
         console.log(`[DEBUG] Weapon level set to ${player.weaponLevel}`);
     },
@@ -1770,12 +1770,12 @@ window.Game.Debug = {
             return;
         }
         const WE = window.Game.Balance?.WEAPON_EVOLUTION;
-        player.weaponLevel = WE?.MAX_WEAPON_LEVEL || 5;
+        player.weaponLevel = WE?.MAX_WEAPON_LEVEL || 3;
         console.log(`[DEBUG] Weapon maxed: Level=${player.weaponLevel}`);
     },
 
     /**
-     * Force GODCHAIN mode ON (set weapon level to 5)
+     * Force GODCHAIN mode ON (set weapon level to max)
      */
     godchain() {
         const player = window.player;
@@ -1784,7 +1784,7 @@ window.Game.Debug = {
             return;
         }
         this.maxWeapon();
-        console.log('[DEBUG] GODCHAIN forced ON — weapon level 5');
+        console.log(`[DEBUG] GODCHAIN forced ON — weapon level ${player.weaponLevel}`);
     },
 
     /**

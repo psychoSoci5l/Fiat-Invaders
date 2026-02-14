@@ -538,6 +538,12 @@
                 }
             } else {
                 // Standard Physics
+                // v5.11: Gravity + wobble support
+                if (p.gravity) p.vy += p.gravity * dt;
+                if (p.wobbleAmp) {
+                    p._wobbleT = (p._wobbleT || 0) + dt;
+                    p.vx = Math.sin(p._wobbleT * (p.wobbleFreq || 3)) * p.wobbleAmp;
+                }
                 p.x += p.vx * dt;
                 p.y += p.vy * dt;
                 p.life -= dt;
@@ -721,6 +727,115 @@
         }
     }
 
+    // v5.11: Weapon evolution upgrade burst (shockwave + radial sparks + central flash)
+    function createWeaponUpgradeEffect(x, y, level) {
+        const available = MAX_PARTICLES - particles.length;
+        if (available <= 5) return;
+
+        const intensity = Math.min(level, 3); // Scale effect with level
+
+        // Shockwave ring (expanding white→cyan)
+        addParticle({
+            x, y,
+            vx: 0, vy: 0,
+            life: 0.4, maxLife: 0.4,
+            color: '#00f0ff',
+            size: 8, baseSize: 60 * intensity * 0.5,
+            isRing: true,
+            explosionGrow: true
+        });
+
+        // Radial energy sparks
+        const sparkCount = Math.min(14, available - 2);
+        const sparkColors = ['#00f0ff', '#ffffff', '#66ddff', '#aaeeff'];
+        for (let i = 0; i < sparkCount; i++) {
+            const angle = (Math.PI * 2 / sparkCount) * i + Math.random() * 0.3;
+            const speed = 250 + Math.random() * 100 + intensity * 30;
+            addParticle({
+                x, y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                life: 0.4 + Math.random() * 0.15,
+                maxLife: 0.55,
+                color: sparkColors[i % sparkColors.length],
+                size: 2 + Math.random() * 2,
+                baseSize: 3 + intensity,
+                isSpark: true,
+                explosionGrow: true
+            });
+        }
+
+        // Central flash glow
+        addParticle({
+            x, y,
+            vx: 0, vy: 0,
+            life: 0.2, maxLife: 0.2,
+            color: '#ffffff',
+            size: 20 + intensity * 8,
+            isGlow: true
+        });
+    }
+
+    // v5.11: Celebratory coin rain (symbols falling from top)
+    function createCoinRain(canvasWidth, canvasHeight) {
+        const cfg = G.Balance?.VFX?.BOSS_DEATH?.COIN_RAIN;
+        if (!cfg || !cfg.ENABLED) return;
+
+        const count = cfg.COUNT || 25;
+        const spawnDuration = cfg.SPAWN_DURATION || 1.5;
+        const symbols = cfg.SYMBOLS || ['$', '€', '¥', '£', '₿'];
+        const colors = cfg.COLORS || ['#FFD700', '#ffaa00', '#00ff66', '#fff'];
+
+        for (let i = 0; i < count; i++) {
+            const delay = (i / count) * spawnDuration;
+            setTimeout(() => {
+                const available = MAX_PARTICLES - particles.length;
+                if (available <= 0) return;
+                const fallSpeed = (cfg.FALL_SPEED?.MIN || 60) + Math.random() * ((cfg.FALL_SPEED?.MAX || 120) - (cfg.FALL_SPEED?.MIN || 60));
+                addParticle({
+                    x: Math.random() * canvasWidth,
+                    y: -20 - Math.random() * 40,
+                    vx: 0,
+                    vy: fallSpeed,
+                    life: cfg.LIFE || 3.0,
+                    maxLife: cfg.LIFE || 3.0,
+                    color: colors[i % colors.length],
+                    size: 18 + Math.random() * 8,
+                    symbol: symbols[i % symbols.length],
+                    rotation: Math.random() * Math.PI * 2,
+                    rotSpeed: (Math.random() - 0.5) * 8,
+                    wobbleAmp: cfg.WOBBLE?.AMOUNT || 30,
+                    wobbleFreq: cfg.WOBBLE?.SPEED || 3,
+                    _wobbleT: Math.random() * 6 // Random phase offset
+                });
+            }, delay * 1000);
+        }
+    }
+
+    // v5.11: Evolution item trail particles (cyan glow sparks)
+    function createEvolutionItemTrail(x, y) {
+        const trailCount = G.Balance?.VFX?.BOSS_DEATH?.EVOLUTION_ITEM?.TRAIL_PARTICLES || 8;
+        const available = MAX_PARTICLES - particles.length;
+        const count = Math.min(trailCount, available);
+        const color = G.Balance?.VFX?.BOSS_DEATH?.EVOLUTION_ITEM?.GLOW_COLOR || '#00f0ff';
+
+        for (let i = 0; i < count; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 20 + Math.random() * 40;
+            addParticle({
+                x: x + (Math.random() - 0.5) * 12,
+                y: y + (Math.random() - 0.5) * 12,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                life: 0.25 + Math.random() * 0.1,
+                maxLife: 0.35,
+                color: color,
+                size: 2 + Math.random() * 2,
+                isSpark: true
+            });
+        }
+    }
+
     // Export to namespace
     G.ParticleSystem = {
         init,
@@ -736,6 +851,9 @@
         createScoreParticles,
         createFireImpact,
         createElectricChain,
+        createWeaponUpgradeEffect,
+        createCoinRain,
+        createEvolutionItemTrail,
         update,
         draw,
         clear,
