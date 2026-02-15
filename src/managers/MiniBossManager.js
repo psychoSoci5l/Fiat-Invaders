@@ -25,10 +25,15 @@
 
         applyHitStop('BOSS_DEFEAT_SLOWMO', false);
 
-        // Clear enemy bullets
-        const eb = getEnemyBullets();
-        eb.forEach(b => { b.markedForDeletion = true; G.Bullet.Pool.release(b); });
-        setEnemyBullets([]);
+        // Clear all bullets (player + enemy) with VFX + score bonus
+        if (G.clearBattlefield) {
+            G.clearBattlefield();
+        } else {
+            // Fallback: manual clear without VFX
+            const eb = getEnemyBullets();
+            eb.forEach(b => { b.markedForDeletion = true; G.Bullet.Pool.release(b); });
+            setEnemyBullets([]);
+        }
 
         // Save and clear enemies
         const savedEnemies = [...getEnemies()];
@@ -256,6 +261,7 @@
 
     function checkHit(b) {
         if (!miniBoss || !miniBoss.active) return false;
+        if (miniBoss.isEntering) return false; // Invulnerable during entrance
 
         const { player, runState, score: getScore, setScore, marketCycle,
                 waveMgr, setEnemies, enemyBullets: getEB, setEnemyBullets,

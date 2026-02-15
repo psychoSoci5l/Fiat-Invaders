@@ -1,5 +1,14 @@
 # Changelog
 
+## v5.18.1 - 2026-02-15
+### Battlefield Clearing + Boss Invulnerability
+- **fix(combat)**: `clearBattlefield()` — unified bullet clearing at every combat transition (boss/mini-boss spawn, wave deploy, last enemy kill)
+- **fix(combat)**: Player bullets explode with spark VFX on clear; enemy bullets explode with VFX + score bonus (10 pts each, as bullet cancel)
+- **fix(boss)**: `Boss.isEntering` invulnerability flag — boss immune to damage during entrance animation (safety net)
+- **fix(collision)**: `CollisionSystem.processPlayerBulletVsBoss()` and `MiniBossManager.checkHit()` skip hits on entering bosses
+- **fix(combat)**: Player firing blocked during boss warning countdown, boss entrance, and mini-boss entrance (no wasted shots)
+- **refactor**: Replaced 4 separate bullet-clearing code blocks with `clearBattlefield()` calls (startBossWarning, spawnBoss, isLastEnemy, MiniBossManager.spawn)
+
 ## v5.18.0 - 2026-02-15
 ### What's New Panel — Multilingual + Redesign
 - **feat(i18n)**: What's New panel fully bilingual EN/IT — all entries (titles, items, planned section) switch with language

@@ -593,8 +593,7 @@ function initCollisionSystem() {
 
                 // v4.44: Clear player bullets when last enemy dies (prevent pre-damage on incoming boss/wave)
                 if (isLastEnemy) {
-                    bullets.forEach(b => { b.markedForDeletion = true; G.Bullet.Pool.release(b); });
-                    bullets.length = 0;
+                    clearBattlefield({ enemyBullets: false });
                 }
 
                 createEnemyDeathExplosion(e.x, e.y, e.color, e.symbol || '$', e.shape, _killElemType);
@@ -4133,6 +4132,51 @@ function startIntermission(msgOverride) {
     emitEvent('intermission_start', { level: level, wave: waveMgr.wave });
 }
 
+/**
+ * clearBattlefield() — Unified bullet clearing at combat transitions
+ * Player bullets: spark VFX + pool release
+ * Enemy bullets: explosion VFX + score award (as bullet cancel bonus) + pool release
+ * @param {Object} [options]
+ * @param {boolean} [options.enemyBullets=true] - Also clear enemy bullets
+ */
+function clearBattlefield(options) {
+    const clearEnemy = !options || options.enemyBullets !== false;
+
+    // Player bullets → spark VFX + release
+    for (let i = bullets.length - 1; i >= 0; i--) {
+        const b = bullets[i];
+        if (b) {
+            createBulletSpark(b.x, b.y, '#00f0ff');
+            b.markedForDeletion = true;
+            G.Bullet.Pool.release(b);
+        }
+    }
+    bullets.length = 0;
+
+    if (!clearEnemy) return;
+
+    // Enemy bullets → explosion VFX + score bonus + release
+    let bulletBonus = 0;
+    for (let i = enemyBullets.length - 1; i >= 0; i--) {
+        const eb = enemyBullets[i];
+        if (eb) {
+            createExplosion(eb.x, eb.y, eb.color || '#ff0', 4);
+            bulletBonus += 10;
+            eb.markedForDeletion = true;
+            G.Bullet.Pool.release(eb);
+        }
+    }
+    enemyBullets.length = 0;
+    window.enemyBullets = enemyBullets;
+
+    if (bulletBonus > 0) {
+        score += bulletBonus;
+        updateScore(score, bulletBonus);
+        addText(`+${bulletBonus} ${t('BULLET_BONUS')}`, gameWidth / 2, gameHeight / 2 + 50, '#0ff', 18);
+    }
+}
+G.clearBattlefield = clearBattlefield;
+
 function startHordeTransition() {
     // Horde 1 cleared, brief pause before horde 2
     // This is a quick transition - NOT a full level complete celebration
@@ -4219,14 +4263,10 @@ function startBossWarning() {
     // Start warning timer
     bossWarningTimer = Balance.BOSS.WARNING_DURATION;
 
-    // Clear remaining enemies and bullets for clean boss entrance
+    // Clear all bullets with VFX + score, then clear enemies for clean boss entrance
+    clearBattlefield();
     enemies = [];
-    bullets = [];
-    enemyBullets.forEach(b => { b.markedForDeletion = true; G.Bullet.Pool.release(b); });
-    enemyBullets = [];
-    // Sync all array references
     G.enemies = enemies;
-    window.enemyBullets = enemyBullets;
     if (G.HarmonicConductor) G.HarmonicConductor.enemies = enemies;
 
     // Play warning sound (use explosion for dramatic effect)
@@ -4293,11 +4333,8 @@ function spawnBoss() {
     // v2.22.4: Clear miniBoss if active - only main boss should exist
     if (miniBoss) { G.MiniBossManager.clear(); miniBoss = null; }
 
-    // Clear player bullets to prevent instant boss damage from bullets fired during warning
-    const bulletsClearedCount = bullets.length;
-    bullets.forEach(b => { b.markedForDeletion = true; G.Bullet.Pool.release(b); });
-    bullets = [];
-    console.log(`[SPAWN BOSS] Cleared ${bulletsClearedCount} player bullets, ${enemies.length} enemies`);
+    // Safety pass: clear any remaining bullets (main clear was in startBossWarning)
+    clearBattlefield();
 
     // Boss-specific danger message
     const dangerMsg = bossConfig.country + ' ' + bossConfig.name + ' ' + bossConfig.country;
@@ -4564,8 +4601,13 @@ function update(dt) {
 
     if (gameState === 'PLAY' || gameState === 'WARMUP') {
         const inWarmup = gameState === 'WARMUP';
-        // Always update player for movement, but block firing during warmup or enemy entrance
-        const enemiesEntering = !inWarmup && G.HarmonicConductor && G.HarmonicConductor.areEnemiesEntering();
+        // Block firing: warmup, enemy entrance, boss warning/entrance, mini-boss entrance
+        const enemiesEntering = !inWarmup && (
+            (G.HarmonicConductor && G.HarmonicConductor.areEnemiesEntering()) ||
+            bossWarningTimer > 0 ||
+            (boss && boss.isEntering) ||
+            (miniBoss && miniBoss.isEntering)
+        );
         // Freeze HYPER timer during non-combat states (warmup, boss warning)
         player.hyperFrozen = gameState !== 'PLAY' || bossWarningTimer > 0;
         const newBullets = player.update(dt, inWarmup || enemiesEntering);

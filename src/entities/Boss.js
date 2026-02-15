@@ -20,6 +20,7 @@ class Boss extends window.Game.Entity {
         this.maxHp = 800;
         this.hp = 800;
         this.active = true;
+        this.isEntering = true; // Invulnerable during entrance animation
 
         // 3 PHASES: PHASE1 (100-66%), PHASE2 (66-33%), PHASE3 (33-0%)
         this.phase = 1;
@@ -162,6 +163,8 @@ class Boss extends window.Game.Entity {
         if (this.y < this.targetY) {
             this.y += (Balance.BOSS.ENTRANCE_SPEED || 80) * dt;
             return null;
+        } else if (this.isEntering) {
+            this.isEntering = false;
         }
 
         // Movement based on boss type and phase

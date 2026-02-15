@@ -121,6 +121,7 @@ window.Game = window.Game || {};
 
             const boss = ctx.getBoss();
             if (!boss || !boss.active) return false;
+            if (boss.isEntering) return false; // Invulnerable during entrance
 
             // AABB check (boss uses rect hitbox)
             if (bullet.x > boss.x && bullet.x < boss.x + boss.width &&
