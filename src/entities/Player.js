@@ -70,7 +70,8 @@ class Player extends window.Game.Entity {
             t: 0,
             _lockFired: false,
             _fromGeom: null,
-            _toGeom: null
+            _toGeom: null,
+            _isMounting: false  // v5.23: cannon mount via deploy system
         };
         // Geometry cache (used by _drawShipBody and _drawMuzzleFlash)
         this._geom = {
@@ -148,6 +149,7 @@ class Player extends window.Game.Entity {
 
         // Weapon deploy animation reset
         this._deploy.active = false;
+        this._deploy._isMounting = false;
 
         // v5.13: Elemental VFX reset
         this._elemPulse.active = false;
@@ -177,22 +179,38 @@ class Player extends window.Game.Entity {
      */
     mountCannon() {
         if (this._cannonMounted) return;
-        this._cannonMounted = true;
         this._cannonMountTimer = 0;
-        // VFX: flash + burst + aura (reuse deploy VFX system)
+
+        // v5.23: Use full deploy animation system for cinematic cannon mount
         const cfg = window.Game.Balance?.VFX?.WEAPON_DEPLOY;
-        if (cfg) {
-            this._deploy.flashTimer = cfg.FLASH_DURATION || 0.2;
-            this._deploy.auraPulse = cfg.AURA_PULSE_DURATION || 0.3;
+        if (!cfg || !cfg.ENABLED) {
+            // No animation — instant mount
+            this._cannonMounted = true;
+            return;
         }
+
+        const d = this._deploy;
+        d.active = true;
+        d.timer = 0;
+        d.duration = cfg.DURATION;
+        d.fromLevel = 0;
+        d.toLevel = 1;
+        d.t = 0;
+        d._lockFired = false;
+        d._isMounting = true;
+        // Same geometry (level 1→1), the visual change is nose cannon appearing at lock-in
+        d._fromGeom = this._computeGeomForLevel(1);
+        d._toGeom = this._computeGeomForLevel(1);
+        d.flashTimer = cfg.FLASH_DURATION || 0.2;
+        d.brighten = true;
+        d.auraPulse = 0;
+
+        // Start SFX
+        const Audio = window.Game.Audio;
+        if (Audio) Audio.play('weaponDeploy');
+        // Particle trail from top to ship
         const PS = window.Game.ParticleSystem;
         if (PS && PS.createCannonMountTrail) PS.createCannonMountTrail(this.x, this.y, this.gameWidth);
-        if (PS && PS.createDeployBurst) PS.createDeployBurst(this.x, this.y, 1);
-        // SFX
-        const Audio = window.Game.Audio;
-        if (Audio) Audio.play('weaponDeployLock');
-        // Haptic
-        if (window.Game.Input) window.Game.Input.vibrate(20);
     }
 
     /**
@@ -1698,6 +1716,12 @@ class Player extends window.Game.Entity {
 
         const d = this._deploy;
 
+        // v5.23: If overriding a cannon mount deploy, ensure cannon is mounted
+        if (d.active && d._isMounting && !this._cannonMounted) {
+            this._cannonMounted = true;
+        }
+        d._isMounting = false;
+
         // If already deploying, use current interpolated geom as "from"
         const fromGeom = d.active
             ? { bodyHalfW: this._geom.bodyHalfW, podX: this._geom.podX, podTop: this._geom.podTop, podW: this._geom.podW, barrelTop: this._geom.barrelTop, barrelW: this._geom.barrelW, finExt: this._geom.finExt }
@@ -1769,6 +1793,10 @@ class Player extends window.Game.Entity {
         // Lock-in event at LOCK_AT threshold
         if (p >= cfg.LOCK_AT && !d._lockFired) {
             d._lockFired = true;
+            // v5.23: Cannon mount — set _cannonMounted at lock-in for cinematic reveal
+            if (d._isMounting) {
+                this._cannonMounted = true;
+            }
             // Screen shake
             if (window.Game.EffectsRenderer) {
                 window.Game.EffectsRenderer.applyShake(cfg.SHAKE_INTENSITY);
@@ -1789,6 +1817,7 @@ class Player extends window.Game.Entity {
         if (p >= 1) {
             d.active = false;
             d.brighten = false;
+            d._isMounting = false; // v5.23: clear mount flag
             // v5.20: Post-deploy aura pulse
             d.auraPulse = cfg.AURA_PULSE_DURATION || 0.3;
             // Snap to final geometry
