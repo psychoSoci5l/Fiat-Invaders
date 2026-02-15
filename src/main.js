@@ -129,6 +129,250 @@ function checkArcadeRecords() {
 }
 // Note: High score UI update happens in updateModeIndicator() when intro screen is shown
 
+// === NICKNAME MANAGER (v5.17) ===
+function getNickname() { return localStorage.getItem('fiat_nickname') || ''; }
+function hasNickname() { return getNickname().length >= 3; }
+function setNickname(name) {
+    const clean = (name || '').toUpperCase().trim();
+    if (!/^[A-Z0-9 ]{3,12}$/.test(clean)) return false;
+    localStorage.setItem('fiat_nickname', clean);
+    return true;
+}
+function showNicknamePrompt(callback) {
+    const overlay = document.getElementById('nickname-overlay');
+    const input = document.getElementById('nickname-input');
+    const error = document.getElementById('nickname-error');
+    const btn = document.getElementById('nickname-confirm');
+    const title = document.getElementById('nickname-title');
+    if (!overlay || !input || !btn) { callback(); return; }
+    overlay.style.display = 'flex';
+    if (title) title.textContent = t('NICK_TITLE');
+    input.placeholder = t('NICK_PLACEHOLDER');
+    btn.textContent = t('NICK_CONFIRM');
+    if (error) error.style.display = 'none';
+    input.value = getNickname();
+    input.focus();
+    function submit() {
+        if (setNickname(input.value)) {
+            overlay.style.display = 'none';
+            input.removeEventListener('keydown', onKey);
+            btn.removeEventListener('click', submit);
+            callback();
+        } else {
+            if (error) {
+                error.textContent = t('NICK_INVALID');
+                error.style.display = 'block';
+            }
+        }
+    }
+    function onKey(e) { if (e.key === 'Enter') submit(); }
+    input.addEventListener('keydown', onKey);
+    btn.addEventListener('click', submit);
+}
+
+// === HMAC SIGNING (v5.17) ===
+async function signScore(payload) {
+    const message = `${payload.s}|${payload.k}|${payload.c}|${payload.w}|${payload.sh}|${payload.mode}|${payload.t}`;
+    const key = await crypto.subtle.importKey(
+        'raw', new TextEncoder().encode(G.LEADERBOARD_HMAC_KEY),
+        { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+    );
+    const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(message));
+    return [...new Uint8Array(sig)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// === LEADERBOARD SYSTEM (v5.17) ===
+G.Leaderboard = {
+    _cache: null,
+    _cacheTime: 0,
+    _visible: false,
+
+    async fetchScores(mode) {
+        mode = mode || 'story';
+        // Cache for 30s
+        if (this._cache && Date.now() - this._cacheTime < 30000) return this._cache;
+        try {
+            const res = await fetch(`${G.LEADERBOARD_API}/lb?mode=${mode}`);
+            const data = await res.json();
+            if (data.ok) {
+                this._cache = data.scores;
+                this._cacheTime = Date.now();
+                return data.scores;
+            }
+        } catch (e) { /* offline */ }
+        return null;
+    },
+
+    async submitScore(data) {
+        const payload = {
+            n: getNickname(),
+            s: Math.floor(data.score),
+            k: data.kills,
+            c: data.cycle,
+            w: data.wave,
+            sh: data.ship,
+            b: data.bear ? 1 : 0,
+            mode: data.mode || 'story',
+            t: Date.now()
+        };
+        try {
+            const sig = await signScore(payload);
+            const res = await fetch(`${G.LEADERBOARD_API}/score`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ payload, sig })
+            });
+            const result = await res.json();
+            this._cache = null; // Invalidate cache
+            return result;
+        } catch (e) {
+            return { ok: false, error: 'offline' };
+        }
+    },
+
+    async getRank(mode, score) {
+        try {
+            const res = await fetch(`${G.LEADERBOARD_API}/rank?mode=${mode || 'story'}&score=${Math.floor(score)}`);
+            return await res.json();
+        } catch (e) {
+            return { ok: false, error: 'offline' };
+        }
+    },
+
+    toggle() {
+        const panel = document.getElementById('leaderboard-panel');
+        if (!panel) return;
+        this._visible = !this._visible;
+        panel.style.display = this._visible ? 'flex' : 'none';
+        if (this._visible) this._loadAndRender();
+    },
+
+    async _loadAndRender() {
+        const loading = document.getElementById('lb-loading');
+        const table = document.getElementById('lb-table');
+        const empty = document.getElementById('lb-empty');
+        const title = document.getElementById('lb-title');
+        const closeBtn = document.getElementById('lb-close-btn');
+        if (title) title.textContent = t('LB_TITLE');
+        if (closeBtn) closeBtn.textContent = t('CLOSE');
+        if (loading) loading.style.display = 'block';
+        if (loading) loading.textContent = t('LB_LOADING');
+        if (table) table.style.display = 'none';
+        if (empty) empty.style.display = 'none';
+
+        // Update table headers
+        const ths = table ? table.querySelectorAll('th') : [];
+        if (ths.length >= 4) {
+            ths[0].textContent = t('LB_RANK');
+            ths[1].textContent = t('LB_PLAYER');
+            ths[2].textContent = t('LB_SCORE');
+            ths[3].textContent = 'SHIP';
+        }
+
+        const scores = await this.fetchScores();
+        if (loading) loading.style.display = 'none';
+        if (!scores) {
+            if (empty) { empty.textContent = t('LB_ERROR'); empty.style.display = 'block'; }
+            return;
+        }
+        if (scores.length === 0) {
+            if (empty) { empty.textContent = t('LB_EMPTY'); empty.style.display = 'block'; }
+            return;
+        }
+        this.renderTable(scores);
+        if (table) table.style.display = 'table';
+
+        // Show player rank
+        const nick = getNickname();
+        const rankSection = document.getElementById('lb-player-rank');
+        if (rankSection && nick) {
+            const result = await this.getRank('story', Math.floor(score));
+            if (result.ok) {
+                rankSection.style.display = 'flex';
+                const label = rankSection.querySelector('.lb-rank-label');
+                const val = document.getElementById('lb-rank-val');
+                if (label) label.textContent = t('LB_YOUR_RANK');
+                if (val) val.textContent = `#${result.rank}`;
+            } else {
+                rankSection.style.display = 'none';
+            }
+        }
+    },
+
+    renderTable(scores) {
+        const tbody = document.getElementById('lb-tbody');
+        if (!tbody) return;
+        const nick = getNickname();
+        tbody.innerHTML = '';
+        scores.forEach((entry, i) => {
+            const tr = document.createElement('tr');
+            const rank = i + 1;
+            if (rank === 1) tr.className = 'lb-rank-1';
+            else if (rank === 2) tr.className = 'lb-rank-2';
+            else if (rank === 3) tr.className = 'lb-rank-3';
+            if (entry.n === nick) tr.classList.add('lb-self');
+            tr.innerHTML = `<td>${rank}</td><td>${entry.n}</td><td>${entry.s.toLocaleString()}</td><td>${entry.sh}</td>`;
+            tbody.appendChild(tr);
+        });
+    },
+
+    async renderGameoverRank(scoreVal, killCount, cycle, wave, ship, bear) {
+        const section = document.getElementById('gameover-rank-section');
+        const rankVal = document.getElementById('gameover-rank-val');
+        const top5El = document.getElementById('gameover-top5');
+        const viewBtn = document.getElementById('btn-view-lb');
+        if (!section) return;
+
+        if (viewBtn) viewBtn.textContent = t('LB_VIEW_FULL');
+
+        if (!hasNickname()) { section.style.display = 'none'; return; }
+        section.style.display = 'block';
+
+        const rankLabel = section.querySelector('.rank-label');
+        if (rankLabel) rankLabel.textContent = t('LB_YOUR_RANK');
+        if (rankVal) rankVal.textContent = t('LB_SUBMITTING');
+
+        // Submit score
+        const result = await this.submitScore({
+            score: scoreVal, kills: killCount, cycle, wave, ship, bear, mode: 'story'
+        });
+
+        // Remove previous tier badge
+        const oldTier = section.querySelector('.gameover-rank-tier');
+        if (oldTier) oldTier.remove();
+
+        if (result.ok && result.rank > 0) {
+            if (rankVal) rankVal.textContent = `#${result.rank}`;
+            // Show tier badge for top 10/5/3
+            let tierText = null, tierClass = '';
+            if (result.rank <= 3) { tierText = t('LB_TOP3'); tierClass = 'rank-tier-3'; }
+            else if (result.rank <= 5) { tierText = t('LB_TOP5'); tierClass = 'rank-tier-5'; }
+            else if (result.rank <= 10) { tierText = t('LB_TOP10'); tierClass = 'rank-tier-10'; }
+            if (tierText) {
+                const badge = document.createElement('div');
+                badge.className = `gameover-rank-tier ${tierClass}`;
+                badge.textContent = tierText;
+                section.insertBefore(badge, section.firstChild);
+            }
+        } else if (result.ok && result.rank === -1) {
+            if (rankVal) rankVal.textContent = '-';
+        } else {
+            if (rankVal) rankVal.textContent = t('LB_OFFLINE');
+        }
+
+        // Fetch top 5 for mini-display
+        const scores = await this.fetchScores();
+        if (top5El && scores && scores.length > 0) {
+            const top5 = scores.slice(0, 5);
+            const nick = getNickname();
+            top5El.innerHTML = top5.map((e, i) => {
+                const cls = e.n === nick ? 'top5-self' : (i === 0 ? 'top5-gold' : '');
+                return `<span class="${cls}">${i + 1}. ${e.n} ${e.s.toLocaleString()}</span>`;
+            }).join('<br>');
+        }
+    }
+};
+
 // WEAPON PROGRESSION - Persisted in localStorage
 const BASE_WEAPONS = ['WIDE', 'NARROW', 'FIRE']; // Always unlocked
 const ADVANCED_WEAPONS = ['SPREAD', 'HOMING']; // Unlock per cycle
@@ -2609,6 +2853,13 @@ let isLaunching = false;
 window.launchShipAndStart = function () {
     if (isLaunching) return;
     isLaunching = true;
+
+    // v5.17: Prompt nickname before first launch
+    if (!hasNickname()) {
+        isLaunching = false;
+        showNicknamePrompt(() => launchShipAndStart());
+        return;
+    }
 
     // Init audio context and resume immediately (must be synchronous with user gesture)
     if (!audioSys.ctx) audioSys.init();
@@ -5470,6 +5721,16 @@ function triggerGameOver() {
     if (ui.streak) ui.streak.innerText = bestStreak;
     setStyle('pause-btn', 'display', 'none');
     audioSys.play('explosion');
+
+    // v5.17: Leaderboard submit (async, non-blocking)
+    const isStoryMode = G.CampaignState && G.CampaignState.isEnabled();
+    if (isStoryMode && hasNickname()) {
+        const shipKey = SHIP_KEYS[selectedShipIndex] || 'BTC';
+        G.Leaderboard.renderGameoverRank(
+            Math.floor(score), killCount, marketCycle,
+            waveMgr.wave, shipKey, !!window.isBearMarket
+        );
+    }
 }
 
 // v5.0.8: Snapshot player power state for progression tracking

@@ -1,0 +1,14 @@
+name = "fiat-vs-crypto-leaderboard"
+main = "leaderboard-worker.js"
+compatibility_date = "2024-01-01"
+
+# KV Namespace — create with:
+#   npx wrangler kv:namespace create LEADERBOARD
+# Then paste the ID below
+[[kv_namespaces]]
+binding = "LEADERBOARD"
+id = "8b01ea48078c480facd28c6d79aad44a"
+
+# Secret — set with:
+#   npx wrangler secret put HMAC_SECRET
+# (enter the same key as Game.LEADERBOARD_HMAC_KEY in Constants.js)

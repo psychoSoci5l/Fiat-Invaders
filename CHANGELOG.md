@@ -1,5 +1,18 @@
 # Changelog
 
+## v5.17.0 - 2026-02-15
+### Online Leaderboard System — Nickname + Score Submit + Rankings
+- **feat(leaderboard)**: Online leaderboard with Cloudflare Workers + KV backend. Top 100 scores, sorted descending. REST API: `GET /api/lb`, `GET /api/rank`, `POST /api/score`
+- **feat(leaderboard)**: Anti-cheat: HMAC-SHA256 signature, rate limit (30s/IP), score ceiling validation, sanity checks (kills ratio, cycle/wave bounds)
+- **feat(nickname)**: Mandatory callsign prompt (3-12 chars, alphanumeric + spaces) on first launch. Persisted in localStorage, shown before game start
+- **feat(leaderboard)**: Trophy button in intro icons opens full leaderboard modal (scrollable table, top 3 gold/silver/bronze highlight, self highlight cyan)
+- **feat(leaderboard)**: Gameover rank section — submits score async, shows player rank + top 5 mini-list inline, "VIEW FULL LEADERBOARD" button. Tier badges: TOP 3 (gold pulse), TOP 5 (silver), TOP 10 (cyan) with animation
+- **feat(i18n)**: Full EN/IT localization for all leaderboard and nickname UI (`LB_*`, `NICK_*` keys)
+- **config**: `Game.LEADERBOARD_API` + `Game.LEADERBOARD_HMAC_KEY` in Constants.js
+- **backend**: `workers/leaderboard-worker.js` + `workers/wrangler.toml` (deploy-ready)
+- **css**: `#nickname-overlay` (z-index 10100), `#leaderboard-panel` (z-index 10000), mobile fullscreen, top 3 color coding
+- **unchanged**: Gameplay, scoring, offline play (leaderboard gracefully degrades to "OFFLINE")
+
 ## v5.16.1 - 2026-02-15
 ### Fix SALVO — Readable Band Waves + Progressive Aim
 - **feat(salvo)**: Band firing — all bullets in a SALVO row travel in **uniform direction** (no crossing). Replaces per-enemy aimed fire that created unreadable intersecting paths

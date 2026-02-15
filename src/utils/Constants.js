@@ -2,7 +2,11 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v5.16.1 FIAT vs CRYPTO";
+window.Game.VERSION = "v5.17.0 FIAT vs CRYPTO";
+
+// Leaderboard API config
+window.Game.LEADERBOARD_API = 'https://fiat-vs-crypto-leaderboard.psychosocial-01.workers.dev/api';
+window.Game.LEADERBOARD_HMAC_KEY = 'fvc2026_h8Kx9mPqW3nR7tYz';
 
 window.Game.TEXTS = {
     EN: {
@@ -171,7 +175,27 @@ window.Game.TEXTS = {
         BEST_LEVEL: "BEST LEVEL",
         BEST_KILLS: "BEST KILLS",
         WHATS_NEW: "WHAT'S NEW",
-        CLOSE: "CLOSE"
+        CLOSE: "CLOSE",
+        // Leaderboard (v5.17)
+        LB_TITLE: "LEADERBOARD",
+        LB_RANK: "#",
+        LB_PLAYER: "PLAYER",
+        LB_SCORE: "SCORE",
+        LB_YOUR_RANK: "YOUR RANK",
+        LB_VIEW_FULL: "VIEW FULL LEADERBOARD",
+        LB_SUBMITTING: "SUBMITTING...",
+        LB_SUBMITTED: "SUBMITTED!",
+        LB_OFFLINE: "OFFLINE",
+        LB_EMPTY: "NO SCORES YET",
+        LB_LOADING: "LOADING...",
+        LB_ERROR: "CONNECTION ERROR",
+        NICK_TITLE: "CHOOSE YOUR CALLSIGN",
+        NICK_PLACEHOLDER: "3-12 CHARACTERS",
+        NICK_CONFIRM: "CONFIRM",
+        NICK_INVALID: "Only letters, numbers, spaces (3-12 chars)",
+        LB_TOP3: "TOP 3!",
+        LB_TOP5: "TOP 5!",
+        LB_TOP10: "TOP 10!"
     },
     IT: {
         SCORE: "PUNTI", LEVEL: "LIVELLO", LIVES: "VITE", NORMAL: "NORMALE",
@@ -339,7 +363,27 @@ window.Game.TEXTS = {
         BEST_LEVEL: "MIGLIOR LIVELLO",
         BEST_KILLS: "MIGLIORI UCCISIONI",
         WHATS_NEW: "NOVITÀ",
-        CLOSE: "CHIUDI"
+        CLOSE: "CHIUDI",
+        // Leaderboard (v5.17)
+        LB_TITLE: "CLASSIFICA",
+        LB_RANK: "#",
+        LB_PLAYER: "GIOCATORE",
+        LB_SCORE: "PUNTI",
+        LB_YOUR_RANK: "IL TUO RANK",
+        LB_VIEW_FULL: "CLASSIFICA COMPLETA",
+        LB_SUBMITTING: "INVIO...",
+        LB_SUBMITTED: "INVIATO!",
+        LB_OFFLINE: "OFFLINE",
+        LB_EMPTY: "NESSUN PUNTEGGIO",
+        LB_LOADING: "CARICAMENTO...",
+        LB_ERROR: "ERRORE DI CONNESSIONE",
+        NICK_TITLE: "SCEGLI IL TUO NOME",
+        NICK_PLACEHOLDER: "3-12 CARATTERI",
+        NICK_CONFIRM: "CONFERMA",
+        NICK_INVALID: "Solo lettere, numeri, spazi (3-12 car.)",
+        LB_TOP3: "TOP 3!",
+        LB_TOP5: "TOP 5!",
+        LB_TOP10: "TOP 10!"
     }
 };
 

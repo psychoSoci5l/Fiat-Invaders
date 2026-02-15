@@ -167,6 +167,9 @@
             <button class="btn btn-icon" onclick="toggleManual()" id="intro-manual">
                 <svg viewBox="0 0 24 24" class="icon-svg"><path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/></svg>
             </button>
+            <button class="btn btn-icon" onclick="Game.Leaderboard.toggle()" id="intro-leaderboard">
+                <svg viewBox="0 0 24 24" class="icon-svg"><path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94.63 1.5 1.98 2.63 3.61 2.96V19H7v2h10v-2h-4v-3.1c1.63-.33 2.98-1.46 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z"/></svg>
+            </button>
             <button class="btn btn-icon" onclick="toggleWhatsNew()" id="intro-whatsnew">
                 <svg viewBox="0 0 24 24" class="icon-svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
             </button>
@@ -258,6 +261,14 @@
             <span>PROTOCOLS <b id="arcadeModCount">0</b></span>
         </div>
         <div id="new-best-badge" style="display: none;">NEW BEST!</div>
+        <div id="gameover-rank-section" style="display: none;">
+            <div class="gameover-rank-badge" id="gameover-rank-badge">
+                <span class="rank-label">YOUR RANK</span>
+                <span class="rank-value" id="gameover-rank-val">#--</span>
+            </div>
+            <div class="gameover-top5" id="gameover-top5"></div>
+            <button class="btn btn-secondary btn-sm" onclick="Game.Leaderboard.toggle()" id="btn-view-lb">VIEW FULL LEADERBOARD</button>
+        </div>
         <div class="gameover-actions">
             <button class="btn btn-primary btn-lg" id="btn-retry" onclick="restartFromGameOver()">RETRY</button>
             <button class="btn btn-secondary" onclick="backToIntro()">MENU</button>
@@ -555,6 +566,44 @@ Tap your ship to activate</p>
             <h2 class="whatsnew-title" id="whatsnew-title">WHAT'S NEW</h2>
             <div class="whatsnew-scroll" id="whatsnew-content"></div>
             <button class="btn btn-primary" id="btn-whatsnew-close" onclick="toggleWhatsNew()">CLOSE</button>
+        </div>
+    </div>
+
+    <!-- NICKNAME OVERLAY (v5.17) - Outside game-container for proper stacking -->
+    <div id="nickname-overlay" style="display: none;">
+        <div class="nickname-box">
+            <h2 class="nickname-title" id="nickname-title">CHOOSE YOUR CALLSIGN</h2>
+            <input type="text" id="nickname-input" class="nickname-input" maxlength="12"
+                   inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false">
+            <p class="nickname-error" id="nickname-error" style="display: none;"></p>
+            <button class="btn btn-primary btn-lg" id="nickname-confirm">CONFIRM</button>
+        </div>
+    </div>
+
+    <!-- LEADERBOARD PANEL (v5.17) - Outside game-container for proper stacking -->
+    <div id="leaderboard-panel" style="display: none;">
+        <div class="leaderboard-box">
+            <h2 class="leaderboard-title" id="lb-title">LEADERBOARD</h2>
+            <div class="leaderboard-scroll" id="lb-scroll">
+                <div id="lb-loading">LOADING...</div>
+                <table class="lb-table" id="lb-table" style="display: none;">
+                    <thead><tr>
+                        <th class="lb-col-rank">#</th>
+                        <th class="lb-col-name">PLAYER</th>
+                        <th class="lb-col-score">SCORE</th>
+                        <th class="lb-col-ship">SHIP</th>
+                    </tr></thead>
+                    <tbody id="lb-tbody"></tbody>
+                </table>
+                <div id="lb-empty" style="display: none;"></div>
+            </div>
+            <div class="lb-player-rank" id="lb-player-rank" style="display: none;">
+                <span class="lb-rank-label">YOUR RANK</span>
+                <span class="lb-rank-value" id="lb-rank-val">#--</span>
+            </div>
+            <div class="lb-actions">
+                <button class="btn btn-primary" id="lb-close-btn" onclick="Game.Leaderboard.toggle()">CLOSE</button>
+            </div>
         </div>
     </div>
 
