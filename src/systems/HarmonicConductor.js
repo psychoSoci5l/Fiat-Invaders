@@ -431,6 +431,15 @@ window.Game.HarmonicConductor = {
             case 'RANDOM_VOLLEY':
                 this.executeRandomVolley(cmd.count || 5);
                 break;
+            case 'SALVO':
+                this.executeSalvo(cmd.tier, cmd.pattern, cmd.corridorOverride);
+                break;
+            case 'HALF_SWEEP_LEFT':
+                this.executeHalfSweep('left', cmd.tier, cmd.delay || 0.06);
+                break;
+            case 'HALF_SWEEP_RIGHT':
+                this.executeHalfSweep('right', cmd.tier, cmd.delay || 0.06);
+                break;
         }
     },
 
@@ -464,6 +473,16 @@ window.Game.HarmonicConductor = {
                 return 1;
             case 'RANDOM_VOLLEY':
                 return cmd.count || 5;
+            case 'SALVO': {
+                // Rows × enemies per row minus corridor skips and organic skips
+                const salvoEnemies = this.getEnemiesByTier(cmd.tier);
+                const skipRate = window.Game.Balance?.CHOREOGRAPHY?.SALVO?.SKIP_CHANCE || 0.15;
+                const mult = cmd.pattern === 'DOUBLE' ? 2 : 1;
+                return Math.round(salvoEnemies.length * (1 - skipRate) * mult);
+            }
+            case 'HALF_SWEEP_LEFT':
+            case 'HALF_SWEEP_RIGHT':
+                return Math.ceil(this.getEnemiesByTier(cmd.tier).length / 2);
             default:
                 return 1;
         }
@@ -695,6 +714,190 @@ window.Game.HarmonicConductor = {
                     }
                 }, delay);
             })(selected[k], k * 50, this);
+        }
+    },
+
+    // v5.16: SALVO — coordinated row-by-row fire with safe corridor
+    // Fire delays computed so bullet ARRIVALS at player are evenly spaced
+    executeSalvo(tierName, pattern, corridorOverride) {
+        const tierEnemies = this.getEnemiesByTier(tierName);
+        if (tierEnemies.length === 0) return;
+
+        const cfg = window.Game.Balance?.CHOREOGRAPHY?.SALVO;
+        const cycle = Math.min((window.marketCycle || 1), 3);
+        const idx = cycle - 1;
+        const arrivalGap = cfg?.ARRIVAL_GAP?.[idx] ?? 0.45;
+        const playerTargetY = cfg?.PLAYER_TARGET_Y ?? 680;
+        const corridorWidth = cfg?.CORRIDOR_WIDTH?.[idx] ?? 80;
+        const skipChance = cfg?.SKIP_CHANCE ?? 0.15;
+        const maxRowsCfg = cfg?.MAX_ROWS;
+        const maxRows = Array.isArray(maxRowsCfg) ? (maxRowsCfg[idx] ?? 4) : (maxRowsCfg ?? 4);
+        const bulletSpeed = 150 + (this.difficultyParams.complexity * 15);
+
+        // Group enemies by row (same logic as CASCADE)
+        const rows = {};
+        const enemies = tierEnemies.slice(); // snapshot
+        for (var i = 0; i < enemies.length; i++) {
+            var e = enemies[i];
+            if (!e || !e.active) continue;
+            var rowKey = Math.round(e.baseY / 75) * 75;
+            if (!rows[rowKey]) rows[rowKey] = [];
+            rows[rowKey].push(e);
+        }
+
+        var rowKeys = Object.keys(rows).map(Number);
+        rowKeys.sort((a, b) => a - b); // Top to bottom
+        if (rowKeys.length > maxRows) rowKeys = rowKeys.slice(0, maxRows);
+        if (rowKeys.length === 0) return;
+
+        // Compute fire delay per row so bullets ARRIVE at player with even spacing
+        // travelTime[row] = (playerTargetY - rowY) / bulletSpeed
+        // We want arrival[row] = arrival[0] + rowIdx * arrivalGap
+        // So fireDelay[row] = arrival[row] - travelTime[row]
+        //                    = (arrival[0] - travelTime[0]) + rowIdx * arrivalGap + travelTime[0] - travelTime[row]
+        //                    = rowIdx * arrivalGap + (travelTime[0] - travelTime[row])
+        // Since row 0 is highest (longest travel), travelTime[0] > travelTime[row]
+        // So fireDelay grows: later rows fire LATER to compensate shorter travel
+        const topRowY = rowKeys[0];
+        const travelTimeTop = Math.max(0, (playerTargetY - topRowY) / bulletSpeed);
+        const fireDelays = [];
+        for (var r = 0; r < rowKeys.length; r++) {
+            var travelTimeRow = Math.max(0, (playerTargetY - rowKeys[r]) / bulletSpeed);
+            // delay = desired_extra_arrival_time + travel_compensation
+            fireDelays.push(r * arrivalGap + (travelTimeTop - travelTimeRow));
+        }
+
+        // Pick corridor X
+        const corridorX = corridorOverride ?? this._pickCorridorX(corridorWidth);
+
+        const gen = this.generation;
+        const self = this;
+        const pat = pattern || 'SINGLE';
+
+        for (var ri = 0; ri < rowKeys.length; ri++) {
+            (function(rowY, rowIdx, delay) {
+                var rowEnemies = rows[rowY].slice();
+                var telegraphLead = 0.2; // ring shows 200ms before fire
+
+                // Telegraph
+                setTimeout(function() {
+                    if (self.generation !== gen) return;
+                    for (var j = 0; j < rowEnemies.length; j++) {
+                        var re = rowEnemies[j];
+                        if (re && re.active) {
+                            self.addTelegraph(re.x, re.y, 'ring', telegraphLead,
+                                pat === 'DOUBLE' ? '#ff6b6b' : '#4ecdc4');
+                        }
+                    }
+                }, Math.max(0, delay - telegraphLead) * 1000);
+
+                // Fire — v5.16.1: uniform direction per row ("band" pattern, no crossing)
+                // AIM_FACTOR per cycle: C1=0 (straight down), C2=0.4, C3=0.7 (toward player)
+                setTimeout(function() {
+                    if (self.generation !== gen) return;
+                    var Balance = window.Game.Balance;
+                    var spawnYOff = Balance?.ENEMY_BEHAVIOR?.BULLET_SPAWN_Y_OFFSET ?? 29;
+                    var aimFactor = cfg?.AIM_FACTOR?.[idx] ?? 0;
+                    // Effective speed (arcade modifier)
+                    var effSpd = bulletSpeed;
+                    var _ab = window.Game.RunState && window.Game.RunState.arcadeBonuses;
+                    if (_ab && _ab.enemyBulletSpeedMult !== 1.0) effSpd *= _ab.enemyBulletSpeedMult;
+
+                    // Compute uniform band angle for this row
+                    // C1: straight down (PI/2). C2+: interpolate toward player
+                    var baseAngle = Math.PI / 2; // straight down
+                    if (aimFactor > 0 && self.player) {
+                        // Row center X (from active enemies)
+                        var sumX = 0, cnt = 0;
+                        for (var k = 0; k < rowEnemies.length; k++) {
+                            if (rowEnemies[k] && rowEnemies[k].active) { sumX += rowEnemies[k].x; cnt++; }
+                        }
+                        var rowCX = cnt > 0 ? sumX / cnt : self.gameWidth / 2;
+                        var aimAngle = Math.atan2(self.player.y - rowY, self.player.x - rowCX);
+                        baseAngle = baseAngle + (aimAngle - baseAngle) * aimFactor;
+                    }
+                    var bandVx = Math.cos(baseAngle) * effSpd;
+                    var bandVy = Math.sin(baseAngle) * effSpd;
+
+                    var rowBullets = [];
+                    for (var j = 0; j < rowEnemies.length; j++) {
+                        var re = rowEnemies[j];
+                        if (!re || !re.active) continue;
+
+                        // Corridor skip: enemy within corridor band
+                        if (Math.abs(re.x - corridorX) < corridorWidth / 2) continue;
+
+                        // Organic skip
+                        if (Math.random() < skipChance) continue;
+
+                        var visCfg = Balance?.BULLET_VISUALS?.[re.shape] || Balance?.BULLET_VISUALS?.DEFAULT || {};
+                        var sz = visCfg.size || { w: 4, h: 4 };
+                        var bx = re.x, by = re.y + spawnYOff;
+
+                        if (pat === 'DOUBLE') {
+                            // Two bullets at symmetric offsets from band angle
+                            var off = 0.08;
+                            var a1 = baseAngle - off, a2 = baseAngle + off;
+                            rowBullets.push({ x: bx, y: by, vx: Math.cos(a1) * effSpd, vy: Math.sin(a1) * effSpd, color: '#ffffff', w: sz.w, h: sz.h, shape: re.shape, ownerColor: re.color });
+                            rowBullets.push({ x: bx, y: by, vx: Math.cos(a2) * effSpd, vy: Math.sin(a2) * effSpd, color: '#ffffff', w: sz.w, h: sz.h, shape: re.shape, ownerColor: re.color });
+                        } else {
+                            // SINGLE: uniform band direction
+                            rowBullets.push({ x: bx, y: by, vx: bandVx, vy: bandVy, color: '#ffffff', w: sz.w, h: sz.h, shape: re.shape, ownerColor: re.color });
+                        }
+                    }
+                    if (rowBullets.length > 0) {
+                        self.spawnBullets(rowBullets);
+                        if (window.Game.Audio) window.Game.Audio.play('enemyShoot');
+                    }
+                }, delay * 1000);
+            })(rowKeys[ri], ri, fireDelays[ri]);
+        }
+    },
+
+    // v5.16: Pick corridor X position (avoids edges)
+    _pickCorridorX(corridorWidth) {
+        const margin = corridorWidth / 2 + 30;
+        const minX = margin;
+        const maxX = this.gameWidth - margin;
+
+        // Bias toward player position if available (±100px jitter)
+        if (this.player) {
+            const jitter = (Math.random() - 0.5) * 200;
+            var cx = this.player.x + jitter;
+            return Math.max(minX, Math.min(maxX, cx));
+        }
+        return minX + Math.random() * (maxX - minX);
+    },
+
+    // v5.16: HALF_SWEEP — fire only left or right half of enemies
+    executeHalfSweep(side, tierName, delay) {
+        const tierEnemies = this.getEnemiesByTier(tierName);
+        if (tierEnemies.length === 0) return;
+
+        const sorted = tierEnemies.slice().sort((a, b) => a.x - b.x);
+        const midIdx = Math.ceil(sorted.length / 2);
+
+        // Pick half based on side
+        const half = side === 'left'
+            ? sorted.slice(0, midIdx)
+            : sorted.slice(midIdx);
+
+        if (half.length === 0) return;
+
+        const gen = this.generation;
+        const self = this;
+        const stagger = (delay || 0.06) * 1000;
+
+        for (var i = 0; i < half.length; i++) {
+            (function(enemy, idx) {
+                setTimeout(function() {
+                    if (self.generation !== gen) return;
+                    if (enemy && enemy.active) {
+                        self.addTelegraph(enemy.x, enemy.y, 'flash', 0.1, '#fff');
+                        self.fireEnemy(enemy, 'SINGLE');
+                    }
+                }, idx * stagger);
+            })(half[i], i);
         }
     },
 

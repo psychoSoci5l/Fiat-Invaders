@@ -1,5 +1,29 @@
 # Changelog
 
+## v5.16.1 - 2026-02-15
+### Fix SALVO — Readable Band Waves + Progressive Aim
+- **feat(salvo)**: Band firing — all bullets in a SALVO row travel in **uniform direction** (no crossing). Replaces per-enemy aimed fire that created unreadable intersecting paths
+- **feat(salvo)**: Progressive `AIM_FACTOR` per cycle [0, 0.4, 0.7] — C1 straight down (pure bands), C2 40% aimed toward player (bands sweep slightly), C3 70% aimed (aggressive tracking). Angle computed once per row from row center to player position
+- **fix(choreography)**: Burst/pause cycle disabled (BURST_DURATION/PAUSE_DURATION→0) — conflicted with SALVO setTimeout callbacks, cutting salvos mid-execution
+- **balance(salvo)**: MAX_ROWS per-cycle [2, 3, 4] — C1 fires only 2 rows (~6-8 bullets), C2=3 rows, C3=4 rows
+- **balance(salvo)**: ARRIVAL_GAP widened for C1: 0.45→0.55s between row arrivals
+- **balance(fire_budget)**: C1 BPS 18→12 — sequences control rhythm, raw budget caps total
+- **balance(sequences)**: All VERSE reduced to 1 SALVO + 1 light command per 16-beat cycle. CHORUS/BEAR: 2 SALVO per 32-beat, 16 beats apart
+- **unchanged**: Boss sequences, corridor/skip mechanics, HALF_SWEEP logic
+
+## v5.16.0 - 2026-02-15
+### Coordinated Salvo System — Row-by-Row Fire + Safe Corridors + Half-Sweeps
+- **feat(choreography)**: `SALVO` command — enemies fire row-by-row (top→bottom) with configurable delay per cycle (C1 180ms, C2 150ms, C3 120ms). Safe corridor skip prevents bullets in a random vertical band. 15% organic skip chance per enemy for variation
+- **feat(choreography)**: `HALF_SWEEP_LEFT` / `HALF_SWEEP_RIGHT` — only one side of enemies fires with staggered timing, creating an entire safe half-screen for the player to dodge into
+- **feat(choreography)**: Corridor telegraph — green dashed-line safe zone indicator (`addGapTelegraph`) shows the corridor during each salvo, giving player visual read on where to move
+- **feat(choreography)**: Corridor X biased toward player position (±100px jitter) so corridors are reachable but not trivially predictable
+- **balance(sequences)**: All VERSE sequences rewritten — `SYNC_FIRE` replaced by `SALVO`, `RANDOM_SINGLE` filler reduced, `HALF_SWEEP` alternation creates left/right rhythm. Player reads: salvo→corridor→half-sweep→opposite side
+- **balance(sequences)**: CHORUS_ASSAULT rewritten — `SALVO DOUBLE` + CASCADE + alternating HALF_SWEEP. More intense but always with corridors
+- **balance(sequences)**: BEAR_MARKET_CHAOS rewritten — `SALVO DOUBLE` + rapid cascades + HALF_SWEEP. No more `RANDOM_VOLLEY` (replaced with structured patterns)
+- **balance(fire_budget)**: C1 BPS 12→18 (corridors make higher density readable), BURST_DURATION 2.0→1.5s, PAUSE_DURATION 1.2→0.8s (SALVO built-in gaps compensate shorter global pause)
+- **config**: `Balance.CHOREOGRAPHY.SALVO` — ROW_DELAY/CORRIDOR_WIDTH per cycle, SKIP_CHANCE, MAX_ROWS
+- **unchanged**: Boss sequences (use PATTERN/BOSS_SPREAD, not enemy fire), DEFAULT_BASIC fallback
+
 ## v5.15.1 - 2026-02-15
 ### C1 Rebalance — LV1 Buff + Boss HP + Drop Pacing + No Meter Decay
 - **balance**: LV1 weapon buff — cooldownMult 1.00→0.70 (+43% fire rate), damageMult 1.00→1.20 (+20% damage). LV2+ unchanged

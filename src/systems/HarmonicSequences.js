@@ -5,13 +5,16 @@ window.Game = window.Game || {};
 window.Game.HarmonicSequences = {
     // Attack types for reference
     ATTACK_TYPES: {
-        SYNC_FIRE: 'SYNC_FIRE',       // All enemies of a tier fire together
-        SWEEP_LEFT: 'SWEEP_LEFT',     // Sequential left-to-right
-        SWEEP_RIGHT: 'SWEEP_RIGHT',   // Sequential right-to-left
-        CASCADE_DOWN: 'CASCADE_DOWN', // Row by row top-to-bottom
-        CASCADE_UP: 'CASCADE_UP',     // Row by row bottom-to-top
-        PATTERN: 'PATTERN',           // Use BulletPatterns.js
-        RANDOM_SINGLE: 'RANDOM_SINGLE' // Sparse random fire
+        SYNC_FIRE: 'SYNC_FIRE',             // All enemies of a tier fire together
+        SALVO: 'SALVO',                     // v5.16: Row-by-row fire with safe corridor
+        HALF_SWEEP_LEFT: 'HALF_SWEEP_LEFT', // v5.16: Only left half fires (right safe)
+        HALF_SWEEP_RIGHT: 'HALF_SWEEP_RIGHT', // v5.16: Only right half fires (left safe)
+        SWEEP_LEFT: 'SWEEP_LEFT',           // Sequential left-to-right
+        SWEEP_RIGHT: 'SWEEP_RIGHT',         // Sequential right-to-left
+        CASCADE_DOWN: 'CASCADE_DOWN',       // Row by row top-to-bottom
+        CASCADE_UP: 'CASCADE_UP',           // Row by row bottom-to-top
+        PATTERN: 'PATTERN',                 // Use BulletPatterns.js
+        RANDOM_SINGLE: 'RANDOM_SINGLE'      // Sparse random fire
     },
 
     // Fallback sequence - guaranteed to always work
@@ -50,103 +53,66 @@ window.Game.HarmonicSequences = {
     },
 
     // ===========================================
-    // VERSE SEQUENCES (Standard wave patterns)
+    // VERSE SEQUENCES (v5.16.1: "One Wave At A Time")
+    // Each VERSE = 1 SALVO + 1 light command + silence
+    // C1: 2 rows, 0.55s arrival gap → distinct readable waves
     // ===========================================
 
-    // RECT formation - Basic, steady rhythm
+    // RECT formation — SALVO + aimed shots
     VERSE_RECT: [
-        { beat: 0, type: 'SYNC_FIRE', tier: 'STRONG', pattern: 'DOUBLE' },
-        { beat: 4, type: 'SWEEP_LEFT', tier: 'MEDIUM' },
-        { beat: 8, type: 'SYNC_FIRE', tier: 'STRONG', pattern: 'BURST' },
-        { beat: 12, type: 'SWEEP_RIGHT', tier: 'MEDIUM' },
-        // Filler - weak tier fires on even beats (30% chance each)
-        { beat: 2, type: 'RANDOM_SINGLE', tier: 'WEAK', chance: 0.3 },
-        { beat: 6, type: 'RANDOM_SINGLE', tier: 'WEAK', chance: 0.3 },
-        { beat: 10, type: 'RANDOM_SINGLE', tier: 'WEAK', chance: 0.3 },
-        { beat: 14, type: 'RANDOM_SINGLE', tier: 'WEAK', chance: 0.3 }
+        { beat: 0, type: 'SALVO', tier: 'ALL', pattern: 'SINGLE' },
+        { beat: 8, type: 'AIMED_VOLLEY', tier: 'STRONG', spread: 0.4 },
+        { beat: 12, type: 'RANDOM_SINGLE', tier: 'WEAK', chance: 0.3 }
     ],
 
-    // V_SHAPE formation - Cascading (cascading)
+    // V_SHAPE formation — SALVO + light cascade
     VERSE_V_SHAPE: [
-        { beat: 0, type: 'CASCADE_DOWN', delay: 0.15 },
-        { beat: 4, type: 'SYNC_FIRE', tier: 'STRONG', target: 'tip' },
-        { beat: 8, type: 'SWEEP_LEFT', tier: 'MEDIUM' },
-        { beat: 12, type: 'SYNC_FIRE', tier: 'STRONG', target: 'tip' },
-        { beat: 6, type: 'RANDOM_SINGLE', tier: 'MEDIUM', chance: 0.4 },
-        { beat: 14, type: 'RANDOM_SINGLE', tier: 'MEDIUM', chance: 0.4 }
+        { beat: 0, type: 'SALVO', tier: 'ALL', pattern: 'SINGLE' },
+        { beat: 6, type: 'CASCADE_DOWN', delay: 0.15 },
+        { beat: 12, type: 'RANDOM_SINGLE', tier: 'MEDIUM', chance: 0.3 }
     ],
 
-    // COLUMNS formation - Alternating sweeps
+    // COLUMNS formation — SALVO + half-sweep
     VERSE_COLUMNS: [
-        { beat: 0, type: 'SWEEP_LEFT', tier: 'ALL', delay: 0.08 },
-        { beat: 4, type: 'SYNC_FIRE', tier: 'STRONG' },
-        { beat: 8, type: 'SWEEP_RIGHT', tier: 'ALL', delay: 0.08 },
-        { beat: 12, type: 'SYNC_FIRE', tier: 'MEDIUM' },
-        { beat: 2, type: 'RANDOM_SINGLE', tier: 'WEAK', chance: 0.25 },
-        { beat: 10, type: 'RANDOM_SINGLE', tier: 'WEAK', chance: 0.25 }
-    ],
-
-    // SINE_WAVE formation - Challenging but survivable
-    // v2.22.2: Reduced from ALL to MEDIUM/STRONG to prevent bullet flood
-    VERSE_SINE_WAVE: [
-        { beat: 0, type: 'SWEEP_LEFT', tier: 'MEDIUM', delay: 0.15 },
-        { beat: 4, type: 'SYNC_FIRE', tier: 'STRONG' },
-        { beat: 8, type: 'SWEEP_RIGHT', tier: 'MEDIUM', delay: 0.15 },
-        { beat: 12, type: 'RANDOM_SINGLE', tier: 'STRONG', chance: 0.5 },
-        { beat: 2, type: 'RANDOM_SINGLE', tier: 'WEAK', chance: 0.25 },
-        { beat: 6, type: 'RANDOM_SINGLE', tier: 'WEAK', chance: 0.25 },
-        { beat: 10, type: 'RANDOM_SINGLE', tier: 'WEAK', chance: 0.25 },
+        { beat: 0, type: 'SALVO', tier: 'ALL', pattern: 'SINGLE' },
+        { beat: 8, type: 'HALF_SWEEP_LEFT', tier: 'ALL' },
         { beat: 14, type: 'RANDOM_SINGLE', tier: 'WEAK', chance: 0.25 }
     ],
 
-    // ===========================================
-    // CHORUS SEQUENCES (High intensity > 80%)
-    // ===========================================
-
-    // 32-beat intense assault (enemy-based)
-    CHORUS_ASSAULT: [
-        { beat: 0, type: 'CASCADE_DOWN', delay: 0.12 },
-        { beat: 4, type: 'SYNC_FIRE', tier: 'ALL' },
-        { beat: 8, type: 'CASCADE_UP', delay: 0.12 },
-        { beat: 12, type: 'AIMED_VOLLEY', tier: 'STRONG' },
-        { beat: 16, type: 'SWEEP_LEFT', tier: 'ALL', delay: 0.08 },
-        { beat: 20, type: 'SYNC_FIRE', tier: 'ALL' },
-        { beat: 24, type: 'SWEEP_RIGHT', tier: 'ALL', delay: 0.08 },
-        { beat: 28, type: 'AIMED_VOLLEY', tier: 'ALL' },
-        // Filler throughout
-        { beat: 2, type: 'SYNC_FIRE', tier: 'STRONG' },
-        { beat: 6, type: 'SWEEP_LEFT', tier: 'MEDIUM' },
-        { beat: 10, type: 'SYNC_FIRE', tier: 'STRONG' },
-        { beat: 14, type: 'SWEEP_RIGHT', tier: 'MEDIUM' },
-        { beat: 18, type: 'SYNC_FIRE', tier: 'MEDIUM' },
-        { beat: 22, type: 'SWEEP_LEFT', tier: 'STRONG' },
-        { beat: 26, type: 'SYNC_FIRE', tier: 'MEDIUM' },
-        { beat: 30, type: 'SWEEP_RIGHT', tier: 'STRONG' }
+    // SINE_WAVE formation — SALVO + aimed volley
+    VERSE_SINE_WAVE: [
+        { beat: 0, type: 'SALVO', tier: 'ALL', pattern: 'SINGLE' },
+        { beat: 6, type: 'AIMED_VOLLEY', tier: 'STRONG', spread: 0.3 },
+        { beat: 12, type: 'RANDOM_SINGLE', tier: 'STRONG', chance: 0.3 }
     ],
 
     // ===========================================
-    // BEAR MARKET CHAOS (Hard mode)
+    // CHORUS SEQUENCES (v5.16.1: 2 SALVO in 32 beat, well-spaced)
     // ===========================================
 
-    // Bear Market - Fast and intense but enemy-based (enemy-based)
+    // 32-beat intense assault — 2 SALVO 16 beats apart (no overlap)
+    CHORUS_ASSAULT: [
+        { beat: 0, type: 'SALVO', tier: 'ALL', pattern: 'DOUBLE' },
+        { beat: 8, type: 'HALF_SWEEP_LEFT', tier: 'ALL' },
+        { beat: 14, type: 'AIMED_VOLLEY', tier: 'STRONG', spread: 0.4 },
+        { beat: 16, type: 'SALVO', tier: 'ALL', pattern: 'SINGLE' },
+        { beat: 24, type: 'HALF_SWEEP_RIGHT', tier: 'ALL' },
+        { beat: 30, type: 'RANDOM_SINGLE', tier: 'STRONG', chance: 0.4 }
+    ],
+
+    // ===========================================
+    // BEAR MARKET CHAOS (v5.16.1: dense but gapped)
+    // ===========================================
+
+    // Bear Market — 2 SALVO + cascades + aimed, but with clear spacing
     BEAR_MARKET_CHAOS: [
-        { beat: 0, type: 'SYNC_FIRE', tier: 'ALL' },
-        { beat: 2, type: 'SWEEP_LEFT', tier: 'ALL', delay: 0.05 },
-        { beat: 4, type: 'RANDOM_VOLLEY', count: 8 },
-        { beat: 6, type: 'AIMED_VOLLEY', tier: 'STRONG', spread: 0.5 },
-        { beat: 8, type: 'SWEEP_RIGHT', tier: 'ALL', delay: 0.05 },
-        { beat: 10, type: 'AIMED_VOLLEY', tier: 'STRONG', spread: 0.6 },
-        { beat: 12, type: 'CASCADE_DOWN', delay: 0.06 },
-        { beat: 14, type: 'SYNC_FIRE', tier: 'ALL' },
-        // Second loop (beats 16-31)
-        { beat: 16, type: 'CASCADE_UP', delay: 0.06 },
-        { beat: 18, type: 'SWEEP_LEFT', tier: 'ALL', delay: 0.05 },
-        { beat: 20, type: 'SYNC_FIRE', tier: 'ALL' },
-        { beat: 22, type: 'AIMED_VOLLEY', tier: 'ALL', spread: 0.4 },
-        { beat: 24, type: 'SWEEP_RIGHT', tier: 'ALL', delay: 0.05 },
-        { beat: 26, type: 'AIMED_VOLLEY', tier: 'ALL', spread: 0.4 },
-        { beat: 28, type: 'CASCADE_DOWN', delay: 0.06 },
-        { beat: 30, type: 'SYNC_FIRE', tier: 'ALL' }
+        { beat: 0, type: 'SALVO', tier: 'ALL', pattern: 'DOUBLE' },
+        { beat: 6, type: 'CASCADE_DOWN', delay: 0.08 },
+        { beat: 10, type: 'AIMED_VOLLEY', tier: 'STRONG', spread: 0.5 },
+        { beat: 16, type: 'SALVO', tier: 'ALL', pattern: 'SINGLE' },
+        { beat: 22, type: 'HALF_SWEEP_LEFT', tier: 'ALL' },
+        { beat: 26, type: 'CASCADE_UP', delay: 0.08 },
+        { beat: 30, type: 'AIMED_VOLLEY', tier: 'ALL', spread: 0.4 }
     ],
 
     // ===========================================

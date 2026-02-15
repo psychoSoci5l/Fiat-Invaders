@@ -453,6 +453,18 @@
                 GAP_COLOR: '#00FF00'                // Safe zone color (green)
             },
 
+            // v5.16: Salvo system — coordinated row-by-row fire with safe corridors
+            SALVO: {
+                // Time gap between bullet ARRIVALS at player zone (not fire time!)
+                // Computed dynamically: fire_delay = travel_offset/bulletSpeed + arrivalGap
+                ARRIVAL_GAP: [0.55, 0.40, 0.28],    // v5.16.1: C1 wider gaps for readable waves
+                PLAYER_TARGET_Y: 680,                // Estimated player Y for travel time calc
+                CORRIDOR_WIDTH: [80, 65, 50],        // Safe corridor px width per cycle
+                SKIP_CHANCE: 0.15,                   // Per-enemy chance to skip (organic variation)
+                MAX_ROWS: [2, 3, 4],                 // v5.16.1: Per-cycle cap (C1=2 readable, C3=4 dense)
+                AIM_FACTOR: [0, 0.4, 0.7]            // v5.16.1: Band aim toward player (0=straight down, 1=full aimed)
+            },
+
             // Pattern definitions
             PATTERN_DEFS: {
                 ARC: {
@@ -1941,15 +1953,15 @@
         // Limits total enemy bullets/sec to prevent screen flooding with many enemies
         FIRE_BUDGET: {
             ENABLED: true,
-            BULLETS_PER_SECOND: [12, 31, 50],  // v4.57: C3 56→50 (-10% aggressività, boss escluso)
+            BULLETS_PER_SECOND: [12, 31, 50],  // v5.16.1: C1 18→12 (sequences control rhythm, not raw budget)
             WAVE_GRACE_PERIOD: 2.5,             // v4.37: seconds of silence at wave start (no enemy fire)
             BEAR_MARKET_BONUS: 10,              // +10 bullets/sec in Bear Market
             PANIC_MULTIPLIER: 1.3,              // +30% during PANIC phase
             RANK_SCALE: 0.15,                   // ±15% from rank
             DEFICIT_CARRYOVER: 0.5,             // 50% unused budget carried over
-            // v4.44: Burst/pause cycle — creates dodgeable gaps in enemy fire
-            BURST_DURATION: 2.0,                // Seconds of firing
-            PAUSE_DURATION: 1.2,                // Seconds of silence (creates bullet gaps)
+            // v5.16.1: Burst/pause DISABLED — sequences themselves create rhythm via SALVO spacing
+            BURST_DURATION: 0,                  // v5.16.1: disabled (was 1.5 — conflicted with SALVO setTimeout)
+            PAUSE_DURATION: 0,                  // v5.16.1: disabled (was 0.8 — sequences control gaps now)
             // v5.0.7: Progressive aggression — fire rate boost per elemental perk level
             ELEMENTAL_AGGRESSION: {
                 ENABLED: true,
