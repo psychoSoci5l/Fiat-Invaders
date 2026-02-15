@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v5.18.1 FIAT vs CRYPTO";
+window.Game.VERSION = "v5.18.2 FIAT vs CRYPTO";
 
 // Leaderboard API
 window.Game.LEADERBOARD_API = 'https://fiat-vs-crypto-leaderboard.psychosocial-01.workers.dev/api';
@@ -195,7 +195,8 @@ window.Game.TEXTS = {
         NICK_INVALID: "Only letters, numbers, spaces (3-6 chars)",
         LB_TOP3: "TOP 3!",
         LB_TOP5: "TOP 5!",
-        LB_TOP10: "TOP 10!"
+        LB_TOP10: "TOP 10!",
+        LB_FEW_ENTRIES: "ROOM AT THE TOP — PLAY TO CLAIM YOUR SPOT"
     },
     IT: {
         SCORE: "PUNTI", LEVEL: "LIVELLO", LIVES: "VITE", NORMAL: "NORMALE",
@@ -384,7 +385,8 @@ window.Game.TEXTS = {
         NICK_INVALID: "Solo lettere, numeri, spazi (3-6 car.)",
         LB_TOP3: "TOP 3!",
         LB_TOP5: "TOP 5!",
-        LB_TOP10: "TOP 10!"
+        LB_TOP10: "TOP 10!",
+        LB_FEW_ENTRIES: "C'È POSTO IN CIMA — GIOCA PER CONQUISTARLO"
     }
 };
 

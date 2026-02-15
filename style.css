@@ -4984,7 +4984,7 @@ body.is-touch p.mobile-only { display: block; }
 }
 .leaderboard-scroll {
     flex: 1;
-    min-height: 0;
+    min-height: 180px;
     overflow-y: scroll;
     -webkit-overflow-scrolling: touch;
     touch-action: pan-y;
@@ -5018,7 +5018,7 @@ body.is-touch p.mobile-only { display: block; }
     border-bottom: 1px solid rgba(187, 68, 255, 0.3);
 }
 .lb-table td {
-    padding: 8px;
+    padding: 10px 8px;
     color: rgba(255, 255, 255, 0.85);
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
@@ -5028,15 +5028,35 @@ body.is-touch p.mobile-only { display: block; }
 .lb-col-ship { width: 40px; text-align: center; }
 .lb-col-plat { width: 28px; text-align: center; font-size: 14px; }
 /* Top 3 highlights */
-.lb-rank-1 td { color: #ffd700; }
+.lb-rank-1 td { color: #ffd700; font-size: 14px; font-weight: 700; }
 .lb-rank-2 td { color: #c0c0c0; }
 .lb-rank-3 td { color: #cd7f32; }
+.lb-rank-1 { border-left: 3px solid #ffd700; box-shadow: inset 0 0 18px rgba(255, 215, 0, 0.08); }
+.lb-rank-2 { border-left: 3px solid #c0c0c0; }
+.lb-rank-3 { border-left: 3px solid #cd7f32; }
 .lb-rank-1 td:first-child,
 .lb-rank-2 td:first-child,
-.lb-rank-3 td:first-child { font-weight: 900; }
+.lb-rank-3 td:first-child { font-weight: 900; font-size: 16px; }
 /* Self highlight */
 .lb-self { background: rgba(0, 240, 255, 0.08); }
 .lb-self td { color: #00f0ff; }
+/* Separator row */
+.lb-separator td {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.2);
+    font-size: 14px;
+    letter-spacing: 6px;
+    padding: 4px 0;
+    border-bottom: none;
+}
+/* Motivational message */
+.lb-motivational {
+    color: rgba(255, 255, 255, 0.3);
+    font: 600 11px 'Courier New', monospace;
+    text-align: center;
+    padding: 14px 20px 6px;
+    letter-spacing: 1px;
+}
 
 .lb-player-rank {
     display: flex;

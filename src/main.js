@@ -197,8 +197,12 @@ G.Leaderboard = {
     _cacheTime: 0,
     _visible: false,
 
+    _getMode() {
+        return (G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode()) ? 'arcade' : 'story';
+    },
+
     async fetchScores(mode) {
-        mode = mode || 'story';
+        mode = mode || this._getMode();
         // Cache for 30s
         if (this._cache && Date.now() - this._cacheTime < 30000) return this._cache;
         try {
@@ -291,42 +295,69 @@ G.Leaderboard = {
             if (empty) { empty.textContent = t('LB_EMPTY'); empty.style.display = 'block'; }
             return;
         }
-        this.renderTable(scores);
-        if (table) table.style.display = 'table';
-
-        // Show player rank
+        // Fetch player rank for table + rank section
         const nick = getNickname();
+        let playerInfo = null;
         const rankSection = document.getElementById('lb-player-rank');
-        if (rankSection && nick) {
-            const result = await this.getRank('story', Math.floor(score));
-            if (result.ok) {
-                rankSection.style.display = 'flex';
-                const label = rankSection.querySelector('.lb-rank-label');
-                const val = document.getElementById('lb-rank-val');
-                if (label) label.textContent = t('LB_YOUR_RANK');
-                if (val) val.textContent = `#${result.rank}`;
-            } else {
+        if (nick) {
+            const result = await this.getRank(this._getMode(), Math.floor(score));
+            if (result.ok && result.rank > 0) {
+                playerInfo = { nick, score: Math.floor(score), rank: result.rank };
+                if (rankSection) {
+                    rankSection.style.display = 'flex';
+                    const label = rankSection.querySelector('.lb-rank-label');
+                    const val = document.getElementById('lb-rank-val');
+                    if (label) label.textContent = t('LB_YOUR_RANK');
+                    if (val) val.textContent = `#${result.rank}`;
+                }
+            } else if (rankSection) {
                 rankSection.style.display = 'none';
             }
         }
+        this.renderTable(scores, playerInfo);
+        if (table) table.style.display = 'table';
     },
 
-    renderTable(scores) {
+    renderTable(scores, playerInfo) {
         const tbody = document.getElementById('lb-tbody');
         if (!tbody) return;
         const nick = getNickname();
         tbody.innerHTML = '';
+        const medals = ['', '\u{1F947}', '\u{1F948}', '\u{1F949}']; // 🥇🥈🥉
+        let playerInList = false;
         scores.forEach((entry, i) => {
             const tr = document.createElement('tr');
             const rank = i + 1;
             if (rank === 1) tr.className = 'lb-rank-1';
             else if (rank === 2) tr.className = 'lb-rank-2';
             else if (rank === 3) tr.className = 'lb-rank-3';
-            if (entry.n === nick) tr.classList.add('lb-self');
+            if (entry.n === nick) { tr.classList.add('lb-self'); playerInList = true; }
             const platIcon = entry.p === 'M' ? '📱' : entry.p === 'D' ? '🖥' : '';
-            tr.innerHTML = `<td>${rank}</td><td>${entry.n}</td><td>${entry.s.toLocaleString()}</td><td>${entry.sh}</td><td class="lb-col-plat">${platIcon}</td>`;
+            const rankDisplay = rank <= 3 ? medals[rank] : rank;
+            tr.innerHTML = `<td>${rankDisplay}</td><td>${entry.n}</td><td>${entry.s.toLocaleString()}</td><td>${entry.sh}</td><td class="lb-col-plat">${platIcon}</td>`;
             tbody.appendChild(tr);
         });
+        // Player row when not in displayed scores
+        if (!playerInList && playerInfo && playerInfo.rank > 0) {
+            const sepTr = document.createElement('tr');
+            sepTr.className = 'lb-separator';
+            sepTr.innerHTML = '<td colspan="5">\u00B7\u00B7\u00B7</td>';
+            tbody.appendChild(sepTr);
+            const tr = document.createElement('tr');
+            tr.className = 'lb-self';
+            tr.innerHTML = `<td>${playerInfo.rank}</td><td>${playerInfo.nick}</td><td>${playerInfo.score.toLocaleString()}</td><td>-</td><td></td>`;
+            tbody.appendChild(tr);
+        }
+        // Motivational message if few entries
+        const scrollEl = tbody.closest('.leaderboard-scroll');
+        const existingMsg = scrollEl ? scrollEl.querySelector('.lb-motivational') : null;
+        if (existingMsg) existingMsg.remove();
+        if (scores.length < 5 && scrollEl) {
+            const msg = document.createElement('div');
+            msg.className = 'lb-motivational';
+            msg.textContent = t('LB_FEW_ENTRIES');
+            scrollEl.appendChild(msg);
+        }
     },
 
     async renderGameoverRank(scoreVal, killCount, cycle, wave, ship, bear) {
@@ -347,7 +378,7 @@ G.Leaderboard = {
 
         // Submit score
         const result = await this.submitScore({
-            score: scoreVal, kills: killCount, cycle, wave, ship, bear, mode: 'story'
+            score: scoreVal, kills: killCount, cycle, wave, ship, bear, mode: this._getMode()
         });
 
         // Remove previous tier badge

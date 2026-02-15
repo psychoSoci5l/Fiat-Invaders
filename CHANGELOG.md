@@ -1,5 +1,16 @@
 # Changelog
 
+## v5.18.2 - 2026-02-15
+### Leaderboard Premium Redesign
+- **feat(leaderboard)**: Medal emoji (🥇🥈🥉) replace numeric ranks 1/2/3 in leaderboard table
+- **feat(leaderboard)**: Top 3 rows get colored left border accent (gold/silver/bronze) and subtle gold inset glow on #1
+- **feat(leaderboard)**: Rank 1 row has larger, bolder font for visual distinction
+- **feat(leaderboard)**: Player row with separator (`···`) shown at bottom when not in displayed top scores
+- **feat(leaderboard)**: Motivational message below table when fewer than 5 entries (bilingual EN/IT)
+- **style**: Table row padding increased (8px→10px), scroll area min-height 180px for less sparse feel
+- **feat(i18n)**: `LB_FEW_ENTRIES` key added (EN/IT)
+- **refactor(leaderboard)**: `_getMode()` helper replaces hardcoded `'story'` — arcade-ready (fetchScores, getRank, submitScore)
+
 ## v5.18.1 - 2026-02-15
 ### Battlefield Clearing + Boss Invulnerability
 - **fix(combat)**: `clearBattlefield()` — unified bullet clearing at every combat transition (boss/mini-boss spawn, wave deploy, last enemy kill)
