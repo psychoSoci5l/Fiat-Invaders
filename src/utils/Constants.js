@@ -2,11 +2,10 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v5.17.0 FIAT vs CRYPTO";
+window.Game.VERSION = "v5.17.2 FIAT vs CRYPTO";
 
-// Leaderboard API config
+// Leaderboard API
 window.Game.LEADERBOARD_API = 'https://fiat-vs-crypto-leaderboard.psychosocial-01.workers.dev/api';
-window.Game.LEADERBOARD_HMAC_KEY = 'fvc2026_h8Kx9mPqW3nR7tYz';
 
 window.Game.TEXTS = {
     EN: {
@@ -190,9 +189,9 @@ window.Game.TEXTS = {
         LB_LOADING: "LOADING...",
         LB_ERROR: "CONNECTION ERROR",
         NICK_TITLE: "CHOOSE YOUR CALLSIGN",
-        NICK_PLACEHOLDER: "3-12 CHARACTERS",
+        NICK_PLACEHOLDER: "3-6 CHARACTERS",
         NICK_CONFIRM: "CONFIRM",
-        NICK_INVALID: "Only letters, numbers, spaces (3-12 chars)",
+        NICK_INVALID: "Only letters, numbers, spaces (3-6 chars)",
         LB_TOP3: "TOP 3!",
         LB_TOP5: "TOP 5!",
         LB_TOP10: "TOP 10!"
@@ -378,9 +377,9 @@ window.Game.TEXTS = {
         LB_LOADING: "CARICAMENTO...",
         LB_ERROR: "ERRORE DI CONNESSIONE",
         NICK_TITLE: "SCEGLI IL TUO NOME",
-        NICK_PLACEHOLDER: "3-12 CARATTERI",
+        NICK_PLACEHOLDER: "3-6 CARATTERI",
         NICK_CONFIRM: "CONFERMA",
-        NICK_INVALID: "Solo lettere, numeri, spazi (3-12 car.)",
+        NICK_INVALID: "Solo lettere, numeri, spazi (3-6 car.)",
         LB_TOP3: "TOP 3!",
         LB_TOP5: "TOP 5!",
         LB_TOP10: "TOP 10!"

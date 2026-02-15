@@ -1186,7 +1186,8 @@
             PITY_REDUCTION: 2,          // -2 kills per cycle (min 15) (v4.17: 3→2)
             // v4.57: Early drop at level 2 start — pity counter pre-filled so first drop comes after ~8 kills
             EARLY_DROP_LEVEL: 1,        // v5.15.1: 2→1 (prefill from game start, not level 2)
-            EARLY_DROP_PREFILL: 32      // v5.15.1: 25→32 (primo drop dopo ~15 kills, inizio W1H1)
+            EARLY_DROP_PREFILL: 32,     // v5.15.1: 25→32 (primo drop dopo ~15 kills, inizio W1H1)
+            GUARANTEED_SPECIAL_WAVE: 4  // v5.18: From wave 4+, force SPECIAL if none dropped this cycle
         },
 
         // --- ADAPTIVE DROPS v4.47 (Redesigned) ---

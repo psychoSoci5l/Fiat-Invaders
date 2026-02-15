@@ -10,7 +10,7 @@
 *   **Responsive**: "Notch-safe" UI design that adapts to all mobile screens.
 *   **Localization**: Fully localized in English (EN) and Italian (IT).
 
-## 🧠 Current Gameplay Rules (v5.13)
+## 🧠 Current Gameplay Rules (v5.17)
 
 *   **Two Game Modes**: **Story Mode** (3 acts with narrative chapters, boss progression FED→BCE→BOJ) and **Arcade Mode** ("Rogue Protocol" — roguelike modifier system, combo scoring, enhanced mini-bosses, infinite scaling).
 *   **Wave System**: 15 unique waves (5 per cycle × 3 cycles) with 16 formation patterns and thematic currency groups.
@@ -30,6 +30,7 @@
 *   **Reactive Feedback**: Score colors on streaks, danger pulse at low HP, wave sweep transitions.
 *   **Meme Popup System**: Full-width neon cartoon popup above player ship with 3-tier priority queue (CRITICAL/HIGH/NORMAL), spring-pop animation, 10 event types.
 *   **First-Run Tutorial**: Progressive 3-step mission briefing (Mission, Controls, Shield) with slide animations — separate content for Story vs Arcade, platform-aware (PC/mobile).
+*   **Online Leaderboard**: Global rankings powered by Cloudflare Workers + KV. Callsign system (3-6 chars), auto-submit on gameover, rank display with tier badges (TOP 3/5/10), platform icons (Desktop 🖥 / Mobile 📱).
 *   **Accessibility**: WCAG 2.1 AA+ contrast ratios, 48px+ touch targets, `prefers-reduced-motion` support.
 
 ## 🎮 How to Play
@@ -79,6 +80,7 @@ This project is a static site. You can deploy it instantly to:
   /systems       # HarmonicConductor, ParticleSystem, RankSystem, ArcadeModifiers, etc.
   /utils         # Constants, DebugSystem, ColorUtils, MathUtils, Upgrades
   main.js        # Game Loop & State Machine
+/workers           # Cloudflare Worker (leaderboard backend)
 index.html       # DOM Structure & UI Overlay
 style.css        # Cell-Shaded Styling & Responsive Rules
 sw.js            # Service Worker (Offline Support)

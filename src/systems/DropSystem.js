@@ -41,6 +41,8 @@
             // v4.61: Perk drop tracking
             this.killsSincePerkDrop = 0;
             this.lastPerkKillCount = 0;
+
+            this.specialDroppedThisCycle = false; // v5.18: track SPECIAL drops per cycle
         }
 
         /**
@@ -64,6 +66,8 @@
 
             this.killsSincePerkDrop = 0;
             this.lastPerkKillCount = 0;
+
+            this.specialDroppedThisCycle = false; // v5.18
         }
 
         /**
@@ -153,6 +157,15 @@
                     this.killsSincePerkDrop = 0;
                     return { type: 'PERK', category: 'perk' };
                 }
+            }
+
+            // v5.18: Guaranteed SPECIAL in late waves if none dropped this cycle
+            const DS = G.Balance.DROP_SCALING;
+            const gswThreshold = (DS && DS.GUARANTEED_SPECIAL_WAVE) || 99;
+            const currentWave = (G.WaveManager && G.WaveManager.wave) || 1;
+            if (currentWave >= gswThreshold && !this.specialDroppedThisCycle) {
+                this.specialDroppedThisCycle = true;
+                return { type: this.getWeightedSpecial(WE), category: 'special' };
             }
 
             // v5.11: UPGRADE no longer drops from enemies — only from boss Evolution Core
@@ -400,6 +413,7 @@
                         this.killsSinceLastDrop = 0;
                         this.lastEnemyDropTime = totalTime;
                         this.lastDropType = dropInfo.type;
+                        if (dropInfo.category === 'special') this.specialDroppedThisCycle = true; // v5.18
                         return {
                             ...dropInfo,
                             x: enemyX,
@@ -480,6 +494,7 @@
 
                 if (dropInfo) {
                     this.bossDropCount++;
+                    if (dropInfo.category === 'special') this.specialDroppedThisCycle = true; // v5.18
                     const offsetX = (Math.random() - 0.5) * 160;
                     return {
                         ...dropInfo,

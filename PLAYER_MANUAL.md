@@ -250,7 +250,25 @@ After defeating all 3 bosses (FED→ECB→BOJ), the game loops back through wave
 
 ---
 
-## 9. Pro Tips
+## 9. Online Leaderboard
+
+### Callsign
+On your first launch, you'll be asked to choose a **callsign** (3-6 characters, letters/numbers/spaces). This is your public name on the leaderboard.
+
+### How It Works
+- After every **Game Over** in Story Mode, your score is automatically submitted to the global leaderboard
+- Your **rank** is shown instantly on the gameover screen, along with the current **top 5**
+- Tier badges highlight the best players: **TOP 3** (gold), **TOP 5** (silver), **TOP 10** (cyan)
+
+### Platform Badges
+Each score shows whether it was achieved on **Desktop** (🖥) or **Mobile** (📱). Both platforms share the same leaderboard — compete across devices!
+
+### Viewing the Full Leaderboard
+Tap the **trophy icon** on the title screen to open the full leaderboard (top 100 scores).
+
+---
+
+## 10. Pro Tips
 
 ### Kill Close for DIP
 Kill enemies when they're **close to your ship** vertically:
@@ -279,7 +297,7 @@ Waves get harder as you clear them:
 
 ---
 
-## 10. Crypto Terminology
+## 11. Crypto Terminology
 
 | Term | In-Game Meaning |
 |------|-----------------|
@@ -298,4 +316,4 @@ Waves get harder as you clear them:
 *"There is no second best"* - Michael Saylor
 
 ---
-v5.13.0 FIAT vs CRYPTO
+v5.17.2 FIAT vs CRYPTO

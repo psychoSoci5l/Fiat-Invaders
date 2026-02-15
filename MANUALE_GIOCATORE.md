@@ -250,7 +250,25 @@ Dopo aver sconfitto tutti e 3 i boss (FED→BCE→BOJ), il gioco ricomincia le d
 
 ---
 
-## 9. Consigli da Pro
+## 9. Classifica Online
+
+### Nome in Codice
+Al primo avvio ti verra chiesto di scegliere un **nome in codice** (3-6 caratteri, lettere/numeri/spazi). Questo e il tuo nome pubblico in classifica.
+
+### Come Funziona
+- Dopo ogni **Game Over** in modalita Story, il tuo punteggio viene inviato automaticamente alla classifica globale
+- Il tuo **rank** viene mostrato subito nella schermata di gameover, insieme alla **top 5** attuale
+- Badge per i migliori: **TOP 3** (oro), **TOP 5** (argento), **TOP 10** (ciano)
+
+### Badge Piattaforma
+Ogni punteggio mostra se e stato ottenuto su **Desktop** (🖥) o **Mobile** (📱). Entrambe le piattaforme condividono la stessa classifica — sfida giocatori su qualsiasi dispositivo!
+
+### Classifica Completa
+Tocca l'**icona trofeo** nella schermata titolo per aprire la classifica completa (top 100 punteggi).
+
+---
+
+## 10. Consigli da Pro
 
 ### Uccidi da Vicino per il DIP
 Uccidi i nemici quando sono **vicini alla tua nave** verticalmente:
@@ -279,7 +297,7 @@ Le ondate diventano più difficili man mano che le svuoti:
 
 ---
 
-## 10. Terminologia Crypto
+## 11. Terminologia Crypto
 
 | Termine | Significato nel Gioco |
 |---------|----------------------|
@@ -298,4 +316,4 @@ Le ondate diventano più difficili man mano che le svuoti:
 *"There is no second best"* - Michael Saylor
 
 ---
-v5.13.0 FIAT vs CRYPTO
+v5.17.2 FIAT vs CRYPTO

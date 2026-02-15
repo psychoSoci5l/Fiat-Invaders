@@ -5026,6 +5026,7 @@ body.is-touch p.mobile-only { display: block; }
 .lb-col-name { /* flex */ }
 .lb-col-score { width: 80px; text-align: right; }
 .lb-col-ship { width: 40px; text-align: center; }
+.lb-col-plat { width: 28px; text-align: center; font-size: 14px; }
 /* Top 3 highlights */
 .lb-rank-1 td { color: #ffd700; }
 .lb-rank-2 td { color: #c0c0c0; }

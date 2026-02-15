@@ -1,7 +1,28 @@
 # Roadmap: FIAT vs CRYPTO
 
-> **Versione attuale**: v5.13.0 (2026-02-14)
+> **Versione attuale**: v5.17.2 (2026-02-15)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
+
+---
+
+## COMPLETATO — Online Leaderboard + Platform Tags (v5.17.0–v5.17.2)
+
+- [x] Cloudflare Workers + KV backend for global online leaderboard (top 100)
+- [x] Callsign system (3-6 chars, alphanumeric + spaces)
+- [x] HMAC-SHA256 score signing, rate limiting, score ceiling validation
+- [x] Trophy button in intro, gameover rank + top 5 inline, tier badges (TOP 3/5/10)
+- [x] Platform detection (Desktop/Mobile) with emoji icons in leaderboard
+- [x] Full EN/IT localization for leaderboard and nickname UI
+
+---
+
+## COMPLETATO — Score Pulse + Cyber Destruction + Drop Tuning (v5.14.0–v5.16.1)
+
+- [x] 5-tier HUD-reactive score pulse (MICRO/NORMAL/BIG/MASSIVE/LEGENDARY) with CSS animations
+- [x] Rectangular rotating fragment particles with elemental tint on destruction
+- [x] Coordinated SALVO system (row-by-row fire, safe corridor, progressive aim)
+- [x] C1 rebalance: LV1 buff, boss HP -27%, drop pacing tuning
+- [x] Guaranteed SPECIAL weapon drop from wave 4+ pre-boss
 
 ---
 
@@ -206,7 +227,7 @@
 - ~~Boss visual redesign (premium cyberpunk aesthetic)~~ ✅ v5.7.0
 - ~~Combo system (chain kills for multiplier)~~ ✅ v5.8.0
 - Daily challenge mode
-- Leaderboard (local, no server)
+- ~~Leaderboard (local, no server)~~ ✅ v5.17.0 (online with Cloudflare Workers)
 
 ### Technical
 - WebGL renderer option for low-end devices

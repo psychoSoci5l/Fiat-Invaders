@@ -51,13 +51,14 @@ function scoreCeiling(wave, cycle) {
 
 // Sanity checks on submitted data
 function validatePayload(p) {
-  if (!p.n || typeof p.n !== 'string' || p.n.length < 3 || p.n.length > 12) return 'invalid name';
-  if (!/^[A-Z0-9 ]{3,12}$/.test(p.n)) return 'invalid name chars';
+  if (!p.n || typeof p.n !== 'string' || p.n.length < 3 || p.n.length > 6) return 'invalid name';
+  if (!/^[A-Z0-9 ]{3,6}$/.test(p.n)) return 'invalid name chars';
   if (typeof p.s !== 'number' || p.s < 0 || !isFinite(p.s)) return 'invalid score';
   if (typeof p.k !== 'number' || p.k < 0) return 'invalid kills';
   if (typeof p.c !== 'number' || p.c < 1 || p.c > 50) return 'invalid cycle';
   if (typeof p.w !== 'number' || p.w < 1 || p.w > 5) return 'invalid wave';
   if (!['BTC','ETH','SOL'].includes(p.sh)) return 'invalid ship';
+  if (p.p && !['D','M'].includes(p.p)) return 'invalid platform';
   if (p.k > 0 && (p.s / p.k < 5 || p.s / p.k > 5000)) return 'suspicious ratio';
   const ceiling = scoreCeiling(p.w, p.c);
   if (p.s > ceiling) return 'score exceeds ceiling';
@@ -114,7 +115,7 @@ async function handlePostScore(request, env) {
   if (!payload || !sig) return jsonResponse({ ok: false, error: 'missing fields' }, 400);
 
   // Verify HMAC
-  const message = `${payload.s}|${payload.k}|${payload.c}|${payload.w}|${payload.sh}|${payload.mode}|${payload.t}`;
+  const message = `${payload.s}|${payload.k}|${payload.c}|${payload.w}|${payload.sh}|${payload.mode}|${payload.p || ''}|${payload.t}`;
   const valid = await verifyHMAC(message, sig, env.HMAC_SECRET);
   if (!valid) return jsonResponse({ ok: false, error: 'invalid signature' }, 403);
 
@@ -143,6 +144,7 @@ async function handlePostScore(request, env) {
     w: payload.w,
     sh: payload.sh,
     b: payload.b ? 1 : 0,
+    p: payload.p || '',
     t: payload.t
   };
 

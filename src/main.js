@@ -129,12 +129,17 @@ function checkArcadeRecords() {
 }
 // Note: High score UI update happens in updateModeIndicator() when intro screen is shown
 
+// === PLATFORM DETECTION (v5.17.2) ===
+function getPlatform() {
+    return ('ontouchstart' in window || navigator.maxTouchPoints > 0) ? 'M' : 'D';
+}
+
 // === NICKNAME MANAGER (v5.17) ===
 function getNickname() { return localStorage.getItem('fiat_nickname') || ''; }
 function hasNickname() { return getNickname().length >= 3; }
 function setNickname(name) {
     const clean = (name || '').toUpperCase().trim();
-    if (!/^[A-Z0-9 ]{3,12}$/.test(clean)) return false;
+    if (!/^[A-Z0-9 ]{3,6}$/.test(clean)) return false;
     localStorage.setItem('fiat_nickname', clean);
     return true;
 }
@@ -170,11 +175,16 @@ function showNicknamePrompt(callback) {
     btn.addEventListener('click', submit);
 }
 
-// === HMAC SIGNING (v5.17) ===
+// === SCORE INTEGRITY (v5.17.2) ===
+const _sk = (()=>{
+    const d = [44,9,80,110,122,77,5,3,34,71,120,36,115,18,99,45,29,76,93,14,125,11,106,38];
+    const m = [74,127,51,92];
+    return d.map((v,i) => String.fromCharCode(v ^ m[i % m.length])).join('');
+})();
 async function signScore(payload) {
-    const message = `${payload.s}|${payload.k}|${payload.c}|${payload.w}|${payload.sh}|${payload.mode}|${payload.t}`;
+    const message = `${payload.s}|${payload.k}|${payload.c}|${payload.w}|${payload.sh}|${payload.mode}|${payload.p}|${payload.t}`;
     const key = await crypto.subtle.importKey(
-        'raw', new TextEncoder().encode(G.LEADERBOARD_HMAC_KEY),
+        'raw', new TextEncoder().encode(_sk),
         { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
     );
     const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(message));
@@ -212,6 +222,7 @@ G.Leaderboard = {
             w: data.wave,
             sh: data.ship,
             b: data.bear ? 1 : 0,
+            p: getPlatform(),
             mode: data.mode || 'story',
             t: Date.now()
         };
@@ -262,11 +273,12 @@ G.Leaderboard = {
 
         // Update table headers
         const ths = table ? table.querySelectorAll('th') : [];
-        if (ths.length >= 4) {
+        if (ths.length >= 5) {
             ths[0].textContent = t('LB_RANK');
             ths[1].textContent = t('LB_PLAYER');
             ths[2].textContent = t('LB_SCORE');
             ths[3].textContent = 'SHIP';
+            ths[4].textContent = '';
         }
 
         const scores = await this.fetchScores();
@@ -311,7 +323,8 @@ G.Leaderboard = {
             else if (rank === 2) tr.className = 'lb-rank-2';
             else if (rank === 3) tr.className = 'lb-rank-3';
             if (entry.n === nick) tr.classList.add('lb-self');
-            tr.innerHTML = `<td>${rank}</td><td>${entry.n}</td><td>${entry.s.toLocaleString()}</td><td>${entry.sh}</td>`;
+            const platIcon = entry.p === 'M' ? '📱' : entry.p === 'D' ? '🖥' : '';
+            tr.innerHTML = `<td>${rank}</td><td>${entry.n}</td><td>${entry.s.toLocaleString()}</td><td>${entry.sh}</td><td class="lb-col-plat">${platIcon}</td>`;
             tbody.appendChild(tr);
         });
     },
@@ -367,7 +380,8 @@ G.Leaderboard = {
             const nick = getNickname();
             top5El.innerHTML = top5.map((e, i) => {
                 const cls = e.n === nick ? 'top5-self' : (i === 0 ? 'top5-gold' : '');
-                return `<span class="${cls}">${i + 1}. ${e.n} ${e.s.toLocaleString()}</span>`;
+                const pi = e.p === 'M' ? '📱' : e.p === 'D' ? '🖥' : '';
+                return `<span class="${cls}">${i + 1}. ${e.n} ${e.s.toLocaleString()} ${pi}</span>`;
             }).join('<br>');
         }
     }
@@ -794,6 +808,7 @@ function initCollisionSystem() {
                 if (G.Debug) G.Debug.trackCycleStart(marketCycle);
                 waveMgr.reset();
                 waveMgr.waveInProgress = true;
+                G.DropSystem.specialDroppedThisCycle = false; // v5.18: reset guaranteed SPECIAL for new cycle
                 fiatKillCounter = { '¥': 0, '₽': 0, '₹': 0, '€': 0, '£': 0, '₣': 0, '₺': 0, '$': 0, '元': 0, 'Ⓒ': 0 };
                 if (G.HarmonicConductor) { G.HarmonicConductor.reset(); G.HarmonicConductor.setDifficulty(level, marketCycle, isBearMarket); }
                 const campaignState2 = G.CampaignState;

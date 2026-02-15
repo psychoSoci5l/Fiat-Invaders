@@ -1,5 +1,18 @@
 # Changelog
 
+## v5.17.2 - 2026-02-15
+### Leaderboard: Platform Tag + Nickname 6 Chars Min
+- **feat(leaderboard)**: Platform tag (Desktop/Mobile) on each score entry — emoji icons in leaderboard table and gameover top 5
+- **feat(nickname)**: Nickname range changed from 3-12 to 3-6 characters (shorter callsigns)
+- **backend**: Worker updated — `p` field in score entry, HMAC signature includes platform, validation accepts D/M
+- **i18n**: Updated NICK_PLACEHOLDER and NICK_INVALID strings (EN/IT) to reflect 6-12 range
+
+## v5.17.1 - 2026-02-15
+### Guaranteed Special Drop Pre-Boss
+- **fix(drops)**: Guaranteed SPECIAL weapon drop from wave 4+ if none dropped in current cycle — prevents boss fights without offensive specials
+- **config**: `Balance.DROP_SCALING.GUARANTEED_SPECIAL_WAVE: 4` — configurable threshold
+- **tracking**: `DropSystem.specialDroppedThisCycle` flag, resets on game start and cycle transition (post-boss)
+
 ## v5.17.0 - 2026-02-15
 ### Online Leaderboard System — Nickname + Score Submit + Rankings
 - **feat(leaderboard)**: Online leaderboard with Cloudflare Workers + KV backend. Top 100 scores, sorted descending. REST API: `GET /api/lb`, `GET /api/rank`, `POST /api/score`
