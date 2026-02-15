@@ -2596,8 +2596,7 @@ function resize() {
 
 function updateUIText() {
     if (document.getElementById('version-tag')) document.getElementById('version-tag').innerText = Constants.VERSION;
-    if (ui.langBtn) ui.langBtn.innerText = currentLang;
-    if (ui.controlBtn) ui.controlBtn.innerText = (G.Input && G.Input.touch && G.Input.touch.useJoystick) ? 'JOYSTICK' : 'SWIPE';
+    // Lang/Control toggle-switches updated below in Settings section
     if (ui.joyDeadzone && G.Input && G.Input.touch) ui.joyDeadzone.value = Math.round(G.Input.touch.deadzone * 100);
     if (ui.joySensitivity && G.Input && G.Input.touch) ui.joySensitivity.value = Math.round(G.Input.touch.sensitivity * 100);
     if (ui.introMeme) ui.introMeme.innerText = getRandomMeme();
@@ -2659,8 +2658,6 @@ function updateUIText() {
     if (resumeBtn) resumeBtn.innerText = '⟡ ' + t('RESUME');
     const settingsBtn = document.getElementById('btn-settings');
     if (settingsBtn) settingsBtn.innerText = '⟡ ' + t('SETTINGS');
-    const manualBtn = document.getElementById('btn-manual');
-    if (manualBtn) manualBtn.innerText = '⟡ ' + t('MANUAL');
     const restartBtn = document.getElementById('btn-restart');
     if (restartBtn) restartBtn.innerText = '⟡ ' + t('RESTART_RUN');
     const exitBtn = document.getElementById('btn-exit-title');
@@ -2672,18 +2669,55 @@ function updateUIText() {
     const goBtn = document.getElementById('btn-retry');
     if (goBtn) goBtn.innerText = t('RESTART');
 
-    // Settings
+    // Settings (v5.22: section headers + info buttons)
     const setHeader = document.querySelector('#settings-modal h2');
     if (setHeader) setHeader.innerText = t('SETTINGS');
     const closeBtn = document.getElementById('btn-settings-close');
     if (closeBtn) closeBtn.innerText = t('CLOSE');
-    const privacyLink = document.getElementById('privacy-link');
-    if (privacyLink) privacyLink.innerText = t('PRIVACY');
-    // Select the lang row specifically (parent of #lang-btn)
+    // Section headers
+    document.querySelectorAll('#settings-modal .settings-section-header').forEach(h => {
+        const key = h.dataset.i18n;
+        if (key) h.innerText = t(key);
+    });
+    // Info buttons
+    const setManualBtn = document.getElementById('set-manual-btn');
+    if (setManualBtn) setManualBtn.innerText = t('SET_MANUAL');
+    const setFeedbackBtn = document.getElementById('set-feedback-btn');
+    if (setFeedbackBtn) setFeedbackBtn.innerText = t('SET_FEEDBACK');
+    const setCreditsBtn = document.getElementById('set-credits-btn');
+    if (setCreditsBtn) setCreditsBtn.innerText = t('SET_CREDITS');
+    const setPrivacyBtn = document.getElementById('set-privacy-btn');
+    if (setPrivacyBtn) setPrivacyBtn.innerText = t('PRIVACY');
+    // Audio labels
+    const setMusicLabel = document.getElementById('set-music-label');
+    if (setMusicLabel) setMusicLabel.innerText = t('SET_MUSIC');
+    const setSfxLabel = document.getElementById('set-sfx-label');
+    if (setSfxLabel) setSfxLabel.innerText = t('SET_SFX');
+    // Lang toggle-switch
     const langBtn = document.getElementById('lang-btn');
     if (langBtn) {
         const langLabel = langBtn.parentElement.querySelector('.setting-label');
         if (langLabel) langLabel.innerText = t('LANG');
+        const switchLabel = langBtn.querySelector('.switch-label');
+        if (switchLabel) switchLabel.innerText = currentLang;
+        // Toggle active state: active = IT (non-default)
+        if (currentLang === 'IT') {
+            langBtn.classList.add('active');
+        } else {
+            langBtn.classList.remove('active');
+        }
+    }
+    // Control toggle-switch
+    const controlBtn = document.getElementById('control-btn');
+    if (controlBtn) {
+        const isJoystick = G.Input && G.Input.touch && G.Input.touch.useJoystick;
+        const switchLabel = controlBtn.querySelector('.switch-label');
+        if (switchLabel) switchLabel.innerText = isJoystick ? 'JOY' : 'SWIPE';
+        if (isJoystick) {
+            controlBtn.classList.add('active');
+        } else {
+            controlBtn.classList.remove('active');
+        }
     }
 
     // Manual (if open, update text)
@@ -2692,10 +2726,6 @@ function updateUIText() {
 
 window.toggleLang = function () { currentLang = (currentLang === 'EN') ? 'IT' : 'EN'; G._currentLang = currentLang; localStorage.setItem('fiat_lang', currentLang); updateUIText(); };
 window.toggleSettings = function () { setStyle('settings-modal', 'display', (document.getElementById('settings-modal').style.display === 'flex') ? 'none' : 'flex'); updateUIText(); };
-window.toggleHelpPanel = function () {
-    const panel = document.getElementById('help-panel');
-    if (panel) panel.style.display = (panel.style.display === 'flex') ? 'none' : 'flex';
-};
 window.toggleCreditsPanel = function () {
     const panel = document.getElementById('credits-panel');
     if (panel) panel.style.display = (panel.style.display === 'flex') ? 'none' : 'flex';
@@ -3779,7 +3809,10 @@ window.toggleBearMode = function () {
 };
 
 function updateMusicUI(isMuted) {
+    // Icon-based toggles (pause menu round icons)
     document.querySelectorAll('.music-toggle').forEach(btn => {
+        // Skip toggle-switch elements (settings panel)
+        if (btn.classList.contains('toggle-switch')) return;
         const svg = btn.querySelector('.icon-svg');
         if (svg) {
             if (isMuted) {
@@ -3791,10 +3824,25 @@ function updateMusicUI(isMuted) {
             }
         }
     });
+    // Toggle-switch in settings
+    const settingsToggle = document.getElementById('settings-music-toggle');
+    if (settingsToggle) {
+        const label = settingsToggle.querySelector('.switch-label');
+        if (isMuted) {
+            settingsToggle.classList.remove('active');
+            if (label) label.textContent = 'OFF';
+        } else {
+            settingsToggle.classList.add('active');
+            if (label) label.textContent = 'ON';
+        }
+    }
 }
 
 function updateSfxUI(isMuted) {
+    // Icon-based toggles (pause menu round icons)
     document.querySelectorAll('.sfx-toggle').forEach(btn => {
+        // Skip toggle-switch elements (settings panel)
+        if (btn.classList.contains('toggle-switch')) return;
         const svg = btn.querySelector('.icon-svg');
         if (svg) {
             if (isMuted) {
@@ -3806,6 +3854,18 @@ function updateSfxUI(isMuted) {
             }
         }
     });
+    // Toggle-switch in settings
+    const settingsToggle = document.getElementById('settings-sfx-toggle');
+    if (settingsToggle) {
+        const label = settingsToggle.querySelector('.switch-label');
+        if (isMuted) {
+            settingsToggle.classList.remove('active');
+            if (label) label.textContent = 'OFF';
+        } else {
+            settingsToggle.classList.add('active');
+            if (label) label.textContent = 'ON';
+        }
+    }
 }
 
 function updateLevelUI() {

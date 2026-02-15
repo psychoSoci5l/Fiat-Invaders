@@ -1,5 +1,23 @@
 # Changelog
 
+## v5.22.0 - 2026-02-15
+### Settings as Hub — UI Rationalization
+- **feat(ui)**: Bottom bar consolidated from 6 to 3 icons: Settings, Leaderboard, What's New
+- **feat(settings)**: Settings modal restructured into 3 sections: GAMEPLAY, AUDIO, INFO
+- **feat(settings)**: Audio toggle-switches (Music/SFX) added to settings with sync to pause menu icons
+- **feat(settings)**: INFO section with Manual, Feedback, Credits, Privacy buttons in 2x2 grid
+- **feat(pause)**: Pause menu simplified from 5 to 4 buttons (Manual removed, accessible via Settings > Info)
+- **feat(manual)**: New SCORING section merged from help-panel (kill points, HODL, streak, graze, bullet time, hitbox)
+- **remove(help-panel)**: Entire #help-panel DOM removed — content merged into Manual
+- **remove(settings)**: How-to-play box and HELP button removed from settings
+- **feat(i18n)**: 16 new keys: SET_GAMEPLAY/AUDIO/INFO/MUSIC/SFX/MANUAL/FEEDBACK/CREDITS + MAN_SCORING/SCORE_* (EN/IT)
+- **feat(css)**: `.settings-section-header` (violet terminal style), `.settings-info-grid` (2-col), `.settings-hub` (scrollable)
+- **cleanup(css)**: Removed orphan CSS: `.help-section/item/icon/text`, `#help-panel`, `.help-modal`, `.paper-box`, `.how-to-play`, `.privacy-link`
+- **fix(InputSystem)**: Removed `#help-panel` from touch whitelist
+- **feat(settings)**: LINGUA and CONTROLLI converted from btn-toggle to toggle-switch for UI consistency
+- **fix(settings)**: INFO grid overflow fixed — removed `btn-block`, added `box-sizing: border-box` to modal
+- **feat(css)**: `.toggle-switch.active .switch-label` violet color, `min-width: 40px` for SWIPE/JOY labels
+
 ## v5.21.0 - 2026-02-15
 ### Game Completion Screen — Cinematic Credits
 - **feat(completion)**: Cinematic completion video (~11s, Remotion) — ship victory ascent with fire trail launch + glitch title reveal

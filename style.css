@@ -1112,7 +1112,7 @@ body {
     position: absolute;
     bottom: calc(50px + var(--pwa-bottom-inset, env(safe-area-inset-bottom, 0px)));
     display: flex;
-    gap: 20px;
+    gap: 32px;
 }
 
 .intro-version {
@@ -2371,6 +2371,8 @@ body {
     text-align: center;
     border-radius: 12px;
     box-shadow: 0 0 30px rgba(0, 240, 255, 0.2);
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
 .setting-row {
@@ -2393,27 +2395,7 @@ body {
     border-radius: 4px;
 }
 
-.how-to-play {
-    text-align: left;
-    background: #000;
-    padding: 15px;
-    border-radius: 8px;
-    border: 1px solid #333;
-    margin-bottom: 20px;
-}
-
-.how-to-play h3 {
-    margin-top: 0;
-    color: var(--neon-violet);
-    font-size: 14px;
-}
-
-.how-to-play p {
-    font-size: 12px;
-    color: #aaa;
-    margin: 8px 0;
-    line-height: 1.4;
-}
+/* .how-to-play removed in v5.22 (merged into settings sections) */
 
 /* .btn-coin.mini replaced by .btn-sm in Button Design System */
 
@@ -3160,32 +3142,7 @@ body.bear-mode .neon-title {
 }
 
 /* --- HELP PANEL --- */
-#help-panel {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.9);
-    backdrop-filter: blur(8px);
-    z-index: 250;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    touch-action: pan-y;
-    padding: 20px;
-    box-sizing: border-box;
-}
-
-.help-modal {
-    max-width: 450px;
-    max-height: 90vh;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    touch-action: pan-y;
-}
+/* #help-panel + .help-modal removed in v5.22 (merged into manual) */
 
 /* .help-btn, .credits-btn replaced by .btn-primary in Button Design System */
 
@@ -3382,21 +3339,7 @@ body.bear-mode .neon-title {
 }
 
 /* Privacy link in settings */
-.privacy-link {
-    display: block;
-    color: #888;
-    font-family: 'Courier New', monospace;
-    font-size: 12px;
-    text-decoration: none;
-    border-bottom: 1px solid #555;
-    padding-bottom: 2px;
-    margin: 8px auto 12px;
-    width: fit-content;
-    transition: color 0.2s;
-}
-.privacy-link:hover {
-    color: #ccc;
-}
+/* .privacy-link removed in v5.22 (now a button in settings info grid) */
 
 /* Privacy panel */
 #privacy-panel {
@@ -3436,56 +3379,7 @@ body.bear-mode .neon-title {
     margin: 0 0 8px;
 }
 
-.help-section {
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid #444;
-    border-radius: 8px;
-    padding: 12px;
-    margin-bottom: 12px;
-}
-
-.help-section h3 {
-    color: #bb44ff;
-    font-size: 14px;
-    margin: 0 0 10px 0;
-    padding-bottom: 6px;
-    border-bottom: 1px solid #444;
-}
-
-.help-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    margin-bottom: 8px;
-}
-
-.help-item:last-child {
-    margin-bottom: 0;
-}
-
-.help-icon {
-    font-size: 18px;
-    min-width: 24px;
-    text-align: center;
-}
-
-.help-text {
-    flex: 1;
-}
-
-.help-text strong {
-    color: #fff;
-    font-size: 12px;
-    display: block;
-    margin-bottom: 2px;
-}
-
-.help-text p {
-    color: #aaa;
-    font-size: 11px;
-    margin: 0;
-    line-height: 1.4;
-}
+/* .help-section/item/icon/text removed in v5.22 (merged into manual) */
 
 /* --- MEME POPUP (removed in v4.4 - now canvas MEME_WHISPER) --- */
 
@@ -3541,6 +3435,48 @@ body.bear-mode .neon-title {
     letter-spacing: 1px;
 }
 
+/* Settings Hub (v5.22: sectioned layout) */
+.settings-hub {
+    max-height: 90vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+}
+
+.settings-section-header {
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 3px;
+    color: #bb44ff;
+    text-transform: uppercase;
+    text-align: left;
+    margin: 18px 0 10px 0;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(187, 68, 255, 0.3);
+}
+
+.settings-section-header:first-of-type {
+    margin-top: 8px;
+}
+
+.settings-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 16px;
+    box-sizing: border-box;
+    width: 100%;
+}
+
+.settings-info-grid .btn {
+    font-size: 12px;
+    padding: 8px 4px;
+    min-width: 0;
+    box-sizing: border-box;
+    width: 100%;
+}
+
 /* Bear Market Toggle in Settings */
 .setting-bear {
     background: rgba(192, 57, 43, 0.2) !important;
@@ -3582,8 +3518,8 @@ body.bear-mode .neon-title {
 }
 
 .toggle-switch.active .switch-track {
-    background: #cc2277;
-    border-color: #ff2d95;
+    background: #8822bb;
+    border-color: #bb44ff;
 }
 
 .toggle-switch.active .switch-thumb {
@@ -3595,7 +3531,12 @@ body.bear-mode .neon-title {
     font-weight: 900;
     font-size: 12px;
     color: #aaa;
-    min-width: 30px;
+    min-width: 40px;
+    text-align: left;
+}
+
+.toggle-switch.active .switch-label {
+    color: #bb44ff;
 }
 
 /* .toggle-btn-cell replaced by .btn-toggle in Button Design System */
@@ -3634,43 +3575,7 @@ body.bear-mode .neon-title {
     box-shadow: 0 0 10px rgba(187, 68, 255, 0.5);
 }
 
-/* How to Play - Dark Box */
-.paper-box {
-    background: rgba(0, 0, 0, 0.3) !important;
-    border: 2px solid #333 !important;
-    border-radius: 8px !important;
-    padding: 15px !important;
-    margin: 15px 0 !important;
-    text-align: left !important;
-}
-
-.paper-box h3 {
-    color: #bb44ff !important;
-    font-size: 14px !important;
-    margin: 0 0 10px 0 !important;
-    border-bottom: 1px solid #444;
-    padding-bottom: 5px;
-}
-
-.paper-box p {
-    color: #aaa !important;
-    font-size: 12px !important;
-    margin: 8px 0 !important;
-}
-
-.paper-box .icon-tag {
-    display: inline-block;
-    background: #2a2a3e;
-    border: 1px solid #444;
-    border-radius: 4px;
-    padding: 2px 6px;
-    margin-right: 5px;
-}
-
-.paper-box .tip-text {
-    color: #bb44ff !important;
-    font-weight: bold;
-}
+/* .paper-box removed in v5.22 (how-to-play box merged into settings sections) */
 
 /* .btn-cell replaced by .btn-primary in Button Design System */
 

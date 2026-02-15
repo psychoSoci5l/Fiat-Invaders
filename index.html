@@ -158,19 +158,10 @@
             </div>
         </div>
 
-        <!-- BOTTOM ICONS (always visible) -->
+        <!-- BOTTOM ICONS (v5.22: 3 icons — Settings, Leaderboard, What's New) -->
         <div class="intro-icons">
-            <button class="btn btn-icon music-toggle" id="intro-music-toggle">
-                <svg viewBox="0 0 24 24" class="icon-svg"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
-            </button>
-            <button class="btn btn-icon sfx-toggle" id="intro-sfx-toggle">
-                <svg viewBox="0 0 24 24" class="icon-svg"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
-            </button>
             <button class="btn btn-icon" onclick="toggleSettings()" id="intro-settings">
                 <svg viewBox="0 0 24 24" class="icon-svg"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
-            </button>
-            <button class="btn btn-icon" onclick="toggleManual()" id="intro-manual">
-                <svg viewBox="0 0 24 24" class="icon-svg"><path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/></svg>
             </button>
             <button class="btn btn-icon" onclick="Game.Leaderboard.toggle()" id="intro-leaderboard">
                 <svg viewBox="0 0 24 24" class="icon-svg"><path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94.63 1.5 1.98 2.63 3.61 2.96V19H7v2h10v-2h-4v-3.1c1.63-.33 2.98-1.46 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z"/></svg>
@@ -224,7 +215,6 @@
         <h1 class="neon-title" id="pause-title">PAUSA</h1>
         <button class="btn btn-primary btn-block" id="btn-resume" onclick="togglePause()">RIPRENDI</button>
         <button class="btn btn-primary btn-block" id="btn-settings" onclick="toggleSettings()">IMPOSTAZIONI</button>
-        <button class="btn btn-primary btn-block" id="btn-manual" onclick="toggleManual()">MANUALE</button>
         <button class="btn btn-primary btn-block" id="btn-restart" onclick="restartRun()">RICOMINCIA</button>
         <button class="btn btn-danger btn-block" id="btn-exit-title" onclick="backToIntro()">ESCI</button>
         <div class="menu-row">
@@ -378,12 +368,14 @@ Tap your ship to activate</p>
         </div>
     </div>
 
-    <!-- SETTINGS MODAL - Outside game-container for proper stacking -->
+    <!-- SETTINGS MODAL (v5.22: 3-section hub) - Outside game-container for proper stacking -->
     <div id="settings-modal" style="display: none;">
-        <div class="modal-content paper-modal">
+        <div class="modal-content paper-modal settings-hub">
             <h2 class="modal-title">IMPOSTAZIONI</h2>
 
-            <!-- Bear Market Toggle -->
+            <!-- SECTION: GAMEPLAY -->
+            <div class="settings-section-header" data-i18n="SET_GAMEPLAY">GAMEPLAY</div>
+
             <div class="setting-row setting-bear">
                 <span class="setting-label">BEAR MARKET</span>
                 <button class="toggle-switch" onclick="toggleBearMode()" id="bear-toggle">
@@ -392,33 +384,61 @@ Tap your ship to activate</p>
                     <span class="switch-label">OFF</span>
                 </button>
             </div>
-
             <div class="setting-row">
                 <span class="setting-label">LINGUA</span>
-                <button class="btn btn-toggle" onclick="toggleLang()" id="lang-btn">IT</button>
+                <button class="toggle-switch" onclick="toggleLang()" id="lang-btn">
+                    <span class="switch-track"></span>
+                    <span class="switch-thumb"></span>
+                    <span class="switch-label">IT</span>
+                </button>
             </div>
             <div class="setting-row">
                 <span class="setting-label">CONTROLLI</span>
-                <button class="btn btn-toggle" onclick="toggleControlMode()" id="control-btn">SWIPE</button>
+                <button class="toggle-switch" onclick="toggleControlMode()" id="control-btn">
+                    <span class="switch-track"></span>
+                    <span class="switch-thumb"></span>
+                    <span class="switch-label">SWIPE</span>
+                </button>
             </div>
             <div class="setting-row">
                 <span class="setting-label">DEADZONE</span>
                 <input type="range" class="slider-cell" id="joy-deadzone" min="0" max="40" value="15">
             </div>
             <div class="setting-row">
-                <span class="setting-label">SENSIBILITÀ</span>
+                <span class="setting-label" data-i18n-label="sensitivity">SENSIBILITÀ</span>
                 <input type="range" class="slider-cell" id="joy-sensitivity" min="50" max="150" value="100">
             </div>
 
-            <div class="how-to-play paper-box">
-                <h3>CONTROLLI</h3>
-                <p class="desktop-only"><span class="icon-tag">⌨️</span> Frecce = Muovi • Spazio = Spara • Giù = Scudo</p>
-                <p class="mobile-only"><span class="icon-tag">📱</span> Swipe o Joystick = Muovi • Icona = Scudo</p>
+            <!-- SECTION: AUDIO -->
+            <div class="settings-section-header" data-i18n="SET_AUDIO">AUDIO</div>
+
+            <div class="setting-row">
+                <span class="setting-label" id="set-music-label">MUSIC</span>
+                <button class="toggle-switch music-toggle" id="settings-music-toggle">
+                    <span class="switch-track"></span>
+                    <span class="switch-thumb"></span>
+                    <span class="switch-label">OFF</span>
+                </button>
+            </div>
+            <div class="setting-row">
+                <span class="setting-label" id="set-sfx-label">SFX</span>
+                <button class="toggle-switch sfx-toggle" id="settings-sfx-toggle">
+                    <span class="switch-track"></span>
+                    <span class="switch-thumb"></span>
+                    <span class="switch-label">OFF</span>
+                </button>
             </div>
 
-            <button class="btn btn-primary" onclick="toggleHelpPanel()">? HELP</button>
-            <button class="btn btn-primary" onclick="toggleCreditsPanel()">CREDITS</button>
-            <a href="#" class="privacy-link" id="privacy-link" onclick="togglePrivacyPanel(); return false;">Privacy Policy</a>
+            <!-- SECTION: INFO -->
+            <div class="settings-section-header" data-i18n="SET_INFO">INFO</div>
+
+            <div class="settings-info-grid">
+                <button class="btn btn-primary btn-sm" onclick="toggleManual()" id="set-manual-btn">MANUAL</button>
+                <button class="btn btn-primary btn-sm" onclick="Game.toggleFeedback()" id="set-feedback-btn">FEEDBACK</button>
+                <button class="btn btn-primary btn-sm" onclick="toggleCreditsPanel()" id="set-credits-btn">CREDITS</button>
+                <button class="btn btn-primary btn-sm" onclick="togglePrivacyPanel()" id="set-privacy-btn">Privacy</button>
+            </div>
+
             <button class="btn btn-primary" id="btn-settings-close" onclick="toggleSettings()">CHIUDI</button>
         </div>
     </div>
@@ -452,116 +472,6 @@ Tap your ship to activate</p>
                 <p>Questions? Visit <a href="https://www.psychosoci5l.com/" target="_blank" rel="noopener noreferrer" style="color: #f39c12;">psychosoci5l.com</a></p>
             </div>
             <button class="btn btn-primary" onclick="togglePrivacyPanel()">CLOSE</button>
-        </div>
-    </div>
-
-    <!-- HELP PANEL - Outside game-container for proper stacking -->
-    <div id="help-panel" style="display: none;">
-        <div class="modal-content paper-modal help-modal">
-            <h2 class="modal-title">COME FARE PUNTI</h2>
-
-            <div class="help-section">
-                <h3>💰 SCORING</h3>
-                <div class="help-item">
-                    <span class="help-icon">💀</span>
-                    <div class="help-text">
-                        <strong>Kill Enemies</strong>
-                        <p>Ogni nemico ucciso = punti base (20-100 in base al tipo)</p>
-                    </div>
-                </div>
-                <div class="help-item">
-                    <span class="help-icon">💎</span>
-                    <div class="help-text">
-                        <strong>HODL Mode (2x Score)</strong>
-                        <p>Stai fermo mentre spari = danno e punti doppi!</p>
-                    </div>
-                </div>
-                <div class="help-item">
-                    <span class="help-icon">🔥</span>
-                    <div class="help-text">
-                        <strong>Kill Streak</strong>
-                        <p>Uccidi senza farti colpire = bonus crescente!</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="help-section">
-                <h3>✨ GRAZING</h3>
-                <div class="help-item">
-                    <span class="help-icon">🌟</span>
-                    <div class="help-text">
-                        <strong>Sfiorare i Proiettili</strong>
-                        <p>Passa vicino ai proiettili nemici senza farti colpire = GRAZE POINTS + moltiplicatore!</p>
-                    </div>
-                </div>
-                <div class="help-item">
-                    <span class="help-icon">🎁</span>
-                    <div class="help-text">
-                        <strong>Graze Bonus</strong>
-                        <p>Ogni 50 graze = perk bonus automatico!</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="help-section">
-                <h3>💀 SURVIVAL</h3>
-                <div class="help-item">
-                    <span class="help-icon">❤️</span>
-                    <div class="help-text">
-                        <strong>1 Hit = 1 Life</strong>
-                        <p>Un colpo = una vita persa! Hai solo 3 vite totali. Usa lo SCUDO!</p>
-                    </div>
-                </div>
-                <div class="help-item">
-                    <span class="help-icon">💥</span>
-                    <div class="help-text">
-                        <strong>Bullet Time</strong>
-                        <p>Quando vieni colpito, tutti i proiettili esplodono e il tempo rallenta per 2 secondi.</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="help-section">
-                <h3>🎯 HITBOX</h3>
-                <div class="help-item">
-                    <span class="help-icon">⭕</span>
-                    <div class="help-text">
-                        <strong>Core Hitbox</strong>
-                        <p>Solo il CENTRO della nave prende danno. Il cerchio bianco indica la zona di pericolo.</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="help-section">
-                <h3>⬆️ POWER-UPS</h3>
-                <div class="help-item">
-                    <span class="help-icon">🔱</span>
-                    <div class="help-text">
-                        <strong>Armi</strong>
-                        <p>WIDE (triplo largo) • NARROW (triplo stretto) • FIRE (penetrante)</p>
-                    </div>
-                </div>
-                <div class="help-item">
-                    <span class="help-icon">🚀</span>
-                    <div class="help-text">
-                        <strong>Ship Boost</strong>
-                        <p>SPEED (velocità) • RAPID (fire rate) • SHIELD (scudo istantaneo)</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="help-section">
-                <h3>🐻 BEAR MARKET</h3>
-                <div class="help-item">
-                    <span class="help-icon">📈</span>
-                    <div class="help-text">
-                        <strong>Hard Mode</strong>
-                        <p>Nemici più veloci e aggressivi, ma PUNTI DOPPI!</p>
-                    </div>
-                </div>
-            </div>
-
-            <button class="btn btn-primary" onclick="toggleHelpPanel()">CHIUDI</button>
         </div>
     </div>
 
@@ -679,7 +589,20 @@ Tap your ship to activate</p>
                     <p class="section-note warning" data-i18n="POWERUPS_DEATH">On Death: -1 level per category (min 0), specials lost</p>
                 </div>
 
-                <!-- SECTION 4: TIPS -->
+                <!-- SECTION 4: SCORING (v5.22: merged from help-panel) -->
+                <div class="manual-section-v2">
+                    <h3 class="section-heading" data-i18n="MAN_SCORING">SCORING</h3>
+                    <div class="tip-compact">
+                        <p data-i18n="MAN_SCORE_KILL">Kill enemies for base points (20-100 by tier)</p>
+                        <p data-i18n="MAN_SCORE_HODL">HODL Mode: stop moving = 2x damage + 2x score</p>
+                        <p data-i18n="MAN_SCORE_STREAK">Kill Streak: chain kills without being hit = bonus multiplier</p>
+                        <p data-i18n="MAN_SCORE_GRAZE">Graze: dodge close to bullets = graze points + score multiplier (up to 2.5x)</p>
+                        <p data-i18n="MAN_SCORE_BULLET_TIME">Bullet Time: when hit, all bullets explode + 2s slow-mo</p>
+                        <p data-i18n="MAN_SCORE_HITBOX">Core Hitbox: only the center of your ship takes damage</p>
+                    </div>
+                </div>
+
+                <!-- SECTION 5: TIPS -->
                 <div class="manual-section-v2">
                     <h3 class="section-heading" data-i18n="TAB_TIPS">PRO TIPS</h3>
                     <div class="tip-compact">

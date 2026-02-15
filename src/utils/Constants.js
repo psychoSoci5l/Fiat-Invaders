@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v5.21.0 FIAT vs CRYPTO";
+window.Game.VERSION = "v5.22.0 FIAT vs CRYPTO";
 
 // Leaderboard API
 window.Game.LEADERBOARD_API = 'https://fiat-vs-crypto-leaderboard.psychosocial-01.workers.dev/api';
@@ -141,6 +141,13 @@ window.Game.TEXTS = {
         TUT_STEP_SHIELD_MOBILE: "Fins glow cyan = Shield ready!\nTap your ship to activate",
         TUT_NEXT: "NEXT",
         // Manual v2 condensed (v4.12.0)
+        MAN_SCORING: "SCORING",
+        MAN_SCORE_KILL: "Kill enemies for base points (20-100 by tier)",
+        MAN_SCORE_HODL: "HODL Mode: stop moving = 2x damage + 2x score",
+        MAN_SCORE_STREAK: "Kill Streak: chain kills without being hit = bonus multiplier",
+        MAN_SCORE_GRAZE: "Graze: dodge close to bullets = graze points + score multiplier (up to 2.5x)",
+        MAN_SCORE_BULLET_TIME: "Bullet Time: when hit, all bullets explode + 2s slow-mo",
+        MAN_SCORE_HITBOX: "Core Hitbox: only the center of your ship takes damage",
         MAN_OBJECTIVES: "OBJECTIVES",
         MAN_OBJ_TEXT: "Destroy waves of fiat enemies, collect power-ups, survive 5 waves per level, then defeat the Boss. Each cycle increases difficulty and rewards.",
         MAN_OBJ_DEATH: "1 hit = 1 life lost. 3 lives total. Shield is your only defense!",
@@ -203,6 +210,15 @@ window.Game.TEXTS = {
         FB_SEND: "SEND",
         FB_CANCEL: "CANCEL",
         FB_ERROR_SHORT: "Message too short (min 5 chars)",
+        // Settings sections (v5.22)
+        SET_GAMEPLAY: "GAMEPLAY",
+        SET_AUDIO: "AUDIO",
+        SET_INFO: "INFO",
+        SET_MUSIC: "MUSIC",
+        SET_SFX: "SFX",
+        SET_MANUAL: "MANUAL",
+        SET_FEEDBACK: "FEEDBACK",
+        SET_CREDITS: "CREDITS",
         GC_TITLE: "PROTOCOL COMPLETE",
         GC_THANKS_1: "You decrypted the protocol.",
         GC_THANKS_2: "The central banks have fallen. The blockchain endures.",
@@ -357,6 +373,13 @@ window.Game.TEXTS = {
         TUT_STEP_SHIELD_MOBILE: "Alette cyan = Scudo pronto!\nTocca la nave per attivarlo",
         TUT_NEXT: "AVANTI",
         // Manual v2 condensed (v4.12.0)
+        MAN_SCORING: "PUNTEGGIO",
+        MAN_SCORE_KILL: "Uccidi nemici per punti base (20-100 in base al tier)",
+        MAN_SCORE_HODL: "HODL Mode: stai fermo = danno 2x + punti 2x",
+        MAN_SCORE_STREAK: "Kill Streak: uccidi senza farti colpire = moltiplicatore bonus",
+        MAN_SCORE_GRAZE: "Graze: sfiora i proiettili = punti graze + moltiplicatore (fino a 2.5x)",
+        MAN_SCORE_BULLET_TIME: "Bullet Time: quando colpito, proiettili esplodono + 2s slow-mo",
+        MAN_SCORE_HITBOX: "Core Hitbox: solo il centro della nave prende danno",
         MAN_OBJECTIVES: "OBIETTIVI",
         MAN_OBJ_TEXT: "Distruggi ondate di nemici fiat, raccogli power-up, sopravvivi a 5 ondate per livello, poi sconfiggi il Boss. Ogni ciclo aumenta difficolt\u00E0 e ricompense.",
         MAN_OBJ_DEATH: "1 colpo = 1 vita persa. 3 vite totali. Lo scudo \u00E8 la tua unica difesa!",
@@ -419,6 +442,15 @@ window.Game.TEXTS = {
         FB_SEND: "INVIA",
         FB_CANCEL: "ANNULLA",
         FB_ERROR_SHORT: "Messaggio troppo corto (min 5 car.)",
+        // Settings sections (v5.22)
+        SET_GAMEPLAY: "GAMEPLAY",
+        SET_AUDIO: "AUDIO",
+        SET_INFO: "INFO",
+        SET_MUSIC: "MUSICA",
+        SET_SFX: "EFFETTI",
+        SET_MANUAL: "MANUALE",
+        SET_FEEDBACK: "FEEDBACK",
+        SET_CREDITS: "CREDITI",
         GC_TITLE: "PROTOCOLLO COMPLETATO",
         GC_THANKS_1: "Hai decifrato il protocollo.",
         GC_THANKS_2: "Le banche centrali sono cadute. La blockchain resiste.",
