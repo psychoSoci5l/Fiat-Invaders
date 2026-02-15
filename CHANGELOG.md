@@ -1,5 +1,12 @@
 # Changelog
 
+## v5.22.1 - 2026-02-15
+### Cinematic Cannon Mount + Score Reset + iOS Link Fix
+- **fix(player)**: Cannon mount at game start now uses the full deploy animation system (flash, brighten, ease-out-back, screen shake, burst particles, SFX sequence) instead of instant pop-in
+- **feat(scores)**: One-time local score reset via localStorage migration (`fiat_scores_reset_v2`) — all players start fresh
+- **fix(ios)**: External links in Game Completion overlay now use `window.open()` for iOS PWA standalone compatibility
+- **docs**: Manuals updated to v5.22.1 with Game Completion section, README gameplay version updated
+
 ## v5.22.0 - 2026-02-15
 ### Settings as Hub — UI Rationalization
 - **feat(ui)**: Bottom bar consolidated from 6 to 3 icons: Settings, Leaderboard, What's New

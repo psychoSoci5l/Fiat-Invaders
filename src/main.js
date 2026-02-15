@@ -15,6 +15,16 @@ window.Game.images = {}; // Placeholder, populated by main.js
     localStorage.setItem('fiat_app_version', APP_VER);
 })();
 
+// v5.22.1: One-time score reset (leaderboard fresh start)
+(function() {
+    if (!localStorage.getItem('fiat_scores_reset_v2')) {
+        localStorage.removeItem('fiat_highscore_story');
+        localStorage.removeItem('fiat_highscore_arcade');
+        localStorage.removeItem('fiat_arcade_records');
+        localStorage.setItem('fiat_scores_reset_v2', '1');
+    }
+})();
+
 // --- GLOBAL STATE ---
 let canvas, ctx, gameContainer;
 let gameWidth = window.Game.Balance.GAME.BASE_WIDTH;
@@ -6095,6 +6105,14 @@ function showCompletionOverlay(onComplete) {
     `;
 
     overlay.style.display = 'flex';
+
+    // v5.23: iOS PWA standalone fix — target="_blank" may not open external links
+    overlay.querySelectorAll('a[target="_blank"]').forEach(a => {
+        a.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.open(a.href, '_blank', 'noopener,noreferrer');
+        });
+    });
 
     document.getElementById('gc-continue-btn').addEventListener('click', () => {
         try { localStorage.setItem('fiat_completion_seen', '1'); } catch(e) {}

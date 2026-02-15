@@ -311,9 +311,24 @@ Le ondate diventano più difficili man mano che le svuoti:
 
 ---
 
+## 12. Completamento del Gioco
+
+### Condizione di Vittoria
+Sconfiggi tutti e 3 i boss delle Banche Centrali lungo 3 cicli (FED → BCE → BOJ × 3). Dopo la caduta dell'ultimo BOJ, parte una **sequenza cinematica di completamento**:
+- Video della vittoria con la tua nave che ascende trionfalmente
+- Overlay dei crediti con info sul gioco e link utili
+- Si vede solo al **primo completamento** — le vittorie successive vanno direttamente alla schermata Vittoria Campagna
+
+### Dopo la Vittoria
+La schermata Vittoria Campagna offre due strade:
+- **Bear Market**: Pronto per la sfida definitiva? Inizia una run Bear Market con velocita nemici ×1.3
+- **Replay Story**: Ricomincia da capo
+
+---
+
 **Buona fortuna, soldato della decentralizzazione!**
 
 *"There is no second best"* - Michael Saylor
 
 ---
-v5.17.2 FIAT vs CRYPTO
+v5.22.1 FIAT vs CRYPTO

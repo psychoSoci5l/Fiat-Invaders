@@ -311,9 +311,24 @@ Waves get harder as you clear them:
 
 ---
 
+## 12. Game Completion
+
+### Victory Condition
+Defeat all 3 Central Bank bosses across 3 cycles (FED → ECB → BOJ × 3). After the final BOJ falls, a **cinematic completion sequence** plays:
+- Victory video with your ship ascending triumphantly
+- Credits overlay with game info and links
+- This plays only on your **first completion** — subsequent victories go straight to the Campaign Victory screen
+
+### After Victory
+The Campaign Victory screen offers two paths:
+- **Bear Market**: Ready for the ultimate challenge? Start a Bear Market run with 1.3× enemy speed
+- **Replay Story**: Start fresh from the beginning
+
+---
+
 **Good luck, soldier of decentralization!**
 
 *"There is no second best"* - Michael Saylor
 
 ---
-v5.17.2 FIAT vs CRYPTO
+v5.22.1 FIAT vs CRYPTO
