@@ -62,11 +62,10 @@ npx serve .
 
 ## 📦 Deployment
 
-This project is a static site. You can deploy it instantly to:
+The game runs on **Cloudflare**:
 
-*   **Vercel**: Import the repository and hit Deploy.
-*   **GitHub Pages**: Enable Pages in Settings -> Source: `main` branch / root.
-*   **Netlify**: Drag and drop the folder.
+*   **Frontend**: Static site on **Cloudflare Pages**, connected to this GitHub repo (`main` branch). Pushes to `main` trigger automatic deploys. CSP headers configured via `_headers`.
+*   **Leaderboard API**: **Cloudflare Worker + KV** (`workers/leaderboard-worker.js`). Handles score submission (HMAC-signed), rankings, and rate limiting. Deployed separately via `wrangler`.
 
 ## 📂 Project Structure
 
