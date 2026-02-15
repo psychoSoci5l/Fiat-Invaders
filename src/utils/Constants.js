@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v5.17.2 FIAT vs CRYPTO";
+window.Game.VERSION = "v5.18.0 FIAT vs CRYPTO";
 
 // Leaderboard API
 window.Game.LEADERBOARD_API = 'https://fiat-vs-crypto-leaderboard.psychosocial-01.workers.dev/api';
@@ -174,6 +174,7 @@ window.Game.TEXTS = {
         BEST_LEVEL: "BEST LEVEL",
         BEST_KILLS: "BEST KILLS",
         WHATS_NEW: "WHAT'S NEW",
+        COMING_SOON: "COMING SOON",
         CLOSE: "CLOSE",
         // Leaderboard (v5.17)
         LB_TITLE: "LEADERBOARD",
@@ -362,6 +363,7 @@ window.Game.TEXTS = {
         BEST_LEVEL: "MIGLIOR LIVELLO",
         BEST_KILLS: "MIGLIORI UCCISIONI",
         WHATS_NEW: "NOVITÀ",
+        COMING_SOON: "IN ARRIVO",
         CLOSE: "CHIUDI",
         // Leaderboard (v5.17)
         LB_TITLE: "CLASSIFICA",

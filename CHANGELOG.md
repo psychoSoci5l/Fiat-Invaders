@@ -1,5 +1,15 @@
 # Changelog
 
+## v5.18.0 - 2026-02-15
+### What's New Panel — Multilingual + Redesign
+- **feat(i18n)**: What's New panel fully bilingual EN/IT — all entries (titles, items, planned section) switch with language
+- **feat(content)**: Added 10 missing major versions (v5.8.0–v5.17.0) with 3-4 bullet points each
+- **feat(content)**: Translated all 10 existing entries (v4.47–v5.7.0) to Italian
+- **feat(i18n)**: `COMING_SOON` key added to Constants.js (EN: "COMING SOON", IT: "IN ARRIVO")
+- **feat(i18n)**: `WHATS_NEW_PLANNED` entries now bilingual objects
+- **refactor**: Removed `whatsNewRendered` guard — panel re-renders every open for correct language
+- **style**: Spacious card redesign — larger fonts (h3 16px, li 13px, date 11px, title 22px), more padding (12px/14px), wider box (440px)
+
 ## v5.17.2 - 2026-02-15
 ### Leaderboard: Platform Tag + Nickname 6 Chars Min
 - **feat(leaderboard)**: Platform tag (Desktop/Mobile) on each score entry — emoji icons in leaderboard table and gameover top 5

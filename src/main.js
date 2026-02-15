@@ -2653,125 +2653,364 @@ window.togglePrivacyPanel = function () {
     if (panel) panel.style.display = (panel.style.display === 'flex') ? 'none' : 'flex';
 };
 
-// What's New panel (v4.50)
+// What's New panel (v4.50, i18n v5.18)
 const WHATS_NEW = [
     {
-        version: 'v5.7.0', date: '2026-02-14', title: 'Boss Redesign + Tap Shield',
-        items: [
-            'NEW: All 3 bosses completely redesigned — FED (Illuminati Pyramid), BCE (Star Fortress), BOJ (Golden Torii)',
-            'NEW: Hexgrid energy shield — honeycomb pattern with radial wave animation replaces flat circle',
-            'NEW: Tap on your ship to activate shield (mobile) — pulsing cyan ring shows when ready',
-            'Boss HP bar redesigned with gradient fill, glow, and phase markers',
-            'Status texts slightly larger across all message types for better readability'
-        ]
+        version: 'v5.17.0', date: '2026-02-15',
+        title: { EN: 'Online Leaderboard', IT: 'Classifica Online' },
+        items: {
+            EN: [
+                'NEW: Global online leaderboard — compete with players worldwide',
+                'Nickname system with 3-6 character names saved locally',
+                'HMAC-signed score submission for anti-cheat protection',
+                'Gameover shows your rank + top 5 with tier badges (gold/silver/cyan)'
+            ],
+            IT: [
+                'NUOVO: Classifica online globale — competi con giocatori di tutto il mondo',
+                'Sistema nickname con nomi da 3-6 caratteri salvati localmente',
+                'Invio punteggio firmato HMAC per protezione anti-cheat',
+                'Il gameover mostra il tuo rank + top 5 con badge a livelli (oro/argento/cyan)'
+            ]
+        }
     },
     {
-        version: 'v5.3.0', date: '2026-02-13', title: 'Gradius-Style Laser Beam',
-        items: [
-            'NEW: Laser perk now fires a 110px elongated beam bolt — 3-layer glow (white core, cyan mid, additive outer)',
-            'Gradius-style single beam — multi-cannon levels merge into one powerful central beam with combined damage',
-            'Beam collides along its entire length — enemies and enemy bullets are hit by the full segment',
-            'Shimmer animation, head glow, and full elemental overlay support (Fire/Electric/GODCHAIN/HYPER)'
-        ]
+        version: 'v5.16.0', date: '2026-02-15',
+        title: { EN: 'Coordinated Salvo System', IT: 'Sistema Salve Coordinate' },
+        items: {
+            EN: [
+                'NEW: Enemies fire in coordinated row-by-row salvos with safe corridors',
+                'Progressive aim factor — Cycle 1 straight, Cycle 2 aimed 40%, Cycle 3 aimed 70%',
+                'All verse/chorus/bear sequences rewritten for tighter choreography'
+            ],
+            IT: [
+                'NUOVO: I nemici sparano a salve coordinate riga per riga con corridoi sicuri',
+                'Mira progressiva — Ciclo 1 dritto, Ciclo 2 mirata 40%, Ciclo 3 mirata 70%',
+                'Tutte le sequenze verso/ritornello/bear riscritte per coreografia più serrata'
+            ]
+        }
     },
     {
-        version: 'v5.1.0', date: '2026-02-13', title: 'Directional Muzzle Flash',
-        items: [
-            'NEW: Cannon-aligned muzzle flash — V-shaped flare fires from actual gun positions',
-            'Muzzle flash scales with weapon level and changes color with elemental perks',
-            'Fire: wider red flash — Laser: tall cyan beam — Electric: violet arcs — GODCHAIN: fire tongues',
-            'Directional spark particles now shoot upward from each cannon barrel'
-        ]
+        version: 'v5.15.0', date: '2026-02-14',
+        title: { EN: 'Cyber Destruction Overhaul', IT: 'Distruzione Cyber Rinnovata' },
+        items: {
+            EN: [
+                'NEW: Rectangular rotating fragment particles on enemy destruction',
+                'Elemental tint on 60% of shrapnel — fire red, laser cyan, electric violet',
+                'Elemental tint on living enemies hit by elemental damage (flash + persistent)',
+                'Tier-differentiated destruction SFX — noise crunch, sub-bass, square snap'
+            ],
+            IT: [
+                'NUOVO: Frammenti rettangolari rotanti alla distruzione dei nemici',
+                'Tinta elementale sul 60% delle schegge — fuoco rosso, laser cyan, elettrico viola',
+                'Tinta elementale sui nemici colpiti da danno elementale (flash + persistente)',
+                'SFX distruzione differenziati per tier — crunch, sub-bass, snap'
+            ]
+        }
     },
     {
-        version: 'v4.61.0', date: '2026-02-13', title: 'Elemental Perk Drops',
-        items: [
-            'NEW: Elemental Perks — Fire, Laser, Electric — now drop as physical power-ups (diamond crystals)',
-            'Fixed order: Fire (splash damage) → Laser (+speed, +pierce) → Electric (chain lightning)',
-            'Collecting all 3 elements activates GODCHAIN — further drops re-trigger it',
-            'DIP meter no longer accumulates during HYPER — resets to zero when HYPER ends',
-            'HODL mode removed — was unusable on mobile (autofire requires touch)',
-            'HYPER duration fixed at 10 seconds (no extensions)',
-            'Meter decay doubled — stay aggressive to keep it filled'
-        ]
+        version: 'v5.14.0', date: '2026-02-14',
+        title: { EN: 'Score Pulse System', IT: 'Sistema Pulsazione Punteggio' },
+        items: {
+            EN: [
+                'NEW: 5-tier HUD-reactive score — MICRO / NORMAL / BIG / MASSIVE / LEGENDARY',
+                'CSS animations per tier with scale, shake, and glow effects',
+                'Combo accumulator bumps tier on rapid kills (0.4s decay)',
+                'New high score: magenta pulsing glow when surpassing your record'
+            ],
+            IT: [
+                'NUOVO: Punteggio reattivo HUD a 5 livelli — MICRO / NORMAL / BIG / MASSIVE / LEGENDARY',
+                'Animazioni CSS per livello con scala, scuotimento e bagliore',
+                'Accumulatore combo aumenta il tier su uccisioni rapide (decay 0.4s)',
+                'Nuovo record: bagliore magenta pulsante quando superi il tuo record'
+            ]
+        }
     },
     {
-        version: 'v4.58.0', date: '2026-02-12', title: 'Cyberpunk Damage FX',
-        items: [
-            'NEW: Enemies visually deteriorate below 50% HP with 5 layered cyberpunk effects',
-            'Neon outline flickers and glitches — cracks appear on the body',
-            'Bright neon sparks replace old grey smoke',
-            'Glow halo destabilizes: faster pulse, dimmer, desaturated',
-            'Body darkens progressively — damage is now unmistakable'
-        ]
+        version: 'v5.13.0', date: '2026-02-14',
+        title: { EN: 'Spectacular Elemental VFX', IT: 'VFX Elementali Spettacolari' },
+        items: {
+            EN: [
+                'NEW: Napalm impact — fire ring, tongues, and embers on Fire hits',
+                'NEW: Lightning bolt — jagged bolt with branches and glow on Electric hits',
+                'Ship aura per element — fire embers, laser trails, electric arcs',
+                'GODCHAIN apotheosis effect with golden rings and elemental symbols'
+            ],
+            IT: [
+                'NUOVO: Impatto napalm — anello di fuoco, lingue e braci sui colpi Fire',
+                'NUOVO: Fulmine — scarica frastagliata con rami e bagliore sui colpi Electric',
+                'Aura nave per elemento — braci fuoco, scie laser, archi elettrici',
+                'Effetto apoteosi GODCHAIN con anelli dorati e simboli elementali'
+            ]
+        }
     },
     {
-        version: 'v4.53.0', date: '2026-02-12', title: 'Premium Purple Neon',
-        items: [
-            'Full UI color unification: all buttons, menus, modals now neon violet',
-            'BTC ship recolored to violet',
-            'Story screen highlights, tutorial, manual, settings — all violet themed',
-            'Arcade mode temporarily disabled (work in progress)'
-        ]
+        version: 'v5.12.0', date: '2026-02-14',
+        title: { EN: 'Step-by-Step Tutorial', IT: 'Tutorial Passo dopo Passo' },
+        items: {
+            EN: [
+                'NEW: 3-step progressive tutorial — Mission, Controls, Shield',
+                'Slide animations with progress dots between steps',
+                'Platform-aware text — different instructions for PC and mobile'
+            ],
+            IT: [
+                'NUOVO: Tutorial progressivo in 3 step — Missione, Controlli, Scudo',
+                'Animazioni a scorrimento con indicatori di progresso tra gli step',
+                'Testo adattivo alla piattaforma — istruzioni diverse per PC e mobile'
+            ]
+        }
     },
     {
-        version: 'v4.50.0', date: '2026-02-12', title: 'Arcade Mode Enhancements',
-        items: [
-            'Separate high scores for Story and Arcade modes',
-            'Arcade gameover shows Cycle, Level, Wave stats',
-            'Persistent arcade records (best cycle, level, kills) with NEW BEST badge',
-            'Arcade records displayed in selection screen',
-            'Records now persist across updates'
-        ]
+        version: 'v5.11.0', date: '2026-02-13',
+        title: { EN: 'Cinematic Boss Evolution', IT: 'Evoluzione Boss Cinematica' },
+        items: {
+            EN: [
+                'NEW: Boss death triggers cinematic sequence — freeze, slowmo, chain explosions, coin rain',
+                'Weapon system simplified to 3 levels — upgrades only from boss Evolution Cores',
+                'Evolution item flies from defeated boss to your ship with particle trail'
+            ],
+            IT: [
+                'NUOVO: La morte del boss attiva sequenza cinematica — freeze, slowmo, esplosioni a catena, pioggia di monete',
+                'Sistema armi semplificato a 3 livelli — potenziamenti solo da Evolution Core del boss',
+                'L\'oggetto evoluzione vola dal boss sconfitto alla tua nave con scia di particelle'
+            ]
+        }
     },
     {
-        version: 'v4.49.0', date: '2026-02-12', title: 'Architectural Refactor',
-        items: [
-            'Extracted 4 modules from main.js for better code organization',
-            'Added test suite with 103 assertions'
-        ]
+        version: 'v5.10.0', date: '2026-02-13',
+        title: { EN: 'Shield Fin Glow + Tutorial', IT: 'Bagliore Alette Scudo + Tutorial' },
+        items: {
+            EN: [
+                'NEW: Cyan fin glow indicator replaces shield ring — cooldown fill + ready pulse',
+                'Card-based tutorial redesign with colored borders and icon badges',
+                'Ship preview updated with per-ship metallic tech palette'
+            ],
+            IT: [
+                'NUOVO: Indicatore bagliore cyan sulle alette sostituisce l\'anello scudo — riempimento cooldown + pulsazione',
+                'Tutorial ridisegnato a schede con bordi colorati e badge icona',
+                'Anteprima nave aggiornata con palette metallica tech per-nave'
+            ]
+        }
     },
     {
-        version: 'v4.48.0', date: '2026-02-12', title: 'Balance Recalibration',
-        items: [
-            'Enemy and Boss HP rebalanced for weapon evolution system',
-            'Improved adaptive drop intelligence',
-            'Weapon pacing tuned (level 5 reached in cycle 2)'
-        ]
+        version: 'v5.9.0', date: '2026-02-13',
+        title: { EN: 'Ship Redesign "Crypto Viper"', IT: 'Nave Ridisegnata "Crypto Viper"' },
+        items: {
+            EN: [
+                'NEW: Chevron body ship with metallic tech palette and swept fins',
+                'BTC cockpit with multi-layer glow, dorsal spine, panel lines',
+                'Proportional hitboxes per ship — tighter collision for skilled play',
+                'Hex shield, HYPER aura, and afterimage all updated to match new geometry'
+            ],
+            IT: [
+                'NUOVO: Nave con corpo a chevron, palette metallica tech e alette a freccia',
+                'Cockpit BTC con bagliore multi-strato, spina dorsale, linee pannello',
+                'Hitbox proporzionali per nave — collisione più precisa per gioco abile',
+                'Scudo esagonale, aura HYPER e afterimage aggiornati alla nuova geometria'
+            ]
+        }
     },
     {
-        version: 'v4.47.0', date: '2026-02-12', title: 'Weapon Evolution Redesign',
-        items: [
-            'New 5-level linear weapon system (replaces old 3+3+6)',
-            '3 specials: Homing, Pierce, Missile',
-            '2 utilities: Shield, Speed (capsule visual)',
-            'Laser removed'
-        ]
+        version: 'v5.8.0', date: '2026-02-13',
+        title: { EN: 'Arcade Mode "Rogue Protocol"', IT: 'Modalità Arcade "Rogue Protocol"' },
+        items: {
+            EN: [
+                'NEW: Roguelike Arcade mode with 15 modifiers across 3 categories',
+                'Combo scoring system — chain kills to build multiplier (max 5x)',
+                'Post-boss modifier choice screen — pick 1 of 3 cards to shape your run',
+                'Infinite post-Cycle 3 scaling with formation remix and +20% difficulty per cycle'
+            ],
+            IT: [
+                'NUOVO: Modalità Arcade roguelike con 15 modificatori in 3 categorie',
+                'Sistema punteggio combo — concatena uccisioni per aumentare il moltiplicatore (max 5x)',
+                'Schermata scelta modificatore post-boss — scegli 1 di 3 carte per la tua run',
+                'Scaling infinito post-Ciclo 3 con remix formazioni e +20% difficoltà per ciclo'
+            ]
+        }
+    },
+    {
+        version: 'v5.7.0', date: '2026-02-14',
+        title: { EN: 'Boss Redesign + Tap Shield', IT: 'Boss Ridisegnati + Scudo Tap' },
+        items: {
+            EN: [
+                'NEW: All 3 bosses redesigned — FED (Illuminati Pyramid), BCE (Star Fortress), BOJ (Golden Torii)',
+                'NEW: Hexgrid energy shield — honeycomb pattern with radial wave animation',
+                'NEW: Tap on your ship to activate shield (mobile) — pulsing cyan ring shows when ready',
+                'Boss HP bar redesigned with gradient fill, glow, and phase markers'
+            ],
+            IT: [
+                'NUOVO: Tutti e 3 i boss ridisegnati — FED (Piramide Illuminati), BCE (Fortezza Stellare), BOJ (Torii Dorato)',
+                'NUOVO: Scudo energia esagonale — pattern a nido d\'ape con onda radiale',
+                'NUOVO: Tocca la nave per attivare lo scudo (mobile) — anello cyan pulsante mostra quando è pronto',
+                'Barra HP boss ridisegnata con riempimento gradiente, bagliore e indicatori fase'
+            ]
+        }
+    },
+    {
+        version: 'v5.3.0', date: '2026-02-13',
+        title: { EN: 'Gradius-Style Laser Beam', IT: 'Raggio Laser Stile Gradius' },
+        items: {
+            EN: [
+                'NEW: Laser perk fires a 110px beam bolt — 3-layer glow (white core, cyan mid, outer)',
+                'Multi-cannon levels merge into one powerful central beam with combined damage',
+                'Beam collides along its entire length — enemies hit by the full segment',
+                'Shimmer animation, head glow, and elemental overlay support'
+            ],
+            IT: [
+                'NUOVO: Il perk Laser spara un raggio da 110px — bagliore a 3 strati (nucleo bianco, cyan, esterno)',
+                'I livelli multi-cannone si fondono in un unico raggio centrale con danno combinato',
+                'Il raggio collide per tutta la sua lunghezza — nemici colpiti dall\'intero segmento',
+                'Animazione scintillio, bagliore testa e supporto overlay elementale'
+            ]
+        }
+    },
+    {
+        version: 'v5.1.0', date: '2026-02-13',
+        title: { EN: 'Directional Muzzle Flash', IT: 'Flash alla Bocca del Cannone' },
+        items: {
+            EN: [
+                'NEW: Cannon-aligned muzzle flash — V-shaped flare from actual gun positions',
+                'Scales with weapon level and changes color with elemental perks',
+                'Directional spark particles shoot upward from each cannon barrel'
+            ],
+            IT: [
+                'NUOVO: Flash allineato al cannone — fiammata a V dalle posizioni reali delle armi',
+                'Scala col livello arma e cambia colore con i perk elementali',
+                'Particelle direzionali di scintille sparano verso l\'alto da ogni canna'
+            ]
+        }
+    },
+    {
+        version: 'v4.61.0', date: '2026-02-13',
+        title: { EN: 'Elemental Perk Drops', IT: 'Drop Perk Elementali' },
+        items: {
+            EN: [
+                'NEW: Elemental Perks — Fire, Laser, Electric — drop as diamond power-ups',
+                'Fixed order: Fire (splash) → Laser (+speed, +pierce) → Electric (chain lightning)',
+                'Collecting all 3 activates GODCHAIN — further drops re-trigger it',
+                'HYPER duration fixed at 10 seconds, meter decay doubled'
+            ],
+            IT: [
+                'NUOVO: Perk Elementali — Fuoco, Laser, Elettrico — cadono come diamanti',
+                'Ordine fisso: Fuoco (splash) → Laser (+velocità, +penetrazione) → Elettrico (fulmine a catena)',
+                'Raccoglierli tutti e 3 attiva GODCHAIN — ulteriori drop lo riattivano',
+                'Durata HYPER fissata a 10 secondi, decay del meter raddoppiato'
+            ]
+        }
+    },
+    {
+        version: 'v4.58.0', date: '2026-02-12',
+        title: { EN: 'Cyberpunk Damage FX', IT: 'Effetti Danno Cyberpunk' },
+        items: {
+            EN: [
+                'NEW: Enemies deteriorate below 50% HP with 5 layered cyberpunk effects',
+                'Neon outline flickers, cracks appear, sparks replace old smoke',
+                'Body darkens progressively — damage is now unmistakable'
+            ],
+            IT: [
+                'NUOVO: I nemici si deteriorano sotto il 50% HP con 5 effetti cyberpunk',
+                'Il contorno neon sfarfalla, compaiono crepe, scintille sostituiscono il vecchio fumo',
+                'Il corpo si scurisce progressivamente — il danno è ora inconfondibile'
+            ]
+        }
+    },
+    {
+        version: 'v4.53.0', date: '2026-02-12',
+        title: { EN: 'Premium Purple Neon', IT: 'Neon Viola Premium' },
+        items: {
+            EN: [
+                'Full UI color unification: all buttons, menus, modals now neon violet',
+                'Ship, story screens, tutorial, settings — all violet themed'
+            ],
+            IT: [
+                'Unificazione colori UI: tutti i bottoni, menu, modali ora neon viola',
+                'Nave, schermate storia, tutorial, impostazioni — tutto tema viola'
+            ]
+        }
+    },
+    {
+        version: 'v4.50.0', date: '2026-02-12',
+        title: { EN: 'Arcade Mode Enhancements', IT: 'Miglioramenti Modalità Arcade' },
+        items: {
+            EN: [
+                'Separate high scores for Story and Arcade modes',
+                'Persistent arcade records (best cycle, level, kills) with NEW BEST badge',
+                'Records now persist across updates'
+            ],
+            IT: [
+                'Punteggi separati per modalità Storia e Arcade',
+                'Record arcade persistenti (miglior ciclo, livello, uccisioni) con badge NUOVO RECORD',
+                'I record ora persistono tra gli aggiornamenti'
+            ]
+        }
+    },
+    {
+        version: 'v4.49.0', date: '2026-02-12',
+        title: { EN: 'Architectural Refactor', IT: 'Refactor Architetturale' },
+        items: {
+            EN: [
+                'Extracted 4 modules from main.js for better code organization',
+                'Added test suite with 103 assertions'
+            ],
+            IT: [
+                'Estratti 4 moduli da main.js per migliore organizzazione del codice',
+                'Aggiunta suite di test con 103 asserzioni'
+            ]
+        }
+    },
+    {
+        version: 'v4.48.0', date: '2026-02-12',
+        title: { EN: 'Balance Recalibration', IT: 'Ricalibrazione Bilanciamento' },
+        items: {
+            EN: [
+                'Enemy and Boss HP rebalanced for weapon evolution system',
+                'Improved adaptive drop intelligence',
+                'Weapon pacing tuned (level 5 reached in cycle 2)'
+            ],
+            IT: [
+                'HP nemici e boss riequilibrati per il sistema evoluzione armi',
+                'Intelligenza drop adattiva migliorata',
+                'Ritmo armi calibrato (livello 5 raggiunto nel ciclo 2)'
+            ]
+        }
+    },
+    {
+        version: 'v4.47.0', date: '2026-02-12',
+        title: { EN: 'Weapon Evolution Redesign', IT: 'Ridisegno Evoluzione Armi' },
+        items: {
+            EN: [
+                'New 5-level linear weapon system (replaces old 3+3+6)',
+                '3 specials: Homing, Pierce, Missile — 2 utilities: Shield, Speed'
+            ],
+            IT: [
+                'Nuovo sistema armi lineare a 5 livelli (sostituisce il vecchio 3+3+6)',
+                '3 speciali: Homing, Pierce, Missile — 2 utilità: Scudo, Velocità'
+            ]
+        }
     }
 ];
 const WHATS_NEW_PLANNED = [
-    'Leaderboard online',
-    'New enemy types & formations',
-    'Achievement system',
-    'New bosses'
+    { EN: 'New enemy types & formations', IT: 'Nuovi tipi di nemici e formazioni' },
+    { EN: 'Achievement system', IT: 'Sistema achievement' },
+    { EN: 'New bosses', IT: 'Nuovi boss' }
 ];
-let whatsNewRendered = false;
 function renderWhatsNew() {
     const container = document.getElementById('whatsnew-content');
-    if (!container || whatsNewRendered) return;
+    if (!container) return;
+    const lang = currentLang || 'EN';
     let html = '';
     for (const entry of WHATS_NEW) {
-        html += `<div class="whatsnew-version"><h3>${entry.version} — ${entry.title}</h3><span class="wn-date">${entry.date}</span><ul>`;
-        for (const item of entry.items) html += `<li>${item}</li>`;
+        const title = entry.title[lang] || entry.title.EN;
+        const items = entry.items[lang] || entry.items.EN;
+        html += `<div class="whatsnew-version"><h3>${entry.version} — ${title}</h3><span class="wn-date">${entry.date}</span><ul>`;
+        for (const item of items) html += `<li>${item}</li>`;
         html += '</ul></div>';
     }
     if (WHATS_NEW_PLANNED.length) {
-        html += '<div class="whatsnew-planned"><h3>COMING SOON</h3><ul>';
-        for (const item of WHATS_NEW_PLANNED) html += `<li>${item}</li>`;
+        html += `<div class="whatsnew-planned"><h3>${t('COMING_SOON') || 'COMING SOON'}</h3><ul>`;
+        for (const item of WHATS_NEW_PLANNED) html += `<li>${item[lang] || item.EN}</li>`;
         html += '</ul></div>';
     }
     container.innerHTML = html;
-    whatsNewRendered = true;
 }
 window.toggleWhatsNew = function () {
     const panel = document.getElementById('whatsnew-panel');
