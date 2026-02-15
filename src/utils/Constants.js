@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v5.20.0 FIAT vs CRYPTO";
+window.Game.VERSION = "v5.21.0 FIAT vs CRYPTO";
 
 // Leaderboard API
 window.Game.LEADERBOARD_API = 'https://fiat-vs-crypto-leaderboard.psychosocial-01.workers.dev/api';
@@ -202,7 +202,27 @@ window.Game.TEXTS = {
         FB_TEXT_PH: "Your feedback...",
         FB_SEND: "SEND",
         FB_CANCEL: "CANCEL",
-        FB_ERROR_SHORT: "Message too short (min 5 chars)"
+        FB_ERROR_SHORT: "Message too short (min 5 chars)",
+        GC_TITLE: "PROTOCOL COMPLETE",
+        GC_THANKS_1: "You decrypted the protocol.",
+        GC_THANKS_2: "The central banks have fallen. The blockchain endures.",
+        GC_THANKS_3: "Thank you for playing.",
+        GC_CREDIT: "CREATED BY",
+        GC_OPENSOURCE_TITLE: "OPEN SOURCE",
+        GC_OPENSOURCE_1: "This game is free and open source.",
+        GC_OPENSOURCE_2: "Fork it, mod it, make it yours.",
+        GC_PRIVACY: "No data collected. No tracking. No ads. Ever.",
+        GC_BTC_HISTORY: "Curious about the real story of Bitcoin?",
+        GC_BTC_LINK: "THE HISTORY OF BITCOIN",
+        GC_CONTINUE: "CONTINUE",
+        // Campaign Victory
+        CV_TITLE: "CAMPAIGN COMPLETE",
+        CV_SUBTITLE: "ALL CENTRAL BANKS DESTROYED",
+        CV_SCORE: "FINAL SCORE",
+        CV_BEAR_HINT: "Ready for a real challenge? Bear Market doubles your score but enemies are relentless.",
+        CV_BEAR_BTN: "BEAR MARKET MODE",
+        CV_REPLAY: "REPLAY STORY",
+        CV_MENU: "MAIN MENU"
     },
     IT: {
         SCORE: "PUNTI", LEVEL: "LIVELLO", LIVES: "VITE", NORMAL: "NORMALE",
@@ -398,7 +418,27 @@ window.Game.TEXTS = {
         FB_TEXT_PH: "Il tuo feedback...",
         FB_SEND: "INVIA",
         FB_CANCEL: "ANNULLA",
-        FB_ERROR_SHORT: "Messaggio troppo corto (min 5 car.)"
+        FB_ERROR_SHORT: "Messaggio troppo corto (min 5 car.)",
+        GC_TITLE: "PROTOCOLLO COMPLETATO",
+        GC_THANKS_1: "Hai decifrato il protocollo.",
+        GC_THANKS_2: "Le banche centrali sono cadute. La blockchain resiste.",
+        GC_THANKS_3: "Grazie per aver giocato.",
+        GC_CREDIT: "CREATO DA",
+        GC_OPENSOURCE_TITLE: "OPEN SOURCE",
+        GC_OPENSOURCE_1: "Questo gioco \u00e8 libero e open source.",
+        GC_OPENSOURCE_2: "Forkalo, moddalo, fallo tuo.",
+        GC_PRIVACY: "Nessun dato raccolto. Nessun tracciamento. Nessuna pubblicit\u00e0. Mai.",
+        GC_BTC_HISTORY: "Curioso sulla vera storia di Bitcoin?",
+        GC_BTC_LINK: "LA STORIA DI BITCOIN",
+        GC_CONTINUE: "CONTINUA",
+        // Campaign Victory
+        CV_TITLE: "CAMPAGNA COMPLETATA",
+        CV_SUBTITLE: "TUTTE LE BANCHE CENTRALI DISTRUTTE",
+        CV_SCORE: "PUNTEGGIO FINALE",
+        CV_BEAR_HINT: "Pronto per la vera sfida? Bear Market raddoppia il punteggio ma i nemici sono spietati.",
+        CV_BEAR_BTN: "MODALIT\u00c0 BEAR MARKET",
+        CV_REPLAY: "RIGIOCA STORIA",
+        CV_MENU: "MENU PRINCIPALE"
     }
 };
 

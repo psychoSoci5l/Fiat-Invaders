@@ -1,5 +1,27 @@
 # Changelog
 
+## v5.21.0 - 2026-02-15
+### Game Completion Screen — Cinematic Credits
+- **feat(completion)**: Cinematic completion video (~11s, Remotion) — ship victory ascent with fire trail launch + glitch title reveal
+- **feat(completion)**: Two pre-rendered videos: `completion-en.mp4` (EN) and `completion-it.mp4` (IT) with localized title text
+- **feat(completion)**: Interactive credits overlay — sequential fade-in sections: title, thanks, credit, open source, privacy, Bitcoin history link, continue button
+- **feat(completion)**: First-completion-only flow — `fiat_completion_seen` localStorage flag; subsequent completions skip to Campaign Victory directly
+- **feat(completion)**: `showGameCompletion()` — video playback with skip on tap/click, 20s safety timeout, language-aware src
+- **feat(completion)**: `showCompletionOverlay()` — DOM overlay with staggered fade-in animations, fadeout on continue
+- **feat(remotion)**: `BojBoss.tsx` — SVG translation of Boss.js `drawBOJ()` (torii gate, rising sun, yen symbol)
+- **feat(remotion)**: `CryptoViper.tsx` upgraded — full LV1-3 fidelity (armor plates, panel lines, twin-rail barrels, gun pods, BTC cockpit, fin thrusters)
+- **feat(remotion)**: 2 scenes: `SceneVictoryAscent` (enter→zoom→snap launch with fire trail), `SceneTitleReveal` (glitch→resolve)
+- **feat(i18n)**: 12 `GC_*` keys (EN/IT)
+- **feat(css)**: `.gc-*` classes — cyberpunk palette, sequential section fade-in, `prefers-reduced-motion` support
+- **fix(cleanup)**: `backToIntro()` hides completion screen + pauses completion video
+- **feat(victory)**: Campaign Victory redesign — removed NG+, replaced with Bear Market suggestion + Replay Story
+- **feat(victory)**: `activateBearFromVictory()` — enables Bear Market mode and restarts campaign
+- **feat(victory)**: `replayStoryFromVictory()` — resets campaign and restarts story
+- **feat(victory)**: Bear Market hint box (magenta border) shown only when Bear Market is not already active
+- **feat(i18n)**: 8 `CV_*` keys (EN/IT) — campaign victory localization
+- **feat(ui)**: Score repositioned above LAUNCH button — vertical layout with large gold value (28-38px clamp), double glow
+- **feat(debug)**: `dbg.completion()` — spawns BOJ at cycle 3 with FED/BCE pre-defeated + max weapon for testing completion flow
+
 ## v5.20.0 - 2026-02-15
 ### Cinematic Ship Deploy + Laser Fix + Feedback Form
 - **feat(vfx)**: Cinematic weapon deploy — white flash pulse (200ms), ship brightening during transition, energy burst particles at lock-in, cyan aura ring on completion

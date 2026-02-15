@@ -38,6 +38,11 @@
         <video id="intro-video" src="splashscreen.mp4" playsinline autoplay muted></video>
     </div>
 
+    <!-- Completion Video (plays once on first campaign victory) -->
+    <video id="completion-video" playsinline preload="none"
+           style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+                  object-fit:cover; z-index:9500; background:#000;"></video>
+
     <!-- Game Container: respects safe areas in Safari, fullscreen in PWA -->
     <div id="game-container">
         <canvas id="gameCanvas"></canvas>
@@ -99,11 +104,6 @@
             </div>
         </div>
 
-        <!-- HIGH SCORE ROW (visible in selection only) -->
-        <div class="selection-score-row" id="selection-score-row" style="display: none;">
-            <span class="score-row-label" id="score-row-label">HIGH SCORE</span>
-            <span class="score-row-value" id="badge-score-value">0</span>
-        </div>
         <div id="arcade-records-row" style="display: none;">
             <span id="rec-cycle-label">BEST CYCLE</span> <b id="rec-cycle-val">0</b>
             <span id="rec-level-label">BEST LEVEL</span> <b id="rec-level-val">0</b>
@@ -139,6 +139,11 @@
 
         <!-- PRIMARY ACTION BUTTON (fixed position for double-tap) -->
         <div class="primary-action-container">
+            <!-- HIGH SCORE ROW (visible in selection only) -->
+            <div class="selection-score-row" id="selection-score-row" style="display: none;">
+                <span class="score-row-label" id="score-row-label">RECORD</span>
+                <span class="score-row-value" id="badge-score-value">0</span>
+            </div>
             <button class="btn btn-cta btn-lg" id="btn-primary-action" onclick="handlePrimaryAction()">
                 TAP TO START
             </button>

@@ -2521,6 +2521,67 @@ window.Game.Debug = {
         console.log('  Modifier IDs: OVERCLOCK, ARMOR_PIERCING, VOLATILE_ROUNDS, CRITICAL_HIT,');
         console.log('    CHAIN_LIGHTNING, NANO_SHIELD, EXTRA_LIFE, BULLET_TIME, WIDER_GRAZE,');
         console.log('    EMERGENCY_HEAL, DOUBLE_SCORE, BULLET_HELL, SPEED_DEMON, JACKPOT, BERSERKER');
+    },
+
+    /**
+     * v5.21: Jump to BOJ boss fight for testing campaign completion.
+     * Sets up campaign state (FED+BCE defeated), cycle 3, max weapon, spawns BOJ.
+     * Must be in PLAY or WARMUP state.
+     */
+    completion() {
+        const G = window.Game;
+
+        if (!G.GameState?.is('PLAY') && !G.GameState?.is('WARMUP')) {
+            console.warn('[DEBUG] Start a Story game first (need PLAY state). Then call dbg.completion()');
+            return;
+        }
+
+        // Force PLAY state if in WARMUP
+        if (G.GameState?.is('WARMUP')) G._setGameState('PLAY');
+
+        // Set up campaign state: FED + BCE defeated, BOJ unlocked
+        const cs = G.CampaignState;
+        if (!cs || !cs.isEnabled()) {
+            console.warn('[DEBUG] CampaignState not enabled. Start a Story mode game first.');
+            return;
+        }
+        cs.bosses.FEDERAL_RESERVE.defeated = true;
+        cs.bosses.BCE.defeated = true;
+        cs.bosses.BCE.unlocked = true;
+        cs.bosses.BOJ.unlocked = true;
+        cs.bosses.BOJ.defeated = false;
+        cs.save();
+
+        // Set cycle 3 (BOJ cycle)
+        window.marketCycle = 3;
+        window.currentLevel = 14; // Late wave
+
+        // Clear enemies + bullets
+        if (G.enemies) G.enemies.length = 0;
+        if (window.enemyBullets) window.enemyBullets.length = 0;
+
+        // Max weapon for easy kill
+        this.maxWeapon();
+
+        // Clear fiat_completion_seen so completion screen shows
+        try { localStorage.removeItem('fiat_completion_seen'); } catch(e) {}
+
+        // Override boss rotation to force BOJ
+        const origRotation = G.BOSS_ROTATION;
+        G.BOSS_ROTATION = ['BOJ'];
+
+        // Spawn BOJ
+        if (G._spawnBoss) {
+            G._spawnBoss();
+            console.log('[DEBUG] BOJ boss spawned for completion test. Kill it to trigger completion flow.');
+            console.log('[DEBUG] Campaign state: FED=defeated, BCE=defeated, BOJ=unlocked');
+            console.log('[DEBUG] fiat_completion_seen cleared — completion screen will show.');
+        } else {
+            console.warn('[DEBUG] _spawnBoss not available.');
+        }
+
+        // Restore rotation
+        G.BOSS_ROTATION = origRotation;
     }
 };
 
@@ -2528,4 +2589,4 @@ window.Game.Debug = {
 window.dbg = window.Game.Debug;
 
 // Console helper message
-console.log('[DEBUG] DebugSystem loaded. Commands: dbg.stats(), dbg.showOverlay(), dbg.perf(), dbg.perfReport(), dbg.entityReport(), dbg.boss(type), dbg.debugBoss(), dbg.debugHUD(), dbg.hudStatus(), dbg.toggleHudMsg(key), dbg.maxWeapon(), dbg.weaponStatus(), dbg.godchain(), dbg.godchainStatus(), dbg.powerUpReport(), dbg.progressionReport(), dbg.contagionReport(), dbg.hitboxes(), dbg.formations(), dbg.arcade(), dbg.arcadeHelp()');
+console.log('[DEBUG] DebugSystem loaded. Commands: dbg.stats(), dbg.showOverlay(), dbg.perf(), dbg.perfReport(), dbg.entityReport(), dbg.boss(type), dbg.debugBoss(), dbg.debugHUD(), dbg.hudStatus(), dbg.toggleHudMsg(key), dbg.maxWeapon(), dbg.weaponStatus(), dbg.godchain(), dbg.godchainStatus(), dbg.powerUpReport(), dbg.progressionReport(), dbg.contagionReport(), dbg.hitboxes(), dbg.formations(), dbg.arcade(), dbg.arcadeHelp(), dbg.completion()');

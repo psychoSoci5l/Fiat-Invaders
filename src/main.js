@@ -949,9 +949,19 @@ function initCollisionSystem() {
                             });
                         }, 1500);
                     } else if (campaignComplete && shouldShowChapter) {
-                        showStoryScreen(chapterId, () => { showCampaignVictory(); });
+                        showStoryScreen(chapterId, () => {
+                            if (!localStorage.getItem('fiat_completion_seen')) {
+                                showGameCompletion(() => showCampaignVictory());
+                            } else {
+                                showCampaignVictory();
+                            }
+                        });
                     } else if (campaignComplete) {
-                        showCampaignVictory();
+                        if (!localStorage.getItem('fiat_completion_seen')) {
+                            showGameCompletion(() => showCampaignVictory());
+                        } else {
+                            showCampaignVictory();
+                        }
                     } else if (shouldShowChapter) {
                         showStoryScreen(chapterId, () => { restoreGameUI(); startIntermission(t('CYCLE') + ' ' + marketCycle + ' ' + t('BEGINS')); });
                     } else {
@@ -3603,6 +3613,11 @@ window.backToIntro = function () {
         // Hide campaign victory screen if exists
         const victoryScreen = document.getElementById('campaign-victory-screen');
         if (victoryScreen) victoryScreen.style.display = 'none';
+        // Hide game completion screen/video if exists
+        const gcScreen = document.getElementById('game-completion-screen');
+        if (gcScreen) gcScreen.style.display = 'none';
+        const compVid = document.getElementById('completion-video');
+        if (compVid) { compVid.pause(); compVid.style.display = 'none'; }
         closePerkChoice();
 
         // Show intro screen and reset styles from launch animation
@@ -5934,6 +5949,104 @@ function submitToGameCenter(scoreValue) {
     emitEvent('gamecenter_submit', { score: scoreValue });
 }
 
+// Game Completion — cinematic video + credits overlay (first completion only)
+function showGameCompletion(onComplete) {
+    const vid = document.getElementById('completion-video');
+    if (!vid) { if (onComplete) onComplete(); return; }
+
+    // Select video based on language
+    const lang = (G._currentLang || 'EN').toLowerCase();
+    vid.src = 'completion-' + lang + '.mp4';
+    vid.style.display = 'block';
+    vid.currentTime = 0;
+
+    const finish = () => {
+        vid.style.display = 'none';
+        vid.onended = null;
+        showCompletionOverlay(onComplete);
+    };
+
+    vid.play().then(() => {
+        vid.onended = finish;
+    }).catch(() => finish()); // fallback if video won't play
+
+    // Skip on tap/click
+    const skipHandler = () => {
+        vid.removeEventListener('click', skipHandler);
+        vid.removeEventListener('touchstart', skipHandler);
+        vid.onended = null;
+        vid.pause();
+        finish();
+    };
+    vid.addEventListener('click', skipHandler);
+    vid.addEventListener('touchstart', skipHandler);
+
+    // Safety timeout (20s)
+    setTimeout(() => { if (vid.style.display === 'block') finish(); }, 20000);
+}
+
+// Completion Overlay — credits, links, continue button
+function showCompletionOverlay(onComplete) {
+    let overlay = document.getElementById('game-completion-screen');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'game-completion-screen';
+        overlay.className = 'gc-screen';
+        document.body.appendChild(overlay);
+    }
+
+    overlay.innerHTML = `
+        <div class="gc-container">
+            <div class="gc-section gc-s1">
+                <h1 class="gc-title">${t('GC_TITLE')}</h1>
+            </div>
+            <div class="gc-section gc-s2">
+                <p class="gc-text">${t('GC_THANKS_1')}</p>
+                <p class="gc-text">${t('GC_THANKS_2')}</p>
+                <p class="gc-text gc-accent">${t('GC_THANKS_3')}</p>
+            </div>
+            <div class="gc-section gc-s3">
+                <p class="gc-label">${t('GC_CREDIT')}</p>
+                <p class="gc-author">psychoSocial</p>
+                <a href="https://www.psychosoci5l.com/" target="_blank"
+                   rel="noopener noreferrer" class="gc-link">psychosoci5l.com</a>
+            </div>
+            <div class="gc-section gc-s4">
+                <p class="gc-label gc-label-cyan">${t('GC_OPENSOURCE_TITLE')}</p>
+                <p class="gc-text-sm">${t('GC_OPENSOURCE_1')}</p>
+                <p class="gc-text-sm">${t('GC_OPENSOURCE_2')}</p>
+                <a href="https://github.com/psychoSoci5l/Fiat-Invaders" target="_blank"
+                   rel="noopener noreferrer" class="gc-link gc-link-gh">GitHub</a>
+            </div>
+            <div class="gc-section gc-s5">
+                <p class="gc-privacy">${t('GC_PRIVACY')}</p>
+            </div>
+            <div class="gc-section gc-s6">
+                <p class="gc-text-sm">${t('GC_BTC_HISTORY')}</p>
+                <a href="https://psychosoci5l.com/resources/bitcoin/storia-bitcoin.html"
+                   target="_blank" rel="noopener noreferrer"
+                   class="gc-link gc-link-btc">${t('GC_BTC_LINK')}</a>
+            </div>
+            <div class="gc-section gc-s7">
+                <button class="btn btn-primary btn-lg" id="gc-continue-btn">
+                    ${t('GC_CONTINUE')}</button>
+            </div>
+        </div>
+    `;
+
+    overlay.style.display = 'flex';
+
+    document.getElementById('gc-continue-btn').addEventListener('click', () => {
+        try { localStorage.setItem('fiat_completion_seen', '1'); } catch(e) {}
+        overlay.classList.add('gc-fadeout');
+        setTimeout(() => {
+            overlay.style.display = 'none';
+            overlay.classList.remove('gc-fadeout');
+            if (onComplete) onComplete();
+        }, 500);
+    }, { once: true });
+}
+
 // Campaign Victory - All 3 central banks defeated!
 function showCampaignVictory() {
     const campaignState = G.CampaignState;
@@ -5954,40 +6067,36 @@ function showCampaignVictory() {
         victoryOverlay = document.createElement('div');
         victoryOverlay.id = 'campaign-victory-screen';
         victoryOverlay.className = 'campaign-victory-screen';
-        victoryOverlay.innerHTML = `
-            <div class="victory-content">
-                <h1 class="victory-title">🏆 CAMPAIGN COMPLETE 🏆</h1>
-                <div class="victory-subtitle">ALL CENTRAL BANKS DESTROYED</div>
-                <div class="boss-trophies">
-                    <div class="trophy">💵 FED</div>
-                    <div class="trophy">💶 BCE</div>
-                    <div class="trophy">💴 BOJ</div>
-                </div>
-                <div class="final-score">FINAL SCORE: <span id="campaign-final-score">0</span></div>
-                <div class="ng-plus-info" id="ng-plus-info"></div>
-                <div class="victory-actions">
-                    <button class="btn btn-primary btn-lg" onclick="startNewGamePlus()">NEW GAME+ 🔄</button>
-                    <button class="btn btn-secondary" onclick="backToIntroFromVictory()">MAIN MENU</button>
-                </div>
-            </div>
-        `;
         document.body.appendChild(victoryOverlay);
     }
+
+    // Build content — suggest Bear Market if not already active
+    const showBearSuggestion = !isBearMarket;
+    victoryOverlay.innerHTML = `
+        <div class="victory-content">
+            <h1 class="victory-title">${t('CV_TITLE')}</h1>
+            <div class="victory-subtitle">${t('CV_SUBTITLE')}</div>
+            <div class="boss-trophies">
+                <div class="trophy">💵 FED</div>
+                <div class="trophy">💶 BCE</div>
+                <div class="trophy">💴 BOJ</div>
+            </div>
+            <div class="final-score">${t('CV_SCORE')}: <span id="campaign-final-score">0</span></div>
+            ${showBearSuggestion ? `
+            <div class="cv-bear-suggestion">
+                <p class="cv-bear-text">${t('CV_BEAR_HINT')}</p>
+            </div>` : ''}
+            <div class="victory-actions">
+                ${showBearSuggestion ? `<button class="btn btn-danger btn-lg btn-block" onclick="activateBearFromVictory()">${t('CV_BEAR_BTN')}</button>` : ''}
+                <button class="btn btn-primary btn-lg btn-block" onclick="replayStoryFromVictory()">${t('CV_REPLAY')}</button>
+                <button class="btn btn-secondary btn-block" onclick="backToIntroFromVictory()">${t('CV_MENU')}</button>
+            </div>
+        </div>
+    `;
 
     // Update score
     const scoreEl = document.getElementById('campaign-final-score');
     if (scoreEl) scoreEl.textContent = Math.floor(score);
-
-    // Update NG+ info
-    const ngInfo = document.getElementById('ng-plus-info');
-    if (ngInfo) {
-        const ngLevel = campaignState ? campaignState.ngPlusLevel : 0;
-        if (ngLevel > 0) {
-            ngInfo.textContent = `NG+${ngLevel} COMPLETE! Next: NG+${ngLevel + 1}`;
-        } else {
-            ngInfo.textContent = 'Unlock NG+ with carried perks!';
-        }
-    }
 
     victoryOverlay.style.display = 'flex';
 
@@ -6009,36 +6118,44 @@ function showCampaignVictory() {
     emitEvent('campaign_complete', { score: score, ngPlusLevel: campaignState?.ngPlusLevel || 0 });
 }
 
-// Start New Game+ with perk carryover
-window.startNewGamePlus = function() {
+// Activate Bear Market from campaign victory and replay
+window.activateBearFromVictory = function() {
+    // Enable Bear Market
+    if (!isBearMarket) {
+        isBearMarket = true;
+        window.isBearMarket = true;
+        document.body.classList.add('bear-mode');
+        // Update toggle in settings
+        const toggle = document.getElementById('bear-toggle');
+        if (toggle) {
+            toggle.classList.add('active');
+            const label = toggle.querySelector('.switch-label');
+            if (label) label.textContent = 'ON';
+        }
+    }
+
+    // Reset campaign and start fresh
     const campaignState = G.CampaignState;
-    if (!campaignState) return;
+    if (campaignState) campaignState.resetCampaign();
 
-    // Get current perks to carry over
-    const perksToCarry = (runState && runState.perks) ? runState.perks.slice() : [];
-    campaignState.startNewGamePlus(perksToCarry);
-
-    // Hide victory screen
     const victoryOverlay = document.getElementById('campaign-victory-screen');
     if (victoryOverlay) victoryOverlay.style.display = 'none';
 
-    // Apply carried perks to new run
-    if (runState && runState.reset) runState.reset();
-    if (runState && campaignState.getCarryoverPerks().length > 0) {
-        // Re-apply carried perks
-        const carriedPerks = campaignState.getCarryoverPerks();
-        carriedPerks.forEach(perkId => {
-            const perk = G.Upgrades?.ALL_PERKS?.find(p => p.id === perkId);
-            if (perk && runState.applyPerk) {
-                runState.applyPerk(perk);
-            }
-        });
-    }
-
-    // Start new campaign run
     startGame();
     updateCampaignProgressUI();
+    audioSys.play('bearMarketToggle');
+}
 
+// Replay Story mode from campaign victory
+window.replayStoryFromVictory = function() {
+    const campaignState = G.CampaignState;
+    if (campaignState) campaignState.resetCampaign();
+
+    const victoryOverlay = document.getElementById('campaign-victory-screen');
+    if (victoryOverlay) victoryOverlay.style.display = 'none';
+
+    startGame();
+    updateCampaignProgressUI();
     audioSys.play('coinUI');
 }
 
