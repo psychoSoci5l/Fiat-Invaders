@@ -441,7 +441,10 @@ const _playerState = {
     hasSpecial: false,
     hasShield: false,
     hasSpeed: false,
-    perkLevel: 0
+    perkLevel: 0,
+    isHyper: false,
+    isGodchain: false,
+    perkOnCooldown: false
 };
 function buildPlayerState() {
     if (!player) {
@@ -449,6 +452,9 @@ function buildPlayerState() {
         _playerState.hasSpecial = false;
         _playerState.hasShield = false;
         _playerState.hasSpeed = false;
+        _playerState.isHyper = false;
+        _playerState.isGodchain = false;
+        _playerState.perkOnCooldown = false;
         return _playerState;
     }
     _playerState.weaponLevel = player.weaponLevel ?? 1;
@@ -456,6 +462,9 @@ function buildPlayerState() {
     _playerState.hasShield = !!player.shieldActive;
     _playerState.hasSpeed = player.shipPowerUp === 'SPEED';
     _playerState.perkLevel = G.RunState ? G.RunState.perkLevel : 0;
+    _playerState.isHyper = !!player.hyperActive;
+    _playerState.isGodchain = !!player._godchainActive;
+    _playerState.perkOnCooldown = perkCooldown > 0;
     return _playerState;
 }
 
@@ -5133,6 +5142,11 @@ function executeDeath() {
         // v4.4: weapon status now shown via diegetic pips on ship
     }
 
+    // v5.19: Notify drop balancer of death for grace period
+    if (G.DropSystem && G.DropSystem.notifyDeath) {
+        G.DropSystem.notifyDeath(totalTime);
+    }
+
     if (lives > 0) {
         // RESPAWN - 1-hit = 1-life system
         player.hp = 1;
@@ -6089,8 +6103,7 @@ function updatePowerUps(dt) {
             powerUps.splice(i, 1);
         } else {
             if (Math.abs(p.x - player.x) < 40 && Math.abs(p.y - player.y) < 40) {
-                // v5.10.3: Don't collect PERK during cooldown — let it float
-                if (p.type === 'PERK' && perkCooldown > 0) continue;
+                // v5.19: PERK cooldown check moved to DropSystem (prevent drop, not collection)
 
                 // v5.0.8: Snapshot BEFORE pickup
                 const before = G.Debug ? _snapPlayerState() : null;

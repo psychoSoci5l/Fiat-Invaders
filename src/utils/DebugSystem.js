@@ -1100,6 +1100,23 @@ window.Game.Debug = {
             console.log(`║   ${mb.type} (${mb.trigger} x${mb.killCount}) - ${(mb.duration/1000).toFixed(1)}s`);
         }
 
+        // Drop Balancer v5.19
+        const _DS = window.Game.DropSystem;
+        if (_DS && window.Game.Balance.ADAPTIVE_DROP_BALANCER && window.Game.Balance.ADAPTIVE_DROP_BALANCER.ENABLED) {
+            console.log('║                                                            ║');
+            console.log('║ DROP BALANCER                                              ║');
+            console.log('║ ──────────────────────────────────────────────────────────║');
+            const tSinceDrop = _DS._lastDropGameTime > 0
+                ? ((a.runEnd ? (a.runEnd - a.runStart) / 1000 : 0) - _DS._lastDropGameTime).toFixed(1)
+                : 'N/A';
+            const killRate = _DS._recentKillTimes.length >= 3
+                ? ((_DS._recentKillTimes.length - 1) / (_DS._recentKillTimes[_DS._recentKillTimes.length - 1] - _DS._recentKillTimes[0])).toFixed(2)
+                : 'N/A';
+            console.log(`║   Struggle drops: ${_DS._struggleDropCount}  Domination suppresses: ${_DS._dominationSuppressCount}`);
+            console.log(`║   Last kill rate: ${killRate} k/s  Time since drop: ${tSinceDrop}s`);
+            console.log(`║   Death grace until: ${_DS._deathGraceUntil > 0 ? _DS._deathGraceUntil.toFixed(1) + 's' : 'none'}`);
+        }
+
         // Performance
         console.log('║                                                            ║');
         console.log('║ PERFORMANCE                                                ║');

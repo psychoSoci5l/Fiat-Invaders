@@ -1,5 +1,23 @@
 # Changelog
 
+## v5.19.0 - 2026-02-15
+### Adaptive Drop Balancer
+- **feat(drops)**: Bidirectional drop balancer — boosts drops for struggling players, suppresses for dominant ones
+- **feat(drops)**: Struggle detection: 3x drop chance after 40s without drops (LV1-2, low power score), forced drop at 55s
+- **feat(drops)**: Domination suppression: 75% drop chance reduction + 2x pity threshold when kill rate > 1.5k/s at high power
+- **feat(drops)**: Auto-suppression during HYPER and GODCHAIN active states (configurable kill-switches)
+- **feat(drops)**: Post-death grace period: reduced struggle thresholds (25s/3 kills) for 60s after death
+- **feat(drops)**: Struggle bias categories: SPECIAL 55% / PERK 35% / UTILITY 10% (offensive recovery focus)
+- **feat(drops)**: Anti-AFK guard: struggle requires kill within 8s activity window
+- **feat(drops)**: Arcade mode scaling: struggle thresholds x0.85
+- **feat(drops)**: Extended power score (3-axis): weapon 50% + special 25% + perks 25%
+- **feat(drops)**: `notifyDeath(totalTime)` API for death handler integration
+- **feat(playerState)**: `isHyper` and `isGodchain` added to `buildPlayerState()` snapshot
+- **feat(debug)**: DROP BALANCER section in `dbg.report()` — struggle/domination counters, kill rate, grace status
+- **config**: `Balance.ADAPTIVE_DROP_BALANCER` with STRUGGLE/DOMINATION/POST_DEATH sub-configs, `ENABLED` kill-switch
+- **fix(contagion)**: Fire splash damage 1.2→0.50, electric chain damage 0.80→0.40, cascade decay 0.7→0.45 — contagion now weakens neighbors instead of killing them
+- **fix(drops)**: PERK drops during cooldown now redirect to SPECIAL instead of spawning uncollectible items on the ground
+
 ## v5.18.2 - 2026-02-15
 ### Leaderboard Premium Redesign
 - **feat(leaderboard)**: Medal emoji (🥇🥈🥉) replace numeric ranks 1/2/3 in leaderboard table

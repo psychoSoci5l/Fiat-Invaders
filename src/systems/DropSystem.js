@@ -43,6 +43,14 @@
             this.lastPerkKillCount = 0;
 
             this.specialDroppedThisCycle = false; // v5.18: track SPECIAL drops per cycle
+
+            // v5.19: Adaptive Drop Balancer
+            this._lastDropGameTime = 0;
+            this._lastKillGameTime = 0;
+            this._recentKillTimes = [];
+            this._struggleDropCount = 0;
+            this._dominationSuppressCount = 0;
+            this._deathGraceUntil = 0;
         }
 
         /**
@@ -68,6 +76,14 @@
             this.lastPerkKillCount = 0;
 
             this.specialDroppedThisCycle = false; // v5.18
+
+            // v5.19: Adaptive Drop Balancer
+            this._lastDropGameTime = 0;
+            this._lastKillGameTime = 0;
+            this._recentKillTimes = [];
+            this._struggleDropCount = 0;
+            this._dominationSuppressCount = 0;
+            this._deathGraceUntil = 0;
         }
 
         /**
@@ -283,6 +299,128 @@
             return Math.random() < powerScore;
         }
 
+        // === ADAPTIVE DROP BALANCER v5.19 ===
+
+        /**
+         * Extended power score (3 axes: weapon, special, perks)
+         * @param {Object} playerState - { weaponLevel, hasSpecial, perkLevel }
+         * @returns {number} 0.0–1.0
+         */
+        _getBalancerPowerScore(playerState) {
+            const weaponAxis = ((playerState.weaponLevel ?? 1) - 1) / 2; // 0.0 at LV1, 0.5 at LV2, 1.0 at LV3
+            const specialAxis = playerState.hasSpecial ? 1.0 : 0.0;
+            const perkAxis = Math.min((playerState.perkLevel ?? 0) / 3, 1.0);
+            return 0.50 * weaponAxis + 0.25 * specialAxis + 0.25 * perkAxis;
+        }
+
+        /**
+         * Check struggle + domination in a single pass
+         * @param {number} totalTime - current game time
+         * @param {Object} playerState - player state snapshot
+         * @returns {{ struggleBoost: number, struggleForce: boolean, struggleBias: boolean, dominationActive: boolean }}
+         */
+        _checkBalance(totalTime, playerState) {
+            const result = { struggleBoost: 1, struggleForce: false, struggleBias: false, dominationActive: false };
+            const ADB = G.Balance.ADAPTIVE_DROP_BALANCER;
+            if (!ADB || !ADB.ENABLED) return result;
+
+            const powerScore = this._getBalancerPowerScore(playerState);
+            const cycle = window.marketCycle || 1;
+            const isArcade = G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode();
+            const arcadeMult = (isArcade && ADB.ARCADE_MULT) ? ADB.ARCADE_MULT : 1.0;
+
+            // --- DOMINATION CHECK ---
+            const DOM = ADB.DOMINATION;
+            if (DOM) {
+                // Auto-suppress during HYPER/GODCHAIN
+                const hyperSuppress = DOM.HYPER_SUPPRESS && playerState.isHyper;
+                const godchainSuppress = DOM.GODCHAIN_SUPPRESS && playerState.isGodchain;
+
+                if (hyperSuppress || godchainSuppress) {
+                    result.dominationActive = true;
+                } else if (powerScore >= DOM.POWER_FLOOR && this._recentKillTimes.length >= 3) {
+                    // Kill rate calculation
+                    const times = this._recentKillTimes;
+                    const oldest = times[0];
+                    const newest = times[times.length - 1];
+                    const span = newest - oldest;
+                    if (span > 0) {
+                        const killRate = (times.length - 1) / span;
+                        if (killRate > DOM.KILL_RATE_THRESHOLD) {
+                            result.dominationActive = true;
+                        }
+                    }
+                }
+            }
+
+            // --- STRUGGLE CHECK ---
+            const STR = ADB.STRUGGLE;
+            if (STR && powerScore <= STR.POWER_CEILING) {
+                // Apply cycle reduction + arcade mult
+                let timeThreshold = STR.TIME_THRESHOLD - (cycle - 1) * STR.CYCLE_REDUCTION;
+                let forceThreshold = STR.FORCE_THRESHOLD - (cycle - 1) * STR.CYCLE_REDUCTION;
+                let minKills = STR.MIN_KILLS_SINCE_DROP;
+
+                // Post-death grace
+                const PD = ADB.POST_DEATH;
+                if (PD && totalTime < this._deathGraceUntil) {
+                    timeThreshold = PD.THRESHOLD;
+                    forceThreshold = PD.THRESHOLD + 15; // force = threshold + 15s
+                    minKills = PD.MIN_KILLS;
+                }
+
+                // Arcade scaling
+                timeThreshold *= arcadeMult;
+                forceThreshold *= arcadeMult;
+
+                const timeSinceDrop = totalTime - this._lastDropGameTime;
+
+                if (timeSinceDrop >= timeThreshold) {
+                    // Anti-AFK: must have killed recently
+                    const timeSinceKill = totalTime - this._lastKillGameTime;
+                    if (timeSinceKill > STR.ACTIVITY_WINDOW) return result; // AFK
+
+                    // Min kills check
+                    if (this.killsSinceLastDrop < minKills) return result;
+
+                    if (timeSinceDrop >= forceThreshold) {
+                        result.struggleForce = true;
+                        result.struggleBias = true;
+                    } else {
+                        result.struggleBoost = STR.CHANCE_BOOST;
+                        result.struggleBias = true;
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        /**
+         * Select category using struggle bias weights
+         * @returns {string} 'special'|'perk'|'utility'
+         */
+        _selectStruggleCategory() {
+            const ADB = G.Balance.ADAPTIVE_DROP_BALANCER;
+            const bias = (ADB && ADB.STRUGGLE) ? ADB.STRUGGLE.CATEGORY_BIAS : null;
+            if (!bias) return 'special';
+
+            const roll = Math.random();
+            if (roll < bias.SPECIAL) return 'special';
+            if (roll < bias.SPECIAL + bias.PERK) return 'perk';
+            return 'utility';
+        }
+
+        /**
+         * Notify drop system of player death for grace period
+         * @param {number} totalTime - current game time
+         */
+        notifyDeath(totalTime) {
+            const ADB = G.Balance.ADAPTIVE_DROP_BALANCER;
+            if (!ADB || !ADB.ENABLED || !ADB.POST_DEATH) return;
+            this._deathGraceUntil = totalTime + ADB.POST_DEATH.WINDOW;
+        }
+
         /**
          * Select drop category based on player need
          * v4.47: 3 categories — upgrade, special, utility
@@ -338,6 +476,17 @@
             this.totalKills++;
             this.killsSincePerkDrop++;
 
+            // v5.19: Track kill timestamps for balancer
+            this._lastKillGameTime = totalTime;
+            const ADB = Balance.ADAPTIVE_DROP_BALANCER;
+            if (ADB && ADB.ENABLED) {
+                const window_ = (ADB.DOMINATION && ADB.DOMINATION.KILL_RATE_WINDOW) || 10;
+                this._recentKillTimes.push(totalTime);
+                while (this._recentKillTimes.length > window_) {
+                    this._recentKillTimes.shift();
+                }
+            }
+
             // Anti-cluster — enforce minimum 6s between enemy drops (pity bypasses)
             const MIN_DROP_INTERVAL = 6.0;
             const timeSinceLastDrop = totalTime - this.lastEnemyDropTime;
@@ -370,7 +519,6 @@
                 const ab2 = G.RunState && G.RunState.arcadeBonuses;
                 if (ab2 && ab2.pityMult !== 1.0) pityThreshold = Math.max(5, Math.floor(pityThreshold * ab2.pityMult));
             }
-            const pityDrop = this.killsSinceLastDrop >= pityThreshold;
 
             // === WEAPON EVOLUTION ===
             if (useEvolution && Balance.WEAPON_EVOLUTION) {
@@ -385,23 +533,70 @@
                         : 1;
                 }
 
+                // v5.19: Adaptive Drop Balancer — check struggle/domination
+                const bal = playerState ? this._checkBalance(totalTime, playerState) : null;
+
+                // v5.19: Domination — inflate pity threshold + reduce drop chance
+                if (bal && bal.dominationActive) {
+                    const DOM = ADB.DOMINATION;
+                    pityThreshold = Math.max(15, Math.floor(pityThreshold * DOM.PITY_MULT));
+                    dropChance *= DOM.CHANCE_MULT;
+                    this._dominationSuppressCount++;
+                }
+
+                // v5.19: Struggle boost — multiply drop chance
+                if (bal && bal.struggleBoost > 1) {
+                    dropChance *= bal.struggleBoost;
+                }
+
                 // v5.11: No forced UPGRADE from enemies — upgrades come from boss Evolution Core only
 
+                const pityDrop = this.killsSinceLastDrop >= pityThreshold;
+
+                // v5.19: Struggle force — guaranteed drop
+                const struggleForce = bal && bal.struggleForce;
+
                 // Normal drop chance check
-                if (pityDrop || Math.random() < dropChance) {
-                    // Anti-cluster — skip non-pity drops if too soon after last drop
-                    if (!pityDrop && timeSinceLastDrop < MIN_DROP_INTERVAL) {
+                if (struggleForce || pityDrop || Math.random() < dropChance) {
+                    // Anti-cluster — skip non-pity/non-struggle drops if too soon after last drop
+                    if (!pityDrop && !struggleForce && timeSinceLastDrop < MIN_DROP_INTERVAL) {
                         return null;
                     }
 
-                    let dropInfo = this.selectEvolutionDropType(playerState || currentWeaponLevel);
-                    // Anti-duplicate — if same type as last drop, reroll once
-                    if (dropInfo && dropInfo.type === this.lastDropType) {
+                    let dropInfo;
+
+                    // v5.19: Struggle bias — use biased category selection
+                    if (bal && bal.struggleBias) {
+                        const cat = this._selectStruggleCategory();
+                        if (cat === 'perk' && G.Balance.PERK && G.Balance.PERK.ENABLED) {
+                            this.lastPerkKillCount = this.totalKills;
+                            this.killsSincePerkDrop = 0;
+                            dropInfo = { type: 'PERK', category: 'perk' };
+                        } else if (cat === 'utility') {
+                            const utilities = ['SHIELD', 'SPEED'];
+                            dropInfo = { type: utilities[Math.floor(Math.random() * utilities.length)], category: 'utility' };
+                        } else {
+                            const WE = Balance.WEAPON_EVOLUTION;
+                            dropInfo = { type: this.getWeightedSpecial(WE), category: 'special' };
+                        }
+                        this._struggleDropCount++;
+                    } else {
                         dropInfo = this.selectEvolutionDropType(playerState || currentWeaponLevel);
                     }
 
-                    // v4.48: Suppression AFTER selection — never suppress UPGRADE (GODCHAIN needs it)
-                    if (dropInfo && dropInfo.category !== 'upgrade' && dropInfo.category !== 'perk' && playerState && this.shouldSuppressDrop(playerState, pityDrop)) {
+                    // v5.19: Redirect PERK → SPECIAL when perk is on cooldown
+                    if (dropInfo && dropInfo.category === 'perk' && playerState && playerState.perkOnCooldown) {
+                        const WE = Balance.WEAPON_EVOLUTION;
+                        dropInfo = { type: this.getWeightedSpecial(WE), category: 'special' };
+                    }
+
+                    // Anti-duplicate — if same type as last drop, reroll once
+                    if (dropInfo && dropInfo.type === this.lastDropType && !(bal && bal.struggleBias)) {
+                        dropInfo = this.selectEvolutionDropType(playerState || currentWeaponLevel);
+                    }
+
+                    // v4.48: Suppression AFTER selection — never suppress UPGRADE/PERK or struggle drops
+                    if (dropInfo && !struggleForce && !(bal && bal.struggleBias) && dropInfo.category !== 'upgrade' && dropInfo.category !== 'perk' && playerState && this.shouldSuppressDrop(playerState, pityDrop)) {
                         this.suppressedDrops++;
                         if (G.Debug && G.Debug.trackDropSuppressed) {
                             G.Debug.trackDropSuppressed(playerState);
@@ -412,6 +607,7 @@
                     if (dropInfo) {
                         this.killsSinceLastDrop = 0;
                         this.lastEnemyDropTime = totalTime;
+                        this._lastDropGameTime = totalTime; // v5.19
                         this.lastDropType = dropInfo.type;
                         if (dropInfo.category === 'special') this.specialDroppedThisCycle = true; // v5.18
                         return {
@@ -426,6 +622,7 @@
             }
 
             // === LEGACY SYSTEM ===
+            const pityDrop = this.killsSinceLastDrop >= pityThreshold;
             if (pityDrop || Math.random() < dropChance) {
                 if (!pityDrop && timeSinceLastDrop < MIN_DROP_INTERVAL) return null;
                 const dropInfo = this.selectDropType(totalTime, getUnlockedWeaponsOrState);
@@ -494,6 +691,7 @@
 
                 if (dropInfo) {
                     this.bossDropCount++;
+                    this._lastDropGameTime = totalTime; // v5.19
                     if (dropInfo.category === 'special') this.specialDroppedThisCycle = true; // v5.18
                     const offsetX = (Math.random() - 0.5) * 160;
                     return {

@@ -82,7 +82,7 @@
         ELEMENTAL: {
             FIRE: {
                 SPLASH_RADIUS: 55,    // v5.0.8: 40→50→55 (wider AoE for formation clumps)
-                SPLASH_DAMAGE: 1.2,   // v5.0.8: 0.30→0.75→1.2 (120% of kill damage as splash)
+                SPLASH_DAMAGE: 0.50,  // v5.19: 1.2→0.50 (weaken neighbors, don't kill them)
                 TRAIL_COLORS: ['#ff4400', '#ff6600', '#ffaa00'],
                 IMPACT_PARTICLES: 8
             },
@@ -108,7 +108,7 @@
             },
             ELECTRIC: {
                 CHAIN_RADIUS: 100,    // v5.0.8: 80→90→100 (wider chain reach)
-                CHAIN_DAMAGE: 0.80,   // v5.0.8: 0.20→0.50→0.80 (80% of kill damage as chain)
+                CHAIN_DAMAGE: 0.40,   // v5.19: 0.80→0.40 (weaken, don't kill — consistent with fire nerf)
                 CHAIN_TARGETS: 2,     // max enemies to chain to
                 ARC_COLOR: '#8844ff',
                 ARC_COLOR_BRIGHT: '#bb88ff'
@@ -117,7 +117,7 @@
             CONTAGION: {
                 ENABLED: true,
                 MAX_DEPTH: [1, 2, 2],     // max cascade depth per perkLevel 1/2/3+
-                DAMAGE_DECAY: 0.7          // v5.0.8: 0.5→0.6→0.7 (cascades retain 70% damage)
+                DAMAGE_DECAY: 0.45          // v5.19: 0.7→0.45 (cascades weaken rapidly)
             },
             // v5.13: Contagion cascade VFX (line + ripple)
             CONTAGION_VFX: {
@@ -493,7 +493,7 @@
 
         // --- ENEMY HP SCALING ---
         ENEMY_HP: {
-            BASE: 28,                 // v4.48: 18→28 (+55%, compensate triple spread hitting)
+            BASE: 30,                 // v5.18.2: 28→30 (+7%, slightly tankier baseline)
             SCALE: 40,                // v4.48: 30→40 (+33%, late waves tankier)
             CYCLE_MULT: [1.0, 2.5, 3.2]  // v4.48b: C2 2.5 (slows GODCHAIN carry-over to boss), C3 3.2 (compensates lighter BOJ)
         },
@@ -1220,6 +1220,46 @@
             PITY_PENALTY_STRONG: 5,      // Kills increase on pity timer if strong
             WEAK_THRESHOLD: 0.30,        // Below this = weak player
             STRONG_THRESHOLD: 0.60       // Above this = strong player
+        },
+
+        // --- ADAPTIVE DROP BALANCER v5.19 ---
+        // Bidirezionale: boost per deboli, soppressione per dominanti
+        // Zero costo per-frame: logica solo su kill event
+        ADAPTIVE_DROP_BALANCER: {
+            ENABLED: true,
+
+            // --- STRUGGLE (boost drop per deboli) ---
+            STRUGGLE: {
+                TIME_THRESHOLD: 40,        // s senza drop → attiva boost
+                FORCE_THRESHOLD: 55,       // s senza drop → drop forzato
+                ACTIVITY_WINDOW: 8,        // kill entro Ns = attivo (anti-AFK)
+                MIN_KILLS_SINCE_DROP: 5,   // minimo kill per triggerare
+                POWER_CEILING: 0.40,       // solo power score ≤ questo
+                CHANCE_BOOST: 3.0,         // 3× drop chance
+                CATEGORY_BIAS: { SPECIAL: 0.55, PERK: 0.35, UTILITY: 0.10 },
+                CYCLE_REDUCTION: 5,        // -5s/ciclo (C2: 35s, C3: 30s)
+            },
+
+            // --- DOMINATION (limita per dominanti) ---
+            DOMINATION: {
+                KILL_RATE_THRESHOLD: 1.5,  // kills/sec per attivare
+                KILL_RATE_WINDOW: 10,      // ultimi N kill per calcolo rate
+                POWER_FLOOR: 0.60,         // solo power score ≥ questo
+                CHANCE_MULT: 0.25,         // drop chance ×0.25 (75% riduzione)
+                PITY_MULT: 2.0,            // pity threshold ×2 (30→60 kill)
+                HYPER_SUPPRESS: true,      // soppressione automatica durante HYPER
+                GODCHAIN_SUPPRESS: true,   // soppressione automatica durante GODCHAIN
+            },
+
+            // --- POST DEATH (grace period) ---
+            POST_DEATH: {
+                THRESHOLD: 25,             // soglia struggle ridotta
+                MIN_KILLS: 3,              // solo 3 kill richieste
+                WINDOW: 60,               // grace per 60s dopo morte
+            },
+
+            // --- ARCADE MODE ---
+            ARCADE_MULT: 0.85,             // soglie struggle ×0.85 in arcade
         },
 
         // --- WAVES ---
