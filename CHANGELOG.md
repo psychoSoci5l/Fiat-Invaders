@@ -1,5 +1,14 @@
 # Changelog
 
+## v5.15.1 - 2026-02-15
+### C1 Rebalance — LV1 Buff + Boss HP + Drop Pacing + No Meter Decay
+- **balance**: LV1 weapon buff — cooldownMult 1.00→0.70 (+43% fire rate), damageMult 1.00→1.20 (+20% damage). LV2+ unchanged
+- **balance**: DIP meter decay removed — meter only goes up from proximity kills, auto-paces with enemy density. HYPER risk/reward self-balancing via INSTANT_DEATH + 1.5x hitbox
+- **balance**: Boss HP BASE 4083→3000 (-27%), MIN_FLOOR 4000→3000. C1 boss target ~75-100s at WPN LV1 (was ~180s)
+- **balance**: Drop pity timer — PITY_BASE 40→30 (drop every ~30 kills instead of ~40), EARLY_DROP_PREFILL 25→32 (first drop after ~15 kills instead of ~30)
+- **balance**: GODCHAIN cooldown 10s after deactivation — prevents back-to-back re-triggers from rapid perk drops. Perk collected during cooldown is consumed but doesn't re-activate GODCHAIN
+- **fix**: EARLY_DROP_LEVEL 2→1 — prefill now applies from game start (was broken: weapon level never reaches 2 before boss since v5.11.0)
+
 ## v5.15.0 - 2026-02-15
 ### Cyber Destruction Overhaul — Rectangular Fragments + Elemental Tint + Tier SFX
 - **feat(vfx)**: Rectangular fragment particles replace circular "balloon" explosions. Rotating debris with randomized width/height for a cyber-shrapnel aesthetic

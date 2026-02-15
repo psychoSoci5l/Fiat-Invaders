@@ -3868,9 +3868,10 @@ function update(dt) {
         perkCooldown -= dt;
     }
 
-    // Graze meter decay: lose points if not actively grazing (not during HYPER)
+    // Graze meter decay: v5.15.1 — decay disabled (meter only goes up from proximity kills)
+    // HYPER risk/reward is self-balancing: more enemies in C3 = faster meter BUT more bullets + INSTANT_DEATH
     const isHyperActive = player && player.isHyperActive && player.isHyperActive();
-    if (!isHyperActive && grazeMeter > 0 && totalTime - lastGrazeTime > Balance.GRAZE.DECAY_DELAY) {
+    if (false) { // decay disabled — kept for potential re-enable
         grazeMeter = Math.max(0, grazeMeter - Balance.GRAZE.DECAY_RATE * dt);
         grazeMultiplier = 1 + (grazeMeter / Balance.GRAZE.MULT_DIVISOR) * (Balance.GRAZE.MULT_MAX - 1);
 

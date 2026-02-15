@@ -54,6 +54,7 @@ class Player extends window.Game.Entity {
         this._godchainActive = false;
         this.godchainTimer = 0;       // v4.48: temporary duration
         this._godchainPending = false; // v4.48: activation trigger
+        this.godchainCooldown = 0;    // v5.15.1: cooldown after GODCHAIN ends
 
         // Weapon deployment animation (v5.2)
         this._deploy = {
@@ -139,6 +140,7 @@ class Player extends window.Game.Entity {
         this._godchainActive = false;
         this.godchainTimer = 0;
         this._godchainPending = false;
+        this.godchainCooldown = 0;
 
         // Weapon deploy animation reset
         this._deploy.active = false;
@@ -351,11 +353,19 @@ class Player extends window.Game.Entity {
         // Weapon Evolution timers
         this.updateWeaponState(dt);
 
-        // v4.48: GODCHAIN activation — trigger when pending
+        // v4.48: GODCHAIN activation — trigger when pending (v5.15.1: respect cooldown)
         if (this._godchainPending) {
-            const dur = window.Game.Balance?.GODCHAIN?.DURATION || 10;
-            this.godchainTimer = dur;
+            if (this.godchainCooldown <= 0) {
+                const dur = window.Game.Balance?.GODCHAIN?.DURATION || 10;
+                this.godchainTimer = dur;
+            }
             this._godchainPending = false;
+        }
+
+        // GODCHAIN cooldown countdown
+        if (this.godchainCooldown > 0) {
+            this.godchainCooldown -= dt;
+            if (this.godchainCooldown < 0) this.godchainCooldown = 0;
         }
 
         // GODCHAIN timer countdown
@@ -373,6 +383,7 @@ class Player extends window.Game.Entity {
             if (window.Game.Input) window.Game.Input.vibrate([80, 40, 80, 40, 80]);
             if (window.Game.Debug) window.Game.Debug.trackGodchainActivate();
         } else if (!this._godchainActive && wasGodchain) {
+            this.godchainCooldown = window.Game.Balance?.GODCHAIN?.COOLDOWN || 10;
             if (window.Game.Events) window.Game.Events.emit('GODCHAIN_DEACTIVATED');
             if (window.Game.Debug) window.Game.Debug.trackGodchainDeactivate();
         }

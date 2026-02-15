@@ -272,6 +272,7 @@
             // Decay (use it or lose it)
             DECAY_RATE: 4,            // v4.60: 2→4 meter decay/sec (need consistent killing)
             DECAY_DELAY: 1.0,         // Seconds before decay starts (v2.24.11: 0.5→1.0)
+            DECAY_CYCLE_SCALE: [0.50, 1.00, 1.50], // v5.15.1: decay multiplier per cycle [C1, C2, C3+]
 
             // Sound design (theremin of danger)
             SOUND_THROTTLE: 0.05,     // Min seconds between graze sounds (was 0.15)
@@ -618,11 +619,11 @@
             // HP scaling (applied before perk/damage modifiers)
             // v4.16: +25-40% boost — audit showed FED 12.7s, BCE 9.7s (target 45-75s)
             HP: {
-                BASE: 4083,           // v5.0.4: 5250→4083 (-22%, FED C1 target ~80-90s with perks→5500 HP)
+                BASE: 3000,           // v5.15.1: 4083→3000 (-27%, C1 WPN LV1 target ~75-100s)
                 PER_LEVEL: 100,       // v4.48: 65→100 (+54%, scaling livello più incisivo)
                 PER_CYCLE: 5000,      // v4.48: 4000→5000 (+25%, gap tra cicli maggiore)
                 PERK_SCALE: 0.10,     // +10% per player perk
-                MIN_FLOOR: 4000       // v4.48: 2500→4000 (+60%, pavimento più alto)
+                MIN_FLOOR: 3000       // v5.15.1: 4000→3000 (match new BASE)
             },
 
             // Movement speed per phase per boss type
@@ -1124,7 +1125,7 @@
             // Level table: stats lookup by weapon level (1-5)
             // LV 4-5 only reachable during HYPER
             LEVELS: {
-                1: { name: 'Single',     bullets: 1, cooldownMult: 1.00, damageMult: 1.00, spreadDeg: 0 },
+                1: { name: 'Single',     bullets: 1, cooldownMult: 0.70, damageMult: 1.20, spreadDeg: 0 },
                 2: { name: 'Dual',       bullets: 2, cooldownMult: 0.85, damageMult: 1.30, spreadDeg: 0 },
                 3: { name: 'Triple MAX', bullets: 3, cooldownMult: 0.65, damageMult: 1.70, spreadDeg: 6 },
                 // HYPER-only levels (not reachable without HYPER):
@@ -1169,11 +1170,11 @@
             CYCLE_BONUS: 0,              // v4.17: 0.5%→0 (flat rate, no cycle scaling)
 
             // Pity timer decreases with cycle
-            PITY_BASE: 40,              // v5.0.4: 50→40 (general drop every ~40 kills, ~24s)
+            PITY_BASE: 30,              // v5.15.1: 40→30 (general drop every ~30 kills, ~18s)
             PITY_REDUCTION: 2,          // -2 kills per cycle (min 15) (v4.17: 3→2)
             // v4.57: Early drop at level 2 start — pity counter pre-filled so first drop comes after ~8 kills
-            EARLY_DROP_LEVEL: 2,        // Level at which to boost pity counter
-            EARLY_DROP_PREFILL: 25      // v5.0.4: 42→25 (primo drop dopo ~30 kills, fine W1H1)
+            EARLY_DROP_LEVEL: 1,        // v5.15.1: 2→1 (prefill from game start, not level 2)
+            EARLY_DROP_PREFILL: 32      // v5.15.1: 25→32 (primo drop dopo ~15 kills, inizio W1H1)
         },
 
         // --- ADAPTIVE DROPS v4.47 (Redesigned) ---
@@ -1588,6 +1589,7 @@
             // v4.60: GODCHAIN = 3 elemental perks collected (was weapon level 5)
             REQUIREMENTS: { PERK_LEVEL: 3 },
             DURATION: 10,               // v4.48: seconds (was permanent, now temporary + re-triggerable)
+            COOLDOWN: 10,               // v5.15.1: seconds after GODCHAIN ends before re-activation
             SPEED_BONUS: 1.05,          // +5% movement speed
             SHIP_COLORS: {
                 BODY: '#cc2222',        // Deep red body
