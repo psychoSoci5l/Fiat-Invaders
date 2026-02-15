@@ -4943,6 +4943,90 @@ body.is-touch p.mobile-only { display: block; }
 }
 
 /* ======================================
+   FEEDBACK OVERLAY (v5.20)
+   ====================================== */
+#feedback-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    backdrop-filter: blur(8px);
+    z-index: 10100;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    box-sizing: border-box;
+}
+.feedback-box {
+    background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%);
+    border: 3px solid #bb44ff;
+    border-radius: 16px;
+    padding: 28px;
+    max-width: 380px;
+    width: 100%;
+    box-shadow: 0 0 30px rgba(187, 68, 255, 0.25);
+    text-align: center;
+    touch-action: auto;
+    -webkit-overflow-scrolling: touch;
+}
+.feedback-title {
+    color: #bb44ff;
+    font-size: 18px;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 3px;
+    margin: 0 0 20px;
+}
+.feedback-input,
+.feedback-textarea {
+    width: 100%;
+    background: rgba(187, 68, 255, 0.08);
+    border: 2px solid rgba(187, 68, 255, 0.25);
+    border-radius: 8px;
+    color: #e0e0ff;
+    font: 600 15px 'Courier New', monospace;
+    padding: 12px 14px;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+    margin-bottom: 12px;
+    /* iOS Safari: ensure input is tappable in fixed overlays */
+    -webkit-user-select: text;
+    user-select: text;
+    touch-action: manipulation;
+    -webkit-appearance: none;
+}
+.feedback-textarea {
+    resize: vertical;
+    min-height: 80px;
+    max-height: 200px;
+}
+.feedback-input:focus,
+.feedback-textarea:focus {
+    border-color: #bb44ff;
+    box-shadow: 0 0 15px rgba(187, 68, 255, 0.3);
+}
+.feedback-input::placeholder,
+.feedback-textarea::placeholder {
+    color: rgba(187, 68, 255, 0.35);
+    font-size: 13px;
+    letter-spacing: 1px;
+}
+.feedback-error {
+    color: #ff2d95;
+    font: 600 12px 'Courier New', monospace;
+    margin: 4px 0 0;
+}
+.feedback-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+}
+.feedback-actions .btn {
+    flex: 1;
+}
+
+/* ======================================
    LEADERBOARD PANEL (v5.17)
    ====================================== */
 #leaderboard-panel {

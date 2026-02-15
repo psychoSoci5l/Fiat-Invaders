@@ -603,7 +603,22 @@ Tap your ship to activate</p>
                 <span class="lb-rank-value" id="lb-rank-val">#--</span>
             </div>
             <div class="lb-actions">
+                <button class="btn btn-secondary btn-sm" id="lb-feedback-btn" onclick="Game.toggleFeedback()">FEEDBACK</button>
                 <button class="btn btn-primary" id="lb-close-btn" onclick="Game.Leaderboard.toggle()">CLOSE</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FEEDBACK OVERLAY (v5.20) - Outside game-container for proper stacking -->
+    <div id="feedback-overlay" style="display: none;">
+        <div class="feedback-box">
+            <h2 class="feedback-title" id="feedback-title">SEND FEEDBACK</h2>
+            <input type="text" id="feedback-subject" class="feedback-input" maxlength="40" placeholder="Subject...">
+            <textarea id="feedback-text" class="feedback-textarea" maxlength="500" rows="4" placeholder="Your feedback..."></textarea>
+            <p class="feedback-error" id="feedback-error" style="display: none;"></p>
+            <div class="feedback-actions">
+                <button class="btn btn-primary" id="feedback-send" onclick="Game.sendFeedback()">SEND</button>
+                <button class="btn btn-secondary" id="feedback-cancel" onclick="Game.toggleFeedback()">CANCEL</button>
             </div>
         </div>
     </div>

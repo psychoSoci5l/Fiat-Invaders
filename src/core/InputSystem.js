@@ -27,7 +27,7 @@ class InputSystem {
                 return;
             }
             // v4.21: Don't intercept touches on modals/overlays or intro screen
-            if (e.target.closest('#manual-modal') || e.target.closest('#settings-modal') || e.target.closest('#help-panel') || e.target.closest('#tutorial-overlay') || e.target.closest('#intro-screen') || e.target.closest('#whatsnew-panel')) {
+            if (e.target.closest('#manual-modal') || e.target.closest('#settings-modal') || e.target.closest('#help-panel') || e.target.closest('#tutorial-overlay') || e.target.closest('#intro-screen') || e.target.closest('#whatsnew-panel') || e.target.closest('#feedback-overlay') || e.target.closest('#nickname-overlay') || e.target.closest('#leaderboard-panel')) {
                 return;
             }
 

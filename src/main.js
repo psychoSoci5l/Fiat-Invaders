@@ -268,8 +268,10 @@ G.Leaderboard = {
         const empty = document.getElementById('lb-empty');
         const title = document.getElementById('lb-title');
         const closeBtn = document.getElementById('lb-close-btn');
+        const feedbackBtn = document.getElementById('lb-feedback-btn');
         if (title) title.textContent = t('LB_TITLE');
         if (closeBtn) closeBtn.textContent = t('CLOSE');
+        if (feedbackBtn) feedbackBtn.textContent = 'FEEDBACK';
         if (loading) loading.style.display = 'block';
         if (loading) loading.textContent = t('LB_LOADING');
         if (table) table.style.display = 'none';
@@ -2190,6 +2192,7 @@ function init() {
     });
 
     player = new G.Player(gameWidth, gameHeight);
+    window.player = player; // Expose for debug commands
     waveMgr.init();
 
     // Initialize Campaign State
@@ -2690,6 +2693,46 @@ window.toggleCreditsPanel = function () {
 window.togglePrivacyPanel = function () {
     const panel = document.getElementById('privacy-panel');
     if (panel) panel.style.display = (panel.style.display === 'flex') ? 'none' : 'flex';
+};
+
+// v5.20: Feedback form (mailto-based)
+G.toggleFeedback = function () {
+    const overlay = document.getElementById('feedback-overlay');
+    if (!overlay) return;
+    const isVisible = overlay.style.display === 'flex';
+    overlay.style.display = isVisible ? 'none' : 'flex';
+    if (!isVisible) {
+        // Update i18n texts
+        const title = document.getElementById('feedback-title');
+        const subject = document.getElementById('feedback-subject');
+        const text = document.getElementById('feedback-text');
+        const sendBtn = document.getElementById('feedback-send');
+        const cancelBtn = document.getElementById('feedback-cancel');
+        const error = document.getElementById('feedback-error');
+        if (title) title.textContent = t('FB_TITLE');
+        if (subject) subject.placeholder = t('FB_SUBJECT_PH');
+        if (text) text.placeholder = t('FB_TEXT_PH');
+        if (sendBtn) sendBtn.textContent = t('FB_SEND');
+        if (cancelBtn) cancelBtn.textContent = t('FB_CANCEL');
+        if (error) error.style.display = 'none';
+        // Clear fields
+        if (subject) subject.value = '';
+        if (text) text.value = '';
+    }
+};
+G.sendFeedback = function () {
+    const subject = (document.getElementById('feedback-subject')?.value || '').trim();
+    const message = (document.getElementById('feedback-text')?.value || '').trim();
+    const error = document.getElementById('feedback-error');
+    if (!message || message.length < 5) {
+        if (error) { error.textContent = t('FB_ERROR_SHORT'); error.style.display = 'block'; }
+        return;
+    }
+    const nick = localStorage.getItem('fiat_nickname') || 'Anonymous';
+    const body = `From: ${nick}\n\n${message}`;
+    const mailto = `mailto:psychoSocial_01@proton.me?subject=${encodeURIComponent(subject || 'FIAT vs CRYPTO Feedback')}&body=${encodeURIComponent(body)}`;
+    window.open(mailto);
+    G.toggleFeedback();
 };
 
 // What's New panel (v4.50, i18n v5.18)
@@ -5054,6 +5097,8 @@ function updateEnemies(dt) {
                     startDeathSequence();
                 }
             }
+            // v5.20: Destroy enemy on contact (prevents kamikaze multi-hit)
+            e.markedForDeletion = true;
             if (player.hp > 0) streak = 0;
         }
     }

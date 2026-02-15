@@ -93,7 +93,7 @@
                 TRAIL_LENGTH: 18,     // legacy overlay (fallback when BEAM disabled)
                 BEAM: {
                     ENABLED: true,
-                    LENGTH: 110,
+                    LENGTH: 75,
                     CORE_WIDTH: 2.5,       // white center line
                     MID_WIDTH: 5,          // cyan-white mid layer
                     OUTER_WIDTH: 10,       // cyan glow (additive pass)
@@ -1497,6 +1497,13 @@
                 SHAKE_INTENSITY: 6,         // Screen shake at lock-in (px)
                 HITSTOP: true,              // v5.11: Kill-switch for cinematic upgrade effects
                 UPGRADE_SHAKE: 10,          // v5.11: Shake intensity on evolution collect
+                // v5.20: Cinematic deploy VFX
+                FLASH_DURATION: 0.2,        // White flash pulse (s)
+                FLASH_ALPHA: 0.6,           // Max flash opacity
+                BRIGHTEN_AMOUNT: 0.3,       // Ship brightness boost during deploy
+                BURST_PARTICLES: 14,        // Energy burst particle count
+                AURA_PULSE_DURATION: 0.3,   // Post-deploy expanding ring (s)
+                AURA_PULSE_RADIUS: 50,      // Max ring radius (px)
             },
 
             // v5.11: Boss death cinematic sequence

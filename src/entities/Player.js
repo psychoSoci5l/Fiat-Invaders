@@ -56,6 +56,10 @@ class Player extends window.Game.Entity {
         this._godchainPending = false; // v4.48: activation trigger
         this.godchainCooldown = 0;    // v5.15.1: cooldown after GODCHAIN ends
 
+        // v5.20: Auto-cannon system (ship starts bare, cannon mounts automatically)
+        this._cannonMounted = false;
+        this._cannonMountTimer = 0; // countdown to auto-mount (set on game start)
+
         // Weapon deployment animation (v5.2)
         this._deploy = {
             active: false,
@@ -162,7 +166,33 @@ class Player extends window.Game.Entity {
      */
     fullReset() {
         this.weaponLevel = 1;
+        this._cannonMounted = false;
+        this._cannonMountTimer = 1.5; // Auto-mount after 1.5s
         this.resetState();
+    }
+
+    /**
+     * v5.20: Mount cannon on ship (auto-trigger or from powerup).
+     * Triggers deploy VFX — flash, burst, aura.
+     */
+    mountCannon() {
+        if (this._cannonMounted) return;
+        this._cannonMounted = true;
+        this._cannonMountTimer = 0;
+        // VFX: flash + burst + aura (reuse deploy VFX system)
+        const cfg = window.Game.Balance?.VFX?.WEAPON_DEPLOY;
+        if (cfg) {
+            this._deploy.flashTimer = cfg.FLASH_DURATION || 0.2;
+            this._deploy.auraPulse = cfg.AURA_PULSE_DURATION || 0.3;
+        }
+        const PS = window.Game.ParticleSystem;
+        if (PS && PS.createCannonMountTrail) PS.createCannonMountTrail(this.x, this.y, this.gameWidth);
+        if (PS && PS.createDeployBurst) PS.createDeployBurst(this.x, this.y, 1);
+        // SFX
+        const Audio = window.Game.Audio;
+        if (Audio) Audio.play('weaponDeployLock');
+        // Haptic
+        if (window.Game.Input) window.Game.Input.vibrate(20);
     }
 
     /**
@@ -242,8 +272,16 @@ class Player extends window.Game.Entity {
             if (this._elemPulse.timer <= 0) this._elemPulse.active = false;
         }
 
+        // v5.20: Auto-cannon mount timer
+        if (this._cannonMountTimer > 0) {
+            this._cannonMountTimer -= dt;
+            if (this._cannonMountTimer <= 0) this.mountCannon();
+        }
+
         // Weapon deployment animation tick
         if (this._deploy.active) this._updateDeploy(dt);
+        // v5.20: Aura pulse decay (runs after deploy completes)
+        if (this._deploy.auraPulse > 0) this._deploy.auraPulse -= dt;
 
         // Trail effect - pre-allocated circular buffer (no GC)
         // Check if we need a new trail point (use last written slot)
@@ -709,6 +747,7 @@ class Player extends window.Game.Entity {
             if (_ab && _ab.piercePlus > 0) b.pierceHP += _ab.piercePlus;
 
             b.weaponType = this.special || 'EVOLUTION';
+            b._spawnY = this.y; // v5.20: Clamp beam tail
             if (this.hyperActive) b._isHyper = true;
             if (this._godchainActive) b._isGodchain = true;
 
@@ -735,32 +774,30 @@ class Player extends window.Game.Entity {
             bulletCount = Math.max(1, Math.floor(bulletCount / WE.MISSILE_BULLET_DIVISOR));
         }
 
-        // v5.3: Laser beam consolidation — Gradius-style single beam
-        // When laser perk active (no special), merge all streams into one powerful beam
-        const rs = window.Game.RunState;
-        const beamCfg = Balance.ELEMENTAL?.LASER?.BEAM;
-        if (rs?.hasLaserPerk && !this.special && beamCfg?.ENABLED && bulletCount > 1) {
-            // Spawn single central beam with combined damage
-            const origCount = bulletCount;
-            bulletCount = 1;
-            // Temporarily boost damageMult on the spawned bullet after creation
+        // v5.20: Beam positions match visual weapon level (not HYPER-boosted effectiveLevel)
+        // DPS stays identical — fewer beams get proportional damage compensation
+        const gm = this._geom;
+        const visualBullets = (WE.LEVELS[this.weaponLevel] || WE.LEVELS[1]).bullets;
+        const spawnCount = Math.min(bulletCount, visualBullets);
+
+        if (spawnCount === 1) {
             spawnBullet(0, 0);
-            // Compensate: multiply damage by original bullet count
-            const beam = bullets[bullets.length - 1];
-            if (beam) beam.damageMult *= origCount;
+        } else if (spawnCount === 2) {
+            const ox = gm.podX || 18;
+            spawnBullet(-ox, -spreadAngle / 2);
+            spawnBullet(+ox, +spreadAngle / 2);
         } else {
-            // Shot patterns based on bulletCount (1/2/3)
-            if (bulletCount === 1) {
-                spawnBullet(0, 0);
-            } else if (bulletCount === 2) {
-                spawnBullet(-8, -spreadAngle / 2);
-                spawnBullet(+8, +spreadAngle / 2);
-            } else {
-                // 3 bullets
-                spawnBullet(-13, -spreadAngle);
-                spawnBullet(0, 0);
-                spawnBullet(+13, +spreadAngle);
-            }
+            // 3 bullets — side pods + central barrel
+            const ox = gm.podX || 20;
+            spawnBullet(-ox, -spreadAngle);
+            spawnBullet(0, 0);
+            spawnBullet(+ox, +spreadAngle);
+        }
+
+        // Compensate DPS when HYPER reduces visual beam count
+        if (spawnCount < bulletCount) {
+            const comp = bulletCount / spawnCount;
+            for (const b of bullets) b.damageMult *= comp;
         }
 
         return bullets;
@@ -999,6 +1036,27 @@ class Player extends window.Game.Entity {
         // v4.55: Ship evolution — visual form scales with weaponLevel
         this._drawShipBody(ctx);
 
+        // v5.20: Deploy flash overlay (white pulse on ship body)
+        const _d = this._deploy;
+        const _dcfg = window.Game.Balance?.VFX?.WEAPON_DEPLOY;
+        if (_d.flashTimer > 0 && _dcfg) {
+            const flashAlpha = (_dcfg.FLASH_ALPHA || 0.6) * (_d.flashTimer / (_dcfg.FLASH_DURATION || 0.2));
+            ctx.fillStyle = CU.rgba(255, 255, 255, flashAlpha);
+            ctx.beginPath();
+            ctx.arc(0, 0, 40, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        // v5.20: Deploy brightening tint (additive white over ship)
+        if (_d.active && _d.brighten && _dcfg) {
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.fillStyle = CU.rgba(255, 255, 255, _dcfg.BRIGHTEN_AMOUNT || 0.3);
+            ctx.beginPath();
+            ctx.arc(0, 0, 35, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
         // v5.13: Elemental pickup pulse (over ship body)
         this._drawElementalPulse(ctx);
 
@@ -1052,6 +1110,19 @@ class Player extends window.Game.Entity {
             ctx.beginPath();
             ctx.arc(0, 0, coreR * 0.5, 0, Math.PI * 2);
             ctx.fill();
+        }
+
+        // v5.20: Post-deploy aura pulse (expanding ring, world coords)
+        if (this._deploy.auraPulse > 0 && _dcfg) {
+            const auraDur = _dcfg.AURA_PULSE_DURATION || 0.3;
+            const auraP = 1 - (this._deploy.auraPulse / auraDur);
+            const auraR = (_dcfg.AURA_PULSE_RADIUS || 50) * auraP;
+            const auraAlpha = 0.6 * (1 - auraP);
+            ctx.strokeStyle = CU.rgba(0, 240, 255, auraAlpha);
+            ctx.lineWidth = 3 * (1 - auraP) + 1;
+            ctx.beginPath();
+            ctx.arc(0, 0, auraR, 0, Math.PI * 2);
+            ctx.stroke();
         }
 
         ctx.restore();
@@ -1654,6 +1725,10 @@ class Player extends window.Game.Entity {
         d._lockFired = false;
         d._fromGeom = fromGeom;
         d._toGeom = this._computeGeomForLevel(toLevel);
+        // v5.20: Cinematic deploy VFX state
+        d.flashTimer = cfg.FLASH_DURATION || 0.2;
+        d.brighten = true;
+        d.auraPulse = 0; // will be set on completion
 
         // Play start SFX
         const Audio = window.Game.Audio;
@@ -1670,6 +1745,9 @@ class Player extends window.Game.Entity {
 
         d.timer += dt;
         let p = Math.min(1, d.timer / d.duration);
+
+        // v5.20: Flash timer decay
+        if (d.flashTimer > 0) d.flashTimer -= dt;
 
         // Ease-out-back (mechanical overshoot)
         const c1 = 1.70158, c3 = c1 + 1;
@@ -1700,11 +1778,19 @@ class Player extends window.Game.Entity {
             // Lock SFX
             const Audio = window.Game.Audio;
             if (Audio) Audio.play('weaponDeployLock');
+            // v5.20: Energy burst particles at lock-in
+            const PS = window.Game.ParticleSystem;
+            if (PS && PS.createDeployBurst) {
+                PS.createDeployBurst(this.x, this.y, d.toLevel);
+            }
         }
 
         // Complete
         if (p >= 1) {
             d.active = false;
+            d.brighten = false;
+            // v5.20: Post-deploy aura pulse
+            d.auraPulse = cfg.AURA_PULSE_DURATION || 0.3;
             // Snap to final geometry
             g.bodyHalfW = to.bodyHalfW;
             g.podX = to.podX;
@@ -1900,42 +1986,83 @@ class Player extends window.Game.Entity {
         ctx.closePath();
         ctx.stroke();
 
-        // === 6. LV1+: NOSE BARREL (small rect at Y=-40) ===
+        // === 6. NOSE CANNON (LV1 only — splits to pods at LV2) ===
+        // Show nose cannon only at LV1 when mounted.
+        // During LV1→LV2 deploy: fade out nose cannon as pods appear.
         {
-            const nbPulse = Math.sin(t * 6) * 0.3 + 0.7;
-            ctx.fillStyle = noseLight;
-            ctx.strokeStyle = outline;
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            ctx.rect(-2.5, -40, 5, 4);
-            ctx.fill(); ctx.stroke();
-            // Glow tip
-            ctx.fillStyle = accentGlow;
-            ctx.globalAlpha = nbPulse * 0.6;
-            ctx.beginPath();
-            ctx.arc(0, -40, 2.5, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.globalAlpha = 1;
+            const showNoseCannon = this._cannonMounted && level < 2;
+            const deployFadeOut = this._deploy.active && this._deploy.fromLevel === 1 && this._deploy.toLevel >= 2;
+            const noseAlpha = deployFadeOut ? Math.max(0, 1 - this._deploy.t) : 1;
+
+            if (showNoseCannon || deployFadeOut) {
+                ctx.globalAlpha = noseAlpha;
+                const cTop = tipY - 8;
+                const cBase = tipY;
+                ctx.fillStyle = noseLight;
+                ctx.strokeStyle = outline;
+                ctx.lineWidth = 1.5;
+                // Left rail
+                ctx.beginPath();
+                ctx.rect(-3.5, cTop, 2, cBase - cTop);
+                ctx.fill(); ctx.stroke();
+                // Right rail
+                ctx.beginPath();
+                ctx.rect(1.5, cTop, 2, cBase - cTop);
+                ctx.fill(); ctx.stroke();
+                // Muzzle brake
+                ctx.fillStyle = noseDark;
+                ctx.beginPath();
+                ctx.rect(-4.5, cTop - 1, 9, 2.5);
+                ctx.fill(); ctx.stroke();
+                // Energy core
+                const nbPulse = Math.sin(t * 8) * 0.3 + 0.7;
+                ctx.fillStyle = accentGlow;
+                ctx.globalAlpha = noseAlpha * nbPulse * 0.7;
+                ctx.beginPath();
+                ctx.arc(0, cTop + 2, 1.8, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            } else if (!this._cannonMounted) {
+                // Bare nose — subtle energy glow
+                const nbPulse = Math.sin(t * 6) * 0.3 + 0.7;
+                ctx.fillStyle = accentGlow;
+                ctx.globalAlpha = nbPulse * 0.4;
+                ctx.beginPath();
+                ctx.arc(0, tipY + 3, 2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+            // LV2+: no nose cannon (it moved to pods)
         }
 
-        // === 7. LV3+: CENTRAL BARREL (from _geom.barrelTop) ===
+        // === 7. LV3+: CENTRAL BARREL (twin-rail heavy cannon from _geom.barrelTop) ===
         if (level >= 3 || (this._deploy.active && this._deploy.toLevel >= 3)) {
             const barrelTop = g.barrelTop;
             const barrelW = g.barrelW;
             ctx.fillStyle = noseLight;
             ctx.strokeStyle = outline;
             ctx.lineWidth = 2;
+            // Twin-rail heavy barrel (wider rails + longer than LV1 nose cannon)
+            const bLen = tipY - barrelTop; // ~12px
             ctx.beginPath();
-            ctx.rect(-barrelW, barrelTop, barrelW * 2, -36 - barrelTop);
+            ctx.rect(-4, barrelTop, 3, bLen);
+            ctx.fill(); ctx.stroke();
+            ctx.beginPath();
+            ctx.rect(1, barrelTop, 3, bLen);
+            ctx.fill(); ctx.stroke();
+            // Heavy muzzle brake (wider than LV1/pod versions)
+            ctx.fillStyle = noseDark;
+            ctx.beginPath();
+            ctx.rect(-barrelW - 1, barrelTop - 2, (barrelW + 1) * 2, 3);
             ctx.fill(); ctx.stroke();
 
-            // LV3+: pulsing glow at barrel tip
+            // LV3+: pulsing energy core at barrel tip
             if (level >= 3) {
                 const bPulse = Math.sin(t * 6) * 0.3 + 0.7;
                 ctx.fillStyle = accentGlow;
                 ctx.globalAlpha = bPulse * 0.8;
                 ctx.beginPath();
-                ctx.arc(0, barrelTop, 3, 0, Math.PI * 2);
+                ctx.arc(0, barrelTop, 2.5, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.globalAlpha = 1;
             }
@@ -2043,16 +2170,50 @@ class Player extends window.Game.Entity {
             ctx.lineWidth = 2;
             ctx.strokeStyle = outline;
 
-            // Left pod
+            // Left pod housing (tapered body)
             ctx.fillStyle = noseDark;
             ctx.beginPath();
-            ctx.rect(-podX - podW, podTop, podW * 2, podBot - podTop);
+            ctx.moveTo(-podX - podW * 0.6, podTop + 4);
+            ctx.lineTo(-podX - podW, podBot);
+            ctx.lineTo(-podX + podW, podBot);
+            ctx.lineTo(-podX + podW * 0.6, podTop + 4);
+            ctx.closePath();
             ctx.fill(); ctx.stroke();
-
-            // Right pod
+            // Left pod twin-rail barrel
             ctx.fillStyle = noseLight;
             ctx.beginPath();
-            ctx.rect(podX - podW, podTop, podW * 2, podBot - podTop);
+            ctx.rect(-podX - 2.5, podTop - 2, 1.5, 6);
+            ctx.fill(); ctx.stroke();
+            ctx.beginPath();
+            ctx.rect(-podX + 1, podTop - 2, 1.5, 6);
+            ctx.fill(); ctx.stroke();
+            // Left muzzle brake
+            ctx.fillStyle = noseDark;
+            ctx.beginPath();
+            ctx.rect(-podX - 3.5, podTop - 3, 7, 2);
+            ctx.fill(); ctx.stroke();
+
+            // Right pod housing (tapered body)
+            ctx.fillStyle = noseLight;
+            ctx.beginPath();
+            ctx.moveTo(podX - podW * 0.6, podTop + 4);
+            ctx.lineTo(podX - podW, podBot);
+            ctx.lineTo(podX + podW, podBot);
+            ctx.lineTo(podX + podW * 0.6, podTop + 4);
+            ctx.closePath();
+            ctx.fill(); ctx.stroke();
+            // Right pod twin-rail barrel
+            ctx.fillStyle = noseLight;
+            ctx.beginPath();
+            ctx.rect(podX - 2.5, podTop - 2, 1.5, 6);
+            ctx.fill(); ctx.stroke();
+            ctx.beginPath();
+            ctx.rect(podX + 1, podTop - 2, 1.5, 6);
+            ctx.fill(); ctx.stroke();
+            // Right muzzle brake
+            ctx.fillStyle = noseDark;
+            ctx.beginPath();
+            ctx.rect(podX - 3.5, podTop - 3, 7, 2);
             ctx.fill(); ctx.stroke();
 
             // Glow tips at pod tops

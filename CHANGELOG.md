@@ -1,5 +1,22 @@
 # Changelog
 
+## v5.20.0 - 2026-02-15
+### Cinematic Ship Deploy + Laser Fix + Feedback Form
+- **feat(vfx)**: Cinematic weapon deploy — white flash pulse (200ms), ship brightening during transition, energy burst particles at lock-in, cyan aura ring on completion
+- **feat(particles)**: `createDeployBurst()` — radial cyan/violet energy particles (14 count, spark type)
+- **fix(laser)**: Multi-beam from actual cannon positions — removed v5.3 single-beam consolidation, LV2 fires 2 beams from pod positions, LV3 fires 3 beams (2 pods + 1 barrel)
+- **fix(laser)**: Beam tail clamp — beams no longer extend behind the ship (`_spawnY` clamping)
+- **fix(laser)**: Beam ramp-up — 50ms grow from 0 to full length prevents visual pop-in
+- **config**: `BEAM.LENGTH` 110→75px (proportioned for multi-beam), `WEAPON_DEPLOY` gains `FLASH_DURATION/FLASH_ALPHA/BRIGHTEN_AMOUNT/BURST_PARTICLES/AURA_PULSE_DURATION/AURA_PULSE_RADIUS`
+- **feat(feedback)**: Feedback form in leaderboard — mailto-based overlay with subject + message, sends to psychoSocial_01@proton.me
+- **feat(i18n)**: `FB_TITLE/FB_SUBJECT_PH/FB_TEXT_PH/FB_SEND/FB_CANCEL/FB_ERROR_SHORT` keys (EN/IT)
+- **feat(ship)**: Auto-cannon mount system — ship starts bare, cannon auto-mounts after 1.5s with VFX trail + burst
+- **feat(ship)**: Twin-rail cannon design — consistent barrel aesthetic across nose (LV1), side pods (LV2), central barrel (LV3)
+- **fix(laser)**: HYPER/GODCHAIN beam positions match visual weapon level — DPS compensated via damageMult
+- **fix(collision)**: Enemy destroyed on player contact — prevents kamikaze multi-hit drain
+- **fix(iOS)**: Feedback/nickname/leaderboard overlays whitelisted in InputSystem touch handler
+- **fix(debug)**: `window.player` exposed for `dbg.setShot()` and other debug commands
+
 ## v5.19.0 - 2026-02-15
 ### Adaptive Drop Balancer
 - **feat(drops)**: Bidirectional drop balancer — boosts drops for struggling players, suppresses for dominant ones

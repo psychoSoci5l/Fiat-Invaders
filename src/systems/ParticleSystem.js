@@ -938,6 +938,58 @@
         });
     }
 
+    // v5.20: Cannon mount trail (powerup falling from top to player)
+    function createCannonMountTrail(targetX, targetY, canvasWidth) {
+        const count = Math.min(8, MAX_PARTICLES - particles.length - 1);
+        if (count <= 0) return;
+        const startX = canvasWidth / 2;
+        const startY = 40;
+        const colors = ['#00f0ff', '#bb44ff', '#ffffff'];
+        for (let i = 0; i < count; i++) {
+            const delay = i * 0.08;
+            const frac = i / count;
+            const px = startX + (targetX - startX) * frac;
+            const py = startY + (targetY - startY) * frac;
+            addParticle({
+                x: px + (Math.random() - 0.5) * 6,
+                y: py + (Math.random() - 0.5) * 6,
+                vx: (Math.random() - 0.5) * 30,
+                vy: (Math.random() - 0.5) * 30,
+                life: 0.5 + delay,
+                maxLife: 0.6 + delay,
+                color: colors[i % colors.length],
+                size: 3 - frac * 1.5,
+                baseSize: 4,
+                isGlow: true
+            });
+        }
+    }
+
+    // v5.20: Deploy energy burst (cyan/violet radial particles at lock-in)
+    function createDeployBurst(x, y, level) {
+        const cfg = G.Balance?.VFX?.WEAPON_DEPLOY;
+        const count = Math.min(cfg?.BURST_PARTICLES || 14, MAX_PARTICLES - particles.length - 1);
+        if (count <= 0) return;
+
+        const colors = ['#00f0ff', '#bb44ff', '#ffffff', '#66ddff'];
+        for (let i = 0; i < count; i++) {
+            const angle = (Math.PI * 2 / count) * i + Math.random() * 0.4;
+            const speed = 180 + Math.random() * 120 + level * 20;
+            addParticle({
+                x, y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                life: 0.35 + Math.random() * 0.15,
+                maxLife: 0.5,
+                color: colors[i % colors.length],
+                size: 2 + Math.random() * 2,
+                baseSize: 3 + level,
+                isSpark: true,
+                explosionGrow: true
+            });
+        }
+    }
+
     // v5.11: Celebratory coin rain (symbols falling from top)
     function createCoinRain(canvasWidth, canvasHeight) {
         const cfg = G.Balance?.VFX?.BOSS_DEATH?.COIN_RAIN;
@@ -1302,6 +1354,8 @@
         createElementalPickupBurst,
         createGodchainApotheosis,
         createWeaponUpgradeEffect,
+        createDeployBurst,
+        createCannonMountTrail,
         createCoinRain,
         createEvolutionItemTrail,
         update,

@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v5.19.0 FIAT vs CRYPTO";
+window.Game.VERSION = "v5.20.0 FIAT vs CRYPTO";
 
 // Leaderboard API
 window.Game.LEADERBOARD_API = 'https://fiat-vs-crypto-leaderboard.psychosocial-01.workers.dev/api';
@@ -196,7 +196,13 @@ window.Game.TEXTS = {
         LB_TOP3: "TOP 3!",
         LB_TOP5: "TOP 5!",
         LB_TOP10: "TOP 10!",
-        LB_FEW_ENTRIES: "ROOM AT THE TOP — PLAY TO CLAIM YOUR SPOT"
+        LB_FEW_ENTRIES: "ROOM AT THE TOP — PLAY TO CLAIM YOUR SPOT",
+        FB_TITLE: "SEND FEEDBACK",
+        FB_SUBJECT_PH: "Subject...",
+        FB_TEXT_PH: "Your feedback...",
+        FB_SEND: "SEND",
+        FB_CANCEL: "CANCEL",
+        FB_ERROR_SHORT: "Message too short (min 5 chars)"
     },
     IT: {
         SCORE: "PUNTI", LEVEL: "LIVELLO", LIVES: "VITE", NORMAL: "NORMALE",
@@ -386,7 +392,13 @@ window.Game.TEXTS = {
         LB_TOP3: "TOP 3!",
         LB_TOP5: "TOP 5!",
         LB_TOP10: "TOP 10!",
-        LB_FEW_ENTRIES: "C'È POSTO IN CIMA — GIOCA PER CONQUISTARLO"
+        LB_FEW_ENTRIES: "C'È POSTO IN CIMA — GIOCA PER CONQUISTARLO",
+        FB_TITLE: "INVIA FEEDBACK",
+        FB_SUBJECT_PH: "Oggetto...",
+        FB_TEXT_PH: "Il tuo feedback...",
+        FB_SEND: "INVIA",
+        FB_CANCEL: "ANNULLA",
+        FB_ERROR_SHORT: "Messaggio troppo corto (min 5 car.)"
     }
 };
 

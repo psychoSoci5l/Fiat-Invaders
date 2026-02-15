@@ -396,8 +396,17 @@ class Bullet extends window.Game.Entity {
         // Head (bullet position) and tail
         const hx = this.x;
         const hy = this.y;
-        const tx = hx - ndx * cfg.LENGTH;
-        const ty = hy - ndy * cfg.LENGTH;
+        // v5.20: Ramp-up (beam grows from 0 to full in 50ms)
+        const ageFactor = Math.min(1, this.age / 0.05);
+        const effectiveLength = cfg.LENGTH * ageFactor;
+        let tx = hx - ndx * effectiveLength;
+        let ty = hy - ndy * effectiveLength;
+        // v5.20: Clamp tail — beam doesn't extend behind ship
+        if (this._spawnY && ty > this._spawnY) {
+            const ratio = (this._spawnY - hy) / (ty - hy);
+            tx = hx + (tx - hx) * ratio;
+            ty = this._spawnY;
+        }
 
         // Shimmer: width pulses ±SHIMMER_AMOUNT
         const shimmer = 1 + Math.sin(this.age * cfg.SHIMMER_SPEED) * cfg.SHIMMER_AMOUNT;
@@ -500,8 +509,16 @@ class Bullet extends window.Game.Entity {
 
         const hx = this.x;
         const hy = this.y;
-        const tx = hx - ndx * cfg.LENGTH;
-        const ty = hy - ndy * cfg.LENGTH;
+        // v5.20: Ramp-up + clamp (same as standard pass)
+        const ageFactor = Math.min(1, this.age / 0.05);
+        const effectiveLength = cfg.LENGTH * ageFactor;
+        let tx = hx - ndx * effectiveLength;
+        let ty = hy - ndy * effectiveLength;
+        if (this._spawnY && ty > this._spawnY) {
+            const ratio = (this._spawnY - hy) / (ty - hy);
+            tx = hx + (tx - hx) * ratio;
+            ty = this._spawnY;
+        }
 
         const shimmer = 1 + Math.sin(this.age * cfg.SHIMMER_SPEED) * cfg.SHIMMER_AMOUNT;
 
