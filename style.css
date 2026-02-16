@@ -343,9 +343,11 @@ body {
     /* Removed Padding from Body to allow Fullscreen Canvas */
 }
 
-/* Game Container: adapts to safe areas in Safari, fullscreen in PWA */
+/* Game Container: fixed to viewport, safe areas via CSS vars set by JS */
 #game-container {
-    position: absolute;
+    position: fixed;
+    top: 0;
+    bottom: 0;
     left: 50%;
     transform: translateX(-50%);
     max-width: 600px;
@@ -353,7 +355,6 @@ body {
     overflow: hidden;
     background: #000;
     -webkit-tap-highlight-color: transparent;
-    /* Dimensions and position set by JS resize() */
 }
 
 /* Main game canvas only */
@@ -415,14 +416,14 @@ body {
     top: 0;
     left: 0;
     width: 100%;
-    padding: calc(8px + var(--pwa-top-inset, env(safe-area-inset-top, 0px))) 12px 4px 12px;
+    padding: calc(8px + var(--safe-top, 0px)) 12px 4px 12px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     box-sizing: border-box;
     z-index: 100;
     pointer-events: none;
-    height: calc(45px + var(--pwa-top-inset, env(safe-area-inset-top, 0px)));
+    height: calc(45px + var(--safe-top, 0px));
 }
 
 /* Lives: heart icon + number */
@@ -1110,14 +1111,14 @@ body {
 /* Bottom icons */
 .intro-icons {
     position: absolute;
-    bottom: calc(50px + var(--pwa-bottom-inset, env(safe-area-inset-bottom, 0px)));
+    bottom: calc(50px + var(--safe-bottom, 0px));
     display: flex;
     gap: 32px;
 }
 
 .intro-version {
     position: absolute;
-    bottom: calc(20px + var(--pwa-bottom-inset, env(safe-area-inset-bottom, 0px)));
+    bottom: calc(20px + var(--safe-bottom, 0px));
     font-size: 14px;
     color: rgba(255, 255, 255, 0.85);
     letter-spacing: 3px;
@@ -1656,7 +1657,7 @@ body {
 /* PRIMARY ACTION CONTAINER - FIXED POSITION */
 .primary-action-container {
     position: absolute;
-    bottom: calc(115px + var(--pwa-bottom-inset, env(safe-area-inset-bottom, 0px)));
+    bottom: calc(115px + var(--safe-bottom, 0px));
     left: 50%;
     transform: translateX(-50%);
     width: calc(100% - 60px);
@@ -1693,7 +1694,7 @@ body {
         margin-bottom: 8px;
     }
     .primary-action-container {
-        bottom: calc(80px + var(--pwa-bottom-inset, env(safe-area-inset-bottom, 0px)));
+        bottom: calc(80px + var(--safe-bottom, 0px));
     }
 }
 
@@ -1900,7 +1901,7 @@ body {
 #joystick {
     position: absolute;
     left: 50%;
-    bottom: calc(5px + var(--pwa-bottom-inset, env(safe-area-inset-bottom, 0px)));
+    bottom: calc(5px + var(--safe-bottom, 0px));
     transform: translateX(-50%);
     width: 75px;
     height: 75px;
@@ -1960,7 +1961,7 @@ body {
 .shield-btn-wrapper {
     position: absolute;
     left: 20px;
-    bottom: calc(90px + var(--pwa-bottom-inset, env(safe-area-inset-bottom, 0px)));
+    bottom: calc(90px + var(--safe-bottom, 0px));
     width: 72px;
     height: 72px;
     pointer-events: auto;
@@ -2128,7 +2129,7 @@ body {
 .hyper-btn-wrapper {
     position: absolute;
     right: 20px;
-    bottom: calc(75px + var(--pwa-bottom-inset, env(safe-area-inset-bottom, 0px)));
+    bottom: calc(75px + var(--safe-bottom, 0px));
     width: 64px;
     height: 64px;
     pointer-events: auto;
@@ -2582,7 +2583,7 @@ body.bear-mode .neon-title {
 #control-toast {
     position: absolute;
     left: 50%;
-    bottom: calc(150px + var(--pwa-bottom-inset, env(safe-area-inset-bottom, 0px)));
+    bottom: calc(150px + var(--safe-bottom, 0px));
     transform: translateX(-50%);
     background: rgba(0, 0, 0, 0.7);
     border: 1px solid #333;
@@ -2598,7 +2599,7 @@ body.bear-mode .neon-title {
 /* --- MEME POPUP v4.20.0 --- */
 #meme-popup {
     position: absolute;
-    bottom: calc(240px + var(--pwa-bottom-inset, env(safe-area-inset-bottom, 0px)));
+    bottom: calc(240px + var(--safe-bottom, 0px));
     left: 0;
     right: 0;
     z-index: 90;
@@ -2727,7 +2728,7 @@ body.bear-mode .neon-title {
 /* --- MESSAGE STRIP v4.26.0 --- */
 #message-strip {
     position: absolute;
-    top: calc(67px + var(--pwa-top-inset, env(safe-area-inset-top, 0px)));
+    top: calc(67px + var(--safe-top, 0px));
     left: 0;
     right: 0;
     z-index: 110;
@@ -2986,7 +2987,7 @@ body.bear-mode .neon-title {
 #pause-btn {
     position: absolute;
     left: 10px;
-    top: calc(47px + var(--pwa-top-inset, env(safe-area-inset-top, 0px)));
+    top: calc(47px + var(--safe-top, 0px));
     width: 58px;
     height: 48px;
     border-radius: 8px;
@@ -3044,7 +3045,7 @@ body.bear-mode .neon-title {
 /* --- GRAZE METER --- */
 #graze-meter {
     position: absolute;
-    bottom: calc(85px + var(--pwa-bottom-inset, env(safe-area-inset-bottom, 0px)));
+    bottom: calc(95px + var(--safe-bottom, 0px));
     left: 50%;
     transform: translateX(-50%);
     width: 180px;
@@ -3637,7 +3638,7 @@ body.bear-mode .toggle-switch#bear-toggle .switch-label {
     left: 0;
     right: 0;
     padding: 20px;
-    padding-bottom: calc(20px + var(--pwa-bottom-inset, env(safe-area-inset-bottom, 0px)));
+    padding-bottom: calc(20px + var(--safe-bottom, 0px));
     pointer-events: none;
     z-index: 200;
     opacity: 0;
@@ -4459,7 +4460,7 @@ body.is-touch p.mobile-only { display: block; }
     .manual-title {
         font-size: 18px;
         padding: 14px 15px 10px;
-        padding-top: calc(14px + env(safe-area-inset-top, 0px)); /* v4.21: iPhone notch */
+        padding-top: calc(14px + var(--safe-top, 0px)); /* v4.21: iPhone notch */
     }
 
     .manual-v2 .manual-scroll {
@@ -4472,14 +4473,14 @@ body.is-touch p.mobile-only { display: block; }
 
     .manual-close {
         margin: 15px 20px;
-        margin-bottom: calc(20px + var(--pwa-bottom-inset, env(safe-area-inset-bottom, 0px))); /* v4.21: iPhone home bar */
+        margin-bottom: calc(20px + var(--safe-bottom, 0px)); /* v4.21: iPhone home bar */
     }
 }
 
 /* --- PWA INSTALL BANNER --- */
 #pwa-install-banner {
     position: absolute;
-    bottom: calc(280px + var(--pwa-bottom-inset, env(safe-area-inset-bottom, 0px)));
+    bottom: calc(280px + var(--safe-bottom, 0px));
     left: 50%;
     transform: translateX(-50%);
     width: 90%;
@@ -4770,7 +4771,7 @@ body.is-touch p.mobile-only { display: block; }
     bottom: 0;
     left: 0;
     right: 0;
-    height: calc(80px + var(--pwa-bottom-inset, env(safe-area-inset-bottom, 0px)));
+    height: calc(80px + var(--safe-bottom, 0px));
     background: rgba(255, 255, 255, 0.07);
     z-index: 10;
     pointer-events: none;

@@ -1,5 +1,19 @@
 # Changelog
 
+## v5.23.0 - 2026-02-16
+### PWA Layout Fix + Offline Queue + Nickname Flow
+- **fix(pwa)**: Game container changed from `position: absolute` (JS-sized) to `position: fixed; top:0; bottom:0` (CSS-sized) — eliminates black band on iOS PWA standalone
+- **fix(pwa)**: Unified `resize()` — removed dual PWA/browser code path; single flow reads container dimensions from CSS
+- **refactor(css)**: Renamed 19 CSS custom properties: `--pwa-top/bottom-inset` → `--safe-top/--safe-bottom` (JS-set, consumed everywhere)
+- **fix(css)**: Direct `env(safe-area-inset-top)` in manual title replaced with `var(--safe-top)` for consistency
+- **fix(ui)**: Graze bar bottom offset increased from 85px to 95px — adds ~12px gap from ship (was 2px)
+- **feat(leaderboard)**: Offline score queue — failed submissions saved to `fiat_pending_score` in localStorage, flushed on next app start and game over
+- **feat(leaderboard)**: `LB_QUEUED` i18n key: "SCORE QUEUED" / "PUNTEGGIO IN CODA" shown when offline
+- **feat(nickname)**: SKIP button added to nickname overlay — first launch prompt is skippable (once per session)
+- **feat(nickname)**: New record without nickname triggers callsign prompt on game over with "NEW RECORD!" title
+- **feat(nickname)**: `showNicknamePrompt(callback, options)` now supports `title` override and `hideSkip` option
+- **feat(i18n)**: New keys: `LB_QUEUED`, `NICK_SKIP`, `NICK_RECORD_TITLE` (EN/IT)
+
 ## v5.22.1 - 2026-02-15
 ### Cinematic Cannon Mount + Score Reset + iOS Link Fix
 - **fix(player)**: Cannon mount at game start now uses the full deploy animation system (flash, brighten, ease-out-back, screen shake, burst particles, SFX sequence) instead of instant pop-in

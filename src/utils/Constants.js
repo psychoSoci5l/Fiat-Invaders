@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v5.22.1 FIAT vs CRYPTO";
+window.Game.VERSION = "v5.23.0 FIAT vs CRYPTO";
 
 // Leaderboard API
 window.Game.LEADERBOARD_API = 'https://fiat-vs-crypto-leaderboard.psychosocial-01.workers.dev/api';
@@ -193,6 +193,7 @@ window.Game.TEXTS = {
         LB_SUBMITTING: "SUBMITTING...",
         LB_SUBMITTED: "SUBMITTED!",
         LB_OFFLINE: "OFFLINE",
+        LB_QUEUED: "SCORE QUEUED",
         LB_EMPTY: "NO SCORES YET",
         LB_LOADING: "LOADING...",
         LB_ERROR: "CONNECTION ERROR",
@@ -200,6 +201,8 @@ window.Game.TEXTS = {
         NICK_PLACEHOLDER: "3-6 CHARACTERS",
         NICK_CONFIRM: "CONFIRM",
         NICK_INVALID: "Only letters, numbers, spaces (3-6 chars)",
+        NICK_SKIP: "SKIP",
+        NICK_RECORD_TITLE: "NEW RECORD! ENTER YOUR CALLSIGN",
         LB_TOP3: "TOP 3!",
         LB_TOP5: "TOP 5!",
         LB_TOP10: "TOP 10!",
@@ -425,6 +428,7 @@ window.Game.TEXTS = {
         LB_SUBMITTING: "INVIO...",
         LB_SUBMITTED: "INVIATO!",
         LB_OFFLINE: "OFFLINE",
+        LB_QUEUED: "PUNTEGGIO IN CODA",
         LB_EMPTY: "NESSUN PUNTEGGIO",
         LB_LOADING: "CARICAMENTO...",
         LB_ERROR: "ERRORE DI CONNESSIONE",
@@ -432,6 +436,8 @@ window.Game.TEXTS = {
         NICK_PLACEHOLDER: "3-6 CARATTERI",
         NICK_CONFIRM: "CONFERMA",
         NICK_INVALID: "Solo lettere, numeri, spazi (3-6 car.)",
+        NICK_SKIP: "SALTA",
+        NICK_RECORD_TITLE: "NUOVO RECORD! SCEGLI IL TUO NOME",
         LB_TOP3: "TOP 3!",
         LB_TOP5: "TOP 5!",
         LB_TOP10: "TOP 10!",

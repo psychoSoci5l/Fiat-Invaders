@@ -153,26 +153,36 @@ function setNickname(name) {
     localStorage.setItem('fiat_nickname', clean);
     return true;
 }
-function showNicknamePrompt(callback) {
+function showNicknamePrompt(callback, options) {
+    const opts = options || {};
     const overlay = document.getElementById('nickname-overlay');
     const input = document.getElementById('nickname-input');
     const error = document.getElementById('nickname-error');
     const btn = document.getElementById('nickname-confirm');
+    const skipBtn = document.getElementById('nickname-skip');
     const title = document.getElementById('nickname-title');
-    if (!overlay || !input || !btn) { callback(); return; }
+    if (!overlay || !input || !btn) { callback(false); return; }
     overlay.style.display = 'flex';
-    if (title) title.textContent = t('NICK_TITLE');
+    if (title) title.textContent = opts.title || t('NICK_TITLE');
     input.placeholder = t('NICK_PLACEHOLDER');
     btn.textContent = t('NICK_CONFIRM');
+    if (skipBtn) {
+        skipBtn.textContent = t('NICK_SKIP');
+        skipBtn.style.display = opts.hideSkip ? 'none' : '';
+    }
     if (error) error.style.display = 'none';
     input.value = getNickname();
     input.focus();
+    function cleanup() {
+        overlay.style.display = 'none';
+        input.removeEventListener('keydown', onKey);
+        btn.removeEventListener('click', submit);
+        if (skipBtn) skipBtn.removeEventListener('click', skip);
+    }
     function submit() {
         if (setNickname(input.value)) {
-            overlay.style.display = 'none';
-            input.removeEventListener('keydown', onKey);
-            btn.removeEventListener('click', submit);
-            callback();
+            cleanup();
+            callback(true);
         } else {
             if (error) {
                 error.textContent = t('NICK_INVALID');
@@ -180,9 +190,14 @@ function showNicknamePrompt(callback) {
             }
         }
     }
+    function skip() {
+        cleanup();
+        callback(false);
+    }
     function onKey(e) { if (e.key === 'Enter') submit(); }
     input.addEventListener('keydown', onKey);
     btn.addEventListener('click', submit);
+    if (skipBtn) skipBtn.addEventListener('click', skip);
 }
 
 // === SCORE INTEGRITY (v5.17.2) ===
@@ -199,6 +214,25 @@ async function signScore(payload) {
     );
     const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(message));
     return [...new Uint8Array(sig)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// === PENDING SCORE QUEUE (v5.23) ===
+function savePendingScore(data) {
+    const existing = JSON.parse(localStorage.getItem('fiat_pending_score') || 'null');
+    if (existing && existing.score >= data.score) return;
+    localStorage.setItem('fiat_pending_score', JSON.stringify(data));
+}
+function getPendingScore() {
+    return JSON.parse(localStorage.getItem('fiat_pending_score') || 'null');
+}
+function clearPendingScore() {
+    localStorage.removeItem('fiat_pending_score');
+}
+async function flushPendingScore() {
+    const pending = getPendingScore();
+    if (!pending || !hasNickname()) return;
+    const result = await G.Leaderboard.submitScore(pending);
+    if (result.ok) clearPendingScore();
 }
 
 // === LEADERBOARD SYSTEM (v5.17) ===
@@ -379,6 +413,9 @@ G.Leaderboard = {
         const viewBtn = document.getElementById('btn-view-lb');
         if (!section) return;
 
+        // v5.23: Try to flush any previously queued score first
+        await flushPendingScore();
+
         if (viewBtn) viewBtn.textContent = t('LB_VIEW_FULL');
 
         if (!hasNickname()) { section.style.display = 'none'; return; }
@@ -389,9 +426,8 @@ G.Leaderboard = {
         if (rankVal) rankVal.textContent = t('LB_SUBMITTING');
 
         // Submit score
-        const result = await this.submitScore({
-            score: scoreVal, kills: killCount, cycle, wave, ship, bear, mode: this._getMode()
-        });
+        const scoreData = { score: scoreVal, kills: killCount, cycle, wave, ship, bear, mode: this._getMode() };
+        const result = await this.submitScore(scoreData);
 
         // Remove previous tier badge
         const oldTier = section.querySelector('.gameover-rank-tier');
@@ -413,7 +449,9 @@ G.Leaderboard = {
         } else if (result.ok && result.rank === -1) {
             if (rankVal) rankVal.textContent = '-';
         } else {
-            if (rankVal) rankVal.textContent = t('LB_OFFLINE');
+            // v5.23: Queue score for later submission
+            savePendingScore(scoreData);
+            if (rankVal) rankVal.textContent = t('LB_QUEUED');
         }
 
         // Fetch top 5 for mini-display
@@ -2211,7 +2249,7 @@ function init() {
         }
     });
 
-    player = new G.Player(gameWidth, gameHeight);
+    player = new G.Player(gameWidth, gameHeight - (G._safeBottom || 0));
     window.player = player; // Expose for debug commands
     waveMgr.init();
 
@@ -2527,38 +2565,18 @@ function resize() {
     const insets = getSafeAreaInsets();
     window.safeAreaInsets = insets;
 
-    // In PWA standalone mode: use full screen
-    // In browser (Safari): respect safe areas
-    if (window.isPWA) {
-        gameHeight = window.innerHeight;
-        gameWidth = Math.min(600, window.innerWidth);
-        // Position container at top (fullscreen)
-        if (gameContainer) {
-            gameContainer.style.top = '0';
-            gameContainer.style.height = gameHeight + 'px';
-            gameContainer.style.width = gameWidth + 'px';
-        }
-        // PWA mode: Force minimum top inset for status bar (env() may return 0)
-        // iPhone 14 Pro Dynamic Island needs ~59px, older notch devices ~47px
-        const pwaTopInset = Math.max(insets.top, 59);
-        document.documentElement.style.setProperty('--pwa-top-inset', pwaTopInset + 'px');
-        const pwaBottomInset = Math.max(insets.bottom, 34); // iPhone home indicator min
-        document.documentElement.style.setProperty('--pwa-bottom-inset', pwaBottomInset + 'px');
-    } else {
-        // Safari/Browser mode: account for notch and home bar
-        const safeTop = insets.top;
-        const safeBottom = insets.bottom;
-        gameHeight = window.innerHeight - safeTop - safeBottom;
-        gameWidth = Math.min(600, window.innerWidth - insets.left - insets.right);
-        // Position container below notch, above home bar
-        if (gameContainer) {
-            gameContainer.style.top = safeTop + 'px';
-            gameContainer.style.height = gameHeight + 'px';
-            gameContainer.style.width = gameWidth + 'px';
-        }
-    }
+    // Unified: PWA forces minimums (env() can return 0 on iOS standalone)
+    const safeTop = window.isPWA ? Math.max(insets.top, 59) : insets.top;
+    const safeBottom = window.isPWA ? Math.max(insets.bottom, 34) : insets.bottom;
 
-    // Canvas fills the container
+    // CSS vars (consumed by all safe-area-aware elements)
+    document.documentElement.style.setProperty('--safe-top', safeTop + 'px');
+    document.documentElement.style.setProperty('--safe-bottom', safeBottom + 'px');
+
+    // Container fills viewport via CSS fixed. Read actual dimensions.
+    gameWidth = Math.min(600, gameContainer.clientWidth);
+    gameHeight = gameContainer.clientHeight;
+
     canvas.width = gameWidth;
     canvas.height = gameHeight;
 
@@ -2567,9 +2585,12 @@ function resize() {
     // v4.32: Expose gameHeight for responsive formations, teleport bounds, HYPER particles
     G._gameHeight = gameHeight;
 
+    // v5.23: Player respects safe bottom (ship stays above home indicator)
+    G._safeBottom = safeBottom;
+    const playableHeight = gameHeight - safeBottom;
     if (player) {
         player.gameWidth = gameWidth;
-        player.gameHeight = gameHeight;
+        player.gameHeight = playableHeight;
     }
 
     // Update ParticleSystem dimensions
@@ -3240,8 +3261,9 @@ window.launchShipAndStart = function () {
     if (isLaunching) return;
     isLaunching = true;
 
-    // v5.17: Prompt nickname before first launch
-    if (!hasNickname()) {
+    // v5.23: Prompt nickname once per session; skip allowed
+    if (!hasNickname() && !window._nickPromptShown) {
+        window._nickPromptShown = true;
         isLaunching = false;
         showNicknamePrompt(() => launchShipAndStart());
         return;
@@ -6251,7 +6273,8 @@ function triggerGameOver() {
         G.Debug.endAnalyticsRun(Math.floor(score));
     }
 
-    if (score > highScore) {
+    const wasNewHighScore = score > highScore;
+    if (wasNewHighScore) {
         highScore = Math.floor(score);
         localStorage.setItem(highScoreKey(), highScore);
         // Update badge score display (v4.8)
@@ -6303,14 +6326,21 @@ function triggerGameOver() {
     setStyle('pause-btn', 'display', 'none');
     audioSys.play('explosion');
 
-    // v5.17: Leaderboard submit (async, non-blocking)
+    // v5.23: Leaderboard submit (async, non-blocking)
     const isStoryMode = G.CampaignState && G.CampaignState.isEnabled();
-    if (isStoryMode && hasNickname()) {
+    if (isStoryMode) {
         const shipKey = SHIP_KEYS[selectedShipIndex] || 'BTC';
-        G.Leaderboard.renderGameoverRank(
+        const _doRank = () => G.Leaderboard.renderGameoverRank(
             Math.floor(score), killCount, marketCycle,
             waveMgr.wave, shipKey, !!window.isBearMarket
         );
+        if (hasNickname()) {
+            _doRank();
+        } else if (wasNewHighScore) {
+            // New record without nickname: prompt with option to submit
+            showNicknamePrompt((entered) => { if (entered) _doRank(); },
+                { title: t('NICK_RECORD_TITLE'), hideSkip: false });
+        }
     }
 }
 
@@ -6425,6 +6455,9 @@ function updatePowerUps(dt) {
 }
 
 init();
+
+// v5.23: Flush any pending offline score on app start
+flushPendingScore();
 
 // URL parameter: ?perf=1 auto-enables FPS overlay (for mobile testing)
 if (new URLSearchParams(window.location.search).has('perf')) {
