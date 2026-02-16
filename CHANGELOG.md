@@ -1,5 +1,11 @@
 # Changelog
 
+## v5.23.7 - 2026-02-16
+### Relative Drag Touch + UX Polish
+- **feat(controls)**: Swipe mode now uses relative drag — finger delta from anchor point instead of absolute screen position. Small repeated gestures move the ship across the screen without stretching thumb edge-to-edge
+- **feat(controls)**: Sensitivity slider now affects swipe mode — multiplies finger delta (1.5× = less finger travel needed)
+- **fix(ux)**: Nickname overlay no longer auto-focuses input field — prevents iOS keyboard popup when user wants to tap SKIP
+
 ## v5.23.6 - 2026-02-16
 ### Definitive PWA Safe Area — JS heuristic replaces unreliable env()
 - **fix(pwa)**: Container always positioned in safe zone on iOS PWA — uses `env()` values when available, `screen.height - innerHeight` heuristic as fallback (env() unreliable on iOS 17+/18+)
