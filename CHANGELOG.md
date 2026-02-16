@@ -1,5 +1,31 @@
 # Changelog
 
+## v5.23.6 - 2026-02-16
+### Definitive PWA Safe Area — JS heuristic replaces unreliable env()
+- **fix(pwa)**: Container always positioned in safe zone on iOS PWA — uses `env()` values when available, `screen.height - innerHeight` heuristic as fallback (env() unreliable on iOS 17+/18+)
+- **fix(pwa)**: Removed CSS `@media (display-mode: standalone)` env() block — was interfering with sentinel reads and redundant with JS positioning
+- **fix(pwa)**: CSS `--safe-top/--safe-bottom` set to 0 in PWA (container handles offsets), set by JS in Safari (env()=0 naturally)
+- **feat(pwa)**: New `--vp-safe-top/--vp-safe-bottom` CSS vars for viewport-level insets (available for future full-screen overlays)
+- **refactor**: Removed `:root` env() vars (JS controls all), removed debug overlay, cleaned dead comments
+- **note**: All modals outside game-container are flex-centered — safe by design, no additional offsets needed
+- **result**: Safari 430×775 vs PWA 430×780 — near-identical layout, violet border correctly inside screen
+
+## v5.23.5 - 2026-02-16
+### iOS PWA Standalone Layout Fix — env() fallback + max() pattern
+- **fix(pwa)**: JS fallback in `resize()` — when PWA and `env(safe-area-inset-top)` returns 0, forces 59px (Dynamic Island) and overrides `--safe-top` CSS var. Same for bottom (34px home indicator). Clears override if env() resolves later
+- **fix(pwa)**: CSS `max()` pattern on intro/gameover elements — `calc(X + safe)` → `max(X, calc(Z + safe))` prevents double-adding in PWA while keeping Safari identical
+- **fix(pwa)**: `.hud-top-bar` padding-top floor 20px via `max()` — CSS safety net independent of JS
+- **fix(canvas)**: StoryScreen + HUD now get correct safeTop via `window.safeAreaInsets` even when env()=0
+- **note**: Gameplay controls (joystick, shield, hyper, graze) remain additive `calc(X + safe)` — full offset needed during play
+
+## v5.23.4 - 2026-02-16
+### Apple Best Practice Safe Area — CSS-native env()
+- **fix(pwa)**: CSS `--safe-top`/`--safe-bottom` now resolve `env()` natively in `:root` — no JS dependency, works from first paint
+- **fix(pwa)**: Replaced temp-div `getSafeAreaInsets()` with persistent `#sa-sentinel` element — eliminates create/destroy race conditions
+- **fix(pwa)**: Double resize on `orientationchange` (100ms + 350ms) — defensive pattern for iOS `env()` recalculation delay
+- **fix(pwa)**: `#control-zone-hint` background set to transparent — eliminates grey bar at bottom of gameplay screen
+- **refactor**: Removed 25-line `getSafeAreaInsets()` function and JS `setProperty('--safe-top/--safe-bottom')` — CSS handles CSS
+
 ## v5.23.3 - 2026-02-16
 ### Raw env() — Safari-first layout
 - **fix(pwa)**: Reverted container to `top:0;bottom:0` (Safari reference layout). Safe areas handled by children via `--safe-top/--safe-bottom` CSS vars

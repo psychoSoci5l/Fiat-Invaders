@@ -1,4 +1,8 @@
 :root {
+    /* Safe areas: set by JS heuristic in resize(), env() unreliable on iOS PWA */
+    --safe-top: 0px;
+    --safe-bottom: 0px;
+
     --neon-violet: #bb44ff;
     --neon-blue: #00f0ff;
     --neon-green: #39ff14;
@@ -343,6 +347,18 @@ body {
     /* Removed Padding from Body to allow Fullscreen Canvas */
 }
 
+/* Safe-area sentinel: JS reads for canvas positioning */
+#sa-sentinel {
+    position: fixed;
+    top: 0; left: 0;
+    width: 0; height: 0;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    visibility: hidden;
+    pointer-events: none;
+    z-index: -1;
+}
+
 /* Game Container: fills viewport. Safe areas handled by children via --safe-top/--safe-bottom CSS vars. */
 #game-container {
     position: fixed;
@@ -416,7 +432,7 @@ body {
     top: 0;
     left: 0;
     width: 100%;
-    padding: calc(8px + var(--safe-top, 0px)) 12px 4px 12px;
+    padding: max(calc(8px + var(--safe-top, 0px)), 20px) 12px 4px 12px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -790,7 +806,7 @@ body {
     flex-direction: column;
     justify-content: flex-start;
     align-items: center;
-    padding-top: calc(25px + var(--safe-top, 0px));
+    padding-top: max(25px, calc(10px + var(--safe-top, 0px)));
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     z-index: 250; /* v4.21: Above all game elements (touchControls=200, ui-layer=120) */
@@ -810,7 +826,7 @@ body {
     align-items: center;
     z-index: 110;
     padding: 40px;
-    padding-top: calc(10px + var(--safe-top, 0px));
+    padding-top: max(10px, var(--safe-top, 0px));
     box-sizing: border-box;
     /* Safe areas now handled by game-container */
 }
@@ -1111,14 +1127,14 @@ body {
 /* Bottom icons */
 .intro-icons {
     position: absolute;
-    bottom: calc(50px + var(--safe-bottom, 0px));
+    bottom: max(50px, calc(16px + var(--safe-bottom, 0px)));
     display: flex;
     gap: 32px;
 }
 
 .intro-version {
     position: absolute;
-    bottom: calc(20px + var(--safe-bottom, 0px));
+    bottom: max(20px, var(--safe-bottom, 0px));
     font-size: 14px;
     color: rgba(255, 255, 255, 0.85);
     letter-spacing: 3px;
@@ -1657,7 +1673,7 @@ body {
 /* PRIMARY ACTION CONTAINER - FIXED POSITION */
 .primary-action-container {
     position: absolute;
-    bottom: calc(115px + var(--safe-bottom, 0px));
+    bottom: max(115px, calc(85px + var(--safe-bottom, 0px)));
     left: 50%;
     transform: translateX(-50%);
     width: calc(100% - 60px);
@@ -1694,7 +1710,7 @@ body {
         margin-bottom: 8px;
     }
     .primary-action-container {
-        bottom: calc(80px + var(--safe-bottom, 0px));
+        bottom: max(80px, calc(50px + var(--safe-bottom, 0px)));
     }
 }
 
@@ -2562,7 +2578,7 @@ body.bear-mode .neon-title {
 @media (max-height: 740px) {
     #intro-screen,
     #gameover-screen {
-        padding-top: calc(10px + var(--safe-top, 0px));
+        padding-top: max(10px, var(--safe-top, 0px));
     }
     .terminal-boot {
         margin-top: 18px;
@@ -2574,6 +2590,8 @@ body.bear-mode .neon-title {
         letter-spacing: 6px;
     }
 }
+
+/* PWA container positioning: handled by JS heuristic in resize() (env() unreliable on iOS). */
 
 .setting-row input[type="range"] {
     width: 160px;
@@ -4772,7 +4790,7 @@ body.is-touch p.mobile-only { display: block; }
     left: 0;
     right: 0;
     height: calc(80px + var(--safe-bottom, 0px));
-    background: rgba(255, 255, 255, 0.07);
+    background: transparent;
     z-index: 10;
     pointer-events: none;
     display: none;

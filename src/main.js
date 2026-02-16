@@ -26,7 +26,7 @@ window.Game.images = {}; // Placeholder, populated by main.js
 })();
 
 // --- GLOBAL STATE ---
-let canvas, ctx, gameContainer;
+let canvas, ctx, gameContainer, saSentinel;
 let gameWidth = window.Game.Balance.GAME.BASE_WIDTH;
 let gameHeight = window.Game.Balance.GAME.BASE_HEIGHT;
 let gameState = 'VIDEO';
@@ -2101,6 +2101,7 @@ function init() {
     canvas = document.getElementById('gameCanvas');
     ctx = canvas.getContext('2d', { alpha: false });
     gameContainer = document.getElementById('game-container');
+    saSentinel = document.getElementById('sa-sentinel');
 
     ['intro-screen', 'hangar-screen', 'settings-modal', 'pause-screen', 'gameover-screen',
         'scoreVal', 'lvlVal', 'weaponName', 'shieldBar', 'healthBar', 'finalScore',
@@ -2228,7 +2229,10 @@ function init() {
     resize();
     window.addEventListener('resize', resize);
     // iOS needs orientationchange + delay for safe area recalculation
-    window.addEventListener('orientationchange', () => setTimeout(resize, 100));
+    window.addEventListener('orientationchange', () => {
+        setTimeout(resize, 100);
+        setTimeout(resize, 350);
+    });
 
     // Initialize ParticleSystem with canvas dimensions
     if (G.ParticleSystem) G.ParticleSystem.init(gameWidth, gameHeight);
@@ -2529,48 +2533,46 @@ function isPWAStandalone() {
     return false;
 }
 
-// Get safe area insets from CSS environment variables
-function getSafeAreaInsets() {
-    const div = document.createElement('div');
-    div.style.position = 'fixed';
-    div.style.left = '0';
-    div.style.top = '0';
-    div.style.width = '100%';
-    div.style.height = '100%';
-    div.style.paddingTop = 'env(safe-area-inset-top)';
-    div.style.paddingBottom = 'env(safe-area-inset-bottom)';
-    div.style.paddingLeft = 'env(safe-area-inset-left)';
-    div.style.paddingRight = 'env(safe-area-inset-right)';
-    div.style.boxSizing = 'border-box';
-    div.style.visibility = 'hidden';
-    div.style.pointerEvents = 'none';
-    document.body.appendChild(div);
-    const computed = getComputedStyle(div);
-    const insets = {
-        top: parseFloat(computed.paddingTop) || 0,
-        bottom: parseFloat(computed.paddingBottom) || 0,
-        left: parseFloat(computed.paddingLeft) || 0,
-        right: parseFloat(computed.paddingRight) || 0
-    };
-    document.body.removeChild(div);
-    return insets;
-}
-
-// Safe area values from env() — used by CSS vars and canvas code
+// Safe area detection: env() sentinel first, heuristic fallback for iOS PWA
 window.safeAreaInsets = { top: 0, bottom: 0, left: 0, right: 0 };
 window.isPWA = isPWAStandalone();
+const _isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+               (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
 function resize() {
-    // Read raw env() values — no forced minimums, trust the system
-    const insets = getSafeAreaInsets();
-    const safeTop = insets.top;
-    const safeBottom = insets.bottom;
+    // 1. Read env() from persistent sentinel
+    const cs = getComputedStyle(saSentinel);
+    const envTop = parseFloat(cs.paddingTop) || 0;
+    const envBot = parseFloat(cs.paddingBottom) || 0;
+    let safeTop = envTop;
+    let safeBottom = envBot;
 
-    window.safeAreaInsets = { top: safeTop, bottom: safeBottom, left: insets.left, right: insets.right };
+    // Viewport-level insets (for modals outside game-container)
+    let vpTop = 0, vpBot = 0;
 
-    // CSS vars consumed by all safe-area-aware DOM elements
+    if (window.isPWA && _isIOS) {
+        // Always position container in safe zone — env() or heuristic
+        vpTop = envTop || Math.max(0, screen.height - innerHeight);
+        vpBot = envBot || 0;
+        if (vpTop < 20 && screen.height >= 812) vpTop = 59;
+        if (vpBot < 10 && screen.height >= 812) vpBot = 34;
+
+        gameContainer.style.top = vpTop + 'px';
+        gameContainer.style.bottom = vpBot + 'px';
+
+        // Container handles safe areas — children see safe=0
+        safeTop = 0;
+        safeBottom = 0;
+    }
+
+    // CSS vars: container-level (for elements inside game-container)
     document.documentElement.style.setProperty('--safe-top', safeTop + 'px');
     document.documentElement.style.setProperty('--safe-bottom', safeBottom + 'px');
+    // Viewport-level (for full-screen modals outside game-container)
+    document.documentElement.style.setProperty('--vp-safe-top', vpTop + 'px');
+    document.documentElement.style.setProperty('--vp-safe-bottom', vpBot + 'px');
+
+    window.safeAreaInsets = { top: safeTop, bottom: safeBottom, left: 0, right: 0 };
 
     // Container fills viewport (top:0;bottom:0). Read actual dimensions.
     gameWidth = Math.min(600, gameContainer.clientWidth);
@@ -2585,6 +2587,7 @@ function resize() {
     G._safeTop = safeTop;
     G._safeBottom = safeBottom;
     const playableHeight = gameHeight - safeBottom;
+
     if (player) {
         player.gameWidth = gameWidth;
         player.gameHeight = playableHeight;
