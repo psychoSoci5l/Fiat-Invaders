@@ -3,7 +3,7 @@ window.Game = window.Game || {};
 class InputSystem {
     constructor() {
         this.keys = {};
-        this.touch = { active: false, x: 0, shield: false, hyper: false, axisX: 0, joystickActive: false, joystickId: null, useJoystick: false, deadzone: 0.15, sensitivity: 1.0 };
+        this.touch = { active: false, x: 0, shield: false, hyper: false, axisX: 0, joystickActive: false, joystickId: null, useJoystick: false, deadzone: 0.15, sensitivity: 1.0, dragOriginX: 0, newDrag: false };
         // v5.7: Tap-on-ship shield activation
         this._tapStart = null; // {x, y, time}
         this._playerPos = { x: 0, y: 0 }; // Canvas coords, updated by Player
@@ -41,10 +41,13 @@ class InputSystem {
             if (e.cancelable) e.preventDefault();
             this.touch.active = true;
             if (e.touches.length > 0) {
-                // Normalize X to 0.0 - 1.0 range based on screen/window width
-                // Since game is usually fullscreen or close to it on mobile:
-                this.touch.xPct = e.touches[0].clientX / window.innerWidth;
-                this.touch.x = e.touches[0].clientX; // Keep raw just in case
+                const clientX = e.touches[0].clientX;
+                this.touch.x = clientX;
+                this.touch.xPct = clientX / window.innerWidth;
+                if (e.type === 'touchstart') {
+                    this.touch.dragOriginX = clientX;
+                    this.touch.newDrag = true;
+                }
             }
         };
 

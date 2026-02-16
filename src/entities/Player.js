@@ -334,8 +334,14 @@ class Player extends window.Game.Entity {
             this.vx = input.touch.axisX * speed;
         }
         else if (input.touch.active) {
-            // Legacy fallback for non-joystick touch
-            const targetX = input.touch.xPct * this.gameWidth;
+            // Relative drag: finger delta moves ship from anchor position
+            if (input.touch.newDrag) {
+                this._dragAnchorX = this.x;
+                this._dragOriginX = input.touch.dragOriginX;
+                input.touch.newDrag = false;
+            }
+            const scale = (this.gameWidth / window.innerWidth) * (input.touch.sensitivity || 1.0);
+            const targetX = this._dragAnchorX + (input.touch.x - this._dragOriginX) * scale;
             const d = targetX - this.x;
             this.vx = d * Balance.PLAYER.TOUCH_SWIPE_MULT;
         }

@@ -172,7 +172,6 @@ function showNicknamePrompt(callback, options) {
     }
     if (error) error.style.display = 'none';
     input.value = getNickname();
-    input.focus();
     function cleanup() {
         overlay.style.display = 'none';
         input.removeEventListener('keydown', onKey);
