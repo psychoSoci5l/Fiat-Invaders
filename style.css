@@ -343,11 +343,13 @@ body {
     /* Removed Padding from Body to allow Fullscreen Canvas */
 }
 
-/* Game Container: fixed to viewport, safe areas via CSS vars set by JS */
+/* Game Container: inset to safe area via native env().
+   Body (#000) fills DI + home indicator zones.
+   All children position relative to safe area — no safe-area offsets needed. */
 #game-container {
     position: fixed;
-    top: 0;
-    bottom: 0;
+    top: env(safe-area-inset-top, 0px);
+    bottom: env(safe-area-inset-bottom, 0px);
     left: 50%;
     transform: translateX(-50%);
     max-width: 600px;

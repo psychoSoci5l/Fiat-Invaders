@@ -2249,7 +2249,7 @@ function init() {
         }
     });
 
-    player = new G.Player(gameWidth, gameHeight - (G._safeBottom || 0));
+    player = new G.Player(gameWidth, gameHeight);
     window.player = player; // Expose for debug commands
     waveMgr.init();
 
@@ -2556,43 +2556,33 @@ function getSafeAreaInsets() {
     return insets;
 }
 
-// Store safe area values globally for rendering adjustments
+// v5.23.2: Container uses CSS env() for safe area inset — canvas is already in safe zone.
+// All canvas/JS code uses 0 for safe offsets (container handles it natively).
 window.safeAreaInsets = { top: 0, bottom: 0, left: 0, right: 0 };
-window.isPWA = false;
+window.isPWA = isPWAStandalone();
 
 function resize() {
-    window.isPWA = isPWAStandalone();
-    const insets = getSafeAreaInsets();
-    // Unified: PWA forces minimums (env() can return 0 on iOS standalone)
-    const safeTop = window.isPWA ? Math.max(insets.top, 59) : insets.top;
-    const safeBottom = window.isPWA ? Math.max(insets.bottom, 34) : insets.bottom;
+    // CSS vars kept at 0 — existing var(--safe-top/bottom) refs resolve to base values.
+    // Container CSS env() handles all safe area insets natively.
+    document.documentElement.style.setProperty('--safe-top', '0px');
+    document.documentElement.style.setProperty('--safe-bottom', '0px');
 
-    // Store ENFORCED values globally (all JS/canvas code reads from this)
-    window.safeAreaInsets = { top: safeTop, bottom: safeBottom, left: insets.left, right: insets.right };
-
-    // CSS vars (consumed by all safe-area-aware elements)
-    document.documentElement.style.setProperty('--safe-top', safeTop + 'px');
-    document.documentElement.style.setProperty('--safe-bottom', safeBottom + 'px');
-
-    // Container fills viewport via CSS fixed. Read actual dimensions.
+    // Container is inset to safe area via CSS env(). Read actual safe-area dimensions.
     gameWidth = Math.min(600, gameContainer.clientWidth);
     gameHeight = gameContainer.clientHeight;
 
     canvas.width = gameWidth;
     canvas.height = gameHeight;
 
-    // v4.0.1: Expose gameWidth for Bullet horizontal bounds check
     G._gameWidth = gameWidth;
-    // v4.32: Expose gameHeight for responsive formations, teleport bounds, HYPER particles
     G._gameHeight = gameHeight;
 
-    // v5.23: Player respects safe bottom (ship stays above home indicator)
-    G._safeTop = safeTop;
-    G._safeBottom = safeBottom;
-    const playableHeight = gameHeight - safeBottom;
+    // No safe area subtraction — container IS the safe area
+    G._safeTop = 0;
+    G._safeBottom = 0;
     if (player) {
         player.gameWidth = gameWidth;
-        player.gameHeight = playableHeight;
+        player.gameHeight = gameHeight;
     }
 
     // Update ParticleSystem dimensions
