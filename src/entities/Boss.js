@@ -1120,7 +1120,7 @@ class Boss extends window.Game.Entity {
             ctx.globalCompositeOperation = 'source-over';
         }
 
-        this.drawHPBar(ctx, x, y, w, 'THE FED');
+        this.drawHPBar(ctx, x, y, w, h, 'THE FED', pyrW);
         ctx.restore();
     }
 
@@ -1308,7 +1308,7 @@ class Boss extends window.Game.Entity {
             }
         }
 
-        this.drawHPBar(ctx, x, y, w, 'BCE');
+        this.drawHPBar(ctx, x, y, w, h, 'BCE', coreR * 2);
         ctx.restore();
     }
 
@@ -1528,7 +1528,7 @@ class Boss extends window.Game.Entity {
             ctx.restore();
         }
 
-        this.drawHPBar(ctx, x, y, w, 'BOJ');
+        this.drawHPBar(ctx, x, y, w, h, 'BOJ', kasagiW);
         ctx.restore();
     }
 
@@ -1553,15 +1553,15 @@ class Boss extends window.Game.Entity {
         ctx.lineTo(cx, cy - outerRadius);
     }
 
-    // v5.7: Redesigned HP bar with glow, segments, monospace
-    drawHPBar(ctx, x, y, w, name) {
+    // v5.24: HP bar below boss, width matches boss visual
+    drawHPBar(ctx, x, y, w, h, name, bossW) {
         const CU = window.Game.ColorUtils;
         const hpPct = Math.max(0, this.hp / this.maxHp);
-        const barW = w + 40;
-        const barH = 10;
-        const barX = x - 20;
-        const barY = y - 28;
+        const barW = bossW;
+        const barH = 6;
         const centerX = x + w / 2;
+        const barX = centerX - barW / 2;
+        const barY = y + h + 6;
         const p = this.phase;
 
         // Phase fill RGB
@@ -1569,10 +1569,17 @@ class Boss extends window.Game.Entity {
         const fG = p === 3 ? 34 : (p === 2 ? 170 : 255);
         const fB = p === 3 ? 68 : (p === 2 ? 0 : 20);
 
+        // Boss name (above bar)
+        ctx.fillStyle = CU.rgba(255, 255, 255, 0.85);
+        ctx.font = CU.font('bold', 10, 'monospace');
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(name, centerX, barY - 8);
+
         // Background
         ctx.fillStyle = CU.rgba(20, 0, 0, 0.8);
         ctx.beginPath();
-        ctx.roundRect(barX, barY, barW, barH, 3);
+        ctx.roundRect(barX, barY, barW, barH, 2);
         ctx.fill();
 
         // Phase threshold markers
@@ -1597,36 +1604,31 @@ class Boss extends window.Game.Entity {
             fGrad.addColorStop(1, CU.rgba(fR, fG, fB, 0.7));
             ctx.fillStyle = fGrad;
             ctx.beginPath();
-            ctx.roundRect(barX, barY, fillW, barH, 3);
+            ctx.roundRect(barX, barY, fillW, barH, 2);
             ctx.fill();
 
             // Glow on fill (additive)
             ctx.globalCompositeOperation = 'lighter';
             ctx.fillStyle = CU.rgba(fR, fG, fB, 0.15);
             ctx.beginPath();
-            ctx.roundRect(barX, barY - 2, fillW, barH + 4, 4);
+            ctx.roundRect(barX, barY - 1, fillW, barH + 2, 3);
             ctx.fill();
             ctx.globalCompositeOperation = 'source-over';
         }
 
         // Border
-        ctx.strokeStyle = CU.rgba(255, 255, 255, 0.4);
+        ctx.strokeStyle = CU.rgba(255, 255, 255, 0.3);
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.roundRect(barX, barY, barW, barH, 3);
+        ctx.roundRect(barX, barY, barW, barH, 2);
         ctx.stroke();
 
-        // Phase text
-        ctx.fillStyle = CU.rgba(255, 255, 255, 0.7);
-        ctx.font = CU.font('bold', 10, 'monospace');
+        // Phase text (below bar)
+        ctx.fillStyle = CU.rgba(255, 255, 255, 0.5);
+        ctx.font = CU.font('bold', 8, 'monospace');
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(`PHASE ${p}`, centerX, barY - 7);
-
-        // Boss name
-        ctx.fillStyle = '#fff';
-        ctx.font = CU.font('bold', 14, 'monospace');
-        ctx.fillText(name, centerX, barY - 20);
+        ctx.fillText(`PHASE ${p}`, centerX, barY + barH + 7);
     }
 
 }

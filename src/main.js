@@ -199,6 +199,17 @@ function showNicknamePrompt(callback, options) {
     if (skipBtn) skipBtn.addEventListener('click', skip);
 }
 
+// === DEVICE ID (v5.23.8) ===
+function getDeviceId() {
+    let id = localStorage.getItem('fiat_device_id');
+    if (!id) {
+        id = crypto.randomUUID ? crypto.randomUUID() :
+            'xxxxxxxx-xxxx-4xxx'.replace(/x/g, () => Math.floor(Math.random() * 16).toString(16));
+        localStorage.setItem('fiat_device_id', id);
+    }
+    return id;
+}
+
 // === SCORE INTEGRITY (v5.17.2) ===
 const _sk = (()=>{
     const d = [44,9,80,110,122,77,5,3,34,71,120,36,115,18,99,45,29,76,93,14,125,11,106,38];
@@ -206,7 +217,8 @@ const _sk = (()=>{
     return d.map((v,i) => String.fromCharCode(v ^ m[i % m.length])).join('');
 })();
 async function signScore(payload) {
-    const message = `${payload.s}|${payload.k}|${payload.c}|${payload.w}|${payload.sh}|${payload.mode}|${payload.p}|${payload.t}`;
+    let message = `${payload.s}|${payload.k}|${payload.c}|${payload.w}|${payload.sh}|${payload.mode}|${payload.p}|${payload.t}`;
+    if (payload.d) message += `|${payload.d}`;
     const key = await crypto.subtle.importKey(
         'raw', new TextEncoder().encode(_sk),
         { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
@@ -271,6 +283,7 @@ G.Leaderboard = {
             b: data.bear ? 1 : 0,
             p: getPlatform(),
             mode: data.mode || 'story',
+            d: getDeviceId(),
             t: Date.now()
         };
         try {
@@ -345,9 +358,12 @@ G.Leaderboard = {
         let playerInfo = null;
         const rankSection = document.getElementById('lb-player-rank');
         if (nick) {
-            const result = await this.getRank(this._getMode(), Math.floor(score));
+            const mode = this._getMode();
+            const hsKey = mode === 'arcade' ? 'fiat_highscore_arcade' : 'fiat_highscore_story';
+            const hs = parseInt(localStorage.getItem(hsKey)) || 0;
+            const result = await this.getRank(mode, hs);
             if (result.ok && result.rank > 0) {
-                playerInfo = { nick, score: Math.floor(score), rank: result.rank };
+                playerInfo = { nick, score: hs, rank: result.rank };
                 if (rankSection) {
                     rankSection.style.display = 'flex';
                     const label = rankSection.querySelector('.lb-rank-label');
@@ -6323,6 +6339,7 @@ function triggerGameOver() {
     if (ui.kills) ui.kills.innerText = killCount;
     if (ui.streak) ui.streak.innerText = bestStreak;
     setStyle('pause-btn', 'display', 'none');
+    if (ui.uiLayer) ui.uiLayer.style.display = 'none'; // Hide HUD (graze meter etc.)
     audioSys.play('explosion');
 
     // v5.23: Leaderboard submit (async, non-blocking)

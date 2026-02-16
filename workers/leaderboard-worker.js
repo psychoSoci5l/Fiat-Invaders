@@ -114,8 +114,9 @@ async function handlePostScore(request, env) {
   const { payload, sig } = body;
   if (!payload || !sig) return jsonResponse({ ok: false, error: 'missing fields' }, 400);
 
-  // Verify HMAC
-  const message = `${payload.s}|${payload.k}|${payload.c}|${payload.w}|${payload.sh}|${payload.mode}|${payload.p || ''}|${payload.t}`;
+  // Verify HMAC (v5.23.8: includes device ID if present)
+  let message = `${payload.s}|${payload.k}|${payload.c}|${payload.w}|${payload.sh}|${payload.mode}|${payload.p || ''}|${payload.t}`;
+  if (payload.d) message += `|${payload.d}`;
   const valid = await verifyHMAC(message, sig, env.HMAC_SECRET);
   if (!valid) return jsonResponse({ ok: false, error: 'invalid signature' }, 403);
 
@@ -135,10 +136,37 @@ async function handlePostScore(request, env) {
   const raw = await env.LEADERBOARD.get(key);
   const scores = raw ? JSON.parse(raw) : [];
 
+  // === DEVICE BINDING (v5.23.8): 1 nickname per device ===
+  const deviceHash = payload.d ? await sha256(payload.d) : null;
+  const deviceKey = deviceHash ? `dev:${mode}:${deviceHash}` : null;
+  if (deviceKey) {
+    const boundNick = await env.LEADERBOARD.get(deviceKey);
+    if (boundNick && boundNick !== payload.n) {
+      // Device changed nickname — remove old nick's entry
+      const oldIdx = scores.findIndex(e => e.n === boundNick);
+      if (oldIdx !== -1) scores.splice(oldIdx, 1);
+    }
+    // Update device→nickname binding (30 day TTL)
+    await env.LEADERBOARD.put(deviceKey, payload.n, { expirationTtl: 2592000 });
+  }
+
+  // === NICKNAME DEDUP (v5.23.8): keep only best score per nickname ===
+  const existingIdx = scores.findIndex(e => e.n === payload.n);
+  const newScore = Math.floor(payload.s);
+  if (existingIdx !== -1 && newScore <= scores[existingIdx].s) {
+    // New score is not better — don't replace, return current rank
+    // Still save in case device binding removed another entry above
+    await env.LEADERBOARD.put(key, JSON.stringify(scores));
+    await env.LEADERBOARD.put(rateKey, String(Date.now()), { expirationTtl: RATE_LIMIT_TTL });
+    return jsonResponse({ ok: true, rank: existingIdx + 1, kept: 'existing' });
+  }
+  // Remove old entry for this nickname (new score is better, or first entry)
+  if (existingIdx !== -1) scores.splice(existingIdx, 1);
+
   // Build entry
   const entry = {
     n: payload.n,
-    s: Math.floor(payload.s),
+    s: newScore,
     k: payload.k,
     c: payload.c,
     w: payload.w,

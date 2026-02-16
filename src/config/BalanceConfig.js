@@ -631,7 +631,7 @@
             // HP scaling (applied before perk/damage modifiers)
             // v4.16: +25-40% boost — audit showed FED 12.7s, BCE 9.7s (target 45-75s)
             HP: {
-                BASE: 3000,           // v5.15.1: 4083→3000 (-27%, C1 WPN LV1 target ~75-100s)
+                BASE: 2700,           // v5.23.8: 3000→2700 (-10%, C1 nerf)
                 PER_LEVEL: 100,       // v4.48: 65→100 (+54%, scaling livello più incisivo)
                 PER_CYCLE: 5000,      // v4.48: 4000→5000 (+25%, gap tra cicli maggiore)
                 PERK_SCALE: 0.10,     // +10% per player perk
@@ -649,7 +649,7 @@
             // Fire rate per phase (seconds between attacks, lower = faster)
             // Updated v2.18.0: Rebalanced for new patterns
             FIRE_RATES: {
-                FEDERAL_RESERVE: [0.70, 0.38, 0.20],  // v5.0.4: P1 0.85→0.70 (+22% fire rate)
+                FEDERAL_RESERVE: [0.77, 0.42, 0.22],  // v5.23.8: -10% fire rate nerf (was 0.70/0.38/0.20)
                 BCE: [1.40, 0.70, 0.35],              // Bureaucratic delays
                 BOJ: [0.90, 0.45, 0.18]               // v4.10.2: Phase 1 slowed (0.75→0.90) to reduce bullet density
             },

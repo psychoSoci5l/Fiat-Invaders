@@ -1,5 +1,15 @@
 # Changelog
 
+## v5.23.8 - 2026-02-16
+### Boss HP Bar Below + Game Over Cleanup + Leaderboard Dedup
+- **fix(boss)**: HP bar and name now render below the boss instead of above — bar width matches boss visual width (110px FED/BCE, 140px BOJ), smaller bar height (6px), phase text below bar
+- **fix(ui)**: Game over screen now hides HUD layer (graze meter, DIP bar) — previously remained visible behind gameover overlay
+- **fix(leaderboard)**: "IL TUO RANK" now uses high score from localStorage instead of stale global score variable — fixes rank showing #2 when player is actually #1
+- **feat(leaderboard)**: Nickname dedup — only best score per nickname is kept on the leaderboard (new score lower than existing → ignored)
+- **feat(leaderboard)**: Device binding — client generates UUID (`fiat_device_id` in localStorage), worker enforces 1 nickname per device. Changing nickname removes old entry from leaderboard
+- **feat(leaderboard)**: Device ID included in HMAC signature (backward-compatible: old payloads without `d` still verify)
+- **balance(boss)**: C1 FED nerf — HP 3000→2700 (-10%), fire rate intervals +10% slower across all 3 phases
+
 ## v5.23.7 - 2026-02-16
 ### Relative Drag Touch + UX Polish
 - **feat(controls)**: Swipe mode now uses relative drag — finger delta from anchor point instead of absolute screen position. Small repeated gestures move the ship across the screen without stretching thumb edge-to-edge
