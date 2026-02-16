@@ -2249,7 +2249,7 @@ function init() {
         }
     });
 
-    player = new G.Player(gameWidth, gameHeight);
+    player = new G.Player(gameWidth, gameHeight - (G._safeBottom || 0));
     window.player = player; // Expose for debug commands
     waveMgr.init();
 
@@ -2556,18 +2556,23 @@ function getSafeAreaInsets() {
     return insets;
 }
 
-// v5.23.2: Container uses CSS env() for safe area inset — canvas is already in safe zone.
-// All canvas/JS code uses 0 for safe offsets (container handles it natively).
+// Safe area values from env() — used by CSS vars and canvas code
 window.safeAreaInsets = { top: 0, bottom: 0, left: 0, right: 0 };
 window.isPWA = isPWAStandalone();
 
 function resize() {
-    // CSS vars kept at 0 — existing var(--safe-top/bottom) refs resolve to base values.
-    // Container CSS env() handles all safe area insets natively.
-    document.documentElement.style.setProperty('--safe-top', '0px');
-    document.documentElement.style.setProperty('--safe-bottom', '0px');
+    // Read raw env() values — no forced minimums, trust the system
+    const insets = getSafeAreaInsets();
+    const safeTop = insets.top;
+    const safeBottom = insets.bottom;
 
-    // Container is inset to safe area via CSS env(). Read actual safe-area dimensions.
+    window.safeAreaInsets = { top: safeTop, bottom: safeBottom, left: insets.left, right: insets.right };
+
+    // CSS vars consumed by all safe-area-aware DOM elements
+    document.documentElement.style.setProperty('--safe-top', safeTop + 'px');
+    document.documentElement.style.setProperty('--safe-bottom', safeBottom + 'px');
+
+    // Container fills viewport (top:0;bottom:0). Read actual dimensions.
     gameWidth = Math.min(600, gameContainer.clientWidth);
     gameHeight = gameContainer.clientHeight;
 
@@ -2577,12 +2582,12 @@ function resize() {
     G._gameWidth = gameWidth;
     G._gameHeight = gameHeight;
 
-    // No safe area subtraction — container IS the safe area
-    G._safeTop = 0;
-    G._safeBottom = 0;
+    G._safeTop = safeTop;
+    G._safeBottom = safeBottom;
+    const playableHeight = gameHeight - safeBottom;
     if (player) {
         player.gameWidth = gameWidth;
-        player.gameHeight = gameHeight;
+        player.gameHeight = playableHeight;
     }
 
     // Update ParticleSystem dimensions

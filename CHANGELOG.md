@@ -1,12 +1,13 @@
 # Changelog
 
-## v5.23.2 - 2026-02-16
+## v5.23.3 - 2026-02-16
+### Raw env() — Safari-first layout
+- **fix(pwa)**: Reverted container to `top:0;bottom:0` (Safari reference layout). Safe areas handled by children via `--safe-top/--safe-bottom` CSS vars
+- **fix(pwa)**: Removed JS-forced safe area minimums (59px/34px) — raw `env()` values trusted on iPhone 14+ (iOS 16+)
+- **fix(pwa)**: Removed `isPWA` conditional logic from resize() — same code path for Safari and PWA
+
+## v5.23.2 - 2026-02-16 (reverted)
 ### Native Safe Area — Safari/PWA Identical Layout
-- **fix(pwa)**: Game container uses native CSS `env(safe-area-inset-top/bottom)` for positioning — eliminates ALL Safari vs PWA layout differences
-- **fix(pwa)**: Removed JS-forced safe area minimums (59px/34px) and isPWA detection hacks — system env() values trusted on iPhone 14+ (iOS 16+)
-- **fix(pwa)**: Canvas coordinate system now relative to safe area (safeAreaInsets = 0 everywhere) — no more offset math in Boss, WaveManager, StoryScreen
-- **fix(pwa)**: Body #000 fills Dynamic Island + home indicator zones natively (standard iOS pattern)
-- **refactor**: `--safe-top`/`--safe-bottom` CSS vars set to 0px (container handles insets) — existing var() references evaluate to base values
 
 ## v5.23.1 - 2026-02-16
 ### Safari vs PWA Layout Consistency
