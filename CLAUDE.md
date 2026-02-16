@@ -180,5 +180,14 @@ Use `G.ColorUtils.rgba(r,g,b,a)` and `G.ColorUtils.font(w,s,f)` in all per-frame
 ### localStorage Version Migration
 IIFE at top of main.js: clears all localStorage on version mismatch (`G.VERSION` vs `fiat_app_version` key). Ensures clean state on updates.
 
+### PWA Layout Pattern (v5.23)
+`#game-container` is `position: fixed; top:0; bottom:0` — CSS fills the viewport, no JS sizing. `resize()` reads `gameContainer.clientHeight` for canvas, sets `--safe-top`/`--safe-bottom` CSS vars (PWA forces minimums: top 59px, bottom 34px). **Player uses `playableHeight = gameHeight - safeBottom`** so the ship stays above the home indicator. `G._safeBottom` exposed globally. DOM elements use `var(--safe-bottom)` / `var(--safe-top)` for offsets.
+
+### Leaderboard Offline Queue (v5.23)
+Failed score submissions are saved to `fiat_pending_score` in localStorage (only keeps highest). `flushPendingScore()` retries on app start and at each game over. i18n key `LB_QUEUED`.
+
+### Nickname Flow (v5.23)
+`showNicknamePrompt(callback, options)` — callback receives boolean (true=entered, false=skipped). Options: `{title, hideSkip}`. SKIP button in overlay. First launch: prompt once per session (`window._nickPromptShown`), skip allowed. Game over with new record + no nickname: prompt with `NICK_RECORD_TITLE`.
+
 ### UI Safe Zones
-HUD: 0-45px top. Gameplay: 65px+ top. Boss targetY: 65 + safeOffset. Graze/Shield/HYPER/Joystick: bottom area (DOM elements).
+HUD: 0-45px top. Gameplay: 65px+ top. Boss targetY: 65 + safeOffset. Graze/Shield/HYPER/Joystick: bottom area (DOM elements). Ship Y: `playableHeight - RESET_Y_OFFSET` (respects safeBottom).

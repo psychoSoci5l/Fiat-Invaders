@@ -1,7 +1,19 @@
 # Roadmap: FIAT vs CRYPTO
 
-> **Versione attuale**: v5.17.2 (2026-02-15)
+> **Versione attuale**: v5.23.0 (2026-02-16)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
+
+---
+
+## COMPLETATO — PWA Layout Fix + Offline Queue + Nickname Flow (v5.23.0)
+
+- [x] Game container `position: fixed` — eliminates black band on iOS PWA standalone
+- [x] Unified `resize()` — single code path, `--safe-top`/`--safe-bottom` CSS vars replace `--pwa-*-inset`
+- [x] Player respects `safeBottom` — ship stays above home indicator zone
+- [x] Offline score queue — failed submissions saved to localStorage, flushed on next start/gameover
+- [x] Nickname SKIP button — first launch prompt skippable (once per session)
+- [x] New record without nickname — triggers callsign prompt on game over
+- [x] 3 new i18n keys: `LB_QUEUED`, `NICK_SKIP`, `NICK_RECORD_TITLE` (EN/IT)
 
 ---
 
