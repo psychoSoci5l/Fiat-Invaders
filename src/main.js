@@ -2824,6 +2824,98 @@ G.sendFeedback = function () {
 // What's New panel (v4.50, i18n v5.18)
 const WHATS_NEW = [
     {
+        version: 'v5.23', date: '2026-02-16',
+        title: { EN: 'Leaderboard Upgrade + Polish', IT: 'Classifica Potenziata + Pulizia' },
+        items: {
+            EN: [
+                'Leaderboard: 1 entry per nickname (best score only), 1 nickname per device',
+                'Boss HP bar and name now displayed below the boss — cleaner battlefield',
+                'Game over properly hides HUD elements (graze meter, DIP bar)',
+                'Swipe controls: relative drag mode + sensitivity slider affects all modes',
+                'PWA safe area: reliable layout on iOS standalone mode'
+            ],
+            IT: [
+                'Classifica: 1 entry per nickname (solo miglior punteggio), 1 nickname per dispositivo',
+                'Barra HP e nome boss ora mostrati sotto il boss — campo di battaglia più pulito',
+                'Il game over nasconde correttamente gli elementi HUD (graze meter, barra DIP)',
+                'Controlli swipe: modalità drag relativo + slider sensibilità per tutte le modalità',
+                'PWA safe area: layout affidabile su iOS in modalità standalone'
+            ]
+        }
+    },
+    {
+        version: 'v5.22', date: '2026-02-16',
+        title: { EN: 'Game Completion + Settings Hub', IT: 'Completamento Gioco + Hub Impostazioni' },
+        items: {
+            EN: [
+                'NEW: Cinematic completion video when you beat all 3 bosses (EN/IT)',
+                'Credits overlay with staggered fade-in and open source link',
+                'Settings reorganized as central hub — 3 sections: Gameplay, Audio, Info',
+                'Bottom bar simplified: Settings / Leaderboard / What\'s New'
+            ],
+            IT: [
+                'NUOVO: Video cinematico di completamento quando batti tutti e 3 i boss (EN/IT)',
+                'Overlay crediti con fade-in sfalsato e link open source',
+                'Impostazioni riorganizzate come hub centrale — 3 sezioni: Gameplay, Audio, Info',
+                'Barra inferiore semplificata: Impostazioni / Classifica / Novità'
+            ]
+        }
+    },
+    {
+        version: 'v5.20', date: '2026-02-15',
+        title: { EN: 'Cinematic Ship + Auto-Cannon', IT: 'Nave Cinematica + Auto-Cannone' },
+        items: {
+            EN: [
+                'NEW: Ship deploy VFX — flash, brighten, burst, aura ring on spawn',
+                'Auto-cannon system: ship starts bare, cannon mounts with VFX after 1.5s',
+                'Twin-rail cannon design: nose → pod split → heavy barrel across 3 levels',
+                'HYPER beam count matches visual weapon level with DPS compensation'
+            ],
+            IT: [
+                'NUOVO: VFX deploy nave — flash, luminosità, burst, anello aura allo spawn',
+                'Sistema auto-cannone: la nave parte spoglia, il cannone si monta con VFX dopo 1.5s',
+                'Design cannone a doppio binario: muso → pod divisi → canna pesante in 3 livelli',
+                'Fasci HYPER corrispondono al livello arma visivo con compensazione DPS'
+            ]
+        }
+    },
+    {
+        version: 'v5.19', date: '2026-02-15',
+        title: { EN: 'Adaptive Drop Balancer', IT: 'Bilanciatore Drop Adattivo' },
+        items: {
+            EN: [
+                'NEW: Smart drop system detects struggle and domination',
+                'Struggling? 3× drop boost with forced power-ups after 40-55s',
+                'Dominating? Drop chance reduced, pity timer doubled',
+                'Post-death grace period: 25s of boosted drops after dying'
+            ],
+            IT: [
+                'NUOVO: Sistema drop intelligente rileva difficoltà e dominazione',
+                'In difficoltà? Boost drop 3× con power-up forzati dopo 40-55s',
+                'Stai dominando? Chance drop ridotta, timer pietà raddoppiato',
+                'Periodo di grazia post-morte: 25s di drop potenziati dopo la morte'
+            ]
+        }
+    },
+    {
+        version: 'v5.18', date: '2026-02-15',
+        title: { EN: 'Leaderboard Premium Redesign', IT: 'Classifica Redesign Premium' },
+        items: {
+            EN: [
+                'Medal emoji for top 3 with gold/silver/bronze accent borders',
+                '#1 player highlighted with inset glow and bold font',
+                'Platform icons (desktop/mobile) shown in leaderboard and game over',
+                'What\'s New panel now fully bilingual EN/IT with spacious redesign'
+            ],
+            IT: [
+                'Emoji medaglia per i top 3 con bordi accento oro/argento/bronzo',
+                'Giocatore #1 evidenziato con bagliore interno e font grassetto',
+                'Icone piattaforma (desktop/mobile) visibili in classifica e game over',
+                'Pannello Novità ora completamente bilingue EN/IT con design spazioso'
+            ]
+        }
+    },
+    {
         version: 'v5.17.0', date: '2026-02-15',
         title: { EN: 'Online Leaderboard', IT: 'Classifica Online' },
         items: {
