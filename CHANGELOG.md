@@ -1,5 +1,15 @@
 # Changelog
 
+## v5.23.1 - 2026-02-16
+### Safari vs PWA Layout Consistency
+- **fix(pwa)**: Body background `#030308` → `#000000` — eliminates OLED seam between body and game-container in PWA bottom area
+- **fix(css)**: `#intro-screen` padding `12%` → `calc(25px + var(--safe-top))` — consistent title position Safari/PWA (was 84px vs 101px)
+- **fix(css)**: `#gameover-screen` padding `60px` → `calc(10px + var(--safe-top))` — safe-area aware
+- **fix(css)**: Short screen media query padding aligned to `calc(10px + var(--safe-top))`
+- **fix(pwa)**: `manifest.json` background_color `#030308` → `#000000` — splash screen matches body
+- **fix(pwa)**: `resize()` stores enforced safeTop/safeBottom in `window.safeAreaInsets` (was storing raw env values)
+- **fix(pwa)**: Exposed `G._safeTop` globally for canvas code
+
 ## v5.23.0 - 2026-02-16
 ### PWA Layout Fix + Offline Queue + Nickname Flow
 - **fix(pwa)**: Game container changed from `position: absolute` (JS-sized) to `position: fixed; top:0; bottom:0` (CSS-sized) — eliminates black band on iOS PWA standalone

@@ -2563,11 +2563,12 @@ window.isPWA = false;
 function resize() {
     window.isPWA = isPWAStandalone();
     const insets = getSafeAreaInsets();
-    window.safeAreaInsets = insets;
-
     // Unified: PWA forces minimums (env() can return 0 on iOS standalone)
     const safeTop = window.isPWA ? Math.max(insets.top, 59) : insets.top;
     const safeBottom = window.isPWA ? Math.max(insets.bottom, 34) : insets.bottom;
+
+    // Store ENFORCED values globally (all JS/canvas code reads from this)
+    window.safeAreaInsets = { top: safeTop, bottom: safeBottom, left: insets.left, right: insets.right };
 
     // CSS vars (consumed by all safe-area-aware elements)
     document.documentElement.style.setProperty('--safe-top', safeTop + 'px');
@@ -2586,6 +2587,7 @@ function resize() {
     G._gameHeight = gameHeight;
 
     // v5.23: Player respects safe bottom (ship stays above home indicator)
+    G._safeTop = safeTop;
     G._safeBottom = safeBottom;
     const playableHeight = gameHeight - safeBottom;
     if (player) {

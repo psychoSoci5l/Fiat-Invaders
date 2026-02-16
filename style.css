@@ -4,7 +4,7 @@
     --neon-green: #39ff14;
     --neon-magenta: #ff2d95;
     --neon-cyan: #00f0ff;
-    --bg-color: #030308;
+    --bg-color: #000000;
     --terminal-bg: rgba(4, 4, 16, 0.8);
     --terminal-border: rgba(0, 240, 255, 0.35);
     --terminal-glow: rgba(0, 240, 255, 0.25);
@@ -790,7 +790,7 @@ body {
     flex-direction: column;
     justify-content: flex-start;
     align-items: center;
-    padding-top: 12%;
+    padding-top: calc(25px + var(--safe-top, 0px));
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     z-index: 250; /* v4.21: Above all game elements (touchControls=200, ui-layer=120) */
@@ -810,7 +810,7 @@ body {
     align-items: center;
     z-index: 110;
     padding: 40px;
-    padding-top: 60px;
+    padding-top: calc(10px + var(--safe-top, 0px));
     box-sizing: border-box;
     /* Safe areas now handled by game-container */
 }
@@ -2562,7 +2562,7 @@ body.bear-mode .neon-title {
 @media (max-height: 740px) {
     #intro-screen,
     #gameover-screen {
-        padding-top: 50px;
+        padding-top: calc(10px + var(--safe-top, 0px));
     }
     .terminal-boot {
         margin-top: 18px;
