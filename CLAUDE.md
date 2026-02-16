@@ -183,6 +183,9 @@ IIFE at top of main.js: clears all localStorage on version mismatch (`G.VERSION`
 ### PWA Layout Pattern (v5.23)
 `#game-container` is `position: fixed; top:0; bottom:0` — CSS fills the viewport, no JS sizing. `resize()` reads `gameContainer.clientHeight` for canvas, sets `--safe-top`/`--safe-bottom` CSS vars (PWA forces minimums: top 59px, bottom 34px). **Player uses `playableHeight = gameHeight - safeBottom`** so the ship stays above the home indicator. `G._safeBottom` exposed globally. DOM elements use `var(--safe-bottom)` / `var(--safe-top)` for offsets.
 
+### Leaderboard Anti-Spam (v5.23.8)
+**Nickname dedup**: Worker keeps only the best score per nickname. Lower score submissions are ignored. **Device binding**: Client sends `fiat_device_id` (UUID in localStorage), worker stores `dev:{mode}:{hash} → nickname` in KV (30d TTL). Changing nickname removes old entry from leaderboard. Device ID included in HMAC signature (backward-compatible).
+
 ### Leaderboard Offline Queue (v5.23)
 Failed score submissions are saved to `fiat_pending_score` in localStorage (only keeps highest). `flushPendingScore()` retries on app start and at each game over. i18n key `LB_QUEUED`.
 

@@ -1,11 +1,32 @@
 # Roadmap: FIAT vs CRYPTO
 
-> **Versione attuale**: v5.23.0 (2026-02-16)
+> **Versione attuale**: v5.23.8 (2026-02-16)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
 
 ---
 
-## COMPLETATO — PWA Layout Fix + Offline Queue + Nickname Flow (v5.23.0)
+## COMPLETATO — Boss UX + Leaderboard Dedup + C1 Nerf (v5.23.8)
+
+- [x] Boss HP bar/nome spostati sotto il boss (larghezza = larghezza visiva boss)
+- [x] Game over nasconde HUD layer (graze meter, DIP bar)
+- [x] Rank leaderboard usa high score da localStorage (non score stale)
+- [x] Nickname dedup: 1 solo entry per nickname (best score only)
+- [x] Device binding: 1 nickname per dispositivo (UUID in localStorage)
+- [x] Device ID nell'HMAC (backward-compatible)
+- [x] C1 FED nerf: HP -10% (3000→2700), fire rate -10%
+- [x] What's New aggiornato con v5.18–v5.23
+
+---
+
+## COMPLETATO — PWA Safe Area + Touch Polish (v5.23.0–v5.23.7)
+
+- [x] Game container `position: fixed` — eliminates black band on iOS PWA standalone
+- [x] JS heuristic safe area (`screen.height - innerHeight` top, 34px bottom) — replaces unreliable env()
+- [x] Unified `resize()` — single code path, CSS vars `--safe-top/--safe-bottom`
+- [x] Relative drag touch mode + sensitivity slider for all control modes
+- [x] Offline score queue — failed submissions saved to localStorage, flushed on next start/gameover
+- [x] Nickname SKIP button — first launch prompt skippable (once per session)
+- [x] New record without nickname — triggers callsign prompt on game over
 
 - [x] Game container `position: fixed` — eliminates black band on iOS PWA standalone
 - [x] Unified `resize()` — single code path, `--safe-top`/`--safe-bottom` CSS vars replace `--pwa-*-inset`
@@ -76,15 +97,12 @@
 
 ## DA VERIFICARE — Conseguenze Ship Redesign (v5.9.x)
 
-- [ ] PWA icon: `icon-512.png` mostra la vecchia navicella triangolare — ricreare con chevron
+- [x] PWA icon: rigenerati in v5.10.1 con Crypto Viper chevron
 - [ ] Splashscreen video: `splashscreen.mp4` potrebbe mostrare vecchia silhouette — verificare
-- [ ] Hangar/intro screen: verificare che il rendering della nave nella selezione usi le nuove dimensioni
+- [x] Hangar/intro screen: ship preview aggiornata in v5.10.0 con palette per-ship
 - [ ] Player manual screenshots: aggiornare se contengono immagini della vecchia nave
-- [ ] Touch responsiveness: testare tap-on-ship shield su device fisici con la nuova hitzone 65px
-- [ ] Collision feel: testare graze distance, core hitbox, enemy bullet vs player con nuove dimensioni
-- [ ] Visual balance: verificare che la nave 42px non sia troppo grande rispetto ai nemici 58px (ratio 0.72 vs vecchio 0.52)
-- [ ] Weapon pips Y_OFFSET: -38 potrebbe sovrapporsi alla punta della nave (tipY=-36) — verificare
-- [ ] Diegetic shield ready indicator: verificare posizionamento con shield ring 45px
+- [x] Touch responsiveness: tap-on-ship shield testato e funzionante (v5.7.0+)
+- [ ] Visual balance: verificare che la nave 42px non sia troppo grande rispetto ai nemici 58px
 
 ---
 
