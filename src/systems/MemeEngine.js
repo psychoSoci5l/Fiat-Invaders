@@ -72,6 +72,13 @@
 
             // v5.4.0: Combat suppression
             this._waveStartedAt = 0;
+
+            // v5.25: Status HUD (reuses meme-popup DOM for ship status during gameplay)
+            this._statusActive = false;
+            this._statusType = '';
+            this._statusRemaining = 0;
+            this._statusCountdown = false;
+            this._statusBaseText = '';
         }
 
         /**
@@ -90,6 +97,11 @@
             this._currentItem = null;
             this._lastShowTime = 0;
             this._waveStartedAt = 0;
+            this._statusActive = false;
+            this._statusType = '';
+            this._statusRemaining = 0;
+            this._statusCountdown = false;
+            this._statusBaseText = '';
             if (this._hideTimer) {
                 clearTimeout(this._hideTimer);
                 this._hideTimer = null;
@@ -105,6 +117,19 @@
          */
         update(dt) {
             this.tickerSwapTimer -= dt;
+
+            // v5.25: Status HUD countdown
+            if (this._statusActive && this._statusRemaining > 0) {
+                this._statusRemaining -= dt;
+                if (this._statusCountdown && this._textEl) {
+                    if (this._statusRemaining > 0) {
+                        this._textEl.textContent = this._statusBaseText + ' ' + this._statusRemaining.toFixed(1) + 's';
+                    }
+                }
+                if (this._statusRemaining <= 0) {
+                    this.hideStatus();
+                }
+            }
         }
 
         /**
@@ -337,6 +362,63 @@
         }
 
         // ========================================
+        // STATUS HUD v5.25 — Ship status in meme-popup area
+        // ========================================
+
+        /**
+         * Show ship status in meme-popup area (replaces meme during gameplay)
+         * @param {string} text - Status text (e.g. "HOMING", "FIRE PERK")
+         * @param {string} icon - Icon/emoji prefix
+         * @param {string} statusType - CSS class suffix (fire/laser/electric/homing/pierce/missile/shield/speed/upgrade/godchain)
+         * @param {number} duration - Display duration in seconds
+         * @param {boolean} countdown - If true, show remaining time countdown
+         */
+        showStatus(text, icon, statusType, duration, countdown) {
+            if (!this._popup || !this._textEl) return;
+
+            // Cancel any active meme
+            if (this._isShowing) {
+                if (this._hideTimer) { clearTimeout(this._hideTimer); this._hideTimer = null; }
+                this._isShowing = false;
+                this._currentItem = null;
+                this._queue = [];
+            }
+
+            this._statusActive = true;
+            this._statusType = statusType;
+            this._statusRemaining = duration;
+            this._statusCountdown = !!countdown;
+            this._statusBaseText = text;
+
+            this._emojiEl.textContent = icon;
+            this._textEl.textContent = countdown ? text + ' ' + duration.toFixed(1) + 's' : text;
+
+            this._popup.className = '';
+            void this._popup.offsetWidth;
+            this._popup.className = 'status-' + statusType + ' show';
+        }
+
+        /**
+         * Hide active status display
+         */
+        hideStatus() {
+            if (!this._statusActive) return;
+            const cls = 'status-' + this._statusType;
+            this._statusActive = false;
+            this._statusType = '';
+            this._statusRemaining = 0;
+            this._statusCountdown = false;
+
+            if (!this._popup) return;
+            this._popup.className = cls + ' hide';
+            setTimeout(() => {
+                if (this._popup && !this._statusActive && !this._isShowing) {
+                    this._popup.className = '';
+                }
+            }, 250);
+        }
+
+        // ========================================
         // POPUP MANAGEMENT
         // ========================================
 
@@ -428,7 +510,21 @@
 
             const tier = EVENT_TIER_MAP[event] || 'NORMAL';
 
-            // v5.4.0: Suppress non-critical memes during combat
+            // v5.25: During PLAY, meme-popup is reserved for status HUD.
+            // Redirect CRITICAL memes to message-strip, drop the rest.
+            if (G.GameState && G.GameState.is('PLAY')) {
+                if (tier === 'CRITICAL' && G.MessageSystem) {
+                    // Boss defeated → victory strip, Death → danger strip
+                    if (event === 'BOSS_DEFEATED' || event === 'MINI_BOSS_DEFEATED') {
+                        G.MessageSystem.showVictory(text);
+                    } else {
+                        G.MessageSystem.showDanger(text);
+                    }
+                }
+                return;
+            }
+
+            // v5.4.0: Suppress non-critical memes during combat (non-PLAY states like INTERMISSION)
             if (tier !== 'CRITICAL' && this.isSuppressed()) return;
 
             const priority = config.PRIORITIES[tier] || 1;

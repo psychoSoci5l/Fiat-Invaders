@@ -1,5 +1,16 @@
 # Changelog
 
+## v5.25.0-wip - 2026-02-17
+### Power-Up Redesign + Status HUD + Tuning
+- **feat(powerup)**: Unified power-up visual — all types now render as 3D circles (dark/light halves, black outline, rim highlight) with white icon per type (arrow, crosshair, shield, lightning, diamond, star, penetrating arrow). Removes 6 old draw methods (~500 lines), adds 2 new (~170 lines)
+- **feat(powerup)**: White blink flash on all power-ups — sharp sin³ pulse every ~0.8s, clearly signals "collectible"
+- **feat(hud)**: Status HUD in bottom area — meme-popup repurposed during gameplay to show ship status (pickup feedback, active special/utility/perk with type-colored effects, GODCHAIN). Memes suppressed during PLAY, CRITICAL redirected to message-strip
+- **feat(hud)**: Countdown timer for specials/utilities/GODCHAIN — live remaining time shown in status area (e.g. "HOMING 6.3s", "SHIELD 3.1s", "GODCHAIN 8.2s")
+- **feat(hud)**: Elemental CSS effects on status text — fire (flickering orange glow), electric (intermittent violet/cyan flash), laser (steady cyan beam), GODCHAIN (gold shimmer), shield (cyan pulse)
+- **feat(bullet)**: HOMING bullet redesigned as orb tracker — radial gradient sphere (orange), 3 trail circles, orbiting tilted ring, pulsing crosshair center. Visually opposite to MISSILE (blue warhead)
+- **feat(shield)**: Expiry warning blink — last 1.5s of hex shield blinks with accelerating frequency (4Hz→12Hz), alpha oscillates 0.3→1.0
+- **balance**: Special duration 12s→8s, Utility duration 12s→8s, Perk kill threshold 70→100
+
 ## v5.24.0 - 2026-02-17
 ### Android Compatibility + Tutorial Persistence
 - **fix(tutorial)**: Tutorial now shows only on first-ever play per mode (story/arcade) — previously showed every session because `warmupShown` was in-memory only while `localStorage` write was never read back

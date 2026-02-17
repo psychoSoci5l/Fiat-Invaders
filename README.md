@@ -39,7 +39,7 @@
 *   **Shoot**: Auto-fire / Spacebar.
 *   **HYPER**: Press H when DIP meter is full (auto-activates on mobile).
 
-See [PLAYER_MANUAL.md](PLAYER_MANUAL.md) (EN) or [MANUALE_GIOCATORE.md](MANUALE_GIOCATORE.md) (IT) for full details.
+Full player manual available in-game (Settings → Manual), in both English and Italian.
 
 ## 🛠️ Development & Running Locally
 
@@ -88,8 +88,6 @@ manifest.json    # PWA Configuration
 
 ## 📚 Docs
 
-* `PLAYER_MANUAL.md` — Full player manual (English).
-* `MANUALE_GIOCATORE.md` — Manuale completo del giocatore (Italiano).
 * `CHANGELOG.md` — Running log of gameplay/visual changes.
 * `NOTES.md` — Current tuning knobs and balancing parameters.
 * `roadmap.md` — Medium/long‑term feature phases.

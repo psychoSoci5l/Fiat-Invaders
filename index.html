@@ -578,18 +578,15 @@ Tap your ship to activate</p>
                 <div class="manual-section-v2">
                     <h3 class="section-heading" data-i18n="TAB_POWERUPS">POWER-UPS</h3>
                     <table class="manual-table powerup-table">
-                        <tr><td class="pu-icon">⬆️</td><td class="pu-name">UPGRADE</td><td data-i18n="MAN_PU_UPGRADE">Permanent shot level +1 (1→2→3)</td></tr>
-                        <tr><td class="pu-icon">⚡</td><td class="pu-name">RATE</td><td data-i18n="MAN_PU_RATE">Fire rate boost (stacks x3, 12s)</td></tr>
-                        <tr><td class="pu-icon">💥</td><td class="pu-name">POWER</td><td data-i18n="MAN_PU_POWER">Damage boost (stacks x3, 12s)</td></tr>
-                        <tr><td class="pu-icon">🔱</td><td class="pu-name">SPREAD</td><td data-i18n="MAN_PU_SPREAD">Wider shot angle (stacks x2, 12s)</td></tr>
-                        <tr><td class="pu-icon">🎯</td><td class="pu-name">HOMING</td><td data-i18n="MAN_PU_HOMING">Auto-tracking bullets (12s)</td></tr>
-                        <tr><td class="pu-icon">🔥</td><td class="pu-name">PIERCE</td><td data-i18n="MAN_PU_PIERCE">Penetrating bullets (12s)</td></tr>
-                        <tr><td class="pu-icon">⚡</td><td class="pu-name">LASER</td><td data-i18n="MAN_PU_LASER">Continuous beam (12s)</td></tr>
-                        <tr><td class="pu-icon">🚀</td><td class="pu-name">MISSILE</td><td data-i18n="MAN_PU_MISSILE">AoE explosive shots (12s)</td></tr>
+                        <tr><td class="pu-icon">⬆️</td><td class="pu-name">EVOLUTION CORE</td><td data-i18n="MAN_PU_UPGRADE">Weapon level +1 — only from boss defeats (1→2→3)</td></tr>
+                        <tr><td class="pu-icon">🎯</td><td class="pu-name">HOMING</td><td data-i18n="MAN_PU_HOMING">Auto-tracking bullets (8s)</td></tr>
+                        <tr><td class="pu-icon">🔥</td><td class="pu-name">PIERCE</td><td data-i18n="MAN_PU_PIERCE">Penetrating bullets (8s)</td></tr>
+                        <tr><td class="pu-icon">🚀</td><td class="pu-name">MISSILE</td><td data-i18n="MAN_PU_MISSILE">AoE explosive shots (8s)</td></tr>
                         <tr><td class="pu-icon">🛡️</td><td class="pu-name">SHIELD</td><td data-i18n="MAN_PU_SHIELD">Instant shield activation</td></tr>
-                        <tr><td class="pu-icon">💨</td><td class="pu-name">SPEED</td><td data-i18n="MAN_PU_SPEED">Movement speed +50% (12s)</td></tr>
+                        <tr><td class="pu-icon">💨</td><td class="pu-name">SPEED</td><td data-i18n="MAN_PU_SPEED">Movement speed +50% (8s)</td></tr>
+                        <tr><td class="pu-icon">💎</td><td class="pu-name">PERK</td><td data-i18n="MAN_PU_PERK">Elemental perk: Fire → Laser → Electric. 3rd triggers GODCHAIN!</td></tr>
                     </table>
-                    <p class="section-note warning" data-i18n="POWERUPS_DEATH">On Death: -1 level per category (min 0), specials lost</p>
+                    <p class="section-note warning" data-i18n="POWERUPS_DEATH">On Death: specials lost, all elemental perks reset. Weapon level is permanent!</p>
                 </div>
 
                 <!-- SECTION 4: SCORING (v5.22: merged from help-panel) -->
@@ -597,10 +594,9 @@ Tap your ship to activate</p>
                     <h3 class="section-heading" data-i18n="MAN_SCORING">SCORING</h3>
                     <div class="tip-compact">
                         <p data-i18n="MAN_SCORE_KILL">Kill enemies for base points (20-100 by tier)</p>
-                        <p data-i18n="MAN_SCORE_HODL">HODL Mode: stop moving = 2x damage + 2x score</p>
+                        <p data-i18n="MAN_SCORE_DIP">DIP Meter: kill enemies at close range to fill the meter and activate HYPER MODE!</p>
                         <p data-i18n="MAN_SCORE_STREAK">Kill Streak: chain kills without being hit = bonus multiplier</p>
                         <p data-i18n="MAN_SCORE_GRAZE">Graze: dodge close to bullets = graze points + score multiplier (up to 2.5x)</p>
-                        <p data-i18n="MAN_SCORE_BULLET_TIME">Bullet Time: when hit, all bullets explode + 2s slow-mo</p>
                         <p data-i18n="MAN_SCORE_HITBOX">Core Hitbox: only the center of your ship takes damage</p>
                     </div>
                 </div>
@@ -609,10 +605,10 @@ Tap your ship to activate</p>
                 <div class="manual-section-v2">
                     <h3 class="section-heading" data-i18n="TAB_TIPS">PRO TIPS</h3>
                     <div class="tip-compact">
-                        <p data-i18n="MAN_TIP_HODL">💎 <strong>HODL</strong> — Stop moving = 2x damage + golden aura</p>
+                        <p data-i18n="MAN_TIP_DIP">💎 <strong>DIP METER</strong> — Kill close = fill meter = HYPER MODE!</p>
                         <p data-i18n="MAN_TIP_GRAZE">🔥 <strong>GRAZE</strong> — Dodge close to bullets = score multiplier (up to 2.5x)</p>
                         <p data-i18n="MAN_TIP_SHIELD">🛡️ <strong>SHIELD</strong> — 10s cooldown. Your only defense against hits!</p>
-                        <p data-i18n="MAN_TIP_BOSS">⚡ <strong>BOSSES</strong> — 3 phases each. Every 25 hits drops a power-up</p>
+                        <p data-i18n="MAN_TIP_BOSS">⚡ <strong>BOSSES</strong> — 3 phases each. Every 40 hits drops a power-up</p>
                         <p data-i18n="MAN_TIP_BEAR">🐻 <strong>BEAR MARKET</strong> — Hard mode in Settings. Double points!</p>
                     </div>
                 </div>

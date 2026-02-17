@@ -865,92 +865,75 @@ class Bullet extends window.Game.Entity {
     // HOMING: Orange Missile - Tracking projectile with exhaust trail
     // ═══════════════════════════════════════════════════════════════════
     drawHomingBullet(ctx, pulse) {
-        const w = this.width * 2.0;
-        const h = this.height * 1.5;
-
-        // Calculate missile rotation based on velocity
-        const angle = Math.atan2(this.vy, this.vx) + Math.PI / 2;
+        // v5.25: Orb tracker — sphere with trail, orbiting ring, crosshair
+        const CU = window.Game.ColorUtils;
+        const r = 7; // orb radius
+        const t = this.age;
 
         ctx.save();
         ctx.translate(this.x, this.y);
-        ctx.rotate(angle);
 
-        // Exhaust flame trail — v4.23.1: additive
+        // Trail: 3 fading circles behind
+        const angle = Math.atan2(this.vy, this.vx);
         const _gc = window.Game.Balance?.GLOW;
         const _addTrail = _gc?.ENABLED && _gc?.BULLET?.ENABLED;
         if (_addTrail) ctx.globalCompositeOperation = 'lighter';
-        const flicker = Math.sin(this.age * 40) * 3;
-        ctx.globalAlpha = 0.8;
-        for (let i = 3; i > 0; i--) {
-            const trailLen = 8 + i * 5 + flicker;
-            const trailWidth = w * (0.3 + i * 0.1);
-            ctx.fillStyle = i === 3 ? '#cc2222' : (i === 2 ? '#ff8800' : '#ffaa00');
+        for (let i = 3; i >= 1; i--) {
+            const dist = i * 7;
+            const tx = -Math.cos(angle) * dist;
+            const ty = -Math.sin(angle) * dist;
+            const tr = r * (0.7 - i * 0.15);
+            ctx.globalAlpha = 0.4 - i * 0.1;
+            ctx.fillStyle = '#ff8800';
             ctx.beginPath();
-            ctx.moveTo(-trailWidth, h * 0.4);
-            ctx.quadraticCurveTo(0, h * 0.4 + trailLen, trailWidth, h * 0.4);
-            ctx.closePath();
+            ctx.arc(tx, ty, tr, 0, Math.PI * 2);
             ctx.fill();
         }
         ctx.globalAlpha = 1;
         if (_addTrail) ctx.globalCompositeOperation = 'source-over';
 
-        // Missile body (elongated diamond)
-        ctx.fillStyle = '#ff8800';
+        // Main orb: radial gradient (highlight → orange → dark)
+        const grad = ctx.createRadialGradient(-2, -2, 1, 0, 0, r);
+        grad.addColorStop(0, '#fff8e0');
+        grad.addColorStop(0.35, '#ffaa00');
+        grad.addColorStop(0.75, '#ff6600');
+        grad.addColorStop(1, '#882200');
         ctx.beginPath();
-        ctx.moveTo(0, -h * 0.6);          // Nose
-        ctx.lineTo(w * 0.5, 0);           // Right side
-        ctx.lineTo(w * 0.4, h * 0.4);     // Right rear
-        ctx.lineTo(-w * 0.4, h * 0.4);    // Left rear
-        ctx.lineTo(-w * 0.5, 0);          // Left side
-        ctx.closePath();
+        ctx.arc(0, 0, r, 0, Math.PI * 2);
+        ctx.fillStyle = grad;
         ctx.fill();
 
-        // Bold outline
+        // Black outline
         ctx.strokeStyle = '#111';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 1.5;
         ctx.stroke();
 
-        // Fins (small triangles)
-        ctx.fillStyle = '#cc4400';
-        // Left fin
+        // Orbiting ring (tilted ellipse)
+        const ringAngle = t * 5;
+        ctx.save();
+        ctx.rotate(ringAngle);
+        ctx.scale(1, 0.4); // tilt
         ctx.beginPath();
-        ctx.moveTo(-w * 0.4, h * 0.2);
-        ctx.lineTo(-w * 0.8, h * 0.5);
-        ctx.lineTo(-w * 0.4, h * 0.4);
-        ctx.closePath();
-        ctx.fill();
+        ctx.arc(0, 0, r + 4, 0, Math.PI * 2);
+        ctx.strokeStyle = CU.rgba(255, 200, 80, 0.6);
+        ctx.lineWidth = 1.2;
         ctx.stroke();
-        // Right fin
+        ctx.restore();
+
+        // Crosshair center (targeting reticle)
+        const cp = 0.5 + 0.5 * Math.sin(t * 8); // pulsing
+        ctx.strokeStyle = CU.rgba(255, 255, 255, 0.6 + cp * 0.4);
+        ctx.lineWidth = 1;
+        // Cross lines
+        const cl = 3;
         ctx.beginPath();
-        ctx.moveTo(w * 0.4, h * 0.2);
-        ctx.lineTo(w * 0.8, h * 0.5);
-        ctx.lineTo(w * 0.4, h * 0.4);
-        ctx.closePath();
-        ctx.fill();
+        ctx.moveTo(-cl, 0); ctx.lineTo(cl, 0);
+        ctx.moveTo(0, -cl); ctx.lineTo(0, cl);
         ctx.stroke();
-
-        // Nose cone (brighter)
-        ctx.fillStyle = '#ffaa00';
-        ctx.beginPath();
-        ctx.moveTo(0, -h * 0.6);
-        ctx.lineTo(w * 0.25, -h * 0.2);
-        ctx.lineTo(-w * 0.25, -h * 0.2);
-        ctx.closePath();
-        ctx.fill();
-
-        // White tip
+        // Center dot
         ctx.fillStyle = '#fff';
         ctx.beginPath();
-        ctx.moveTo(0, -h * 0.55);
-        ctx.lineTo(w * 0.1, -h * 0.35);
-        ctx.lineTo(-w * 0.1, -h * 0.35);
-        ctx.closePath();
-        ctx.fill();
-
-        // Target seeker (red dot)
-        ctx.fillStyle = '#ff3344';
-        ctx.beginPath();
-        ctx.arc(0, -h * 0.3, 2, 0, Math.PI * 2);
+        ctx.arc(0, 0, 1.2, 0, Math.PI * 2);
         ctx.fill();
 
         ctx.restore();

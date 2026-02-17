@@ -2738,9 +2738,152 @@ body.bear-mode .neon-title {
          0    0  6px rgba(192, 160, 48, 0.3);
 }
 
+/* === STATUS HUD v5.25 — Ship status classes for meme-popup === */
+
+/* Common: non-italic, slightly smaller for status clarity */
+#meme-popup[class*="status-"] .meme-text {
+    font-style: normal;
+    font-size: 14px;
+    letter-spacing: 1px;
+}
+#meme-popup[class*="status-"] .meme-emoji {
+    font-size: 14px;
+    margin-bottom: 2px;
+}
+
+/* --- Fire: flickering orange/red glow --- */
+.status-fire .meme-text, .status-fire .meme-emoji {
+    color: #ff6600;
+    text-shadow:
+        -2px -2px 0 #000, 2px -2px 0 #000,
+        -2px  2px 0 #000, 2px  2px 0 #000,
+         0 0 12px #ff4400, 0 0 24px rgba(255,68,0,0.5);
+    animation: statusFireGlow 0.4s ease-in-out infinite alternate;
+}
+@keyframes statusFireGlow {
+    0%   { text-shadow: -2px -2px 0 #000,2px -2px 0 #000,-2px 2px 0 #000,2px 2px 0 #000, 0 0 10px #ff4400, 0 0 20px rgba(255,68,0,0.4); }
+    100% { text-shadow: -2px -2px 0 #000,2px -2px 0 #000,-2px 2px 0 #000,2px 2px 0 #000, 0 0 18px #ff8800, 0 0 36px rgba(255,136,0,0.6), 0 0 6px #ffcc00; }
+}
+
+/* --- Laser: steady cyan beam glow --- */
+.status-laser .meme-text, .status-laser .meme-emoji {
+    color: #00f0ff;
+    text-shadow:
+        -2px -2px 0 #000, 2px -2px 0 #000,
+        -2px  2px 0 #000, 2px  2px 0 #000,
+         0 0 12px #00f0ff, 0 0 24px rgba(0,240,255,0.5);
+    animation: statusLaserGlow 1.5s ease-in-out infinite alternate;
+}
+@keyframes statusLaserGlow {
+    0%   { text-shadow: -2px -2px 0 #000,2px -2px 0 #000,-2px 2px 0 #000,2px 2px 0 #000, 0 0 10px #00f0ff, 0 0 20px rgba(0,240,255,0.4); }
+    100% { text-shadow: -2px -2px 0 #000,2px -2px 0 #000,-2px 2px 0 #000,2px 2px 0 #000, 0 0 16px #00f0ff, 0 0 32px rgba(0,240,255,0.6); }
+}
+
+/* --- Electric: intermittent violet/cyan flash --- */
+.status-electric .meme-text, .status-electric .meme-emoji {
+    color: #bb44ff;
+    text-shadow:
+        -2px -2px 0 #000, 2px -2px 0 #000,
+        -2px  2px 0 #000, 2px  2px 0 #000,
+         0 0 10px #bb44ff, 0 0 20px rgba(187,68,255,0.4);
+    animation: statusElectricFlash 0.8s steps(1) infinite;
+}
+@keyframes statusElectricFlash {
+    0%   { text-shadow: -2px -2px 0 #000,2px -2px 0 #000,-2px 2px 0 #000,2px 2px 0 #000, 0 0 10px #bb44ff, 0 0 20px rgba(187,68,255,0.4); }
+    45%  { text-shadow: -2px -2px 0 #000,2px -2px 0 #000,-2px 2px 0 #000,2px 2px 0 #000, 0 0 10px #bb44ff, 0 0 20px rgba(187,68,255,0.4); }
+    50%  { text-shadow: -2px -2px 0 #000,2px -2px 0 #000,-2px 2px 0 #000,2px 2px 0 #000, 0 0 25px #fff, 0 0 40px #00f0ff; color: #fff; }
+    55%  { text-shadow: -2px -2px 0 #000,2px -2px 0 #000,-2px 2px 0 #000,2px 2px 0 #000, 0 0 10px #bb44ff, 0 0 20px rgba(187,68,255,0.4); color: #bb44ff; }
+    90%  { text-shadow: -2px -2px 0 #000,2px -2px 0 #000,-2px 2px 0 #000,2px 2px 0 #000, 0 0 10px #bb44ff, 0 0 20px rgba(187,68,255,0.4); }
+    92%  { text-shadow: -2px -2px 0 #000,2px -2px 0 #000,-2px 2px 0 #000,2px 2px 0 #000, 0 0 20px #fff, 0 0 35px #bb44ff; color: #e0c0ff; }
+    95%  { text-shadow: -2px -2px 0 #000,2px -2px 0 #000,-2px 2px 0 #000,2px 2px 0 #000, 0 0 10px #bb44ff, 0 0 20px rgba(187,68,255,0.4); color: #bb44ff; }
+}
+
+/* --- GODCHAIN: gold chain shimmer --- */
+.status-godchain .meme-text, .status-godchain .meme-emoji {
+    color: #FFD700;
+    text-shadow:
+        -2px -2px 0 #000, 2px -2px 0 #000,
+        -2px  2px 0 #000, 2px  2px 0 #000,
+         0 0 14px #FFD700, 0 0 28px rgba(255,170,0,0.6);
+    animation: statusGodchainShimmer 0.6s ease-in-out infinite alternate;
+}
+@keyframes statusGodchainShimmer {
+    0%   { text-shadow: -2px -2px 0 #000,2px -2px 0 #000,-2px 2px 0 #000,2px 2px 0 #000, 0 0 12px #FFD700, 0 0 24px rgba(255,170,0,0.5); }
+    100% { text-shadow: -2px -2px 0 #000,2px -2px 0 #000,-2px 2px 0 #000,2px 2px 0 #000, 0 0 20px #fff8e0, 0 0 40px rgba(255,215,0,0.7), 0 0 8px #ffcc00; }
+}
+
+/* --- Homing: warm orange glow --- */
+.status-homing .meme-text, .status-homing .meme-emoji {
+    color: #ff8800;
+    text-shadow:
+        -2px -2px 0 #000, 2px -2px 0 #000,
+        -2px  2px 0 #000, 2px  2px 0 #000,
+         0 0 10px #ff8800, 0 0 20px rgba(255,136,0,0.4);
+}
+
+/* --- Pierce: red penetrating glow --- */
+.status-pierce .meme-text, .status-pierce .meme-emoji {
+    color: #ff3344;
+    text-shadow:
+        -2px -2px 0 #000, 2px -2px 0 #000,
+        -2px  2px 0 #000, 2px  2px 0 #000,
+         0 0 10px #ff3344, 0 0 20px rgba(255,51,68,0.4);
+}
+
+/* --- Missile: cold blue glow --- */
+.status-missile .meme-text, .status-missile .meme-emoji {
+    color: #2288ff;
+    text-shadow:
+        -2px -2px 0 #000, 2px -2px 0 #000,
+        -2px  2px 0 #000, 2px  2px 0 #000,
+         0 0 10px #2288ff, 0 0 20px rgba(34,136,255,0.4);
+}
+
+/* --- Shield: cyan pulse --- */
+.status-shield .meme-text, .status-shield .meme-emoji {
+    color: #00f0ff;
+    text-shadow:
+        -2px -2px 0 #000, 2px -2px 0 #000,
+        -2px  2px 0 #000, 2px  2px 0 #000,
+         0 0 10px #00f0ff, 0 0 20px rgba(0,240,255,0.4);
+    animation: statusShieldPulse 1s ease-in-out infinite alternate;
+}
+@keyframes statusShieldPulse {
+    0%   { text-shadow: -2px -2px 0 #000,2px -2px 0 #000,-2px 2px 0 #000,2px 2px 0 #000, 0 0 8px #00f0ff, 0 0 16px rgba(0,240,255,0.3); }
+    100% { text-shadow: -2px -2px 0 #000,2px -2px 0 #000,-2px 2px 0 #000,2px 2px 0 #000, 0 0 16px #00f0ff, 0 0 32px rgba(0,240,255,0.6); }
+}
+
+/* --- Speed: yellow flash --- */
+.status-speed .meme-text, .status-speed .meme-emoji {
+    color: #ffcc00;
+    text-shadow:
+        -2px -2px 0 #000, 2px -2px 0 #000,
+        -2px  2px 0 #000, 2px  2px 0 #000,
+         0 0 10px #ffcc00, 0 0 20px rgba(255,204,0,0.4);
+}
+
+/* --- Upgrade: gold shimmer --- */
+.status-upgrade .meme-text, .status-upgrade .meme-emoji {
+    color: #FFD700;
+    text-shadow:
+        -2px -2px 0 #000, 2px -2px 0 #000,
+        -2px  2px 0 #000, 2px  2px 0 #000,
+         0 0 10px #FFD700, 0 0 20px rgba(255,215,0,0.4);
+}
+
+/* --- Perk (generic, before element known) --- */
+.status-perk .meme-text, .status-perk .meme-emoji {
+    color: #bb44ff;
+    text-shadow:
+        -2px -2px 0 #000, 2px -2px 0 #000,
+        -2px  2px 0 #000, 2px  2px 0 #000,
+         0 0 10px #bb44ff, 0 0 20px rgba(187,68,255,0.4);
+}
+
 @media (max-width: 380px) {
     .meme-text { font-size: 13px; }
     .meme-box { padding: 0 12px; }
+    #meme-popup[class*="status-"] .meme-text { font-size: 12px; }
 }
 
 /* --- MESSAGE STRIP v4.26.0 --- */

@@ -2219,11 +2219,13 @@ function init() {
         });
         // v4.6: GODCHAIN events
         events.on('GODCHAIN_ACTIVATED', () => {
-            showPickup('🔥 ' + t('GODCHAIN_ON'));
+            // v5.25: Show GODCHAIN status with countdown in status HUD
+            const gcDur = Balance.GODCHAIN?.DURATION ?? 10;
+            G.MemeEngine.showStatus('GODCHAIN', '🔗', 'godchain', gcDur, true);
             if (G.triggerScreenFlash) G.triggerScreenFlash('HYPER_ACTIVATE');
         });
         events.on('GODCHAIN_DEACTIVATED', () => {
-            showPickup(t('GODCHAIN_OFF'));
+            G.MemeEngine.hideStatus();
         });
         // Harmonic Conductor bullet spawning
         events.on('harmonic_bullets', (data) => {
@@ -5015,6 +5017,8 @@ function update(dt) {
     updateFloatingTexts(dt);
     updateTypedMessages(dt);
     updatePerkIcons(dt);
+    // v5.25: Status HUD countdown in meme-popup area
+    if (G.MemeEngine) G.MemeEngine.update(dt);
     // v5.14: Score pulse accumulator decay
     if (_scorePulseAccTimer > 0) _scorePulseAccTimer -= dt;
     // v5.11: Evolution item fly towards player
@@ -5415,8 +5419,9 @@ function executeDeath() {
     // WEAPON EVOLUTION v3.0: Apply death penalty (soft reset)
     if (player.applyDeathPenalty && Balance.WEAPON_EVOLUTION) {
         player.applyDeathPenalty();
-        // v4.4: weapon status now shown via diegetic pips on ship
     }
+    // v5.25: Clear status HUD on death (specials/perks lost)
+    if (G.MemeEngine) G.MemeEngine.hideStatus();
 
     // v5.19: Notify drop balancer of death for grace period
     if (G.DropSystem && G.DropSystem.notifyDeath) {
@@ -6537,8 +6542,11 @@ function updatePowerUps(dt) {
                         if (G.triggerScreenFlash) G.triggerScreenFlash('GODCHAIN_ACTIVATE');
                     }
 
-                    const meme = POWERUP_MEMES[p.type] || 'PERK!';
-                    showPickup(meme);
+                    // v5.25: Status HUD — show perk activation with elemental effect
+                    const _perkIcons = { FIRE: '🔥', LASER: '⚡', ELECTRIC: '⛓', GODCHAIN: '🔗' };
+                    const _perkNames = { FIRE: 'FIRE PERK', LASER: 'LASER PERK', ELECTRIC: 'ELECTRIC PERK', GODCHAIN: 'GODCHAIN' };
+                    const _statusType = elemType === 'GODCHAIN' ? 'godchain' : elemType.toLowerCase();
+                    G.MemeEngine.showStatus(_perkNames[elemType] || 'PERK', _perkIcons[elemType] || '✦', _statusType, 3, false);
                     if (G.Debug) {
                         const after = _snapPlayerState();
                         G.Debug.trackProgression(p.type, before, after);
@@ -6560,9 +6568,25 @@ function updatePowerUps(dt) {
                     player.upgrade(p.type);
                 }
 
-                // Crypto-themed powerup feedback via pickup toast (v5.4.0)
-                const meme = POWERUP_MEMES[p.type] || p.type;
-                showPickup(meme);
+                // v5.25: Status HUD — show pickup with type-specific effect + countdown
+                const WE = Balance.WEAPON_EVOLUTION;
+                const _puIcons = { UPGRADE: '⬆', HOMING: '🎯', PIERCE: '🔥', MISSILE: '🚀', SHIELD: '🛡', SPEED: '💨' };
+                const _puType = p.type.toLowerCase();
+                if (p.type === 'UPGRADE') {
+                    const wl = player.weaponLevel ?? 1;
+                    G.MemeEngine.showStatus('WEAPON LV' + wl, _puIcons[p.type], _puType, 3, false);
+                } else if (p.config?.category === 'special') {
+                    const dur = WE?.SPECIAL_DURATION ?? 8;
+                    G.MemeEngine.showStatus(p.type, _puIcons[p.type] || '✦', _puType, dur, true);
+                } else if (p.type === 'SHIELD') {
+                    const dur = Balance.PLAYER?.SHIELD_DURATION ?? 5;
+                    G.MemeEngine.showStatus('SHIELD', _puIcons[p.type], _puType, dur, true);
+                } else if (p.type === 'SPEED') {
+                    const dur = WE?.UTILITY_DURATION ?? 8;
+                    G.MemeEngine.showStatus('SPEED', _puIcons[p.type], _puType, dur, true);
+                } else {
+                    G.MemeEngine.showStatus(p.type, _puIcons[p.type] || '✦', _puType || 'perk', 3, false);
+                }
                 // Analytics: Track power-up + progression
                 if (G.Debug) {
                     const after = _snapPlayerState();

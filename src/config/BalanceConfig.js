@@ -1124,12 +1124,12 @@
         // 3-level weapon progression (permanent, no death penalty)
         // Upgrades ONLY from boss kills (Evolution Core item)
         // HYPER adds +2 temporary levels (max effective LV5)
-        // Specials: 3 weapon types (HOMING/PIERCE/MISSILE), exclusive, 12s
+        // Specials: 3 weapon types (HOMING/PIERCE/MISSILE), exclusive, 8s
         // Utilities: SHIELD/SPEED (separate non-weapon drops)
         WEAPON_EVOLUTION: {
             // Weapon levels (permanent for entire run — no death penalty)
             MAX_WEAPON_LEVEL: 3,
-            KILLS_FOR_PERK: 70,           // v5.0.4: 80→70 (perk@W2H1, perk@W3H2, GODCHAIN@W5H1)
+            KILLS_FOR_PERK: 100,          // v5.25: 70→100 (slower perk drops)
 
             // HYPER mode weapon boost
             HYPER_LEVEL_BOOST: 2,         // +2 weapon levels during HYPER (max effective LV5)
@@ -1150,10 +1150,10 @@
             MISSILE_DAMAGE_BONUS: 2.0,   // stacked on damageMult
 
             // Special duration (HOMING/PIERCE/MISSILE)
-            SPECIAL_DURATION: 12,
+            SPECIAL_DURATION: 8,              // v5.25: 12→8
 
             // Utility duration (SHIELD/SPEED)
-            UTILITY_DURATION: 12,
+            UTILITY_DURATION: 8,              // v5.25: 12→8
 
             // Death penalty
             DEATH_PENALTY: 0,             // v5.11: No weapon loss on death (evolution is permanent)

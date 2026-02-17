@@ -2406,10 +2406,19 @@ class Player extends window.Game.Entity {
     _drawHexShield(ctx) {
         const CU = window.Game.ColorUtils;
         const t = this._shieldAnim;
-        const fade = this._shieldFade;
+        let fade = this._shieldFade;
         const radius = 52;
         const hexSize = 11;
         const rows = 6;
+
+        // v5.25: Expiry warning — accelerating blink in last 1.5s
+        const WARN_TIME = 1.5;
+        if (this.shieldActive && this.shieldTimer > 0 && this.shieldTimer < WARN_TIME) {
+            const urgency = 1 - (this.shieldTimer / WARN_TIME); // 0→1
+            const freq = 4 + urgency * 8; // 4Hz→12Hz
+            const blink = 0.3 + 0.7 * (0.5 + 0.5 * Math.sin(t * freq * Math.PI * 2));
+            fade *= blink;
+        }
 
         ctx.save();
         ctx.globalAlpha = fade;
