@@ -10,27 +10,30 @@
 *   **Responsive**: "Notch-safe" UI design that adapts to all mobile screens.
 *   **Localization**: Fully localized in English (EN) and Italian (IT).
 
-## 🧠 Current Gameplay Rules (v5.22)
+## 🧠 Current Gameplay Rules (v5.29)
 
-*   **Two Game Modes**: **Story Mode** (3 acts with narrative chapters, boss progression FED→BCE→BOJ) and **Arcade Mode** ("Rogue Protocol" — roguelike modifier system, combo scoring, enhanced mini-bosses, infinite scaling).
-*   **Wave System**: 15 unique waves (5 per cycle × 3 cycles) with 16 formation patterns and thematic currency groups.
-*   **Seamless Flow**: Waves transition instantly — no countdown between waves. Boss-defeat celebrations preserved.
+*   **Two Game Modes**: **Story Mode** (3 acts with narrative chapters, boss progression FED→BCE→BOJ, cinematic game completion video) and **Arcade Mode** ("Rogue Protocol" — roguelike modifier system, combo scoring, enhanced mini-bosses, infinite scaling).
+*   **Wave System**: 15 unique waves (5 per cycle × 3 cycles) with 16 formation patterns and thematic currency groups. Coordinated SALVO firing system with safe corridors.
+*   **Seamless Flow**: Waves transition instantly — no countdown between waves. 3→2→1→GO! countdown at game start. Boss-defeat celebrations with cinematic slowmo + chain explosions + coin rain.
 *   **HarmonicConductor**: Beat-synced enemy firing with wave intensity phases (Setup → Build → Panic).
-*   **Weapon Evolution**: 3-level system (Single → Dual → Triple MAX). Boss kills drop an **Evolution Core** that upgrades weapons cinematically. HYPER adds +2 temp levels (LV4-5). No weapon death penalty.
-*   **Special Weapons**: 3 exclusive specials (HOMING, PIERCE, MISSILE) — 12s duration each.
-*   **Utility Drops**: SHIELD (absorbs hit) and SPEED (+40% movement) — capsule-shaped, 12s duration.
-*   **Elemental Perks**: Fixed sequential order (Fire → Laser → Electric). Diamond crystal drops every 50 kills. Fire = napalm splash, Laser = beam + impact sparks, Electric = chain lightning bolts. Each perk adds a persistent ship aura with ambient particles.
+*   **Weapon Evolution**: 3-level system (Single → Dual → Triple MAX). Boss kills drop an **Evolution Core** with cinematic deploy animation. HYPER adds +2 temp levels (LV4-5). No weapon death penalty.
+*   **Ship Design**: "Premium Arsenal" swept-back delta with cockpit canopy, twin-rail cannons, wing pods, heavy barrel LV3, energy circuit lines, elemental cannon tinting.
+*   **Special Weapons**: 3 exclusive specials (HOMING orb tracker, PIERCE, MISSILE) — 8s duration each.
+*   **Utility Drops**: SHIELD (absorbs hit, 5s) and SPEED (+40% movement, 8s).
+*   **Elemental Perks**: Fixed sequential order (Fire → Laser → Electric). Diamond crystal drops every 100 kills. Fire = napalm splash, Laser = Gradius-style beam + impact sparks, Electric = chain lightning bolts. Each perk adds a persistent ship aura with ambient particles and spectacular VFX.
 *   **HYPER Mode**: Proximity kills fill the DIP meter. At 100%, HYPER activates — 5x score, +2 temp weapon levels, 50% bigger hitbox (high risk/reward).
 *   **GODCHAIN Mode**: Activates when 3 elemental perks collected — apotheosis burst (symbol explosion + gold rings), energy form ship, max firepower. Further perks re-trigger it.
+*   **HYPERGOD Mode**: HYPER + GODCHAIN simultaneously = 5x score multiplier, unified prismatic combat HUD bar.
+*   **Adaptive Drop Balancer**: Bidirectional struggle/domination detection adjusts drop rates in real-time.
 *   **Arcade Rogue Protocol**: 15 roguelike modifiers (OFFENSE/DEFENSE/WILD) chosen after boss and mini-boss defeats. Combo scoring (chain kills for up to 5x multiplier). Aggressive pacing, post-C3 infinite scaling.
 *   **Dynamic Difficulty (Rank System)**: Game adapts to player skill in real-time (-1.0 to +1.0 rank).
 *   **3 Unique Bosses**: FED (Corrupted Printer pyramid), BCE (Star Fortress), BOJ (Golden Torii) with exclusive attack patterns, 3 phases each, and cinematic death sequences.
-*   **10 Fiat Currencies**: Each with unique shape, tier, and fire pattern.
-*   **Compact HUD**: Minimal 45px top bar with diegetic ship indicators.
-*   **Reactive Feedback**: Score colors on streaks, danger pulse at low HP, wave sweep transitions.
-*   **Meme Popup System**: Full-width neon cartoon popup above player ship with 3-tier priority queue (CRITICAL/HIGH/NORMAL), spring-pop animation, 10 event types.
+*   **10 Fiat Currencies**: Each with unique shape, tier, and fire pattern. Cyber destruction with rectangular fragment particles and elemental tinting.
+*   **Unified Combat HUD**: 48px message strip with animated fill bar for HYPER/GODCHAIN/HYPERGOD states. 5-tier score pulse system (MICRO to LEGENDARY).
+*   **Compact HUD**: Minimal 45px top bar with diegetic ship indicators (fin glow shield, cannon tint).
 *   **First-Run Tutorial**: Progressive 3-step mission briefing (Mission, Controls, Shield) with slide animations — separate content for Story vs Arcade, platform-aware (PC/mobile).
-*   **Online Leaderboard**: Global rankings powered by Cloudflare Workers + KV. Callsign system (3-6 chars), auto-submit on gameover, rank display with tier badges (TOP 3/5/10), platform icons (Desktop 🖥 / Mobile 📱).
+*   **Online Leaderboard**: Global rankings powered by Cloudflare Workers + KV. Callsign system (3-6 chars), auto-submit on gameover, rank display with tier badges (TOP 3/5/10), platform icons (Desktop / Mobile). Offline score queue.
+*   **OLED-optimized UI**: Pure black (#000000) backgrounds on all overlays and panels for LED display efficiency.
 *   **Accessibility**: WCAG 2.1 AA+ contrast ratios, 48px+ touch targets, `prefers-reduced-motion` support.
 
 ## 🎮 How to Play

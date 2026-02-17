@@ -1,38 +1,52 @@
 # Roadmap: FIAT vs CRYPTO
 
-> **Versione attuale**: v5.26.0 (2026-02-17)
+> **Versione attuale**: v5.29.1 (2026-02-18)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
 
 ---
 
-## PROSSIMA SESSIONE — v5.27 Polish & Feel
+## COMPLETATO — Game Over Layout + OLED Deep Black (v5.29.1)
 
-### 1. Game Start Countdown (Wave 1)
-- Dopo il tutorial, il player viene schierato in campo senza nessun messaggio
-- Aggiungere countdown fullscreen rapido **3 → 2 → 1 → GO!** prima della Wave 1
-- Al termine del countdown, mostrare messaggio iniziale nel Combat HUD
+- [x] Game over title ridotto a 1 riga (20-28px), score promosso a HERO (56-80px bianco)
+- [x] Meme cyan uppercase, label piccola 11px, stats inline flex row
+- [x] Bottoni full-width 280px (retry primary, menu btn-sm)
+- [x] 11 inner containers rgba semi-trasparenti → pure `#000000` OLED
 
-### 2. Boss HP Bar Only — Clean Boss Display
-- Rimuovere il nome del boss dalla visualizzazione durante il fight
-- Rimuovere qualsiasi altra info testuale sotto/sopra la barra HP
-- Solo boss visivo + barra energia sotto, nient'altro. Su tutti e 3 i boss (FED/BCE/BOJ)
+---
 
-### 3. Elemental Cannon Tint
-- Quando il player raccoglie un perk elementale, la punta del cannone (nose/barrel attivo) cambia colore per riflettere l'elemento attivo
-- Fire → arancio/rosso, Laser → cyan, Electric → viola
-- Il colore segue il perk attualmente in uso (ultimo raccolto o GODCHAIN)
+## COMPLETATO — Game Over Redesign + Icon Regeneration (v5.29.0)
 
-### 4. Ship Silhouette Redesign — Ali Aerodinamiche
-- Le ali della Crypto Viper sono troppo "tozze": piccole, parallele, non slanciate
-- Ridisegnare le ali con punte rivolte all'indietro (swept-back), non laterali
-- Mantenere il body chevron e la palette metallic-tech attuali
-- Risultato: silhouette più aerodinamica e aggressiva
+- [x] Tutti overlay/pannelli background → opaque `#000000`
+- [x] Container interni → `#000000` (modal-content, boxes, carousel, bar-container)
+- [x] Scrollbar tracks → `#000000`
+- [x] Icon generator riscritto per nave v5.28 LV3 (scale 8.0, no title, twin engine trail)
 
-### 5. Tutorial Text Rewrite — Tono Videogioco
-- Il testo attuale è troppo "istruzioni IKEA" — freddo e tecnico
-- Riscrivere con tono da videogioco: più coinvolgente, breve, motivante
-- L'estetica visiva (card, step, animazioni) resta invariata
-- Leggermente più grande come font/padding per leggibilità
+---
+
+## COMPLETATO — Ship Redesign "Premium Arsenal" (v5.28.0)
+
+- [x] Nave +30% più grande, 8-vertex ∧ delta swept-back
+- [x] Cockpit canopy ellisse vetrata con ₿ reattivo per elemento
+- [x] Nose cannon con cannonLen, heavy central barrel LV3, wing pods ridisegnati
+- [x] Energy circuit lines LV3, Energy Surge slowmo, setHitStop()
+- [x] Hitbox BTC 55/10, HYPER aura 46/75/69, Shield hex r=68
+
+---
+
+## COMPLETATO — Bugfix Countdown + Ship Redesign "Inverted-V Delta" (v5.27.1)
+
+- [x] Fix countdown stuck al 3 (spostato `_startPlayCountdown()` dopo reset)
+- [x] Ship rewrite completo: 8-vertex ∧ arrowhead (God Phoenix inspired)
+- [x] Wing cannons al 30% leading edge, central barrel da nose, twin exhaust
+
+---
+
+## COMPLETATO — Polish & Feel (v5.27.0)
+
+- [x] Boss HP bar semplificata (solo barra + notch diamante threshold)
+- [x] Tutorial testo arcade EN/IT con tono videogioco
+- [x] Elemental cannon tint (CANNON_TINT config, priorità GC>Elec>Laser>Fire)
+- [x] Game start countdown 3→2→1→GO!
 
 ---
 
@@ -147,14 +161,12 @@
 
 ---
 
-## DA VERIFICARE — Conseguenze Ship Redesign (v5.9.x)
+## DA VERIFICARE — Conseguenze Ship Redesign
 
-- [x] PWA icon: rigenerati in v5.10.1 con Crypto Viper chevron
+- [x] PWA icon: rigenerati in v5.29.0 con Premium Arsenal LV3
 - [ ] Splashscreen video: `splashscreen.mp4` potrebbe mostrare vecchia silhouette — verificare
-- [x] Hangar/intro screen: ship preview aggiornata in v5.10.0 con palette per-ship
-- [ ] Player manual screenshots: aggiornare se contengono immagini della vecchia nave
-- [x] Touch responsiveness: tap-on-ship shield testato e funzionante (v5.7.0+)
-- [ ] Visual balance: verificare che la nave 42px non sia troppo grande rispetto ai nemici 58px
+- [x] Hangar/intro screen: ship preview aggiornata
+- [x] Touch responsiveness: tap-on-ship shield testato e funzionante
 
 ---
 
@@ -308,6 +320,9 @@
 - ~~Boss attack pattern variety (per-phase unique patterns)~~ ✅ v5.0.4
 - ~~Boss visual redesign (premium cyberpunk aesthetic)~~ ✅ v5.7.0
 - ~~Combo system (chain kills for multiplier)~~ ✅ v5.8.0
+- ~~Ship redesign (premium arsenal)~~ ✅ v5.28.0
+- ~~Game completion cinematic~~ ✅ v5.21.0
+- ~~Adaptive drop balancer~~ ✅ v5.19.0
 - Daily challenge mode
 - ~~Leaderboard (local, no server)~~ ✅ v5.17.0 (online with Cloudflare Workers)
 

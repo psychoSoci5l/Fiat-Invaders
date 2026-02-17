@@ -106,16 +106,16 @@ Detailed tables, parameters, and implementation specifics → **SYSTEM_REFERENCE
 
 ### Core Gameplay
 - **Difficulty & Rank** — `Balance.DIFFICULTY` / `Balance.RANK`. +8%/lvl, +20%/cycle, cap 85%, Bear Market 1.3×, dynamic rank ±1
-- **Weapon Evolution** — `Balance.WEAPON_EVOLUTION`. Linear 5-level system (`LEVELS` table 1-7). HYPER adds +2 temp levels. 3 specials (HOMING/PIERCE/MISSILE, 8s). 2 utilities (SHIELD 5s/SPEED 8s). Death: -1 weapon level, lose special
+- **Weapon Evolution** — `Balance.WEAPON_EVOLUTION`. Linear 3-level system (Single→Dual→Triple MAX). Boss Evolution Core upgrades (cinematic deploy VFX). HYPER adds +2 temp levels. 3 specials (HOMING/PIERCE/MISSILE, 8s). 2 utilities (SHIELD 5s/SPEED 8s). Death: no weapon penalty, lose special
 - **GODCHAIN** — `Balance.GODCHAIN`. Activates when 3 elemental perks collected (10s timer, re-triggerable via further bullet cancels)
 - **Enemy System** — `Balance.ENEMY_BEHAVIOR`. 10 currencies, 3 tiers, 4 shapes. Fire budget: C1=25/C2=45/C3=70 bullets/sec
 - **Wave System** — `Balance.WAVE_DEFINITIONS`. 15 waves (5×3 cycles), 16 formations. Arcade post-C3: cycles through C1-C3 definitions with formation remix
 - **Boss System** — `Balance.BOSS`. FED/BCE/BOJ, 3 phases each, HP formula in config, rotation `marketCycle % 3`
-- **Drop System** — `Balance.ADAPTIVE_DROPS`. Rates 3%/2.5%/1% by tier, pity 55 kills, adaptive suppression. 3 categories: UPGRADE/SPECIAL/UTILITY
+- **Drop System** — `Balance.ADAPTIVE_DROPS`. Rates 3%/2.5%/1% by tier, pity 30 kills, adaptive suppression. 3 categories: SPECIAL/UTILITY/PERK. Adaptive Drop Balancer (struggle/domination detection). Guaranteed SPECIAL pre-boss (wave 4+)
 - **Collision** — `CollisionSystem.js`. 4 loops, callback pattern, init via `initCollisionSystem()`
 - **Bullet System** — `Balance.BULLET_CONFIG` + `Balance.BULLET_PIERCE`. Circle-based collision, missile AoE, pierce HP (bullets survive N enemy-bullet hits). Debug: `dbg.hitboxes()`
 - **Proximity Kill Meter** — `Balance.PROXIMITY_KILL`. Vertical-distance kills fill DIP meter (replaces graze as HYPER source). Boss hits +0.4, phase transitions +15. `Game.addProximityMeter(gain)` API
-- **Elemental Perk System** — `Upgrades.js` + `PerkManager.js`. Fixed order: Fire (splash 30%), Laser (+25% speed, +1 pierce), Electric (chain 20% to 1-2 nearby). No stacking. Perk 3 → triggers GODCHAIN. Perk 4+ → re-triggers GODCHAIN. Death resets all. Config in `Balance.ELEMENTAL`. Drops as diamond power-ups via DropSystem (pity 100 kills)
+- **Elemental Perk System** — `Upgrades.js` + `PerkManager.js`. Fixed order: Fire (splash 30%), Laser (+25% speed, +1 pierce), Electric (chain 20% to 1-2 nearby). No stacking. Perk 3 → triggers GODCHAIN. Perk 4+ → re-triggers GODCHAIN. Death resets all. Config in `Balance.ELEMENTAL`. Drops as diamond power-ups via DropSystem (pity 100 kills). Spectacular VFX per element (napalm/lightning/beam sparks). Cannon tint reflects active element
 - **Adaptive Power Calibration** — `Balance.ADAPTIVE_POWER`. At cycle transitions (C2+), snapshots player power (weapon level, perk stacks, special). Adjusts enemy HP (0.85–1.35×) and drop pity timer. Debug: APC section in `dbg.report()`
 - **Arcade Rogue Protocol** — `Balance.ARCADE`. Roguelike Arcade mode with combo scoring, accumulating modifiers, enhanced mini-bosses. Config: `COMBO` (3s timeout, 0.05x/kill cap 5.0x), `MINI_BOSS` (lower thresholds, 10s cooldown, modifier rewards), `MODIFIERS` (3 post-boss / 2 post-mini-boss picks). Pacing: 2s intermission, +15% enemy count, -15% enemy HP. Post-C3 infinite scaling (+20%/cycle). `ArcadeModifiers.js` (15 modifiers: 5 OFFENSE/5 DEFENSE/5 WILD), `ModifierChoiceScreen.js` (DOM card selection). `RunState.arcadeModifiers[]`, `RunState.arcadeBonuses{}`, `RunState.comboCount/comboTimer/comboMult`
 
@@ -124,8 +124,9 @@ Detailed tables, parameters, and implementation specifics → **SYSTEM_REFERENCE
 - **Status HUD** — `MemeEngine.showStatus(text, icon, statusType, duration, countdown)`. Repurposes `#meme-popup` during PLAY for ship status: pickup feedback, active special/utility countdown, elemental perk activation, GODCHAIN timer. CSS `.status-*` classes with elemental effects (fire flicker, electric flash, laser glow, gold shimmer). Memes suppressed during PLAY (CRITICAL → message-strip)
 - **Meme System** — `Balance.MEME_POPUP`. DOM popup, 3-tier priority, `queueMeme(event, text, emoji)` API. Suppressed during PLAY state (v5.25)
 - **Tutorial** — 3-step DOM overlay, mode-aware (Story/Arcade), per-mode localStorage
-- **What's New** — `#whatsnew-panel` DOM modal, JS-generated from version array in main.js. Scroll broken on iOS Safari (TODO)
+- **What's New** — `#whatsnew-panel` DOM modal, JS-generated bilingual array (EN/IT title/items). Re-renders each open
 - **Arcade Records** — Persistent best cycle/level/kills in localStorage, NEW BEST badge on gameover, displayed in intro selection
+- **Game Completion** — Cinematic video (Remotion, EN/IT) + credits overlay on first campaign completion. `fiat_completion_seen` localStorage flag
 
 ### Rendering & VFX
 - **Color Palette (v4.53 Cyberpunk)** — Neon Violet `#bb44ff` (UI buttons/accents), Neon Magenta `#ff2d95` (FIAT/danger), Neon Cyan `#00f0ff` (CRYPTO/info/shield), Gold `#ffaa00` (HUD score only), Neon Green `#39ff14` (boss eyes/success), Deep Space `#030308→#0a0825` (backgrounds). Enemy outlines use `_colorDark50` (tinted, not flat black)
@@ -192,6 +193,9 @@ Failed score submissions are saved to `fiat_pending_score` in localStorage (only
 
 ### Nickname Flow (v5.23)
 `showNicknamePrompt(callback, options)` — callback receives boolean (true=entered, false=skipped). Options: `{title, hideSkip}`. SKIP button in overlay. First launch: prompt once per session (`window._nickPromptShown`), skip allowed. Game over with new record + no nickname: prompt with `NICK_RECORD_TITLE`.
+
+### OLED Deep Black Pattern (v5.29)
+All overlay/panel backgrounds use pure `#000000` (OLED pixel-off). All inner containers (cards, sections, modals) also `#000000`. Only gameplay HUD elements (`#message-strip`, perk overlay backdrop) remain semi-transparent `rgba()` because they overlay the active game canvas. Never use `rgba(0,0,0,X)` for panel/card backgrounds — always `#000000`.
 
 ### UI Safe Zones
 HUD: 0-45px top. Gameplay: 65px+ top. Boss targetY: 65 + safeOffset. Graze/Shield/HYPER/Joystick: bottom area (DOM elements). Ship Y: `playableHeight - RESET_Y_OFFSET` (respects safeBottom).
