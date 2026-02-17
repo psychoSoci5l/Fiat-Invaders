@@ -1,5 +1,14 @@
 # Changelog
 
+## v5.29.1 - 2026-02-18
+### Game Over Layout + OLED Deep Black
+- **change(ui)**: Game over title `.glitch-text` reduced from 28-42px to 20-28px (single line on mobile)
+- **change(ui)**: Game over score `.final-score` promoted to hero: 56-80px, white with violet glow
+- **change(ui)**: Game over meme → cyan uppercase, label → small 11px white above score
+- **change(ui)**: Game over stats → inline flex row (kills + streak side by side)
+- **change(ui)**: Game over actions → full-width 280px max, retry primary, menu btn-sm
+- **change(ui)**: OLED deep black: 11 inner containers rgba → pure `#000000` (credits, privacy, manual, boss-card, tip-card, perk-card, dialogue-box, terminal-log, manual-tabs, pwa-banner)
+
 ## v5.29.0 - 2026-02-18
 ### Game Over Redesign + Icon Regeneration
 - **change(ui)**: Game over screen background `rgba(0,0,0,0.85)` → opaque `#000000` for LED display readability
