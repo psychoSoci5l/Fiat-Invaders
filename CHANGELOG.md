@@ -1,5 +1,20 @@
 # Changelog
 
+## v5.29.0 - 2026-02-18
+### Game Over Redesign + Icon Regeneration
+- **change(ui)**: Game over screen background `rgba(0,0,0,0.85)` → opaque `#000000` for LED display readability
+- **change(ui)**: All overlay/panel backgrounds → opaque `#000000`: pause, settings, credits, privacy, what's new, manual, tutorial, modifier, nickname, feedback, leaderboard
+- **change(ui)**: All container inner backgrounds → `#000000`: modal-content, whatsnew-box, feedback-box, leaderboard-box, nickname-box, manual-container, tutorial-container, paper-modal, ship-carousel, bar-container
+- **change(ui)**: All scrollbar tracks → `#000000` (manual-content, manual-v2 scroll)
+- **change(ui)**: `.final-score` font-size `46px` → `clamp(42px, 10vw, 54px)` with margin 12px
+- **change(ui)**: `#gameover-stats` border opacity `0.06` → `0.12` (more visible on pure black)
+- **change(ui)**: `.gameover-actions` gap `15px` → `18px`, margin-top `20px` → `24px`
+- **change(icons)**: Icon generator rewritten for v5.28 Premium Arsenal LV3 geometry (8-vertex ∧ delta with all cannons)
+- **change(icons)**: Ship scale +38% (`5.8` → `8.0` / 1024), centered at 45% vertical
+- **change(icons)**: Title text removed — icon is ship-only for cleaner PWA appearance
+- **change(icons)**: Twin engine trail with radial additive glow (red→orange→yellow per exhaust, merged center glow)
+- **change(icons)**: Deeper space background gradient (`#0a0825 → #020204`)
+
 ## v5.28.0 - 2026-02-17
 ### Ship Redesign "Premium Arsenal"
 - **feat(ship)**: Ship +30% larger (52→68px height, 72→94px width LV1). Afterimage, exhaust, wing thrusters all scaled proportionally
