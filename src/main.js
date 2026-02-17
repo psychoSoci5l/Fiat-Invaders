@@ -1,4 +1,17 @@
 // Main Entry Point (Namespace Pattern)
+
+// v5.24: Global error handler — catches silent crashes (especially useful on Android PWA)
+window.onerror = function(msg, url, line, col, err) {
+    const info = `[GAME ERROR] ${msg} at ${url}:${line}:${col}`;
+    console.error(info, err);
+    // Store last error for debug inspection
+    window._lastError = { msg, url, line, col, err, time: Date.now() };
+};
+window.onunhandledrejection = function(e) {
+    console.error('[GAME] Unhandled promise rejection:', e.reason);
+    window._lastError = { msg: String(e.reason), time: Date.now() };
+};
+
 const G = window.Game;
 const Constants = G;
 const audioSys = G.Audio;
@@ -1079,7 +1092,7 @@ let shake = 0, gridDir = 1, gridSpeed = 25, intermissionTimer = 0;
 // Screen transition moved to TransitionManager.js
 let currentShipIdx = 0;
 let lastWavePattern = 'RECT';
-let warmupShown = false; // v4.37: warmup phase shown once per session
+let warmupShown = false; // v4.37: warmup phase shown once (persisted via localStorage)
 let perkChoiceActive = false;
 let intermissionMeme = ""; // Meme shown during countdown
 let lastCountdownNumber = 0; // Track countdown to trigger audio once per number
@@ -4225,7 +4238,11 @@ function startGame() {
     // gridSpeed now computed dynamically via getGridSpeed()
 
     // v4.37: First game → WARMUP + tutorial overlay. Retry → straight to PLAY.
-    if (!warmupShown) {
+    // v5.24: Persistent — check localStorage so tutorial shows only on first-ever play per mode
+    const tutMode = (G.CampaignState && G.CampaignState.isEnabled()) ? 'story' : 'arcade';
+    const tutKey = 'fiat_tutorial_' + tutMode + '_seen';
+    const tutSeen = warmupShown || localStorage.getItem(tutKey);
+    if (!tutSeen) {
         setGameState('WARMUP');
         warmupShown = true;
         showTutorialOverlay();

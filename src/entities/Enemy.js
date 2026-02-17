@@ -64,6 +64,7 @@ class Enemy extends window.Game.Entity {
         this.entryProgress = 0;       // 0-1 progress of entry animation
         this.settleTimer = 0;         // Time to settle after reaching position
         this.hasSettled = false;      // True after settling complete (can fire)
+        this.entryTimer = 0;          // v5.24: Safety timeout — force-complete entry after max time
 
         // Pre-cache colors for performance (avoid recalculating every frame)
         const CU = window.Game.ColorUtils;
@@ -173,6 +174,19 @@ class Enemy extends window.Game.Entity {
 
         // FORMATION ENTRY - Handle entry animation before normal movement
         if (this.isEntering) {
+            // v5.24: Safety timeout — force-complete entry after 4s to prevent stuck state
+            this.entryTimer += dt;
+            if (this.entryTimer > 4) {
+                this.x = this.targetX;
+                this.y = this.targetY;
+                this.baseY = this.targetY;
+                this.rotation = 0;
+                this.isEntering = false;
+                this.hasSettled = true;
+                this.entryProgress = 1;
+                return;
+            }
+
             // Wait for entry delay
             if (this.entryDelay > 0) {
                 this.entryDelay -= dt;

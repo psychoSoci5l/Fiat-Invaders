@@ -1,5 +1,11 @@
 # Changelog
 
+## v5.24.0 - 2026-02-17
+### Android Compatibility + Tutorial Persistence
+- **fix(tutorial)**: Tutorial now shows only on first-ever play per mode (story/arcade) — previously showed every session because `warmupShown` was in-memory only while `localStorage` write was never read back
+- **fix(enemies)**: Safety timeout (4s) on enemy entry animation — if an enemy gets stuck in `isEntering` state, it force-completes to prevent game-wide firing blockade (player + enemies both blocked by `areEnemiesEntering()`)
+- **feat(debug)**: Global `window.onerror` + `window.onunhandledrejection` handlers — catches silent crashes, stores in `window._lastError` for Android remote debugging
+
 ## v5.23.8 - 2026-02-16
 ### Boss HP Bar Below + Game Over Cleanup + Leaderboard Dedup
 - **fix(boss)**: HP bar and name now render below the boss instead of above — bar width matches boss visual width (110px FED/BCE, 140px BOJ), smaller bar height (6px), phase text below bar
