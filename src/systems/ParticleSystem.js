@@ -239,28 +239,23 @@
         const sizeMult = level >= 4 ? (vfx.MUZZLE_POWER_SCALE || 1.3) : 1;
         const speedMult = level >= 3 ? 1.2 : 1;
 
-        // Actual cannon positions (must match Player._drawShipBody geometry)
-        // x,y passed in is player.x, player.y - 25 (nose area)
-        // We compute offsets relative to that anchor
+        // v5.27b: Inverted-V delta cannon positions (match Player._drawMuzzleFlash)
+        // x,y passed in is player.x, player.y - 25 (nose area), so anchor offset = +25
+        // tipY=-28, shoulderY=-8, wingTipY=24, cannonFrac=0.30
+        // cannonBaseY = -8 + 32*0.3 = 1.6, cannonTipY = 1.6-8 = -6.4
         const muzzles = [];
         if (level <= 1) {
-            // LV1: nose tip at (0, -28) → anchor is (0, -25) → dy = -3
+            // LV1: nose tip at local (0, -28) → dy = -28 + 25 = -3
             muzzles.push({ dx: 0, dy: -3 });
-        } else if (level <= 3) {
-            // LV2-3: gun pods — podX=13, podTop varies
-            const podX = 13;
-            const podTop = level >= 3 ? -28 : -22;
-            // Anchor is player.y - 25, so dy = podTop - (-25) = podTop + 25
-            muzzles.push({ dx: -podX, dy: podTop + 25 });
-            muzzles.push({ dx: podX, dy: podTop + 25 });
+        } else if (level === 2) {
+            // LV2: wing cannons at ±20, cannonTipY≈-6 → dy = -6 + 25 = 19
+            muzzles.push({ dx: -20, dy: 19 });
+            muzzles.push({ dx: 20, dy: 19 });
         } else {
-            // LV4+: pods(±15) + central barrel
-            const podX = 15;
-            const podTop = level >= 5 ? -32 : -30;
-            const barrelTop = level >= 5 ? -40 : -36;
-            muzzles.push({ dx: -podX, dy: podTop + 25 });
-            muzzles.push({ dx: 0, dy: barrelTop + 25 });
-            muzzles.push({ dx: podX, dy: podTop + 25 });
+            // LV3: wing cannons + central barrel (barrelTop = -28-12 = -40 → dy = -15)
+            muzzles.push({ dx: -21, dy: 19 });
+            muzzles.push({ dx: 0, dy: -15 });
+            muzzles.push({ dx: 21, dy: 19 });
         }
 
         // Directional sparks per cannon

@@ -139,6 +139,13 @@
                 FLASH_ALPHA: 0.6,
                 PERSISTENT_ALPHA: 0.25,
                 FIRE: '#ff4400', LASER: '#00f0ff', ELECTRIC: '#8844ff'
+            },
+
+            // v5.27: Cannon housing tint per active elemental perk
+            CANNON_TINT: {
+                FIRE:     { DARK: '#663311', LIGHT: '#ff6622' },
+                LASER:    { DARK: '#114455', LIGHT: '#00f0ff' },
+                ELECTRIC: { DARK: '#442266', LIGHT: '#aa77ff' }
             }
         },
 
@@ -851,6 +858,10 @@
             INTERMISSION_BOSS_DURATION: 6.0, // Boss defeat intermission (skippable)
             DEATH_DURATION: 2.0,           // Death sequence length
             INVULNERABILITY: 2.1,          // Post-hit protection
+
+            // v5.27: Game start countdown
+            START_COUNTDOWN: 3.0,        // 3→2→1 duration (seconds)
+            START_COUNTDOWN_GO: 0.5,     // GO! flash duration
 
             // Combat feel
             HIT_STOP_CONTACT: 0.5,         // Slowmo on enemy contact

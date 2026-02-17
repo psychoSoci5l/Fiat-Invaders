@@ -5017,7 +5017,7 @@ body.is-touch p.mobile-only { display: block; }
     align-items: center;
     gap: 14px;
     text-align: left;
-    padding: 16px 18px;
+    padding: 18px 20px;
     border-radius: 12px;
     border-left: 3px solid transparent;
     background: rgba(255, 255, 255, 0.04);
@@ -5090,7 +5090,7 @@ body.is-touch p.mobile-only { display: block; }
 
 .tutorial-text {
     color: #ccc;
-    font-size: 14px;
+    font-size: 16px;
     line-height: 1.5;
     margin: 0;
     white-space: pre-line;

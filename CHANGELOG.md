@@ -1,5 +1,27 @@
 # Changelog
 
+## v5.27.1 - 2026-02-17
+### Bugfix Countdown + Ship Redesign "Inverted-V Delta"
+- **fix(gameplay)**: Countdown 3→2→1→GO! was stuck at 3 — `_startPlayCountdown()` was called before reset block in `startGame()` which immediately cancelled it. Moved call to end of function after all resets
+- **fix(audio)**: Fixed `audioSystem.playSfx is not a function` — corrected to `audioSystem.play()` for countdown tick SFX
+- **feat(ship)**: Inverted-V delta redesign — complete ship rewrite to ∧ arrowhead silhouette. 8-vertex polygon: sharp nose at top, narrow shoulders, massive swept-back wings with tips as the REARMOST and WIDEST points (Y=+24), V-notch tail shorter than wing tips. God Phoenix / Gatchaman inspired
+- **feat(ship)**: New `_geom` cache — `wingSpan` (36-46), `shoulderW` (10-13), `cannonExt`, `barrelExt`, `barrelW`. Replaces all old geometry fields (`bodyHalfW`, `podX`, `finExt`, etc.)
+- **feat(ship)**: Wing cannons at 30% along wing leading edge (LV2+) — diamond housing with twin rails, computed from shoulder-to-wingtip line. Central barrel extends from nose (LV3+)
+- **feat(ship)**: Shield wing glow on trailing edges (wingTip→innerTail→tail triangles). `_drawShieldWingGlow()` replaces `_drawShieldFinGlow()`
+- **feat(ship)**: Twin exhaust flames at inner tail edges (±5, Y=10), wing tip accents, side thrusters at wing tips when strafing
+- **feat(ship)**: Removed engine glow circle (was RADIUS:24 ALPHA:0.55 — too large for new design). Twin exhaust flames provide sufficient visual feedback
+- **feat(ship)**: BTC cockpit repositioned to Y=-10 (center of fuselage)
+- **feat(ship)**: Afterimage simplified to 8-vertex inverted-V silhouette
+- **feat(intro)**: Intro ship preview rewritten with inverted-V delta geometry
+
+## v5.27.0 - 2026-02-17
+### Polish & Feel
+- **feat(hud)**: Boss HP bar simplified — removed boss name and "PHASE X" text, bar moved 2px closer to boss, phase threshold markers now thicker (lineWidth 2, alpha 0.35) with diamond notches above and below
+- **feat(tutorial)**: Tutorial text rewritten with arcade tone — energetic, concise, action-oriented (EN: "GET READY!", IT: "PREPARATI!"). Font size 14px→16px, card padding increased
+- **feat(ship)**: Elemental cannon tint — nose/pod housing changes color based on active perk (Fire: orange, Laser: cyan, Electric: violet). GODCHAIN overrides. Config: `Balance.ELEMENTAL.CANNON_TINT`
+- **feat(ship)**: Wings swept-back redesign — fin tips extended to Y=22 for sharper aerodynamic silhouette. Fin thrusters, GODCHAIN energy trails, and shield fin glow updated to match new geometry
+- **feat(gameplay)**: Game start countdown — 3→2→1→GO! canvas overlay before Wave 1. Waves and firing blocked during countdown. Gold numbers with pulse scale, green GO! with scale-up fade-out. `countdownTick` SFX. Works on first play and retry. Config: `Balance.TIMING.START_COUNTDOWN/START_COUNTDOWN_GO`
+
 ## v5.26.0 - 2026-02-17
 ### Unified Combat HUD + HYPERGOD State
 - **feat(hud)**: Combat HUD Bar — message-strip redesigned as 48px unified bar with fill meter. HYPER (gold fill), GODCHAIN (red-orange fill with pulse), HYPERGOD (prismatic animated gradient) all display in the same bar with live countdown

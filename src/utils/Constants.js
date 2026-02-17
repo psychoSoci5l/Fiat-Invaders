@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v5.26.0 FIAT vs CRYPTO";
+window.Game.VERSION = "v5.27.1 FIAT vs CRYPTO";
 
 // Leaderboard API
 window.Game.LEADERBOARD_API = 'https://fiat-vs-crypto-leaderboard.psychosocial-01.workers.dev/api';
@@ -132,13 +132,13 @@ window.Game.TEXTS = {
         PWA_INSTALL_IOS: 'Install: tap <svg class="pwa-share-icon" viewBox="0 0 24 24" fill="none" stroke="#bb44ff" stroke-width="2"><path d="M12 3v12M5 10l7-7 7 7"/><path d="M5 21h14a1 1 0 001-1v-6H4v6a1 1 0 001 1z"/></svg> then "Add to Home Screen"',
         PWA_INSTALL_ANDROID: "Install the app for the best experience",
         PWA_INSTALL_BTN: "INSTALL",
-        // Tutorial (v5.12 progressive steps)
-        TUT_TITLE: "MISSION BRIEFING",
-        TUT_STEP_MISSION: "FIAT currencies are attacking!\nDestroy 5 waves, then face the Central Bank Boss.",
-        TUT_STEP_CONTROLS_PC: "\u2190 \u2192 or A/D to move\nSPACE to fire\nAutofire while moving",
-        TUT_STEP_CONTROLS_MOBILE: "Drag to move\nAutofire while touching",
-        TUT_STEP_SHIELD_PC: "Fins glow cyan = Shield ready!\nPress S or \u2193 to activate",
-        TUT_STEP_SHIELD_MOBILE: "Fins glow cyan = Shield ready!\nTap your ship to activate",
+        // Tutorial (v5.27 arcade tone)
+        TUT_TITLE: "GET READY!",
+        TUT_STEP_MISSION: "Incoming FIAT attack!\nBlast through 5 waves \u2014 then take down the Boss!",
+        TUT_STEP_CONTROLS_PC: "\u2190 \u2192 or A/D \u2014 Move\nSPACE \u2014 Fire\nAutofire kicks in while moving!",
+        TUT_STEP_CONTROLS_MOBILE: "Drag to move\nAutofire on touch!",
+        TUT_STEP_SHIELD_PC: "Cyan fins glowing? Shield\u2019s ready!\nHit S or \u2193 \u2014 Stay alive!",
+        TUT_STEP_SHIELD_MOBILE: "Cyan fins glowing? Shield\u2019s ready!\nTap your ship \u2014 Stay alive!",
         TUT_NEXT: "NEXT",
         // Manual v2 condensed (v4.12.0)
         MAN_SCORING: "SCORING",
@@ -363,13 +363,13 @@ window.Game.TEXTS = {
         PWA_INSTALL_IOS: 'Installa: tap <svg class="pwa-share-icon" viewBox="0 0 24 24" fill="none" stroke="#bb44ff" stroke-width="2"><path d="M12 3v12M5 10l7-7 7 7"/><path d="M5 21h14a1 1 0 001-1v-6H4v6a1 1 0 001 1z"/></svg> poi "Aggiungi a Home"',
         PWA_INSTALL_ANDROID: "Installa l'app per la migliore esperienza",
         PWA_INSTALL_BTN: "INSTALLA",
-        // Tutorial (v5.12 progressive steps)
-        TUT_TITLE: "BRIEFING MISSIONE",
-        TUT_STEP_MISSION: "Le valute FIAT attaccano!\nDistruggi 5 ondate e affronta il Boss della Banca Centrale.",
-        TUT_STEP_CONTROLS_PC: "\u2190 \u2192 o A/D per muoverti\nSPAZIO per sparare\nSparo automatico in movimento",
-        TUT_STEP_CONTROLS_MOBILE: "Trascina per muoverti\nSparo automatico al tocco",
-        TUT_STEP_SHIELD_PC: "Alette cyan = Scudo pronto!\nPremi S o \u2193 per attivarlo",
-        TUT_STEP_SHIELD_MOBILE: "Alette cyan = Scudo pronto!\nTocca la nave per attivarlo",
+        // Tutorial (v5.27 arcade tone)
+        TUT_TITLE: "PREPARATI!",
+        TUT_STEP_MISSION: "Attacco FIAT in arrivo!\nSupera 5 ondate \u2014 poi abbatti il Boss!",
+        TUT_STEP_CONTROLS_PC: "\u2190 \u2192 o A/D \u2014 Muoviti\nSPAZIO \u2014 Spara\nAutosparo in movimento!",
+        TUT_STEP_CONTROLS_MOBILE: "Trascina per muoverti\nAutosparo al tocco!",
+        TUT_STEP_SHIELD_PC: "Alette cyan accese? Scudo pronto!\nPremi S o \u2193 \u2014 Sopravvivi!",
+        TUT_STEP_SHIELD_MOBILE: "Alette cyan accese? Scudo pronto!\nTocca la nave \u2014 Sopravvivi!",
         TUT_NEXT: "AVANTI",
         // Manual v2 condensed (v4.12.0)
         MAN_SCORING: "PUNTEGGIO",

@@ -1553,7 +1553,7 @@ class Boss extends window.Game.Entity {
         ctx.lineTo(cx, cy - outerRadius);
     }
 
-    // v5.24: HP bar below boss, width matches boss visual
+    // v5.27: HP bar only — no name/phase text, enhanced phase markers
     drawHPBar(ctx, x, y, w, h, name, bossW) {
         const CU = window.Game.ColorUtils;
         const hpPct = Math.max(0, this.hp / this.maxHp);
@@ -1561,7 +1561,7 @@ class Boss extends window.Game.Entity {
         const barH = 6;
         const centerX = x + w / 2;
         const barX = centerX - barW / 2;
-        const barY = y + h + 6;
+        const barY = y + h + 4;
         const p = this.phase;
 
         // Phase fill RGB
@@ -1569,30 +1569,37 @@ class Boss extends window.Game.Entity {
         const fG = p === 3 ? 34 : (p === 2 ? 170 : 255);
         const fB = p === 3 ? 68 : (p === 2 ? 0 : 20);
 
-        // Boss name (above bar)
-        ctx.fillStyle = CU.rgba(255, 255, 255, 0.85);
-        ctx.font = CU.font('bold', 10, 'monospace');
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(name, centerX, barY - 8);
-
         // Background
         ctx.fillStyle = CU.rgba(20, 0, 0, 0.8);
         ctx.beginPath();
         ctx.roundRect(barX, barY, barW, barH, 2);
         ctx.fill();
 
-        // Phase threshold markers
+        // Phase threshold markers (notch diamonds + line)
         const thresh = window.Game.Balance?.BOSS?.PHASE_THRESHOLDS;
         if (thresh) {
-            ctx.strokeStyle = CU.rgba(255, 255, 255, 0.12);
-            ctx.lineWidth = 1;
+            ctx.strokeStyle = CU.rgba(255, 255, 255, 0.35);
+            ctx.lineWidth = 2;
             for (let i = 0; i < thresh.length; i++) {
                 const mx = barX + barW * thresh[i];
                 ctx.beginPath();
                 ctx.moveTo(mx, barY);
                 ctx.lineTo(mx, barY + barH);
                 ctx.stroke();
+                // Diamond notch above and below
+                ctx.fillStyle = CU.rgba(255, 255, 255, 0.35);
+                ctx.beginPath();
+                ctx.moveTo(mx, barY - 3);
+                ctx.lineTo(mx - 2, barY);
+                ctx.lineTo(mx + 2, barY);
+                ctx.closePath();
+                ctx.fill();
+                ctx.beginPath();
+                ctx.moveTo(mx, barY + barH + 3);
+                ctx.lineTo(mx - 2, barY + barH);
+                ctx.lineTo(mx + 2, barY + barH);
+                ctx.closePath();
+                ctx.fill();
             }
         }
 
@@ -1622,13 +1629,6 @@ class Boss extends window.Game.Entity {
         ctx.beginPath();
         ctx.roundRect(barX, barY, barW, barH, 2);
         ctx.stroke();
-
-        // Phase text (below bar)
-        ctx.fillStyle = CU.rgba(255, 255, 255, 0.5);
-        ctx.font = CU.font('bold', 8, 'monospace');
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(`PHASE ${p}`, centerX, barY + barH + 7);
     }
 
 }

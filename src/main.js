@@ -1120,6 +1120,11 @@ let perkPauseData = null;     // Data about the perk being displayed
 let bossWarningTimer = 0;     // When > 0, showing boss warning
 let bossWarningType = null;   // Boss type to spawn after warning
 
+// --- v5.27: START COUNTDOWN SYSTEM ---
+let startCountdownTimer = 0;
+let startCountdownGoTimer = 0;
+let startCountdownActive = false;
+
 let miniBoss = null; // Special boss spawned from kill counter
 
 // Drop system now managed by G.DropSystem singleton
@@ -1861,7 +1866,7 @@ function animateIntroShip() {
     // In SPLASH always show BTC, in SELECTION show selected ship
     const key = (introState === 'SPLASH') ? 'BTC' : SHIP_KEYS[selectedShipIndex];
     const ship = SHIP_DISPLAY[key];
-    const scale = 1.6;
+    const scale = 1.35;
 
     // Hover animation
     const hover = Math.sin(introShipTime * 2) * 6;
@@ -1870,60 +1875,56 @@ function animateIntroShip() {
     ctx.translate(cx, cy + hover);
     ctx.scale(scale, scale);
 
-    // Chevron geometry (LV1 preview, matches Player._drawShipBody)
-    const bodyHalfW = 22;
-    const finExt = 0;
+    // v5.27b: Inverted-V delta — 8-vertex, wing tips are rearmost+widest
     const outline = '#1a1028';
-    const tipY = -36;
-    const shoulderX = bodyHalfW * 0.45;
-    const shoulderY = -16;
-    const wingY = -6;
-    const waistX = bodyHalfW - 2;
-    const waistY = 8;
-    const rearX = bodyHalfW + 2;
-    const rearY = 16;
-    const centerRearY = 10;
+    // LV1 geom
+    const ws = 36;   // wingSpan (half-width at tips)
+    const sw = 10;   // shoulderW (half-width at shoulders)
+    // Fixed Y
+    const tipY = -28;
+    const shoulderY = -8;
+    const wingTipY = 24;     // REARMOST!
+    const innerTailY = 10;
+    const tailY = 4;
+    // X positions
+    const shoulderX = sw;
+    const wingTipX = ws;
+    const innerTailX = 5;
 
-    // === REACTOR FLAMES (4-layer, from rearY) ===
-    const flameHeight = 25 + Math.sin(introShipTime * 12) * 10;
-    const flameWidth = 12 + Math.sin(introShipTime * 10) * 4;
+    // === TWIN EXHAUST FLAMES at inner tail (±5, 10) ===
+    const flameHeight = 18 + Math.sin(introShipTime * 12) * 7;
+    const flameWidth = 5 + Math.sin(introShipTime * 10) * 2;
     const pulse = 1 + Math.sin(introShipTime * 8) * 0.15;
 
-    ctx.fillStyle = '#cc3300';
-    ctx.globalAlpha = 0.6;
-    ctx.beginPath();
-    ctx.moveTo(-flameWidth * 1.4 * pulse, rearY);
-    ctx.lineTo(0, rearY + flameHeight * 1.2);
-    ctx.lineTo(flameWidth * 1.4 * pulse, rearY);
-    ctx.closePath();
-    ctx.fill();
-    ctx.globalAlpha = 1;
+    for (const side of [-1, 1]) {
+        const nx = side * innerTailX;
+        ctx.fillStyle = '#cc3300'; ctx.globalAlpha = 0.6;
+        ctx.beginPath();
+        ctx.moveTo(nx - flameWidth * 1.4 * pulse, innerTailY);
+        ctx.lineTo(nx, innerTailY + flameHeight * 1.2);
+        ctx.lineTo(nx + flameWidth * 1.4 * pulse, innerTailY);
+        ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
+        ctx.fillStyle = '#ff6600';
+        ctx.beginPath();
+        ctx.moveTo(nx - flameWidth, innerTailY);
+        ctx.lineTo(nx, innerTailY + flameHeight);
+        ctx.lineTo(nx + flameWidth, innerTailY);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#ffcc00';
+        ctx.beginPath();
+        ctx.moveTo(nx - flameWidth * 0.5, innerTailY);
+        ctx.lineTo(nx, innerTailY + flameHeight * 0.65);
+        ctx.lineTo(nx + flameWidth * 0.5, innerTailY);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.moveTo(nx - flameWidth * 0.2, innerTailY);
+        ctx.lineTo(nx, innerTailY + flameHeight * 0.35);
+        ctx.lineTo(nx + flameWidth * 0.2, innerTailY);
+        ctx.closePath(); ctx.fill();
+    }
 
-    ctx.fillStyle = '#ff6600';
-    ctx.beginPath();
-    ctx.moveTo(-flameWidth, rearY);
-    ctx.lineTo(0, rearY + flameHeight);
-    ctx.lineTo(flameWidth, rearY);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.fillStyle = '#ffcc00';
-    ctx.beginPath();
-    ctx.moveTo(-flameWidth * 0.5, rearY);
-    ctx.lineTo(0, rearY + flameHeight * 0.65);
-    ctx.lineTo(flameWidth * 0.5, rearY);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.moveTo(-flameWidth * 0.2, rearY);
-    ctx.lineTo(0, rearY + flameHeight * 0.35);
-    ctx.lineTo(flameWidth * 0.2, rearY);
-    ctx.closePath();
-    ctx.fill();
-
-    // === CHEVRON BODY (two-tone left/right) ===
+    // === BODY — 8-vertex inverted V (∧) ===
     ctx.lineWidth = 3;
     ctx.strokeStyle = outline;
 
@@ -1932,138 +1933,110 @@ function animateIntroShip() {
     ctx.beginPath();
     ctx.moveTo(0, tipY);
     ctx.lineTo(-shoulderX, shoulderY);
-    ctx.lineTo(-bodyHalfW, wingY);
-    ctx.lineTo(-waistX, waistY);
-    ctx.lineTo(-rearX, rearY);
-    ctx.lineTo(0, centerRearY);
-    ctx.closePath();
-    ctx.fill();
+    ctx.lineTo(-wingTipX, wingTipY);
+    ctx.lineTo(-innerTailX, innerTailY);
+    ctx.lineTo(0, tailY);
+    ctx.closePath(); ctx.fill();
 
     // Right half (light)
     ctx.fillStyle = ship.bodyLight;
     ctx.beginPath();
     ctx.moveTo(0, tipY);
     ctx.lineTo(shoulderX, shoulderY);
-    ctx.lineTo(bodyHalfW, wingY);
-    ctx.lineTo(waistX, waistY);
-    ctx.lineTo(rearX, rearY);
-    ctx.lineTo(0, centerRearY);
-    ctx.closePath();
-    ctx.fill();
+    ctx.lineTo(wingTipX, wingTipY);
+    ctx.lineTo(innerTailX, innerTailY);
+    ctx.lineTo(0, tailY);
+    ctx.closePath(); ctx.fill();
 
-    // Full chevron outline
+    // Full outline
     ctx.beginPath();
     ctx.moveTo(0, tipY);
     ctx.lineTo(-shoulderX, shoulderY);
-    ctx.lineTo(-bodyHalfW, wingY);
-    ctx.lineTo(-waistX, waistY);
-    ctx.lineTo(-rearX, rearY);
-    ctx.lineTo(0, centerRearY);
-    ctx.lineTo(rearX, rearY);
-    ctx.lineTo(waistX, waistY);
-    ctx.lineTo(bodyHalfW, wingY);
+    ctx.lineTo(-wingTipX, wingTipY);
+    ctx.lineTo(-innerTailX, innerTailY);
+    ctx.lineTo(0, tailY);
+    ctx.lineTo(innerTailX, innerTailY);
+    ctx.lineTo(wingTipX, wingTipY);
     ctx.lineTo(shoulderX, shoulderY);
-    ctx.closePath();
-    ctx.stroke();
+    ctx.closePath(); ctx.stroke();
 
-    // === DORSAL SPINE (accent center line) ===
+    // === DORSAL SPINE ===
     ctx.save();
     ctx.strokeStyle = ship.accent;
     ctx.lineWidth = 1.5;
     ctx.globalAlpha = 0.6;
     ctx.beginPath();
     ctx.moveTo(0, tipY + 6);
-    ctx.lineTo(0, centerRearY - 2);
+    ctx.lineTo(0, tailY - 1);
     ctx.stroke();
     ctx.restore();
 
-    // === NOSE CAP (two-tone tip) ===
+    // === NOSE ACCENT ===
     ctx.lineWidth = 2;
     ctx.strokeStyle = outline;
     ctx.fillStyle = ship.noseDark;
     ctx.beginPath();
     ctx.moveTo(0, tipY);
-    ctx.lineTo(-8, -20);
-    ctx.lineTo(0, -20);
-    ctx.closePath();
-    ctx.fill();
-
+    ctx.lineTo(-shoulderX - 1, shoulderY + 2);
+    ctx.lineTo(0, shoulderY + 2);
+    ctx.closePath(); ctx.fill();
     ctx.fillStyle = ship.noseLight;
     ctx.beginPath();
     ctx.moveTo(0, tipY);
-    ctx.lineTo(0, -20);
-    ctx.lineTo(8, -20);
-    ctx.closePath();
-    ctx.fill();
-
+    ctx.lineTo(0, shoulderY + 2);
+    ctx.lineTo(shoulderX + 1, shoulderY + 2);
+    ctx.closePath(); ctx.fill();
     ctx.beginPath();
     ctx.moveTo(0, tipY);
-    ctx.lineTo(-8, -20);
-    ctx.lineTo(8, -20);
-    ctx.closePath();
-    ctx.stroke();
+    ctx.lineTo(-shoulderX - 1, shoulderY + 2);
+    ctx.lineTo(shoulderX + 1, shoulderY + 2);
+    ctx.closePath(); ctx.stroke();
 
-    // === NOSE BARREL (rect + glow tip) ===
+    // === NOSE BARREL ===
     {
         const nbPulse = Math.sin(introShipTime * 6) * 0.3 + 0.7;
-        ctx.fillStyle = ship.noseLight;
-        ctx.strokeStyle = outline;
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.rect(-2.5, -40, 5, 4);
-        ctx.fill(); ctx.stroke();
+        ctx.fillStyle = ship.noseLight; ctx.strokeStyle = outline; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.rect(-3.5, tipY - 8, 2, 8); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.rect(1.5, tipY - 8, 2, 8); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = ship.noseDark;
+        ctx.beginPath(); ctx.rect(-4.5, tipY - 9, 9, 2.5); ctx.fill(); ctx.stroke();
         ctx.fillStyle = ship.accent;
         ctx.globalAlpha = nbPulse * 0.6;
-        ctx.beginPath();
-        ctx.arc(0, -40, 2.5, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.beginPath(); ctx.arc(0, tipY - 6, 1.8, 0, Math.PI * 2); ctx.fill();
         ctx.globalAlpha = 1;
     }
 
-    // === FINS (swept-back teal triangles) ===
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = outline;
+    // === WING TIP ACCENTS ===
+    {
+        const wtPulse = Math.sin(introShipTime * 5) * 0.3 + 0.7;
+        ctx.fillStyle = ship.accent;
+        ctx.globalAlpha = wtPulse * 0.5;
+        ctx.beginPath(); ctx.arc(-wingTipX, wingTipY, 2.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(wingTipX, wingTipY, 2.5, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
+    }
 
-    ctx.fillStyle = ship.finDark;
-    ctx.beginPath();
-    ctx.moveTo(-bodyHalfW, wingY + 2);
-    ctx.lineTo(-40 - finExt, rearY);
-    ctx.lineTo(-bodyHalfW + 6, rearY + 2);
-    ctx.closePath();
-    ctx.fill(); ctx.stroke();
-
-    ctx.fillStyle = ship.finLight;
-    ctx.beginPath();
-    ctx.moveTo(bodyHalfW, wingY + 2);
-    ctx.lineTo(40 + finExt, rearY);
-    ctx.lineTo(bodyHalfW - 6, rearY + 2);
-    ctx.closePath();
-    ctx.fill(); ctx.stroke();
-
-    // === RIM LIGHTING (edge highlights) ===
+    // === RIM LIGHTING ===
     ctx.strokeStyle = '#9977cc';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(3, tipY + 4);
-    ctx.lineTo(bodyHalfW - 2, wingY);
+    ctx.lineTo(shoulderX + 1, shoulderY);
+    ctx.lineTo(wingTipX - 4, wingTipY - 2);
     ctx.stroke();
-
-    ctx.strokeStyle = ship.noseLight;
-    ctx.lineWidth = 1;
-    ctx.globalAlpha = 0.5;
+    ctx.strokeStyle = ship.noseLight; ctx.lineWidth = 1; ctx.globalAlpha = 0.5;
     ctx.beginPath();
     ctx.moveTo(2, tipY + 2);
-    ctx.lineTo(6, -22);
+    ctx.lineTo(shoulderX, shoulderY + 2);
     ctx.stroke();
     ctx.globalAlpha = 1;
 
     // === COCKPIT (BTC: path ₿, others: text symbol) ===
     if (key === 'BTC') {
-        // Path-drawn ₿ (matches Player._drawBtcSymbolPath)
         const s = 0.9;
         const cockpitColor = '#00f0ff';
         ctx.save();
-        ctx.translate(0, -2);
+        ctx.translate(0, -10);
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
 
@@ -2091,15 +2064,12 @@ function animateIntroShip() {
             ctx.stroke();
         };
 
-        // Outer glow
         ctx.lineWidth = 5 * s;
         ctx.strokeStyle = 'rgba(0, 240, 255, 0.3)';
         drawBPath();
-        // Inner bright
         ctx.lineWidth = 1.8 * s;
         ctx.strokeStyle = cockpitColor;
         drawBPath();
-        // Core white
         ctx.lineWidth = 0.8 * s;
         ctx.strokeStyle = '#ffffff';
         ctx.globalAlpha = 0.8;
@@ -2107,14 +2077,13 @@ function animateIntroShip() {
 
         ctx.restore();
     } else {
-        // ETH / SOL: text symbol fallback
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 14px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.shadowColor = ship.accent;
         ctx.shadowBlur = 8;
-        ctx.fillText(ship.symbol, 0, -2);
+        ctx.fillText(ship.symbol, 0, -10);
         ctx.shadowBlur = 0;
     }
 
@@ -4252,8 +4221,7 @@ function startGame() {
         warmupShown = true;
         showTutorialOverlay();
     } else {
-        setGameState('PLAY');
-        showShipIntroMeme();
+        // v5.27: Countdown on retry — called at end of startGame() after all resets
     }
 
     // WEAPON EVOLUTION v3.0: Full reset on new game (resets shot level to 1)
@@ -4283,6 +4251,7 @@ function startGame() {
     perkPauseData = null;
     bossWarningTimer = 0; // Reset boss warning
     bossWarningType = null;
+    startCountdownTimer = 0; startCountdownGoTimer = 0; startCountdownActive = false; // v5.27
 
     // Reset visual effects
     shake = 0;
@@ -4343,6 +4312,12 @@ function startGame() {
     });
 
     emitEvent('run_start', { bear: isBearMarket });
+
+    // v5.27b: Countdown AFTER all resets (was before, causing reset to cancel it)
+    if (tutSeen) {
+        _startPlayCountdown();
+        showShipIntroMeme();
+    }
 }
 
 // Ship intro meme (non-blocking popup from DIALOGUES.SHIP_INTRO)
@@ -4362,10 +4337,19 @@ window.endWarmup = function() {
     // Cleanup legacy warmup-overlay if present (old cached code)
     const legacyWarmup = document.getElementById('warmup-overlay');
     if (legacyWarmup) legacyWarmup.remove();
-    setGameState('PLAY');
+    // v5.27: Start countdown before gameplay
+    _startPlayCountdown();
     // Ship intro as meme popup (non-blocking)
     showShipIntroMeme();
 };
+
+// v5.27: Activate start countdown — game loop runs but waves/firing blocked
+function _startPlayCountdown() {
+    setGameState('PLAY');
+    startCountdownTimer = Balance.TIMING.START_COUNTDOWN ?? 3.0;
+    startCountdownGoTimer = 0;
+    startCountdownActive = true;
+}
 
 function highlightShip(idx) {
     document.querySelectorAll('.ship-card').forEach((el, i) => {
@@ -4798,9 +4782,31 @@ function update(dt) {
     // Hide legacy ticker if present
     if (ui.memeTicker) ui.memeTicker.style.display = 'none';
 
+    // v5.27: Countdown timer decrement
+    if (startCountdownActive) {
+        if (startCountdownTimer > 0) {
+            const prevNum = Math.ceil(startCountdownTimer);
+            startCountdownTimer -= dt;
+            const curNum = Math.ceil(startCountdownTimer);
+            // SFX tick when number changes
+            if (curNum < prevNum && curNum >= 1 && audioSys) {
+                audioSys.play('countdownTick');
+            }
+            if (startCountdownTimer <= 0) {
+                startCountdownGoTimer = Balance.TIMING.START_COUNTDOWN_GO ?? 0.5;
+                if (audioSys) audioSys.play('countdownTick', { pitch: 1.5 });
+            }
+        } else if (startCountdownGoTimer > 0) {
+            startCountdownGoTimer -= dt;
+            if (startCountdownGoTimer <= 0) {
+                startCountdownActive = false;
+            }
+        }
+    }
+
     // v2.22.1: Include boss warning state to prevent duplicate boss spawn actions
     const isBossActive = !!boss || bossWarningTimer > 0;
-    const waveAction = waveMgr.update(dt, gameState, enemies.length, isBossActive);
+    const waveAction = startCountdownActive ? null : waveMgr.update(dt, gameState, enemies.length, isBossActive);
 
     // Boss warning timer countdown
     if (bossWarningTimer > 0) {
@@ -4920,15 +4926,16 @@ function update(dt) {
 
     if (gameState === 'PLAY' || gameState === 'WARMUP') {
         const inWarmup = gameState === 'WARMUP';
-        // Block firing: warmup, enemy entrance, boss warning/entrance, mini-boss entrance
+        // Block firing: warmup, enemy entrance, boss warning/entrance, mini-boss entrance, countdown
         const enemiesEntering = !inWarmup && (
+            startCountdownActive ||
             (G.HarmonicConductor && G.HarmonicConductor.areEnemiesEntering()) ||
             bossWarningTimer > 0 ||
             (boss && boss.isEntering) ||
             (miniBoss && miniBoss.isEntering)
         );
-        // Freeze HYPER timer during non-combat states (warmup, boss warning)
-        player.hyperFrozen = gameState !== 'PLAY' || bossWarningTimer > 0;
+        // Freeze HYPER timer during non-combat states (warmup, boss warning, countdown)
+        player.hyperFrozen = gameState !== 'PLAY' || bossWarningTimer > 0 || startCountdownActive;
         const newBullets = player.update(dt, inWarmup || enemiesEntering);
         if (!inWarmup && newBullets && newBullets.length > 0) {
             bullets.push(...newBullets);
@@ -5513,6 +5520,11 @@ function draw() {
         if (bossWarningTimer > 0 && bossWarningType) {
             drawBossWarningOverlay(ctx);
         }
+
+        // v5.27: Start countdown overlay
+        if (startCountdownActive) {
+            drawStartCountdown(ctx);
+        }
     }
     // Bear Market danger vignette overlay via SkyRenderer
     if (isBearMarket && gameState === 'PLAY' && G.SkyRenderer) {
@@ -5659,6 +5671,74 @@ function drawPerkPauseOverlay(ctx) {
     ctx.font = 'bold 14px "Courier New", monospace';
     ctx.fillStyle = rarityColor;
     ctx.fillText(perkPauseData.rarity.toUpperCase(), centerX, cardY + 120);
+
+    ctx.restore();
+}
+
+// v5.27: Start countdown overlay (3→2→1→GO!)
+function drawStartCountdown(ctx) {
+    const CU = G.ColorUtils;
+    const centerX = gameWidth / 2;
+    const centerY = gameHeight / 2;
+
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    if (startCountdownTimer > 0) {
+        // Number countdown (3, 2, 1)
+        const num = Math.ceil(startCountdownTimer);
+        const frac = startCountdownTimer - Math.floor(startCountdownTimer);
+        const pulseScale = 1.0 + frac * 0.3;
+
+        ctx.save();
+        ctx.translate(centerX, centerY);
+        ctx.scale(pulseScale, pulseScale);
+
+        // Glow (additive)
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.font = CU.font('bold', 80, 'Courier New, monospace');
+        ctx.fillStyle = CU.rgba(255, 170, 0, 0.15);
+        ctx.fillText(num, 0, 0);
+
+        // Main text
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = CU.rgba(0, 0, 0, 0.8);
+        ctx.strokeText(num, 0, 0);
+        ctx.fillStyle = '#ffaa00';
+        ctx.fillText(num, 0, 0);
+
+        ctx.restore();
+    } else if (startCountdownGoTimer > 0) {
+        // GO! flash
+        const goDur = Balance.TIMING.START_COUNTDOWN_GO ?? 0.5;
+        const goProgress = 1 - (startCountdownGoTimer / goDur);
+        const goScale = 1.0 + goProgress * 0.4;
+        const goAlpha = 1.0 - goProgress;
+
+        ctx.save();
+        ctx.translate(centerX, centerY);
+        ctx.scale(goScale, goScale);
+        ctx.globalAlpha = goAlpha;
+
+        // Glow
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.font = CU.font('bold', 72, 'Courier New, monospace');
+        ctx.fillStyle = CU.rgba(57, 255, 20, 0.2);
+        ctx.fillText('GO!', 0, 0);
+
+        // Main
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.globalAlpha = goAlpha;
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = CU.rgba(0, 0, 0, 0.8);
+        ctx.strokeText('GO!', 0, 0);
+        ctx.fillStyle = '#39ff14';
+        ctx.fillText('GO!', 0, 0);
+
+        ctx.restore();
+    }
 
     ctx.restore();
 }
