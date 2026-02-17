@@ -3,7 +3,7 @@ window.Game = window.Game || {};
 class Player extends window.Game.Entity {
     constructor(gameWidth, gameHeight) {
         const P = window.Game.Balance.PLAYER;
-        super(gameWidth / 2, gameHeight - P.SPAWN_OFFSET_Y, 42, 42);
+        super(gameWidth / 2, gameHeight - P.SPAWN_OFFSET_Y, 55, 55); // v5.28: 42→55 premium arsenal
         this.gameWidth = gameWidth;
         this.gameHeight = gameHeight;
 
@@ -75,9 +75,11 @@ class Player extends window.Game.Entity {
         };
         // Geometry cache (used by _drawShipBody and _drawMuzzleFlash)
         // v5.27b: Inverted-V delta — wing tips are REARMOST and WIDEST
+        // v5.28: Premium Arsenal — swept-back delta, cannonLen for nose barrel slide-out
         this._geom = {
-            wingSpan: 36, shoulderW: 10,
-            cannonExt: 0, barrelExt: 0, barrelW: 0
+            wingSpan: 40, shoulderW: 13,
+            cannonExt: 0, barrelExt: 0, barrelW: 0,
+            cannonLen: 0
         };
 
         // Visual effects
@@ -192,17 +194,19 @@ class Player extends window.Game.Entity {
         const d = this._deploy;
         d.active = true;
         d.timer = 0;
-        d.duration = cfg.DURATION;
+        // v5.28: Use ENERGY_SURGE mount duration (slower, more cinematic)
+        const surge = cfg.ENERGY_SURGE;
+        d.duration = surge?.DEPLOY_DURATION?.[0] ?? cfg.DURATION;
         d.fromLevel = 0;
         d.toLevel = 1;
         d.t = 0;
         d._lockFired = false;
         d._isMounting = true;
-        // Same geometry (level 1→1), the visual change is nose cannon appearing at lock-in
-        d._fromGeom = this._computeGeomForLevel(1);
+        // v5.28: cannonLen slides out from 0→10 during mount
+        d._fromGeom = { ...this._computeGeomForLevel(1), cannonLen: 0 };
         d._toGeom = this._computeGeomForLevel(1);
-        d.flashTimer = cfg.FLASH_DURATION || 0.2;
-        d.brighten = true;
+        d.flashTimer = 0;       // No white flash for cannon mount
+        d.brighten = false;     // No brighten for cannon mount
         d.auraPulse = 0;
 
         // Start SFX
@@ -725,7 +729,7 @@ class Player extends window.Game.Entity {
 
             const b = window.Game.Bullet.Pool.acquire(
                 this.x + offsetX,
-                this.y - 28,
+                this.y - 36, // v5.28: scaled nose tip
                 finalVx,
                 finalVy,
                 color,
@@ -859,7 +863,7 @@ class Player extends window.Game.Entity {
             ctx.strokeStyle = CU.rgba(255, 255, 150, hyperPulse);
             ctx.lineWidth = 4;
             ctx.beginPath();
-            ctx.arc(this.x, this.y, 35 + Math.sin(this.animTime * 12) * 4, 0, Math.PI * 2);
+            ctx.arc(this.x, this.y, 46 + Math.sin(this.animTime * 12) * 5, 0, Math.PI * 2); // v5.28: 35→46
             ctx.stroke();
 
             // Timer ring (shows remaining time)
@@ -868,13 +872,13 @@ class Player extends window.Game.Entity {
             ctx.strokeStyle = timeRatio < 0.3 ? '#ff4444' : '#FFD700';
             ctx.lineWidth = 6;
             ctx.beginPath();
-            ctx.arc(this.x, this.y, 58, -Math.PI / 2, -Math.PI / 2 + ringAngle);
+            ctx.arc(this.x, this.y, 75, -Math.PI / 2, -Math.PI / 2 + ringAngle); // v5.28: 58→75
             ctx.stroke();
 
             // Orbiting energy orbs
             for (let i = 0; i < 6; i++) {
                 const angle = this.animTime * 5 + (Math.PI / 3) * i;
-                const dist = 53 + Math.sin(this.animTime * 8 + i) * 6;
+                const dist = 69 + Math.sin(this.animTime * 8 + i) * 7; // v5.28: 53→69
                 const orbX = this.x + Math.cos(angle) * dist;
                 const orbY = this.y + Math.sin(angle) * dist;
 
@@ -917,14 +921,14 @@ class Player extends window.Game.Entity {
         }
 
         // Enhanced trail effect - multiple afterimages when moving fast
-        // v4.23.1: lower threshold (80→50), higher alpha (0.25→0.4), additive mode
-        if (this.trail.length > 0 && Math.abs(this.vx) > 50) {
+        // v5.28: reduced trail (threshold 50→100, alpha 0.4→0.2, max 3 images)
+        if (this.trail.length > 0 && Math.abs(this.vx) > 100) {
             const _glowTrail = window.Game.Balance?.GLOW;
             const _additiveTrail = _glowTrail?.ENABLED && _glowTrail?.BULLET?.ENABLED;
-            const trailCount = Math.min(this.trail.length, 4);
+            const trailCount = Math.min(this.trail.length, 3);
             for (let i = 0; i < trailCount; i++) {
                 const t = this.trail[i];
-                const alpha = 0.4 * (1 - i / trailCount) * (1 - t.age / 0.22);
+                const alpha = 0.2 * (1 - i / trailCount) * (1 - t.age / 0.22);
                 if (alpha <= 0) continue;
 
                 // Afterimage silhouette — v4.23.1: additive
@@ -933,17 +937,17 @@ class Player extends window.Game.Entity {
                 ctx.globalAlpha = alpha;
                 ctx.translate(t.x, t.y);
 
-                // v5.27b: Inverted-V delta afterimage
+                // v5.28: Swept-back delta afterimage
                 ctx.fillStyle = this.stats.color;
                 ctx.beginPath();
-                ctx.moveTo(0, -24);        // Nose
-                ctx.lineTo(-8, -6);        // Shoulder
-                ctx.lineTo(-30, 22);       // Wing tip (rearmost!)
-                ctx.lineTo(-4, 8);         // Inner tail
-                ctx.lineTo(0, 2);          // Tail notch
-                ctx.lineTo(4, 8);          // Inner tail
-                ctx.lineTo(30, 22);        // Wing tip
-                ctx.lineTo(8, -6);         // Shoulder
+                ctx.moveTo(0, -31);        // Nose
+                ctx.lineTo(-10, -8);       // Shoulder
+                ctx.lineTo(-33, 33);       // Wing tip (swept back!)
+                ctx.lineTo(-5, 10);        // Inner tail
+                ctx.lineTo(0, 3);          // Tail notch
+                ctx.lineTo(5, 10);         // Inner tail
+                ctx.lineTo(33, 33);        // Wing tip
+                ctx.lineTo(10, -8);        // Shoulder
                 ctx.closePath();
                 ctx.fill();
 
@@ -954,11 +958,11 @@ class Player extends window.Game.Entity {
         ctx.save();
         ctx.translate(this.x, this.y);
 
-        // v5.27b: Twin exhaust flames at inner tail edges (±5, +10)
+        // v5.28: Twin exhaust flames at inner tail edges (±7, +13)
         const _flameLvl = this.weaponLevel ?? 1;
         const _flameMult = 1 + (_flameLvl - 1) * 0.12;
-        const _innerTailX = 5;
-        const _innerTailBaseY = 10;
+        const _innerTailX = 7;
+        const _innerTailBaseY = 13;
         const flameHeight = (16 + Math.sin(this.animTime * 12) * 6) * _flameMult;
         const flameWidth = (5 + Math.sin(this.animTime * 10) * 2) * _flameMult;
         const pulse = 1 + Math.sin(this.animTime * 8) * 0.1;
@@ -1003,9 +1007,9 @@ class Player extends window.Game.Entity {
                     ctx.globalAlpha = ft.ALPHA * (0.6 + Math.sin(phase * 2) * 0.4);
                     ctx.fillStyle = ft.COLORS[i % ft.COLORS.length];
                     ctx.beginPath();
-                    ctx.moveTo(flickerX - 3, 14);
-                    ctx.lineTo(flickerX + 3, 14);
-                    ctx.lineTo(flickerX, 14 + flickerLen);
+                    ctx.moveTo(flickerX - 3, 18);
+                    ctx.lineTo(flickerX + 3, 18);
+                    ctx.lineTo(flickerX, 18 + flickerLen);
                     ctx.closePath(); ctx.fill();
                 }
                 ctx.globalAlpha = 1;
@@ -1019,15 +1023,15 @@ class Player extends window.Game.Entity {
             ctx.fillStyle = '#ff8800';
             if (this.vx > 0) {
                 ctx.beginPath();
-                ctx.moveTo(-_ws + 2, 24);
-                ctx.lineTo(-_ws, 24 + sideFlameH);
-                ctx.lineTo(-_ws + 6, 24);
+                ctx.moveTo(-_ws + 2, 36);
+                ctx.lineTo(-_ws, 36 + sideFlameH);
+                ctx.lineTo(-_ws + 6, 36);
                 ctx.closePath(); ctx.fill();
             } else {
                 ctx.beginPath();
-                ctx.moveTo(_ws - 2, 24);
-                ctx.lineTo(_ws, 24 + sideFlameH);
-                ctx.lineTo(_ws - 6, 24);
+                ctx.moveTo(_ws - 2, 36);
+                ctx.lineTo(_ws, 36 + sideFlameH);
+                ctx.lineTo(_ws - 6, 36);
                 ctx.closePath(); ctx.fill();
             }
         }
@@ -1045,16 +1049,20 @@ class Player extends window.Game.Entity {
             const flashAlpha = (_dcfg.FLASH_ALPHA || 0.6) * (_d.flashTimer / (_dcfg.FLASH_DURATION || 0.2));
             ctx.fillStyle = CU.rgba(255, 255, 255, flashAlpha);
             ctx.beginPath();
-            ctx.arc(0, 0, 40, 0, Math.PI * 2);
+            ctx.arc(0, 0, 52, 0, Math.PI * 2); // v5.28: 40→52
             ctx.fill();
         }
         // v5.20: Deploy brightening tint (additive white over ship)
         if (_d.active && _d.brighten && _dcfg) {
             ctx.save();
             ctx.globalCompositeOperation = 'lighter';
-            ctx.fillStyle = CU.rgba(255, 255, 255, _dcfg.BRIGHTEN_AMOUNT || 0.3);
+            // v5.28: Use per-transition brighten peak from ENERGY_SURGE
+            const _surge = _dcfg.ENERGY_SURGE;
+            const _transIdx = _d.toLevel >= 3 ? 2 : (_d.toLevel >= 2 ? 1 : 0);
+            const _brightenAmt = _surge?.BRIGHTEN_PEAK?.[_transIdx] ?? (_dcfg.BRIGHTEN_AMOUNT || 0.3);
+            ctx.fillStyle = CU.rgba(255, 255, 255, _brightenAmt);
             ctx.beginPath();
-            ctx.arc(0, 0, 35, 0, Math.PI * 2);
+            ctx.arc(0, 0, 46, 0, Math.PI * 2); // v5.28: 35→46
             ctx.fill();
             ctx.restore();
         }
@@ -1157,12 +1165,12 @@ class Player extends window.Game.Entity {
             alpha = cfg.READY_ALPHA + pulse * cfg.READY_PULSE_AMP;
         }
 
-        // Inverted-V trailing edges: wingTip → innerTail → tail
+        // Inverted-V trailing edges: wingTip → innerTail → tail (v5.28: swept-back)
         const wingTipX = g.wingSpan;
-        const wingTipY = 24;
-        const innerTailX = 5;
-        const innerTailY = 10;
-        const tailY = 4;
+        const wingTipY = 36;
+        const innerTailX = 7;
+        const innerTailY = 13;
+        const tailY = 5;
 
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
@@ -1180,21 +1188,36 @@ class Player extends window.Game.Entity {
             }
         }
 
-        // Trailing edge glow triangles (wingTip → innerTail → tail)
+        // v5.28: Full wing glow — leading edge (shoulder→wingTip) + trailing edge (wingTip→innerTail→tail)
+        const shoulderX = g.shoulderW;
+        const shoulderY2 = -10;
+
         ctx.fillStyle = CU.rgba(0, 240, 255, alpha);
         ctx.lineWidth = 0;
-        // Left
+        // Left wing — full triangle (shoulder → wingTip → innerTail → tail)
         ctx.beginPath();
-        ctx.moveTo(-wingTipX, wingTipY);
+        ctx.moveTo(-shoulderX, shoulderY2);
+        ctx.lineTo(-wingTipX, wingTipY);
         ctx.lineTo(-innerTailX, innerTailY);
         ctx.lineTo(0, tailY);
         ctx.closePath(); ctx.fill();
-        // Right
+        // Right wing
         ctx.beginPath();
-        ctx.moveTo(wingTipX, wingTipY);
+        ctx.moveTo(shoulderX, shoulderY2);
+        ctx.lineTo(wingTipX, wingTipY);
         ctx.lineTo(innerTailX, innerTailY);
         ctx.lineTo(0, tailY);
         ctx.closePath(); ctx.fill();
+
+        // Leading edge bright stroke
+        ctx.strokeStyle = CU.rgba(0, 240, 255, alpha * 1.5);
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-shoulderX, shoulderY2); ctx.lineTo(-wingTipX, wingTipY);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(shoulderX, shoulderY2); ctx.lineTo(wingTipX, wingTipY);
+        ctx.stroke();
 
         ctx.restore();
     }
@@ -1677,12 +1700,14 @@ class Player extends window.Game.Entity {
      */
     _computeGeomForLevel(level) {
         const isGC = this._godchainActive;
+        // v5.28: Premium Arsenal — swept-back delta (narrower, more aggressive)
         return {
-            wingSpan:    isGC ? 46 : (level >= 3 ? 42 : (level >= 2 ? 40 : 36)),
-            shoulderW:   isGC ? 13 : (level >= 3 ? 12 : (level >= 2 ? 11 : 10)),
-            cannonExt:   isGC ? 10 : (level >= 2 ? 8  : 0),
-            barrelExt:   isGC ? 14 : (level >= 3 ? 12 : 0),
-            barrelW:     isGC ? 5  : (level >= 3 ? 4  : 0),
+            wingSpan:    isGC ? 50 : (level >= 3 ? 46 : (level >= 2 ? 43 : 40)),
+            shoulderW:   isGC ? 17 : (level >= 3 ? 16 : (level >= 2 ? 14 : 13)),
+            cannonExt:   isGC ? 14 : (level >= 2 ? 10 : 0),
+            barrelExt:   isGC ? 18 : (level >= 3 ? 16 : 0),
+            barrelW:     isGC ? 6  : (level >= 3 ? 5  : 0),
+            cannonLen:   isGC ? 10 : (level >= 3 ? 10 : (level <= 1 ? 10 : 0)),
         };
     }
 
@@ -1704,7 +1729,7 @@ class Player extends window.Game.Entity {
         // If already deploying, use current interpolated geom as "from"
         const g = this._geom;
         const fromGeom = d.active
-            ? { wingSpan: g.wingSpan, shoulderW: g.shoulderW, cannonExt: g.cannonExt, barrelExt: g.barrelExt, barrelW: g.barrelW }
+            ? { wingSpan: g.wingSpan, shoulderW: g.shoulderW, cannonExt: g.cannonExt, barrelExt: g.barrelExt, barrelW: g.barrelW, cannonLen: g.cannonLen }
             : this._computeGeomForLevel(fromLevel);
 
         // For components that don't exist at fromLevel, use hidden positions
@@ -1715,10 +1740,18 @@ class Player extends window.Game.Entity {
             fromGeom.barrelExt = 0;
             fromGeom.barrelW = 0;
         }
+        // v5.28: LV1→LV2 retracts nose cannon
+        if (fromLevel <= 1 && toLevel === 2) {
+            fromGeom.cannonLen = fromGeom.cannonLen ?? 10;
+        }
+
+        // v5.28: Energy Surge — per-transition timing
+        const surge = cfg.ENERGY_SURGE;
+        const transIdx = toLevel >= 3 ? 2 : (toLevel >= 2 ? 1 : 0);
 
         d.active = true;
         d.timer = 0;
-        d.duration = cfg.DURATION;
+        d.duration = surge?.DEPLOY_DURATION?.[transIdx] ?? cfg.DURATION;
         d.fromLevel = fromLevel;
         d.toLevel = toLevel;
         d.t = 0;
@@ -1729,6 +1762,13 @@ class Player extends window.Game.Entity {
         d.flashTimer = cfg.FLASH_DURATION || 0.2;
         d.brighten = true;
         d.auraPulse = 0; // will be set on completion
+
+        // v5.28: Trigger slowmo for LV2+ transitions
+        const slowDur = surge?.SLOWDOWN_DURATION?.[transIdx];
+        const slowScale = surge?.SLOWDOWN_SCALE?.[transIdx];
+        if (slowDur > 0 && slowScale < 1 && window.Game.EffectsRenderer) {
+            window.Game.EffectsRenderer.setHitStop(slowDur, false, slowScale);
+        }
 
         // Play start SFX
         const Audio = window.Game.Audio;
@@ -1763,6 +1803,7 @@ class Player extends window.Game.Entity {
         g.cannonExt   = from.cannonExt + (to.cannonExt - from.cannonExt) * t;
         g.barrelExt   = from.barrelExt + (to.barrelExt - from.barrelExt) * t;
         g.barrelW     = from.barrelW + (to.barrelW - from.barrelW) * t;
+        g.cannonLen   = (from.cannonLen ?? 0) + ((to.cannonLen ?? 0) - (from.cannonLen ?? 0)) * t;
 
         // Lock-in event at LOCK_AT threshold
         if (p >= cfg.LOCK_AT && !d._lockFired) {
@@ -1800,6 +1841,7 @@ class Player extends window.Game.Entity {
             g.cannonExt = to.cannonExt;
             g.barrelExt = to.barrelExt;
             g.barrelW = to.barrelW;
+            g.cannonLen = to.cannonLen ?? 0;
         }
     }
 
@@ -1822,6 +1864,7 @@ class Player extends window.Game.Entity {
             const gm = this._geom;
             gm.wingSpan = tgt.wingSpan; gm.shoulderW = tgt.shoulderW;
             gm.cannonExt = tgt.cannonExt; gm.barrelExt = tgt.barrelExt; gm.barrelW = tgt.barrelW;
+            gm.cannonLen = tgt.cannonLen;
         }
         const g = this._geom;
         const ws = g.wingSpan;       // Wing tip half-X (36-46)
@@ -1842,17 +1885,17 @@ class Player extends window.Game.Entity {
         const accentGlow = gcColors ? '#ff6600' : '#bb44ff';
         const outline   = '#1a1028';
 
-        // Fixed Y coordinates — INVERTED V (∧) shape
-        const tipY = -28;         // Nose tip (topmost)
-        const shoulderY = -8;     // Shoulder level
-        const wingTipY = 24;      // Wing tips: REARMOST AND WIDEST!
-        const innerTailY = 10;    // Inner tail edges
-        const tailY = 4;          // Center tail notch (shorter than wing tips!)
+        // Fixed Y coordinates — INVERTED V (∧) shape, v5.28: swept-back delta
+        const tipY = -36;         // Nose tip (topmost)
+        const shoulderY = -10;    // Shoulder level
+        const wingTipY = 36;      // Wing tips: REARMOST AND WIDEST! (31→36 more swept back)
+        const innerTailY = 13;    // Inner tail edges
+        const tailY = 5;          // Center tail notch (shorter than wing tips!)
 
         // X positions
-        const shoulderX = sw;       // (6-9)
-        const wingTipX = ws;        // (36-46) WIDEST!
-        const innerTailX = 5;       // Fixed narrow tail
+        const shoulderX = sw;       // (13-17)
+        const wingTipX = ws;        // (47-60) WIDEST!
+        const innerTailX = 7;       // Fixed narrow tail
 
         ctx.lineWidth = 3;
         ctx.strokeStyle = outline;
@@ -1986,30 +2029,35 @@ class Player extends window.Game.Entity {
         ctx.closePath();
         ctx.stroke();
 
-        // === 6. NOSE CANNON ===
+        // === 6. NOSE CANNON (v5.28: cannonLen slide-out) ===
         {
-            const showNoseCannon = this._cannonMounted && (level < 2 || level >= 3);
+            const cLen = g.cannonLen;
+            const showNoseCannon = this._cannonMounted && cLen > 0 && (level < 2 || level >= 3);
             const deployFadeOut = this._deploy.active && this._deploy.fromLevel === 1 && this._deploy.toLevel === 2;
             const deployFadeIn = this._deploy.active && this._deploy.toLevel >= 3;
             const noseAlpha = deployFadeOut ? Math.max(0, 1 - this._deploy.t) :
                               (deployFadeIn ? Math.min(1, this._deploy.t) : 1);
 
-            if (showNoseCannon || deployFadeOut || deployFadeIn) {
+            if ((showNoseCannon || deployFadeOut || deployFadeIn) && cLen > 0) {
                 ctx.globalAlpha = noseAlpha;
-                const cTop = tipY - 8;
+                const cTop = tipY - cLen;
+                // Twin rails
                 ctx.fillStyle = noseLight;
                 ctx.strokeStyle = outline;
                 ctx.lineWidth = 1.5;
-                ctx.beginPath(); ctx.rect(-3.5, cTop, 2, 8); ctx.fill(); ctx.stroke();
-                ctx.beginPath(); ctx.rect(1.5, cTop, 2, 8); ctx.fill(); ctx.stroke();
+                ctx.beginPath(); ctx.rect(-4, cTop, 2.5, cLen); ctx.fill(); ctx.stroke();
+                ctx.beginPath(); ctx.rect(1.5, cTop, 2.5, cLen); ctx.fill(); ctx.stroke();
+                // Housing cap
                 ctx.fillStyle = noseDark;
-                ctx.beginPath(); ctx.rect(-4.5, cTop - 1, 9, 2.5); ctx.fill(); ctx.stroke();
+                ctx.beginPath(); ctx.rect(-5, cTop - 1.5, 10, 3); ctx.fill(); ctx.stroke();
+                // Glow tip
                 const nbPulse = Math.sin(t * 8) * 0.3 + 0.7;
                 ctx.fillStyle = accentGlow;
-                ctx.globalAlpha = noseAlpha * nbPulse * 0.7;
-                ctx.beginPath(); ctx.arc(0, cTop + 2, 1.8, 0, Math.PI * 2); ctx.fill();
+                ctx.globalAlpha = noseAlpha * nbPulse * 0.8;
+                ctx.beginPath(); ctx.arc(0, cTop, 2.2, 0, Math.PI * 2); ctx.fill();
                 ctx.globalAlpha = 1;
             } else if (!this._cannonMounted) {
+                // Pre-mount glow dot
                 const nbPulse = Math.sin(t * 6) * 0.3 + 0.7;
                 ctx.fillStyle = accentGlow;
                 ctx.globalAlpha = nbPulse * 0.4;
@@ -2018,31 +2066,41 @@ class Player extends window.Game.Entity {
             }
         }
 
-        // === 7. LV3+: CENTRAL BARREL ===
+        // === 7. LV3+: HEAVY CENTRAL BARREL (v5.28: triple-layer) ===
         if ((level >= 3 || (this._deploy.active && this._deploy.toLevel >= 3)) && g.barrelExt > 0) {
             const barrelTop = tipY - g.barrelExt;
             const bW = g.barrelW;
-            ctx.fillStyle = noseLight; ctx.strokeStyle = outline; ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.rect(-4, barrelTop, 3, g.barrelExt); ctx.fill(); ctx.stroke();
-            ctx.beginPath(); ctx.rect(1, barrelTop, 3, g.barrelExt); ctx.fill(); ctx.stroke();
+            // Dark base layer
+            ctx.fillStyle = noseDark; ctx.strokeStyle = outline; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.rect(-bW, barrelTop, bW * 2, g.barrelExt); ctx.fill(); ctx.stroke();
+            // Neon mid layer (inner rails)
+            ctx.fillStyle = noseLight;
+            ctx.beginPath(); ctx.rect(-3, barrelTop + 1, 2.5, g.barrelExt - 2); ctx.fill();
+            ctx.beginPath(); ctx.rect(0.5, barrelTop + 1, 2.5, g.barrelExt - 2); ctx.fill();
+            // Bright tip accent
+            ctx.fillStyle = accentGlow; ctx.globalAlpha = 0.9;
+            ctx.beginPath(); ctx.rect(-bW + 1, barrelTop, bW * 2 - 2, 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            // Muzzle cap
             ctx.fillStyle = noseDark;
-            ctx.beginPath(); ctx.rect(-bW - 1, barrelTop - 2, (bW + 1) * 2, 3); ctx.fill(); ctx.stroke();
+            ctx.beginPath(); ctx.rect(-bW - 2, barrelTop - 2, (bW + 2) * 2, 3); ctx.fill(); ctx.stroke();
+            // Pulsing glow orb (r=3)
             if (level >= 3) {
                 const bPulse = Math.sin(t * 6) * 0.3 + 0.7;
                 ctx.fillStyle = accentGlow; ctx.globalAlpha = bPulse * 0.8;
-                ctx.beginPath(); ctx.arc(0, barrelTop, 2.5, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(0, barrelTop - 1, 3, 0, Math.PI * 2); ctx.fill();
                 ctx.globalAlpha = 1;
             }
             if (isGC) {
                 ctx.save(); ctx.globalCompositeOperation = 'lighter';
                 const corePulse = Math.sin(t * 8) * 0.4 + 0.6;
                 ctx.fillStyle = CU.rgba(255, 100, 0, corePulse);
-                ctx.beginPath(); ctx.arc(0, barrelTop - 3, 5, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(0, barrelTop - 3, 6, 0, Math.PI * 2); ctx.fill();
                 ctx.restore();
             }
         }
 
-        // === 8. LV2+: WING CANNONS (30% along wing leading edge) ===
+        // === 8. LV2+: WING CANNON PODS (v5.28: larger, energy lines, circuit) ===
         if ((level >= 2 || (this._deploy.active && this._deploy.toLevel >= 2)) && g.cannonExt > 0) {
             const cExt = g.cannonExt;
             const frac = 0.30;
@@ -2051,41 +2109,57 @@ class Player extends window.Game.Entity {
             const cannonTipY2 = cannonBaseY - cExt;
 
             ctx.lineWidth = 2; ctx.strokeStyle = outline;
-            // Left cannon — diamond housing
-            ctx.fillStyle = noseDark;
-            ctx.beginPath();
-            ctx.moveTo(-cannonX, cannonBaseY + 4);
-            ctx.lineTo(-cannonX - 3, cannonBaseY);
-            ctx.lineTo(-cannonX, cannonTipY2);
-            ctx.lineTo(-cannonX + 3, cannonBaseY);
-            ctx.closePath(); ctx.fill(); ctx.stroke();
-            ctx.fillStyle = noseLight;
-            ctx.beginPath(); ctx.rect(-cannonX - 2.5, cannonTipY2 - 2, 1.5, cExt); ctx.fill(); ctx.stroke();
-            ctx.beginPath(); ctx.rect(-cannonX + 1, cannonTipY2 - 2, 1.5, cExt); ctx.fill(); ctx.stroke();
-            ctx.fillStyle = noseDark;
-            ctx.beginPath(); ctx.rect(-cannonX - 3, cannonTipY2 - 3, 6, 2); ctx.fill(); ctx.stroke();
+            for (const side of [-1, 1]) {
+                const cx = side * cannonX;
+                // Elongated diamond housing
+                ctx.fillStyle = side < 0 ? noseDark : noseLight;
+                ctx.beginPath();
+                ctx.moveTo(cx, cannonBaseY + 5);
+                ctx.lineTo(cx - side * 4, cannonBaseY);
+                ctx.lineTo(cx, cannonTipY2);
+                ctx.lineTo(cx + side * 4, cannonBaseY);
+                ctx.closePath(); ctx.fill(); ctx.stroke();
+                // Twin rails
+                ctx.fillStyle = noseLight;
+                ctx.beginPath(); ctx.rect(cx - 3, cannonTipY2 - 2, 2, cExt); ctx.fill(); ctx.stroke();
+                ctx.beginPath(); ctx.rect(cx + 1, cannonTipY2 - 2, 2, cExt); ctx.fill(); ctx.stroke();
+                // Muzzle cap
+                ctx.fillStyle = noseDark;
+                ctx.beginPath(); ctx.rect(cx - 4, cannonTipY2 - 3, 8, 2.5); ctx.fill(); ctx.stroke();
+            }
 
-            // Right cannon — diamond housing
-            ctx.fillStyle = noseLight;
-            ctx.beginPath();
-            ctx.moveTo(cannonX, cannonBaseY + 4);
-            ctx.lineTo(cannonX + 3, cannonBaseY);
-            ctx.lineTo(cannonX, cannonTipY2);
-            ctx.lineTo(cannonX - 3, cannonBaseY);
-            ctx.closePath(); ctx.fill(); ctx.stroke();
-            ctx.fillStyle = noseLight;
-            ctx.beginPath(); ctx.rect(cannonX - 2.5, cannonTipY2 - 2, 1.5, cExt); ctx.fill(); ctx.stroke();
-            ctx.beginPath(); ctx.rect(cannonX + 1, cannonTipY2 - 2, 1.5, cExt); ctx.fill(); ctx.stroke();
-            ctx.fillStyle = noseDark;
-            ctx.beginPath(); ctx.rect(cannonX - 3, cannonTipY2 - 3, 6, 2); ctx.fill(); ctx.stroke();
-
-            // Glow tips
-            const tipR = level >= 3 ? 4.5 : 3.5;
+            // Glow orbs at tips
+            const tipR = level >= 3 ? 5 : 4;
             const tipAlpha = level >= 3 ? (Math.sin(t * 6) * 0.3 + 0.7) : 0.7;
             ctx.fillStyle = accentGlow; ctx.globalAlpha = tipAlpha;
-            ctx.beginPath(); ctx.arc(-cannonX, cannonTipY2, tipR, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.arc(cannonX, cannonTipY2, tipR, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(-cannonX, cannonTipY2 - 1, tipR, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(cannonX, cannonTipY2 - 1, tipR, 0, Math.PI * 2); ctx.fill();
             ctx.globalAlpha = 1;
+
+            // LV2: Energy line between pods (subtle)
+            if (level === 2 && !isGC) {
+                ctx.save(); ctx.globalCompositeOperation = 'lighter';
+                ctx.strokeStyle = CU.rgba(187, 68, 255, 0.15 + Math.sin(t * 4) * 0.1);
+                ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.moveTo(-cannonX, cannonTipY2); ctx.lineTo(cannonX, cannonTipY2); ctx.stroke();
+                ctx.restore();
+            }
+
+            // LV3: Energy circuit lines from reactor (center) to all 3 cannons
+            if (level >= 3) {
+                ctx.save(); ctx.globalCompositeOperation = 'lighter';
+                const circuitAlpha = 0.2 + Math.sin(t * 5) * 0.15;
+                ctx.strokeStyle = CU.rgba(187, 68, 255, circuitAlpha);
+                ctx.lineWidth = 1.5;
+                // Center to wing pods
+                ctx.beginPath(); ctx.moveTo(0, shoulderY); ctx.lineTo(-cannonX, cannonTipY2); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, shoulderY); ctx.lineTo(cannonX, cannonTipY2); ctx.stroke();
+                // Center to central barrel
+                if (g.barrelExt > 0) {
+                    ctx.beginPath(); ctx.moveTo(0, shoulderY); ctx.lineTo(0, tipY - g.barrelExt); ctx.stroke();
+                }
+                ctx.restore();
+            }
         }
 
         // === 9. SHIELD WING GLOW ===
@@ -2132,8 +2206,25 @@ class Player extends window.Game.Entity {
         ctx.stroke();
         ctx.globalAlpha = 1;
 
-        // === BTC COCKPIT ===
-        this._drawBtcSymbolPath(ctx, 0, -10, 0.85, isGC);
+        // === BTC COCKPIT — direct ₿ symbol (reactive color per element) ===
+        {
+            const rs = window.Game.RunState;
+            const canopyCfg = window.Game.Balance?.ELEMENTAL?.COCKPIT_CANOPY;
+            let btcColor;
+            if (isGC) {
+                const hue = (t * 60) % 360;
+                btcColor = `hsl(${hue}, 100%, 60%)`;
+            } else if (rs?.hasElectricPerk) {
+                btcColor = canopyCfg?.COLOR_ELECTRIC ?? '#aa77ff';
+            } else if (rs?.hasLaserPerk) {
+                btcColor = canopyCfg?.COLOR_LASER ?? '#00f0ff';
+            } else if (rs?.hasFirePerk) {
+                btcColor = canopyCfg?.COLOR_FIRE ?? '#ff6622';
+            } else {
+                btcColor = canopyCfg?.COLOR_DEFAULT ?? '#00f0ff';
+            }
+            this._drawBtcSymbolPath(ctx, 0, -12, 0.85, isGC, btcColor);
+        }
 
         // === GODCHAIN ENERGY LINES ===
         if (isGC) {
@@ -2154,10 +2245,74 @@ class Player extends window.Game.Entity {
     /**
      * v5.9: Draw BTC symbol as path strokes (not text) for crisp cockpit
      */
-    _drawBtcSymbolPath(ctx, cx, cy, scale, isGodchain) {
+    /**
+     * v5.28: Cockpit canopy — transparent ellipse with reactive BTC symbol inside
+     */
+    _drawCockpitCanopy(ctx, isGC) {
+        const CU = window.Game.ColorUtils;
+        const cfg = window.Game.Balance?.ELEMENTAL?.COCKPIT_CANOPY;
+        const rx = cfg?.RX ?? 12;
+        const ry = cfg?.RY ?? 9;
+        const cy = cfg?.CY ?? -12;
+        const glassAlpha = cfg?.GLASS_ALPHA ?? 0.12;
+        const btcScale = cfg?.BTC_SCALE ?? 0.7;
+        const t = this.animTime;
+
+        // Determine reactive color
+        const rs = window.Game.RunState;
+        let btcColor;
+        if (isGC) {
+            btcColor = null; // prismatic
+        } else if (rs?.hasElectricPerk) {
+            btcColor = cfg?.COLOR_ELECTRIC ?? '#aa77ff';
+        } else if (rs?.hasLaserPerk) {
+            btcColor = cfg?.COLOR_LASER ?? '#00f0ff';
+        } else if (rs?.hasFirePerk) {
+            btcColor = cfg?.COLOR_FIRE ?? '#ff6622';
+        } else {
+            btcColor = cfg?.COLOR_DEFAULT ?? '#00f0ff';
+        }
+
+        ctx.save();
+
+        // 1. Glass ellipse (semi-transparent)
+        ctx.fillStyle = CU.rgba(100, 160, 255, glassAlpha);
+        ctx.beginPath();
+        ctx.ellipse(0, cy, rx, ry, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 2. Metallic border
+        const noseLight = this._godchainActive
+            ? (window.Game.Balance?.GODCHAIN?.SHIP_COLORS?.NOSE_LIGHT ?? '#ff8800')
+            : '#9966cc';
+        ctx.strokeStyle = noseLight;
+        ctx.lineWidth = cfg?.BORDER_WIDTH ?? 1.5;
+        ctx.stroke();
+
+        // 3. Glass highlight (upper-left arc)
+        ctx.beginPath();
+        ctx.ellipse(-rx * 0.3, cy - ry * 0.3, rx * 0.5, ry * 0.4, -0.4, -Math.PI * 0.8, Math.PI * 0.1);
+        ctx.strokeStyle = CU.rgba(255, 255, 255, 0.25);
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+
+        ctx.restore();
+
+        // 4. BTC symbol inside canopy
+        if (isGC) {
+            // Prismatic: rotate hue over time
+            const hue = (t * 60) % 360;
+            const prismaticColor = `hsl(${hue}, 100%, 60%)`;
+            this._drawBtcSymbolPath(ctx, 0, cy, btcScale, true, prismaticColor);
+        } else {
+            this._drawBtcSymbolPath(ctx, 0, cy, btcScale, false, btcColor);
+        }
+    }
+
+    _drawBtcSymbolPath(ctx, cx, cy, scale, isGodchain, colorOverride) {
         const CU = window.Game.ColorUtils;
         const s = scale;
-        const color = isGodchain ? '#ff6600' : '#00f0ff';
+        const color = colorOverride ?? (isGodchain ? '#ff6600' : '#00f0ff');
 
         ctx.save();
         ctx.translate(cx, cy);
@@ -2227,16 +2382,16 @@ class Player extends window.Game.Entity {
         const CU = window.Game.ColorUtils;
         const t = this._shieldAnim;
         let fade = this._shieldFade;
-        const radius = 52;
-        const hexSize = 11;
+        const radius = 56; // v5.28: fits swept-back delta (wingspan 40 + margin)
+        const hexSize = 12; // v5.28: proportional to radius
         const rows = 6;
 
-        // v5.25: Expiry warning — accelerating blink in last 1.5s
+        // v5.25: Expiry warning — accelerating blink in last 1.5s (v5.28: more visible)
         const WARN_TIME = 1.5;
         if (this.shieldActive && this.shieldTimer > 0 && this.shieldTimer < WARN_TIME) {
             const urgency = 1 - (this.shieldTimer / WARN_TIME); // 0→1
             const freq = 4 + urgency * 8; // 4Hz→12Hz
-            const blink = 0.3 + 0.7 * (0.5 + 0.5 * Math.sin(t * freq * Math.PI * 2));
+            const blink = Math.max(0.05, 0.5 + 0.5 * Math.sin(t * freq * Math.PI * 2));
             fade *= blink;
         }
 
@@ -2388,9 +2543,9 @@ class Player extends window.Game.Entity {
         // v5.27b: Muzzle points — inverted-V delta, cannons at 30% wing leading edge
         const muzzles = [];
         const CANNON_FRAC = 0.30;
-        const _shoulderY = -8, _wingTipY = 24;
+        const _shoulderY = -10, _wingTipY = 36; // v5.28: swept-back
         if (effectiveLevel <= 1) {
-            muzzles.push({ x: 0, y: -28 });
+            muzzles.push({ x: 0, y: -36 });
         } else if (effectiveLevel === 2) {
             const cx = gm.shoulderW + (gm.wingSpan - gm.shoulderW) * CANNON_FRAC;
             const cBaseY = _shoulderY + (_wingTipY - _shoulderY) * CANNON_FRAC;
@@ -2402,7 +2557,7 @@ class Player extends window.Game.Entity {
             const cBaseY = _shoulderY + (_wingTipY - _shoulderY) * CANNON_FRAC;
             const cTipY = cBaseY - gm.cannonExt;
             muzzles.push({ x: -cx, y: cTipY });
-            muzzles.push({ x: 0, y: -28 - gm.barrelExt });
+            muzzles.push({ x: 0, y: -36 - gm.barrelExt }); // v5.28: -28→-36
             muzzles.push({ x: cx, y: cTipY });
         }
 

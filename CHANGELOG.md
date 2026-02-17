@@ -1,5 +1,24 @@
 # Changelog
 
+## v5.28.0 - 2026-02-17
+### Ship Redesign "Premium Arsenal"
+- **feat(ship)**: Ship +30% larger (52→68px height, 72→94px width LV1). Afterimage, exhaust, wing thrusters all scaled proportionally
+- **feat(ship)**: Cockpit canopy — transparent ellipse with metallic border, glass highlight arc. BTC ₿ symbol inside at 0.7 scale with reactive color per element (cyan default, orange fire, cyan laser, violet electric, prismatic hue-rotation for GODCHAIN)
+- **feat(ship)**: Nose cannon with `cannonLen` — twin rails slide-out from nose with housing cap and glow tip. Animates during mount (0→10), retracts on LV1→LV2, re-emerges on LV3
+- **feat(ship)**: Heavy central barrel LV3 — triple-layer design (dark base, neon inner rails, bright tip accent). Muzzle cap + pulsing glow orb (r=3). GC energy orb r=6
+- **feat(ship)**: Wing cannon pods redesigned — elongated diamond housing, twin rails per pod, muzzle caps, larger glow orbs (r=4 LV2, r=5 LV3)
+- **feat(ship)**: LV2 energy line between wing pods (alpha 0.15, subtle pulsing). LV3 energy circuit lines from reactor (center) to all 3 cannons (pulsing alpha 0.2-0.5)
+- **feat(vfx)**: Energy Surge system — configurable slowmo per weapon transition: LV2 at 0.7× for 0.6s, LV3 at 0.6× for 0.8s. Per-transition brighten peaks (0.3/0.5/0.7). Flash radius 40→52, brighten radius 35→46
+- **feat(config)**: `COCKPIT_CANOPY` config section in BalanceConfig (rx, ry, BTC_SCALE, per-element colors)
+- **feat(config)**: `ENERGY_SURGE` config inside `WEAPON_DEPLOY` (DEPLOY_DURATION, SLOWDOWN_SCALE/DURATION, BRIGHTEN_PEAK, SHOCKWAVE_RADIUS, INVULN_FRAMES)
+- **feat(effects)**: `setHitStop(duration, freeze, slowScale)` — new slowScale parameter for configurable slowmo intensity (was hardcoded 0.25)
+- **change(hud)**: Life pips disabled (LIFE_PIPS.ENABLED: false) — ship is now large enough to see without pips
+- **change(hitbox)**: BTC hitboxSize 42→55, coreHitboxSize 8→10. HITBOX defaults scaled to match
+- **change(hyper)**: HYPER aura rings scaled +30%: inner ring 35→46, timer ring 58→75, orb orbit 53→69
+- **change(shield)**: Hex shield radius 52→68, hexSize 11→14
+- **change(particles)**: Deploy burst ring baseSize 60→80
+- **change(intro)**: Ship preview scale 1.35→1.05 (compensates +30% ship size). Nose barrel uses cannonLen, BTC cockpit replaced with canopy ellipse
+
 ## v5.27.1 - 2026-02-17
 ### Bugfix Countdown + Ship Redesign "Inverted-V Delta"
 - **fix(gameplay)**: Countdown 3→2→1→GO! was stuck at 3 — `_startPlayCountdown()` was called before reset block in `startGame()` which immediately cancelled it. Moved call to end of function after all resets

@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v5.27.1 FIAT vs CRYPTO";
+window.Game.VERSION = "v5.28.0 FIAT vs CRYPTO";
 
 // Leaderboard API
 window.Game.LEADERBOARD_API = 'https://fiat-vs-crypto-leaderboard.psychosocial-01.workers.dev/api';
@@ -661,7 +661,7 @@ window.Game.MINION_TYPE = {
 };
 
 window.Game.SHIPS = {
-    BTC: { speed: 420, hp: 3, fireRate: 0.22, baseDamage: 14, color: '#bb44ff', hitboxSize: 42, coreHitboxSize: 8 }, // v5.9: 30→42 chevron redesign
+    BTC: { speed: 420, hp: 3, fireRate: 0.22, baseDamage: 14, color: '#bb44ff', hitboxSize: 48, coreHitboxSize: 10 }, // v5.28: swept-back delta
     ETH: { speed: 320, hp: 4, fireRate: 0.33, baseDamage: 28, color: '#8c7ae6', hitboxSize: 50, coreHitboxSize: 9 }, // v5.9: 38→50 proportional
     SOL: { speed: 560, hp: 2, fireRate: 0.17, baseDamage: 10, color: '#00d2d3', hitboxSize: 24, coreHitboxSize: 5 } // v5.9: 18→24 proportional
 };

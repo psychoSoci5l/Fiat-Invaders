@@ -38,6 +38,7 @@
     // Hit stop system
     let hitStopTimer = 0;
     let hitStopFreeze = false;
+    let hitStopSlowScale = 0.25; // v5.28: configurable slowmo scale (default 25%)
 
     /**
      * Initialize effects system with canvas dimensions
@@ -172,10 +173,11 @@
      * @param {number} duration - Duration in seconds
      * @param {boolean} freeze - True for freeze, false for slowmo
      */
-    function setHitStop(duration, freeze = true) {
+    function setHitStop(duration, freeze = true, slowScale = 0.25) {
         if (G.Balance?.JUICE?.SCREEN_EFFECTS?.HIT_STOP === false) return;
         hitStopTimer = duration;
         hitStopFreeze = freeze;
+        hitStopSlowScale = slowScale; // v5.28: configurable slowmo intensity
     }
 
     /**
@@ -229,7 +231,7 @@
             if (hitStopFreeze) {
                 modifiedDt = 0; // Complete freeze
             } else {
-                modifiedDt *= 0.25; // Slowmo (25% speed)
+                modifiedDt *= hitStopSlowScale; // Slowmo (configurable speed)
             }
             if (hitStopTimer < 0) hitStopTimer = 0;
         }

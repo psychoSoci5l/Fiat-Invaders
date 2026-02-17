@@ -1866,7 +1866,7 @@ function animateIntroShip() {
     // In SPLASH always show BTC, in SELECTION show selected ship
     const key = (introState === 'SPLASH') ? 'BTC' : SHIP_KEYS[selectedShipIndex];
     const ship = SHIP_DISPLAY[key];
-    const scale = 1.35;
+    const scale = 1.05; // v5.28: 1.35→1.05 (ship is +30% larger now)
 
     // Hover animation
     const hover = Math.sin(introShipTime * 2) * 6;
@@ -1875,21 +1875,21 @@ function animateIntroShip() {
     ctx.translate(cx, cy + hover);
     ctx.scale(scale, scale);
 
-    // v5.27b: Inverted-V delta — 8-vertex, wing tips are rearmost+widest
+    // v5.28: Swept-back delta — narrower, more aggressive
     const outline = '#1a1028';
     // LV1 geom
-    const ws = 36;   // wingSpan (half-width at tips)
-    const sw = 10;   // shoulderW (half-width at shoulders)
+    const ws = 40;   // wingSpan (half-width at tips)
+    const sw = 13;   // shoulderW (half-width at shoulders)
     // Fixed Y
-    const tipY = -28;
-    const shoulderY = -8;
-    const wingTipY = 24;     // REARMOST!
-    const innerTailY = 10;
-    const tailY = 4;
+    const tipY = -36;
+    const shoulderY = -10;
+    const wingTipY = 36;     // REARMOST! (more swept back)
+    const innerTailY = 13;
+    const tailY = 5;
     // X positions
     const shoulderX = sw;
     const wingTipX = ws;
-    const innerTailX = 5;
+    const innerTailX = 7;
 
     // === TWIN EXHAUST FLAMES at inner tail (±5, 10) ===
     const flameHeight = 18 + Math.sin(introShipTime * 12) * 7;
@@ -1992,17 +1992,19 @@ function animateIntroShip() {
     ctx.lineTo(shoulderX + 1, shoulderY + 2);
     ctx.closePath(); ctx.stroke();
 
-    // === NOSE BARREL ===
+    // === NOSE CANNON (v5.28: cannonLen=10) ===
     {
+        const cLen = 10;
+        const cTop = tipY - cLen;
         const nbPulse = Math.sin(introShipTime * 6) * 0.3 + 0.7;
         ctx.fillStyle = ship.noseLight; ctx.strokeStyle = outline; ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.rect(-3.5, tipY - 8, 2, 8); ctx.fill(); ctx.stroke();
-        ctx.beginPath(); ctx.rect(1.5, tipY - 8, 2, 8); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.rect(-4, cTop, 2.5, cLen); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.rect(1.5, cTop, 2.5, cLen); ctx.fill(); ctx.stroke();
         ctx.fillStyle = ship.noseDark;
-        ctx.beginPath(); ctx.rect(-4.5, tipY - 9, 9, 2.5); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.rect(-5, cTop - 1.5, 10, 3); ctx.fill(); ctx.stroke();
         ctx.fillStyle = ship.accent;
-        ctx.globalAlpha = nbPulse * 0.6;
-        ctx.beginPath(); ctx.arc(0, tipY - 6, 1.8, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = nbPulse * 0.7;
+        ctx.beginPath(); ctx.arc(0, cTop, 2.2, 0, Math.PI * 2); ctx.fill();
         ctx.globalAlpha = 1;
     }
 
@@ -2031,21 +2033,18 @@ function animateIntroShip() {
     ctx.stroke();
     ctx.globalAlpha = 1;
 
-    // === COCKPIT (BTC: path ₿, others: text symbol) ===
+    // === COCKPIT (₿ symbol, no canopy) ===
     if (key === 'BTC') {
-        const s = 0.9;
+        const s = 0.85;
         const cockpitColor = '#00f0ff';
         ctx.save();
-        ctx.translate(0, -10);
+        ctx.translate(0, -12);
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-
         const drawBPath = () => {
             ctx.beginPath();
-            ctx.moveTo(-3 * s, -7 * s);
-            ctx.lineTo(-3 * s, 7 * s);
-            ctx.moveTo(-3 * s, -7 * s);
-            ctx.lineTo(1 * s, -7 * s);
+            ctx.moveTo(-3 * s, -7 * s); ctx.lineTo(-3 * s, 7 * s);
+            ctx.moveTo(-3 * s, -7 * s); ctx.lineTo(1 * s, -7 * s);
             ctx.quadraticCurveTo(6 * s, -7 * s, 6 * s, -3.5 * s);
             ctx.quadraticCurveTo(6 * s, 0, 1 * s, 0);
             ctx.lineTo(-3 * s, 0);
@@ -2053,17 +2052,12 @@ function animateIntroShip() {
             ctx.quadraticCurveTo(7 * s, 0, 7 * s, 3.5 * s);
             ctx.quadraticCurveTo(7 * s, 7 * s, 1 * s, 7 * s);
             ctx.lineTo(-3 * s, 7 * s);
-            ctx.moveTo(-1 * s, -9 * s);
-            ctx.lineTo(-1 * s, -6 * s);
-            ctx.moveTo(2 * s, -9 * s);
-            ctx.lineTo(2 * s, -6 * s);
-            ctx.moveTo(-1 * s, 6 * s);
-            ctx.lineTo(-1 * s, 9 * s);
-            ctx.moveTo(2 * s, 6 * s);
-            ctx.lineTo(2 * s, 9 * s);
+            ctx.moveTo(-1 * s, -9 * s); ctx.lineTo(-1 * s, -6 * s);
+            ctx.moveTo(2 * s, -9 * s); ctx.lineTo(2 * s, -6 * s);
+            ctx.moveTo(-1 * s, 6 * s); ctx.lineTo(-1 * s, 9 * s);
+            ctx.moveTo(2 * s, 6 * s); ctx.lineTo(2 * s, 9 * s);
             ctx.stroke();
         };
-
         ctx.lineWidth = 5 * s;
         ctx.strokeStyle = 'rgba(0, 240, 255, 0.3)';
         drawBPath();
@@ -2074,7 +2068,6 @@ function animateIntroShip() {
         ctx.strokeStyle = '#ffffff';
         ctx.globalAlpha = 0.8;
         drawBPath();
-
         ctx.restore();
     } else {
         ctx.fillStyle = '#fff';

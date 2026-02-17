@@ -141,6 +141,22 @@
                 FIRE: '#ff4400', LASER: '#00f0ff', ELECTRIC: '#8844ff'
             },
 
+            // v5.28: Cockpit canopy — transparent ellipse with reactive BTC symbol
+            COCKPIT_CANOPY: {
+                RX: 12,           // Ellipse horizontal radius
+                RY: 9,            // Ellipse vertical radius
+                CY: -12,          // Center Y offset from ship center
+                GLASS_ALPHA: 0.12,// Canopy glass transparency
+                BORDER_WIDTH: 1.5,
+                BTC_SCALE: 0.7,   // BTC symbol scale inside canopy
+                // Reactive colors per element
+                COLOR_DEFAULT: '#00f0ff',
+                COLOR_FIRE:    '#ff6622',
+                COLOR_LASER:   '#00f0ff',
+                COLOR_ELECTRIC:'#aa77ff',
+                COLOR_GC:      null,  // null = prismatic (hue rotation)
+            },
+
             // v5.27: Cannon housing tint per active elemental perk
             CANNON_TINT: {
                 FIRE:     { DARK: '#663311', LIGHT: '#ff6622' },
@@ -305,8 +321,8 @@
 
             // Visual settings
             AURA_PULSE_SPEED: 8,      // Aura animation speed
-            AURA_SIZE_BASE: 35,       // Base aura radius (v5.9: 28→35 chevron)
-            AURA_SIZE_PULSE: 5,       // Aura size oscillation (v5.9: 4→5)
+            AURA_SIZE_BASE: 46,       // Base aura radius (v5.28: 35→46 +30% premium)
+            AURA_SIZE_PULSE: 7,       // Aura size oscillation (v5.28: 5→7)
             PARTICLE_BURST: 3,        // Particles per graze during HYPER (minimal clutter)
 
             // Audio settings
@@ -1015,7 +1031,7 @@
         DIEGETIC_HUD: {
             ENABLED: true,
             LIFE_PIPS: {
-                ENABLED: true,
+                ENABLED: false,  // v5.28: Disabled — ship is large enough, pips add visual clutter
                 Y_OFFSET: 34,            // Below ship center (v5.9: 28→34 chevron)
                 RADIUS: 4,               // Pip circle radius
                 SPACING: 12,             // Between pips
@@ -1033,11 +1049,11 @@
             },
             SHIELD_FIN_GLOW: {
                 ENABLED: true,
-                COOLDOWN_ALPHA: 0.3,     // Max alpha during cooldown fill
-                READY_ALPHA: 0.5,        // Base alpha when ready
+                COOLDOWN_ALPHA: 0.35,    // Max alpha during cooldown fill
+                READY_ALPHA: 0.6,        // Base alpha when ready
                 READY_PULSE_SPEED: 4,    // rad/s pulsing
                 READY_PULSE_AMP: 0.2,    // ±alpha oscillation
-                GLOW_SPREAD: 6           // px blur/spread around fin edges
+                GLOW_SPREAD: 10          // px blur/spread around fin edges (v5.28: 6→10)
             },
             WEAPON_PIPS: {
                 ENABLED: true,
@@ -1116,8 +1132,8 @@
         // --- HITBOX / COLLISION ---
         HITBOX: {
             PLAYER_OUTER_BONUS: 15,       // Added to ship hitboxSize for outer collision
-            PLAYER_CORE_DEFAULT: 8,       // Default core hitbox if not in ship stats (v5.9: 6→8)
-            PLAYER_OUTER_DEFAULT: 42,     // Default outer hitbox if not in ship stats (v5.9: 30→42)
+            PLAYER_CORE_DEFAULT: 10,      // Default core hitbox if not in ship stats (v5.28: 8→10 premium)
+            PLAYER_OUTER_DEFAULT: 48,     // Default outer hitbox if not in ship stats (v5.28: swept-back)
             BOSS_DEFAULT_WIDTH: 160,
             BOSS_DEFAULT_HEIGHT: 140
         },
@@ -1515,6 +1531,15 @@
                 BURST_PARTICLES: 14,        // Energy burst particle count
                 AURA_PULSE_DURATION: 0.3,   // Post-deploy expanding ring (s)
                 AURA_PULSE_RADIUS: 50,      // Max ring radius (px)
+                // v5.28: Energy Surge — cinematic transform per weapon transition
+                ENERGY_SURGE: {
+                    DEPLOY_DURATION: [0.8, 0.8, 1.0],   // Duration per transition [mount, LV2, LV3]
+                    SLOWDOWN_SCALE: [1.0, 0.7, 0.6],    // Game speed during surge
+                    SLOWDOWN_DURATION: [0, 0.6, 0.8],   // How long slowmo lasts
+                    BRIGHTEN_PEAK: [0.3, 0.5, 0.7],     // Ship brighten amount
+                    SHOCKWAVE_RADIUS: [0, 60, 80],       // Expanding shockwave ring
+                    INVULN_FRAMES: 0.5,                  // Brief invulnerability (s)
+                },
             },
 
             // v5.11: Boss death cinematic sequence

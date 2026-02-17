@@ -897,7 +897,7 @@
             vx: 0, vy: 0,
             life: 0.4, maxLife: 0.4,
             color: '#00f0ff',
-            size: 8, baseSize: 60 * intensity * 0.5,
+            size: 8, baseSize: 80 * intensity * 0.5, // v5.28: 60→80 scaled for larger ship
             isRing: true,
             explosionGrow: true
         });
