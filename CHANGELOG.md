@@ -1,7 +1,18 @@
 # Changelog
 
-## v5.25.0-wip - 2026-02-17
-### Power-Up Redesign + Status HUD + Tuning
+## v5.26.0 - 2026-02-17
+### Unified Combat HUD + HYPERGOD State
+- **feat(hud)**: Combat HUD Bar — message-strip redesigned as 48px unified bar with fill meter. HYPER (gold fill), GODCHAIN (red-orange fill with pulse), HYPERGOD (prismatic animated gradient) all display in the same bar with live countdown
+- **feat(gameplay)**: HYPERGOD state — when HYPER and GODCHAIN are both active simultaneously, the bar shows a prismatic animated display and score multiplier increases to 5× (configurable via `Balance.HYPERGOD.SCORE_MULT`)
+- **feat(hud)**: Combat bar respects message priority — wave/info/pickup messages don't interrupt active combat display, but danger/victory alerts temporarily override it and combat auto-restores after
+- **feat(hud)**: Pulse-before-fade — transient messages and bottom status popups now pulse 3× before fading out (500ms/600ms CSS animations)
+- **feat(hud)**: Bottom status text size increased (14px→16px) for better readability
+- **refactor**: Removed `drawHyperUI()` and `drawGodchainUI()` canvas functions (~150 lines) — replaced by DOM-based Combat HUD Bar via `MessageSystem.setCombatState/updateCombatDisplay/clearCombatState` API
+- **refactor**: GODCHAIN status removed from MemeEngine bottom popup — now shown in top Combat HUD Bar alongside HYPER
+- **feat(hud)**: Strip fill bar (`.strip-fill`) as child of message-strip — percentage width updated every frame for smooth countdown visualization
+
+## v5.25.0 - 2026-02-17
+### Power-Up Redesign + Status HUD + Tuning (v5.25 WIP → released as part of v5.26)
 - **feat(powerup)**: Unified power-up visual — all types now render as 3D circles (dark/light halves, black outline, rim highlight) with white icon per type (arrow, crosshair, shield, lightning, diamond, star, penetrating arrow). Removes 6 old draw methods (~500 lines), adds 2 new (~170 lines)
 - **feat(powerup)**: White blink flash on all power-ups — sharp sin³ pulse every ~0.8s, clearly signals "collectible"
 - **feat(hud)**: Status HUD in bottom area — meme-popup repurposed during gameplay to show ship status (pickup feedback, active special/utility/perk with type-colored effects, GODCHAIN). Memes suppressed during PLAY, CRITICAL redirected to message-strip

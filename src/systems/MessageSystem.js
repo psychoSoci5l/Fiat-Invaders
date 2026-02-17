@@ -1,12 +1,12 @@
 /**
- * MessageSystem.js v4.26.0 - DOM Message Strip + Canvas Ship Status
+ * MessageSystem.js v5.26.0 - Combat HUD Bar + Canvas Ship Status
  *
  * Channels:
- * 1. MESSAGE_STRIP (DOM) - Top bar strip for wave/danger/victory/info
+ * 1. COMBAT HUD (DOM) - 48px top bar: transient messages + combat state fill bar
  * 2. SHIP_STATUS (canvas) - Icon+text above player ship
  * 3. WAVE_SWEEP (canvas)  - Horizontal line sweep on wave start
  *
- * Removed (v4.26): canvas WAVE_STRIP, ALERT DANGER, ALERT VICTORY, MEME_WHISPER
+ * Combat state: HYPER/GODCHAIN/HYPERGOD fill bar with countdown
  */
 
 (function() {
@@ -21,11 +21,16 @@
     // === DOM STRIP STATE ===
     let stripEl = null;
     let stripTextEl = null;
+    let stripFillEl = null;
     let isStripShowing = false;
     let currentStripItem = null;
     let stripHideTimer = null;
     let lastStripShowTime = 0;
     let stripQueue = [];
+
+    // === COMBAT STATE ===
+    let _combatType = null;      // 'hyper' | 'godchain' | 'hypergod' | null
+    let _combatInterrupted = false; // transient message is interrupting combat display
 
     // === CANVAS STATE ===
 
@@ -63,6 +68,7 @@
         stripEl = document.getElementById('message-strip');
         if (stripEl) {
             stripTextEl = stripEl.querySelector('.strip-text');
+            stripFillEl = stripEl.querySelector('.strip-fill');
         }
     }
 
@@ -87,6 +93,9 @@
         }
         isStripShowing = false;
         currentStripItem = null;
+        _combatType = null;
+        _combatInterrupted = false;
+        if (stripFillEl) stripFillEl.style.width = '0%';
         if (stripEl) {
             stripEl.className = '';
             stripEl.style.visibility = 'hidden';
@@ -162,9 +171,22 @@
     function _showStrip(item) {
         if (!stripEl || !stripTextEl) return;
 
+        // Combat state active: only high-priority (danger/victory, priority >= 3) can interrupt
+        if (_combatType && item.priority < 3) {
+            return; // skip — don't interrupt combat bar for wave/info/pickup
+        }
+
         isStripShowing = true;
         currentStripItem = item;
         lastStripShowTime = Date.now();
+
+        // If combat state active and high-priority interrupts, mark interrupted
+        if (_combatType && item.priority >= 3) {
+            _combatInterrupted = true;
+        }
+
+        // Hide fill bar during transient messages
+        if (stripFillEl) stripFillEl.style.width = '0%';
 
         // Set text
         stripTextEl.textContent = item.text;
@@ -192,17 +214,25 @@
         const cfg = getConfig();
         const exitMs = cfg.EXIT_MS || 300;
 
-        // Replace show with hide
+        // Use pulse-fade for transient messages, standard exit otherwise
         const typeClass = currentStripItem ? 'type-' + currentStripItem.type : '';
-        stripEl.className = typeClass + ' hide';
+        stripEl.className = typeClass + ' fade-out';
 
         stripHideTimer = setTimeout(() => {
-            stripEl.className = '';
-            stripEl.style.visibility = 'hidden';
-            stripEl.style.opacity = '0';
             isStripShowing = false;
             currentStripItem = null;
             stripHideTimer = null;
+
+            // If combat state still active, restore combat display instead of hiding
+            if (_combatType) {
+                _combatInterrupted = false;
+                _applyCombatDisplay();
+                return;
+            }
+
+            stripEl.className = '';
+            stripEl.style.visibility = 'hidden';
+            stripEl.style.opacity = '0';
 
             // Reset inline styles in case animation didn't clear
             stripEl.style.removeProperty('visibility');
@@ -210,7 +240,7 @@
 
             // Process queue
             _processStripQueue();
-        }, exitMs);
+        }, 500); // match stripPulseFade duration
     }
 
     function _interruptStrip(item) {
@@ -420,6 +450,94 @@
         return isStripShowing || stripQueue.length > 0 || shipStatuses.length > 0;
     }
 
+    // ========================================
+    // COMBAT STATE API (v5.26)
+    // ========================================
+
+    /**
+     * Internal: apply combat display to strip (used by setCombatState and after transient hide)
+     */
+    function _applyCombatDisplay() {
+        if (!stripEl || !stripTextEl || !_combatType) return;
+        stripEl.className = 'type-combat-' + _combatType + ' show';
+        stripEl.style.visibility = 'visible';
+        stripEl.style.opacity = '1';
+    }
+
+    /**
+     * Set combat state — shows persistent fill bar with countdown
+     * @param {string} type - 'hyper' | 'godchain' | 'hypergod'
+     * @param {number} fillRatio - 0.0 to 1.0 (timeLeft / duration)
+     * @param {string} label - Display text (e.g. "⚡ HYPER ×5 8.3s")
+     */
+    function setCombatState(type, fillRatio, label) {
+        if (!stripEl || !stripTextEl) return;
+
+        _combatType = type;
+        _combatInterrupted = false;
+
+        // If transient message with priority >= 3 is showing, don't overwrite it
+        if (isStripShowing && currentStripItem && currentStripItem.priority >= 3) {
+            _combatInterrupted = true;
+            return;
+        }
+
+        // Cancel any active transient
+        if (stripHideTimer) {
+            clearTimeout(stripHideTimer);
+            stripHideTimer = null;
+        }
+        isStripShowing = false;
+        currentStripItem = null;
+
+        // Show combat display
+        stripTextEl.textContent = label;
+        if (stripFillEl) stripFillEl.style.width = (fillRatio * 100) + '%';
+        _applyCombatDisplay();
+    }
+
+    /**
+     * Clear combat state — hide strip if no transient is pending
+     */
+    function clearCombatState() {
+        _combatType = null;
+        _combatInterrupted = false;
+        if (stripFillEl) stripFillEl.style.width = '0%';
+
+        // Only hide if no transient message is showing
+        if (!isStripShowing && stripEl) {
+            stripEl.className = '';
+            stripEl.style.visibility = 'hidden';
+            stripEl.style.opacity = '0';
+        }
+    }
+
+    /**
+     * Update combat display each frame (fill ratio + label)
+     * @param {string} type - 'hyper' | 'godchain' | 'hypergod'
+     * @param {number} fillRatio - 0.0 to 1.0
+     * @param {string} label - Display text
+     */
+    function updateCombatDisplay(type, fillRatio, label) {
+        if (!stripEl || !stripTextEl) return;
+
+        // Type changed (e.g. hyper→hypergod) — re-set
+        if (_combatType !== type) {
+            setCombatState(type, fillRatio, label);
+            return;
+        }
+
+        // If interrupted by transient, just wait
+        if (_combatInterrupted) return;
+
+        // If transient is showing (timer running), don't touch
+        if (isStripShowing) return;
+
+        // Update fill + text
+        if (stripFillEl) stripFillEl.style.width = (fillRatio * 100) + '%';
+        stripTextEl.textContent = label;
+    }
+
     // Export to namespace
     G.MessageSystem = {
         init,
@@ -443,6 +561,10 @@
         // Canvas: Ship Status
         showShipStatus,
         showPowerUp,       // Legacy compat
+        // Combat state (v5.26)
+        setCombatState,
+        clearCombatState,
+        updateCombatDisplay,
         // State
         hasActiveMessages
     };

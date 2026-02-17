@@ -1,7 +1,59 @@
 # Roadmap: FIAT vs CRYPTO
 
-> **Versione attuale**: v5.23.8 (2026-02-16)
+> **Versione attuale**: v5.26.0 (2026-02-17)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
+
+---
+
+## PROSSIMA SESSIONE — v5.27 Polish & Feel
+
+### 1. Game Start Countdown (Wave 1)
+- Dopo il tutorial, il player viene schierato in campo senza nessun messaggio
+- Aggiungere countdown fullscreen rapido **3 → 2 → 1 → GO!** prima della Wave 1
+- Al termine del countdown, mostrare messaggio iniziale nel Combat HUD
+
+### 2. Boss HP Bar Only — Clean Boss Display
+- Rimuovere il nome del boss dalla visualizzazione durante il fight
+- Rimuovere qualsiasi altra info testuale sotto/sopra la barra HP
+- Solo boss visivo + barra energia sotto, nient'altro. Su tutti e 3 i boss (FED/BCE/BOJ)
+
+### 3. Elemental Cannon Tint
+- Quando il player raccoglie un perk elementale, la punta del cannone (nose/barrel attivo) cambia colore per riflettere l'elemento attivo
+- Fire → arancio/rosso, Laser → cyan, Electric → viola
+- Il colore segue il perk attualmente in uso (ultimo raccolto o GODCHAIN)
+
+### 4. Ship Silhouette Redesign — Ali Aerodinamiche
+- Le ali della Crypto Viper sono troppo "tozze": piccole, parallele, non slanciate
+- Ridisegnare le ali con punte rivolte all'indietro (swept-back), non laterali
+- Mantenere il body chevron e la palette metallic-tech attuali
+- Risultato: silhouette più aerodinamica e aggressiva
+
+### 5. Tutorial Text Rewrite — Tono Videogioco
+- Il testo attuale è troppo "istruzioni IKEA" — freddo e tecnico
+- Riscrivere con tono da videogioco: più coinvolgente, breve, motivante
+- L'estetica visiva (card, step, animazioni) resta invariata
+- Leggermente più grande come font/padding per leggibilità
+
+---
+
+## COMPLETATO — Unified Combat HUD + HYPERGOD State (v5.26.0)
+
+- [x] Message-strip ridimensionato a 48px Combat HUD Bar con fill bar animata
+- [x] HYPER/GODCHAIN/HYPERGOD unificati nella stessa barra (gold/red-orange/prismatic)
+- [x] HYPERGOD state: HYPER+GODCHAIN simultanei = 5× score multiplier
+- [x] Combat bar non interrotta da messaggi low-priority (wave/info/pickup)
+- [x] Pulse-before-fade su transient messages e bottom status popup
+- [x] Rimossi drawHyperUI/drawGodchainUI canvas (~150 righe)
+- [x] Status text bottom 14→16px
+
+---
+
+## COMPLETATO — Power-Up Redesign + Status HUD + Tuning (v5.25.0)
+
+- [x] Power-up unificati come cerchi 3D con icona bianca + blink
+- [x] HOMING bullet come orb tracker (arancione, opposto a MISSILE blu)
+- [x] Status HUD: meme-popup riusato per stato nave durante PLAY
+- [x] Shield blink ultimi 1.5s, durate special/utility 12→8s, perk threshold 70→100
 
 ---
 

@@ -1677,6 +1677,11 @@
             VIGNETTE: true              // v4.45: Enable screen-edge orange glow
         },
 
+        // --- HYPERGOD v5.26 (simultaneous HYPER + GODCHAIN) ---
+        HYPERGOD: {
+            SCORE_MULT: 5.0,            // HYPER=3x, HYPERGOD=5x
+        },
+
         // --- SKY & BACKGROUND v4.24 (Cell-Shading Enhancement) ---
         SKY: {
             ENABLED: true,              // Master toggle — false = legacy flat bands

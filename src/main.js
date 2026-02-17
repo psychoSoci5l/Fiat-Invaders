@@ -602,7 +602,8 @@ function initCollisionSystem() {
                 if (G.Debug) G.Debug.trackGraze(isCloseGraze);
 
                 if (isHyperActive) {
-                    const hyperMult = Balance.HYPER.SCORE_MULT;
+                    const isHyperGodGraze = player._godchainActive;
+                    const hyperMult = isHyperGodGraze ? (Balance.HYPERGOD?.SCORE_MULT ?? 5) : Balance.HYPER.SCORE_MULT;
                     const grazePoints = Math.floor(Balance.GRAZE.POINTS_BASE * hyperMult * grazeBonus);
                     score += grazePoints;
                     updateScore(score, grazePoints);
@@ -696,7 +697,10 @@ function initCollisionSystem() {
                 const perkMult = 1;
                 const bearMult = isBearMarket ? Balance.SCORE.BEAR_MARKET_MULT : 1;
                 const grazeKillBonus = grazeMeter >= Balance.SCORE.GRAZE_KILL_THRESHOLD ? Balance.SCORE.GRAZE_KILL_BONUS : 1;
-                const hyperMult = (player.isHyperActive && player.isHyperActive()) ? Balance.HYPER.SCORE_MULT : 1;
+                const isHyperGod = (player.isHyperActive && player.isHyperActive()) && player._godchainActive;
+                const hyperMult = isHyperGod
+                    ? (Balance.HYPERGOD?.SCORE_MULT ?? 5)
+                    : ((player.isHyperActive && player.isHyperActive()) ? Balance.HYPER.SCORE_MULT : 1);
                 const isLastEnemy = enemies.length === 0;
                 const lastEnemyMult = isLastEnemy && G.HarmonicConductor ? G.HarmonicConductor.getLastEnemyBonus() : 1;
                 const killScore = Math.floor(e.scoreVal * bearMult * perkMult * killStreakMult * grazeKillBonus * hyperMult * lastEnemyMult * comboMult * arcadeScoreMult);
@@ -2219,13 +2223,11 @@ function init() {
         });
         // v4.6: GODCHAIN events
         events.on('GODCHAIN_ACTIVATED', () => {
-            // v5.25: Show GODCHAIN status with countdown in status HUD
-            const gcDur = Balance.GODCHAIN?.DURATION ?? 10;
-            G.MemeEngine.showStatus('GODCHAIN', '🔗', 'godchain', gcDur, true);
+            // v5.26: GODCHAIN now displayed in Combat HUD Bar (MessageSystem), keep screen flash
             if (G.triggerScreenFlash) G.triggerScreenFlash('HYPER_ACTIVATE');
         });
         events.on('GODCHAIN_DEACTIVATED', () => {
-            G.MemeEngine.hideStatus();
+            // v5.26: Combat HUD Bar handles deactivation via _updateCombatHUD()
         });
         // Harmonic Conductor bullet spawning
         events.on('harmonic_bullets', (data) => {
@@ -2635,10 +2637,10 @@ function resize() {
     if (G.MessageSystem) {
         G.MessageSystem.setDimensions(gameWidth, gameHeight);
     }
-    // v5.4.0: Cache message-strip position for canvas HUD alignment
+    // v5.26: Cache message-strip position for canvas HUD alignment (48px bar at 47px + safe-top)
     const stripElResize = document.getElementById('message-strip');
     if (stripElResize) {
-        window._stripTopY = parseFloat(getComputedStyle(stripElResize).top) || 67;
+        window._stripTopY = parseFloat(getComputedStyle(stripElResize).top) || 47;
     }
     // Update SkyRenderer dimensions (fixes gradient cache + hill positions on resize)
     if (G.SkyRenderer) {
@@ -4227,6 +4229,7 @@ function startGame() {
     if (G.FloatingTextManager) G.FloatingTextManager.reset();
     if (G.PerkIconManager) G.PerkIconManager.reset();
     if (G.MessageSystem) G.MessageSystem.reset(); // Reset typed messages
+    _wasHyper = false; _wasGodchain = false; // v5.26: Reset combat HUD tracking
     // Sync all array references after reset
     G.enemies = enemies;
     window.enemyBullets = enemyBullets;
@@ -5019,6 +5022,8 @@ function update(dt) {
     updatePerkIcons(dt);
     // v5.25: Status HUD countdown in meme-popup area
     if (G.MemeEngine) G.MemeEngine.update(dt);
+    // v5.26: Combat HUD Bar update (HYPER/GODCHAIN/HYPERGOD)
+    _updateCombatHUD();
     // v5.14: Score pulse accumulator decay
     if (_scorePulseAccTimer > 0) _scorePulseAccTimer -= dt;
     // v5.11: Evolution item fly towards player
@@ -5085,152 +5090,59 @@ function updateGrazeUI() {
     }
 }
 
-// v5.4.0: Draw HYPER mode UI — compact bar ABOVE message strip (Row 1: HUD → HYPER → strip → enemies)
-function drawHyperUI(ctx) {
+// v5.26: drawHyperUI/drawGodchainUI removed — combat state now in DOM Combat HUD Bar via MessageSystem
+
+// v5.26: Combat HUD tracking state
+var _wasHyper = false;
+var _wasGodchain = false;
+
+function _updateCombatHUD() {
     if (!player) return;
+    const isHyper = player.isHyperActive ? player.isHyperActive() : false;
+    const isGodchain = !!player._godchainActive;
+    const hyperDur = Balance.HYPER.BASE_DURATION;
+    const gcDur = Balance.GODCHAIN?.DURATION ?? 10;
 
-    const isHyperActive = player.isHyperActive && player.isHyperActive();
-    const centerX = gameWidth / 2;
-    // Position: 2px above message-strip, derived from cached DOM position
-    const stripY = window._stripTopY || 67;
-    const hyperUI = Balance.HUD_MESSAGES?.HYPER_UI;
+    // Detect state transitions
+    const hyperChanged = isHyper !== _wasHyper;
+    const gcChanged = isGodchain !== _wasGodchain;
+    _wasHyper = isHyper;
+    _wasGodchain = isGodchain;
 
-    // HYPER ACTIVE: Compact bar with timer inside
-    if (isHyperActive) {
+    if (isHyper && isGodchain) {
+        // HYPERGOD: both active
+        const minTime = Math.min(
+            player.getHyperTimeRemaining ? player.getHyperTimeRemaining() : 0,
+            player.godchainTimer || 0
+        );
+        const maxDur = Math.max(hyperDur, gcDur);
+        const label = '\u26A1\u26D3 HYPERGOD ' + minTime.toFixed(1) + 's';
+        if (hyperChanged || gcChanged) {
+            G.MessageSystem.setCombatState('hypergod', minTime / maxDur, label);
+        } else {
+            G.MessageSystem.updateCombatDisplay('hypergod', minTime / maxDur, label);
+        }
+    } else if (isGodchain) {
+        const timeLeft = player.godchainTimer || 0;
+        const label = '\u26D3 GODCHAIN ' + timeLeft.toFixed(1) + 's';
+        if (gcChanged || hyperChanged) {
+            G.MessageSystem.setCombatState('godchain', timeLeft / gcDur, label);
+        } else {
+            G.MessageSystem.updateCombatDisplay('godchain', timeLeft / gcDur, label);
+        }
+    } else if (isHyper) {
         const timeLeft = player.getHyperTimeRemaining ? player.getHyperTimeRemaining() : 0;
-
-        const barWidth = 200;
-        const barHeight = 18;
-        const barX = centerX - barWidth / 2;
-        const barY = stripY - barHeight - 2; // 2px gap above strip
-
-        ctx.save();
-
-        // Bar background
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(barX - 1, barY - 1, barWidth + 2, barHeight + 2);
-
-        // Time fill (golden, depleting)
-        const fillRatio = timeLeft / Balance.HYPER.BASE_DURATION;
-        const fillColor = fillRatio < 0.3 ? '#ff4444' : '#FFD700';
-        ctx.fillStyle = fillColor;
-        ctx.fillRect(barX, barY, barWidth * Math.min(1, fillRatio), barHeight);
-
-        // Border
-        ctx.strokeStyle = fillRatio < 0.3 ? '#ff6666' : '#fff';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(barX, barY, barWidth, barHeight);
-
-        // Combined text: "HYPER x5  8.3s"
-        ctx.font = G.ColorUtils.font('bold', 13, '"Courier New", monospace');
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillStyle = '#fff';
-        ctx.strokeStyle = '#000';
-        ctx.lineWidth = 2;
-        const label = 'HYPER x5  ' + timeLeft.toFixed(1) + 's';
-        ctx.strokeText(label, centerX, barY + barHeight / 2);
-        ctx.fillText(label, centerX, barY + barHeight / 2);
-
-        ctx.restore();
-    }
-    // HYPER READY: Slim golden pulsing bar
-    else if (player.hyperAvailable && grazeMeter >= Balance.HYPER.METER_THRESHOLD) {
-        if (hyperUI && !hyperUI.SHOW_TEXT_WHEN_IDLE) {
-            const barW = hyperUI.IDLE_BAR_WIDTH || 160;
-            const barH = hyperUI.IDLE_BAR_HEIGHT || 4;
-            const barY = stripY - barH - 8; // Centered in gap above strip
-            const pulse = Math.sin(totalTime * 6) * 0.3 + 0.7;
-            ctx.save();
-            ctx.globalAlpha = pulse;
-            ctx.fillStyle = '#FFD700';
-            ctx.fillRect(centerX - barW / 2, barY, barW, barH);
-            ctx.restore();
+        const mult = Balance.HYPER.SCORE_MULT;
+        const label = '\u26A1 HYPER \u00D7' + mult + ' ' + timeLeft.toFixed(1) + 's';
+        if (hyperChanged || gcChanged) {
+            G.MessageSystem.setCombatState('hyper', timeLeft / hyperDur, label);
         } else {
-            // Legacy text mode (kill-switch)
-            const pulse = Math.sin(totalTime * 6) * 0.15 + 0.85;
-            ctx.save();
-            ctx.font = G.ColorUtils.font('bold', 20 * pulse, '"Courier New", monospace');
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillStyle = '#FFD700';
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 4;
-            var hyperReadyLabel = '⚡ ' + t('HYPER_READY') + ' [H] ⚡';
-            ctx.strokeText(hyperReadyLabel, centerX, stripY - 12);
-            ctx.fillText(hyperReadyLabel, centerX, stripY - 12);
-            ctx.restore();
+            G.MessageSystem.updateCombatDisplay('hyper', timeLeft / hyperDur, label);
         }
+    } else if (hyperChanged || gcChanged) {
+        // Both just deactivated
+        G.MessageSystem.clearCombatState();
     }
-    // HYPER COOLDOWN: Slim grey bar filling up
-    else if (player.hyperCooldown > 0) {
-        if (hyperUI && !hyperUI.SHOW_TEXT_WHEN_IDLE) {
-            const barW = hyperUI.IDLE_BAR_WIDTH || 160;
-            const barH = hyperUI.IDLE_BAR_HEIGHT || 4;
-            const barY = stripY - barH - 8;
-            const cooldownMax = Balance.HYPER.COOLDOWN || 10;
-            const fillRatio = 1 - (player.hyperCooldown / cooldownMax);
-            ctx.save();
-            ctx.globalAlpha = 0.5;
-            ctx.fillStyle = '#666';
-            ctx.fillRect(centerX - barW / 2, barY, barW * Math.min(1, fillRatio), barH);
-            ctx.restore();
-        } else {
-            // Legacy text mode (kill-switch)
-            ctx.save();
-            ctx.font = '14px "Courier New", monospace';
-            ctx.textAlign = 'center';
-            ctx.fillStyle = 'rgba(150, 150, 150, 0.7)';
-            ctx.fillText(`HYPER: ${player.hyperCooldown.toFixed(1)}s`, centerX, stripY - 12);
-            ctx.restore();
-        }
-    }
-}
-
-// v4.60: Draw GODCHAIN timer bar (same position as HYPER bar, shows when GODCHAIN active)
-function drawGodchainUI(ctx) {
-    if (!player || !player._godchainActive) return;
-    const centerX = gameWidth / 2;
-    const timeLeft = player.godchainTimer || 0;
-    const duration = G.Balance?.GODCHAIN?.DURATION || 10;
-    const pulse = Math.sin(totalTime * 8) * 0.08 + 0.92;
-
-    ctx.save();
-
-    // v5.4.0: Position below message strip (Row 3)
-    const stripY = window._stripTopY || 67;
-    const barWidth = 200;
-    const barHeight = 18;
-    const barX = centerX - barWidth / 2;
-    const barY = stripY + 30; // Below message strip (~28px height + 2px gap)
-
-    // Bar background
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    ctx.fillRect(barX - 1, barY - 1, barWidth + 2, barHeight + 2);
-
-    // Time fill (red-orange, depleting)
-    const fillRatio = timeLeft / duration;
-    const fillColor = fillRatio < 0.3 ? '#ff2222' : '#ff4400';
-    ctx.fillStyle = fillColor;
-    ctx.fillRect(barX, barY, barWidth * Math.min(1, fillRatio), barHeight);
-
-    // Border
-    ctx.strokeStyle = fillRatio < 0.3 ? '#ff6666' : '#ff8800';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(barX, barY, barWidth, barHeight);
-
-    // GODCHAIN text + timer inside bar
-    ctx.font = G.ColorUtils.font('bold', 13, '"Courier New", monospace');
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#fff';
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 2;
-    const label = 'GODCHAIN  ' + timeLeft.toFixed(1) + 's';
-    ctx.strokeText(label, centerX, barY + barHeight / 2);
-    ctx.fillText(label, centerX, barY + barHeight / 2);
-
-    ctx.restore();
 }
 
 
@@ -5583,9 +5495,7 @@ function draw() {
         // Typed messages (GAME_INFO, DANGER, VICTORY) - distinct visual styles
         drawTypedMessages(ctx);
 
-        // HYPER MODE UI (timer when active, "READY" when available)
-        drawHyperUI(ctx);
-        drawGodchainUI(ctx);
+        // v5.26: HYPER/GODCHAIN UI now in DOM Combat HUD Bar (MessageSystem)
 
         // Arcade combo HUD
         drawArcadeComboHUD(ctx);

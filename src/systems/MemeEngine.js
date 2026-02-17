@@ -410,12 +410,13 @@
             this._statusCountdown = false;
 
             if (!this._popup) return;
-            this._popup.className = cls + ' hide';
+            // v5.26: Pulse-fade out instead of instant hide
+            this._popup.className = cls + ' status-fade-out';
             setTimeout(() => {
                 if (this._popup && !this._statusActive && !this._isShowing) {
                     this._popup.className = '';
                 }
-            }, 250);
+            }, 600); // match statusPulseFade duration
         }
 
         // ========================================
