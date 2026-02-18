@@ -371,7 +371,8 @@ class Player extends window.Game.Entity {
             this.vx = d * Balance.PLAYER.TOUCH_SWIPE_MULT;
         }
         else if (input.mouse?.active) {
-            const d = input.mouse.xPct * 2 - 1;
+            const targetX = input.mouse.xPct * this.gameWidth;
+            const d = targetX - this.x;
             this.vx = d * Balance.PLAYER.TOUCH_SWIPE_MULT;
         }
         else if (input.isDown('ArrowRight') || input.isDown('KeyD')) {
