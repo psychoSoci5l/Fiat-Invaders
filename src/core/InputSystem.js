@@ -78,7 +78,6 @@ class InputSystem {
         document.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
         document.addEventListener('gesturechange', (e) => e.preventDefault(), { passive: false });
 
-        // v5.7: Shield button removed — shield activates via tap-on-ship
         const tShield = document.getElementById('t-shield');
         if (tShield) tShield.style.display = 'none';
 

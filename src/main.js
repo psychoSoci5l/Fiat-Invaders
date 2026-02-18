@@ -4667,85 +4667,6 @@ function clearBattlefield(options) {
 }
 G.clearBattlefield = clearBattlefield;
 
-function startHordeTransition() {
-    // Streaming: no horde transition (phases replace hordes)
-    if (window.Game.Balance?.STREAMING?.ENABLED) return;
-    // Horde 1 cleared, brief pause before horde 2
-    // This is a quick transition - NOT a full level complete celebration
-
-    // v2.22.5: Track horde transition
-    G.Debug.trackHordeTransition(1, 2, waveMgr.wave);
-
-    waveMgr.startHordeTransition();
-    waveMgr.waveInProgress = false;
-
-    // Convert enemy bullets to half bonus (less reward between hordes)
-    const bulletBonus = Math.floor(enemyBullets.length * 5); // Half value compared to intermission
-    if (enemyBullets.length > 0) {
-        enemyBullets.forEach(eb => {
-            createExplosion(eb.x, eb.y, eb.color || '#ff0', 4);
-        });
-        if (bulletBonus > 0) {
-            score += bulletBonus;
-            updateScore(score, bulletBonus);
-        }
-    }
-
-    // Clear bullets but keep player state (graze meter, etc.)
-    // Release bullets back to pool before clearing (v2.22.3 memory leak fix)
-    bullets.forEach(b => G.Bullet.Pool.release(b));
-    enemyBullets.forEach(b => G.Bullet.Pool.release(b));
-    bullets = [];
-    enemyBullets = [];
-    window.enemyBullets = enemyBullets;
-
-    // Softer sound for horde transition (not full waveComplete celebration)
-    audioSys.play('coinScore');
-
-    // No message here - wait for "HORDE 2!" in startHorde2()
-    // This keeps the transition clean and quick
-
-    emitEvent('horde_transition', { wave: waveMgr.wave, fromHorde: 1, toHorde: 2 });
-}
-
-function startHorde2() {
-    // Spawn horde 2 for current wave
-    setGameState('PLAY');
-    waveMgr.waveInProgress = false;
-
-    // v4.4: Horde 2 notification via WAVE_STRIP
-    if (G.MessageSystem) {
-        const text = G.TEXTS?.[currentLang]?.HORDE_2_INCOMING || 'HORDE 2!';
-        G.MessageSystem.showWaveStrip(text);
-    }
-    triggerScreenFlash('WAVE_START');
-
-    // Spawn horde 2 with pattern variant
-    const spawnData = waveMgr.spawnWave(gameWidth, 2);
-    enemies = spawnData.enemies;
-    lastWavePattern = spawnData.pattern;
-    gridDir = 1;
-
-    // v2.22.5: Track wave start (horde 2)
-    G.Debug.trackWaveStart(waveMgr.wave - 1, 2, level, spawnData.pattern, enemies.length);
-
-    // Sync global enemies reference
-    G.enemies = enemies;
-
-    // Track wave start time for this horde
-    waveStartTime = totalTime;
-
-    // Update Harmonic Conductor for horde 2
-    if (G.HarmonicConductor) {
-        G.HarmonicConductor.enemies = enemies;
-        G.HarmonicConductor.setDifficulty(level, marketCycle, isBearMarket);
-        G.HarmonicConductor.setSequence(lastWavePattern, audioSys.intensity, isBearMarket);
-        G.HarmonicConductor.startWave(enemies.length);
-    }
-
-    emitEvent('horde_start', { wave: waveMgr.wave, horde: 2, pattern: lastWavePattern });
-}
-
 function startBossWarning() {
     console.log(`[BOSS WARNING] Called. level=${level}, cycle=${marketCycle}, wave=${waveMgr.wave}`);
     // v4.21: Unified boss rotation for both Story and Arcade (FED→BCE→BOJ cycle)
@@ -5009,11 +4930,7 @@ function update(dt) {
 
     if (waveAction) {
         G.Debug.log('WAVE', `[WAVE] Action: ${waveAction.action} | level=${level}, enemies=${enemies.length}, boss=${!!boss}, bossTimer=${bossWarningTimer.toFixed(2)}`);
-        if (waveAction.action === 'START_HORDE_TRANSITION') {
-            startHordeTransition();
-        } else if (waveAction.action === 'START_HORDE_2') {
-            startHorde2();
-        } else if (waveAction.action === 'START_INTERMISSION') {
+        if (waveAction.action === 'START_INTERMISSION') {
             // v4.21: Seamless wave transition — no blocking countdown
             // Inline cleanup (was in startIntermission)
             G.Debug.trackIntermission(level, waveMgr.wave);
@@ -5102,25 +5019,15 @@ function update(dt) {
                 G.WeatherController.triggerLevelTransition();
             }
 
-            // Reset horde state for new wave
-            waveMgr.currentHorde = 1;
-            miniBossThisWave = 0; // v4.10.2: Reset per-wave mini-boss counter
+            miniBossThisWave = 0;
 
-            // v5.32: Use streaming flow if enabled, else classic horde system
-            const streamingCfg = Balance.STREAMING;
-            let spawnData;
-            if (streamingCfg?.ENABLED) {
-                spawnData = waveMgr.prepareStreamingWave(gameWidth);
-                if (!spawnData) spawnData = waveMgr.spawnWave(gameWidth, 1); // Fallback
-            } else {
-                spawnData = waveMgr.spawnWave(gameWidth, 1); // Classic horde 1
-            }
+            let spawnData = waveMgr.prepareStreamingWave(gameWidth);
+            if (!spawnData) spawnData = waveMgr.spawnWave(gameWidth);
             enemies = spawnData.enemies;
             lastWavePattern = spawnData.pattern;
             gridDir = 1;
 
-            // v2.22.5: Track wave start
-            G.Debug.trackWaveStart(waveMgr.wave, 1, level, spawnData.pattern, enemies.length);
+            G.Debug.trackWaveStart(waveMgr.wave, level, spawnData.pattern, enemies.length);
 
             // Sync global enemies reference (used by Boss.js for minion spawning)
             G.enemies = enemies;
@@ -5136,7 +5043,7 @@ function update(dt) {
                 G.HarmonicConductor.startWave(enemies.length); // Track wave intensity
             }
 
-            emitEvent('wave_start', { wave: waveNumber, level: level, pattern: lastWavePattern, horde: 1 });
+            emitEvent('wave_start', { wave: waveNumber, level: level, pattern: lastWavePattern });
         }
     }
 
@@ -5356,9 +5263,7 @@ function updateGrazeUI() {
     }
 }
 
-// v5.26: drawHyperUI/drawGodchainUI removed — combat state now in DOM Combat HUD Bar via MessageSystem
-
-// v5.26: Combat HUD tracking state
+// Combat HUD tracking state
 var _wasHyper = false;
 var _wasGodchain = false;
 
@@ -5464,8 +5369,6 @@ function drawArcadeComboHUD(ctx) {
 
     ctx.restore();
 }
-
-// v4.28.0: checkBulletCollisions removed — logic moved to CollisionSystem.processPlayerBulletVsEnemy
 
 function updateEnemies(dt) {
     let hitEdge = false;

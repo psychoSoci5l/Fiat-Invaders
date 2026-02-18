@@ -1,27 +1,17 @@
 window.Game = window.Game || {};
 
 /**
- * WaveManager v6.2 - Phase-Based Streaming
+ * WaveManager v6.5 - Phase-Based Streaming
  *
- * Primary flow (STREAMING.ENABLED):
- * - Each level = 1 wave with 2-3 streaming phases
- * - Phases spawn when previous is ~35% cleared
- * - No mid-level pause, no bullet clearing
- * - wave++ only on streaming complete (all phases done + enemies dead)
- *
- * Fallback (STREAMING.ENABLED = false):
- * - Legacy 2-horde system with transition pause
+ * Each level = 1 wave with 2-3 streaming phases.
+ * Phases spawn when previous is ~25% cleared.
+ * No mid-level pause, no bullet clearing.
+ * wave++ only on streaming complete (all phases done + enemies dead).
  */
 window.Game.WaveManager = {
     wave: 1,
     waveInProgress: false,
     intermissionTimer: 0,
-
-    // Horde system (fallback when STREAMING.ENABLED = false)
-    currentHorde: 1,              // 1 or 2
-    hordeTransitionTimer: 0,
-    isHordeTransition: false,
-    hordeSpawned: false,          // True if current horde was spawned
 
     init() {
         this.reset();
@@ -34,10 +24,6 @@ window.Game.WaveManager = {
         this.waveInProgress = false;
         this.intermissionTimer = 0;
         this.miniBossActive = false;
-        this.currentHorde = 1;
-        this.hordeTransitionTimer = 0;
-        this.isHordeTransition = false;
-        this.hordeSpawned = false;
         // Phase-based streaming state
         this.isStreaming = false;
         this._streamingPhases = [];       // Array of phase definitions
@@ -53,32 +39,6 @@ window.Game.WaveManager = {
     getWavesPerCycle() {
         const Balance = window.Game.Balance;
         return Balance ? Balance.WAVES.PER_CYCLE : 5;
-    },
-
-    getHordesPerWave() {
-        const Balance = window.Game.Balance;
-        // Streaming waves use single-horde flow (phases replace hordes)
-        if (Balance?.STREAMING?.ENABLED) return 1;
-        return Balance?.WAVES?.HORDES_PER_WAVE || 2;
-    },
-
-    getHordeTransitionDuration() {
-        const Balance = window.Game.Balance;
-        const G = window.Game;
-        if (G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode() && Balance.ARCADE) {
-            return Balance.ARCADE.HORDE_TRANSITION_DURATION || 0.5;
-        }
-        return Balance?.WAVES?.HORDE_TRANSITION_DURATION || 0.8;
-    },
-
-    startHordeTransition() {
-        this.isHordeTransition = true;
-        this.hordeTransitionTimer = this.getHordeTransitionDuration();
-    },
-
-    completeHordeTransition() {
-        this.isHordeTransition = false;
-        this.currentHorde = 2;
     },
 
     update(dt, gameState, enemiesCount, bossActive) {
@@ -142,34 +102,15 @@ window.Game.WaveManager = {
             }
         }
 
-        if (this.isHordeTransition) {
-            this.hordeTransitionTimer -= dt;
-            if (this.hordeTransitionTimer <= 0) {
-                this.completeHordeTransition();
-                return { action: 'START_HORDE_2' };
-            }
-            return null;
-        }
-
         if (!bossActive && !this.miniBossActive && enemiesCount === 0 && !this.waveInProgress && gameState === 'PLAY') {
-            const dbg = window.Game.Debug;
             this.waveInProgress = true;
-            dbg.log('WAVE', `[WM] Action triggered. wave=${this.wave}, horde=${this.currentHorde}, hordeSpawned=${this.hordeSpawned}, enemiesCount=${enemiesCount}`);
-
-            if (this.currentHorde === 1 && this.hordeSpawned && this.getHordesPerWave() > 1) {
-                this.hordeSpawned = false;
-                dbg.log('HORDE', `[WM] → START_HORDE_TRANSITION`);
-                return { action: 'START_HORDE_TRANSITION' };
+            dbg.log('WAVE', `[WM] Action triggered. wave=${this.wave}, enemies=${enemiesCount}`);
+            if (this.wave <= this.getWavesPerCycle()) {
+                dbg.log('WAVE', `[WM] → START_INTERMISSION (wave ${this.wave} <= ${this.getWavesPerCycle()})`);
+                return { action: 'START_INTERMISSION' };
             } else {
-                this.currentHorde = 1;
-                this.hordeSpawned = false;
-                if (this.wave <= this.getWavesPerCycle()) {
-                    dbg.log('WAVE', `[WM] → START_INTERMISSION (wave ${this.wave} <= ${this.getWavesPerCycle()})`);
-                    return { action: 'START_INTERMISSION' };
-                } else {
-                    dbg.log('BOSS', `[WM] → SPAWN_BOSS (wave ${this.wave} > ${this.getWavesPerCycle()})`);
-                    return { action: 'SPAWN_BOSS' };
-                }
+                dbg.log('BOSS', `[WM] → SPAWN_BOSS (wave ${this.wave} > ${this.getWavesPerCycle()})`);
+                return { action: 'SPAWN_BOSS' };
             }
         }
 
@@ -177,9 +118,9 @@ window.Game.WaveManager = {
     },
 
     /**
-     * Spawn wave using new definition system
+     * Spawn wave using definition system (non-streaming fallback)
      */
-    spawnWave(gameWidth, hordeNumber = 1) {
+    spawnWave(gameWidth) {
         const G = window.Game;
         const Balance = G.Balance;
         const dbg = G.Debug;
@@ -191,108 +132,56 @@ window.Game.WaveManager = {
         // Get wave definition
         const waveDef = Balance.getWaveDefinition(cycle, waveInCycle);
 
-        if (waveDef) {
-            // Use new definition system
-            dbg.log('WAVE', `[WM] Using wave definition: ${waveDef.name} (C${waveDef.cycle}W${waveDef.wave})`);
-            // Support both phases[] and legacy horde1/horde2 format
-            let hordeDef;
-            if (waveDef.phases) {
-                // Map hordeNumber to phase index (horde1→phase0, horde2→phase1)
-                const phaseIdx = Math.min(hordeNumber - 1, waveDef.phases.length - 1);
-                hordeDef = waveDef.phases[phaseIdx];
-            } else {
-                const hordeKey = hordeNumber === 1 ? 'horde1' : 'horde2';
-                hordeDef = waveDef[hordeKey];
-            }
-
-            // Apply Bear Market scaling + Rank system adjustment
-            let targetCount = hordeDef.count;
-            if (window.isBearMarket) {
-                const bearMult = Balance.WAVE_DEFINITIONS.BEAR_MARKET.COUNT_MULT || 1.25;
-                targetCount = Math.floor(targetCount * bearMult);
-            }
-            // v4.6.1: Cycle scaling — more enemies in later cycles to match player power
-            const cycleMult = Balance.WAVE_DEFINITIONS.CYCLE_COUNT_MULT?.[Math.min(cycle - 1, 2)] || 1.0;
-            targetCount = Math.floor(targetCount * cycleMult);
-
-            // Arcade: +15% enemy count
-            const _arcadeCfg = Balance.ARCADE;
-            const _isArcadeWM = G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode();
-            if (_isArcadeWM && _arcadeCfg) {
-                targetCount = Math.floor(targetCount * (_arcadeCfg.ENEMY_COUNT_MULT || 1.15));
-            }
-
-            // v4.1.0: Rank-based enemy count adjustment
-            if (G.RankSystem) {
-                targetCount = Math.max(4, Math.round(targetCount * G.RankSystem.getEnemyCountMultiplier()));
-            }
-
-            // Generate positions using formation
-            const positions = this.generateFormation(
-                hordeDef.formation,
-                targetCount,
-                gameWidth
-            );
-
-            // Assign currencies to positions
-            const currencyAssignments = this.assignCurrencies(
-                positions,
-                hordeDef.currencies,
-                cycle,
-                window.isBearMarket
-            );
-
-            // Get horde modifiers
-            const hordeMods = Balance.getHordeModifiers(hordeNumber);
-
-            // Choose entry path (weighted random)
-            const entryPath = (hordeMods.entryStyle === 'rapid') ? 'SINE' : this._pickEntryPath();
-            dbg.log('WAVE', `[WM] Entry path: ${entryPath}`);
-
-            // Spawn enemies
-            for (let i = 0; i < positions.length; i++) {
-                const pos = positions[i];
-                const currencySymbol = currencyAssignments[i];
-                const currencyType = Balance.getCurrencyBySymbol(currencySymbol);
-
-                if (!currencyType) {
-                    dbg.log('WAVE', `[WM] Warning: Unknown currency ${currencySymbol}`);
-                    continue;
-                }
-
-                const enemy = this.createEnemy(pos, currencyType, cycle, hordeMods, i, entryPath, gameWidth);
-                enemies.push(enemy);
-            }
-
-            dbg.log('WAVE', `[WM] Spawned ${enemies.length} enemies with formation ${hordeDef.formation}`);
-        } else {
-            // Fallback to legacy system
-            dbg.log('WAVE', `[WM] No definition for C${cycle}W${waveInCycle}, using legacy spawn`);
-            return this.spawnWaveLegacy(gameWidth, hordeNumber);
+        if (!waveDef || !waveDef.phases || waveDef.phases.length === 0) {
+            dbg.log('WAVE', `[WM] No definition for C${cycle}W${waveInCycle}`);
+            return null;
         }
 
-        this.hordeSpawned = true;
+        dbg.log('WAVE', `[WM] Using wave definition: ${waveDef.name} (C${waveDef.cycle}W${waveDef.wave})`);
+        const phaseDef = waveDef.phases[0];
 
-        const hordesPerWave = this.getHordesPerWave();
-        if (hordeNumber >= hordesPerWave) {
-            this.wave++;
-            dbg.log('WAVE', `[WM] Wave incremented to ${this.wave} (after horde ${hordeNumber})`);
+        // Apply Bear Market scaling + Rank system adjustment
+        let targetCount = phaseDef.count;
+        if (window.isBearMarket) {
+            const bearMult = Balance.WAVE_DEFINITIONS.BEAR_MARKET.COUNT_MULT || 1.25;
+            targetCount = Math.floor(targetCount * bearMult);
         }
+        const cycleMult = Balance.WAVE_DEFINITIONS.CYCLE_COUNT_MULT?.[Math.min(cycle - 1, 2)] || 1.0;
+        targetCount = Math.floor(targetCount * cycleMult);
+
+        // Arcade scaling
+        const _arcadeCfg = Balance.ARCADE;
+        const _isArcadeWM = G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode();
+        if (_isArcadeWM && _arcadeCfg) {
+            targetCount = Math.floor(targetCount * (_arcadeCfg.ENEMY_COUNT_MULT || 1.15));
+        }
+
+        if (G.RankSystem) {
+            targetCount = Math.max(4, Math.round(targetCount * G.RankSystem.getEnemyCountMultiplier()));
+        }
+
+        const positions = this.generateFormation(phaseDef.formation, targetCount, gameWidth);
+        const currencyAssignments = this.assignCurrencies(positions, phaseDef.currencies, cycle, window.isBearMarket);
+        const phaseMods = Balance.getPhaseModifiers(0);
+        const entryPath = this._pickEntryPath();
+        dbg.log('WAVE', `[WM] Entry path: ${entryPath}`);
+
+        for (let i = 0; i < positions.length; i++) {
+            const pos = positions[i];
+            const currencyType = Balance.getCurrencyBySymbol(currencyAssignments[i]);
+            if (!currencyType) continue;
+            const enemy = this.createEnemy(pos, currencyType, cycle, phaseMods, i, entryPath, gameWidth);
+            enemies.push(enemy);
+        }
+
+        dbg.log('WAVE', `[WM] Spawned ${enemies.length} enemies with formation ${phaseDef.formation}`);
+
+        this.wave++;
+        dbg.log('WAVE', `[WM] Wave incremented to ${this.wave}`);
         this.waveInProgress = false;
 
-        // Determine pattern for movement (based on formation)
-        let formationForPattern = 'RECT';
-        if (waveDef) {
-            if (waveDef.phases) {
-                const phIdx = Math.min(hordeNumber - 1, waveDef.phases.length - 1);
-                formationForPattern = waveDef.phases[phIdx].formation;
-            } else if (waveDef[hordeNumber === 1 ? 'horde1' : 'horde2']) {
-                formationForPattern = waveDef[hordeNumber === 1 ? 'horde1' : 'horde2'].formation;
-            }
-        }
-        const movementPattern = this.getMovementPattern(formationForPattern);
-
-        return { enemies: enemies, pattern: movementPattern, hordeNumber: hordeNumber };
+        const movementPattern = this.getMovementPattern(phaseDef.formation);
+        return { enemies: enemies, pattern: movementPattern };
     },
 
     /**
@@ -315,7 +204,7 @@ window.Game.WaveManager = {
     /**
      * Create a single enemy with proper configuration
      */
-    createEnemy(pos, currencyType, cycle, hordeMods, index, entryPath, gameWidth) {
+    createEnemy(pos, currencyType, cycle, phaseMods, index, entryPath, gameWidth) {
         const G = window.Game;
         const Balance = G.Balance;
         const level = window.currentLevel || 1;
@@ -375,8 +264,7 @@ window.Game.WaveManager = {
             enemy.targetY = pos.y;
             enemy.baseY = pos.y;
 
-            // Horde 2 has rapid entry
-            const entryMult = hordeMods.entryStyle === 'rapid' ? 0.5 : 1.0;
+            const entryMult = phaseMods.entryStyle === 'rapid' ? 0.5 : 1.0;
             enemy.entryDelay = index * staggerDelay * entryMult;
             enemy.hasSettled = false;
         } else {
@@ -384,8 +272,8 @@ window.Game.WaveManager = {
             enemy.hasSettled = true;
         }
 
-        // Apply horde behavior bonuses
-        const behaviorChance = Math.min(0.5, 0.1 + cycle * 0.1) + hordeMods.behaviorBonus;
+        // Apply phase behavior bonuses
+        const behaviorChance = Math.min(0.5, 0.1 + cycle * 0.1) + phaseMods.behaviorBonus;
 
         // Determine tier and apply behaviors
         const symbol = currencyType.s;
@@ -432,7 +320,7 @@ window.Game.WaveManager = {
             const isArcadeBeh = G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode();
             const behRate = isArcadeBeh ? (behCfg.BEHAVIOR_RATE_ARCADE || 0.22) : (behCfg.BEHAVIOR_RATE || 0.18);
             // Extra chance from streaming escalation
-            const extraBehChance = hordeMods._behaviorEscalation || 0;
+            const extraBehChance = phaseMods._behaviorEscalation || 0;
             if (Math.random() < behRate + extraBehChance) {
                 const available = [];
                 if (behCfg.FLANKER?.ENABLED && globalWave >= behCfg.MIN_WAVE.FLANKER) available.push('FLANKER');
@@ -471,9 +359,9 @@ window.Game.WaveManager = {
             }
         }
 
-        // Fire rate with horde modifier
+        // Fire rate with phase modifier
         const baseFireDelay = (index * 0.15) + (Math.random() * 0.2);
-        enemy.fireTimer = baseFireDelay / hordeMods.fireRateMult;
+        enemy.fireTimer = baseFireDelay / phaseMods.fireRateMult;
 
         return enemy;
     },
@@ -575,30 +463,6 @@ window.Game.WaveManager = {
     // ========================================
 
     /**
-     * Convert legacy horde1/horde2 wave defs to phases format (backward compat)
-     */
-    _convertHordesToPhases(waveDef) {
-        if (waveDef.phases) return waveDef.phases;
-        // Legacy: convert horde1+horde2 → 2 phases with reduced counts (65%)
-        const phases = [];
-        if (waveDef.horde1) {
-            phases.push({
-                count: Math.round(waveDef.horde1.count * 0.65),
-                formation: waveDef.horde1.formation,
-                currencies: waveDef.horde1.currencies
-            });
-        }
-        if (waveDef.horde2) {
-            phases.push({
-                count: Math.round(waveDef.horde2.count * 0.65),
-                formation: waveDef.horde2.formation,
-                currencies: waveDef.horde2.currencies
-            });
-        }
-        return phases;
-    },
-
-    /**
      * Apply count scaling (Bear Market, cycle, arcade, rank) to a count
      */
     _scaleCount(count, cycle) {
@@ -635,14 +499,12 @@ window.Game.WaveManager = {
         const waveInCycle = ((this.wave - 1) % this.getWavesPerCycle()) + 1;
         const waveDef = Balance.getWaveDefinition(cycle, waveInCycle);
 
-        if (!waveDef) {
-            dbg.log('WAVE', `[WM] Streaming: no def for C${cycle}W${waveInCycle}, fallback to horde`);
+        if (!waveDef || !waveDef.phases || waveDef.phases.length === 0) {
+            dbg.log('WAVE', `[WM] Streaming: no phases for C${cycle}W${waveInCycle}`);
             return null;
         }
 
-        // Get phases (native or converted from legacy horde format)
-        const rawPhases = this._convertHordesToPhases(waveDef);
-        if (!rawPhases || rawPhases.length === 0) return null;
+        const rawPhases = waveDef.phases;
 
         // Scale counts per phase individually
         const streamCfg = Balance.STREAMING || {};
@@ -664,7 +526,6 @@ window.Game.WaveManager = {
         this._behaviorCounts = {};
         this.isStreaming = true;
         this.streamingSpawnedCount = 0;
-        this.hordeSpawned = true;
         this.waveInProgress = false;
 
         // Spawn phase 0 immediately
@@ -703,16 +564,8 @@ window.Game.WaveManager = {
             window.isBearMarket
         );
 
-        // Horde mods: later phases get horde2-style bonuses
-        const hordeNum = phaseIndex === 0 ? 1 : 2;
-        const hordeMods = Object.assign({}, Balance.getHordeModifiers(hordeNum));
-
-        // Phase escalation
-        const escCfg = Balance.STREAMING?.PHASE_ESCALATION;
-        if (escCfg && phaseIndex > 0) {
-            hordeMods._behaviorEscalation = phaseIndex * (escCfg.BEHAVIOR_BONUS_PER_PHASE || 0.05);
-            hordeMods.fireRateMult *= 1 + phaseIndex * (escCfg.FIRE_RATE_PER_PHASE || 0.10);
-        }
+        // Phase modifiers: later phases get escalation bonuses
+        const phaseMods = Balance.getPhaseModifiers(phaseIndex);
 
         // Choose entry path
         const entryPath = this._pickEntryPath();
@@ -724,7 +577,7 @@ window.Game.WaveManager = {
             const currencyType = Balance.getCurrencyBySymbol(currencyAssignments[i]);
             if (!currencyType) continue;
             const globalIdx = this.streamingSpawnedCount + i;
-            const enemy = this.createEnemy(pos, currencyType, cycle, hordeMods, globalIdx, entryPath, gw);
+            const enemy = this.createEnemy(pos, currencyType, cycle, phaseMods, globalIdx, entryPath, gw);
             enemy._phaseIndex = phaseIndex;  // Tag for phase tracking
             enemies.push(enemy);
         }
@@ -1659,105 +1512,4 @@ window.Game.WaveManager = {
     // LEGACY SPAWN (Fallback)
     // ========================================
 
-    spawnWaveLegacy(gameWidth, hordeNumber = 1) {
-        const G = window.Game;
-        const Balance = G.Balance;
-        const enemies = [];
-
-        let pattern = 'RECT';
-        if (this.wave === 2) pattern = 'V_SHAPE';
-        if (this.wave === 3) pattern = 'COLUMNS';
-        if (this.wave === 4) pattern = 'SINE_WAVE';
-        if (this.wave >= 5) pattern = 'RECT';
-        if (window.isBearMarket && this.wave >= 2) pattern = 'SINE_WAVE';
-
-        if (hordeNumber === 2 && Balance?.WAVES?.HORDE_2_PATTERN_VARIANT) {
-            const patternVariants = { 'RECT': 'V_SHAPE', 'V_SHAPE': 'COLUMNS', 'COLUMNS': 'RECT', 'SINE_WAVE': 'SINE_WAVE' };
-            pattern = patternVariants[pattern] || pattern;
-        }
-
-        const rows = pattern === 'COLUMNS' ? 5 : (pattern === 'V_SHAPE' ? 5 : 4);
-        // v4.32: Use FORMATION config + responsive scaling (was hardcoded 75/150/380)
-        const FC = Balance?.FORMATION || {};
-        const baseWidth = Balance?.GAME?.BASE_WIDTH || 600;
-        const gameH = G._gameHeight || 700;
-        let spacing = FC.SPACING || 75;
-        if (FC.RESPONSIVE) {
-            const widthRatio = gameWidth / baseWidth;
-            spacing = Math.max(FC.SPACING_MIN || 62, Math.round(spacing * widthRatio));
-        }
-        const cols = Math.floor((gameWidth - 40) / spacing);
-        const startX = (gameWidth - (cols * spacing)) / 2 + (spacing / 2);
-        const safeOffset = window.safeAreaInsets?.top || 0;
-        let startY = (FC.START_Y || 80) + safeOffset;
-        if (FC.RESPONSIVE && FC.START_Y_RESPONSIVE) {
-            const heightRatio = gameH / 800;
-            startY = Math.round(((FC.START_Y || 80) * heightRatio)) + safeOffset;
-        }
-        const maxY = Math.round(gameH * (FC.MAX_Y_RATIO || 0.65));
-        const maxRows = Math.min(rows, Math.floor((maxY - startY) / spacing) + 1);
-
-        const strongRows = 1;
-        const mediumRows = Math.max(1, Math.floor((maxRows - 1) / 3));
-
-        for (let r = 0; r < maxRows; r++) {
-            for (let c = 0; c < cols; c++) {
-                let spawn = false;
-                if (pattern === 'RECT') spawn = true;
-                else if (pattern === 'V_SHAPE' && Math.abs(c - cols / 2) < (rows - r) + 1) spawn = true;
-                else if (pattern === 'COLUMNS' && c % 3 < 2) spawn = true;
-                else if (pattern === 'SINE_WAVE') spawn = true;
-
-                if (spawn) {
-                    let typeIdx;
-                    const waveOffset = (this.wave - 1) % 2;
-                    if (r < strongRows) typeIdx = 7 + (waveOffset % 3);
-                    else if (r < strongRows + mediumRows) typeIdx = 3 + ((r - strongRows + waveOffset) % 4);
-                    else typeIdx = 0 + ((r - strongRows - mediumRows + waveOffset) % 3);
-
-                    const cycle = window.marketCycle || 1;
-                    const level = window.currentLevel || 1;
-                    const diff = Balance.calculateDifficulty(level, cycle);
-                    const apcMult2 = (G.RunState && G.RunState.cyclePower) ? G.RunState.cyclePower.hpMult : 1.0;
-                    const scaledHP = Balance.calculateEnemyHP(diff, cycle) * apcMult2;
-                    const baseType = G.FIAT_TYPES[typeIdx];
-                    const scaledType = Object.assign({}, baseType, { hp: baseType.hp * scaledHP });
-
-                    const targetX = startX + c * spacing;
-                    const targetY = startY + r * spacing;
-                    const formationConfig = Balance?.FORMATION_ENTRY || {};
-                    const entryEnabled = formationConfig.ENABLED !== false;
-                    const spawnYOffset = formationConfig.SPAWN_Y_OFFSET || -80;
-                    const staggerDelay = formationConfig.STAGGER_DELAY || 0.08;
-
-                    const spawnY = entryEnabled ? spawnYOffset : targetY;
-                    const enemy = new G.Enemy(targetX, spawnY, scaledType);
-
-                    if (entryEnabled) {
-                        enemy.isEntering = true;
-                        enemy.targetX = targetX;
-                        enemy.targetY = targetY;
-                        enemy.baseY = targetY;
-                        enemy.entryDelay = enemies.length * staggerDelay;
-                        enemy.hasSettled = false;
-                    } else {
-                        enemy.isEntering = false;
-                        enemy.hasSettled = true;
-                    }
-
-                    const behaviorChance = Math.min(0.5, 0.1 + cycle * 0.1);
-                    if (typeIdx <= 2) enemy.isKamikaze = Math.random() < behaviorChance * 0.5;
-                    else if (typeIdx > 6) enemy.canTeleport = Math.random() < behaviorChance;
-
-                    enemy.fireTimer = enemies.length === 0 ? 0 : (enemies.length * 0.15) + (Math.random() * 0.2);
-                    enemies.push(enemy);
-                }
-            }
-        }
-
-        this.hordeSpawned = true;
-        if (hordeNumber >= this.getHordesPerWave()) this.wave++;
-        this.waveInProgress = false;
-        return { enemies: enemies, pattern: pattern, hordeNumber: hordeNumber };
-    }
 };

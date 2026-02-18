@@ -203,12 +203,8 @@ window.Game.HarmonicConductor = {
     // v6.2: Streaming mode never blocks firing (phases flow continuously)
     areEnemiesEntering() {
         if (!this.enemies || this.enemies.length === 0) return false;
-        const streamCfg = window.Game.Balance?.STREAMING;
-        const isStreaming = streamCfg?.ENABLED && window.Game.WaveManager?.isStreaming;
-        if (isStreaming) {
-            return false;  // Streaming: never block firing during phase entry
-        }
-        // Classic mode: any entering blocks firing
+        // Streaming: never block firing during phase entry
+        if (window.Game.WaveManager?.isStreaming) return false;
         for (var i = 0, len = this.enemies.length; i < len; i++) {
             var e = this.enemies[i];
             if (e && e.active && e.isEntering) return true;

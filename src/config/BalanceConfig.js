@@ -41,7 +41,6 @@
             RESET_Y_OFFSET: 160,      // Y position after reset (above controls)
             BOUNDARY_MARGIN: 20,      // Screen edge margin
             TOUCH_SWIPE_MULT: 15,     // Touch input responsiveness
-            // (removed: SECOND_WIND_DURATION, perk eliminated v4.59)
             INVULN_DURATION: 1.4,     // Post-hit invulnerability seconds
             MUZZLE_FLASH_DURATION: 0.08, // Muzzle flash display time
             BULLET_SPAWN_Y_OFFSET: 33,   // Y offset for bullet spawn above ship (v5.9: 25→33 chevron)
@@ -428,8 +427,7 @@
         },
 
         // --- ENEMY FIRING ---
-        // Note: STRIDE, MAX_SHOTS_PER_TICK, FIBONACCI_INTERVAL removed in v2.13.0
-        // All firing now handled by HarmonicConductor with beat-synced sequences
+        // All firing handled by HarmonicConductor with beat-synced sequences
         ENEMY_FIRE: {
             BULLET_SPEED_BASE: 77,    // v4.14: -40% (was 128) — smaller bullets, slower speed
             BULLET_SPEED_SCALE: 41    // v4.14: -40% (was 68)
@@ -638,7 +636,6 @@
 
         // --- STREAMING ENEMY FLOW v5.33 (Phase-Based) ---
         STREAMING: {
-            ENABLED: true,
             PHASE_TRIGGER: {
                 THRESHOLD_RATIO: 0.25,      // v6.5: 0.35→0.25 — trigger later, less overlap
                 MIN_THRESHOLD: 3,           // At least 3 remaining to trigger
@@ -888,8 +885,6 @@
         // --- SCORE SYSTEM ---
         SCORE: {
             // Damage multipliers
-            // v4.61: HODL removed (incompatible with mobile autofire)
-
             // Base multipliers
             BEAR_MARKET_MULT: 2,      // Score multiplier in Bear Market mode
 
@@ -1037,13 +1032,13 @@
         },
 
         // --- HUD MESSAGES v4.4 (5-channel system) ---
-        // WAVE_STRIP: Minimal full-width strip for wave/horde info
+        // WAVE_STRIP: Minimal full-width strip for wave info
         // ALERT: Colored center box (danger=red, victory=gold)
         // MEME_WHISPER: Tiny italic canvas text, decorative flavor
         // SHIP_STATUS: Icon+text above player ship
         // FLOATING_TEXT: Opt-in score numbers
         HUD_MESSAGES: {
-            WAVE_STRIP: true,             // Wave/horde strip (replaces GAME_INFO)
+            WAVE_STRIP: true,             // Wave strip (replaces GAME_INFO)
             ALERT_DANGER: true,           // Boss warnings, danger messages
             ALERT_VICTORY: true,          // Boss defeated, achievements
             MEME_WHISPER: true,           // Small decorative meme text (replaces MEME_POPUP)
@@ -1198,7 +1193,6 @@
             BASE_HP: 1,            // Each base bullet passes through 1 enemy bullet
             LEVEL_BONUS: 0.5,      // +0.5 per weapon level (LV5 = +2)
             MISSILE_HP: 3,         // Missiles are tougher
-            // v4.61: HODL_BONUS removed
         },
 
         // --- PROXIMITY KILL METER (replaces graze as meter source) ---
@@ -1399,9 +1393,6 @@
         WAVES: {
             PER_CYCLE: 5,                 // Waves before boss appears
             ENEMY_FIRE_TIMER: 0.5,        // Base timer for enemy fire phase
-            HORDES_PER_WAVE: 2,           // Fallback when STREAMING.ENABLED = false
-            HORDE_TRANSITION_DURATION: 0.8, // Seconds between hordes
-            HORDE_2_PATTERN_VARIANT: true // Use different pattern for horde 2
         },
 
         // --- WAVE DEFINITIONS v4.0 ---
@@ -1420,12 +1411,6 @@
                 MEDIUM_ONLY: ['€', '£', '₣', '₺'],
                 STRONG_ONLY: ['$', '元', 'Ⓒ'],
                 ALL_MIX: ['¥', '₽', '₹', '€', '£', '₣', '₺', '$', '元', 'Ⓒ']
-            },
-
-            // Horde modifiers - differentiate horde 1 vs horde 2
-            HORDE_MODIFIERS: {
-                1: { behaviorBonus: 0, fireRateMult: 1.0, entryStyle: 'stagger' },
-                2: { behaviorBonus: 0.20, fireRateMult: 1.15, entryStyle: 'rapid' }
             },
 
             // v4.6.1: Cycle-based enemy count multiplier (player is stronger in later cycles)
@@ -2784,13 +2769,18 @@
         },
 
         /**
-         * Get horde modifiers for horde number
-         * @param {number} hordeNumber - 1 or 2
-         * @returns {Object} Horde modifiers
+         * Get phase modifiers for streaming phase index
+         * @param {number} phaseIndex - 0-based phase index
+         * @returns {Object} Phase modifiers (fireRateMult, behaviorBonus, entryStyle)
          */
-        getHordeModifiers(hordeNumber) {
-            return this.WAVE_DEFINITIONS.HORDE_MODIFIERS[hordeNumber] ||
-                   this.WAVE_DEFINITIONS.HORDE_MODIFIERS[1];
+        getPhaseModifiers(phaseIndex) {
+            const esc = this.STREAMING?.PHASE_ESCALATION || {};
+            return {
+                behaviorBonus: 0,
+                fireRateMult: phaseIndex > 0 ? 1 + phaseIndex * (esc.FIRE_RATE_PER_PHASE || 0.05) : 1.0,
+                entryStyle: 'stagger',
+                _behaviorEscalation: phaseIndex > 0 ? phaseIndex * (esc.BEHAVIOR_BONUS_PER_PHASE || 0.05) : 0
+            };
         },
 
         // --- ARCADE MODE: ROGUE PROTOCOL ---
@@ -2798,7 +2788,6 @@
             // Pacing overrides
             INTERMISSION_DURATION: 2.0,         // Faster wave transitions (vs 3.2s Story)
             INTERMISSION_BOSS_DURATION: 4.0,    // Shorter boss celebration (vs 6.0s)
-            HORDE_TRANSITION_DURATION: 0.5,     // Faster horde switch (vs 0.8s)
 
             // Enemy scaling
             ENEMY_COUNT_MULT: 1.15,             // +15% enemies per wave

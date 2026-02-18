@@ -1,5 +1,23 @@
 # Changelog
 
+## v6.5.1 - 2026-02-18
+
+### "Clean Slate" — Code Consolidation
+Removes the legacy horde fallback system (~350 lines) and stale comments. Streaming is now the only wave flow path.
+
+### Horde System Removal
+- **remove(waves)**: `startHordeTransition()`, `startHorde2()`, `spawnWaveLegacy()` from main.js (~80 lines)
+- **remove(waves)**: `getHordesPerWave()`, `getHordeTransitionDuration()`, `startHordeTransition()`, `completeHordeTransition()`, `_convertHordesToPhases()` from WaveManager (~200 lines)
+- **remove(config)**: `STREAMING.ENABLED` kill-switch, `HORDE_MODIFIERS`, `HORDES_PER_WAVE`, `HORDE_TRANSITION_DURATION`, `ARCADE.HORDE_TRANSITION_DURATION`
+- **remove(debug)**: `HORDE` category, `trackHordeTransition()`, `hordeTransitions` counter, horde refs in overlay/snapshot
+- **remove(i18n)**: `HORDE_2_INCOMING` from EN and IT locales
+
+### Refactoring
+- **refactor(config)**: `getHordeModifiers(hordeNumber)` → `getPhaseModifiers(phaseIndex)` with escalation from `STREAMING.PHASE_ESCALATION`
+- **refactor(waves)**: `hordeMods` → `phaseMods` in WaveManager.createEnemy and _spawnPhase
+- **refactor(conductor)**: `areEnemiesEntering()` simplified — removed `STREAMING.ENABLED` check
+- **cleanup**: Removed stale "removed" comments (SECOND_WIND, STRIDE, HODL, drawHyperUI, checkBulletCollisions, enemy shield, shield button, weapon pips)
+
 ## v6.5.0 - 2026-02-18
 
 ### "Adaptive Quality" Release

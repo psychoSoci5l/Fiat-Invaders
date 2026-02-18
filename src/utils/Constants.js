@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v6.5.0 FIAT vs CRYPTO";
+window.Game.VERSION = "v6.5.1 FIAT vs CRYPTO";
 
 // Leaderboard API
 window.Game.LEADERBOARD_API = 'https://fiat-vs-crypto-leaderboard.psychosocial-01.workers.dev/api';
@@ -127,7 +127,6 @@ window.Game.TEXTS = {
         ARCADE: "ARCADE",
         CAMPAIGN: "STORY",
         LAUNCH: "LAUNCH",
-        HORDE_2_INCOMING: "HORDE 2!",
         GET_READY: "GET READY",
         PWA_INSTALL_IOS: 'Install: tap <svg class="pwa-share-icon" viewBox="0 0 24 24" fill="none" stroke="#bb44ff" stroke-width="2"><path d="M12 3v12M5 10l7-7 7 7"/><path d="M5 21h14a1 1 0 001-1v-6H4v6a1 1 0 001 1z"/></svg> then "Add to Home Screen"',
         PWA_INSTALL_ANDROID: "Install the app for the best experience",
@@ -360,7 +359,6 @@ window.Game.TEXTS = {
         ARCADE: "ARCADE",
         CAMPAIGN: "STORIA",
         LAUNCH: "LANCIA",
-        HORDE_2_INCOMING: "ORDA 2!",
         GET_READY: "PREPARATI",
         PWA_INSTALL_IOS: 'Installa: tap <svg class="pwa-share-icon" viewBox="0 0 24 24" fill="none" stroke="#bb44ff" stroke-width="2"><path d="M12 3v12M5 10l7-7 7 7"/><path d="M5 21h14a1 1 0 001-1v-6H4v6a1 1 0 001 1z"/></svg> poi "Aggiungi a Home"',
         PWA_INSTALL_ANDROID: "Installa l'app per la migliore esperienza",

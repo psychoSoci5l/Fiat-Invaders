@@ -26,7 +26,6 @@ window.Game.Debug = {
     categories: {
         WAVE: true,      // WaveManager state transitions
         BOSS: true,      // Boss spawn, damage, defeat
-        HORDE: true,     // Horde transitions
         MINIBOSS: true,  // Mini-boss triggers
         ENEMY: false,    // Enemy spawn/death (very verbose)
         BULLET: false,   // Bullet collisions (extremely verbose)
@@ -55,7 +54,6 @@ window.Game.Debug = {
         // Wave events
         wavesStarted: 0,
         wavesCompleted: 0,
-        hordeTransitions: 0,
         intermissions: 0,
 
         // Level/Cycle
@@ -80,7 +78,7 @@ window.Game.Debug = {
     sessionLog: [],
     MAX_SESSION_LOG: 40,
     SESSION_LOG_KEY: 'fiat_debug_session_log',
-    SESSION_LOG_CATEGORIES: { STATE: 1, WAVE: 1, BOSS: 1, MINIBOSS: 1, HORDE: 1, QUALITY: 1 },
+    SESSION_LOG_CATEGORIES: { STATE: 1, WAVE: 1, BOSS: 1, MINIBOSS: 1, QUALITY: 1 },
 
     // Session start time
     sessionStart: Date.now(),
@@ -102,7 +100,7 @@ window.Game.Debug = {
         waveStartTimes: [],       // timestamps per wave start
 
         // Combat
-        deaths: [],               // [{ time, cycle, wave, horde, cause, x, y }]
+        deaths: [],               // [{ time, cycle, wave, cause }]
         grazeCount: 0,
         closeGrazeCount: 0,
         maxKillStreak: 0,
@@ -275,9 +273,9 @@ window.Game.Debug = {
     /**
      * Track wave start
      */
-    trackWaveStart(wave, horde, level, pattern, enemyCount) {
+    trackWaveStart(wave, level, pattern, enemyCount) {
         this.counters.wavesStarted++;
-        this.log('WAVE', `🌊 WAVE START #${this.counters.wavesStarted}: W${wave}H${horde} L${level}`, { pattern, enemies: enemyCount });
+        this.log('WAVE', `🌊 WAVE START #${this.counters.wavesStarted}: W${wave} L${level}`, { pattern, enemies: enemyCount });
     },
 
     /**
@@ -286,14 +284,6 @@ window.Game.Debug = {
     trackWaveComplete(wave, level) {
         this.counters.wavesCompleted++;
         this.log('WAVE', `✅ WAVE COMPLETE #${this.counters.wavesCompleted}: W${wave} L${level}`);
-    },
-
-    /**
-     * Track horde transition
-     */
-    trackHordeTransition(fromHorde, toHorde, wave) {
-        this.counters.hordeTransitions++;
-        this.log('HORDE', `🔄 HORDE TRANSITION #${this.counters.hordeTransitions}: H${fromHorde}→H${toHorde} W${wave}`);
     },
 
     /**
@@ -353,7 +343,6 @@ window.Game.Debug = {
             time: Date.now() - a.runStart,
             cycle: window.marketCycle || 1,
             wave: G.WaveManager?.wave || 0,
-            horde: G.WaveManager?.currentHorde || 1,
             cause: cause,
             duringHyper: window.hyperActive || false,
             duringBoss: !!window.boss
@@ -1123,7 +1112,7 @@ window.Game.Debug = {
         console.log(`║   Total: ${a.deaths.length}  (During HYPER: ${a.hyperDeaths})                     ║`);
         for (const d of a.deaths) {
             const when = formatTime(d.time);
-            const where = d.duringBoss ? 'BOSS' : `W${d.wave}H${d.horde}`;
+            const where = d.duringBoss ? 'BOSS' : `W${d.wave}`;
             console.log(`║     @${when} C${d.cycle} ${where.padEnd(8)} ${d.cause}`);
         }
 
@@ -1259,7 +1248,6 @@ window.Game.Debug = {
         this.OVERLAY_ENABLED = false; // v4.16: overlay off by default (use dbg.showOverlay() if needed)
         this.categories.WAVE = true;
         this.categories.BOSS = true;
-        this.categories.HORDE = true;
         this.categories.STATE = true;
         this.perf(); // Auto-start performance profiling
         this._perf.overlayEnabled = false; // v4.16: FPS counter off too — all data in console
@@ -1340,7 +1328,7 @@ window.Game.Debug = {
         }
         console.log('║ WAVE EVENTS:                         ║');
         console.log(`║   Started: ${c.wavesStarted}  Completed: ${c.wavesCompleted}`);
-        console.log(`║   Horde Trans: ${c.hordeTransitions}  Intermissions: ${c.intermissions}`);
+        console.log(`║   Intermissions: ${c.intermissions}`);
         console.log('║ PROGRESSION:                         ║');
         console.log(`║   Level Ups: ${c.levelUps}  Cycle Ups: ${c.cycleUps}`);
         console.log('║ COMBAT:                              ║');
@@ -1381,7 +1369,6 @@ window.Game.Debug = {
             miniBossTriggers: {},
             wavesStarted: 0,
             wavesCompleted: 0,
-            hordeTransitions: 0,
             intermissions: 0,
             levelUps: 0,
             cycleUps: 0,
@@ -1428,7 +1415,6 @@ window.Game.Debug = {
         const cycle = window.marketCycle || 1;
         const waveMgr = G.WaveManager;
         const wave = waveMgr ? waveMgr.wave : 0;
-        const horde = waveMgr ? waveMgr.currentHorde : 0;
         const enemies = G.enemies ? G.enemies.length : 0;
         const enemyBullets = window.enemyBullets ? window.enemyBullets.length : 0;
         const bullets = G.bullets ? G.bullets.length : 0;
@@ -1463,7 +1449,7 @@ window.Game.Debug = {
 
         ctx.fillStyle = '#ffffff';
         ctx.fillText(`Level: ${level}  Cycle: ${cycle}`, 12, y); y += lineHeight;
-        ctx.fillText(`Wave: ${wave}  Horde: ${horde}`, 12, y); y += lineHeight;
+        ctx.fillText(`Wave: ${wave}`, 12, y); y += lineHeight;
 
         // Entities
         y += 5;
@@ -1519,7 +1505,6 @@ window.Game.Debug = {
         ctx.fillText(`Boss: ${c.bossSpawns}/${c.bossDefeats}`, 12, y); y += lineHeight;
         ctx.fillText(`MiniBoss: ${c.miniBossSpawns}/${c.miniBossDefeats}`, 12, y); y += lineHeight;
         ctx.fillText(`Waves: ${c.wavesStarted}/${c.wavesCompleted}`, 12, y); y += lineHeight;
-        ctx.fillText(`Hordes: ${c.hordeTransitions}`, 12, y); y += lineHeight;
 
         // Conductor
         if (conductor) {
@@ -1673,7 +1658,6 @@ window.Game.Debug = {
         this.ENABLED = true;
         this.OVERLAY_ENABLED = true;
         this.categories.WAVE = true;
-        this.categories.HORDE = true;
         this.categories.STATE = true;
         console.log('[DEBUG] Wave debugging enabled with overlay');
     },
@@ -1691,7 +1675,6 @@ window.Game.Debug = {
                 level: window.currentLevel,
                 cycle: window.marketCycle,
                 wave: G.WaveManager?.wave,
-                horde: G.WaveManager?.currentHorde,
                 bossActive: !!window.boss,
                 miniBossActive: !!window.miniBoss,
                 enemies: G.enemies?.length || 0,
@@ -1867,7 +1850,6 @@ window.Game.Debug = {
 
         // Set wave manager state
         api.waveMgr.wave = waveInCycle;
-        api.waveMgr.hordeSpawned = false;
         api.waveMgr.waveInProgress = false;
         api.waveMgr._streamingActive = false;
         api.waveMgr._streamingPhases = [];

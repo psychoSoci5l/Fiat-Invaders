@@ -1637,9 +1637,7 @@ class Player extends window.Game.Entity {
             }
         }
 
-        // 3. WEAPON LEVEL PIPS — removed v4.55 (ship body now communicates weapon level visually)
-
-        // 4a. GODCHAIN AURA (red/orange pulsing glow)
+        // 3. GODCHAIN AURA (red/orange pulsing glow)
         if (this._godchainActive) {
             const gcCfg = window.Game.Balance?.GODCHAIN?.AURA;
             if (gcCfg) {

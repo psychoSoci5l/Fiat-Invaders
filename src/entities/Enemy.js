@@ -48,8 +48,6 @@ class Enemy extends window.Game.Entity {
         this.kamikazeDiving = false;  // Currently diving
         this.kamikazeSpeed = window.Game.Balance.ENEMY_BEHAVIOR.KAMIKAZE_SPEED;
 
-        // v4.45: Enemy shield removed (non-intuitive, HP is the only defense now)
-
         this.canTeleport = false;     // Strong tier: can teleport
         this.teleportCooldown = 0;    // Time until next teleport
         this.teleportFlash = 0;       // Visual feedback
