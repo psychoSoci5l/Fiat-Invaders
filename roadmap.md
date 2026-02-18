@@ -1,7 +1,17 @@
 # Roadmap: FIAT vs CRYPTO
 
-> **Versione attuale**: v6.4.1 (2026-02-18)
+> **Versione attuale**: v6.5.4 (2026-02-18)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
+
+---
+
+## COMPLETATO — Remove PaperTear + Privacy Scroll + Layout Fixes (v6.5.2–v6.5.4)
+
+- [x] v6.5.2: Dynamic Island safe area fix — `--di-safe-top` CSS var heuristic per Safari browser
+- [x] v6.5.3: Full-bleed canvas su iOS PWA — container `top:0;bottom:0`, +93px visual area
+- [x] v6.5.4: Rimosso sistema PaperTear "Digital Scanline Void" (file, config, 9 ref in main.js)
+- [x] v6.5.4: Privacy panel scrolla su iOS (`touch-action: pan-y`)
+- [x] v6.5.4: Fix intro icons/version overlap, debug overlay safe-top behind Dynamic Island
 
 ---
 
@@ -343,10 +353,10 @@
 
 ---
 
-## COMPLETATO — Digital Scanline Void (v5.6.0)
+## COMPLETATO — Digital Scanline Void (v5.6.0) — RIMOSSO in v6.5.4
 
-- [x] Neon violet scanline split replaces paper tear effect
-- [x] Glitch segments, CRT void scanlines, shimmer/breathing, opening/closing flash
+- [x] ~~Neon violet scanline split replaces paper tear effect~~ — rimosso (interferiva con Dynamic Island)
+- [x] ~~Glitch segments, CRT void scanlines, shimmer/breathing, opening/closing flash~~ — rimosso
 
 ---
 

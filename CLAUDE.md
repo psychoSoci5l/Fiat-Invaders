@@ -148,7 +148,7 @@ Detailed tables, parameters, and implementation specifics → **SYSTEM_REFERENCE
 
 ### Debug
 - **Debug System** — `dbg.*` console API. Key commands: `dbg.balanceTest()`, `dbg.report()`, `dbg.hitboxes()`, `dbg.maxWeapon()`, `dbg.arcade()`, `dbg.arcadeHelp()`, `dbg.elites()`, `dbg.behaviors()`, `dbg.streaming()`, `dbg.waveReport()`, `dbg.toggleElites()`, `dbg.toggleBehaviors()`, `dbg.toggleStreaming()`. Full reference in SYSTEM_REFERENCE.md
-- **Debug Overlay (v6.4)** — Hidden mobile debug panel. **Game Over**: triple-tap on background (3 taps in 800ms, ignores buttons) → current session. **Intro**: triple-tap on `#version-tag` → previous session from localStorage. 6 sections: Device, Performance, Game Session, Quality Judgment, Last Error (`window._lastError`), Session Log (compact `+M:SS [CAT] msg`, max 40 entries). Session log categories: STATE, WAVE, BOSS, MINIBOSS, HORDE, QUALITY. `G.Debug.flushSessionLog()` persists to `fiat_debug_session_log` on game over/error/beforeunload. `G.Debug.getPreviousSessionLog()` reads previous. SEND → mailto with error+log (1800 char limit). z-index 10050. Auto-hides on RETRY/MENU/startGame. English-only, no i18n
+- **Debug Overlay (v6.4)** — Hidden mobile debug panel. **Game Over**: triple-tap on background (3 taps in 800ms, ignores buttons) → current session. **Intro**: triple-tap on `#version-tag` → previous session from localStorage. 6 sections: Device, Performance, Game Session, Quality Judgment, Last Error (`window._lastError`), Session Log (compact `+M:SS [CAT] msg`, max 40 entries). Session log categories: STATE, WAVE, BOSS, MINIBOSS, QUALITY. `G.Debug.flushSessionLog()` persists to `fiat_debug_session_log` on game over/error/beforeunload. `G.Debug.getPreviousSessionLog()` reads previous. SEND → mailto with error+log (1800 char limit). z-index 10050. Auto-hides on RETRY/MENU/startGame. English-only, no i18n
 
 ---
 
@@ -184,8 +184,8 @@ Use `G.ColorUtils.rgba(r,g,b,a)` and `G.ColorUtils.font(w,s,f)` in all per-frame
 ### localStorage Version Migration
 IIFE at top of main.js: clears all localStorage on version mismatch (`G.VERSION` vs `fiat_app_version` key). Ensures clean state on updates.
 
-### PWA Layout Pattern (v5.23)
-`#game-container` is `position: fixed; top:0; bottom:0` — CSS fills the viewport, no JS sizing. `resize()` reads `gameContainer.clientHeight` for canvas, sets `--safe-top`/`--safe-bottom` CSS vars (PWA forces minimums: top 59px, bottom 34px). **Player uses `playableHeight = gameHeight - safeBottom`** so the ship stays above the home indicator. `G._safeBottom` exposed globally. DOM elements use `var(--safe-bottom)` / `var(--safe-top)` for offsets.
+### PWA Layout Pattern (v6.5.3 Full-Bleed)
+`#game-container` is `position: fixed; top:0; bottom:0` — full-bleed canvas renders behind Dynamic Island and home indicator on iOS PWA. `resize()` reads `gameContainer.clientHeight` for canvas, sets `--safe-top`/`--safe-bottom` CSS vars from JS heuristic (PWA minimums: top 59px, bottom 34px). Children (HUD, buttons, ship) use `var(--safe-top)`/`var(--safe-bottom)` for offset. **Player uses `playableHeight = gameHeight - safeBottom`** so the ship stays above the home indicator. `G._safeBottom` exposed globally. **`--di-safe-top`**: separate CSS var for static screens (intro, gameover, manual, debug overlay) in Safari browser mode where `env(safe-area-inset-top)` returns 0. Self-deactivating heuristic: `screen.height >= 852 && !isPWA && safeTop < 10`.
 
 ### Leaderboard Anti-Spam (v5.23.8)
 **Nickname dedup**: Worker keeps only the best score per nickname. Lower score submissions are ignored. **Device binding**: Client sends `fiat_device_id` (UUID in localStorage), worker stores `dev:{mode}:{hash} → nickname` in KV (30d TTL). Changing nickname removes old entry from leaderboard. Device ID included in HMAC signature (backward-compatible).
