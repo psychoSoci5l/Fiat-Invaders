@@ -147,8 +147,14 @@ Detailed tables, parameters, and implementation specifics → **SYSTEM_REFERENCE
 - **Audio System** — `Balance.AUDIO`. Procedural music (MusicData.js), separate Music/SFX gain. `toggleMusic()`/`toggleSfx()`. Bear market: -1 semitone, +10% tempo
 
 ### Debug
-- **Debug System** — `dbg.*` console API. Key commands: `dbg.balanceTest()`, `dbg.report()`, `dbg.hitboxes()`, `dbg.maxWeapon()`, `dbg.arcade()`, `dbg.arcadeHelp()`, `dbg.elites()`, `dbg.behaviors()`, `dbg.streaming()`, `dbg.waveReport()`, `dbg.toggleElites()`, `dbg.toggleBehaviors()`, `dbg.toggleStreaming()`. Full reference in SYSTEM_REFERENCE.md
+- **Debug System** — `dbg.*` console API. **Silent by default** (`ENABLED: false`, all categories off). Use `dbg.on()` to enable master + all categories, or `dbg.debugBoss()`/`dbg.debugWaves()` for specific debugging. Key commands: `dbg.balanceTest()`, `dbg.report()`, `dbg.hitboxes()`, `dbg.maxWeapon()`, `dbg.arcade()`, `dbg.arcadeHelp()`, `dbg.elites()`, `dbg.behaviors()`, `dbg.streaming()`, `dbg.waveReport()`, `dbg.toggleElites()`, `dbg.toggleBehaviors()`, `dbg.toggleStreaming()`. Full reference in SYSTEM_REFERENCE.md
 - **Debug Overlay (v6.4)** — Hidden mobile debug panel. **Game Over**: triple-tap on background (3 taps in 800ms, ignores buttons) → current session. **Intro**: triple-tap on `#version-tag` → previous session from localStorage. 6 sections: Device, Performance, Game Session, Quality Judgment, Last Error (`window._lastError`), Session Log (compact `+M:SS [CAT] msg`, max 40 entries). Session log categories: STATE, WAVE, BOSS, MINIBOSS, QUALITY. `G.Debug.flushSessionLog()` persists to `fiat_debug_session_log` on game over/error/beforeunload. `G.Debug.getPreviousSessionLog()` reads previous. SEND → mailto with error+log (1800 char limit). z-index 10050. Auto-hides on RETRY/MENU/startGame. English-only, no i18n
+
+### Input & Platform
+- **Desktop Mouse Controls (v6.6)** — `G.Input.mouse` state: `{ active, xPct, shield }`. Hold left click = fire + move (ship follows cursor), right click = shield. Events on `window` (NOT canvas — DOM overlays steal focus). Guard: `!('ontouchstart' in window)`. Player.js reads `input.mouse?.active` for movement/fire/shield alongside keyboard/touch. Tutorial shows mouse-only text on desktop (`.desktop-only` class via `body.is-touch`)
+- **Desktop Viewport (v6.6)** — `@media (hover: hover) and (pointer: fine)`: `#game-container` gets `height: 100vh; max-height: 1300px; top: 50%; transform: translate(-50%, -50%); border-radius: 20px; box-shadow`. Phone-like centered frame on desktop. Zero impact on mobile
+- **Early Quality Detection (v6.6)** — `QualityManager.init()`: if `navigator.deviceMemory <= 2` or `navigator.hardwareConcurrency <= 2`, forces MEDIUM tier at boot (skips heavy intro clouds). Only when `_auto` is true. No impact on normal devices (APIs default to 8/4)
+- **SkyRenderer ellipse() fallback (v6.6)** — `safeEllipse(ctx, x, y, rx, ry, rot, start, end)` helper. Uses native `ctx.ellipse()` when available, falls back to `arc()` + `scale()` for old GPU drivers
 
 ---
 
