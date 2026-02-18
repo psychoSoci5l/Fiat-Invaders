@@ -134,9 +134,9 @@ window.Game.TEXTS = {
         // Tutorial (v5.27 arcade tone)
         TUT_TITLE: "GET READY!",
         TUT_STEP_MISSION: "Inflation incoming: face fiat currencies from around the world, survive 5 waves of minions to reach the bosses \u2014 the central banks \u2014 and eliminate the problem at its source!",
-        TUT_STEP_CONTROLS_PC: "\u2190 \u2192 or A/D \u2014 Move\nMouse \u2014 Aim & Move\nSPACE or Left Click \u2014 Fire",
+        TUT_STEP_CONTROLS_PC: "Hold Left Click \u2014 Move & Fire\nRelease to stop",
         TUT_STEP_CONTROLS_MOBILE: "Drag your ship using the lower part of the screen to move without blocking your view",
-        TUT_STEP_SHIELD_PC: "When the cyan wings light up, use the shield to escape tough situations \u2014 gain invincibility and proximity damage!\nHit S or \u2193 or Right Click",
+        TUT_STEP_SHIELD_PC: "When the cyan wings light up, use the shield to escape tough situations \u2014 gain invincibility and proximity damage!\nRight Click to activate",
         TUT_STEP_SHIELD_MOBILE: "When the cyan wings light up, use the shield to escape tough situations \u2014 gain invincibility and proximity damage!\nTap your ship",
         TUT_NEXT: "NEXT",
         // Manual v2 condensed (v4.12.0)
@@ -366,9 +366,9 @@ window.Game.TEXTS = {
         // Tutorial (v5.27 arcade tone)
         TUT_TITLE: "PREPARATI!",
         TUT_STEP_MISSION: "Inflazione in arrivo: affronta le valute fiat di tutto il mondo, supera 5 ondate di comprimari per affrontare i boss, le banche centrali, per eliminare il problema alla fonte!",
-        TUT_STEP_CONTROLS_PC: "\u2190 \u2192 o A/D \u2014 Muoviti\nMouse \u2014 Mira e Muoviti\nSPAZIO o Click Sinistro \u2014 Spara",
+        TUT_STEP_CONTROLS_PC: "Tieni premuto Click Sinistro \u2014 Muovi e Spara\nRilascia per fermarti",
         TUT_STEP_CONTROLS_MOBILE: "Trascina la nave usando la zona bassa dello schermo per muoverti senza nascondere la visuale di gioco",
-        TUT_STEP_SHIELD_PC: "Quando si accendono le ali cyan usa lo scudo per uscire dalle situazioni di difficolt\u00e0 acquistando invincibilit\u00e0 e danno di prossimit\u00e0!\nPremi S o \u2193 o Click Destro",
+        TUT_STEP_SHIELD_PC: "Quando si accendono le ali cyan usa lo scudo per uscire dalle situazioni di difficolt\u00e0 acquistando invincibilit\u00e0 e danno di prossimit\u00e0!\nClick Destro per attivare",
         TUT_STEP_SHIELD_MOBILE: "Quando si accendono le ali cyan usa lo scudo per uscire dalle situazioni di difficolt\u00e0 acquistando invincibilit\u00e0 e danno di prossimit\u00e0!\nTocca la nave",
         TUT_NEXT: "AVANTI",
         // Manual v2 condensed (v4.12.0)
