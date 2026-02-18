@@ -1,5 +1,16 @@
 # Changelog
 
+## v5.30.0 - 2026-02-18
+### Ship Flight Dynamics
+- **feat(vfx)**: Banking Tilt — smooth lateral rotation proportional to `vx` (max ~12.6°, asymmetric lerp: fast bank, slow return)
+- **feat(vfx)**: Hover Bob — sinusoidal vertical oscillation (2.5px, 1.8Hz) dampened by movement speed
+- **feat(vfx)**: Asymmetric Thrust — inner-curve exhaust flame 1.5× longer, outer 0.7× shorter during banking
+- **feat(vfx)**: Wing Vapor Trails — additive spark particles from wingtips at high speed (color-reactive: cyan/gold HYPER/orange GODCHAIN)
+- **feat(vfx)**: Squash & Stretch — micro scale deformation (0.97×/1.03×) during sharp acceleration changes
+- **feat(vfx)**: Banked afterimage — trail captures bank angle for tilted ghost silhouettes
+- **config**: `Balance.VFX.SHIP_FLIGHT` with 5 sub-configs, each with individual `ENABLED` kill-switch
+- **perf**: Zero allocations per frame — `_flight` object pre-allocated with all scalars, reused every update
+
 ## v5.29.1 - 2026-02-18
 ### Game Over Layout + OLED Deep Black
 - **change(ui)**: Game over title `.glitch-text` reduced from 28-42px to 20-28px (single line on mobile)

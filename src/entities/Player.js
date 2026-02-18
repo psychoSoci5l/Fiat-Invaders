@@ -91,7 +91,7 @@ class Player extends window.Game.Entity {
         this._trailHead = 0;
         this._trailCount = 0;
         for (let i = 0; i < 6; i++) {
-            this._trailBuffer.push({ x: 0, y: 0, age: 999 }); // Pre-allocate
+            this._trailBuffer.push({ x: 0, y: 0, age: 999, bank: 0 }); // Pre-allocate
         }
         this.trail = []; // Kept for compatibility with draw()
 
@@ -101,6 +101,14 @@ class Player extends window.Game.Entity {
         this._elemPulse = { active: false, timer: 0, duration: 0, color: '', alpha: 0 };
         this._elemFrameCount = 0;
         this._electricArcs = [];
+
+        // v5.30: Ship Flight Dynamics state (zero-alloc, all scalars)
+        this._flight = {
+            bankAngle: 0, hoverPhase: 0, hoverOffset: 0,
+            thrustL: 1, thrustR: 1,
+            scaleX: 1, scaleY: 1,
+            prevVx: 0, vaporTimer: 0,
+        };
     }
 
     configure(type) {
@@ -158,6 +166,15 @@ class Player extends window.Game.Entity {
         this._elemPulse.timer = 0;
         this._elemFrameCount = 0;
         this._electricArcs = [];
+
+        // v5.30: Flight dynamics reset
+        if (this._flight) {
+            const fl = this._flight;
+            fl.bankAngle = 0; fl.hoverPhase = 0; fl.hoverOffset = 0;
+            fl.thrustL = 1; fl.thrustR = 1;
+            fl.scaleX = 1; fl.scaleY = 1;
+            fl.prevVx = 0; fl.vaporTimer = 0;
+        }
 
         // Weapon Evolution reset (soft reset - keep weaponLevel on normal reset)
         // Note: applyDeathPenalty() handles death penalty separately
@@ -315,6 +332,7 @@ class Player extends window.Game.Entity {
             slot.x = this.x;
             slot.y = this.y;
             slot.age = 0;
+            slot.bank = this._flight ? this._flight.bankAngle : 0;
             this._trailHead = (this._trailHead + 1) % 6;
             if (this._trailCount < 6) this._trailCount++;
         }
@@ -370,8 +388,111 @@ class Player extends window.Game.Entity {
         // v5.7: Update position for tap-on-ship shield detection
         if (window.Game.Input) window.Game.Input.updatePlayerPos(this.x, this.y);
 
-        // Bank angle for visual effect (optional extra juice)
-        this.rotation = this.vx * 0.0005;
+        // v5.30: Ship Flight Dynamics (banking, hover, thrust, vapor, squash/stretch)
+        const _sfCfg = window.Game.Balance?.VFX?.SHIP_FLIGHT;
+        if (_sfCfg?.ENABLED && this._flight) {
+            const fl = this._flight;
+
+            // --- Banking Tilt ---
+            const _bk = _sfCfg.BANKING;
+            if (_bk?.ENABLED) {
+                const targetBank = Math.max(-1, Math.min(1, this.vx / _bk.VX_DIVISOR)) * _bk.MAX_ANGLE;
+                const lerpRate = Math.abs(targetBank) > Math.abs(fl.bankAngle) ? _bk.LERP_SPEED : _bk.RETURN_SPEED;
+                fl.bankAngle += (targetBank - fl.bankAngle) * Math.min(1, lerpRate * dt);
+            } else {
+                fl.bankAngle = 0;
+            }
+            this.rotation = fl.bankAngle;
+
+            // --- Hover Bob ---
+            const _hb = _sfCfg.HOVER_BOB;
+            if (_hb?.ENABLED) {
+                fl.hoverPhase += dt * _hb.FREQUENCY * Math.PI * 2;
+                const dampen = Math.max(0, 1 - Math.abs(this.vx) * _hb.SPEED_DAMPEN);
+                fl.hoverOffset = Math.sin(fl.hoverPhase) * _hb.AMPLITUDE * dampen;
+            } else {
+                fl.hoverOffset = 0;
+            }
+
+            // --- Asymmetric Thrust ---
+            const _th = _sfCfg.THRUST;
+            if (_th?.ENABLED) {
+                let targetL = 1, targetR = 1;
+                if (this.vx > _th.VX_THRESHOLD) {
+                    // Banking right → left flame inner (boost), right outer (reduce)
+                    targetL = _th.INNER_BOOST;
+                    targetR = _th.OUTER_REDUCE;
+                } else if (this.vx < -_th.VX_THRESHOLD) {
+                    // Banking left → right flame inner (boost), left outer (reduce)
+                    targetR = _th.INNER_BOOST;
+                    targetL = _th.OUTER_REDUCE;
+                }
+                const thrustLerp = Math.min(1, _th.LERP_SPEED * dt);
+                fl.thrustL += (targetL - fl.thrustL) * thrustLerp;
+                fl.thrustR += (targetR - fl.thrustR) * thrustLerp;
+            } else {
+                fl.thrustL = 1; fl.thrustR = 1;
+            }
+
+            // --- Squash & Stretch ---
+            const _ss = _sfCfg.SQUASH_STRETCH;
+            if (_ss?.ENABLED) {
+                const accelInst = Math.abs(this.vx - fl.prevVx) / Math.max(dt, 0.001);
+                if (accelInst > _ss.ACCEL_THRESHOLD) {
+                    fl.scaleX += (_ss.MAX_SQUASH_X - fl.scaleX) * Math.min(1, _ss.LERP_SPEED * dt);
+                    fl.scaleY += (_ss.MAX_STRETCH_Y - fl.scaleY) * Math.min(1, _ss.LERP_SPEED * dt);
+                } else {
+                    fl.scaleX += (1 - fl.scaleX) * Math.min(1, _ss.RETURN_SPEED * dt);
+                    fl.scaleY += (1 - fl.scaleY) * Math.min(1, _ss.RETURN_SPEED * dt);
+                }
+            } else {
+                fl.scaleX = 1; fl.scaleY = 1;
+            }
+
+            // --- Wing Vapor Trails ---
+            const _vt = _sfCfg.VAPOR_TRAILS;
+            if (_vt?.ENABLED && Math.abs(this.vx) > _vt.VX_THRESHOLD) {
+                const speedFactor = (Math.abs(this.vx) - _vt.VX_THRESHOLD) / 300;
+                const spawnRate = Math.min(_vt.SPAWN_RATE_MAX, _vt.SPAWN_RATE_BASE + speedFactor * 0.06);
+                fl.vaporTimer += dt;
+                const PS = window.Game.ParticleSystem;
+                if (fl.vaporTimer >= spawnRate && PS) {
+                    fl.vaporTimer = 0;
+                    const ws = this._geom.wingSpan;
+                    const bankCos = Math.cos(fl.bankAngle);
+                    const bankSin = Math.sin(fl.bankAngle);
+                    // Wingtip positions (relative, rotated by bank)
+                    const tips = [[-ws, 31], [ws, 31]];
+                    let spawned = 0;
+                    let color = _vt.COLOR;
+                    if (this.hyperActive) color = _vt.COLOR_HYPER;
+                    if (this._godchainActive) color = _vt.COLOR_GODCHAIN;
+                    for (const [wx, wy] of tips) {
+                        if (spawned >= _vt.MAX_PER_FRAME) break;
+                        const rx = wx * bankCos - wy * bankSin;
+                        const ry = wx * bankSin + wy * bankCos;
+                        PS.addParticle({
+                            x: this.x + rx,
+                            y: this.y + ry + fl.hoverOffset,
+                            vx: -this.vx * 0.15 + (Math.random() - 0.5) * _vt.DRIFT_SPEED,
+                            vy: _vt.GRAVITY * (0.5 + Math.random() * 0.5),
+                            size: _vt.PARTICLE_SIZE,
+                            color: color,
+                            life: _vt.PARTICLE_LIFE,
+                            isSpark: true
+                        });
+                        spawned++;
+                    }
+                }
+            } else {
+                fl.vaporTimer = 0;
+            }
+
+            fl.prevVx = this.vx;
+        } else {
+            // Fallback: legacy minimal rotation
+            this.rotation = this.vx * 0.0005;
+        }
 
         // Timers
         if (this.shieldActive) {
@@ -931,11 +1052,12 @@ class Player extends window.Game.Entity {
                 const alpha = 0.2 * (1 - i / trailCount) * (1 - t.age / 0.22);
                 if (alpha <= 0) continue;
 
-                // Afterimage silhouette — v4.23.1: additive
+                // Afterimage silhouette — v4.23.1: additive, v5.30: banked
                 ctx.save();
                 if (_additiveTrail) ctx.globalCompositeOperation = 'lighter';
                 ctx.globalAlpha = alpha;
                 ctx.translate(t.x, t.y);
+                if (t.bank) ctx.rotate(t.bank);
 
                 // v5.28: Swept-back delta afterimage
                 ctx.fillStyle = this.stats.color;
@@ -956,20 +1078,32 @@ class Player extends window.Game.Entity {
         }
 
         ctx.save();
-        ctx.translate(this.x, this.y);
+        // v5.30: Flight dynamics transform (translate → rotate → scale)
+        const _fl = this._flight;
+        const _flightOn = window.Game.Balance?.VFX?.SHIP_FLIGHT?.ENABLED && _fl;
+        const _hoverY = _flightOn ? _fl.hoverOffset : 0;
+        ctx.translate(this.x, this.y + _hoverY);
+        if (_flightOn && _fl.bankAngle !== 0) ctx.rotate(_fl.bankAngle);
+        if (_flightOn && (_fl.scaleX !== 1 || _fl.scaleY !== 1)) ctx.scale(_fl.scaleX, _fl.scaleY);
 
         // v5.28: Twin exhaust flames at inner tail edges (±7, +13)
         const _flameLvl = this.weaponLevel ?? 1;
         const _flameMult = 1 + (_flameLvl - 1) * 0.12;
         const _innerTailX = 7;
         const _innerTailBaseY = 13;
-        const flameHeight = (16 + Math.sin(this.animTime * 12) * 6) * _flameMult;
+        const _baseFlameH = (16 + Math.sin(this.animTime * 12) * 6) * _flameMult;
         const flameWidth = (5 + Math.sin(this.animTime * 10) * 2) * _flameMult;
         const pulse = 1 + Math.sin(this.animTime * 8) * 0.1;
+
+        // v5.30: Asymmetric thrust multipliers (inner-curve flame longer)
+        const _thrL = _flightOn ? _fl.thrustL : 1;
+        const _thrR = _flightOn ? _fl.thrustR : 1;
 
         // Twin exhaust at inner tail edges
         for (const side of [-1, 1]) {
             const nx = side * _innerTailX;
+            const thrMult = side === -1 ? _thrL : _thrR;
+            const flameHeight = _baseFlameH * thrMult;
             ctx.fillStyle = '#cc3300'; ctx.globalAlpha = 0.6;
             ctx.beginPath();
             ctx.moveTo(nx - flameWidth * 1.3 * pulse, _innerTailBaseY);

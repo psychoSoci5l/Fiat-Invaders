@@ -1627,6 +1627,53 @@
                 }
             },
 
+            // v5.30: Ship Flight Dynamics — sense of flight with 5 complementary effects
+            SHIP_FLIGHT: {
+                ENABLED: true,
+                BANKING: {
+                    ENABLED: true,
+                    MAX_ANGLE: 0.22,      // ~12.6° in radians
+                    LERP_SPEED: 8,        // Interpolation speed toward bank
+                    RETURN_SPEED: 5,      // Return to neutral (slower = floaty)
+                    VX_DIVISOR: 420,      // Normalize vx: angle = vx/DIVISOR * MAX_ANGLE
+                },
+                HOVER_BOB: {
+                    ENABLED: true,
+                    AMPLITUDE: 2.5,       // Pixels of oscillation
+                    FREQUENCY: 1.8,       // Hz
+                    SPEED_DAMPEN: 0.003,  // Dampening per |vx|
+                },
+                THRUST: {
+                    ENABLED: true,
+                    INNER_BOOST: 1.5,     // Inner-curve flame height multiplier
+                    OUTER_REDUCE: 0.7,    // Outer-curve flame height multiplier
+                    LERP_SPEED: 6,
+                    VX_THRESHOLD: 30,     // Minimum |vx| to trigger asymmetry
+                },
+                VAPOR_TRAILS: {
+                    ENABLED: true,
+                    VX_THRESHOLD: 180,
+                    SPAWN_RATE_BASE: 0.02,
+                    SPAWN_RATE_MAX: 0.08,
+                    PARTICLE_LIFE: 0.5,
+                    PARTICLE_SIZE: 2.5,
+                    DRIFT_SPEED: 40,
+                    GRAVITY: 60,
+                    COLOR: '#88ccff',
+                    COLOR_HYPER: '#ffd700',
+                    COLOR_GODCHAIN: '#ff6600',
+                    MAX_PER_FRAME: 2,
+                },
+                SQUASH_STRETCH: {
+                    ENABLED: true,
+                    ACCEL_THRESHOLD: 800, // Minimum instantaneous accel to trigger
+                    MAX_SQUASH_X: 0.97,
+                    MAX_STRETCH_Y: 1.03,
+                    LERP_SPEED: 10,
+                    RETURN_SPEED: 6,
+                },
+            },
+
             // Trail enhancement
             TRAIL_POWER_GLOW: 0.25,           // Outer glow alpha with POWER mod
             TRAIL_HYPER_SPARKLE: false,       // Golden sparkles during HYPER (disabled — clean readability)

@@ -1,7 +1,18 @@
 # Roadmap: FIAT vs CRYPTO
 
-> **Versione attuale**: v5.29.1 (2026-02-18)
+> **Versione attuale**: v5.30.0 (2026-02-18)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
+
+---
+
+## COMPLETATO — Ship Flight Dynamics (v5.30.0)
+
+- [x] Banking Tilt: rotazione smooth laterale proporzionale a vx (max 12.6°, lerp asimmetrico)
+- [x] Hover Bob: oscillazione sinusoidale verticale (2.5px, 1.8Hz) smorzata dalla velocità
+- [x] Asymmetric Thrust: fiamma interna curva 1.5×, esterna 0.7× durante banking
+- [x] Wing Vapor Trails: particelle additive dai wingtip ad alta velocità (colore reattivo HYPER/GODCHAIN)
+- [x] Squash & Stretch: micro-deformazione su accelerazione brusca
+- [x] Afterimage banked, `_flight` state zero-alloc, 5 kill-switch individuali
 
 ---
 
