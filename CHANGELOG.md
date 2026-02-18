@@ -1,5 +1,62 @@
 # Changelog
 
+## v6.5.0 - 2026-02-18
+
+### "Adaptive Quality" Release
+Consolidates v6.1.0–v6.4.1 development into a single release.
+
+### Adaptive Quality System (v6.1.0 + v6.3.0)
+- **feat(quality)**: QualityManager.js — FPS monitoring + 4-tier system (ULTRA/HIGH/MEDIUM/LOW)
+- **feat(quality)**: Auto-detect with hysteresis (drop <45fps, recover >55fps/5s)
+- **feat(quality)**: ULTRA tier for flagship devices — ~30 VFX parameters boosted
+- **feat(quality)**: ULTRA auto-promotion >58fps for 8s (stricter threshold)
+- **feat(quality)**: Settings UI cycle AUTO→ULTRA→HIGH→MEDIUM→LOW
+- **feat(quality)**: `_applyTier()` clean slate pattern (restore defaults → apply override)
+- **config(quality)**: `Balance.QUALITY` config section with tier definitions
+
+### Streaming Flow Fix (v6.2.0)
+- **fix(streaming)**: `wave++` moved to streaming-complete (boss now spawns at correct wave)
+- **fix(streaming)**: `getHordesPerWave()→1` when streaming (no mid-wave pause)
+- **fix(streaming)**: `areEnemiesEntering()→false` during streaming (no firing blockade)
+- **change(waves)**: C1 all waves now 3 phases (RECT/WALL/ARROW), DIAMOND removed
+- **change(waves)**: C2 W1-W3 and C3 W1-W2 gain 3rd phase
+- **change(waves)**: `MAX_Y_RATIO_BY_CYCLE[0]` 0.48→0.42
+
+### Story Screen Accessibility (v6.1.1)
+- **content(story)**: All 32 narrative texts rewritten EN/IT — removed crypto/finance jargon
+- **content(story)**: Prologue title→"The Breaking Point", Ch2→"The War Within"
+- **content(story)**: "whitepaper"→"blueprint", "sound money"→"honest money"
+- **i18n**: HIGHLIGHT_KEYWORDS updated (-8 jargon, +2 accessible terms)
+
+### Debug Overlay v2 (v6.3.1 + v6.4.0)
+- **feat(debug)**: Triple-tap at game over → debug overlay (current session)
+- **feat(debug)**: Triple-tap on version tag in INTRO → previous session from localStorage
+- **feat(debug)**: Session Log Buffer (40 entries, categories STATE/WAVE/BOSS/MINIBOSS/HORDE/QUALITY)
+- **feat(debug)**: Last Error section with time-ago display
+- **feat(debug)**: `flushSessionLog()` persists on game over/error/beforeunload
+- **feat(debug)**: Mailto report integration (1800 char budget)
+
+### Streaming Calibration Pass
+- **balance(streaming)**: `MAX_CONCURRENT_ENEMIES` 22→18 — reduced visual chaos
+- **balance(streaming)**: `MAX_PER_PHASE: 14` — new per-phase cap (14 + 4 overlap = 18 max)
+- **balance(streaming)**: `THRESHOLD_RATIO` 0.35→0.25 — phases trigger later, less overlap
+- **balance(streaming)**: `MAX_THRESHOLD` 6→4 — max 4 old enemies when new phase arrives
+- **balance(fire)**: `BULLETS_PER_SECOND` [12,31,50]→[8,20,35] — recalibrated for continuous streaming
+- **balance(fire)**: `FIRE_RATE_PER_PHASE` 0.10→0.05 — halved per-phase escalation
+- **feat(fire)**: `FIRE_GRACE_AFTER_PHASE: 0.5` now implemented — 0.5s fire suppression on phase spawn (was orphan config)
+- **balance(boss)**: `DMG_DIVISOR` 4→2.5 — +60% player DPS vs boss (target 70-80s fights)
+- **balance(timing)**: `BOSS_CELEBRATION_DELAY` 5.0→7.5 — 2.7s viewing post-evolution
+- **balance(behavior)**: `BOMBER MIN_WAVE` 6→7 — delayed from C2W1 to C2W2 (too aggressive at cycle opening)
+- **feat(collision)**: `BULLET_CANCEL.RADIUS_MULT: 1.8` — +80% bullet cancel hitbox (matches visual size)
+- **debug(boss)**: Boss HP breakdown log at spawn (base/level/cycle/perkScale/DMG_DIVISOR)
+- **debug(balance)**: `dbg.balanceTest()` now auto-prints report + entityReport + waveReport at game over
+- **debug(balance)**: C1 cycle target updated 4-5m→3-4m in judgment thresholds
+- **debug(skip)**: `dbg.skipTo(N)` — skip to any level for testing (sets level/cycle/wave, clears field)
+
+### Browser Compatibility (v6.4.1)
+- **feat(compat)**: `eval('_t?.a??0')` gate in index.html — Chrome <80/Safari <14 see styled fallback
+- **debug(logging)**: Elite/behavior spawn logging in createEnemy()
+
 ## v6.0.0 "RafaX Release" - 2026-02-18
 *Dedicated to RafaX — for the encouragement and friendship*
 

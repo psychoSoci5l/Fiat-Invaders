@@ -107,6 +107,11 @@ window.Game.HarmonicConductor = {
         this._fireBudget.available = this._fireBudget.maxPerSecond;
     },
 
+    // v6.5: Brief fire suppression after new phase spawns (reuses _graceTimer)
+    setPhaseGrace(duration) {
+        this._graceTimer = Math.max(this._graceTimer, duration);
+    },
+
     // Start a new wave with intensity tracking
     startWave(enemyCount) {
         this.waveIntensity.initialCount = enemyCount;
@@ -195,22 +200,13 @@ window.Game.HarmonicConductor = {
     },
 
     // Check if enemies are still entering formation (should not fire)
-    // v5.32: In streaming mode, only block if >50% are entering (threshold-based)
+    // v6.2: Streaming mode never blocks firing (phases flow continuously)
     areEnemiesEntering() {
         if (!this.enemies || this.enemies.length === 0) return false;
         const streamCfg = window.Game.Balance?.STREAMING;
         const isStreaming = streamCfg?.ENABLED && window.Game.WaveManager?.isStreaming;
         if (isStreaming) {
-            const threshold = streamCfg.GRID_SETTLE_THRESHOLD ?? 0.5;
-            var entering = 0, total = 0;
-            for (var i = 0, len = this.enemies.length; i < len; i++) {
-                var e = this.enemies[i];
-                if (e && e.active) {
-                    total++;
-                    if (e.isEntering) entering++;
-                }
-            }
-            return total > 0 && (entering / total) > threshold;
+            return false;  // Streaming: never block firing during phase entry
         }
         // Classic mode: any entering blocks firing
         for (var i = 0, len = this.enemies.length; i < len; i++) {

@@ -412,6 +412,18 @@ Tap your ship to activate</p>
                 <input type="range" class="slider-cell" id="joy-sensitivity" min="50" max="150" value="100">
             </div>
 
+            <!-- SECTION: DISPLAY (v6.1) -->
+            <div class="settings-section-header" data-i18n="SET_DISPLAY">DISPLAY</div>
+
+            <div class="setting-row">
+                <span class="setting-label" id="set-quality-label" data-i18n="SET_QUALITY">QUALITY</span>
+                <button class="toggle-switch" onclick="cycleQuality()" id="quality-btn">
+                    <span class="switch-track"></span>
+                    <span class="switch-thumb"></span>
+                    <span class="switch-label">AUTO</span>
+                </button>
+            </div>
+
             <!-- SECTION: AUDIO -->
             <div class="settings-section-header" data-i18n="SET_AUDIO">AUDIO</div>
 
@@ -542,6 +554,43 @@ Tap your ship to activate</p>
         </div>
     </div>
 
+    <!-- DEBUG OVERLAY (v6.3) - Triple-tap at game over -->
+    <div id="debug-overlay" style="display: none;">
+        <div class="debug-container">
+            <h2 class="debug-title">DEBUG REPORT</h2>
+            <div class="debug-scroll">
+                <div class="debug-section">
+                    <h3 class="debug-heading">DEVICE</h3>
+                    <div class="debug-data" id="debug-device"></div>
+                </div>
+                <div class="debug-section">
+                    <h3 class="debug-heading">PERFORMANCE</h3>
+                    <div class="debug-data" id="debug-perf"></div>
+                </div>
+                <div class="debug-section">
+                    <h3 class="debug-heading">GAME SESSION</h3>
+                    <div class="debug-data" id="debug-session"></div>
+                </div>
+                <div class="debug-section">
+                    <h3 class="debug-heading">QUALITY JUDGMENT</h3>
+                    <div class="debug-data" id="debug-judgment"></div>
+                </div>
+                <div class="debug-section" id="debug-error-section" style="display:none;">
+                    <h3 class="debug-heading">LAST ERROR</h3>
+                    <div class="debug-data" id="debug-error"></div>
+                </div>
+                <div class="debug-section" id="debug-log-section" style="display:none;">
+                    <h3 class="debug-heading">SESSION LOG</h3>
+                    <div class="debug-log-data" id="debug-log"></div>
+                </div>
+            </div>
+            <div class="debug-actions">
+                <button class="btn btn-primary btn-block" id="debug-send-btn">SEND DEBUG REPORT</button>
+                <button class="btn btn-secondary btn-block" id="debug-close-btn">CLOSE</button>
+            </div>
+        </div>
+    </div>
+
     <!-- MANUAL MODAL v2 - Scrollable sections (v4.12.0) -->
     <div id="manual-modal" style="display: none;">
         <div class="manual-container manual-v2">
@@ -619,6 +668,15 @@ Tap your ship to activate</p>
         </div>
     </div>
 
+    <!-- Browser compatibility check (must run before any game code) -->
+    <script>
+    try { eval('var _t={a:1};_t?.a??0'); } catch(e) {
+        document.getElementById('splash-layer').style.display='none';
+        document.body.innerHTML='<div style="position:fixed;inset:0;background:#000;color:#fff;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;font-family:sans-serif"><div><h2 style="color:#ff2d95">Browser Update Required</h2><p style="color:#aaa;line-height:1.6">FIAT vs CRYPTO requires a modern browser.<br>Please update Chrome from the Play Store or App Store.</p><p style="margin-top:16px;color:#666;font-size:13px">Required: Chrome 80+ / Safari 14+</p></div></div>';
+        throw new Error('Browser too old');
+    }
+    </script>
+
     <!-- Ordered Scripts for file:// compatibility (Namespace Pattern) -->
     <script src="src/utils/Constants.js"></script>
     <script src="src/utils/DebugSystem.js"></script>
@@ -673,6 +731,8 @@ Tap your ship to activate</p>
     <!-- Arcade Rogue Protocol -->
     <script src="src/systems/ArcadeModifiers.js"></script>
     <script src="src/ui/ModifierChoiceScreen.js"></script>
+    <!-- Quality Tiers (v6.1) -->
+    <script src="src/systems/QualityManager.js"></script>
     <script type="module" src="src/main.js"></script>
     <script>
         if ('serviceWorker' in navigator) {

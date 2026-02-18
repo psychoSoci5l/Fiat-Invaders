@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v6.0.0 FIAT vs CRYPTO \u2014 RafaX Release";
+window.Game.VERSION = "v6.5.0 FIAT vs CRYPTO";
 
 // Leaderboard API
 window.Game.LEADERBOARD_API = 'https://fiat-vs-crypto-leaderboard.psychosocial-01.workers.dev/api';
@@ -213,6 +213,8 @@ window.Game.TEXTS = {
         SET_GAMEPLAY: "GAMEPLAY",
         SET_AUDIO: "AUDIO",
         SET_INFO: "INFO",
+        SET_DISPLAY: "DISPLAY",
+        SET_QUALITY: "QUALITY",
         SET_MUSIC: "MUSIC",
         SET_SFX: "SFX",
         SET_MANUAL: "MANUAL",
@@ -444,6 +446,8 @@ window.Game.TEXTS = {
         SET_GAMEPLAY: "GAMEPLAY",
         SET_AUDIO: "AUDIO",
         SET_INFO: "INFO",
+        SET_DISPLAY: "DISPLAY",
+        SET_QUALITY: "QUALIT\u00c0",
         SET_MUSIC: "MUSICA",
         SET_SFX: "EFFETTI",
         SET_MANUAL: "MANUALE",

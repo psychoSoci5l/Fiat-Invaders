@@ -1,7 +1,116 @@
 # Roadmap: FIAT vs CRYPTO
 
-> **Versione attuale**: v6.0.0 "RafaX Release" (2026-02-18)
+> **Versione attuale**: v6.4.1 (2026-02-18)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
+
+---
+
+## COMPLETATO — Browser Compat Check + Debug Logging (v6.4.1)
+
+- [x] Browser compatibility check in `index.html` — `eval('_t?.a??0')` prima di qualsiasi script
+- [x] Old browsers (Chrome <80, Safari <14): styled error message invece di freeze silenzioso
+- [x] Elite variant spawn logging (`[ELITE] symbol → type (chance%)`) in `createEnemy()`
+- [x] Enemy behavior spawn logging (`[BEHAVIOR] symbol → type (gWave)`) in `createEnemy()`
+- [x] Testato su Huawei Y5 2018 (Android 8.1, Chrome vecchio): compat check mostra messaggio corretto
+- [x] Dopo aggiornamento Chrome su stesso device: gioco funziona
+
+---
+
+## COMPLETATO — Debug Overlay v2: Error Log + Intro Access (v6.4.0)
+
+- [x] Session Log Buffer in DebugSystem (`sessionLog[]` max 40, categorie STATE/WAVE/BOSS/MINIBOSS/HORDE/QUALITY)
+- [x] `flushSessionLog()` salva in localStorage su endAnalyticsRun, onerror, beforeunload
+- [x] `getPreviousSessionLog()` legge sessione precedente da localStorage
+- [x] LAST ERROR section (msg, location, time-ago da `window._lastError`)
+- [x] SESSION LOG section (monospace `+M:SS [CAT] msg`, scrollabile, max 200px)
+- [x] Intro access: triple-tap su `#version-tag` in stato INTRO → dati sessione precedente
+- [x] Context-aware: GAMEOVER=sessione corrente, INTRO=sessione precedente
+- [x] QualityManager logga tier changes nel session log
+- [x] Mailto aggiornato: include error + log (budget 600 char per log, 1800 totale)
+- [x] Auto-hide su startGame() (copre transizione intro→game)
+
+### Da verificare
+- [ ] Game over → triple-tap → overlay 6 sezioni (error+log visibili se dati presenti)
+- [ ] Intro → triple-tap su version tag → dati sessione precedente
+- [ ] Errore forzato (`throw new Error('test')`) → LAST ERROR visibile
+- [ ] Mailto SEND: tutte le sezioni, sotto 1800 chars
+- [ ] Auto-hide: RETRY/MENU da game over, lancio gioco da intro
+
+---
+
+## COMPLETATO — Debug Overlay Mobile (v6.3.1)
+
+- [x] Triple-tap detection al game over (3 tap in 800ms su sfondo, ignora pulsanti)
+- [x] 4 sezioni report: Device, Performance, Game Session, Quality Judgment
+- [x] SEND DEBUG REPORT via mailto (plain text, 1800 char limit)
+- [x] iOS-safe scrolling (pattern manual-modal)
+- [x] Auto-hide su RETRY/MENU
+- [x] z-index 10050, fullscreen su mobile <500px
+
+---
+
+## COMPLETATO — ULTRA Quality Tier (v6.3.0)
+
+- [x] Nuovo tier ULTRA sopra HIGH per device flagship
+- [x] ~30 parametri VFX boostati (particles, canvas effects, glow, sky, explosions, muzzle, HYPER, vapor, energy skin)
+- [x] Auto-promozione >58fps per 8s (più stringente di recover >55fps/5s)
+- [x] `_applyTier()` refactorato: clean slate pattern (restore defaults → applica override)
+- [x] Settings cycle: AUTO → ULTRA → HIGH → MEDIUM → LOW
+
+---
+
+## COMPLETATO — Streaming Flow Fix (v6.2.0)
+
+- [x] Boss timing: wave++ spostato da `_spawnPhase()` a streaming-complete — boss al livello 5
+- [x] Horde elimination: `getHordesPerWave()` → 1 quando streaming attivo — no H2/bullet-clearing/pause
+- [x] Firing fix: `areEnemiesEntering()` → false durante streaming — player spara sempre
+- [x] C1 formations: DIAMOND rimosso, tutte wave 3 fasi (RECT/WALL/ARROW)
+- [x] C2 W1-W3 e C3 W1-W2: aggiunta 3ª fase per compensare rimozione H2
+- [x] MAX_Y_RATIO C1: 0.48 → 0.42 (formazioni più piatte)
+- [x] Defensive early-return in `startHordeTransition()`
+- [x] WaveManager header/commenti aggiornati, doc stale ripuliti
+
+### Verificato da test
+- [x] Boss FEDERAL_RESERVE spawna a L5 (wave 6 > 5)
+- [x] Zero "HORDE 2!" messaggi — flusso continuo
+- [x] Player spara durante entry fasi (HYPER attivato, kill streak 199)
+- [x] 3 fasi per wave in C1 (35→49 nemici/livello, progressione graduale)
+- [x] Formazioni max Y378 su schermo ~900px (42% ratio rispettato)
+- [x] Peak enemies: 20 (sotto cap 22)
+- [x] FPS medio 135, verdict EXCELLENT
+
+### Verificato da test v6.4.1 (PC + Android)
+- [x] C1 completo: 5 wave × 3 fasi, escalation 35→49 nemici, boss FEDERAL_RESERVE a wave 6 (HP 3223)
+- [x] Max concurrent enemies: 22 (cap raggiunto, mai superato)
+- [x] Quality Manager: auto-promote a ULTRA, 144fps PC, 0 jank
+- [x] Performance: avg frame 0.71ms, P95 1.13ms, P99 1.38ms, verdict EXCELLENT
+- [x] HYPER: 3 attivazioni, 52s totale (21% del gameplay)
+- [x] Drop economy: 7 spawned, 6 collected (85.7%), adaptive balancer funzionante
+- [x] Mobile device reale (Android): gioco funziona su Huawei Y5 2018 con Chrome aggiornato
+
+### Da verificare
+- [ ] Arcade mode: confermare che streaming + horde elimination funzionino anche in Arcade
+- [ ] C2 completo: verificare che DIAMOND appaia in C2+ e formazioni complesse funzionino
+- [ ] C3 completo: verificare wave 3-5 (STAIRCASE, HURRICANE, FINAL_FORM invariate)
+- [ ] Boss C2 (BCE) e C3 (BOJ): verificare spawn corretto a L10 e L15
+- [ ] Bear Market: verificare scaling nemici (+25%) con streaming
+- [ ] Post-C3 Arcade infinite: verificare che cycle rotation funzioni con nuove wave definitions
+- [ ] Elite/Behaviors: verificare visualmente con nuovi log (mid-game `dbg.elites()` su W3+)
+
+---
+
+## COMPLETATO — Story Screen Accessibility (v6.1.1)
+
+- [x] Tutti 32 testi narrativi riscritti senza gergo crypto/finance
+- [x] HIGHLIGHT_KEYWORDS aggiornati (-8 gergo, +2 honest money/denaro onesto)
+
+---
+
+## COMPLETATO — Adaptive Quality Tiers (v6.1.0)
+
+- [x] QualityManager: FPS monitor + 3-tier (HIGH/MEDIUM/LOW) + AUTO detect
+- [x] ParticleSystem runtime API (setMaxParticles/setMaxCanvasEffects)
+- [x] Settings UI toggle + localStorage + debug commands
 
 ---
 

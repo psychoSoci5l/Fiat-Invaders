@@ -76,6 +76,12 @@ window.Game.Debug = {
     history: [],
     MAX_HISTORY: 50,
 
+    // Session log (compact, persisted to localStorage)
+    sessionLog: [],
+    MAX_SESSION_LOG: 40,
+    SESSION_LOG_KEY: 'fiat_debug_session_log',
+    SESSION_LOG_CATEGORIES: { STATE: 1, WAVE: 1, BOSS: 1, MINIBOSS: 1, HORDE: 1, QUALITY: 1 },
+
     // Session start time
     sessionStart: Date.now(),
 
@@ -173,6 +179,51 @@ window.Game.Debug = {
         if (this.history.length > this.MAX_HISTORY) {
             this.history.shift();
         }
+        // Persist high-signal categories to session log
+        if (this.SESSION_LOG_CATEGORIES[category]) {
+            this._addSessionLog(category, message);
+        }
+    },
+
+    _addSessionLog(cat, msg) {
+        // Strip emoji prefixes for compactness
+        const clean = msg.replace(/^[\u{1F300}-\u{1FAD6}\u{2600}-\u{27BF}\u{FE00}-\u{FEFF}\u{200D}]+\s*/u, '').substring(0, 80);
+        this.sessionLog.push({ t: Date.now() - this.sessionStart, c: cat, m: clean });
+        if (this.sessionLog.length > this.MAX_SESSION_LOG) {
+            this.sessionLog.shift();
+        }
+    },
+
+    flushSessionLog() {
+        try {
+            const payload = {
+                v: (window.Game && window.Game.VERSION) || '?',
+                ts: Date.now(),
+                start: this.sessionStart,
+                log: this.sessionLog,
+                error: window._lastError ? {
+                    msg: (window._lastError.msg || '').substring(0, 200),
+                    url: window._lastError.url || '',
+                    line: window._lastError.line,
+                    col: window._lastError.col,
+                    time: window._lastError.time
+                } : null,
+                counters: {
+                    kills: this.counters.enemiesKilled,
+                    deaths: this.counters.playerDeaths,
+                    waves: this.counters.wavesCompleted,
+                    bosses: this.counters.bossDefeats
+                }
+            };
+            localStorage.setItem(this.SESSION_LOG_KEY, JSON.stringify(payload));
+        } catch (e) { /* quota exceeded — ignore */ }
+    },
+
+    getPreviousSessionLog() {
+        try {
+            const raw = localStorage.getItem(this.SESSION_LOG_KEY);
+            return raw ? JSON.parse(raw) : null;
+        } catch (e) { return null; }
     },
 
     // ========== EVENT TRACKING METHODS ==========
@@ -1003,7 +1054,16 @@ window.Game.Debug = {
     endAnalyticsRun(score) {
         this.analytics.finalScore = score;
         this.analytics.runEnd = Date.now();
-        console.log('[ANALYTICS] Run ended. Use dbg.report() to see results.');
+        this.flushSessionLog();
+        // v6.5: Auto-report when balanceTest mode is active
+        if (this._balanceTestMode) {
+            console.log('[ANALYTICS] Run ended. Auto-printing reports...');
+            try { this.report(); } catch(e) { console.warn('[AUTO-REPORT] report() failed:', e); }
+            try { this.entityReport(); } catch(e) { console.warn('[AUTO-REPORT] entityReport() failed:', e); }
+            try { this.waveReport(); } catch(e) { console.warn('[AUTO-REPORT] waveReport() failed:', e); }
+        } else {
+            console.log('[ANALYTICS] Run ended. Use dbg.report() to see results.');
+        }
     },
 
     /**
@@ -1034,8 +1094,11 @@ window.Game.Debug = {
             const dur = a.cycleDurations[c];
             const score = a.scoreAtCycleEnd[c];
             if (dur !== undefined) {
-                const target = c === 1 ? '4-5m' : c === 2 ? '5-6m' : '6-7m';
-                const status = dur < 240000 ? '⚡FAST' : dur > 420000 ? '🐢SLOW' : '✅OK';
+                // v6.5: C1 target lowered for streaming era (was 4-5m, now 3-4m)
+                const target = c === 1 ? '3-4m' : c === 2 ? '5-6m' : '6-7m';
+                const fastThresh = c === 1 ? 180000 : 240000;
+                const slowThresh = c === 1 ? 300000 : 420000;
+                const status = dur < fastThresh ? '⚡FAST' : dur > slowThresh ? '🐢SLOW' : '✅OK';
                 console.log(`║   Cycle ${c}: ${formatTime(dur).padEnd(6)} (target ${target}) ${status.padEnd(8)} Score: ${score || '?'}`);
             }
         }
@@ -1192,6 +1255,7 @@ window.Game.Debug = {
      */
     balanceTest() {
         this.ENABLED = true;
+        this._balanceTestMode = true; // v6.5: flag for auto-report at game over
         this.OVERLAY_ENABLED = false; // v4.16: overlay off by default (use dbg.showOverlay() if needed)
         this.categories.WAVE = true;
         this.categories.BOSS = true;
@@ -1201,7 +1265,7 @@ window.Game.Debug = {
         this._perf.overlayEnabled = false; // v4.16: FPS counter off too — all data in console
         console.log('[DEBUG] Balance testing mode enabled (perf profiling auto-started)');
         console.log('[DEBUG] Overlays OFF — use dbg.showOverlay() or dbg.perfOverlay() to enable');
-        console.log('[DEBUG] Use dbg.report() or dbg.powerUpReport() after game over to see analytics');
+        console.log('[DEBUG] Auto-report ON — report + entityReport + waveReport print at game over');
     },
 
     // ========== CATEGORY CONTROLS ==========
@@ -1775,6 +1839,46 @@ window.Game.Debug = {
             player.specialTimer = WE?.SPECIAL_DURATION || 12;
             console.log(`[DEBUG] Special set to ${player.special} (${player.specialTimer}s)`);
         }
+    },
+
+    /**
+     * Max out weapon level (for testing)
+     */
+    /**
+     * Skip to a specific level (for testing). Must be in PLAY state.
+     * Usage: dbg.skipTo(5) — skips to level 5 (C1W5)
+     *        dbg.skipTo(6) — skips to level 6 (C2W1)
+     */
+    skipTo(targetLevel) {
+        const G = window.Game;
+        const api = G?._debugAPI;
+        if (!api) {
+            console.log('[DEBUG] Game not started. Start a game first, then run dbg.skipTo(' + targetLevel + ')');
+            return;
+        }
+        const wavesPerCycle = 5;
+        const cycle = Math.ceil(targetLevel / wavesPerCycle);
+        const waveInCycle = ((targetLevel - 1) % wavesPerCycle) + 1;
+
+        // Set level -1 because level++ fires at wave start (except L1W1)
+        const adjustedLevel = (targetLevel <= 1) ? 1 : targetLevel - 1;
+        api.setLevel(adjustedLevel);
+        api.setCycle(cycle);
+
+        // Set wave manager state
+        api.waveMgr.wave = waveInCycle;
+        api.waveMgr.hordeSpawned = false;
+        api.waveMgr.waveInProgress = false;
+        api.waveMgr._streamingActive = false;
+        api.waveMgr._streamingPhases = [];
+        api.waveMgr._phasesSpawned = 0;
+        api.waveMgr.isStreaming = false;
+
+        // Clear enemies and bullets
+        api.setEnemies([]);
+        api.setEnemyBullets([]);
+
+        console.log(`[DEBUG] Skipped to Level ${targetLevel} (C${cycle}W${waveInCycle}). Next wave action will spawn this level.`);
     },
 
     /**
@@ -2756,7 +2860,7 @@ window.Game.Debug = {
      */
     waveReport() {
         console.log('╔════════════════════════════════════════╗');
-        console.log('║         v5.33 WAVE REPORT              ║');
+        console.log('║         v6.2 WAVE REPORT               ║');
         console.log('╠════════════════════════════════════════╣');
         const enemies = G.enemies || [];
         const elites = enemies.filter(e => e && e.isElite);
@@ -2810,6 +2914,34 @@ window.Game.Debug = {
         if (!cfg) { console.warn('[STREAMING] Config not found'); return; }
         cfg.ENABLED = !cfg.ENABLED;
         console.log(`[STREAMING] Streaming flow: ${cfg.ENABLED ? 'ON' : 'OFF'}`);
+    },
+
+    /**
+     * dbg.quality() — Show current quality tier, FPS stats, thresholds
+     */
+    quality() {
+        const qm = G.QualityManager;
+        if (!qm) { console.log('QualityManager not loaded'); return; }
+        const s = qm.getStats();
+        const cfg = G.Balance?.QUALITY;
+        console.log(`Quality: ${s.tier} (${s.auto ? 'AUTO' : 'MANUAL'})`);
+        console.log(`FPS: ${s.fps} | Avg: ${s.avgFps.toFixed(1)} | Samples: ${s.samples}`);
+        if (cfg) {
+            console.log(`Thresholds: drop<${cfg.DROP_THRESHOLD} recover>${cfg.RECOVER_THRESHOLD} (hold ${cfg.RECOVER_HOLD}s)`);
+            console.log(`ULTRA promote: >${cfg.ULTRA_PROMOTE_THRESHOLD ?? 58}fps (hold ${cfg.ULTRA_PROMOTE_HOLD ?? 8}s)`);
+        }
+    },
+
+    /**
+     * dbg.qualitySet(tier) — Force quality tier ('AUTO', 'ULTRA', 'HIGH', 'MEDIUM', 'LOW')
+     */
+    qualitySet(tier) {
+        const qm = G.QualityManager;
+        if (!qm) { console.log('QualityManager not loaded'); return; }
+        tier = (tier || '').toUpperCase();
+        if (tier === 'AUTO') { qm.setAuto(true); }
+        else { qm.setAuto(false); qm.setTier(tier); }
+        console.log(`Quality forced to: ${tier}`);
     }
 };
 
@@ -2817,4 +2949,4 @@ window.Game.Debug = {
 window.dbg = window.Game.Debug;
 
 // Console helper message
-console.log('[DEBUG] DebugSystem loaded. Commands: dbg.stats(), dbg.showOverlay(), dbg.perf(), dbg.perfReport(), dbg.entityReport(), dbg.boss(type), dbg.debugBoss(), dbg.debugHUD(), dbg.hudStatus(), dbg.toggleHudMsg(key), dbg.maxWeapon(), dbg.weaponStatus(), dbg.godchain(), dbg.godchainStatus(), dbg.powerUpReport(), dbg.progressionReport(), dbg.contagionReport(), dbg.hitboxes(), dbg.formations(), dbg.arcade(), dbg.arcadeHelp(), dbg.completion(), dbg.waveReport(), dbg.elites(), dbg.behaviors(), dbg.streaming()');
+console.log('[DEBUG] DebugSystem loaded. Commands: dbg.stats(), dbg.showOverlay(), dbg.perf(), dbg.perfReport(), dbg.entityReport(), dbg.boss(type), dbg.debugBoss(), dbg.debugHUD(), dbg.hudStatus(), dbg.toggleHudMsg(key), dbg.maxWeapon(), dbg.weaponStatus(), dbg.godchain(), dbg.godchainStatus(), dbg.powerUpReport(), dbg.progressionReport(), dbg.contagionReport(), dbg.hitboxes(), dbg.formations(), dbg.arcade(), dbg.arcadeHelp(), dbg.completion(), dbg.waveReport(), dbg.elites(), dbg.behaviors(), dbg.streaming(), dbg.quality(), dbg.qualitySet(tier)');

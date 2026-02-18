@@ -599,7 +599,7 @@
             BEHAVIOR_RATE: 0.18,
             BEHAVIOR_RATE_ARCADE: 0.22,
             CAPS: { FLANKER: 4, BOMBER: 2, HEALER: 1, CHARGER: 3 },
-            MIN_WAVE: { FLANKER: 3, BOMBER: 6, HEALER: 8, CHARGER: 7 },
+            MIN_WAVE: { FLANKER: 3, BOMBER: 7, HEALER: 8, CHARGER: 7 },  // v6.5: BOMBER 6→7 (C2W2 not C2W1 — too aggressive at cycle opening)
             FLANKER: {
                 ENABLED: true,
                 ENTRY_SPEED: 250,
@@ -640,16 +640,17 @@
         STREAMING: {
             ENABLED: true,
             PHASE_TRIGGER: {
-                THRESHOLD_RATIO: 0.35,      // Spawn next phase when <=35% alive from current phase
+                THRESHOLD_RATIO: 0.25,      // v6.5: 0.35→0.25 — trigger later, less overlap
                 MIN_THRESHOLD: 3,           // At least 3 remaining to trigger
-                MAX_THRESHOLD: 6,           // At most 6 remaining to trigger
+                MAX_THRESHOLD: 4,           // v6.5: 6→4 — max 4 old enemies when new phase arrives
                 MIN_PHASE_DURATION: 3.0     // Minimum seconds before next phase can trigger
             },
             PHASE_ESCALATION: {
-                FIRE_RATE_PER_PHASE: 0.10,      // +10% fire rate per phase index
+                FIRE_RATE_PER_PHASE: 0.05,      // v6.5: 0.10→0.05 — halved escalation per phase
                 BEHAVIOR_BONUS_PER_PHASE: 0.05  // +5% behavior chance per phase index
             },
-            MAX_CONCURRENT_ENEMIES: 22,     // Hard cap: never more than this alive
+            MAX_CONCURRENT_ENEMIES: 18,     // v6.5: 22→18 — reduced visual chaos
+            MAX_PER_PHASE: 14,              // v6.5: cap per single phase (14 + 4 overlap = 18 max)
             GRID_SETTLE_THRESHOLD: 0.5,     // Grid moves when >=50% settled
             FIRE_GRACE_AFTER_PHASE: 0.5     // Brief fire grace after new phase spawns
         },
@@ -749,7 +750,7 @@
             MEME_ROTATION_INTERVAL: 4.0,  // Seconds between boss meme rotations
             PHASE_THRESHOLDS: [0.66, 0.20], // v5.0.4: P3 at 20% (was 33%) — shorter desperation phase
             PHASE_TRANSITION_TIME: 1.5,    // Seconds for phase transition
-            DMG_DIVISOR: 4,                // Player bullet damage vs boss: ceil(baseDamage * damageMult / DMG_DIVISOR)
+            DMG_DIVISOR: 2.5,              // v6.5: 4→3→2.5 — target 70-80s fights (93.9s still SLOW at 3)
 
             // HP scaling (applied before perk/damage modifiers)
             // v4.16: +25-40% boost — audit showed FED 12.7s, BCE 9.7s (target 45-75s)
@@ -970,7 +971,7 @@
             // State transitions
             SPLASH_TIMEOUT: 4.0,           // Video splash screen max duration
             INTERMISSION_DURATION: 3.2,    // Between waves (3-2-1 countdown, ceil(3.2)=4 but we cap at 3)
-            BOSS_CELEBRATION_DELAY: 5.0,   // v5.11: 2→5s — chain explosions + evolution item flight + transform
+            BOSS_CELEBRATION_DELAY: 7.5,   // v6.5: 5→7.5s — 2.7s viewing post-evolution (item 2.8s + fly 1.2s + deploy 0.8s = 4.8s)
             INTERMISSION_BOSS_DURATION: 6.0, // Boss defeat intermission (skippable)
             DEATH_DURATION: 2.0,           // Death sequence length
             INVULNERABILITY: 2.1,          // Post-hit protection
@@ -1229,6 +1230,11 @@
             PLAYER_CORE_RADIUS: 8        // Default, overridden by stats.coreHitboxSize (v5.9: 6→8)
         },
 
+        // --- BULLET CANCEL (v6.5: player-vs-enemy bullet cancellation radius boost) ---
+        BULLET_CANCEL: {
+            RADIUS_MULT: 1.8              // v6.5: +80% cancel radius — matches visual bullet size
+        },
+
         // --- HITBOX / COLLISION ---
         HITBOX: {
             PLAYER_OUTER_BONUS: 15,       // Added to ship hitboxSize for outer collision
@@ -1393,7 +1399,7 @@
         WAVES: {
             PER_CYCLE: 5,                 // Waves before boss appears
             ENEMY_FIRE_TIMER: 0.5,        // Base timer for enemy fire phase
-            HORDES_PER_WAVE: 2,           // Number of hordes per wave
+            HORDES_PER_WAVE: 2,           // Fallback when STREAMING.ENABLED = false
             HORDE_TRANSITION_DURATION: 0.8, // Seconds between hordes
             HORDE_2_PATTERN_VARIANT: true // Use different pattern for horde 2
         },
@@ -1432,67 +1438,75 @@
                 FORCE_STRONG: true          // Force strong enemies in mix
             },
 
-            // Wave definitions v5.33: Phase-based streaming
+            // Wave definitions: Phase-based streaming (v6.2: all waves 3 phases)
             // Each wave has phases[] — each phase is an independent formation
-            // Phases spawn sequentially when previous phase is nearly cleared
+            // Phases spawn when previous is ~35% cleared (PHASE_TRIGGER config)
             WAVES: [
-                // === CYCLE 1: "AWAKENING" (Tutorial — simple formations, 2 phases) ===
+                // === CYCLE 1: "AWAKENING" (Tutorial — simple formations, 3 phases) ===
                 {
                     cycle: 1, wave: 1, name: 'First Contact',
                     phases: [
                         { count: 14, formation: 'RECT', currencies: ['¥', '₽', '₹'] },
-                        { count: 12, formation: 'RECT', currencies: ['¥', '₽', '₹'] }
+                        { count: 12, formation: 'RECT', currencies: ['¥', '₽', '₹'] },
+                        { count: 12, formation: 'WALL', currencies: ['¥', '₽', '₹'] }
                     ]
                 },
                 {
                     cycle: 1, wave: 2, name: 'European Dawn',
                     phases: [
                         { count: 15, formation: 'WALL', currencies: ['¥', '₽', '€'] },
-                        { count: 13, formation: 'ARROW', currencies: ['₹', '£'] }
+                        { count: 13, formation: 'ARROW', currencies: ['₹', '£'] },
+                        { count: 12, formation: 'RECT', currencies: ['€', '₽', '₹'] }
                     ]
                 },
                 {
                     cycle: 1, wave: 3, name: 'Old World',
                     phases: [
                         { count: 16, formation: 'ARROW', currencies: ['€', '£', '₣'] },
-                        { count: 14, formation: 'DIAMOND', currencies: ['₺', '€', '£'] }
+                        { count: 14, formation: 'RECT', currencies: ['₺', '€', '£'] },
+                        { count: 13, formation: 'WALL', currencies: ['₣', '€', '₺'] }
                     ]
                 },
                 {
                     cycle: 1, wave: 4, name: 'Dollar Emerges',
                     phases: [
-                        { count: 17, formation: 'DIAMOND', currencies: ['€', '₣', '$'] },
-                        { count: 15, formation: 'WALL', currencies: ['£', '₺', '元'] }
+                        { count: 17, formation: 'WALL', currencies: ['€', '₣', '$'] },
+                        { count: 15, formation: 'WALL', currencies: ['£', '₺', '元'] },
+                        { count: 14, formation: 'RECT', currencies: ['€', '$', '元'] }
                     ]
                 },
                 {
                     cycle: 1, wave: 5, name: 'Global Alliance',
                     phases: [
                         { count: 18, formation: 'WALL', currencies: ['¥', '€', '$', '元'] },
-                        { count: 16, formation: 'DIAMOND', currencies: ['₽', '£', '₣', 'Ⓒ'] }
+                        { count: 16, formation: 'RECT', currencies: ['₽', '£', '₣', 'Ⓒ'] },
+                        { count: 15, formation: 'WALL', currencies: ['$', 'Ⓒ', '元'] }
                     ]
                 },
 
-                // === CYCLE 2: "CONFLICT" (Learning — varied formations, some 3-phase) ===
+                // === CYCLE 2: "CONFLICT" (Learning — varied formations, 3 phases) ===
                 {
                     cycle: 2, wave: 1, name: 'Eastern Front',
                     phases: [
                         { count: 16, formation: 'RECT', currencies: ['¥', '元', '₹'] },
-                        { count: 14, formation: 'WALL', currencies: ['¥', '元', '₽'] }
+                        { count: 14, formation: 'WALL', currencies: ['¥', '元', '₽'] },
+                        { count: 12, formation: 'RECT', currencies: ['₹', '元', '¥'] }
                     ]
                 },
                 {
                     cycle: 2, wave: 2, name: 'Brussels Burns',
                     phases: [
                         { count: 17, formation: 'CHEVRON', currencies: ['€', '₣', '£'] },
-                        { count: 15, formation: 'PINCER', currencies: ['€', '₣', '₺'] }
+                        { count: 15, formation: 'PINCER', currencies: ['€', '₣', '₺'] },
+                        { count: 13, formation: 'WALL', currencies: ['€', '£', '₣'] }
                     ]
                 },
                 {
                     cycle: 2, wave: 3, name: 'Reserve War',
                     phases: [
                         { count: 18, formation: 'WALL', currencies: ['$', '€', '£'] },
-                        { count: 16, formation: 'FORTRESS', currencies: ['$', '元', 'Ⓒ'] }
+                        { count: 16, formation: 'FORTRESS', currencies: ['$', '元', 'Ⓒ'] },
+                        { count: 14, formation: 'RECT', currencies: ['$', '€', 'Ⓒ'] }
                     ]
                 },
                 {
@@ -1512,19 +1526,21 @@
                     ]
                 },
 
-                // === CYCLE 3: "RECKONING" (Skilled — complex formations, 2-3 phases) ===
+                // === CYCLE 3: "RECKONING" (Skilled — complex formations, 3 phases) ===
                 {
                     cycle: 3, wave: 1, name: 'Digital Doom',
                     phases: [
                         { count: 18, formation: 'VORTEX', currencies: ['Ⓒ', '€', '$'] },
-                        { count: 16, formation: 'HURRICANE', currencies: ['Ⓒ', '元', '£'] }
+                        { count: 16, formation: 'HURRICANE', currencies: ['Ⓒ', '元', '£'] },
+                        { count: 14, formation: 'WALL', currencies: ['Ⓒ', '$', '元'] }
                     ]
                 },
                 {
                     cycle: 3, wave: 2, name: 'Pincer Attack',
                     phases: [
                         { count: 20, formation: 'FLANKING', currencies: ['$', '元', 'Ⓒ'] },
-                        { count: 18, formation: 'SPIRAL', currencies: ['€', '£', '₣', '$'] }
+                        { count: 18, formation: 'SPIRAL', currencies: ['€', '£', '₣', '$'] },
+                        { count: 16, formation: 'WALL', currencies: ['Ⓒ', '$', '€'] }
                     ]
                 },
                 {
@@ -1598,7 +1614,7 @@
             START_Y: 130,             // v5.4.0: 80→130, clears HUD zone (enemy top edge at ~101px, below strip ~95px)
             MARGIN: 60,               // Left/right margin for scatter/wall
             MAX_Y_RATIO: 0.55,        // v4.37: 0.65→0.55, enemies don't descend past 55% — more breathing room
-            MAX_Y_RATIO_BY_CYCLE: [0.48, 0.50, 0.58],  // v5.33: expanded for phase-based streaming (12-18 enemies per phase)
+            MAX_Y_RATIO_BY_CYCLE: [0.42, 0.50, 0.58],  // v6.2: C1 0.48→0.42 (shallower formations)
             MAX_Y_PIXEL: 500,         // v4.48: absolute Y cap (prevents overflow on tall screens)
             CHEVRON_Y_MULT: 0.55,     // v4.16: Y-spacing multiplier for CHEVRON (was 0.75, caused overflow with high counts)
             SPIRAL_CENTER_Y_OFFSET: 100, // Spiral center Y offset from startY
@@ -2260,6 +2276,98 @@
             }
         },
 
+        // --- QUALITY TIERS (v6.3 — Adaptive quality with ULTRA for high-end) ---
+        QUALITY: {
+            AUTO_DETECT: true,
+            CURRENT_TIER: 'HIGH',        // ULTRA | HIGH | MEDIUM | LOW
+
+            // FPS monitoring
+            SAMPLE_WINDOW: 3,            // seconds of sampling
+            DROP_THRESHOLD: 45,          // below 45fps → drop tier
+            RECOVER_THRESHOLD: 55,       // above 55fps → raise tier
+            RECOVER_HOLD: 5,             // stable seconds before raising
+            MIN_PLAY_SECONDS: 5,         // wait N sec from play start before evaluating
+            ULTRA_PROMOTE_THRESHOLD: 58, // FPS minimo per promuovere a ULTRA
+            ULTRA_PROMOTE_HOLD: 8,       // secondi di FPS stabile prima di promuovere
+
+            // Tier definitions — override values applied on Balance
+            TIERS: {
+                ULTRA: {
+                    // Particles & canvas effects
+                    PARTICLES_MAX: 280,
+                    CANVAS_EFFECTS_MAX: 32,
+                    // Glow boost
+                    GLOW_BULLET_RADIUS: 32,
+                    GLOW_BULLET_ALPHA: 0.72,
+                    GLOW_ENGINE_RADIUS: 30,
+                    GLOW_ENGINE_ALPHA: 0.65,
+                    GLOW_MUZZLE_RADIUS_MULT: 2.2,
+                    GLOW_MUZZLE_ALPHA: 0.72,
+                    GLOW_POWERUP_RADIUS_MULT: 1.8,
+                    GLOW_POWERUP_ALPHA: 0.6,
+                    GLOW_RING_ALPHA_MULT: 1.6,
+                    GLOW_DEATH_RADIUS: 54,
+                    GLOW_DEATH_DURATION: 0.5,
+                    GLOW_ENEMY_RADIUS: 26,
+                    GLOW_ENEMY_ALPHA: 0.42,
+                    // Sky enhancement
+                    SKY_STARS_COUNT: 140,
+                    SKY_SHOOTING_MAX: 3,
+                    SKY_PARTICLES_COUNT: 32,
+                    SKY_CLOUDS_COUNT: 16,
+                    // Explosions boost
+                    EXPLOSION_WEAK: { particles: 8, debrisCount: 3 },
+                    EXPLOSION_MEDIUM: { particles: 14, debrisCount: 6 },
+                    EXPLOSION_STRONG: { particles: 20, debrisCount: 9 },
+                    // Muzzle sparks
+                    MUZZLE_SPARK_BASE: 3,
+                    MUZZLE_SPARK_PER_LEVEL: 2,
+                    // HYPER aura boost
+                    HYPER_SPEED_LINES_COUNT: 12,
+                    HYPER_SPEED_LINES_ALPHA: 0.82,
+                    HYPER_BODY_GLOW_RADIUS: 45,
+                    HYPER_BODY_GLOW_ALPHA: 0.33,
+                    // Vapor trails
+                    VAPOR_MAX_PER_FRAME: 4,
+                    // Shield energy skin
+                    ENERGY_SKIN_OUTER_STROKE: 10,
+                    ENERGY_SKIN_SPARK_COUNT: 5,
+                },
+                HIGH: {
+                    // Default — everything active, no overrides
+                },
+                MEDIUM: {
+                    GLOW_ENABLED: false,
+                    PARTICLES_MAX: 100,
+                    SKY_CLOUDS: false,
+                    SKY_PARTICLES_COUNT: 8,
+                    SKY_WEATHER: false,
+                    SHIP_FLIGHT_VAPOR: false,
+                    SHIP_FLIGHT_SQUASH: false,
+                    MUZZLE_FLASH: false,
+                    ENEMY_GLOW: false,
+                    DEATH_FLASH: false,
+                    HORIZON_GLOW: false,
+                },
+                LOW: {
+                    GLOW_ENABLED: false,
+                    PARTICLES_MAX: 50,
+                    CANVAS_EFFECTS_MAX: 8,
+                    SKY_CLOUDS: false,
+                    SKY_PARTICLES_COUNT: 0,
+                    SKY_WEATHER: false,
+                    SKY_HILLS_REDRAW: 10,
+                    SHIP_FLIGHT_ALL: false,
+                    MUZZLE_FLASH: false,
+                    WEAPON_DEPLOY: false,
+                    ENEMY_GLOW: false,
+                    DEATH_FLASH: false,
+                    HORIZON_GLOW: false,
+                    ELEMENTAL_VFX_REDUCED: true,
+                }
+            }
+        },
+
         // --- RANK SYSTEM (Dynamic Difficulty v4.1.0) ---
         RANK: {
             ENABLED: true,            // Toggle dynamic difficulty
@@ -2274,7 +2382,7 @@
         // Limits total enemy bullets/sec to prevent screen flooding with many enemies
         FIRE_BUDGET: {
             ENABLED: true,
-            BULLETS_PER_SECOND: [12, 31, 50],  // v5.16.1: C1 18→12 (sequences control rhythm, not raw budget)
+            BULLETS_PER_SECOND: [8, 20, 35],   // v6.5: [12,31,50]→[8,20,35] — recalibrated for streaming (no pause between phases)
             WAVE_GRACE_PERIOD: 2.5,             // v4.37: seconds of silence at wave start (no enemy fire)
             BEAR_MARKET_BONUS: 10,              // +10 bullets/sec in Bear Market
             PANIC_MULTIPLIER: 1.3,              // +30% during PANIC phase

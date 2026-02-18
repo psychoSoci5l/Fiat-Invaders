@@ -1,21 +1,23 @@
 window.Game = window.Game || {};
 
 /**
- * WaveManager v4.0 - Complete Wave/Horde Redesign
+ * WaveManager v6.2 - Phase-Based Streaming
  *
- * Features:
- * - 15 unique waves (5 per cycle × 3 cycles)
- * - Variable enemy counts per wave (8-24)
- * - Thematic currency assignments per horde
- * - 15+ unique formations
- * - Horde 1 vs Horde 2 differentiation
+ * Primary flow (STREAMING.ENABLED):
+ * - Each level = 1 wave with 2-3 streaming phases
+ * - Phases spawn when previous is ~35% cleared
+ * - No mid-level pause, no bullet clearing
+ * - wave++ only on streaming complete (all phases done + enemies dead)
+ *
+ * Fallback (STREAMING.ENABLED = false):
+ * - Legacy 2-horde system with transition pause
  */
 window.Game.WaveManager = {
     wave: 1,
     waveInProgress: false,
     intermissionTimer: 0,
 
-    // Horde system (2 hordes per wave)
+    // Horde system (fallback when STREAMING.ENABLED = false)
     currentHorde: 1,              // 1 or 2
     hordeTransitionTimer: 0,
     isHordeTransition: false,
@@ -36,7 +38,7 @@ window.Game.WaveManager = {
         this.hordeTransitionTimer = 0;
         this.isHordeTransition = false;
         this.hordeSpawned = false;
-        // v5.33: Phase-based streaming state
+        // Phase-based streaming state
         this.isStreaming = false;
         this._streamingPhases = [];       // Array of phase definitions
         this._currentPhaseIndex = 0;      // Index of current active phase
@@ -55,6 +57,8 @@ window.Game.WaveManager = {
 
     getHordesPerWave() {
         const Balance = window.Game.Balance;
+        // Streaming waves use single-horde flow (phases replace hordes)
+        if (Balance?.STREAMING?.ENABLED) return 1;
         return Balance?.WAVES?.HORDES_PER_WAVE || 2;
     },
 
@@ -132,6 +136,8 @@ window.Game.WaveManager = {
             if (!hasMorePhases && enemiesCount === 0 && this.streamingSpawnedCount > 0) {
                 this.isStreaming = false;
                 this.streamingSpawnedCount = 0;
+                this.wave++;  // Single increment per level (phases don't advance wave)
+                dbg.log('WAVE', `[WM] Streaming complete, wave → ${this.wave}`);
                 // Fall through to normal wave transition logic
             }
         }
@@ -188,7 +194,7 @@ window.Game.WaveManager = {
         if (waveDef) {
             // Use new definition system
             dbg.log('WAVE', `[WM] Using wave definition: ${waveDef.name} (C${waveDef.cycle}W${waveDef.wave})`);
-            // v5.33: Support both phases[] and legacy horde1/horde2 format
+            // Support both phases[] and legacy horde1/horde2 format
             let hordeDef;
             if (waveDef.phases) {
                 // Map hordeNumber to phase index (horde1→phase0, horde2→phase1)
@@ -405,6 +411,7 @@ window.Game.WaveManager = {
                 if (variantCfg?.ENABLED !== false && Math.random() < chance) {
                     enemy.isElite = true;
                     enemy.eliteType = variantType;
+                    dbg.log('WAVE', `[ELITE] ${symbol} → ${variantType} (chance ${(chance*100).toFixed(0)}%)`);
                     if (variantType === 'ARMORED') {
                         enemy.hp *= variantCfg.HP_MULT;
                         enemy.maxHp = enemy.hp;
@@ -439,6 +446,7 @@ window.Game.WaveManager = {
                     if (shuffled.length > 0) {
                         const pick = shuffled[Math.floor(Math.random() * shuffled.length)];
                         enemy.behavior = pick;
+                        dbg.log('WAVE', `[BEHAVIOR] ${symbol} → ${pick} (gW${globalWave})`);
                         counts[pick] = (counts[pick] || 0) + 1;
                         this._behaviorCounts = counts;
                         // Init behavior state
@@ -563,7 +571,7 @@ window.Game.WaveManager = {
     },
 
     // ========================================
-    // v5.33: PHASE-BASED STREAMING WAVE SYSTEM
+    // PHASE-BASED STREAMING WAVE SYSTEM
     // ========================================
 
     /**
@@ -637,8 +645,9 @@ window.Game.WaveManager = {
         if (!rawPhases || rawPhases.length === 0) return null;
 
         // Scale counts per phase individually
+        const streamCfg = Balance.STREAMING || {};
         const phases = rawPhases.map((p, idx) => ({
-            count: this._scaleCount(p.count, cycle),
+            count: Math.min(this._scaleCount(p.count, cycle), streamCfg.MAX_PER_PHASE || 99),
             formation: p.formation,
             currencies: p.currencies,
             phaseIndex: idx,
@@ -727,11 +736,7 @@ window.Game.WaveManager = {
         this._phaseTimer = 0;
         this.streamingSpawnedCount += enemies.length;
 
-        // Increment wave when last phase is spawned
-        if (this._phasesSpawned >= this._streamingPhases.length) {
-            this.wave++;
-            dbg.log('WAVE', `[WM] Streaming: last phase spawned, wave → ${this.wave}`);
-        }
+        // wave++ handled in streaming-complete block (update() line ~137)
 
         dbg.log('WAVE', `[WM] Phase #${phaseIndex}: ${enemies.length} enemies (${phase.formation}), ${this._streamingPhases.length - this._phasesSpawned} remaining`);
         return { enemies, isPhase: true, phaseIndex };

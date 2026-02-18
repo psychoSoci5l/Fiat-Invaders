@@ -298,11 +298,12 @@ window.Game = window.Game || {};
             const useGrid = this._ebGrid && this._ebGridObj;
 
             const beamCfg = Balance.ELEMENTAL?.LASER?.BEAM;
+            const cancelMult = Balance.BULLET_CANCEL?.RADIUS_MULT || 1.0;
 
             for (let i = bullets.length - 1; i >= 0; i--) {
                 const b = bullets[i];
                 if (!b || b.markedForDeletion) continue;
-                const bR = b.collisionRadius || 4;
+                const bR = (b.collisionRadius || 4) * cancelMult;
 
                 // v5.3: Beam bullets use line-segment collision for cancellation
                 const isBeam = b._elemLaser && !b.special && beamCfg?.ENABLED;
@@ -329,7 +330,7 @@ window.Game = window.Game || {};
                             for (let k = cell.length - 1; k >= 0; k--) {
                                 const eb = cell[k];
                                 if (!eb || eb.markedForDeletion) continue;
-                                const ebR = eb.collisionRadius || Balance.BULLET_CONFIG.ENEMY_DEFAULT.collisionRadius;
+                                const ebR = (eb.collisionRadius || Balance.BULLET_CONFIG.ENEMY_DEFAULT.collisionRadius) * cancelMult;
                                 const cancelHit = isBeam
                                     ? G.BulletSystem.lineSegmentVsCircle(b.x, b.y, beamTailX, beamTailY, eb.x, eb.y, ebR)
                                     : G.BulletSystem.circleCollide(b.x, b.y, bR, eb.x, eb.y, ebR);
@@ -349,7 +350,7 @@ window.Game = window.Game || {};
                     for (let j = enemyBullets.length - 1; j >= 0; j--) {
                         const eb = enemyBullets[j];
                         if (!eb || eb.markedForDeletion) continue;
-                        const ebR = eb.collisionRadius || Balance.BULLET_CONFIG.ENEMY_DEFAULT.collisionRadius;
+                        const ebR = (eb.collisionRadius || Balance.BULLET_CONFIG.ENEMY_DEFAULT.collisionRadius) * cancelMult;
 
                         const cancelHit = isBeam
                             ? G.BulletSystem.lineSegmentVsCircle(b.x, b.y, beamTailX, beamTailY, eb.x, eb.y, ebR)

@@ -11,8 +11,8 @@
     const G = window.Game = window.Game || {};
 
     // Configuration
-    const MAX_PARTICLES = 180; // v4.5: Increased from 120 for richer VFX
-    const MAX_CANVAS_EFFECTS = 20; // v5.13: Cap for canvas-drawn effects
+    let MAX_PARTICLES = 180; // v4.5: Increased from 120 for richer VFX
+    let MAX_CANVAS_EFFECTS = 20; // v5.13: Cap for canvas-drawn effects
 
     // Particle state
     let particles = [];
@@ -1357,6 +1357,8 @@
         draw,
         clear,
         getCount,
-        MAX_PARTICLES
+        get MAX_PARTICLES() { return MAX_PARTICLES; },
+        setMaxParticles(n) { MAX_PARTICLES = n; },
+        setMaxCanvasEffects(n) { MAX_CANVAS_EFFECTS = n; }
     };
 })();

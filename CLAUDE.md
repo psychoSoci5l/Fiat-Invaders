@@ -148,6 +148,7 @@ Detailed tables, parameters, and implementation specifics → **SYSTEM_REFERENCE
 
 ### Debug
 - **Debug System** — `dbg.*` console API. Key commands: `dbg.balanceTest()`, `dbg.report()`, `dbg.hitboxes()`, `dbg.maxWeapon()`, `dbg.arcade()`, `dbg.arcadeHelp()`, `dbg.elites()`, `dbg.behaviors()`, `dbg.streaming()`, `dbg.waveReport()`, `dbg.toggleElites()`, `dbg.toggleBehaviors()`, `dbg.toggleStreaming()`. Full reference in SYSTEM_REFERENCE.md
+- **Debug Overlay (v6.4)** — Hidden mobile debug panel. **Game Over**: triple-tap on background (3 taps in 800ms, ignores buttons) → current session. **Intro**: triple-tap on `#version-tag` → previous session from localStorage. 6 sections: Device, Performance, Game Session, Quality Judgment, Last Error (`window._lastError`), Session Log (compact `+M:SS [CAT] msg`, max 40 entries). Session log categories: STATE, WAVE, BOSS, MINIBOSS, HORDE, QUALITY. `G.Debug.flushSessionLog()` persists to `fiat_debug_session_log` on game over/error/beforeunload. `G.Debug.getPreviousSessionLog()` reads previous. SEND → mailto with error+log (1800 char limit). z-index 10050. Auto-hides on RETRY/MENU/startGame. English-only, no i18n
 
 ---
 

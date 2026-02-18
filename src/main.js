@@ -4,13 +4,17 @@
 window.onerror = function(msg, url, line, col, err) {
     const info = `[GAME ERROR] ${msg} at ${url}:${line}:${col}`;
     console.error(info, err);
-    // Store last error for debug inspection
     window._lastError = { msg, url, line, col, err, time: Date.now() };
+    if (window.Game?.Debug?.flushSessionLog) window.Game.Debug.flushSessionLog();
 };
 window.onunhandledrejection = function(e) {
     console.error('[GAME] Unhandled promise rejection:', e.reason);
     window._lastError = { msg: String(e.reason), time: Date.now() };
+    if (window.Game?.Debug?.flushSessionLog) window.Game.Debug.flushSessionLog();
 };
+window.addEventListener('beforeunload', function() {
+    if (window.Game?.Debug?.flushSessionLog) window.Game.Debug.flushSessionLog();
+});
 
 const G = window.Game;
 const Constants = G;
@@ -2302,6 +2306,9 @@ function init() {
     // Initialize EffectsRenderer
     if (G.EffectsRenderer) G.EffectsRenderer.init(gameWidth, gameHeight);
 
+    // v6.1: Initialize QualityManager (adaptive quality tiers)
+    if (G.QualityManager) G.QualityManager.init();
+
     inputSys.init();
 
     // Vibration fallback: visual flash when vibration unavailable
@@ -2813,6 +2820,11 @@ function updateUIText() {
         }
     }
 
+    // Quality tier label
+    const qualityLabel = document.getElementById('set-quality-label');
+    if (qualityLabel) qualityLabel.innerText = t('SET_QUALITY');
+    updateQualityUI();
+
     // Manual (if open, update text)
     updateManualText();
 }
@@ -2827,6 +2839,31 @@ window.togglePrivacyPanel = function () {
     const panel = document.getElementById('privacy-panel');
     if (panel) panel.style.display = (panel.style.display === 'flex') ? 'none' : 'flex';
 };
+
+// v6.1: Quality tier cycling
+window.cycleQuality = function() {
+    const tiers = ['AUTO', 'ULTRA', 'HIGH', 'MEDIUM', 'LOW'];
+    const qm = G.QualityManager;
+    if (!qm) return;
+    const current = qm.isAuto() ? 'AUTO' : qm.getTier();
+    const idx = (tiers.indexOf(current) + 1) % tiers.length;
+    const next = tiers[idx];
+    if (next === 'AUTO') {
+        qm.setAuto(true);
+    } else {
+        qm.setAuto(false);
+        qm.setTier(next, true);
+    }
+    updateQualityUI();
+};
+function updateQualityUI() {
+    const btn = document.getElementById('quality-btn');
+    if (!btn || !G.QualityManager) return;
+    const qm = G.QualityManager;
+    const label = qm.isAuto() ? 'AUTO' : qm.getTier();
+    btn.querySelector('.switch-label').textContent = label;
+    btn.classList.toggle('active', qm.isAuto());
+}
 
 // v5.20: Feedback form (mailto-based)
 G.toggleFeedback = function () {
@@ -2868,8 +2905,308 @@ G.sendFeedback = function () {
     G.toggleFeedback();
 };
 
+// ============================================================
+// DEBUG OVERLAY (v6.4) — Triple-tap at game over + intro
+// ============================================================
+const _debugTapTimes = [];
+const _DEBUG_TAP_WINDOW = 800;
+const _DEBUG_TAP_COUNT = 3;
+let _debugOverlayContext = 'GAMEOVER';
+
+// Game over triple-tap
+(function _initDebugOverlay() {
+    const goScreen = document.getElementById('gameover-screen');
+    if (!goScreen) return;
+
+    function _onDebugTap(e) {
+        if (!G.GameState || !G.GameState.is('GAMEOVER')) return;
+        if (e.target.closest && e.target.closest('button, a, input')) return;
+
+        const now = Date.now();
+        _debugTapTimes.push(now);
+        while (_debugTapTimes.length > 0 && now - _debugTapTimes[0] > _DEBUG_TAP_WINDOW) {
+            _debugTapTimes.shift();
+        }
+        if (_debugTapTimes.length >= _DEBUG_TAP_COUNT) {
+            _debugTapTimes.length = 0;
+            _showDebugOverlay('GAMEOVER');
+        }
+    }
+
+    goScreen.addEventListener('touchend', _onDebugTap, { passive: true });
+    goScreen.addEventListener('click', _onDebugTap);
+})();
+
+// Intro triple-tap on version tag
+(function _initIntroDebugTap() {
+    const vTag = document.getElementById('version-tag');
+    if (!vTag) return;
+    const tapTimes = [];
+
+    function _onIntroTap(e) {
+        if (!G.GameState || !G.GameState.is('INTRO')) return;
+        e.stopPropagation();
+
+        const now = Date.now();
+        tapTimes.push(now);
+        while (tapTimes.length > 0 && now - tapTimes[0] > _DEBUG_TAP_WINDOW) {
+            tapTimes.shift();
+        }
+        if (tapTimes.length >= _DEBUG_TAP_COUNT) {
+            tapTimes.length = 0;
+            _showDebugOverlay('INTRO');
+        }
+    }
+
+    vTag.addEventListener('touchend', _onIntroTap, { passive: false });
+    vTag.addEventListener('click', _onIntroTap);
+})();
+
+function _collectDebugDevice() {
+    return [
+        { label: 'Screen', val: `${screen.width}×${screen.height}` },
+        { label: 'Viewport', val: `${innerWidth}×${innerHeight}` },
+        { label: 'DPR', val: `${devicePixelRatio}` },
+        { label: 'Safe Top', val: `${G._safeTop ?? '?'}` },
+        { label: 'Safe Bot', val: `${G._safeBottom ?? '?'}` },
+        { label: 'PWA', val: `${!!window.isPWA}` },
+        { label: 'UA', val: (navigator.userAgent || '').substring(0, 120), full: true }
+    ];
+}
+
+function _collectDebugPerf() {
+    const qm = G.QualityManager;
+    if (!qm) return [{ label: 'Status', val: 'QualityManager N/A', cls: 'warn' }];
+    const s = qm.getStats();
+    const saved = localStorage.getItem('fiat_quality_tier');
+    return [
+        { label: 'FPS Now', val: `${s.fps}` },
+        { label: 'FPS Avg', val: `${s.avgFps}` },
+        { label: 'Tier', val: s.tier },
+        { label: 'Mode', val: s.auto ? 'AUTO' : 'MANUAL' },
+        { label: 'Saved Pref', val: saved || 'none' },
+        { label: 'Samples', val: `${s.samples}` }
+    ];
+}
+
+function _collectDebugSession() {
+    const isStory = G.CampaignState && G.CampaignState.isEnabled();
+    const stacks = G.RunState ? (G.RunState.perkStacks || {}) : {};
+    const perks = [stacks.fire ? 'F' : '-', stacks.laser ? 'L' : '-', stacks.electric ? 'E' : '-'].join('');
+    const nick = localStorage.getItem('fiat_nickname') || '-';
+    return [
+        { label: 'Version', val: G.VERSION || '?' },
+        { label: 'Mode', val: isStory ? 'STORY' : 'ARCADE' },
+        { label: 'Cycle', val: `${window.marketCycle ?? '?'}` },
+        { label: 'Level', val: `${window.currentLevel ?? '?'}` },
+        { label: 'Wave', val: `${waveMgr ? waveMgr.wave : '?'}` },
+        { label: 'Score', val: `${score ?? '?'}` },
+        { label: 'Kills', val: `${killCount ?? '?'}` },
+        { label: 'Bear Mkt', val: `${!!window.isBearMarket}` },
+        { label: 'Perks', val: perks },
+        { label: 'Nickname', val: nick }
+    ];
+}
+
+function _collectDebugSessionFromLog(prev) {
+    if (!prev) return [{ label: 'Status', val: 'No previous session', cls: 'warn' }];
+    const c = prev.counters || {};
+    return [
+        { label: 'Version', val: prev.v || '?' },
+        { label: 'Kills', val: `${c.kills ?? '?'}` },
+        { label: 'Deaths', val: `${c.deaths ?? '?'}` },
+        { label: 'Waves', val: `${c.waves ?? '?'}` },
+        { label: 'Bosses', val: `${c.bosses ?? '?'}` },
+        { label: 'Ended', val: prev.ts ? _formatAge(prev.ts) : '?' }
+    ];
+}
+
+function _collectDebugJudgment() {
+    const qm = G.QualityManager;
+    if (!qm) return [{ label: 'Verdict', val: 'N/A', cls: 'warn' }];
+    const avg = qm.getStats().avgFps;
+    let verdict, cls;
+    if (avg >= 58) { verdict = 'ULTRA-CAPABLE'; cls = 'good'; }
+    else if (avg >= 50) { verdict = 'HIGH'; cls = 'good'; }
+    else if (avg >= 40) { verdict = 'MEDIUM'; cls = 'warn'; }
+    else { verdict = 'LOW'; cls = 'bad'; }
+    return [
+        { label: 'Avg FPS', val: `${avg}` },
+        { label: 'Verdict', val: verdict, cls }
+    ];
+}
+
+function _formatAge(timestamp) {
+    const diff = Date.now() - timestamp;
+    if (diff < 60000) return `${Math.round(diff / 1000)}s ago`;
+    if (diff < 3600000) return `${Math.round(diff / 60000)}m ago`;
+    if (diff < 86400000) return `${Math.round(diff / 3600000)}h ago`;
+    return `${Math.round(diff / 86400000)}d ago`;
+}
+
+function _formatLogTime(ms) {
+    const sec = Math.floor(ms / 1000);
+    const min = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `+${min}:${s.toString().padStart(2, '0')}`;
+}
+
+function _renderDebugSection(containerId, rows) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    el.innerHTML = rows.map(r => {
+        const cls = r.full ? ' full' : '';
+        const valCls = r.cls ? ` ${r.cls}` : '';
+        return `<div class="debug-row${cls}"><span class="debug-label">${r.label}</span><span class="debug-val${valCls}">${r.val}</span></div>`;
+    }).join('');
+}
+
+function _renderErrorSection(errorData) {
+    const section = document.getElementById('debug-error-section');
+    const el = document.getElementById('debug-error');
+    if (!section || !el) return;
+    if (!errorData) { section.style.display = 'none'; return; }
+
+    section.style.display = '';
+    const rows = [
+        { label: 'Message', val: (errorData.msg || 'Unknown').substring(0, 120), full: true, cls: 'bad' }
+    ];
+    if (errorData.url) rows.push({ label: 'Location', val: `${errorData.url}:${errorData.line || '?'}:${errorData.col || '?'}`, full: true });
+    if (errorData.time) rows.push({ label: 'When', val: _formatAge(errorData.time) });
+    _renderDebugSection('debug-error', rows);
+}
+
+function _renderSessionLogSection(logEntries) {
+    const section = document.getElementById('debug-log-section');
+    const el = document.getElementById('debug-log');
+    if (!section || !el) return;
+    if (!logEntries || logEntries.length === 0) { section.style.display = 'none'; return; }
+
+    section.style.display = '';
+    el.innerHTML = logEntries.map(e => {
+        const cls = (e.c || '').toLowerCase();
+        return `<div class="debug-log-entry ${cls}">${_formatLogTime(e.t)} [${e.c}] ${e.m}</div>`;
+    }).join('');
+}
+
+function _showDebugOverlay(context) {
+    _debugOverlayContext = context || 'GAMEOVER';
+
+    // Always: device, perf, judgment
+    _renderDebugSection('debug-device', _collectDebugDevice());
+    _renderDebugSection('debug-perf', _collectDebugPerf());
+    _renderDebugSection('debug-judgment', _collectDebugJudgment());
+
+    if (_debugOverlayContext === 'GAMEOVER') {
+        // Current session data
+        _renderDebugSection('debug-session', _collectDebugSession());
+        _renderErrorSection(window._lastError || null);
+        _renderSessionLogSection(G.Debug ? G.Debug.sessionLog : []);
+    } else {
+        // INTRO: previous session from localStorage
+        const prev = G.Debug ? G.Debug.getPreviousSessionLog() : null;
+        _renderDebugSection('debug-session', _collectDebugSessionFromLog(prev));
+        _renderErrorSection(prev ? prev.error : null);
+        _renderSessionLogSection(prev ? prev.log : []);
+    }
+
+    const overlay = document.getElementById('debug-overlay');
+    if (overlay) overlay.style.display = 'flex';
+
+    const sendBtn = document.getElementById('debug-send-btn');
+    const closeBtn = document.getElementById('debug-close-btn');
+    if (sendBtn) sendBtn.onclick = _sendDebugReport;
+    if (closeBtn) closeBtn.onclick = _hideDebugOverlay;
+}
+
+function _hideDebugOverlay() {
+    const overlay = document.getElementById('debug-overlay');
+    if (overlay) overlay.style.display = 'none';
+}
+
+function _formatDebugReportText() {
+    const sections = [
+        { title: 'DEVICE', rows: _collectDebugDevice() },
+        { title: 'PERFORMANCE', rows: _collectDebugPerf() },
+        { title: 'QUALITY JUDGMENT', rows: _collectDebugJudgment() }
+    ];
+
+    if (_debugOverlayContext === 'GAMEOVER') {
+        sections.splice(2, 0, { title: 'GAME SESSION', rows: _collectDebugSession() });
+    } else {
+        const prev = G.Debug ? G.Debug.getPreviousSessionLog() : null;
+        sections.splice(2, 0, { title: 'PREV SESSION', rows: _collectDebugSessionFromLog(prev) });
+    }
+
+    let text = '';
+    for (const s of sections) {
+        text += `--- ${s.title} ---\n`;
+        for (const r of s.rows) text += `${r.label}: ${r.val}\n`;
+        text += '\n';
+    }
+
+    // Error
+    const errData = _debugOverlayContext === 'GAMEOVER'
+        ? window._lastError
+        : (G.Debug ? G.Debug.getPreviousSessionLog() : null)?.error;
+    if (errData) {
+        text += `--- LAST ERROR ---\n${(errData.msg || 'Unknown').substring(0, 200)}\n`;
+        if (errData.url) text += `at ${errData.url}:${errData.line}:${errData.col}\n`;
+        text += '\n';
+    }
+
+    // Log (budget ~600 chars)
+    const logEntries = _debugOverlayContext === 'GAMEOVER'
+        ? (G.Debug ? G.Debug.sessionLog : [])
+        : (G.Debug ? G.Debug.getPreviousSessionLog() : null)?.log || [];
+    if (logEntries.length > 0) {
+        text += '--- SESSION LOG ---\n';
+        let logText = '';
+        for (const e of logEntries) {
+            const line = `${_formatLogTime(e.t)} [${e.c}] ${e.m}\n`;
+            if (logText.length + line.length > 600) { logText += '[...]\n'; break; }
+            logText += line;
+        }
+        text += logText;
+    }
+
+    return text;
+}
+
+function _sendDebugReport() {
+    const ver = G.VERSION || '?';
+    const ctx = _debugOverlayContext === 'INTRO' ? ' (prev session)' : '';
+    const subject = `FIAT vs CRYPTO Debug Report ${ver}${ctx}`;
+    let body = _formatDebugReportText();
+    if (body.length > 1800) body = body.substring(0, 1800) + '\n[truncated]';
+    const mailto = `mailto:psychoSocial_01@proton.me?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(mailto);
+}
+
 // What's New panel (v4.50, i18n v5.18)
 const WHATS_NEW = [
+    {
+        version: 'v6.5', date: '2026-02-18',
+        title: { EN: '"Adaptive Quality" Release', IT: 'Release "Qualità Adattiva"' },
+        items: {
+            EN: [
+                'Adaptive Quality System — auto-detects device performance, adjusts effects in real-time',
+                'ULTRA tier for high-end devices — boosted particles, glow, and cinematic effects',
+                'Smoother wave streaming — fixed phase transitions, boss timing, and formation flow',
+                'Story texts rewritten for clarity — accessible language, no technical jargon',
+                'Hidden debug overlay for testers — triple-tap at game over for diagnostics',
+                'Browser compatibility check — graceful fallback for older browsers'
+            ],
+            IT: [
+                'Sistema Qualità Adattiva — rileva le prestazioni del dispositivo, regola gli effetti in tempo reale',
+                'Tier ULTRA per dispositivi di fascia alta — particelle, glow ed effetti cinematici potenziati',
+                'Streaming wave più fluido — transizioni di fase, timing boss e flusso formazioni corretti',
+                'Testi narrativi riscritti per chiarezza — linguaggio accessibile, niente gergo tecnico',
+                'Overlay debug nascosto per tester — triplo tap al game over per diagnostica',
+                'Controllo compatibilità browser — fallback per browser datati'
+            ]
+        }
+    },
     {
         version: 'v6.0', date: '2026-02-18',
         title: { EN: '"RafaX Release" — Phase Streaming + Elite Variants', IT: '"RafaX Release" — Streaming a Fasi + Varianti Elite' },
@@ -3058,410 +3395,6 @@ const WHATS_NEW = [
             ]
         }
     },
-    {
-        version: 'v5.22', date: '2026-02-16',
-        title: { EN: 'Game Completion + Settings Hub', IT: 'Completamento Gioco + Hub Impostazioni' },
-        items: {
-            EN: [
-                'NEW: Cinematic completion video when you beat all 3 bosses (EN/IT)',
-                'Credits overlay with staggered fade-in and open source link',
-                'Settings reorganized as central hub — 3 sections: Gameplay, Audio, Info',
-                'Bottom bar simplified: Settings / Leaderboard / What\'s New'
-            ],
-            IT: [
-                'NUOVO: Video cinematico di completamento quando batti tutti e 3 i boss (EN/IT)',
-                'Overlay crediti con fade-in sfalsato e link open source',
-                'Impostazioni riorganizzate come hub centrale — 3 sezioni: Gameplay, Audio, Info',
-                'Barra inferiore semplificata: Impostazioni / Classifica / Novità'
-            ]
-        }
-    },
-    {
-        version: 'v5.20', date: '2026-02-15',
-        title: { EN: 'Cinematic Ship + Auto-Cannon', IT: 'Nave Cinematica + Auto-Cannone' },
-        items: {
-            EN: [
-                'NEW: Ship deploy VFX — flash, brighten, burst, aura ring on spawn',
-                'Auto-cannon system: ship starts bare, cannon mounts with VFX after 1.5s',
-                'Twin-rail cannon design: nose → pod split → heavy barrel across 3 levels',
-                'HYPER beam count matches visual weapon level with DPS compensation'
-            ],
-            IT: [
-                'NUOVO: VFX deploy nave — flash, luminosità, burst, anello aura allo spawn',
-                'Sistema auto-cannone: la nave parte spoglia, il cannone si monta con VFX dopo 1.5s',
-                'Design cannone a doppio binario: muso → pod divisi → canna pesante in 3 livelli',
-                'Fasci HYPER corrispondono al livello arma visivo con compensazione DPS'
-            ]
-        }
-    },
-    {
-        version: 'v5.19', date: '2026-02-15',
-        title: { EN: 'Adaptive Drop Balancer', IT: 'Bilanciatore Drop Adattivo' },
-        items: {
-            EN: [
-                'NEW: Smart drop system detects struggle and domination',
-                'Struggling? 3× drop boost with forced power-ups after 40-55s',
-                'Dominating? Drop chance reduced, pity timer doubled',
-                'Post-death grace period: 25s of boosted drops after dying'
-            ],
-            IT: [
-                'NUOVO: Sistema drop intelligente rileva difficoltà e dominazione',
-                'In difficoltà? Boost drop 3× con power-up forzati dopo 40-55s',
-                'Stai dominando? Chance drop ridotta, timer pietà raddoppiato',
-                'Periodo di grazia post-morte: 25s di drop potenziati dopo la morte'
-            ]
-        }
-    },
-    {
-        version: 'v5.18', date: '2026-02-15',
-        title: { EN: 'Leaderboard Premium Redesign', IT: 'Classifica Redesign Premium' },
-        items: {
-            EN: [
-                'Medal emoji for top 3 with gold/silver/bronze accent borders',
-                '#1 player highlighted with inset glow and bold font',
-                'Platform icons (desktop/mobile) shown in leaderboard and game over',
-                'What\'s New panel now fully bilingual EN/IT with spacious redesign'
-            ],
-            IT: [
-                'Emoji medaglia per i top 3 con bordi accento oro/argento/bronzo',
-                'Giocatore #1 evidenziato con bagliore interno e font grassetto',
-                'Icone piattaforma (desktop/mobile) visibili in classifica e game over',
-                'Pannello Novità ora completamente bilingue EN/IT con design spazioso'
-            ]
-        }
-    },
-    {
-        version: 'v5.17.0', date: '2026-02-15',
-        title: { EN: 'Online Leaderboard', IT: 'Classifica Online' },
-        items: {
-            EN: [
-                'NEW: Global online leaderboard — compete with players worldwide',
-                'Nickname system with 3-6 character names saved locally',
-                'HMAC-signed score submission for anti-cheat protection',
-                'Gameover shows your rank + top 5 with tier badges (gold/silver/cyan)'
-            ],
-            IT: [
-                'NUOVO: Classifica online globale — competi con giocatori di tutto il mondo',
-                'Sistema nickname con nomi da 3-6 caratteri salvati localmente',
-                'Invio punteggio firmato HMAC per protezione anti-cheat',
-                'Il gameover mostra il tuo rank + top 5 con badge a livelli (oro/argento/cyan)'
-            ]
-        }
-    },
-    {
-        version: 'v5.16.0', date: '2026-02-15',
-        title: { EN: 'Coordinated Salvo System', IT: 'Sistema Salve Coordinate' },
-        items: {
-            EN: [
-                'NEW: Enemies fire in coordinated row-by-row salvos with safe corridors',
-                'Progressive aim factor — Cycle 1 straight, Cycle 2 aimed 40%, Cycle 3 aimed 70%',
-                'All verse/chorus/bear sequences rewritten for tighter choreography'
-            ],
-            IT: [
-                'NUOVO: I nemici sparano a salve coordinate riga per riga con corridoi sicuri',
-                'Mira progressiva — Ciclo 1 dritto, Ciclo 2 mirata 40%, Ciclo 3 mirata 70%',
-                'Tutte le sequenze verso/ritornello/bear riscritte per coreografia più serrata'
-            ]
-        }
-    },
-    {
-        version: 'v5.15.0', date: '2026-02-14',
-        title: { EN: 'Cyber Destruction Overhaul', IT: 'Distruzione Cyber Rinnovata' },
-        items: {
-            EN: [
-                'NEW: Rectangular rotating fragment particles on enemy destruction',
-                'Elemental tint on 60% of shrapnel — fire red, laser cyan, electric violet',
-                'Elemental tint on living enemies hit by elemental damage (flash + persistent)',
-                'Tier-differentiated destruction SFX — noise crunch, sub-bass, square snap'
-            ],
-            IT: [
-                'NUOVO: Frammenti rettangolari rotanti alla distruzione dei nemici',
-                'Tinta elementale sul 60% delle schegge — fuoco rosso, laser cyan, elettrico viola',
-                'Tinta elementale sui nemici colpiti da danno elementale (flash + persistente)',
-                'SFX distruzione differenziati per tier — crunch, sub-bass, snap'
-            ]
-        }
-    },
-    {
-        version: 'v5.14.0', date: '2026-02-14',
-        title: { EN: 'Score Pulse System', IT: 'Sistema Pulsazione Punteggio' },
-        items: {
-            EN: [
-                'NEW: 5-tier HUD-reactive score — MICRO / NORMAL / BIG / MASSIVE / LEGENDARY',
-                'CSS animations per tier with scale, shake, and glow effects',
-                'Combo accumulator bumps tier on rapid kills (0.4s decay)',
-                'New high score: magenta pulsing glow when surpassing your record'
-            ],
-            IT: [
-                'NUOVO: Punteggio reattivo HUD a 5 livelli — MICRO / NORMAL / BIG / MASSIVE / LEGENDARY',
-                'Animazioni CSS per livello con scala, scuotimento e bagliore',
-                'Accumulatore combo aumenta il tier su uccisioni rapide (decay 0.4s)',
-                'Nuovo record: bagliore magenta pulsante quando superi il tuo record'
-            ]
-        }
-    },
-    {
-        version: 'v5.13.0', date: '2026-02-14',
-        title: { EN: 'Spectacular Elemental VFX', IT: 'VFX Elementali Spettacolari' },
-        items: {
-            EN: [
-                'NEW: Napalm impact — fire ring, tongues, and embers on Fire hits',
-                'NEW: Lightning bolt — jagged bolt with branches and glow on Electric hits',
-                'Ship aura per element — fire embers, laser trails, electric arcs',
-                'GODCHAIN apotheosis effect with golden rings and elemental symbols'
-            ],
-            IT: [
-                'NUOVO: Impatto napalm — anello di fuoco, lingue e braci sui colpi Fire',
-                'NUOVO: Fulmine — scarica frastagliata con rami e bagliore sui colpi Electric',
-                'Aura nave per elemento — braci fuoco, scie laser, archi elettrici',
-                'Effetto apoteosi GODCHAIN con anelli dorati e simboli elementali'
-            ]
-        }
-    },
-    {
-        version: 'v5.12.0', date: '2026-02-14',
-        title: { EN: 'Step-by-Step Tutorial', IT: 'Tutorial Passo dopo Passo' },
-        items: {
-            EN: [
-                'NEW: 3-step progressive tutorial — Mission, Controls, Shield',
-                'Slide animations with progress dots between steps',
-                'Platform-aware text — different instructions for PC and mobile'
-            ],
-            IT: [
-                'NUOVO: Tutorial progressivo in 3 step — Missione, Controlli, Scudo',
-                'Animazioni a scorrimento con indicatori di progresso tra gli step',
-                'Testo adattivo alla piattaforma — istruzioni diverse per PC e mobile'
-            ]
-        }
-    },
-    {
-        version: 'v5.11.0', date: '2026-02-13',
-        title: { EN: 'Cinematic Boss Evolution', IT: 'Evoluzione Boss Cinematica' },
-        items: {
-            EN: [
-                'NEW: Boss death triggers cinematic sequence — freeze, slowmo, chain explosions, coin rain',
-                'Weapon system simplified to 3 levels — upgrades only from boss Evolution Cores',
-                'Evolution item flies from defeated boss to your ship with particle trail'
-            ],
-            IT: [
-                'NUOVO: La morte del boss attiva sequenza cinematica — freeze, slowmo, esplosioni a catena, pioggia di monete',
-                'Sistema armi semplificato a 3 livelli — potenziamenti solo da Evolution Core del boss',
-                'L\'oggetto evoluzione vola dal boss sconfitto alla tua nave con scia di particelle'
-            ]
-        }
-    },
-    {
-        version: 'v5.10.0', date: '2026-02-13',
-        title: { EN: 'Shield Fin Glow + Tutorial', IT: 'Bagliore Alette Scudo + Tutorial' },
-        items: {
-            EN: [
-                'NEW: Cyan fin glow indicator replaces shield ring — cooldown fill + ready pulse',
-                'Card-based tutorial redesign with colored borders and icon badges',
-                'Ship preview updated with per-ship metallic tech palette'
-            ],
-            IT: [
-                'NUOVO: Indicatore bagliore cyan sulle alette sostituisce l\'anello scudo — riempimento cooldown + pulsazione',
-                'Tutorial ridisegnato a schede con bordi colorati e badge icona',
-                'Anteprima nave aggiornata con palette metallica tech per-nave'
-            ]
-        }
-    },
-    {
-        version: 'v5.9.0', date: '2026-02-13',
-        title: { EN: 'Ship Redesign "Crypto Viper"', IT: 'Nave Ridisegnata "Crypto Viper"' },
-        items: {
-            EN: [
-                'NEW: Chevron body ship with metallic tech palette and swept fins',
-                'BTC cockpit with multi-layer glow, dorsal spine, panel lines',
-                'Proportional hitboxes per ship — tighter collision for skilled play',
-                'Hex shield, HYPER aura, and afterimage all updated to match new geometry'
-            ],
-            IT: [
-                'NUOVO: Nave con corpo a chevron, palette metallica tech e alette a freccia',
-                'Cockpit BTC con bagliore multi-strato, spina dorsale, linee pannello',
-                'Hitbox proporzionali per nave — collisione più precisa per gioco abile',
-                'Scudo esagonale, aura HYPER e afterimage aggiornati alla nuova geometria'
-            ]
-        }
-    },
-    {
-        version: 'v5.8.0', date: '2026-02-13',
-        title: { EN: 'Arcade Mode "Rogue Protocol"', IT: 'Modalità Arcade "Rogue Protocol"' },
-        items: {
-            EN: [
-                'NEW: Roguelike Arcade mode with 15 modifiers across 3 categories',
-                'Combo scoring system — chain kills to build multiplier (max 5x)',
-                'Post-boss modifier choice screen — pick 1 of 3 cards to shape your run',
-                'Infinite post-Cycle 3 scaling with formation remix and +20% difficulty per cycle'
-            ],
-            IT: [
-                'NUOVO: Modalità Arcade roguelike con 15 modificatori in 3 categorie',
-                'Sistema punteggio combo — concatena uccisioni per aumentare il moltiplicatore (max 5x)',
-                'Schermata scelta modificatore post-boss — scegli 1 di 3 carte per la tua run',
-                'Scaling infinito post-Ciclo 3 con remix formazioni e +20% difficoltà per ciclo'
-            ]
-        }
-    },
-    {
-        version: 'v5.7.0', date: '2026-02-14',
-        title: { EN: 'Boss Redesign + Tap Shield', IT: 'Boss Ridisegnati + Scudo Tap' },
-        items: {
-            EN: [
-                'NEW: All 3 bosses redesigned — FED (Illuminati Pyramid), BCE (Star Fortress), BOJ (Golden Torii)',
-                'NEW: Hexgrid energy shield — honeycomb pattern with radial wave animation',
-                'NEW: Tap on your ship to activate shield (mobile) — pulsing cyan ring shows when ready',
-                'Boss HP bar redesigned with gradient fill, glow, and phase markers'
-            ],
-            IT: [
-                'NUOVO: Tutti e 3 i boss ridisegnati — FED (Piramide Illuminati), BCE (Fortezza Stellare), BOJ (Torii Dorato)',
-                'NUOVO: Scudo energia esagonale — pattern a nido d\'ape con onda radiale',
-                'NUOVO: Tocca la nave per attivare lo scudo (mobile) — anello cyan pulsante mostra quando è pronto',
-                'Barra HP boss ridisegnata con riempimento gradiente, bagliore e indicatori fase'
-            ]
-        }
-    },
-    {
-        version: 'v5.3.0', date: '2026-02-13',
-        title: { EN: 'Gradius-Style Laser Beam', IT: 'Raggio Laser Stile Gradius' },
-        items: {
-            EN: [
-                'NEW: Laser perk fires a 110px beam bolt — 3-layer glow (white core, cyan mid, outer)',
-                'Multi-cannon levels merge into one powerful central beam with combined damage',
-                'Beam collides along its entire length — enemies hit by the full segment',
-                'Shimmer animation, head glow, and elemental overlay support'
-            ],
-            IT: [
-                'NUOVO: Il perk Laser spara un raggio da 110px — bagliore a 3 strati (nucleo bianco, cyan, esterno)',
-                'I livelli multi-cannone si fondono in un unico raggio centrale con danno combinato',
-                'Il raggio collide per tutta la sua lunghezza — nemici colpiti dall\'intero segmento',
-                'Animazione scintillio, bagliore testa e supporto overlay elementale'
-            ]
-        }
-    },
-    {
-        version: 'v5.1.0', date: '2026-02-13',
-        title: { EN: 'Directional Muzzle Flash', IT: 'Flash alla Bocca del Cannone' },
-        items: {
-            EN: [
-                'NEW: Cannon-aligned muzzle flash — V-shaped flare from actual gun positions',
-                'Scales with weapon level and changes color with elemental perks',
-                'Directional spark particles shoot upward from each cannon barrel'
-            ],
-            IT: [
-                'NUOVO: Flash allineato al cannone — fiammata a V dalle posizioni reali delle armi',
-                'Scala col livello arma e cambia colore con i perk elementali',
-                'Particelle direzionali di scintille sparano verso l\'alto da ogni canna'
-            ]
-        }
-    },
-    {
-        version: 'v4.61.0', date: '2026-02-13',
-        title: { EN: 'Elemental Perk Drops', IT: 'Drop Perk Elementali' },
-        items: {
-            EN: [
-                'NEW: Elemental Perks — Fire, Laser, Electric — drop as diamond power-ups',
-                'Fixed order: Fire (splash) → Laser (+speed, +pierce) → Electric (chain lightning)',
-                'Collecting all 3 activates GODCHAIN — further drops re-trigger it',
-                'HYPER duration fixed at 10 seconds, meter decay doubled'
-            ],
-            IT: [
-                'NUOVO: Perk Elementali — Fuoco, Laser, Elettrico — cadono come diamanti',
-                'Ordine fisso: Fuoco (splash) → Laser (+velocità, +penetrazione) → Elettrico (fulmine a catena)',
-                'Raccoglierli tutti e 3 attiva GODCHAIN — ulteriori drop lo riattivano',
-                'Durata HYPER fissata a 10 secondi, decay del meter raddoppiato'
-            ]
-        }
-    },
-    {
-        version: 'v4.58.0', date: '2026-02-12',
-        title: { EN: 'Cyberpunk Damage FX', IT: 'Effetti Danno Cyberpunk' },
-        items: {
-            EN: [
-                'NEW: Enemies deteriorate below 50% HP with 5 layered cyberpunk effects',
-                'Neon outline flickers, cracks appear, sparks replace old smoke',
-                'Body darkens progressively — damage is now unmistakable'
-            ],
-            IT: [
-                'NUOVO: I nemici si deteriorano sotto il 50% HP con 5 effetti cyberpunk',
-                'Il contorno neon sfarfalla, compaiono crepe, scintille sostituiscono il vecchio fumo',
-                'Il corpo si scurisce progressivamente — il danno è ora inconfondibile'
-            ]
-        }
-    },
-    {
-        version: 'v4.53.0', date: '2026-02-12',
-        title: { EN: 'Premium Purple Neon', IT: 'Neon Viola Premium' },
-        items: {
-            EN: [
-                'Full UI color unification: all buttons, menus, modals now neon violet',
-                'Ship, story screens, tutorial, settings — all violet themed'
-            ],
-            IT: [
-                'Unificazione colori UI: tutti i bottoni, menu, modali ora neon viola',
-                'Nave, schermate storia, tutorial, impostazioni — tutto tema viola'
-            ]
-        }
-    },
-    {
-        version: 'v4.50.0', date: '2026-02-12',
-        title: { EN: 'Arcade Mode Enhancements', IT: 'Miglioramenti Modalità Arcade' },
-        items: {
-            EN: [
-                'Separate high scores for Story and Arcade modes',
-                'Persistent arcade records (best cycle, level, kills) with NEW BEST badge',
-                'Records now persist across updates'
-            ],
-            IT: [
-                'Punteggi separati per modalità Storia e Arcade',
-                'Record arcade persistenti (miglior ciclo, livello, uccisioni) con badge NUOVO RECORD',
-                'I record ora persistono tra gli aggiornamenti'
-            ]
-        }
-    },
-    {
-        version: 'v4.49.0', date: '2026-02-12',
-        title: { EN: 'Architectural Refactor', IT: 'Refactor Architetturale' },
-        items: {
-            EN: [
-                'Extracted 4 modules from main.js for better code organization',
-                'Added test suite with 103 assertions'
-            ],
-            IT: [
-                'Estratti 4 moduli da main.js per migliore organizzazione del codice',
-                'Aggiunta suite di test con 103 asserzioni'
-            ]
-        }
-    },
-    {
-        version: 'v4.48.0', date: '2026-02-12',
-        title: { EN: 'Balance Recalibration', IT: 'Ricalibrazione Bilanciamento' },
-        items: {
-            EN: [
-                'Enemy and Boss HP rebalanced for weapon evolution system',
-                'Improved adaptive drop intelligence',
-                'Weapon pacing tuned (level 5 reached in cycle 2)'
-            ],
-            IT: [
-                'HP nemici e boss riequilibrati per il sistema evoluzione armi',
-                'Intelligenza drop adattiva migliorata',
-                'Ritmo armi calibrato (livello 5 raggiunto nel ciclo 2)'
-            ]
-        }
-    },
-    {
-        version: 'v4.47.0', date: '2026-02-12',
-        title: { EN: 'Weapon Evolution Redesign', IT: 'Ridisegno Evoluzione Armi' },
-        items: {
-            EN: [
-                'New 5-level linear weapon system (replaces old 3+3+6)',
-                '3 specials: Homing, Pierce, Missile — 2 utilities: Shield, Speed'
-            ],
-            IT: [
-                'Nuovo sistema armi lineare a 5 livelli (sostituisce il vecchio 3+3+6)',
-                '3 speciali: Homing, Pierce, Missile — 2 utilità: Scudo, Velocità'
-            ]
-        }
-    }
 ];
 const WHATS_NEW_PLANNED = [
     { EN: 'Achievement system', IT: 'Sistema achievement' },
@@ -3956,11 +3889,13 @@ window.restartRun = function () {
     startGame();
 };
 window.restartFromGameOver = function () {
+    _hideDebugOverlay();
     setStyle('gameover-screen', 'display', 'none');
     audioSys.resetState(); // Reset audio state for new run
     startGame();
 };
 window.backToIntro = function () {
+    _hideDebugOverlay();
     clearBossDeathTimeouts(); // v5.13.1: Cancel orphan boss death timeouts
 
     // Immediately hide touch controls (before curtain animation)
@@ -4362,6 +4297,7 @@ function triggerScoreStreakColor(streakLevel) {
 }
 
 function startGame() {
+    _hideDebugOverlay();
     audioSys.init();
     clearBossDeathTimeouts(); // v5.13.1: Cancel orphan boss death timeouts
 
@@ -4525,6 +4461,10 @@ function startGame() {
         setEnemyBullets: (eb) => { enemyBullets = eb; window.enemyBullets = enemyBullets; },
         score: () => score,
         setScore: (s) => { score = s; },
+        setLevel: (l) => { level = l; runState.level = l; window.currentLevel = l; },
+        setCycle: (c) => { marketCycle = c; runState.marketCycle = c; window.marketCycle = c; },
+        getLevel: () => level,
+        getCycle: () => marketCycle,
         updateScore,
         totalTime: () => totalTime,
         setWaveStartTime: (t2) => { waveStartTime = t2; },
@@ -4539,6 +4479,15 @@ function startGame() {
         getFiatDeathMeme,
         t
     });
+
+    // v6.5: Debug API for skipTo and other test helpers
+    G._debugAPI = {
+        setLevel: (l) => { level = l; runState.level = l; window.currentLevel = l; },
+        setCycle: (c) => { marketCycle = c; runState.marketCycle = c; window.marketCycle = c; },
+        setEnemies: (e) => { enemies = e; G.enemies = enemies; },
+        setEnemyBullets: (eb) => { enemyBullets = eb; window.enemyBullets = enemyBullets; },
+        waveMgr
+    };
 
     emitEvent('run_start', { bear: isBearMarket });
 
@@ -4719,6 +4668,8 @@ function clearBattlefield(options) {
 G.clearBattlefield = clearBattlefield;
 
 function startHordeTransition() {
+    // Streaming: no horde transition (phases replace hordes)
+    if (window.Game.Balance?.STREAMING?.ENABLED) return;
     // Horde 1 cleared, brief pause before horde 2
     // This is a quick transition - NOT a full level complete celebration
 
@@ -4854,6 +4805,7 @@ function spawnBoss() {
     boss.hp = Math.max(hpConfig.MIN_FLOOR, Math.floor(rawHp * perkScaling * ngPlusMult));
     boss.maxHp = boss.hp;
     console.log(`[SPAWN BOSS] Type=${bossType}, HP=${boss.hp}, position=(${boss.x}, ${boss.y})`);
+    console.log(`[SPAWN BOSS] HP breakdown: base=${baseHp} + lvl(${level}×${hpPerLevel}=${level*hpPerLevel}) + cycle(${(marketCycle-1)}×${hpPerCycle}=${(marketCycle-1)*hpPerCycle}) = raw ${rawHp} × perkScale(${perkCount}p→${perkScaling.toFixed(2)}) × ng+(${ngPlusMult}) = ${boss.hp} | DMG_DIVISOR=${G.Balance.BOSS.DMG_DIVISOR}`);
 
     // Analytics: Track boss fight start
     if (G.Debug) G.Debug.trackBossFightStart(bossType, marketCycle);
@@ -5097,6 +5049,11 @@ function update(dt) {
                 G.enemies = enemies;
                 if (G.HarmonicConductor) G.HarmonicConductor.enemies = enemies;
                 G.Debug.log('WAVE', `[WAVE] Phase ${waveAction.phaseIndex} appended: +${phaseData.enemies.length} → ${enemies.length} total`);
+                // v6.5: Brief fire grace after new phase spawns
+                const streamCfg = G.Balance.STREAMING;
+                if (streamCfg?.FIRE_GRACE_AFTER_PHASE && G.HarmonicConductor) {
+                    G.HarmonicConductor.setPhaseGrace(streamCfg.FIRE_GRACE_AFTER_PHASE);
+                }
             }
         }
 
@@ -6538,6 +6495,9 @@ function loop(timestamp) {
             }
         );
     }
+
+    // v6.1: Quality tier auto-detection
+    if (G.QualityManager) G.QualityManager.update(timestamp);
 
     requestAnimationFrame(loop);
 }

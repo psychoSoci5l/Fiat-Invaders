@@ -47,10 +47,8 @@
 
     // Keywords highlighted in gold (case-insensitive, word-boundary)
     const HIGHLIGHT_KEYWORDS = [
-        'bitcoin', 'fiat', 'satoshi nakamoto', 'bretton woods',
-        'lightning network', 'segregated witness', 'nixon',
-        'peer-to-peer', 'gold window', "finestra dell'oro",
-        'whitepaper', 'denaro solido', 'sound money',
+        'bitcoin', 'fiat', 'satoshi nakamoto', 'nixon',
+        'peer-to-peer', 'honest money', 'denaro onesto',
         'nessuno comanda', 'tutti verificano',
         'no one commands', 'everyone verifies',
         'vittoria', 'victory',
