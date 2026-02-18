@@ -566,12 +566,14 @@ function initCollisionSystem() {
                 updateLivesUI(true);
                 G.Bullet.Pool.release(eb);
                 ebArr.splice(ebIdx, 1);
-                shake = 20;
+                shake = 30; // v5.31: 20→30 (stronger impact feedback)
                 bulletCancelStreak = 0;
                 bulletCancelTimer = 0;
                 grazeCount = 0;
                 grazeMeter = Math.max(0, grazeMeter - 30);
                 emitEvent('player_hit', { hp: player.hp, maxHp: player.maxHp });
+                // v5.31: Impact particles on hit
+                if (G.ParticleSystem) G.ParticleSystem.createExplosion(player.x, player.y, '#ff4444', 8);
                 if (player.hp <= 0) {
                     startDeathSequence();
                 } else {
@@ -2237,7 +2239,15 @@ function init() {
     }
 
     resize();
-    window.addEventListener('resize', resize);
+    // v5.31: Throttle resize during gameplay to prevent layout thrashing
+    let _resizeThrottle = null;
+    window.addEventListener('resize', () => {
+        if (G.GameState && (G.GameState.is('PLAY') || G.GameState.is('PAUSE'))) {
+            if (!_resizeThrottle) {
+                _resizeThrottle = setTimeout(() => { _resizeThrottle = null; resize(); }, 1000);
+            }
+        } else { resize(); }
+    });
     // iOS needs orientationchange + delay for safe area recalculation
     window.addEventListener('orientationchange', () => {
         setTimeout(resize, 100);
@@ -5260,8 +5270,7 @@ function _updateCombatHUD() {
         }
     } else if (isHyper) {
         const timeLeft = player.getHyperTimeRemaining ? player.getHyperTimeRemaining() : 0;
-        const mult = Balance.HYPER.SCORE_MULT;
-        const label = '\u26A1 HYPER \u00D7' + mult + ' ' + timeLeft.toFixed(1) + 's';
+        const label = '\u26A1 HYPER ' + timeLeft.toFixed(1) + 's'; // v5.31: removed ×3 multiplier display
         if (hyperChanged || gcChanged) {
             G.MessageSystem.setCombatState('hyper', timeLeft / hyperDur, label);
         } else {

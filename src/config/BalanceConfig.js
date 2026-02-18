@@ -82,12 +82,12 @@
         ELEMENTAL: {
             FIRE: {
                 SPLASH_RADIUS: 55,    // v5.0.8: 40→50→55 (wider AoE for formation clumps)
-                SPLASH_DAMAGE: 0.50,  // v5.19: 1.2→0.50 (weaken neighbors, don't kill them)
+                SPLASH_DAMAGE: 0.55,  // v5.31: 0.50→0.55 (+10% elemental buff)
                 TRAIL_COLORS: ['#ff4400', '#ff6600', '#ffaa00'],
                 IMPACT_PARTICLES: 8
             },
             LASER: {
-                SPEED_MULT: 1.25,     // +25% bullet speed
+                SPEED_MULT: 1.375,    // v5.31: 1.25→1.375 (+10% elemental buff)
                 PIERCE_BONUS: 1,      // +1 pierce HP
                 GLOW_COLOR: '#00f0ff',
                 TRAIL_LENGTH: 18,     // legacy overlay (fallback when BEAM disabled)
@@ -108,7 +108,7 @@
             },
             ELECTRIC: {
                 CHAIN_RADIUS: 100,    // v5.0.8: 80→90→100 (wider chain reach)
-                CHAIN_DAMAGE: 0.40,   // v5.19: 0.80→0.40 (weaken, don't kill — consistent with fire nerf)
+                CHAIN_DAMAGE: 0.44,   // v5.31: 0.40→0.44 (+10% elemental buff)
                 CHAIN_TARGETS: 2,     // max enemies to chain to
                 ARC_COLOR: '#8844ff',
                 ARC_COLOR_BRIGHT: '#bb88ff'
@@ -117,7 +117,7 @@
             CONTAGION: {
                 ENABLED: true,
                 MAX_DEPTH: [1, 2, 2],     // max cascade depth per perkLevel 1/2/3+
-                DAMAGE_DECAY: 0.45          // v5.19: 0.7→0.45 (cascades weaken rapidly)
+                DAMAGE_DECAY: 0.38          // v5.31: 0.45→0.38 (-15%, cascade weakens faster)
             },
             // v5.13: Contagion cascade VFX (line + ripple)
             CONTAGION_VFX: {
@@ -340,7 +340,7 @@
                 STREAK_25: 0,
                 STREAK_50: 0,
                 CLOSE_GRAZE: 0,
-                PLAYER_HIT: 0,
+                PLAYER_HIT: 0.05,     // v5.31: 0→0.05 (50ms freeze frame on hit)
                 // Non-gameplay — preserved (boss cinematic moments)
                 BOSS_PHASE: 0.30,         // 300ms on boss phase transition
                 BOSS_DEFEAT_FREEZE: 0.50, // v5.11: 500ms total freeze on boss death
@@ -358,7 +358,7 @@
                 BOSS_PHASE: { duration: 0.12, opacity: 0.25, color: '#FF6600' },
                 BOSS_DEFEAT: { duration: 0.20, opacity: 0.50, color: '#FFFFFF' },
                 WEAPON_UPGRADE: { duration: 0.15, opacity: 0.40, color: '#FFFFFF' },
-                PLAYER_HIT: { duration: 0.04, opacity: 0.15, color: '#FF0000' },
+                PLAYER_HIT: { duration: 0.08, opacity: 0.30, color: '#FF0000' },  // v5.31: 0.04/0.15→0.08/0.30 (stronger flash)
                 WAVE_START: { duration: 0.05, opacity: 0.25, color: '#FFFFFF' },
                 MULTI_KILL: { duration: 0.08, opacity: 0.20, color: '#FFFFFF' },  // v4.5
                 PERK_PICKUP: { duration: 0.10, opacity: 0.20, color: '#bb44ff' },       // v5.13: overridden per-element at runtime
@@ -654,27 +654,27 @@
             // HP scaling (applied before perk/damage modifiers)
             // v4.16: +25-40% boost — audit showed FED 12.7s, BCE 9.7s (target 45-75s)
             HP: {
-                BASE: 2700,           // v5.23.8: 3000→2700 (-10%, C1 nerf)
+                BASE: 2430,           // v5.31: 2700→2430 (-10%, C1 easier)
                 PER_LEVEL: 100,       // v4.48: 65→100 (+54%, scaling livello più incisivo)
                 PER_CYCLE: 5000,      // v4.48: 4000→5000 (+25%, gap tra cicli maggiore)
                 PERK_SCALE: 0.10,     // +10% per player perk
-                MIN_FLOOR: 3000       // v5.15.1: 4000→3000 (match new BASE)
+                MIN_FLOOR: 2430       // v5.31: 3000→2430 (match new BASE)
             },
 
             // Movement speed per phase per boss type
             // Updated v2.18.0: Distinct movement personalities
             PHASE_SPEEDS: {
-                FEDERAL_RESERVE: [70, 130, 200],  // v5.0.4: P1 55→70 (+27%, more dynamic dodge)
-                BCE: [35, 55, 90],                // Bureaucratic, always slow
-                BOJ: [45, 75, 160]                // Zen to sudden intervention
+                FEDERAL_RESERVE: [70, 130, 170],  // v5.31: P3 200→170 (-15%, less aggressive)
+                BCE: [35, 55, 77],                // v5.31: P3 90→77 (-15%)
+                BOJ: [45, 75, 136]                // v5.31: P3 160→136 (-15%)
             },
 
             // Fire rate per phase (seconds between attacks, lower = faster)
-            // Updated v2.18.0: Rebalanced for new patterns
+            // v5.31: P3 fire rates ×1.15 (slower)
             FIRE_RATES: {
-                FEDERAL_RESERVE: [0.77, 0.42, 0.22],  // v5.23.8: -10% fire rate nerf (was 0.70/0.38/0.20)
-                BCE: [1.40, 0.70, 0.35],              // Bureaucratic delays
-                BOJ: [0.90, 0.45, 0.18]               // v4.10.2: Phase 1 slowed (0.75→0.90) to reduce bullet density
+                FEDERAL_RESERVE: [0.77, 0.42, 0.25],  // v5.31: P3 0.22→0.25
+                BCE: [1.40, 0.70, 0.40],              // v5.31: P3 0.35→0.40
+                BOJ: [0.90, 0.45, 0.21]               // v5.31: P3 0.18→0.21
             },
 
             // Minion spawn rate (seconds between spawns in Phase 3)
@@ -1650,6 +1650,33 @@
                 COLLISION_RADIUS: 4,        // Enemy bullet cancel radius around link line
             },
 
+            // v5.31: HYPER Aura Rework — speed lines + timer bar + body glow (no circles)
+            HYPER_AURA: {
+                ENABLED: true,
+                SPEED_LINES: {
+                    ENABLED: true,
+                    COUNT: 8,             // Number of speed lines
+                    MIN_LENGTH: 15,
+                    MAX_LENGTH: 35,
+                    SPEED: 300,           // Pixels/sec downward
+                    SPREAD: 30,           // Horizontal spread from ship center
+                    WIDTH: 2,
+                    ALPHA: 0.7,
+                },
+                TIMER_BAR: {
+                    ENABLED: true,
+                    WIDTH: 40,
+                    HEIGHT: 3,
+                    OFFSET_Y: 32,         // Below ship center
+                    WARN_RATIO: 0.3,      // Turn red below this
+                },
+                BODY_GLOW: {
+                    ENABLED: true,
+                    RADIUS: 35,
+                    ALPHA: 0.25,
+                },
+            },
+
             // v5.30: Ship Flight Dynamics — sense of flight with 5 complementary effects
             SHIP_FLIGHT: {
                 ENABLED: true,
@@ -1659,6 +1686,7 @@
                     LERP_SPEED: 8,        // Interpolation speed toward bank
                     RETURN_SPEED: 5,      // Return to neutral (slower = floaty)
                     VX_DIVISOR: 420,      // Normalize vx: angle = vx/DIVISOR * MAX_ANGLE
+                    BULLET_FOLLOW: 0.5,   // v5.31: Bullet angle follows bank (0=none, 1=full)
                 },
                 HOVER_BOB: {
                     ENABLED: true,

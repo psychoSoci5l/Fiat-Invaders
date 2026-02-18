@@ -1,16 +1,22 @@
 # Changelog
 
 ## v5.31.0 - 2026-02-18
-### Shield Energy Skin + Link Beam + Remove Brighten
-- **feat(shield)**: Energy Skin — shield now conforms to the 8-vertex ship body outline instead of hexgrid bubble. 4-layer glow (outer/mid/fill/core) with 3 traveling sparks along perimeter. Warning blink + fade-out preserved
-- **feat(shield)**: Shield Bullet Destruction — active shield now destroys enemy bullets on contact (cyan spark + SFX). Collision radius configurable via `Balance.VFX.ENERGY_SKIN.COLLISION_RADIUS` (35px)
-- **feat(combat)**: Energy Link Beam — at weapon LV2, a horizontal energy beam connects the two parallel bullets, cancelling enemy bullets that pass through the gap. Additive cyan glow rendering. Excluded for HOMING/MISSILE/PIERCE specials and laser beams
-- **feat(combat)**: Link Beam Collision — `processLinkBeamCancellation()` in CollisionSystem using `lineSegmentVsCircle()`. Configurable radius via `Balance.VFX.ENERGY_LINK.COLLISION_RADIUS` (4px)
-- **fix(vfx)**: Brighten kill-switch — white bubble during weapon evolution disabled via `ENERGY_SURGE.BRIGHTEN_ENABLED: false` (other VFX intact: slowmo, shake, particles)
-- **config**: `Balance.VFX.ENERGY_SKIN` (collision, stroke widths, spark count/speed/radius, warn time)
-- **config**: `Balance.VFX.ENERGY_LINK` (alpha, width, collision radius)
-- **refactor**: `_drawHexShield()` replaced by `_drawEnergySkin()` + `_getPerimeterPoint()` helper in Player.js
-- **refactor**: Bullet.js `_volleyId`/`_isLinkPair` fields for LV2 pair tagging
+### Gameplay Polish + HYPER Rework + Mobile Hardening
+- **feat(shield)**: Energy Skin — shield conforms to 8-vertex ship body (4-layer glow + 3 perimeter sparks). Destroys enemy bullets on contact (r=35px)
+- **feat(combat)**: Energy Link Beam — LV2 horizontal beam between paired bullets cancels enemy bullets in gap
+- **feat(vfx)**: HYPER Aura Rework — replaced circles/rings/orbs with speed lines + timer bar + body glow. Visually distinct from shield. Config `Balance.VFX.HYPER_AURA` with per-feature kill-switches
+- **feat(vfx)**: Bullet Banking — bullets tilt slightly in movement direction following ship bank angle. `BANKING.BULLET_FOLLOW: 0.5`. HOMING/MISSILE excluded
+- **feat(vfx)**: Stronger player hit feedback — shake 20→30, flash 0.04/0.15→0.08/0.30, 50ms freeze frame, red impact particles
+- **feat(mobile)**: Gesture prevention — `overscroll-behavior: none`, context menu blocked during PLAY, Safari pinch-zoom blocked, resize throttled 1s during gameplay
+- **change(hud)**: Combat strip (HYPER/GODCHAIN/HYPERGOD) now starts at left:68px to avoid covering pause button
+- **change(hud)**: HYPER strip text 18→20px + letter-spacing 2px + darker fill bar + extra black text-shadow for contrast
+- **change(hud)**: Removed "×3" multiplier display from HYPER countdown label
+- **change(balance)**: Boss C1 HP -10% (2700→2430), P3 fire rates ×1.15 slower, P3 speeds ×0.85 slower
+- **change(balance)**: Elemental damage +10% (fire splash 0.50→0.55, electric chain 0.40→0.44, laser speed 1.25→1.375)
+- **change(balance)**: Contagion cascade decay 0.45→0.38 (-15%, weakens faster)
+- **change(i18n)**: Tutorial texts rewritten EN/IT — descriptive mission, drag-from-bottom controls hint, shield wing explanation
+- **fix(vfx)**: Brighten kill-switch — `ENERGY_SURGE.BRIGHTEN_ENABLED: false`
+- **config**: `Balance.VFX.ENERGY_SKIN`, `Balance.VFX.ENERGY_LINK`, `Balance.VFX.HYPER_AURA`
 
 ## v5.30.0 - 2026-02-18
 ### Ship Flight Dynamics

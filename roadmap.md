@@ -335,6 +335,8 @@
 - ~~Game completion cinematic~~ ✅ v5.21.0
 - ~~Adaptive drop balancer~~ ✅ v5.19.0
 - Daily challenge mode
+- Accelerometer ship control option (tilt-to-move alternative input)
+- Unify two-wave deployment pause into single continuous enemy flow
 - ~~Leaderboard (local, no server)~~ ✅ v5.17.0 (online with Cloudflare Workers)
 
 ### Technical

@@ -97,6 +97,7 @@ class Player extends window.Game.Entity {
         this.trail = []; // Kept for compatibility with draw()
 
         this.hyperParticles = []; // Golden particles during HYPER
+        this._hyperSpeedLines = []; // v5.31: Speed line VFX during HYPER
 
         // v5.13: Elemental VFX state
         this._elemPulse = { active: false, timer: 0, duration: 0, color: '', alpha: 0 };
@@ -151,6 +152,7 @@ class Player extends window.Game.Entity {
         this.hyperCooldown = 0;
         this.hyperAvailable = false;
         this.hyperParticles = [];
+        this._hyperSpeedLines = [];
 
         // GODCHAIN reset
         this._godchainActive = false;
@@ -614,6 +616,34 @@ class Player extends window.Game.Entity {
                 p.vy += 200 * dt; // gravity
                 if (p.life <= 0) this.hyperParticles.splice(i, 1);
             }
+
+            // v5.31: Update HYPER speed lines
+            const _slCfg = Balance?.VFX?.HYPER_AURA?.SPEED_LINES;
+            if (_slCfg?.ENABLED !== false) {
+                // Spawn new lines to maintain count
+                while (this._hyperSpeedLines.length < (_slCfg?.COUNT ?? 8)) {
+                    this._hyperSpeedLines.push({
+                        x: this.x + (Math.random() - 0.5) * (_slCfg?.SPREAD ?? 30) * 2,
+                        y: this.y - Math.random() * 40,
+                        len: (_slCfg?.MIN_LENGTH ?? 15) + Math.random() * ((_slCfg?.MAX_LENGTH ?? 35) - (_slCfg?.MIN_LENGTH ?? 15)),
+                        alpha: 0.3 + Math.random() * 0.4,
+                    });
+                }
+                // Move lines downward
+                const slSpeed = (_slCfg?.SPEED ?? 300) * dt;
+                for (let i = this._hyperSpeedLines.length - 1; i >= 0; i--) {
+                    const sl = this._hyperSpeedLines[i];
+                    sl.y += slSpeed;
+                    sl.alpha -= dt * 1.5;
+                    if (sl.alpha <= 0 || sl.y > this.y + 80) {
+                        // Respawn at top
+                        sl.x = this.x + (Math.random() - 0.5) * (_slCfg?.SPREAD ?? 30) * 2;
+                        sl.y = this.y - 20 - Math.random() * 20;
+                        sl.alpha = 0.3 + Math.random() * 0.4;
+                        sl.len = (_slCfg?.MIN_LENGTH ?? 15) + Math.random() * ((_slCfg?.MAX_LENGTH ?? 35) - (_slCfg?.MIN_LENGTH ?? 15));
+                    }
+                }
+            }
         }
 
         // HYPER cooldown
@@ -708,6 +738,7 @@ class Player extends window.Game.Entity {
         this.hyperTimer = 0;
         this.hyperCooldown = HYPER.COOLDOWN;
         this.hyperParticles = [];
+        this._hyperSpeedLines = [];
 
         // Play deactivation sound
         if (window.Game.Audio) window.Game.Audio.play('hyperDeactivate');
@@ -827,9 +858,14 @@ class Player extends window.Game.Entity {
         const bulletH = 22;
         const bulletSpeed = 765;
 
+        // v5.31: Bullet banking — bullets tilt slightly in movement direction
+        const _bankFollow = (this.special === 'HOMING' || this.special === 'MISSILE')
+            ? 0 : (Balance?.VFX?.SHIP_FLIGHT?.BANKING?.BULLET_FOLLOW ?? 0);
+        const _bankOffset = (this._flight?.bankAngle ?? 0) * _bankFollow;
+
         // Special-specific spawn function
         const spawnBullet = (offsetX, angleOffset) => {
-            const angle = -Math.PI / 2 + angleOffset;
+            const angle = -Math.PI / 2 + angleOffset + _bankOffset;
 
             let w = bulletW;
             let h = bulletH;
@@ -969,57 +1005,63 @@ class Player extends window.Game.Entity {
         const Balance = window.Game.Balance;
         const CU = window.Game.ColorUtils;
 
-        // HYPER MODE AURA - Intense golden aura
+        // v5.31: HYPER MODE — speed lines + body glow + timer bar (no circles)
         if (this.hyperActive) {
             const HYPER = Balance.HYPER;
+            const _haCfg = Balance?.VFX?.HYPER_AURA;
             const hyperPulse = Math.sin(this.animTime * HYPER.AURA_PULSE_SPEED) * 0.2 + 0.8;
-            const hyperSize = HYPER.AURA_SIZE_BASE + Math.sin(this.animTime * 6) * HYPER.AURA_SIZE_PULSE;
-
-            // Outer intense golden glow
-            const _glowCfg = window.Game.Balance?.GLOW;
-            const _useAdditiveAura = _glowCfg?.ENABLED && _glowCfg?.AURA?.ENABLED;
-            if (_useAdditiveAura) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; }
-            const hyperGradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, hyperSize);
-            hyperGradient.addColorStop(0, CU.rgba(255, 215, 0, hyperPulse * 0.9));
-            hyperGradient.addColorStop(0.3, CU.rgba(255, 180, 0, hyperPulse * 0.6));
-            hyperGradient.addColorStop(0.6, CU.rgba(255, 140, 0, hyperPulse * 0.3));
-            hyperGradient.addColorStop(1, 'transparent');
-            ctx.fillStyle = hyperGradient;
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, hyperSize, 0, Math.PI * 2);
-            ctx.fill();
-            if (_useAdditiveAura) { ctx.restore(); }
-
-            // Inner blazing ring
-            ctx.strokeStyle = CU.rgba(255, 255, 150, hyperPulse);
-            ctx.lineWidth = 4;
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, 46 + Math.sin(this.animTime * 12) * 5, 0, Math.PI * 2); // v5.28: 35→46
-            ctx.stroke();
-
-            // Timer ring (shows remaining time)
             const timeRatio = this.hyperTimer / HYPER.BASE_DURATION;
-            const ringAngle = Math.PI * 2 * Math.min(1, timeRatio);
-            ctx.strokeStyle = timeRatio < 0.3 ? '#ff4444' : '#FFD700';
-            ctx.lineWidth = 6;
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, 75, -Math.PI / 2, -Math.PI / 2 + ringAngle); // v5.28: 58→75
-            ctx.stroke();
 
-            // Orbiting energy orbs
-            for (let i = 0; i < 6; i++) {
-                const angle = this.animTime * 5 + (Math.PI / 3) * i;
-                const dist = 69 + Math.sin(this.animTime * 8 + i) * 7; // v5.28: 53→69
-                const orbX = this.x + Math.cos(angle) * dist;
-                const orbY = this.y + Math.sin(angle) * dist;
-
-                ctx.fillStyle = CU.rgba(255, 255, 200, hyperPulse);
+            // 1. Body glow — tight radial gradient on ship (not a big circle)
+            if (_haCfg?.BODY_GLOW?.ENABLED !== false) {
+                const glowR = _haCfg?.BODY_GLOW?.RADIUS ?? 35;
+                const glowA = (_haCfg?.BODY_GLOW?.ALPHA ?? 0.25) * hyperPulse;
+                const _glowCfg = Balance?.GLOW;
+                const _additive = _glowCfg?.ENABLED && _glowCfg?.AURA?.ENABLED;
+                if (_additive) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; }
+                const bg = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, glowR);
+                bg.addColorStop(0, CU.rgba(255, 215, 0, glowA));
+                bg.addColorStop(0.6, CU.rgba(255, 180, 0, glowA * 0.4));
+                bg.addColorStop(1, 'transparent');
+                ctx.fillStyle = bg;
                 ctx.beginPath();
-                ctx.arc(orbX, orbY, 4 + Math.sin(this.animTime * 10 + i) * 2, 0, Math.PI * 2);
+                ctx.arc(this.x, this.y, glowR, 0, Math.PI * 2);
                 ctx.fill();
+                if (_additive) { ctx.restore(); }
             }
 
-            // Draw HYPER particles
+            // 2. Speed lines — vertical streaks flowing downward from ship
+            if (_haCfg?.SPEED_LINES?.ENABLED !== false) {
+                const slW = _haCfg?.SPEED_LINES?.WIDTH ?? 2;
+                ctx.save();
+                ctx.globalCompositeOperation = 'lighter';
+                for (const sl of this._hyperSpeedLines) {
+                    ctx.strokeStyle = CU.rgba(255, 215, 0, sl.alpha * (_haCfg?.SPEED_LINES?.ALPHA ?? 0.7));
+                    ctx.lineWidth = slW;
+                    ctx.beginPath();
+                    ctx.moveTo(sl.x, sl.y);
+                    ctx.lineTo(sl.x, sl.y + sl.len);
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
+
+            // 3. Timer bar — thin horizontal bar below ship
+            if (_haCfg?.TIMER_BAR?.ENABLED !== false) {
+                const tbW = _haCfg?.TIMER_BAR?.WIDTH ?? 40;
+                const tbH = _haCfg?.TIMER_BAR?.HEIGHT ?? 3;
+                const tbY = this.y + (_haCfg?.TIMER_BAR?.OFFSET_Y ?? 32);
+                const warnRatio = _haCfg?.TIMER_BAR?.WARN_RATIO ?? 0.3;
+                const fillW = tbW * Math.min(1, timeRatio);
+                // Background
+                ctx.fillStyle = CU.rgba(50, 40, 0, 0.5);
+                ctx.fillRect(this.x - tbW / 2, tbY, tbW, tbH);
+                // Fill
+                ctx.fillStyle = timeRatio < warnRatio ? '#ff4444' : '#FFD700';
+                ctx.fillRect(this.x - tbW / 2, tbY, fillW, tbH);
+            }
+
+            // Draw HYPER particles (gold sparks — kept from old system)
             for (const p of this.hyperParticles) {
                 const alpha = p.life / 0.8;
                 ctx.fillStyle = CU.rgba(255, 215, 0, alpha);
