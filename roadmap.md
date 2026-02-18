@@ -28,7 +28,7 @@
 
 ## COMPLETATO — Debug Overlay v2: Error Log + Intro Access (v6.4.0)
 
-- [x] Session Log Buffer in DebugSystem (`sessionLog[]` max 40, categorie STATE/WAVE/BOSS/MINIBOSS/HORDE/QUALITY)
+- [x] Session Log Buffer in DebugSystem (`sessionLog[]` max 40, categorie STATE/WAVE/BOSS/MINIBOSS/QUALITY)
 - [x] `flushSessionLog()` salva in localStorage su endAnalyticsRun, onerror, beforeunload
 - [x] `getPreviousSessionLog()` legge sessione precedente da localStorage
 - [x] LAST ERROR section (msg, location, time-ago da `window._lastError`)
@@ -40,11 +40,11 @@
 - [x] Auto-hide su startGame() (copre transizione intro→game)
 
 ### Da verificare
-- [ ] Game over → triple-tap → overlay 6 sezioni (error+log visibili se dati presenti)
-- [ ] Intro → triple-tap su version tag → dati sessione precedente
+- [x] Game over → triple-tap → overlay 6 sezioni (error+log visibili se dati presenti) — verificato v6.5.4 iPhone
+- [x] Intro → triple-tap su version tag → dati sessione precedente — verificato v6.5.4 iPhone
 - [ ] Errore forzato (`throw new Error('test')`) → LAST ERROR visibile
 - [ ] Mailto SEND: tutte le sezioni, sotto 1800 chars
-- [ ] Auto-hide: RETRY/MENU da game over, lancio gioco da intro
+- [x] Auto-hide: RETRY/MENU da game over, lancio gioco da intro — verificato v6.5.4 iPhone
 
 ---
 
