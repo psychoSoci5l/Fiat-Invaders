@@ -188,23 +188,24 @@ class InputSystem {
             joy.addEventListener('touchcancel', onJoyEnd, { passive: false });
         }
 
-        // Desktop mouse controls (only on non-touch devices)
+        // Desktop mouse controls (listen on window, like touch — DOM overlays steal canvas events)
         if (!('ontouchstart' in window)) {
             const canvas = document.getElementById('gameCanvas');
             if (canvas) {
-                canvas.addEventListener('mousemove', e => {
-                    if (!this.mouse.active) return;
+                const getXPct = (e) => {
                     const rect = canvas.getBoundingClientRect();
-                    this.mouse.x = e.clientX - rect.left;
-                    this.mouse.xPct = this.mouse.x / rect.width;
+                    return (e.clientX - rect.left) / rect.width;
+                };
+
+                window.addEventListener('mousemove', e => {
+                    if (!this.mouse.active) return;
+                    this.mouse.xPct = getXPct(e);
                 });
 
-                canvas.addEventListener('mousedown', e => {
+                window.addEventListener('mousedown', e => {
                     if (e.button === 0) {
                         this.mouse.active = true;
-                        const rect = canvas.getBoundingClientRect();
-                        this.mouse.x = e.clientX - rect.left;
-                        this.mouse.xPct = this.mouse.x / rect.width;
+                        this.mouse.xPct = getXPct(e);
                     }
                     if (e.button === 2) {
                         this.mouse.shield = true;
@@ -212,12 +213,8 @@ class InputSystem {
                     }
                 });
 
-                canvas.addEventListener('mouseup', e => {
+                window.addEventListener('mouseup', e => {
                     if (e.button === 0) this.mouse.active = false;
-                });
-
-                canvas.addEventListener('mouseleave', () => {
-                    this.mouse.active = false;
                 });
 
                 canvas.addEventListener('contextmenu', e => e.preventDefault());
