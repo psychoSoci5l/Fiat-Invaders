@@ -1,5 +1,35 @@
 # Changelog
 
+## v6.0.0 "RafaX Release" - 2026-02-18
+*Dedicated to RafaX — for the encouragement and friendship*
+
+### Phase-Based Streaming (replaces v5.32 batch system)
+- **feat(streaming)**: Wave phases replace monolithic batch spawning — each wave has 2-3 independent phases with own formation, count, currencies
+- **feat(streaming)**: Phase trigger based on alive-count (<=35% threshold) instead of fixed timer — no screen flooding
+- **feat(streaming)**: MAX_CONCURRENT_ENEMIES hard cap (22) prevents accumulation
+- **feat(streaming)**: Per-phase escalation (+10% fire rate, +5% behavior per phase)
+- **change(balance)**: Wave definitions rewritten from horde1/horde2 to phases[] — counts reduced (26-60 per wave vs 41-76), difficulty maintained via escalation
+- **change(balance)**: MAX_Y_RATIO_BY_CYCLE expanded [0.48, 0.50, 0.58] — phases of 12-18 enemies never need Y-compression
+
+### v5.32 Features (bundled in this release)
+- **feat(elite)**: Elite Variants — 1 per cycle (C1 Armored, C2 Evader, C3 Reflector)
+- **feat(behavior)**: 4 enemy behaviors (Flanker, Bomber, Healer, Charger)
+- **feat(debug)**: 9 new debug commands (dbg.elites/behaviors/streaming/waveReport + toggles)
+
+### v5.31 Features (bundled)
+- **feat(shield)**: Energy Skin — body-conform shield replacing hex bubble
+- **feat(hyper)**: HYPER Aura rework — speed lines + timer bar replace circles
+- **feat(bullet)**: Bullet Banking (BULLET_FOLLOW: 0.5)
+- **feat(mobile)**: Mobile hardening (overscroll, contextmenu, gesturestart, resize throttle)
+
+### v5.30 Features (bundled)
+- **feat(vfx)**: Ship Flight Dynamics — 5 visual effects (Banking Tilt, Hover Bob, Asymmetric Thrust, Wing Vapor Trails, Squash & Stretch)
+
+### Cleanup
+- **refactor(docs)**: NOTES.md removed (stale since v5.11)
+- **refactor(docs)**: MEMORY.md consolidated (v5.0-v5.22 summarized)
+- **refactor(docs)**: SYSTEM_REFERENCE.md wave table updated for phases
+
 ## v5.32.0 - 2026-02-18
 ### Gameplay Feel & Polish — Elite Variants + Enemy Behaviors + Streaming Flow
 - **feat(elite)**: Elite Enemy Variants — one variant per cycle: C1 Armored (HP×2, speed×0.8, metallic sheen), C2 Evader (dashes sideways when bullet approaches, 2s cooldown), C3 Reflector (reflects first bullet back as enemy shot, prismatic shimmer). Only MEDIUM+STRONG tiers eligible. 10%/15%/20% chance per cycle (Story), +5% Arcade, +5% Bear Market

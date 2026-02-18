@@ -1,7 +1,29 @@
 # Roadmap: FIAT vs CRYPTO
 
-> **Versione attuale**: v5.30.0 (2026-02-18)
+> **Versione attuale**: v6.0.0 "RafaX Release" (2026-02-18)
 > **Focus**: Mobile-first PWA. Desktop fully supported.
+
+---
+
+## COMPLETATO — Phase-Based Streaming + Elite + Behaviors (v6.0.0 "RafaX Release")
+
+- [x] Phase-based streaming: waves have 2-3 independent phases with own formation/count/currencies
+- [x] Phase trigger on alive-count (<=35% threshold) — replaces batch timer system
+- [x] MAX_CONCURRENT_ENEMIES hard cap (22), per-phase escalation (+10% fire, +5% behavior)
+- [x] Elite Variants: C1 Armored (HP*2), C2 Evader (dash), C3 Reflector (reflects 1 bullet)
+- [x] 4 enemy behaviors: Flanker, Bomber (danger zones), Healer (aura), Charger
+- [x] 9 new debug commands (elites/behaviors/streaming/waveReport + toggles)
+- [x] NOTES.md removed (stale since v5.11), MEMORY.md consolidated
+
+---
+
+## COMPLETATO — Gameplay Polish + HYPER Rework + Mobile Hardening (v5.31.0)
+
+- [x] Shield Energy Skin (body-conform 8-vertex, 4-layer glow)
+- [x] HYPER Aura rework: speed lines + timer bar replace circles/rings
+- [x] Bullet Banking (BULLET_FOLLOW: 0.5)
+- [x] Mobile hardening: overscroll, contextmenu, gesturestart, resize throttle
+- [x] Boss C1 HP nerf, elementals +10% dmg, tutorial rewrite
 
 ---
 
@@ -327,7 +349,7 @@
 ## FUTURE IDEAS
 
 ### Gameplay
-- New enemy types (elite variants, shield enemies)
+- ~~New enemy types (elite variants, shield enemies)~~ ✅ v6.0.0 (Elite Variants + Enemy Behaviors)
 - ~~Boss attack pattern variety (per-phase unique patterns)~~ ✅ v5.0.4
 - ~~Boss visual redesign (premium cyberpunk aesthetic)~~ ✅ v5.7.0
 - ~~Combo system (chain kills for multiplier)~~ ✅ v5.8.0
@@ -336,7 +358,7 @@
 - ~~Adaptive drop balancer~~ ✅ v5.19.0
 - Daily challenge mode
 - Accelerometer ship control option (tilt-to-move alternative input)
-- Unify two-wave deployment pause into single continuous enemy flow
+- ~~Unify two-wave deployment pause into single continuous enemy flow~~ ✅ v6.0.0 (Phase-Based Streaming)
 - ~~Leaderboard (local, no server)~~ ✅ v5.17.0 (online with Cloudflare Workers)
 
 ### Technical

@@ -36,11 +36,13 @@ window.Game.WaveManager = {
         this.hordeTransitionTimer = 0;
         this.isHordeTransition = false;
         this.hordeSpawned = false;
-        // v5.32: Streaming state
-        this.pendingBatches = [];
-        this.batchTimer = 0;
-        this.batchIndex = 0;
+        // v5.33: Phase-based streaming state
         this.isStreaming = false;
+        this._streamingPhases = [];       // Array of phase definitions
+        this._currentPhaseIndex = 0;      // Index of current active phase
+        this._phasesSpawned = 0;          // How many phases have been spawned
+        this._phaseTimer = 0;             // Time since last phase spawn
+        this._phaseEnemyTag = 0;          // Current phase tag for enemy tracking
         this.streamingSpawnedCount = 0;
         this._behaviorCounts = {};
         dbg.log('WAVE', `[WM] RESET complete. wave=${this.wave}`);
@@ -86,21 +88,52 @@ window.Game.WaveManager = {
             return null;
         }
 
-        // v5.32: Streaming batch timer
-        if (this.isStreaming && this.pendingBatches && this.pendingBatches.length > 0) {
-            this.batchTimer += dt;
-            if (this.batchTimer >= (this._batchDelay || 1.5)) {
-                this.batchTimer = 0;
-                return { action: 'SPAWN_BATCH' };
-            }
-        }
+        // v5.33: Phase-based streaming — trigger next phase when current is nearly cleared
+        if (this.isStreaming) {
+            this._phaseTimer += dt;
+            const hasMorePhases = this._phasesSpawned < this._streamingPhases.length;
 
-        // v5.32: Streaming wave completion — all batches spawned AND enemies dead
-        if (this.isStreaming && this.pendingBatches && this.pendingBatches.length === 0 &&
-            enemiesCount === 0 && this.streamingSpawnedCount > 0) {
-            this.isStreaming = false;
-            this.streamingSpawnedCount = 0;
-            // Fall through to normal wave transition logic
+            if (hasMorePhases) {
+                const phaseCfg = window.Game.Balance?.STREAMING?.PHASE_TRIGGER;
+                const minDuration = phaseCfg?.MIN_PHASE_DURATION ?? 3.0;
+                const thresholdRatio = phaseCfg?.THRESHOLD_RATIO ?? 0.35;
+                const minThreshold = phaseCfg?.MIN_THRESHOLD ?? 3;
+                const maxThreshold = phaseCfg?.MAX_THRESHOLD ?? 6;
+                const maxConcurrent = window.Game.Balance?.STREAMING?.MAX_CONCURRENT_ENEMIES ?? 22;
+
+                // Count alive enemies from current phase
+                const enemies = window.Game.enemies || [];
+                let currentPhaseAlive = 0;
+                let totalAlive = 0;
+                for (let i = 0; i < enemies.length; i++) {
+                    if (enemies[i] && !enemies[i].markedForDeletion) {
+                        totalAlive++;
+                        if (enemies[i]._phaseIndex === this._currentPhaseIndex) {
+                            currentPhaseAlive++;
+                        }
+                    }
+                }
+
+                // Phase count from when it was spawned
+                const phaseOriginalCount = this._streamingPhases[this._currentPhaseIndex]?._spawnedCount || 12;
+                const rawThreshold = Math.round(phaseOriginalCount * thresholdRatio);
+                const threshold = Math.max(minThreshold, Math.min(maxThreshold, rawThreshold));
+
+                const nextPhaseCount = this._streamingPhases[this._phasesSpawned]?.count || 12;
+
+                if (this._phaseTimer >= minDuration &&
+                    currentPhaseAlive <= threshold &&
+                    totalAlive + nextPhaseCount <= maxConcurrent) {
+                    return { action: 'SPAWN_PHASE', phaseIndex: this._phasesSpawned };
+                }
+            }
+
+            // Wave complete: all phases spawned AND no enemies left
+            if (!hasMorePhases && enemiesCount === 0 && this.streamingSpawnedCount > 0) {
+                this.isStreaming = false;
+                this.streamingSpawnedCount = 0;
+                // Fall through to normal wave transition logic
+            }
         }
 
         if (this.isHordeTransition) {
@@ -155,8 +188,16 @@ window.Game.WaveManager = {
         if (waveDef) {
             // Use new definition system
             dbg.log('WAVE', `[WM] Using wave definition: ${waveDef.name} (C${waveDef.cycle}W${waveDef.wave})`);
-            const hordeKey = hordeNumber === 1 ? 'horde1' : 'horde2';
-            const hordeDef = waveDef[hordeKey];
+            // v5.33: Support both phases[] and legacy horde1/horde2 format
+            let hordeDef;
+            if (waveDef.phases) {
+                // Map hordeNumber to phase index (horde1→phase0, horde2→phase1)
+                const phaseIdx = Math.min(hordeNumber - 1, waveDef.phases.length - 1);
+                hordeDef = waveDef.phases[phaseIdx];
+            } else {
+                const hordeKey = hordeNumber === 1 ? 'horde1' : 'horde2';
+                hordeDef = waveDef[hordeKey];
+            }
 
             // Apply Bear Market scaling + Rank system adjustment
             let targetCount = hordeDef.count;
@@ -234,7 +275,16 @@ window.Game.WaveManager = {
         this.waveInProgress = false;
 
         // Determine pattern for movement (based on formation)
-        const movementPattern = this.getMovementPattern(waveDef ? waveDef[hordeNumber === 1 ? 'horde1' : 'horde2'].formation : 'RECT');
+        let formationForPattern = 'RECT';
+        if (waveDef) {
+            if (waveDef.phases) {
+                const phIdx = Math.min(hordeNumber - 1, waveDef.phases.length - 1);
+                formationForPattern = waveDef.phases[phIdx].formation;
+            } else if (waveDef[hordeNumber === 1 ? 'horde1' : 'horde2']) {
+                formationForPattern = waveDef[hordeNumber === 1 ? 'horde1' : 'horde2'].formation;
+            }
+        }
+        const movementPattern = this.getMovementPattern(formationForPattern);
 
         return { enemies: enemies, pattern: movementPattern, hordeNumber: hordeNumber };
     },
@@ -513,165 +563,185 @@ window.Game.WaveManager = {
     },
 
     // ========================================
-    // v5.32: STREAMING WAVE SYSTEM
+    // v5.33: PHASE-BASED STREAMING WAVE SYSTEM
     // ========================================
 
     /**
-     * Prepare a streaming wave — merge horde1+horde2 into batches
-     * Returns first batch immediately, queues rest in pendingBatches
+     * Convert legacy horde1/horde2 wave defs to phases format (backward compat)
+     */
+    _convertHordesToPhases(waveDef) {
+        if (waveDef.phases) return waveDef.phases;
+        // Legacy: convert horde1+horde2 → 2 phases with reduced counts (65%)
+        const phases = [];
+        if (waveDef.horde1) {
+            phases.push({
+                count: Math.round(waveDef.horde1.count * 0.65),
+                formation: waveDef.horde1.formation,
+                currencies: waveDef.horde1.currencies
+            });
+        }
+        if (waveDef.horde2) {
+            phases.push({
+                count: Math.round(waveDef.horde2.count * 0.65),
+                formation: waveDef.horde2.formation,
+                currencies: waveDef.horde2.currencies
+            });
+        }
+        return phases;
+    },
+
+    /**
+     * Apply count scaling (Bear Market, cycle, arcade, rank) to a count
+     */
+    _scaleCount(count, cycle) {
+        const G = window.Game;
+        const Balance = G.Balance;
+        let scaled = count;
+
+        if (window.isBearMarket) {
+            scaled = Math.floor(scaled * (Balance.WAVE_DEFINITIONS.BEAR_MARKET.COUNT_MULT || 1.25));
+        }
+        const cycleIdx = Math.min(cycle - 1, 2);
+        const cycleMult = Balance.WAVE_DEFINITIONS.CYCLE_COUNT_MULT?.[cycleIdx] || 1.0;
+        scaled = Math.floor(scaled * cycleMult);
+
+        const isArcade = G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode();
+        if (isArcade && Balance.ARCADE) {
+            scaled = Math.floor(scaled * (Balance.ARCADE.ENEMY_COUNT_MULT || 1.15));
+        }
+        if (G.RankSystem) {
+            scaled = Math.max(4, Math.round(scaled * G.RankSystem.getEnemyCountMultiplier()));
+        }
+        return scaled;
+    },
+
+    /**
+     * Prepare a streaming wave — set up phases, spawn phase 0 immediately
+     * Returns first phase enemies, stores remaining phases for triggered spawning
      */
     prepareStreamingWave(gameWidth) {
         const G = window.Game;
         const Balance = G.Balance;
         const dbg = G.Debug;
         const cycle = window.marketCycle || 1;
-        const cycleIdx = Math.min(cycle - 1, 2);
         const waveInCycle = ((this.wave - 1) % this.getWavesPerCycle()) + 1;
         const waveDef = Balance.getWaveDefinition(cycle, waveInCycle);
-        const streamCfg = Balance.STREAMING;
 
         if (!waveDef) {
             dbg.log('WAVE', `[WM] Streaming: no def for C${cycle}W${waveInCycle}, fallback to horde`);
             return null;
         }
 
-        // Merge horde1 + horde2 counts
-        const h1 = waveDef.horde1;
-        const h2 = waveDef.horde2;
-        let totalCount = h1.count + h2.count;
+        // Get phases (native or converted from legacy horde format)
+        const rawPhases = this._convertHordesToPhases(waveDef);
+        if (!rawPhases || rawPhases.length === 0) return null;
 
-        // Apply scaling
-        if (window.isBearMarket) {
-            totalCount = Math.floor(totalCount * (Balance.WAVE_DEFINITIONS.BEAR_MARKET.COUNT_MULT || 1.25));
-        }
-        const cycleMult = Balance.WAVE_DEFINITIONS.CYCLE_COUNT_MULT?.[cycleIdx] || 1.0;
-        totalCount = Math.floor(totalCount * cycleMult);
-        const isArcade = G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode();
-        if (isArcade && Balance.ARCADE) {
-            totalCount = Math.floor(totalCount * (Balance.ARCADE.ENEMY_COUNT_MULT || 1.15));
-        }
-        if (G.RankSystem) {
-            totalCount = Math.max(4, Math.round(totalCount * G.RankSystem.getEnemyCountMultiplier()));
-        }
+        // Scale counts per phase individually
+        const phases = rawPhases.map((p, idx) => ({
+            count: this._scaleCount(p.count, cycle),
+            formation: p.formation,
+            currencies: p.currencies,
+            phaseIndex: idx,
+            _spawnedCount: 0  // Will be set when spawned
+        }));
 
-        // Generate unified formation
-        const formation = h1.formation; // Use horde1's formation for full wave
-        const positions = this.generateFormation(formation, totalCount, gameWidth);
-
-        // Merge currencies
-        const h1Ratio = h1.count / (h1.count + h2.count);
-        const allCurrencies = [];
-        const h1Count = Math.round(positions.length * h1Ratio);
-        for (let i = 0; i < positions.length; i++) {
-            const pool = i < h1Count ? h1.currencies : h2.currencies;
-            allCurrencies.push(pool[Math.floor(Math.random() * pool.length)]);
-        }
-
-        // Split into batches
-        const batchSize = streamCfg.BATCH_SIZE[cycleIdx] || 6;
-        const batches = [];
-        for (let i = 0; i < positions.length; i += batchSize) {
-            const end = Math.min(i + batchSize, positions.length);
-            batches.push({
-                positions: positions.slice(i, end),
-                currencies: allCurrencies.slice(i, end),
-                batchIdx: batches.length,
-                isSecondHalf: i >= h1Count
-            });
-        }
-
-        if (batches.length === 0) return null;
-
-        // Spawn first batch
-        const firstBatch = batches.shift();
-        const hordeMods1 = Balance.getHordeModifiers(1);
-        const entryPath = this._pickEntryPath();
-        this._behaviorCounts = {};
-
-        const enemies = [];
-        for (let i = 0; i < firstBatch.positions.length; i++) {
-            const pos = firstBatch.positions[i];
-            const currencyType = Balance.getCurrencyBySymbol(firstBatch.currencies[i]);
-            if (!currencyType) continue;
-            const enemy = this.createEnemy(pos, currencyType, cycle, hordeMods1, i, entryPath, gameWidth);
-            enemies.push(enemy);
-        }
-
-        // Store remaining batches
-        this.pendingBatches = batches;
-        this.batchTimer = 0;
-        this.batchIndex = 1;
-        this.isStreaming = true;
-        this.streamingSpawnedCount = enemies.length;
+        // Store streaming state
+        this._streamingPhases = phases;
+        this._currentPhaseIndex = 0;
+        this._phasesSpawned = 0;
+        this._phaseTimer = 0;
         this._streamingCycle = cycle;
         this._streamingGameWidth = gameWidth;
-        this._streamingEntryPath = entryPath;
-        this._streamingH1Count = h1Count;
-
-        // Compute batch delay
-        const delays = isArcade ? streamCfg.BATCH_DELAY.ARCADE : streamCfg.BATCH_DELAY.STORY;
-        this._batchDelay = delays[cycleIdx] || 1.5;
-
+        this._behaviorCounts = {};
+        this.isStreaming = true;
+        this.streamingSpawnedCount = 0;
         this.hordeSpawned = true;
         this.waveInProgress = false;
-        // Don't increment wave yet — wave completes when all batches done + enemies dead
 
-        const movementPattern = this.getMovementPattern(formation);
-        dbg.log('WAVE', `[WM] Streaming: ${enemies.length} first batch, ${batches.length} pending, total ${totalCount}`);
+        // Spawn phase 0 immediately
+        const phaseData = this._spawnPhase(0, gameWidth);
+        if (!phaseData) return null;
 
-        return { enemies, pattern: movementPattern, isStreaming: true };
+        const movementPattern = this.getMovementPattern(phases[0].formation);
+        const totalCount = phases.reduce((s, p) => s + p.count, 0);
+        dbg.log('WAVE', `[WM] Streaming phases: ${phases.length} phases, phase0=${phaseData.enemies.length}, total~${totalCount}`);
+
+        return { enemies: phaseData.enemies, pattern: movementPattern, isStreaming: true };
     },
 
     /**
-     * Spawn next batch from pending queue
+     * Spawn a single phase — generate formation, create enemies, tag them
      */
-    spawnNextBatch() {
+    _spawnPhase(phaseIndex, gameWidth) {
         const G = window.Game;
         const Balance = G.Balance;
         const dbg = G.Debug;
 
-        if (!this.pendingBatches || this.pendingBatches.length === 0) {
-            this.isStreaming = false;
-            return null;
-        }
+        if (phaseIndex >= this._streamingPhases.length) return null;
 
-        const batch = this.pendingBatches.shift();
+        const phase = this._streamingPhases[phaseIndex];
         const cycle = this._streamingCycle || (window.marketCycle || 1);
-        const gameWidth = this._streamingGameWidth || G._gameWidth || 400;
-        const entryPath = this._streamingEntryPath || 'SINE';
+        const gw = gameWidth || this._streamingGameWidth || G._gameWidth || 400;
 
-        // Horde mods: use horde2 mods for second-half batches
-        const hordeNum = batch.isSecondHalf ? 2 : 1;
-        const hordeMods = Balance.getHordeModifiers(hordeNum);
+        // Generate formation for THIS phase's count
+        const positions = this.generateFormation(phase.formation, phase.count, gw);
 
-        // v5.32: Escalation — behaviors + fire rate increase per batch
-        const escCfg = Balance.STREAMING?.ESCALATION;
-        if (escCfg) {
-            hordeMods._behaviorEscalation = batch.batchIdx * (escCfg.BEHAVIOR_BONUS_PER_BATCH || 0.03);
-            hordeMods.fireRateMult *= 1 + batch.batchIdx * (escCfg.FIRE_RATE_PER_BATCH || 0.02);
+        // Assign currencies
+        const currencyAssignments = this.assignCurrencies(
+            positions,
+            phase.currencies,
+            cycle,
+            window.isBearMarket
+        );
+
+        // Horde mods: later phases get horde2-style bonuses
+        const hordeNum = phaseIndex === 0 ? 1 : 2;
+        const hordeMods = Object.assign({}, Balance.getHordeModifiers(hordeNum));
+
+        // Phase escalation
+        const escCfg = Balance.STREAMING?.PHASE_ESCALATION;
+        if (escCfg && phaseIndex > 0) {
+            hordeMods._behaviorEscalation = phaseIndex * (escCfg.BEHAVIOR_BONUS_PER_PHASE || 0.05);
+            hordeMods.fireRateMult *= 1 + phaseIndex * (escCfg.FIRE_RATE_PER_PHASE || 0.10);
         }
 
+        // Choose entry path
+        const entryPath = this._pickEntryPath();
+
+        // Spawn enemies
         const enemies = [];
-        for (let i = 0; i < batch.positions.length; i++) {
-            const pos = batch.positions[i];
-            const currencyType = Balance.getCurrencyBySymbol(batch.currencies[i]);
+        for (let i = 0; i < positions.length; i++) {
+            const pos = positions[i];
+            const currencyType = Balance.getCurrencyBySymbol(currencyAssignments[i]);
             if (!currencyType) continue;
             const globalIdx = this.streamingSpawnedCount + i;
-            const enemy = this.createEnemy(pos, currencyType, cycle, hordeMods, globalIdx, entryPath, gameWidth);
+            const enemy = this.createEnemy(pos, currencyType, cycle, hordeMods, globalIdx, entryPath, gw);
+            enemy._phaseIndex = phaseIndex;  // Tag for phase tracking
             enemies.push(enemy);
         }
 
+        // Update state
+        phase._spawnedCount = enemies.length;
+        this._phasesSpawned = phaseIndex + 1;
+        this._currentPhaseIndex = phaseIndex;
+        this._phaseTimer = 0;
         this.streamingSpawnedCount += enemies.length;
-        this.batchIndex++;
 
-        // Check if this was the last batch
-        if (this.pendingBatches.length === 0) {
+        // Increment wave when last phase is spawned
+        if (this._phasesSpawned >= this._streamingPhases.length) {
             this.wave++;
-            dbg.log('WAVE', `[WM] Streaming: last batch spawned, wave → ${this.wave}`);
+            dbg.log('WAVE', `[WM] Streaming: last phase spawned, wave → ${this.wave}`);
         }
 
-        dbg.log('WAVE', `[WM] Streaming batch #${batch.batchIdx}: ${enemies.length} enemies (${this.pendingBatches.length} remaining)`);
-        return { enemies, isBatch: true };
+        dbg.log('WAVE', `[WM] Phase #${phaseIndex}: ${enemies.length} enemies (${phase.formation}), ${this._streamingPhases.length - this._phasesSpawned} remaining`);
+        return { enemies, isPhase: true, phaseIndex };
+    },
+
+    /**
+     * Check if streaming wave is fully complete (all phases spawned + all dead)
+     */
+    isStreamingComplete() {
+        return this.isStreaming === false && this.streamingSpawnedCount > 0;
     },
 
     // ========================================

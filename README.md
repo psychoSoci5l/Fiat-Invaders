@@ -10,10 +10,10 @@
 *   **Responsive**: "Notch-safe" UI design that adapts to all mobile screens.
 *   **Localization**: Fully localized in English (EN) and Italian (IT).
 
-## 🧠 Current Gameplay Rules (v5.29)
+## 🧠 Current Gameplay Rules (v6.0)
 
 *   **Two Game Modes**: **Story Mode** (3 acts with narrative chapters, boss progression FED→BCE→BOJ, cinematic game completion video) and **Arcade Mode** ("Rogue Protocol" — roguelike modifier system, combo scoring, enhanced mini-bosses, infinite scaling).
-*   **Wave System**: 15 unique waves (5 per cycle × 3 cycles) with 16 formation patterns and thematic currency groups. Coordinated SALVO firing system with safe corridors.
+*   **Wave System**: 15 unique waves (5 per cycle × 3 cycles) with 16 formation patterns and thematic currency groups. Phase-based streaming: each wave has 2-3 independent phases that trigger dynamically based on alive count. Coordinated SALVO firing system with safe corridors.
 *   **Seamless Flow**: Waves transition instantly — no countdown between waves. 3→2→1→GO! countdown at game start. Boss-defeat celebrations with cinematic slowmo + chain explosions + coin rain.
 *   **HarmonicConductor**: Beat-synced enemy firing with wave intensity phases (Setup → Build → Panic).
 *   **Weapon Evolution**: 3-level system (Single → Dual → Triple MAX). Boss kills drop an **Evolution Core** with cinematic deploy animation. HYPER adds +2 temp levels (LV4-5). No weapon death penalty.
@@ -28,7 +28,7 @@
 *   **Arcade Rogue Protocol**: 15 roguelike modifiers (OFFENSE/DEFENSE/WILD) chosen after boss and mini-boss defeats. Combo scoring (chain kills for up to 5x multiplier). Aggressive pacing, post-C3 infinite scaling.
 *   **Dynamic Difficulty (Rank System)**: Game adapts to player skill in real-time (-1.0 to +1.0 rank).
 *   **3 Unique Bosses**: FED (Corrupted Printer pyramid), BCE (Star Fortress), BOJ (Golden Torii) with exclusive attack patterns, 3 phases each, and cinematic death sequences.
-*   **10 Fiat Currencies**: Each with unique shape, tier, and fire pattern. Cyber destruction with rectangular fragment particles and elemental tinting.
+*   **10 Fiat Currencies**: Each with unique shape, tier, and fire pattern. Elite Variants (Armored/Evader/Reflector, one per cycle). 4 enemy behaviors (Flanker/Bomber/Healer/Charger). Cyber destruction with rectangular fragment particles and elemental tinting.
 *   **Unified Combat HUD**: 48px message strip with animated fill bar for HYPER/GODCHAIN/HYPERGOD states. 5-tier score pulse system (MICRO to LEGENDARY).
 *   **Compact HUD**: Minimal 45px top bar with diegetic ship indicators (fin glow shield, cannon tint).
 *   **First-Run Tutorial**: Progressive 3-step mission briefing (Mission, Controls, Shield) with slide animations — separate content for Story vs Arcade, platform-aware (PC/mobile).
@@ -92,7 +92,6 @@ manifest.json    # PWA Configuration
 ## 📚 Docs
 
 * `CHANGELOG.md` — Running log of gameplay/visual changes.
-* `NOTES.md` — Current tuning knobs and balancing parameters.
 * `roadmap.md` — Medium/long‑term feature phases.
 
 ## 🧪 Dev Tips
@@ -187,3 +186,5 @@ All tuning is centralized in `src/config/BalanceConfig.js` via `window.Game.Bala
 ## 📜 Credits
 
 Created by [**psychoSocial**](https://www.psychosoci5l.com/) with **Claude**, **Antigravity**, **ChatGPT**, **Gemini**.
+
+v6.0.0 "RafaX Release" — dedicated to RafaX, for the encouragement and friendship.

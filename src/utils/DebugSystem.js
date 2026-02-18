@@ -2703,7 +2703,7 @@ window.Game.Debug = {
     },
 
     /**
-     * dbg.streaming() — Report streaming state
+     * dbg.streaming() — Report phase-based streaming state
      * Usage: dbg.streaming()
      */
     streaming() {
@@ -2713,16 +2713,34 @@ window.Game.Debug = {
             return;
         }
         const cfg = G.Balance?.STREAMING;
+        const phases = wm._streamingPhases || [];
         console.log('╔════════════════════════════════════════╗');
-        console.log('║         STREAMING FLOW STATUS          ║');
+        console.log('║       PHASE STREAMING STATUS           ║');
         console.log('╠════════════════════════════════════════╣');
         console.log(`║ Enabled:        ${cfg?.ENABLED ? 'YES' : 'NO'}`);
         console.log(`║ Active:         ${wm.isStreaming ? 'YES' : 'NO'}`);
-        console.log(`║ Pending batches:${(wm.pendingBatches || []).length}`);
-        console.log(`║ Batch index:    ${wm.batchIndex || 0}`);
-        console.log(`║ Spawned count:  ${wm.streamingSpawnedCount || 0}`);
-        console.log(`║ Batch timer:    ${(wm.batchTimer || 0).toFixed(2)}s`);
-        console.log(`║ Batch delay:    ${(wm._batchDelay || 0).toFixed(2)}s`);
+        console.log(`║ Total phases:   ${phases.length}`);
+        console.log(`║ Phases spawned: ${wm._phasesSpawned || 0}`);
+        console.log(`║ Current phase:  ${wm._currentPhaseIndex ?? '-'}`);
+        console.log(`║ Phase timer:    ${(wm._phaseTimer || 0).toFixed(2)}s`);
+        console.log(`║ Spawned total:  ${wm.streamingSpawnedCount || 0}`);
+        // Per-phase detail
+        if (phases.length > 0) {
+            console.log('║ ─── Phases ───');
+            const enemies = G.enemies || [];
+            for (let i = 0; i < phases.length; i++) {
+                const p = phases[i];
+                const spawned = i < (wm._phasesSpawned || 0);
+                let alive = 0;
+                if (spawned) {
+                    for (let j = 0; j < enemies.length; j++) {
+                        if (enemies[j] && enemies[j]._phaseIndex === i && !enemies[j].markedForDeletion) alive++;
+                    }
+                }
+                const status = spawned ? `alive:${alive}/${p._spawnedCount || '?'}` : 'pending';
+                console.log(`║   #${i}: ${p.formation} (${p.count}) → ${status}`);
+            }
+        }
         const enemies = G.enemies;
         if (enemies) {
             const settled = enemies.filter(e => e && e.hasSettled).length;
@@ -2738,7 +2756,7 @@ window.Game.Debug = {
      */
     waveReport() {
         console.log('╔════════════════════════════════════════╗');
-        console.log('║         v5.32 WAVE REPORT              ║');
+        console.log('║         v5.33 WAVE REPORT              ║');
         console.log('╠════════════════════════════════════════╣');
         const enemies = G.enemies || [];
         const elites = enemies.filter(e => e && e.isElite);

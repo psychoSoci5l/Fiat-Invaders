@@ -2871,6 +2871,62 @@ G.sendFeedback = function () {
 // What's New panel (v4.50, i18n v5.18)
 const WHATS_NEW = [
     {
+        version: 'v6.0', date: '2026-02-18',
+        title: { EN: '"RafaX Release" — Phase Streaming + Elite Variants', IT: '"RafaX Release" — Streaming a Fasi + Varianti Elite' },
+        items: {
+            EN: [
+                'Phase-based streaming: waves have 2-3 independent phases, each with own formation',
+                'Next phase triggers when most enemies are defeated — no screen flooding',
+                'Elite Variants: Armored (C1), Evader (C2), Reflector (C3) — one per cycle',
+                '4 enemy behaviors: Flanker, Bomber, Healer, Charger',
+                'Per-phase escalation: fire rate and behavior chance increase each phase'
+            ],
+            IT: [
+                'Streaming a fasi: le wave hanno 2-3 fasi indipendenti, ognuna con propria formazione',
+                'La fase successiva parte quando la maggior parte dei nemici \u00e8 sconfitta — niente sovraffollamento',
+                'Varianti Elite: Corazzato (C1), Evasore (C2), Riflettore (C3) — una per ciclo',
+                '4 comportamenti nemici: Flanker, Bombardiere, Guaritore, Caricatore',
+                'Escalation per fase: rateo di fuoco e probabilit\u00e0 comportamenti aumentano ogni fase'
+            ]
+        }
+    },
+    {
+        version: 'v5.31', date: '2026-02-18',
+        title: { EN: 'Shield Energy Skin + HYPER Rework', IT: 'Scudo Energy Skin + Rework HYPER' },
+        items: {
+            EN: [
+                'Shield redesigned as body-conforming energy skin with 4-layer glow',
+                'HYPER aura reworked: golden speed lines + horizontal timer bar replace circles',
+                'Bullet Banking: bullets follow ship movement slightly',
+                'Mobile hardening: blocked overscroll, contextmenu, gesture events'
+            ],
+            IT: [
+                'Scudo ridisegnato come skin energetica aderente al corpo con glow a 4 livelli',
+                'Aura HYPER rielaborata: speed lines dorate + barra timer orizzontale al posto dei cerchi',
+                'Bullet Banking: i proiettili seguono leggermente il movimento della nave',
+                'Hardening mobile: bloccati overscroll, contextmenu, eventi gesture'
+            ]
+        }
+    },
+    {
+        version: 'v5.30', date: '2026-02-18',
+        title: { EN: 'Ship Flight Dynamics', IT: 'Dinamica di Volo Nave' },
+        items: {
+            EN: [
+                '5 visual flight effects: Banking Tilt, Hover Bob, Asymmetric Thrust, Wing Vapor Trails, Squash & Stretch',
+                'Ship tilts smoothly when moving sideways with asymmetric recovery',
+                'Wing vapor trails appear at high speed, color-reactive for HYPER/GODCHAIN',
+                'All effects are visual-only with individual kill-switches'
+            ],
+            IT: [
+                '5 effetti visivi di volo: Inclinazione, Oscillazione, Spinta Asimmetrica, Scie Alari, Squash & Stretch',
+                'La nave si inclina fluidamente nei movimenti laterali con recupero asimmetrico',
+                'Scie di vapore alari ad alta velocit\u00e0, colore reattivo per HYPER/GODCHAIN',
+                'Tutti gli effetti sono solo visivi con kill-switch individuali'
+            ]
+        }
+    },
+    {
         version: 'v5.29', date: '2026-02-18',
         title: { EN: 'Game Over Redesign + OLED Deep Black', IT: 'Redesign Game Over + Nero OLED' },
         items: {
@@ -3408,7 +3464,6 @@ const WHATS_NEW = [
     }
 ];
 const WHATS_NEW_PLANNED = [
-    { EN: 'New enemy types & formations', IT: 'Nuovi tipi di nemici e formazioni' },
     { EN: 'Achievement system', IT: 'Sistema achievement' },
     { EN: 'New bosses', IT: 'Nuovi boss' }
 ];
@@ -4652,11 +4707,12 @@ function clearBattlefield(options) {
         addText(`+${bulletBonus} ${t('BULLET_BONUS')}`, gameWidth / 2, gameHeight / 2 + 50, '#0ff', 18);
     }
 
-    // v5.32: Clear danger zones and pending streaming batches
+    // v5.33: Clear danger zones and streaming phase state
     dangerZones.length = 0;
     bomberBombs.length = 0;
     if (waveMgr) {
-        waveMgr.pendingBatches = [];
+        waveMgr._streamingPhases = [];
+        waveMgr._phasesSpawned = 0;
         waveMgr.isStreaming = false;
     }
 }
@@ -5031,16 +5087,16 @@ function update(dt) {
             // Immediately start next wave (fall through to START_WAVE)
             waveAction.action = 'START_WAVE';
         }
-        // v5.32: SPAWN_BATCH — streaming flow adds enemies to existing array
-        if (waveAction.action === 'SPAWN_BATCH') {
-            const batchData = waveMgr.spawnNextBatch();
-            if (batchData && batchData.enemies.length > 0) {
-                for (let bi = 0; bi < batchData.enemies.length; bi++) {
-                    enemies.push(batchData.enemies[bi]);
+        // v5.33: SPAWN_PHASE — phase-based streaming adds enemies to existing array
+        if (waveAction.action === 'SPAWN_PHASE') {
+            const phaseData = waveMgr._spawnPhase(waveAction.phaseIndex, gameWidth);
+            if (phaseData && phaseData.enemies.length > 0) {
+                for (let pi = 0; pi < phaseData.enemies.length; pi++) {
+                    enemies.push(phaseData.enemies[pi]);
                 }
                 G.enemies = enemies;
                 if (G.HarmonicConductor) G.HarmonicConductor.enemies = enemies;
-                G.Debug.log('WAVE', `[WAVE] Batch appended: +${batchData.enemies.length} → ${enemies.length} total`);
+                G.Debug.log('WAVE', `[WAVE] Phase ${waveAction.phaseIndex} appended: +${phaseData.enemies.length} → ${enemies.length} total`);
             }
         }
 

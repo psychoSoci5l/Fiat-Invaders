@@ -27,7 +27,7 @@ Only **project files** belong in git. Personal/dev files stay local, excluded by
 **ON git** (project):
 - Source code (`src/`, `index.html`, `style.css`, `sw.js`)
 - Assets (`icon-512.png`, `splashscreen.mp4`, `manifest.json`, `_headers`)
-- Docs (`README.md`, `CLAUDE.md`, `CHANGELOG.md`, `roadmap.md`, `PRIVACY.md`, `NOTES.md`)
+- Docs (`README.md`, `CLAUDE.md`, `CHANGELOG.md`, `roadmap.md`, `PRIVACY.md`)
 - Tests (`tests/`)
 - `.gitignore`
 
@@ -108,8 +108,8 @@ Detailed tables, parameters, and implementation specifics → **SYSTEM_REFERENCE
 - **Difficulty & Rank** — `Balance.DIFFICULTY` / `Balance.RANK`. +8%/lvl, +20%/cycle, cap 85%, Bear Market 1.3×, dynamic rank ±1
 - **Weapon Evolution** — `Balance.WEAPON_EVOLUTION`. Linear 3-level system (Single→Dual→Triple MAX). Boss Evolution Core upgrades (cinematic deploy VFX). HYPER adds +2 temp levels. 3 specials (HOMING/PIERCE/MISSILE, 8s). 2 utilities (SHIELD 5s/SPEED 8s). Death: no weapon penalty, lose special
 - **GODCHAIN** — `Balance.GODCHAIN`. Activates when 3 elemental perks collected (10s timer, re-triggerable via further bullet cancels)
-- **Enemy System** — `Balance.ENEMY_BEHAVIOR`. 10 currencies, 3 tiers, 4 shapes. Fire budget: C1=25/C2=45/C3=70 bullets/sec
-- **Wave System** — `Balance.WAVE_DEFINITIONS`. 15 waves (5×3 cycles), 16 formations. Arcade post-C3: cycles through C1-C3 definitions with formation remix
+- **Enemy System** — `Balance.ENEMY_BEHAVIOR`. 10 currencies, 3 tiers, 4 shapes. Fire budget: C1=25/C2=45/C3=70 bullets/sec. **Elite Variants** (`Balance.ELITE_VARIANTS`): 1 per cycle — C1 Armored, C2 Evader, C3 Reflector. MEDIUM+STRONG only, 10/15/20% chance. **Enemy Behaviors** (`Balance.ENEMY_BEHAVIORS`): Flanker (C1W3+), Bomber (C2W1+), Healer (C2W3+), Charger (C2W2+). Kill-switches per feature
+- **Wave System** — `Balance.WAVE_DEFINITIONS`. 15 waves (5x3 cycles), 16 formations. **Phase-based streaming** (`Balance.STREAMING`): each wave has 2-3 phases with own formation/count/currencies. Next phase triggers at <=35% alive (`PHASE_TRIGGER`). `MAX_CONCURRENT_ENEMIES: 22` hard cap. Per-phase escalation (+10% fire, +5% behavior). `prepareStreamingWave()`+`spawnNextPhase()` in WaveManager. Kill-switch: `STREAMING.ENABLED`. Arcade post-C3: cycles through C1-C3 definitions with formation remix
 - **Boss System** — `Balance.BOSS`. FED/BCE/BOJ, 3 phases each, HP formula in config, rotation `marketCycle % 3`
 - **Drop System** — `Balance.ADAPTIVE_DROPS`. Rates 3%/2.5%/1% by tier, pity 30 kills, adaptive suppression. 3 categories: SPECIAL/UTILITY/PERK. Adaptive Drop Balancer (struggle/domination detection). Guaranteed SPECIAL pre-boss (wave 4+)
 - **Collision** — `CollisionSystem.js`. 4 loops, callback pattern, init via `initCollisionSystem()`
@@ -132,7 +132,7 @@ Detailed tables, parameters, and implementation specifics → **SYSTEM_REFERENCE
 - **Color Palette (v4.53 Cyberpunk)** — Neon Violet `#bb44ff` (UI buttons/accents), Neon Magenta `#ff2d95` (FIAT/danger), Neon Cyan `#00f0ff` (CRYPTO/info/shield), Gold `#ffaa00` (HUD score only), Neon Green `#39ff14` (boss eyes/success), Deep Space `#030308→#0a0825` (backgrounds). Enemy outlines use `_colorDark50` (tinted, not flat black)
 - **Additive Glow** — `Balance.GLOW`. `'lighter'` on player elements. Kill-switch: `GLOW.ENABLED = false`. Visual rule: "glow = collect, dark = avoid"
 - **Sky & Background** — `Balance.SKY`. Nebula violet→void gradients, stars from L1, firefly particles (cyan/magenta). Off-screen caching via `Balance.SKY.OFFSCREEN`
-- **Batch Rendering** — Multi-pass pipeline (standard → additive), ~30% less canvas state changes
+- **Render Pipeline** — Multi-pass pipeline (standard → additive), ~30% less canvas state changes
 - **Responsive Formations** — `Balance.FORMATION.RESPONSIVE`. Spacing scales with screen width. Kill-switch: `RESPONSIVE: false`
 - **Muzzle Flash** — `Balance.VFX.MUZZLE_FLASH`. Canvas V-flash at actual cannon positions (nose/pods/barrel per level). 3-layer diamond, elemental tinting, `ENABLED` kill-switch
 - **Weapon Deploy** — `Balance.VFX.WEAPON_DEPLOY`. Mechanical slide-out animation on weapon upgrade (0.35s ease-out-back). LV1 nose barrel always visible. Geometry cache `_geom` (incl. `finExt`) shared with muzzle flash. `ENABLED` kill-switch
@@ -147,7 +147,7 @@ Detailed tables, parameters, and implementation specifics → **SYSTEM_REFERENCE
 - **Audio System** — `Balance.AUDIO`. Procedural music (MusicData.js), separate Music/SFX gain. `toggleMusic()`/`toggleSfx()`. Bear market: -1 semitone, +10% tempo
 
 ### Debug
-- **Debug System** — `dbg.*` console API. Key commands: `dbg.balanceTest()`, `dbg.report()`, `dbg.hitboxes()`, `dbg.maxWeapon()`, `dbg.arcade()`, `dbg.arcadeHelp()`. Full reference in SYSTEM_REFERENCE.md
+- **Debug System** — `dbg.*` console API. Key commands: `dbg.balanceTest()`, `dbg.report()`, `dbg.hitboxes()`, `dbg.maxWeapon()`, `dbg.arcade()`, `dbg.arcadeHelp()`, `dbg.elites()`, `dbg.behaviors()`, `dbg.streaming()`, `dbg.waveReport()`, `dbg.toggleElites()`, `dbg.toggleBehaviors()`, `dbg.toggleStreaming()`. Full reference in SYSTEM_REFERENCE.md
 
 ---
 

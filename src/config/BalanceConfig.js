@@ -636,20 +636,22 @@
             }
         },
 
-        // --- STREAMING ENEMY FLOW v5.32 ---
+        // --- STREAMING ENEMY FLOW v5.33 (Phase-Based) ---
         STREAMING: {
             ENABLED: true,
-            BATCH_SIZE: [5, 6, 7],
-            BATCH_DELAY: {
-                STORY: [2.0, 1.8, 1.5],
-                ARCADE: [1.2, 1.0, 0.8]
+            PHASE_TRIGGER: {
+                THRESHOLD_RATIO: 0.35,      // Spawn next phase when <=35% alive from current phase
+                MIN_THRESHOLD: 3,           // At least 3 remaining to trigger
+                MAX_THRESHOLD: 6,           // At most 6 remaining to trigger
+                MIN_PHASE_DURATION: 3.0     // Minimum seconds before next phase can trigger
             },
-            ESCALATION: {
-                BEHAVIOR_BONUS_PER_BATCH: 0.03,
-                FIRE_RATE_PER_BATCH: 0.02
+            PHASE_ESCALATION: {
+                FIRE_RATE_PER_PHASE: 0.10,      // +10% fire rate per phase index
+                BEHAVIOR_BONUS_PER_PHASE: 0.05  // +5% behavior chance per phase index
             },
-            GRID_SETTLE_THRESHOLD: 0.5,
-            FIRE_GRACE_AFTER_BATCH: 0.3
+            MAX_CONCURRENT_ENEMIES: 22,     // Hard cap: never more than this alive
+            GRID_SETTLE_THRESHOLD: 0.5,     // Grid moves when >=50% settled
+            FIRE_GRACE_AFTER_PHASE: 0.5     // Brief fire grace after new phase spawns
         },
 
         // --- PATTERN DENSITY (Per Cycle) ---
@@ -1430,90 +1432,124 @@
                 FORCE_STRONG: true          // Force strong enemies in mix
             },
 
-            // Wave definitions: cycle, wave, name, formation, counts, currencies
-            // v4.0.3: H2 formations diversified (complementary pairing for visual variety)
-            // v4.14: All counts +25% (ceil) — rebalanced for smaller 48px enemies
+            // Wave definitions v5.33: Phase-based streaming
+            // Each wave has phases[] — each phase is an independent formation
+            // Phases spawn sequentially when previous phase is nearly cleared
             WAVES: [
-                // === CYCLE 1: "AWAKENING" (Tutorial — top-heavy, simple formations) ===
-                // v4.57: +1 row (~4-5 enemies/horde) across all waves — fuller formations
+                // === CYCLE 1: "AWAKENING" (Tutorial — simple formations, 2 phases) ===
                 {
                     cycle: 1, wave: 1, name: 'First Contact',
-                    horde1: { count: 22, formation: 'RECT', currencies: ['¥', '₽', '₹'] },
-                    horde2: { count: 19, formation: 'RECT', currencies: ['¥', '₽', '₹'] }
+                    phases: [
+                        { count: 14, formation: 'RECT', currencies: ['¥', '₽', '₹'] },
+                        { count: 12, formation: 'RECT', currencies: ['¥', '₽', '₹'] }
+                    ]
                 },
                 {
                     cycle: 1, wave: 2, name: 'European Dawn',
-                    horde1: { count: 24, formation: 'WALL', currencies: ['¥', '₽', '€'] },
-                    horde2: { count: 22, formation: 'RECT', currencies: ['₹', '£'] }
+                    phases: [
+                        { count: 15, formation: 'WALL', currencies: ['¥', '₽', '€'] },
+                        { count: 13, formation: 'ARROW', currencies: ['₹', '£'] }
+                    ]
                 },
                 {
                     cycle: 1, wave: 3, name: 'Old World',
-                    horde1: { count: 25, formation: 'ARROW', currencies: ['€', '£', '₣'] },
-                    horde2: { count: 24, formation: 'WALL', currencies: ['₺', '€', '£'] }
+                    phases: [
+                        { count: 16, formation: 'ARROW', currencies: ['€', '£', '₣'] },
+                        { count: 14, formation: 'DIAMOND', currencies: ['₺', '€', '£'] }
+                    ]
                 },
                 {
                     cycle: 1, wave: 4, name: 'Dollar Emerges',
-                    horde1: { count: 28, formation: 'DIAMOND', currencies: ['€', '₣', '$'] },
-                    horde2: { count: 25, formation: 'ARROW', currencies: ['£', '₺', '元'] }
+                    phases: [
+                        { count: 17, formation: 'DIAMOND', currencies: ['€', '₣', '$'] },
+                        { count: 15, formation: 'WALL', currencies: ['£', '₺', '元'] }
+                    ]
                 },
                 {
                     cycle: 1, wave: 5, name: 'Global Alliance',
-                    horde1: { count: 29, formation: 'WALL', currencies: ['¥', '€', '$', '元'] },
-                    horde2: { count: 28, formation: 'DIAMOND', currencies: ['₽', '£', '₣', 'Ⓒ'] }
+                    phases: [
+                        { count: 18, formation: 'WALL', currencies: ['¥', '€', '$', '元'] },
+                        { count: 16, formation: 'DIAMOND', currencies: ['₽', '£', '₣', 'Ⓒ'] }
+                    ]
                 },
 
-                // === CYCLE 2: "CONFLICT" (Learning — still top-heavy, slightly more varied) ===
+                // === CYCLE 2: "CONFLICT" (Learning — varied formations, some 3-phase) ===
                 {
                     cycle: 2, wave: 1, name: 'Eastern Front',
-                    horde1: { count: 26, formation: 'RECT', currencies: ['¥', '元', '₹'] },
-                    horde2: { count: 24, formation: 'WALL', currencies: ['¥', '元', '₽'] }
+                    phases: [
+                        { count: 16, formation: 'RECT', currencies: ['¥', '元', '₹'] },
+                        { count: 14, formation: 'WALL', currencies: ['¥', '元', '₽'] }
+                    ]
                 },
                 {
                     cycle: 2, wave: 2, name: 'Brussels Burns',
-                    horde1: { count: 28, formation: 'CHEVRON', currencies: ['€', '₣', '£'] },
-                    horde2: { count: 26, formation: 'PINCER', currencies: ['€', '₣', '₺'] }
+                    phases: [
+                        { count: 17, formation: 'CHEVRON', currencies: ['€', '₣', '£'] },
+                        { count: 15, formation: 'PINCER', currencies: ['€', '₣', '₺'] }
+                    ]
                 },
                 {
                     cycle: 2, wave: 3, name: 'Reserve War',
-                    horde1: { count: 31, formation: 'WALL', currencies: ['$', '€', '£'] },
-                    horde2: { count: 28, formation: 'FORTRESS', currencies: ['$', '元', 'Ⓒ'] }
+                    phases: [
+                        { count: 18, formation: 'WALL', currencies: ['$', '€', '£'] },
+                        { count: 16, formation: 'FORTRESS', currencies: ['$', '元', 'Ⓒ'] }
+                    ]
                 },
                 {
                     cycle: 2, wave: 4, name: 'BRICS Rising',
-                    horde1: { count: 33, formation: 'ARROW', currencies: ['₽', '₹', '₺', '$'] },
-                    horde2: { count: 30, formation: 'WALL', currencies: ['元', 'Ⓒ', '$'] }
+                    phases: [
+                        { count: 18, formation: 'ARROW', currencies: ['₽', '₹', '₺', '$'] },
+                        { count: 15, formation: 'WALL', currencies: ['元', 'Ⓒ', '$'] },
+                        { count: 12, formation: 'CHEVRON', currencies: ['₽', '₹', '元'] }
+                    ]
                 },
                 {
                     cycle: 2, wave: 5, name: 'Final Stand',
-                    horde1: { count: 35, formation: 'FORTRESS', currencies: ['$', '元', 'Ⓒ', '€'] },
-                    horde2: { count: 32, formation: 'WALL', currencies: ['$', '元', 'Ⓒ', '₣'] }
+                    phases: [
+                        { count: 18, formation: 'FORTRESS', currencies: ['$', '元', 'Ⓒ', '€'] },
+                        { count: 16, formation: 'WALL', currencies: ['$', '元', 'Ⓒ', '₣'] },
+                        { count: 14, formation: 'ARROW', currencies: ['Ⓒ', '$', '€'] }
+                    ]
                 },
 
-                // === CYCLE 3: "RECKONING" (Skilled) ===
+                // === CYCLE 3: "RECKONING" (Skilled — complex formations, 2-3 phases) ===
                 {
                     cycle: 3, wave: 1, name: 'Digital Doom',
-                    horde1: { count: 31, formation: 'VORTEX', currencies: ['Ⓒ', '€', '$'] },
-                    horde2: { count: 28, formation: 'HURRICANE', currencies: ['Ⓒ', '元', '£'] }
+                    phases: [
+                        { count: 18, formation: 'VORTEX', currencies: ['Ⓒ', '€', '$'] },
+                        { count: 16, formation: 'HURRICANE', currencies: ['Ⓒ', '元', '£'] }
+                    ]
                 },
                 {
                     cycle: 3, wave: 2, name: 'Pincer Attack',
-                    horde1: { count: 33, formation: 'FLANKING', currencies: ['$', '元', 'Ⓒ'] },
-                    horde2: { count: 31, formation: 'SPIRAL', currencies: ['€', '£', '₣', '$'] }
+                    phases: [
+                        { count: 20, formation: 'FLANKING', currencies: ['$', '元', 'Ⓒ'] },
+                        { count: 18, formation: 'SPIRAL', currencies: ['€', '£', '₣', '$'] }
+                    ]
                 },
                 {
                     cycle: 3, wave: 3, name: 'Escalation',
-                    horde1: { count: 36, formation: 'STAIRCASE', currencies: ['¥', '₽', '₹', '€', '£', '₣', '₺', '$', '元', 'Ⓒ'] },
-                    horde2: { count: 33, formation: 'STAIRCASE_REVERSE', currencies: ['$', '元', 'Ⓒ', '₺', '₣', '£', '€', '₹', '₽', '¥'] }
+                    phases: [
+                        { count: 20, formation: 'STAIRCASE', currencies: ['¥', '₽', '₹', '€', '£', '₣', '₺', '$', '元', 'Ⓒ'] },
+                        { count: 18, formation: 'STAIRCASE_REVERSE', currencies: ['$', '元', 'Ⓒ', '₺', '₣', '£', '€', '₹', '₽', '¥'] },
+                        { count: 14, formation: 'WALL', currencies: ['$', '元', 'Ⓒ'] }
+                    ]
                 },
                 {
                     cycle: 3, wave: 4, name: 'Eye of Storm',
-                    horde1: { count: 38, formation: 'HURRICANE', currencies: ['¥', '₽', '₹', '€', '£', '₣', '₺', '$', '元', 'Ⓒ'] },
-                    horde2: { count: 35, formation: 'VORTEX', currencies: ['$', '元', 'Ⓒ'] }
+                    phases: [
+                        { count: 22, formation: 'HURRICANE', currencies: ['¥', '₽', '₹', '€', '£', '₣', '₺', '$', '元', 'Ⓒ'] },
+                        { count: 20, formation: 'VORTEX', currencies: ['$', '元', 'Ⓒ'] },
+                        { count: 16, formation: 'FORTRESS', currencies: ['Ⓒ', '$', '€'] }
+                    ]
                 },
                 {
                     cycle: 3, wave: 5, name: 'Endgame',
-                    horde1: { count: 40, formation: 'FINAL_FORM', currencies: ['$', '元', 'Ⓒ', '€', '£', '₣'] },
-                    horde2: { count: 36, formation: 'FINAL_FORM', currencies: ['Ⓒ', 'Ⓒ', 'Ⓒ', '$', '元'] }
+                    phases: [
+                        { count: 22, formation: 'FINAL_FORM', currencies: ['$', '元', 'Ⓒ', '€', '£', '₣'] },
+                        { count: 20, formation: 'FINAL_FORM', currencies: ['Ⓒ', 'Ⓒ', 'Ⓒ', '$', '元'] },
+                        { count: 18, formation: 'WALL', currencies: ['Ⓒ', '$', '元'] }
+                    ]
                 }
             ],
 
@@ -1562,7 +1598,7 @@
             START_Y: 130,             // v5.4.0: 80→130, clears HUD zone (enemy top edge at ~101px, below strip ~95px)
             MARGIN: 60,               // Left/right margin for scatter/wall
             MAX_Y_RATIO: 0.55,        // v4.37: 0.65→0.55, enemies don't descend past 55% — more breathing room
-            MAX_Y_RATIO_BY_CYCLE: [0.38, 0.38, 0.55],  // v4.40: C1+C2 top-heavy (38%), C3 expands (55%)
+            MAX_Y_RATIO_BY_CYCLE: [0.48, 0.50, 0.58],  // v5.33: expanded for phase-based streaming (12-18 enemies per phase)
             MAX_Y_PIXEL: 500,         // v4.48: absolute Y cap (prevents overflow on tall screens)
             CHEVRON_Y_MULT: 0.55,     // v4.16: Y-spacing multiplier for CHEVRON (was 0.75, caused overflow with high counts)
             SPIRAL_CENTER_Y_OFFSET: 100, // Spiral center Y offset from startY
@@ -2611,18 +2647,19 @@
 
             const base = defs.find(w => w.cycle === effectiveCycle && w.wave === waveInCycle) || null;
 
-            // Cycle 4+: remix formations
+            // Cycle 4+: remix formations (randomize phase formations)
             if (base && cycle >= 4) {
                 const allFormations = ['DIAMOND', 'ARROW', 'PINCER', 'CHEVRON', 'FORTRESS', 'SCATTER',
                     'SPIRAL', 'CROSS', 'WALL', 'GAUNTLET', 'VORTEX', 'FLANKING', 'STAIRCASE',
                     'HURRICANE', 'FINAL_FORM', 'BTC_SYMBOL', 'DOLLAR_SIGN', 'EURO_SIGN', 'YEN_SIGN', 'POUND_SIGN'];
                 const remixChance = (_isArcade && arcadeCfg) ? arcadeCfg.POST_C3_FORMATION_REMIX : 0.30;
                 const clone = JSON.parse(JSON.stringify(base));
-                if (Math.random() < remixChance) {
-                    clone.horde1.formation = allFormations[Math.floor(Math.random() * allFormations.length)];
-                }
-                if (Math.random() < remixChance) {
-                    clone.horde2.formation = allFormations[Math.floor(Math.random() * allFormations.length)];
+                if (clone.phases) {
+                    for (const phase of clone.phases) {
+                        if (Math.random() < remixChance) {
+                            phase.formation = allFormations[Math.floor(Math.random() * allFormations.length)];
+                        }
+                    }
                 }
                 return clone;
             }
