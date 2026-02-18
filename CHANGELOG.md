@@ -1,5 +1,34 @@
 # Changelog
 
+## v6.5.4 - 2026-02-18
+
+### Remove PaperTear + Privacy Scroll Fix
+- **remove(intro)**: Removed "Digital Scanline Void" (PaperTear) system — neon violet line no longer renders behind Dynamic Island
+- Deleted `src/systems/PaperTear.js`, removed script tag, config block (`Balance.PAPER_TEAR`), and all 9 references in main.js
+- SPLASH→SELECTION transition now instant (no closing animation), TitleAnimator handles title reveal independently
+- **fix(privacy)**: Privacy panel now scrolls on iOS with `-webkit-overflow-scrolling: touch` + `touch-action: pan-y`
+
+## v6.5.3 - 2026-02-18
+
+### Full-Bleed Canvas (iOS PWA)
+- **feat(layout)**: Canvas now renders behind Dynamic Island and home indicator on iOS PWA
+- Game container set to `top: 0; bottom: 0` (full viewport) instead of being inset by safe areas
+- HUD, buttons, ship, and all interactive elements remain safely inside `--safe-top` / `--safe-bottom` via CSS vars
+- Starfield, nebula, and particles now fill the entire screen — enemies enter from behind the notch
+- ~93px of extra visual canvas on iPhone 14 Pro+ (59px top + 34px bottom)
+- No gameplay impact: all touch targets and entity positions already use safe area offsets
+- No regression on Safari browser, Android, or desktop (`_isIOS` + `isPWA` guard)
+
+## v6.5.2 - 2026-02-18
+
+### Dynamic Island Safe Area Fix
+- **fix(layout)**: Title hidden behind Dynamic Island on iPhone 14 Pro+ in Safari browser mode
+- `env(safe-area-inset-top)` returns 0 in Safari, but `viewport-fit=cover` extends content behind status bar
+- New `--di-safe-top` CSS var (set via `resize()` heuristic) targets only static screens: intro, gameover, manual, debug overlay
+- Gameplay HUD (`--safe-top`) untouched — no double-offset on message-strip, pause button, or score bar
+- Self-deactivating: if future Safari returns correct `env()` value, heuristic is skipped
+- No regression on PWA mode, Android, desktop, or non-Dynamic Island iPhones
+
 ## v6.5.1 - 2026-02-18
 
 ### "Clean Slate" — Code Consolidation

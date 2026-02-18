@@ -1616,7 +1616,6 @@ function _doEnterSelection() {
     // v4.35: Hide title animator and clean up anim classes
     if (G.TitleAnimator) G.TitleAnimator.hide();
     _cleanupAnimClasses();
-    if (G.PaperTear) G.PaperTear.reset();
 
     // Hide splash elements
     const title = document.getElementById('intro-title');
@@ -1659,12 +1658,6 @@ function _doEnterSelection() {
 
 window.enterSelectionState = function() {
     if (introState === 'SELECTION') return;
-    // v4.43: Close paper tear first, then transition
-    if (G.PaperTear && G.PaperTear.isOpen()) {
-        _introActionCooldown = 0.8;
-        G.PaperTear.close(_doEnterSelection);
-        return;
-    }
     _doEnterSelection();
 }
 
@@ -1677,8 +1670,6 @@ window.goBackToModeSelect = function() {
     if (G.TitleAnimator && !G.TitleAnimator.isActive()) {
         G.TitleAnimator.start(true);
     }
-    // v4.43: Reopen paper tear
-    if (G.PaperTear) G.PaperTear.open();
 
     // Hide selection elements
     const header = document.getElementById('selection-header');
@@ -1715,8 +1706,6 @@ window.goBackToModeSelect = function() {
 window.handlePrimaryAction = function() {
     // v4.35: Cooldown prevents rapid-fire state transitions
     if (_introActionCooldown > 0) return;
-    // v4.43: Block during paper tear closing
-    if (G.PaperTear && G.PaperTear.isAnimating() && !G.PaperTear.isOpen()) return;
     if (introState === 'SPLASH') {
         // v4.35: Skip animation on button tap during ANIMATING
         if (G.TitleAnimator && G.TitleAnimator.isAnimating()) {
@@ -2400,7 +2389,6 @@ function init() {
             if (G.SkyRenderer) G.SkyRenderer.init(gameWidth, gameHeight);
     if (G.WeatherController) G.WeatherController.init(gameWidth, gameHeight);
     if (G.WeatherController) G.WeatherController.setIntroMode();
-    if (G.PaperTear) { G.PaperTear.init(gameWidth, gameHeight); G.PaperTear.open(); }
 
             // Restore campaign mode UI state (v4.8: sync UI with stored preference)
             if (G.CampaignState) {
@@ -2479,8 +2467,6 @@ function init() {
         else if (gameState === 'INTRO') {
             // v4.35: Cooldown prevents rapid-fire state transitions (key repeat)
             if (_introActionCooldown > 0) return;
-            // v4.43: Block tap during paper tear closing animation
-            if (G.PaperTear && G.PaperTear.isAnimating() && !G.PaperTear.isOpen()) return;
             // v4.35: Skip title animation on tap during ANIMATING
             if (introState === 'SPLASH' && G.TitleAnimator && G.TitleAnimator.isAnimating()) {
                 G.TitleAnimator.skip();
@@ -2626,13 +2612,22 @@ function resize() {
         if (vpTop < 20 && screen.height >= 812) vpTop = 59;
         if (vpBot < 10 && screen.height >= 812) vpBot = 34;
 
-        gameContainer.style.top = vpTop + 'px';
-        gameContainer.style.bottom = vpBot + 'px';
+        // Full-bleed: canvas renders behind notch & home indicator
+        gameContainer.style.top = '0px';
+        gameContainer.style.bottom = '0px';
 
-        // Container handles safe areas — children see safe=0
-        safeTop = 0;
-        safeBottom = 0;
+        // Children handle safe offsets via --safe-top / --safe-bottom
+        safeTop = vpTop;
+        safeBottom = vpBot;
     }
+
+    // Dynamic Island heuristic for iOS Safari browser (not PWA).
+    // env(safe-area-inset-top) returns 0 in Safari, but viewport-fit=cover
+    // extends content behind status bar. Only affects static screens (intro,
+    // gameover) via --di-safe-top; gameplay HUD uses --safe-top (unchanged).
+    // Self-deactivating: if future Safari returns correct env(), safeTop > 10 skips this.
+    const diSafeTop = (_isIOS && !window.isPWA && safeTop < 10 && screen.height >= 852) ? 59 : safeTop;
+    document.documentElement.style.setProperty('--di-safe-top', diSafeTop + 'px');
 
     // CSS vars: container-level (for elements inside game-container)
     document.documentElement.style.setProperty('--safe-top', safeTop + 'px');
@@ -4028,8 +4023,6 @@ window.backToIntro = function () {
             G.TitleAnimator.init(gameWidth, gameHeight, {});
             G.TitleAnimator.start(true);
         }
-        // v4.43: Reinit and reopen paper tear
-        if (G.PaperTear) { G.PaperTear.init(gameWidth, gameHeight); G.PaperTear.open(); }
 
         // Reopen curtain
         setTimeout(() => {
@@ -5559,11 +5552,6 @@ function draw() {
         G.WeatherController.draw(ctx, { isBearMarket, level, bossActive: boss && boss.active });
     }
 
-    // v4.43: Paper tear void (drawn on canvas, visible through transparent intro-screen DOM)
-    if (gameState === 'INTRO' && G.PaperTear && G.PaperTear.isActive()) {
-        G.PaperTear.draw(ctx);
-    }
-
     // v4.35: Title animation particles (drawn on canvas through transparent intro-screen)
     if (gameState === 'INTRO' && G.TitleAnimator && G.TitleAnimator.isActive()) {
         G.TitleAnimator.draw(ctx);
@@ -6335,14 +6323,6 @@ function loop(timestamp) {
         G.TitleAnimator.update(dt);
     }
 
-    // v4.43: Paper tear animation + DOM title opacity sync
-    if (gameState === 'INTRO' && G.PaperTear) {
-        var tp = G.PaperTear.update(dt);
-        if (G.PaperTear.isActive() || G.PaperTear.isAnimating()) {
-            var titleEl = document.getElementById('intro-title');
-            if (titleEl && introState === 'SPLASH') titleEl.style.opacity = tp;
-        }
-    }
 
     // STORY_SCREEN: Update story display, skip normal game update
     if (gameState === 'STORY_SCREEN' && G.StoryScreen) {

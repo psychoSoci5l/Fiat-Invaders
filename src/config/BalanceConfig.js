@@ -2383,43 +2383,6 @@
             }
         },
 
-        // --- PAPER TEAR v4.43 ---
-        PAPER_TEAR: {
-            ENABLED: true,
-            OPEN_DURATION: 1.2,
-            CLOSE_DURATION: 0.6,
-            CENTER_Y_RATIO: 0.32,
-            VOID_HALF_HEIGHT_RATIO: 0.30,
-            VOID_COLOR: [5, 5, 15],
-            VOID_ALPHA: 0.92,
-            SCANLINE: {
-                COLOR: [187, 68, 255],      // neon violet
-                GLOW_SIZE: 8,
-                GLOW_ALPHA: 0.4,
-                LINE_WIDTH: 2,
-                LINE_ALPHA: 0.9,
-                SHIMMER_SPEED: 3,
-                SHIMMER_AMOUNT: 0.15
-            },
-            GLITCH: {
-                COUNT: 4,
-                LENGTH_MIN: 30,
-                LENGTH_MAX: 120,
-                OFFSET_MIN: 2,
-                OFFSET_MAX: 8,
-                REFRESH_RATE: 0.08,
-                ALPHA: 0.6
-            },
-            VOID_SCANLINES: {
-                SPACING: 3,
-                ALPHA: 0.03
-            },
-            FLASH: {
-                DURATION: 0.1,
-                ALPHA: 0.3
-            }
-        },
-
         // --- TITLE ANIMATION v4.35 ---
         TITLE_ANIM: {
             ENABLED: true,                // false = skip animation, show everything immediately

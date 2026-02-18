@@ -807,7 +807,7 @@ body {
     flex-direction: column;
     justify-content: flex-start;
     align-items: center;
-    padding-top: max(25px, calc(10px + var(--safe-top, 0px)));
+    padding-top: max(25px, calc(10px + var(--di-safe-top, 0px)));
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     z-index: 250; /* v4.21: Above all game elements (touchControls=200, ui-layer=120) */
@@ -826,7 +826,7 @@ body {
     align-items: center;
     z-index: 110;
     padding: 24px 32px;
-    padding-top: max(24px, var(--safe-top, 0px));
+    padding-top: max(24px, var(--di-safe-top, 0px));
     padding-bottom: max(24px, var(--safe-bottom, 0px));
     box-sizing: border-box;
     gap: 0;
@@ -1128,7 +1128,7 @@ body {
 /* Bottom icons */
 .intro-icons {
     position: absolute;
-    bottom: max(50px, calc(16px + var(--safe-bottom, 0px)));
+    bottom: max(64px, calc(30px + var(--safe-bottom, 0px)));
     display: flex;
     gap: 32px;
 }
@@ -2595,7 +2595,7 @@ body.bear-mode .neon-title {
 @media (max-height: 740px) {
     #intro-screen,
     #gameover-screen {
-        padding-top: max(10px, var(--safe-top, 0px));
+        padding-top: max(10px, var(--di-safe-top, 0px));
     }
     .terminal-boot {
         margin-top: 18px;
@@ -3689,8 +3689,11 @@ body.bear-mode .neon-title {
     border-radius: 8px;
     padding: 15px;
     margin: 15px 0;
-    max-height: 50vh;
-    overflow-y: auto;
+    max-height: 60vh;
+    overflow-y: scroll;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    overscroll-behavior: contain;
     font-size: 13px;
     line-height: 1.5;
     color: #ccc;
@@ -4787,7 +4790,7 @@ body.is-touch p.mobile-only { display: block; }
     .manual-title {
         font-size: 18px;
         padding: 14px 15px 10px;
-        padding-top: calc(14px + var(--safe-top, 0px)); /* v4.21: iPhone notch */
+        padding-top: calc(14px + var(--di-safe-top, 0px)); /* v4.21: iPhone notch */
     }
 
     .manual-v2 .manual-scroll {
@@ -5560,6 +5563,9 @@ body.is-touch p.mobile-only { display: block; }
         max-height: 100vh;
         height: 100%;
         max-width: 100%;
+    }
+    .debug-title {
+        padding-top: calc(16px + var(--safe-top, 0px));
     }
     .debug-actions {
         padding-bottom: calc(12px + var(--safe-bottom, 0px));
