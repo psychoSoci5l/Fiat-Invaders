@@ -7,10 +7,10 @@
 *   **PWA Ready**: Installable on iOS/Android as a native-like app (Manifest, Service Worker, cache strategy).
 *   **Procedural Audio**: 5 unique level themes + boss music, generated in real-time using Web Audio API (No mp3 files required!). Separate music/SFX controls.
 *   **Dynamic Visuals**: Code-drawn (Canvas) player, enemies, boss, power-ups, and particle effects.
-*   **Responsive**: "Notch-safe" UI design that adapts to all mobile screens.
+*   **Responsive**: "Notch-safe" UI design that adapts to all mobile screens. Desktop: centered phone-like viewport with mouse controls (left click = move & fire, right click = shield).
 *   **Localization**: Fully localized in English (EN) and Italian (IT).
 
-## 🧠 Current Gameplay Rules (v6.0)
+## 🧠 Current Gameplay Rules (v6.6)
 
 *   **Two Game Modes**: **Story Mode** (3 acts with narrative chapters, boss progression FED→BCE→BOJ, cinematic game completion video) and **Arcade Mode** ("Rogue Protocol" — roguelike modifier system, combo scoring, enhanced mini-bosses, infinite scaling).
 *   **Wave System**: 15 unique waves (5 per cycle × 3 cycles) with 16 formation patterns and thematic currency groups. Phase-based streaming: each wave has 2-3 independent phases that trigger dynamically based on alive count. Coordinated SALVO firing system with safe corridors.
@@ -35,6 +35,7 @@
 *   **Online Leaderboard**: Global rankings powered by Cloudflare Workers + KV. Callsign system (3-6 chars), auto-submit on gameover, rank display with tier badges (TOP 3/5/10), platform icons (Desktop / Mobile). Offline score queue.
 *   **OLED-optimized UI**: Pure black (#000000) backgrounds on all overlays and panels for LED display efficiency.
 *   **Accessibility**: WCAG 2.1 AA+ contrast ratios, 48px+ touch targets, `prefers-reduced-motion` support.
+*   **Adaptive Quality**: Auto-detects device capability (ULTRA/HIGH/MEDIUM/LOW tiers). Low-end devices (≤2GB RAM or ≤2 cores) start at MEDIUM to avoid GPU artifacts.
 
 ## 🎮 How to Play
 
@@ -103,7 +104,7 @@ manifest.json    # PWA Configuration
 
 ## 🔬 Debug & Performance Tools
 
-All tools accessible via browser console using `dbg.` shortcut.
+All tools accessible via browser console using `dbg.` shortcut. Debug logging is **silent by default** — use `dbg.on()` to enable all logging, or specific commands below.
 
 ### Balance Testing (one-command workflow)
 ```javascript
