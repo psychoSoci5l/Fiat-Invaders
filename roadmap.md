@@ -43,7 +43,7 @@
 - [x] Game over → triple-tap → overlay 6 sezioni (error+log visibili se dati presenti) — verificato v6.5.4 iPhone
 - [x] Intro → triple-tap su version tag → dati sessione precedente — verificato v6.5.4 iPhone
 - [ ] Errore forzato (`throw new Error('test')`) → LAST ERROR visibile
-- [ ] Mailto SEND: tutte le sezioni, sotto 1800 chars
+- [x] Mailto SEND: tutte le sezioni, sotto 1800 chars — verificato
 - [x] Auto-hide: RETRY/MENU da game over, lancio gioco da intro — verificato v6.5.4 iPhone
 
 ---
