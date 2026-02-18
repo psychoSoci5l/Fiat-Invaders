@@ -2803,6 +2803,118 @@ G.sendFeedback = function () {
 // What's New panel (v4.50, i18n v5.18)
 const WHATS_NEW = [
     {
+        version: 'v5.29', date: '2026-02-18',
+        title: { EN: 'Game Over Redesign + OLED Deep Black', IT: 'Redesign Game Over + Nero OLED' },
+        items: {
+            EN: [
+                'Game Over screen redesigned — hero score with violet glow, inline stats row',
+                'All panels and overlays now use pure OLED black for deeper contrast',
+                'Inner containers (cards, modals, sections) upgraded to true black',
+                'PWA icon regenerated to match the new v5.28 ship design'
+            ],
+            IT: [
+                'Schermata Game Over ridisegnata — punteggio hero con glow viola, stats in riga',
+                'Tutti i pannelli e overlay ora usano nero OLED puro per contrasto più profondo',
+                'Container interni (card, modali, sezioni) aggiornati a nero puro',
+                'Icona PWA rigenerata per la nuova nave v5.28'
+            ]
+        }
+    },
+    {
+        version: 'v5.28', date: '2026-02-18',
+        title: { EN: 'Ship Redesign "Premium Arsenal"', IT: 'Redesign Nave "Arsenal Premium"' },
+        items: {
+            EN: [
+                'Ship 30% larger with swept-back delta silhouette',
+                'Glass cockpit canopy with reactive ₿ symbol — changes color by element',
+                'Heavy central barrel at LV3 with triple-layer neon rails',
+                'Energy circuit lines connecting reactor to all cannons at max level',
+                'Energy Surge slow-motion effect on weapon transitions'
+            ],
+            IT: [
+                'Nave 30% più grande con silhouette delta a freccia',
+                'Canopy cockpit vetrato con simbolo ₿ reattivo — cambia colore per elemento',
+                'Canna centrale pesante a LV3 con triplo strato di binari neon',
+                'Linee circuito energetico dal reattore a tutti i cannoni al livello massimo',
+                'Effetto slow-motion Energy Surge sulle transizioni arma'
+            ]
+        }
+    },
+    {
+        version: 'v5.27', date: '2026-02-17',
+        title: { EN: 'Polish & Feel', IT: 'Rifinitura & Sensazioni' },
+        items: {
+            EN: [
+                'Boss HP bar simplified — diamond notch markers on phase thresholds',
+                'Cannon tint now reflects your active element (fire/laser/electric/GODCHAIN)',
+                'Game start countdown 3→2→1→GO! with tick sound effects',
+                'Tutorial text revamped with arcade-style messages'
+            ],
+            IT: [
+                'Barra HP boss semplificata — tacche diamante sulle soglie di fase',
+                'Tinta cannone ora riflette l\'elemento attivo (fuoco/laser/elettrico/GODCHAIN)',
+                'Countdown di inizio partita 3→2→1→GO! con effetti sonori tick',
+                'Testo tutorial rinnovato con messaggi stile arcade'
+            ]
+        }
+    },
+    {
+        version: 'v5.26', date: '2026-02-17',
+        title: { EN: 'Unified Combat HUD + HYPERGOD', IT: 'HUD Combattimento Unificato + HYPERGOD' },
+        items: {
+            EN: [
+                'NEW: HYPERGOD state — activate HYPER during GODCHAIN for 5× score multiplier',
+                'HYPER, GODCHAIN and HYPERGOD unified in a single top combat bar with fill animation',
+                'Prismatic gradient effect for HYPERGOD display',
+                'Combat bar persists through wave transitions and pickups'
+            ],
+            IT: [
+                'NUOVO: Stato HYPERGOD — attiva HYPER durante GODCHAIN per moltiplicatore punteggio 5×',
+                'HYPER, GODCHAIN e HYPERGOD unificati in una singola barra combattimento con animazione fill',
+                'Effetto gradiente prismatico per il display HYPERGOD',
+                'La barra combattimento persiste tra transizioni wave e pickup'
+            ]
+        }
+    },
+    {
+        version: 'v5.25', date: '2026-02-16',
+        title: { EN: 'Power-Up Redesign + Status HUD', IT: 'Redesign Power-Up + HUD Stato' },
+        items: {
+            EN: [
+                'All power-ups redesigned as uniform circles with white icons and pulsing blink',
+                'HOMING bullet is now an orange orb tracker (opposite to blue MISSILE)',
+                'NEW: Status HUD shows active power-up countdown with live timer',
+                'Elemental CSS effects on status display — fire flicker, electric flash, laser glow',
+                'Shield blinks faster in the last 1.5 seconds as a warning'
+            ],
+            IT: [
+                'Tutti i power-up ridisegnati come cerchi uniformi con icone bianche e lampeggio pulsante',
+                'Il proiettile HOMING è ora un orb tracker arancione (opposto al MISSILE blu)',
+                'NUOVO: HUD stato mostra il countdown del power-up attivo con timer live',
+                'Effetti CSS elementali sul display stato — fiamma, flash elettrico, glow laser',
+                'Lo scudo lampeggia più veloce negli ultimi 1.5 secondi come avvertimento'
+            ]
+        }
+    },
+    {
+        version: 'v5.24', date: '2026-02-16',
+        title: { EN: 'Android Compatibility + Stability', IT: 'Compatibilità Android + Stabilità' },
+        items: {
+            EN: [
+                'Tutorial now remembered per mode — won\'t show again after first completion',
+                'Fixed enemy entry animation timeout — prevents firing blockade on slow devices',
+                'Global error handler for better crash diagnostics',
+                'Android PWA: resolved enemy glitching and firing issues'
+            ],
+            IT: [
+                'Tutorial ora ricordato per modalità — non si ripresenta dopo il primo completamento',
+                'Corretto timeout animazione entrata nemici — previene blocco sparo su dispositivi lenti',
+                'Gestore errori globale per migliore diagnostica crash',
+                'PWA Android: risolti problemi glitch nemici e sparo'
+            ]
+        }
+    },
+    {
         version: 'v5.23', date: '2026-02-16',
         title: { EN: 'Leaderboard Upgrade + Polish', IT: 'Classifica Potenziata + Pulizia' },
         items: {
