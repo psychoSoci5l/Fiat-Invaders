@@ -4,6 +4,7 @@ class InputSystem {
     constructor() {
         this.keys = {};
         this.touch = { active: false, x: 0, shield: false, hyper: false, axisX: 0, joystickActive: false, joystickId: null, useJoystick: false, deadzone: 0.15, sensitivity: 1.0, dragOriginX: 0, newDrag: false };
+        this.mouse = { active: false, x: 0, xPct: 0, shield: false };
         // v5.7: Tap-on-ship shield activation
         this._tapStart = null; // {x, y, time}
         this._playerPos = { x: 0, y: 0 }; // Canvas coords, updated by Player
@@ -185,6 +186,42 @@ class InputSystem {
             joy.addEventListener('touchmove', onJoyMove, { passive: false });
             joy.addEventListener('touchend', onJoyEnd, { passive: false });
             joy.addEventListener('touchcancel', onJoyEnd, { passive: false });
+        }
+
+        // Desktop mouse controls (only on non-touch devices)
+        if (!('ontouchstart' in window)) {
+            const canvas = document.getElementById('gameCanvas');
+            if (canvas) {
+                canvas.addEventListener('mousemove', e => {
+                    if (!this.mouse.active) return;
+                    const rect = canvas.getBoundingClientRect();
+                    this.mouse.x = e.clientX - rect.left;
+                    this.mouse.xPct = this.mouse.x / rect.width;
+                });
+
+                canvas.addEventListener('mousedown', e => {
+                    if (e.button === 0) {
+                        this.mouse.active = true;
+                        const rect = canvas.getBoundingClientRect();
+                        this.mouse.x = e.clientX - rect.left;
+                        this.mouse.xPct = this.mouse.x / rect.width;
+                    }
+                    if (e.button === 2) {
+                        this.mouse.shield = true;
+                        setTimeout(() => { this.mouse.shield = false; }, 150);
+                    }
+                });
+
+                canvas.addEventListener('mouseup', e => {
+                    if (e.button === 0) this.mouse.active = false;
+                });
+
+                canvas.addEventListener('mouseleave', () => {
+                    this.mouse.active = false;
+                });
+
+                canvas.addEventListener('contextmenu', e => e.preventDefault());
+            }
         }
     }
 

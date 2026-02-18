@@ -908,7 +908,6 @@ function initCollisionSystem() {
                 showVictory("🏆 " + defeatedBossName + ' ' + t('DEFEATED'));
                 const victoryMemes = { 'FEDERAL_RESERVE': "💥 INFLATION CANCELLED!", 'BCE': "💥 FRAGMENTATION COMPLETE!", 'BOJ': "💥 YEN LIBERATED!" };
                 G.MemeEngine.queueMeme('BOSS_DEFEATED', victoryMemes[defeatedBossType] || "CENTRAL BANK DESTROYED!", defeatedBossName);
-                console.log(`[BOSS DEFEATED] ${defeatedBossType} at level=${level}, cycle=${marketCycle}, wave=${waveMgr.wave}`);
                 G.Debug.trackBossDefeat(defeatedBossType, level, marketCycle);
                 if (G.Debug) { G.Debug.trackBossFightEnd(defeatedBossType, marketCycle); G.Debug.trackCycleEnd(marketCycle, Math.floor(score)); }
                 marketCycle++;
@@ -932,9 +931,7 @@ function initCollisionSystem() {
                     if (ps < APC.WEAK_THRESHOLD) pAdj = APC.PITY_BONUS_WEAK;
                     else if (ps > APC.STRONG_THRESHOLD) pAdj = APC.PITY_PENALTY_STRONG;
                     G.RunState.cyclePower = { score: ps, hpMult: hpM, pityAdj: pAdj };
-                    console.log(`[APC] C${marketCycle} powerScore=${ps.toFixed(2)} hpMult=${hpM.toFixed(3)} pityAdj=${pAdj} (wl=${wl} perks=${totalStacks} spec=${hasSpec})`);
                 }
-                console.log(`[BOSS DEFEATED] Cycle incremented to ${marketCycle}, calling waveMgr.reset()`);
                 G.Debug.trackCycleUp(marketCycle);
                 if (G.Debug) G.Debug.trackCycleStart(marketCycle);
                 waveMgr.reset();
@@ -4661,11 +4658,9 @@ function clearBattlefield(options) {
 G.clearBattlefield = clearBattlefield;
 
 function startBossWarning() {
-    console.log(`[BOSS WARNING] Called. level=${level}, cycle=${marketCycle}, wave=${waveMgr.wave}`);
     // v4.21: Unified boss rotation for both Story and Arcade (FED→BCE→BOJ cycle)
     const bossRotation = G.BOSS_ROTATION || ['FEDERAL_RESERVE', 'BCE', 'BOJ'];
     bossWarningType = bossRotation[(marketCycle - 1) % bossRotation.length];
-    console.log(`[BOSS WARNING] Type: ${bossWarningType}, timer=${Balance.BOSS.WARNING_DURATION}s`);
     // Start warning timer
     bossWarningTimer = Balance.BOSS.WARNING_DURATION;
 
@@ -4683,7 +4678,6 @@ function startBossWarning() {
 }
 
 function spawnBoss() {
-    console.log(`[SPAWN BOSS] Called. level=${level}, cycle=${marketCycle}`);
     // v4.21: Unified boss rotation for both Story and Arcade (FED→BCE→BOJ cycle)
     const bossRotation = G.BOSS_ROTATION || ['FEDERAL_RESERVE', 'BCE', 'BOJ'];
     let bossType = bossRotation[(marketCycle - 1) % bossRotation.length];
@@ -4718,8 +4712,6 @@ function spawnBoss() {
     const rawHp = baseHp + (level * hpPerLevel) + ((marketCycle - 1) * hpPerCycle);
     boss.hp = Math.max(hpConfig.MIN_FLOOR, Math.floor(rawHp * perkScaling * ngPlusMult));
     boss.maxHp = boss.hp;
-    console.log(`[SPAWN BOSS] Type=${bossType}, HP=${boss.hp}, position=(${boss.x}, ${boss.y})`);
-    console.log(`[SPAWN BOSS] HP breakdown: base=${baseHp} + lvl(${level}×${hpPerLevel}=${level*hpPerLevel}) + cycle(${(marketCycle-1)}×${hpPerCycle}=${(marketCycle-1)*hpPerCycle}) = raw ${rawHp} × perkScale(${perkCount}p→${perkScaling.toFixed(2)}) × ng+(${ngPlusMult}) = ${boss.hp} | DMG_DIVISOR=${G.Balance.BOSS.DMG_DIVISOR}`);
 
     // Analytics: Track boss fight start
     if (G.Debug) G.Debug.trackBossFightStart(bossType, marketCycle);

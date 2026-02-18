@@ -16,24 +16,24 @@ window.Game = window.Game || {};
  * SHORTCUT: window.dbg (e.g., dbg.stats(), dbg.showOverlay())
  */
 window.Game.Debug = {
-    // Master switch - set to false for production
-    ENABLED: true,
+    // Master switch - use dbg.on() to enable
+    ENABLED: false,
 
     // Visual overlay toggle
     OVERLAY_ENABLED: false,
 
-    // Individual category toggles
+    // Individual category toggles — all off by default, use dbg.enable('STATE') etc.
     categories: {
-        WAVE: true,      // WaveManager state transitions
-        BOSS: true,      // Boss spawn, damage, defeat
-        MINIBOSS: true,  // Mini-boss triggers
+        WAVE: false,     // WaveManager state transitions
+        BOSS: false,     // Boss spawn, damage, defeat
+        MINIBOSS: false, // Mini-boss triggers
         ENEMY: false,    // Enemy spawn/death (very verbose)
         BULLET: false,   // Bullet collisions (extremely verbose)
         PERK: false,     // Perk triggers
         DROP: false,     // Power-up drops
         INPUT: false,    // Input events
         AUDIO: false,    // Audio events
-        STATE: true,     // Game state changes
+        STATE: false,    // Game state changes
         CONDUCTOR: false, // HarmonicConductor events
     },
 
@@ -1593,8 +1593,12 @@ window.Game.Debug = {
 
     setDevelopment() {
         this.ENABLED = true;
+        this.enableAll();
         console.log('[DEBUG] Development mode - logging enabled');
     },
+
+    // Quick alias: dbg.on() enables master + all categories
+    on() { this.setDevelopment(); },
 
     /**
      * Quick setup for boss debugging

@@ -1,5 +1,15 @@
 # Changelog
 
+## v6.6.0 - 2026-02-18
+
+### Desktop Mouse Controls + Android Fix + Console Cleanup
+- **feat(input)**: Desktop mouse controls — hold left click to fire + move, right click for shield, cursor follows crosshair
+- **feat(layout)**: Desktop viewport centered with phone-like frame (max-height 1300px, border-radius, subtle violet glow)
+- **fix(android)**: Early quality detection for low-end devices (≤2GB RAM or ≤2 cores) — forces MEDIUM tier at boot, skipping heavy intro clouds
+- **fix(compat)**: `ellipse()` fallback using `arc()` + `scale()` in SkyRenderer for old GPU drivers
+- **fix(console)**: Removed 8 ungated `console.log` in main.js (boss/APC) and 4 in sw.js (install/activate)
+- **docs(tutorial)**: Updated PC tutorial and manual control strings to include mouse controls (EN + IT)
+
 ## v6.5.4 - 2026-02-18
 
 ### Remove PaperTear + Privacy Scroll Fix

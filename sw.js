@@ -1,7 +1,7 @@
 // Service Worker for FIAT vs CRYPTO
 // ⚠️ VERSION SYNC: Must match src/utils/Constants.js window.Game.VERSION
 // When updating version: 1) Constants.js  2) sw.js  3) CHANGELOG.md
-const SW_VERSION = '6.5.4';
+const SW_VERSION = '6.6.0';
 const CACHE_NAME = `fiat-vs-crypto-v${SW_VERSION}`;
 
 // All assets to cache
@@ -75,11 +75,9 @@ const ASSETS_TO_CACHE = [
 
 // Install: cache all assets and activate immediately
 self.addEventListener('install', (event) => {
-    console.log(`[SW] Installing version ${SW_VERSION}`);
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then((cache) => {
-                console.log('[SW] Caching app shell');
                 return cache.addAll(ASSETS_TO_CACHE);
             })
             .then(() => {
@@ -91,14 +89,12 @@ self.addEventListener('install', (event) => {
 
 // Activate: clean old caches and take control
 self.addEventListener('activate', (event) => {
-    console.log(`[SW] Activating version ${SW_VERSION}`);
     event.waitUntil(
         caches.keys()
             .then((cacheNames) => {
                 return Promise.all(
                     cacheNames.map((cacheName) => {
                         if (cacheName !== CACHE_NAME) {
-                            console.log('[SW] Deleting old cache:', cacheName);
                             return caches.delete(cacheName);
                         }
                     })

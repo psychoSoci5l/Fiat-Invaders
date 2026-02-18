@@ -370,14 +370,18 @@ class Player extends window.Game.Entity {
             const d = targetX - this.x;
             this.vx = d * Balance.PLAYER.TOUCH_SWIPE_MULT;
         }
+        else if (input.mouse?.active) {
+            const d = input.mouse.xPct * 2 - 1;
+            this.vx = d * Balance.PLAYER.TOUCH_SWIPE_MULT;
+        }
         else if (input.isDown('ArrowRight') || input.isDown('KeyD')) {
             this.vx += accel * dt;
         } else if (input.isDown('ArrowLeft') || input.isDown('KeyA')) {
             this.vx -= accel * dt;
         }
 
-        // Apply Friction (Only if not touching, or tweak above)
-        if (!input.touch.active) this.vx *= friction;
+        // Apply Friction (Only if not touching/mousing, or tweak above)
+        if (!input.touch.active && !input.mouse?.active) this.vx *= friction;
 
         // Cap speed (optional, but good for control)
         if (this.vx > speed) this.vx = speed;
@@ -650,13 +654,13 @@ class Player extends window.Game.Entity {
         if (this.hyperCooldown > 0) this.hyperCooldown -= dt;
 
         // Action: Shield
-        if ((input.isDown('ArrowDown') || input.isDown('KeyS') || input.touch.shield) && this.shieldCooldown <= 0 && !this.shieldActive) {
+        if ((input.isDown('ArrowDown') || input.isDown('KeyS') || input.touch.shield || input.mouse?.shield) && this.shieldCooldown <= 0 && !this.shieldActive) {
             this.activateShield();
         }
 
         // Action: Fire (blocked while enemies entering formation)
         // Check input for fire (Space, Touch, Up)
-        const isShooting = input.isDown('Space') || input.touch.active || input.isDown('ArrowUp');
+        const isShooting = input.isDown('Space') || input.touch.active || input.isDown('ArrowUp') || input.mouse?.active;
         if (isShooting && this.cooldown <= 0 && !blockFiring) {
             return this.fire(); // Returns array of bullets to spawn
         }

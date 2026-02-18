@@ -18,6 +18,14 @@
 
     const G = window.Game = window.Game || {};
 
+    // Ellipse fallback for old/broken GPU drivers
+    const _hasEllipse = typeof CanvasRenderingContext2D.prototype.ellipse === 'function';
+    function safeEllipse(ctx, x, y, rx, ry, rot, start, end) {
+        if (_hasEllipse) { ctx.ellipse(x, y, rx, ry, rot, start, end); return; }
+        ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.scale(1, ry / rx);
+        ctx.arc(0, 0, rx, start, end); ctx.restore();
+    }
+
     // Screen dimensions (set via init)
     let gameWidth = 0;
     let gameHeight = 0;
@@ -971,7 +979,7 @@
                             const bushW = sil.h * 0.7;
                             const bushH = sil.h * 0.45;
                             ctx.beginPath();
-                            ctx.ellipse(screenX, silY, bushW, bushH, 0, Math.PI, 0);
+                            safeEllipse(ctx,screenX, silY, bushW, bushH, 0, Math.PI, 0);
                             ctx.fill();
                         }
                     } else {
@@ -1036,7 +1044,7 @@
                 for (let l = 0; l < c.lobes.length; l++) {
                     const lb = c.lobes[l];
                     ctx.beginPath();
-                    ctx.ellipse(
+                    safeEllipse(ctx,
                         c.x + lb.ox * scale,
                         c.y + lb.oy * scale + shadowOffY,
                         sw / 2 * lb.wMult,
@@ -1051,7 +1059,7 @@
                 for (let l = 0; l < c.lobes.length; l++) {
                     const lb = c.lobes[l];
                     ctx.beginPath();
-                    ctx.ellipse(
+                    safeEllipse(ctx,
                         c.x + lb.ox * scale,
                         c.y + lb.oy * scale,
                         sw / 2 * lb.wMult + border,
@@ -1066,7 +1074,7 @@
                 for (let l = 0; l < c.lobes.length; l++) {
                     const lb = c.lobes[l];
                     ctx.beginPath();
-                    ctx.ellipse(
+                    safeEllipse(ctx,
                         c.x + lb.ox * scale,
                         c.y + lb.oy * scale,
                         sw / 2 * lb.wMult,
@@ -1080,7 +1088,7 @@
                 ctx.fillStyle = colors.highlight;
                 const hl = c.lobes[Math.floor(c.lobes.length / 2)];
                 ctx.beginPath();
-                ctx.ellipse(
+                safeEllipse(ctx,
                     c.x + hl.ox * scale,
                     c.y + hl.oy * scale + sh * highlightOff,
                     sw / 2 * hl.wMult * 0.7,
@@ -1092,12 +1100,12 @@
                 // Legacy single-ellipse cloud
                 ctx.fillStyle = colors.shadow;
                 ctx.beginPath();
-                ctx.ellipse(c.x, c.y + 3, c.w / 2, c.h / 2, 0, 0, Math.PI * 2);
+                safeEllipse(ctx,c.x, c.y + 3, c.w / 2, c.h / 2, 0, 0, Math.PI * 2);
                 ctx.fill();
 
                 ctx.fillStyle = colors.main;
                 ctx.beginPath();
-                ctx.ellipse(c.x, c.y, c.w / 2, c.h / 2.2, 0, 0, Math.PI * 2);
+                safeEllipse(ctx,c.x, c.y, c.w / 2, c.h / 2.2, 0, 0, Math.PI * 2);
                 ctx.fill();
 
                 ctx.strokeStyle = colors.outline;

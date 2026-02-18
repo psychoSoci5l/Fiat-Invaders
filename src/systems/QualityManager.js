@@ -331,6 +331,15 @@
                 _tier = 'HIGH';
             }
 
+            // Early low-end detection (before gameplay FPS sampling)
+            if (_auto) {
+                const mem = navigator.deviceMemory || 8;
+                const cores = navigator.hardwareConcurrency || 4;
+                if (mem <= 2 || cores <= 2) {
+                    _applyTier('MEDIUM');
+                }
+            }
+
             _fpsSamples = [];
             _sampleTimer = 0;
             _frameCount = 0;
