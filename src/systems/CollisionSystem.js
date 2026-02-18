@@ -78,6 +78,10 @@ window.Game = window.Game || {};
             const grazeR = coreR + Balance.GRAZE.RADIUS;
             const closeGrazeR = coreR + Balance.GRAZE.CLOSE_RADIUS;
 
+            // v5.31: Shield bullet destruction radius
+            const shieldActive = player.shieldActive;
+            const shieldR = shieldActive ? (Balance.VFX?.ENERGY_SKIN?.COLLISION_RADIUS ?? 35) : 0;
+
             for (let i = enemyBullets.length - 1; i >= 0; i--) {
                 const eb = enemyBullets[i];
                 if (!eb) { enemyBullets.splice(i, 1); continue; }
@@ -89,6 +93,12 @@ window.Game = window.Game || {};
                 }
 
                 const ebR = eb.collisionRadius || Balance.BULLET_CONFIG.ENEMY_DEFAULT.collisionRadius;
+
+                // v5.31: Shield destroys enemy bullets on contact
+                if (shieldActive && G.BulletSystem.circleCollide(eb.x, eb.y, ebR, player.x, player.y, shieldR)) {
+                    cb.onShieldBulletDestroy(eb, i, enemyBullets);
+                    continue;
+                }
 
                 // Core hit check (take damage)
                 if (G.BulletSystem.circleCollide(eb.x, eb.y, ebR, player.x, player.y, coreR)) {
@@ -339,6 +349,52 @@ window.Game = window.Game || {};
                             if (b.markedForDeletion) break;
                         }
                     }
+                }
+            }
+        }
+    };
+
+    // ─── v5.31: Energy Link beam cancellation ─────────────────────
+    CollisionSystem.processLinkBeamCancellation = function() {
+        const ctx = this._ctx;
+        if (!ctx) return;
+
+        const linkCfg = Balance.VFX?.ENERGY_LINK;
+        if (linkCfg?.ENABLED === false) return;
+
+        const bullets = ctx.getBullets();
+        const enemyBullets = ctx.getEnemyBullets();
+        const cb = ctx.callbacks;
+
+        if (bullets.length < 2 || enemyBullets.length === 0) return;
+
+        const linkR = linkCfg?.COLLISION_RADIUS ?? 4;
+
+        // Build pairs: volleyId → [b1, b2]
+        const pairs = new Map();
+        for (let i = 0; i < bullets.length; i++) {
+            const b = bullets[i];
+            if (!b._isLinkPair || b.markedForDeletion) continue;
+            if (b._elemLaser && !b.special) continue; // Skip laser beams
+            const vid = b._volleyId;
+            if (!pairs.has(vid)) {
+                pairs.set(vid, [b]);
+            } else {
+                pairs.get(vid).push(b);
+            }
+        }
+
+        for (const pair of pairs.values()) {
+            if (pair.length !== 2) continue;
+            const b1 = pair[0], b2 = pair[1];
+
+            for (let j = enemyBullets.length - 1; j >= 0; j--) {
+                const eb = enemyBullets[j];
+                if (!eb || eb.markedForDeletion) continue;
+                const ebR = eb.collisionRadius || Balance.BULLET_CONFIG.ENEMY_DEFAULT.collisionRadius;
+
+                if (G.BulletSystem.lineSegmentVsCircle(b1.x, b1.y, b2.x, b2.y, eb.x, eb.y, ebR + linkR)) {
+                    cb.onLinkBeamCancel(eb, j, enemyBullets);
                 }
             }
         }

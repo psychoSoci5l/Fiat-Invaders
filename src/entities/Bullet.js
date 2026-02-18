@@ -28,6 +28,10 @@ class Bullet extends window.Game.Entity {
         this._elemFire = false;
         this._elemLaser = false;
         this._elemElectric = false;
+
+        // v5.31: Energy Link pairing
+        this._volleyId = 0;
+        this._isLinkPair = false;
     }
 
     reset(x, y, vx, vy, color, w, h, isHodl) {
@@ -63,6 +67,10 @@ class Bullet extends window.Game.Entity {
         this._elemFire = false;
         this._elemLaser = false;
         this._elemElectric = false;
+
+        // v5.31: Energy Link reset
+        this._volleyId = 0;
+        this._isLinkPair = false;
     }
 
     update(dt, enemies, boss) {

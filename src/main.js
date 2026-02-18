@@ -1056,6 +1056,22 @@ function initCollisionSystem() {
                     if (quoteText) G.MemeEngine.queueMeme('BOSS_DEFEATED', '\u201C' + quoteText + '\u201D', defeatedBossName);
                 }
             },
+            // v5.31: Shield destroys enemy bullet on contact
+            onShieldBulletDestroy(eb, ebIdx, ebArr) {
+                createBulletSpark(eb.x, eb.y, '#00f0ff', { isCancel: true });
+                eb.markedForDeletion = true;
+                G.Bullet.Pool.release(eb);
+                ebArr.splice(ebIdx, 1);
+                if (audioSys) audioSys.play('bulletCancel');
+            },
+            // v5.31: Energy Link beam cancels enemy bullet
+            onLinkBeamCancel(eb, ebIdx, ebArr) {
+                createBulletSpark(eb.x, eb.y, '#00ccff', { isCancel: true });
+                eb.markedForDeletion = true;
+                G.Bullet.Pool.release(eb);
+                ebArr.splice(ebIdx, 1);
+                if (audioSys) audioSys.play('bulletCancel');
+            },
             // Bullet cancel (player bullet vs enemy bullet)
             onBulletCancel(pb, eb, pbIdx, ebIdx, pbArr, ebArr) {
                 createBulletSpark(eb.x, eb.y, eb.color || '#ff4444', { isCancel: true });
@@ -5565,6 +5581,12 @@ function draw() {
             if (b.x > -margin && b.x < gameWidth + margin && b.y > -margin && b.y < gameHeight + margin) b.draw(ctx);
         }
 
+        // v5.31: Energy Link Beam between LV2 paired bullets
+        const _linkCfg = Balance?.VFX?.ENERGY_LINK;
+        if (_linkCfg?.ENABLED !== false) {
+            drawEnergyLinks(ctx, bullets, _linkCfg);
+        }
+
         // Screen dimming when many enemy bullets (configurable)
         if (Balance?.JUICE?.SCREEN_EFFECTS?.SCREEN_DIMMING && enemyBullets.length > 15) {
             const dimAlpha = Math.min(0.25, (enemyBullets.length - 15) * 0.01);
@@ -5960,6 +5982,54 @@ function addParticle(props) {
 
 function createBulletSpark(x, y, color, opts) {
     if (G.ParticleSystem) G.ParticleSystem.createBulletSpark(x, y, color, opts);
+}
+
+// v5.31: Energy Link Beam — draw additive line between LV2 paired bullets
+function drawEnergyLinks(ctx, bulletArr, linkCfg) {
+    const CU = G.ColorUtils;
+    const alpha = linkCfg?.ALPHA ?? 0.3;
+    const width = linkCfg?.WIDTH ?? 2;
+
+    // Build pairs: volleyId → [b1, b2]
+    const pairs = new Map();
+    for (let i = 0; i < bulletArr.length; i++) {
+        const b = bulletArr[i];
+        if (!b._isLinkPair || b.markedForDeletion) continue;
+        // Skip laser beam bullets (they have their own visual)
+        if (b._elemLaser && !b.special) continue;
+        const vid = b._volleyId;
+        if (!pairs.has(vid)) {
+            pairs.set(vid, [b]);
+        } else {
+            pairs.get(vid).push(b);
+        }
+    }
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+
+    for (const pair of pairs.values()) {
+        if (pair.length !== 2) continue;
+        const b1 = pair[0], b2 = pair[1];
+
+        // Outer glow
+        ctx.beginPath();
+        ctx.moveTo(b1.x, b1.y);
+        ctx.lineTo(b2.x, b2.y);
+        ctx.strokeStyle = CU.rgba(0, 200, 255, alpha * 0.4);
+        ctx.lineWidth = width + 3;
+        ctx.stroke();
+
+        // Core line
+        ctx.beginPath();
+        ctx.moveTo(b1.x, b1.y);
+        ctx.lineTo(b2.x, b2.y);
+        ctx.strokeStyle = CU.rgba(0, 240, 255, alpha);
+        ctx.lineWidth = width;
+        ctx.stroke();
+    }
+
+    ctx.restore();
 }
 
 function createPowerUpPickupEffect(x, y, color) {
@@ -6696,6 +6766,8 @@ function updatePowerUps(dt) {
 
     // v4.28.0: Bullet cancellation delegated to CollisionSystem
     G.CollisionSystem.processBulletCancellation();
+    // v5.31: Link beam cancellation (LV2 paired bullets)
+    G.CollisionSystem.processLinkBeamCancellation();
 }
 
 init();

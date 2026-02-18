@@ -1,5 +1,17 @@
 # Changelog
 
+## v5.31.0 - 2026-02-18
+### Shield Energy Skin + Link Beam + Remove Brighten
+- **feat(shield)**: Energy Skin — shield now conforms to the 8-vertex ship body outline instead of hexgrid bubble. 4-layer glow (outer/mid/fill/core) with 3 traveling sparks along perimeter. Warning blink + fade-out preserved
+- **feat(shield)**: Shield Bullet Destruction — active shield now destroys enemy bullets on contact (cyan spark + SFX). Collision radius configurable via `Balance.VFX.ENERGY_SKIN.COLLISION_RADIUS` (35px)
+- **feat(combat)**: Energy Link Beam — at weapon LV2, a horizontal energy beam connects the two parallel bullets, cancelling enemy bullets that pass through the gap. Additive cyan glow rendering. Excluded for HOMING/MISSILE/PIERCE specials and laser beams
+- **feat(combat)**: Link Beam Collision — `processLinkBeamCancellation()` in CollisionSystem using `lineSegmentVsCircle()`. Configurable radius via `Balance.VFX.ENERGY_LINK.COLLISION_RADIUS` (4px)
+- **fix(vfx)**: Brighten kill-switch — white bubble during weapon evolution disabled via `ENERGY_SURGE.BRIGHTEN_ENABLED: false` (other VFX intact: slowmo, shake, particles)
+- **config**: `Balance.VFX.ENERGY_SKIN` (collision, stroke widths, spark count/speed/radius, warn time)
+- **config**: `Balance.VFX.ENERGY_LINK` (alpha, width, collision radius)
+- **refactor**: `_drawHexShield()` replaced by `_drawEnergySkin()` + `_getPerimeterPoint()` helper in Player.js
+- **refactor**: Bullet.js `_volleyId`/`_isLinkPair` fields for LV2 pair tagging
+
 ## v5.30.0 - 2026-02-18
 ### Ship Flight Dynamics
 - **feat(vfx)**: Banking Tilt — smooth lateral rotation proportional to `vx` (max ~12.6°, asymmetric lerp: fast bank, slow return)

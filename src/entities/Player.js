@@ -34,6 +34,7 @@ class Player extends window.Game.Entity {
         this.shieldCooldown = 0;
         this._shieldAnim = 0;       // v5.7: hexgrid animation timer
         this._shieldFade = 0;       // v5.7: deactivation fade (1→0)
+        this._volleyCounter = 0;    // v5.31: Energy Link volley pairing
 
         // v4.0.2: ETH Smart Contract - consecutive hit tracking
         this.smartContractTarget = null;  // Enemy ID being hit consecutively
@@ -936,6 +937,15 @@ class Player extends window.Game.Entity {
             const ox = (gm.shoulderW ?? 6) + ((gm.wingSpan ?? 36) - (gm.shoulderW ?? 6)) * 0.30;
             spawnBullet(-ox, -spreadAngle / 2);
             spawnBullet(+ox, +spreadAngle / 2);
+            // v5.31: Tag pair for energy link (no link for HOMING/MISSILE/PIERCE specials)
+            const _linkCfg = Balance?.VFX?.ENERGY_LINK;
+            if (_linkCfg?.ENABLED !== false && !this.special) {
+                this._volleyCounter = (this._volleyCounter + 1) & 0x7FFFFFFF;
+                bullets[bullets.length - 2]._volleyId = this._volleyCounter;
+                bullets[bullets.length - 2]._isLinkPair = true;
+                bullets[bullets.length - 1]._volleyId = this._volleyCounter;
+                bullets[bullets.length - 1]._isLinkPair = true;
+            }
         } else {
             // 3 bullets — wing cannons + central barrel
             const ox = (gm.shoulderW ?? 6) + ((gm.wingSpan ?? 36) - (gm.shoulderW ?? 6)) * 0.30;
@@ -1187,7 +1197,8 @@ class Player extends window.Game.Entity {
             ctx.fill();
         }
         // v5.20: Deploy brightening tint (additive white over ship)
-        if (_d.active && _d.brighten && _dcfg) {
+        // v5.31: kill-switch via ENERGY_SURGE.BRIGHTEN_ENABLED
+        if (_d.active && _d.brighten && _dcfg && (_dcfg.ENERGY_SURGE?.BRIGHTEN_ENABLED !== false)) {
             ctx.save();
             ctx.globalCompositeOperation = 'lighter';
             // v5.28: Use per-transition brighten peak from ENERGY_SURGE
@@ -1207,9 +1218,9 @@ class Player extends window.Game.Entity {
         // v5.1: Directional muzzle flash (canvas V-flash)
         this._drawMuzzleFlash(ctx);
 
-        // v5.7: Hexgrid Energy Shield
+        // v5.31: Energy Skin Shield (conforms to ship body)
         if (this.shieldActive || this._shieldFade > 0) {
-            this._drawHexShield(ctx);
+            this._drawEnergySkin(ctx);
         }
 
         // === DIEGETIC HUD v4.4 ===
@@ -2512,109 +2523,142 @@ class Player extends window.Game.Entity {
     /**
      * v5.7: Hexgrid Energy Shield — honeycomb pattern with radial wave, glow layers
      */
-    _drawHexShield(ctx) {
+    /**
+     * v5.31: Energy Skin — shield conforms to ship body outline
+     * 4-layer glow (outer/mid/fill/core) + traveling sparks along perimeter.
+     * Reuses _drawShipBody coordinates: tipY=-36, shoulderY=-10, wingTipY=36,
+     * innerTailY=13, tailY=5, wingSpan/shoulderW from _geom, innerTailX=7.
+     */
+    _drawEnergySkin(ctx) {
         const CU = window.Game.ColorUtils;
+        const cfg = window.Game.Balance?.VFX?.ENERGY_SKIN;
+        if (cfg?.ENABLED === false) return;
+
         const t = this._shieldAnim;
         let fade = this._shieldFade;
-        const radius = 56; // v5.28: fits swept-back delta (wingspan 40 + margin)
-        const hexSize = 12; // v5.28: proportional to radius
-        const rows = 6;
 
-        // v5.25: Expiry warning — accelerating blink in last 1.5s (v5.28: more visible)
-        const WARN_TIME = 1.5;
+        // Warning blink in last WARN_TIME seconds
+        const WARN_TIME = cfg?.WARN_TIME ?? 1.5;
         if (this.shieldActive && this.shieldTimer > 0 && this.shieldTimer < WARN_TIME) {
-            const urgency = 1 - (this.shieldTimer / WARN_TIME); // 0→1
-            const freq = 4 + urgency * 8; // 4Hz→12Hz
+            const urgency = 1 - (this.shieldTimer / WARN_TIME);
+            const freq = 4 + urgency * 8;
             const blink = Math.max(0.05, 0.5 + 0.5 * Math.sin(t * freq * Math.PI * 2));
             fade *= blink;
         }
 
+        const g = this._geom;
+        const ws = g.wingSpan;
+        const sw = g.shoulderW;
+
+        // 8-vertex body path (same as _drawShipBody)
+        const tipY = -36;
+        const shoulderY = -10;
+        const wingTipY = 36;
+        const innerTailY = 13;
+        const tailY = 5;
+        const innerTailX = 7;
+
+        // Build path as array for reuse
+        const verts = [
+            [0, tipY],                  // 0: nose tip
+            [-sw, shoulderY],           // 1: left shoulder
+            [-ws, wingTipY],            // 2: left wing tip
+            [-innerTailX, innerTailY],  // 3: left inner tail
+            [0, tailY],                 // 4: center tail
+            [innerTailX, innerTailY],   // 5: right inner tail
+            [ws, wingTipY],             // 6: right wing tip
+            [sw, shoulderY],            // 7: right shoulder
+        ];
+
+        // Helper: trace the body path
+        const tracePath = () => {
+            ctx.beginPath();
+            ctx.moveTo(verts[0][0], verts[0][1]);
+            for (let i = 1; i < verts.length; i++) {
+                ctx.lineTo(verts[i][0], verts[i][1]);
+            }
+            ctx.closePath();
+        };
+
         ctx.save();
         ctx.globalAlpha = fade;
-
-        // Outer glow layer (additive)
-        const prevComp = ctx.globalCompositeOperation;
         ctx.globalCompositeOperation = 'lighter';
 
-        // Pulsing outer aura
-        const auraPulse = 0.3 + Math.sin(t * 6) * 0.15;
-        const auraR = radius + 8 + Math.sin(t * 4) * 3;
-        const auraGrad = ctx.createRadialGradient(0, 0, radius * 0.5, 0, 0, auraR);
-        auraGrad.addColorStop(0, CU.rgba(0, 240, 255, 0));
-        auraGrad.addColorStop(0.6, CU.rgba(0, 240, 255, auraPulse * 0.3));
-        auraGrad.addColorStop(1, CU.rgba(0, 240, 255, 0));
-        ctx.beginPath();
-        ctx.arc(0, 0, auraR, 0, Math.PI * 2);
-        ctx.fillStyle = auraGrad;
+        // Pulsing alpha modulation
+        const pulse = 0.85 + 0.15 * Math.sin(t * 6);
+
+        // Layer 1: Outer glow stroke
+        tracePath();
+        ctx.strokeStyle = CU.rgba(0, 240, 255, 0.30 * pulse);
+        ctx.lineWidth = cfg?.OUTER_STROKE ?? 8;
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+
+        // Layer 2: Mid stroke
+        tracePath();
+        ctx.strokeStyle = CU.rgba(0, 240, 255, 0.50 * pulse);
+        ctx.lineWidth = cfg?.MID_STROKE ?? 4;
+        ctx.stroke();
+
+        // Layer 3: Semi-transparent fill
+        tracePath();
+        ctx.fillStyle = CU.rgba(0, 240, 255, cfg?.FILL_ALPHA ?? 0.08);
         ctx.fill();
 
-        // Hexagon grid
-        const cos30 = Math.cos(Math.PI / 6);
-        const hexW = hexSize * 2;
-        const hexH = hexSize * cos30 * 2;
-        const colStep = hexW * 0.75;
-        const rowStep = hexH;
+        // Layer 4: Core bright stroke
+        tracePath();
+        ctx.strokeStyle = CU.rgba(0, 240, 255, 0.70 * pulse);
+        ctx.lineWidth = cfg?.CORE_STROKE ?? 1.5;
+        ctx.stroke();
 
-        // Radial wave: bright ring expanding outward
-        const waveRadius = (t * 60) % (radius + 20);
-        const waveWidth = 15;
+        // Layer 5: Traveling sparks along perimeter
+        const sparkCount = cfg?.SPARK_COUNT ?? 3;
+        const sparkSpeed = cfg?.SPARK_SPEED ?? 1.2;
+        const sparkR = cfg?.SPARK_RADIUS ?? 3;
 
-        for (let col = -rows; col <= rows; col++) {
-            for (let row = -rows; row <= rows; row++) {
-                const cx = col * colStep;
-                const cy = row * rowStep + (col % 2 !== 0 ? rowStep * 0.5 : 0);
-                const dist = Math.sqrt(cx * cx + cy * cy);
-
-                // Only draw hexagons within shield radius
-                if (dist > radius + hexSize) continue;
-
-                // Radial wave brightness
-                const waveDist = Math.abs(dist - waveRadius);
-                const waveBright = waveDist < waveWidth ? 1 - (waveDist / waveWidth) : 0;
-
-                // Base alpha: edge hexagons dimmer, inner brighter
-                const edgeFade = 1 - Math.max(0, (dist - radius + hexSize * 2) / (hexSize * 2));
-                const baseAlpha = 0.15 + waveBright * 0.5;
-                const alpha = baseAlpha * Math.min(1, edgeFade) * fade;
-
-                if (alpha < 0.02) continue;
-
-                // Draw hexagon
-                ctx.beginPath();
-                for (let i = 0; i < 6; i++) {
-                    const angle = (Math.PI / 3) * i + Math.PI / 6;
-                    const hx = cx + hexSize * 0.85 * Math.cos(angle);
-                    const hy = cy + hexSize * 0.85 * Math.sin(angle);
-                    if (i === 0) ctx.moveTo(hx, hy);
-                    else ctx.lineTo(hx, hy);
-                }
-                ctx.closePath();
-
-                // Fill with wave-modulated cyan
-                ctx.fillStyle = CU.rgba(0, 240, 255, alpha * 0.4);
-                ctx.fill();
-                ctx.strokeStyle = CU.rgba(0, 240, 255, alpha);
-                ctx.lineWidth = waveBright > 0.3 ? 1.5 : 0.8;
-                ctx.stroke();
-            }
+        for (let s = 0; s < sparkCount; s++) {
+            const frac = ((t * sparkSpeed + s / sparkCount) % 1 + 1) % 1;
+            const pt = this._getPerimeterPoint(verts, frac);
+            const sparkAlpha = 0.7 + 0.3 * Math.sin(t * 12 + s * 2.1);
+            ctx.beginPath();
+            ctx.arc(pt[0], pt[1], sparkR, 0, Math.PI * 2);
+            ctx.fillStyle = CU.rgba(200, 255, 255, sparkAlpha);
+            ctx.fill();
         }
 
-        // Inner bright ring border
-        ctx.beginPath();
-        ctx.arc(0, 0, radius, 0, Math.PI * 2);
-        ctx.strokeStyle = CU.rgba(0, 240, 255, 0.4 * fade);
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-
-        // Outer soft ring
-        ctx.beginPath();
-        ctx.arc(0, 0, radius + 4, 0, Math.PI * 2);
-        ctx.strokeStyle = CU.rgba(0, 240, 255, 0.15 * fade);
-        ctx.lineWidth = 3;
-        ctx.stroke();
-
-        ctx.globalCompositeOperation = prevComp;
         ctx.restore();
+    }
+
+    /**
+     * Interpolate a point along the closed perimeter of the 8-vertex body.
+     * frac: 0..1 maps to full loop.
+     */
+    _getPerimeterPoint(verts, frac) {
+        const n = verts.length;
+        // Compute segment lengths
+        let totalLen = 0;
+        const segLens = [];
+        for (let i = 0; i < n; i++) {
+            const j = (i + 1) % n;
+            const dx = verts[j][0] - verts[i][0];
+            const dy = verts[j][1] - verts[i][1];
+            const len = Math.sqrt(dx * dx + dy * dy);
+            segLens.push(len);
+            totalLen += len;
+        }
+        let target = frac * totalLen;
+        for (let i = 0; i < n; i++) {
+            if (target <= segLens[i]) {
+                const t = segLens[i] > 0 ? target / segLens[i] : 0;
+                const j = (i + 1) % n;
+                return [
+                    verts[i][0] + (verts[j][0] - verts[i][0]) * t,
+                    verts[i][1] + (verts[j][1] - verts[i][1]) * t
+                ];
+            }
+            target -= segLens[i];
+        }
+        return [verts[0][0], verts[0][1]];
     }
 
     /**

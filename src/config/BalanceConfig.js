@@ -1537,6 +1537,7 @@
                     SLOWDOWN_SCALE: [1.0, 0.7, 0.6],    // Game speed during surge
                     SLOWDOWN_DURATION: [0, 0.6, 0.8],   // How long slowmo lasts
                     BRIGHTEN_PEAK: [0.3, 0.5, 0.7],     // Ship brighten amount
+                    BRIGHTEN_ENABLED: false,             // v5.31: kill-switch for white bubble
                     SHOCKWAVE_RADIUS: [0, 60, 80],       // Expanding shockwave ring
                     INVULN_FRAMES: 0.5,                  // Brief invulnerability (s)
                 },
@@ -1625,6 +1626,28 @@
                     STRONG: { VOLUME: 0.14, DURATION: 0.18 },
                     ELEM_LAYER: { ENABLED: true, VOLUME: 0.06, DURATION: 0.15 }
                 }
+            },
+
+            // v5.31: Energy Skin — shield conforms to ship body instead of hex bubble
+            ENERGY_SKIN: {
+                ENABLED: true,
+                COLLISION_RADIUS: 35,       // Shield bullet destroy radius (px)
+                OUTER_STROKE: 8,
+                MID_STROKE: 4,
+                CORE_STROKE: 1.5,
+                FILL_ALPHA: 0.08,
+                SPARK_COUNT: 3,
+                SPARK_SPEED: 1.2,           // Revolutions per second along perimeter
+                SPARK_RADIUS: 3,
+                WARN_TIME: 1.5,             // Warning blink in last N seconds
+            },
+
+            // v5.31: Energy Link Beam — horizontal beam between LV2 paired bullets
+            ENERGY_LINK: {
+                ENABLED: true,
+                ALPHA: 0.3,
+                WIDTH: 2,
+                COLLISION_RADIUS: 4,        // Enemy bullet cancel radius around link line
             },
 
             // v5.30: Ship Flight Dynamics — sense of flight with 5 complementary effects
