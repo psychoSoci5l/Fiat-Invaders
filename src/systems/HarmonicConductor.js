@@ -194,9 +194,25 @@ window.Game.HarmonicConductor = {
         return this.waveIntensity.lastEnemyPauseTimer > 0;
     },
 
-    // Check if any enemies are still entering formation (should not fire)
+    // Check if enemies are still entering formation (should not fire)
+    // v5.32: In streaming mode, only block if >50% are entering (threshold-based)
     areEnemiesEntering() {
         if (!this.enemies || this.enemies.length === 0) return false;
+        const streamCfg = window.Game.Balance?.STREAMING;
+        const isStreaming = streamCfg?.ENABLED && window.Game.WaveManager?.isStreaming;
+        if (isStreaming) {
+            const threshold = streamCfg.GRID_SETTLE_THRESHOLD ?? 0.5;
+            var entering = 0, total = 0;
+            for (var i = 0, len = this.enemies.length; i < len; i++) {
+                var e = this.enemies[i];
+                if (e && e.active) {
+                    total++;
+                    if (e.isEntering) entering++;
+                }
+            }
+            return total > 0 && (entering / total) > threshold;
+        }
+        // Classic mode: any entering blocks firing
         for (var i = 0, len = this.enemies.length; i < len; i++) {
             var e = this.enemies[i];
             if (e && e.active && e.isEntering) return true;

@@ -554,6 +554,104 @@
             }
         },
 
+        // --- ELITE ENEMY VARIANTS v5.32 ---
+        ELITE_VARIANTS: {
+            ENABLED: true,
+            CYCLE_VARIANTS: { 1: 'ARMORED', 2: 'EVADER', 3: 'REFLECTOR' },
+            ELIGIBLE_TIERS: ['MEDIUM', 'STRONG'],
+            CHANCE: {
+                STORY: [0.10, 0.15, 0.20],
+                ARCADE: [0.15, 0.20, 0.25],
+                BEAR_BONUS: 0.05
+            },
+            ARMORED: {
+                ENABLED: true,
+                HP_MULT: 2.0,
+                SCORE_MULT: 2.0,
+                SPEED_MULT: 0.8,
+                SHEEN_COLOR: '#c0c8d0',
+                SHEEN_ALPHA: 0.25,
+                ICON_SIZE: 8
+            },
+            EVADER: {
+                ENABLED: true,
+                DETECT_RADIUS: 60,
+                DASH_DISTANCE: 40,
+                DASH_SPEED: 600,
+                COOLDOWN: 2.0,
+                LINE_ALPHA: 0.4,
+                LINE_COUNT: 3
+            },
+            REFLECTOR: {
+                ENABLED: true,
+                CHARGES: 1,
+                REFLECT_SPEED: 200,
+                REFLECT_SPREAD: 0.3,
+                SHIMMER_SPEED: 0.006,
+                SHIMMER_ALPHA: 0.3,
+                BROKEN_ALPHA: 0.08
+            }
+        },
+
+        // --- ENEMY BEHAVIORS v5.32 (4 new combat behaviors) ---
+        ENEMY_BEHAVIORS: {
+            ENABLED: true,
+            BEHAVIOR_RATE: 0.18,
+            BEHAVIOR_RATE_ARCADE: 0.22,
+            CAPS: { FLANKER: 4, BOMBER: 2, HEALER: 1, CHARGER: 3 },
+            MIN_WAVE: { FLANKER: 3, BOMBER: 6, HEALER: 8, CHARGER: 7 },
+            FLANKER: {
+                ENABLED: true,
+                ENTRY_SPEED: 250,
+                FIRE_INTERVAL: 0.8,
+                RUN_DURATION: 3.0,
+                JOINS_FORMATION: true
+            },
+            BOMBER: {
+                ENABLED: true,
+                BOMB_COOLDOWN: 4.0,
+                BOMB_SPEED: 80,
+                ZONE_DURATION: 2.0,
+                ZONE_RADIUS: 40,
+                ZONE_COLOR: '#ff4400',
+                ZONE_ALPHA: 0.25
+            },
+            HEALER: {
+                ENABLED: true,
+                AURA_RADIUS: 60,
+                HEAL_RATE: 0.05,
+                PULSE_INTERVAL: 1.0,
+                AURA_COLOR: '#00ff88',
+                AURA_ALPHA: 0.15
+            },
+            CHARGER: {
+                ENABLED: true,
+                CHARGE_INTERVAL: 5.0,
+                WINDUP_TIME: 0.5,
+                CHARGE_DISTANCE: 80,
+                CHARGE_SPEED: 500,
+                RETREAT_SPEED: 200,
+                WINDUP_SHAKE: 2,
+                FLASH_COLOR: '#ff2222'
+            }
+        },
+
+        // --- STREAMING ENEMY FLOW v5.32 ---
+        STREAMING: {
+            ENABLED: true,
+            BATCH_SIZE: [5, 6, 7],
+            BATCH_DELAY: {
+                STORY: [2.0, 1.8, 1.5],
+                ARCADE: [1.2, 1.0, 0.8]
+            },
+            ESCALATION: {
+                BEHAVIOR_BONUS_PER_BATCH: 0.03,
+                FIRE_RATE_PER_BATCH: 0.02
+            },
+            GRID_SETTLE_THRESHOLD: 0.5,
+            FIRE_GRACE_AFTER_BATCH: 0.3
+        },
+
         // --- PATTERN DENSITY (Per Cycle) ---
         // Patterns follow Ikeda Rule 2: geometric, readable corridors
         PATTERNS: {

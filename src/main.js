@@ -80,6 +80,10 @@ function clearBossDeathTimeouts() {
     window._evolutionItem = null;
 }
 window.enemyBullets = enemyBullets; // Expose for Player core hitbox indicator
+G._playerBullets = bullets; // v5.32: Expose for Evader detection
+// v5.32: Danger zone system for Bomber behavior
+let dangerZones = [];
+let bomberBombs = [];
 // Sky state moved to SkyRenderer.js
 let images = {}; // 🖼️ Asset Cache
 
@@ -1073,6 +1077,26 @@ function initCollisionSystem() {
                 G.Bullet.Pool.release(eb);
                 ebArr.splice(ebIdx, 1);
                 if (audioSys) audioSys.play('bulletCancel');
+            },
+            // v5.32: Reflector — enemy reflects player bullet back as enemy bullet
+            onBulletReflected(enemy, originalBullet) {
+                const refCfg = Balance.ELITE_VARIANTS?.REFLECTOR;
+                if (!refCfg) return;
+                const angle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
+                const spread = (Math.random() - 0.5) * (refCfg.REFLECT_SPREAD || 0.3);
+                const speed = refCfg.REFLECT_SPEED || 200;
+                const newBullet = {
+                    x: enemy.x, y: enemy.y + 29,
+                    vx: Math.cos(angle + spread) * speed,
+                    vy: Math.sin(angle + spread) * speed,
+                    color: '#ff44ff', w: 5, h: 5,
+                    shape: 'coin', ownerColor: enemy.color,
+                    isReflected: true
+                };
+                if (G.Events) G.Events.emit('harmonic_bullets', { bullets: [newBullet] });
+                if (audioSys) audioSys.play('grazeNearMiss');
+                // VFX flash at enemy
+                createBulletSpark(enemy.x, enemy.y, '#ff44ff', { isCancel: true });
             },
             // Bullet cancel (player bullet vs enemy bullet)
             onBulletCancel(pb, eb, pbIdx, ebIdx, pbArr, ebArr) {
@@ -2220,8 +2244,26 @@ function init() {
                 bullet.beatSynced = true;
                 bullet.shape = bd.shape || null;
                 bullet.ownerColor = bd.ownerColor || null; // v4.56: enemy color for core tint
+                if (bd.isBomb) bullet.isBomb = true; // v5.32: Bomber bomb flag
                 enemyBullets.push(bullet);
             }
+        });
+        // v5.32: Bomber drop — spawn slow bomb bullet
+        events.on('bomber_drop', (data) => {
+            if (!canSpawnEnemyBullet()) return;
+            const bd = {
+                x: data.x, y: data.y,
+                vx: 0, vy: data.speed || 80,
+                color: '#ff4400', w: 8, h: 8,
+                shape: null, isBomb: true,
+                _zoneDuration: data.zoneDuration || 2,
+                _zoneRadius: data.zoneRadius || 40
+            };
+            const bomb = G.Bullet.Pool.acquire(bd.x, bd.y, bd.vx, bd.vy, bd.color, bd.w, bd.h, false);
+            bomb.isBomb = true;
+            bomb._zoneDuration = bd._zoneDuration;
+            bomb._zoneRadius = bd._zoneRadius;
+            enemyBullets.push(bomb);
         });
     }
 
@@ -4326,6 +4368,7 @@ function startGame() {
     bullets.forEach(b => G.Bullet.Pool.release(b));
     enemyBullets.forEach(b => G.Bullet.Pool.release(b));
     bullets = []; enemies = []; enemyBullets = []; powerUps = []; particles = []; floatingTexts = []; muzzleFlashes = []; perkIcons = []; boss = null; miniBoss = null;
+    G._playerBullets = bullets; dangerZones = []; bomberBombs = []; // v5.32
     if (G.FloatingTextManager) G.FloatingTextManager.reset();
     if (G.PerkIconManager) G.PerkIconManager.reset();
     if (G.MessageSystem) G.MessageSystem.reset(); // Reset typed messages
@@ -4607,6 +4650,14 @@ function clearBattlefield(options) {
         score += bulletBonus;
         updateScore(score, bulletBonus);
         addText(`+${bulletBonus} ${t('BULLET_BONUS')}`, gameWidth / 2, gameHeight / 2 + 50, '#0ff', 18);
+    }
+
+    // v5.32: Clear danger zones and pending streaming batches
+    dangerZones.length = 0;
+    bomberBombs.length = 0;
+    if (waveMgr) {
+        waveMgr.pendingBatches = [];
+        waveMgr.isStreaming = false;
     }
 }
 G.clearBattlefield = clearBattlefield;
@@ -4980,6 +5031,19 @@ function update(dt) {
             // Immediately start next wave (fall through to START_WAVE)
             waveAction.action = 'START_WAVE';
         }
+        // v5.32: SPAWN_BATCH — streaming flow adds enemies to existing array
+        if (waveAction.action === 'SPAWN_BATCH') {
+            const batchData = waveMgr.spawnNextBatch();
+            if (batchData && batchData.enemies.length > 0) {
+                for (let bi = 0; bi < batchData.enemies.length; bi++) {
+                    enemies.push(batchData.enemies[bi]);
+                }
+                G.enemies = enemies;
+                if (G.HarmonicConductor) G.HarmonicConductor.enemies = enemies;
+                G.Debug.log('WAVE', `[WAVE] Batch appended: +${batchData.enemies.length} → ${enemies.length} total`);
+            }
+        }
+
         if (waveAction.action === 'SPAWN_BOSS') {
             startBossWarning(); // Start warning instead of immediate spawn
         } else if (waveAction.action === 'START_WAVE') {
@@ -5029,7 +5093,15 @@ function update(dt) {
             waveMgr.currentHorde = 1;
             miniBossThisWave = 0; // v4.10.2: Reset per-wave mini-boss counter
 
-            const spawnData = waveMgr.spawnWave(gameWidth, 1); // Start with horde 1
+            // v5.32: Use streaming flow if enabled, else classic horde system
+            const streamingCfg = Balance.STREAMING;
+            let spawnData;
+            if (streamingCfg?.ENABLED) {
+                spawnData = waveMgr.prepareStreamingWave(gameWidth);
+                if (!spawnData) spawnData = waveMgr.spawnWave(gameWidth, 1); // Fallback
+            } else {
+                spawnData = waveMgr.spawnWave(gameWidth, 1); // Classic horde 1
+            }
             enemies = spawnData.enemies;
             lastWavePattern = spawnData.pattern;
             gridDir = 1;
@@ -5204,6 +5276,49 @@ function updateBullets(dt) {
 
     // v4.28.0: Enemy bullet vs player delegated to CollisionSystem
     G.CollisionSystem.processEnemyBulletsVsPlayer(dt);
+
+    // v5.32: Bomber bombs → convert to danger zones on ground hit
+    const bombThreshold = gameHeight * 0.85;
+    for (let bi = enemyBullets.length - 1; bi >= 0; bi--) {
+        const eb = enemyBullets[bi];
+        if (eb && eb.isBomb && eb.y >= bombThreshold) {
+            dangerZones.push({
+                x: eb.x, y: eb.y,
+                radius: eb._zoneRadius || 40,
+                duration: eb._zoneDuration || 2,
+                timer: eb._zoneDuration || 2,
+                color: Balance.ENEMY_BEHAVIORS?.BOMBER?.ZONE_COLOR || '#ff4400',
+                alpha: Balance.ENEMY_BEHAVIORS?.BOMBER?.ZONE_ALPHA || 0.25
+            });
+            eb.markedForDeletion = true;
+            G.Bullet.Pool.release(eb);
+            enemyBullets.splice(bi, 1);
+            createExplosion(eb.x, eb.y, '#ff4400', 8);
+        }
+    }
+
+    // v5.32: Update danger zones + player collision
+    for (let dzi = dangerZones.length - 1; dzi >= 0; dzi--) {
+        const dz = dangerZones[dzi];
+        dz.timer -= dt;
+        if (dz.timer <= 0) {
+            dangerZones.splice(dzi, 1);
+            continue;
+        }
+        // Player collision with danger zone
+        const pdx = player.x - dz.x;
+        const pdy = player.y - dz.y;
+        const coreR = player.getCoreHitboxSize ? player.getCoreHitboxSize() : 6;
+        if (pdx * pdx + pdy * pdy <= (dz.radius + coreR) * (dz.radius + coreR)) {
+            if (player.takeDamage()) {
+                updateLivesUI(true);
+                applyHitStop('PLAYER_HIT', false);
+                triggerScreenFlash('PLAYER_HIT');
+                G.EffectsRenderer.triggerDamageVignette();
+                if (player.hp <= 0) startDeathSequence();
+            }
+        }
+    }
 }
 
 // Graze spark effect - particles flying toward player
@@ -5348,8 +5463,21 @@ function updateEnemies(dt) {
         G.HarmonicConductor.update(dt);
     }
 
-    // Block grid movement until ALL enemies have completed entry animation
-    const allSettled = enemies.length > 0 && !enemies.some(e => e && !e.hasSettled);
+    // Block grid movement until enemies have completed entry animation
+    // v5.32: In streaming mode, use threshold (>50% settled = grid moves)
+    const streamCfg = Balance.STREAMING;
+    const isStreamingMode = streamCfg?.ENABLED && waveMgr?.isStreaming;
+    let allSettled;
+    if (isStreamingMode) {
+        let settledCount = 0, totalCount = 0;
+        for (let si = 0; si < enemies.length; si++) {
+            if (enemies[si]) { totalCount++; if (enemies[si].hasSettled) settledCount++; }
+        }
+        const threshold = streamCfg.GRID_SETTLE_THRESHOLD ?? 0.5;
+        allSettled = totalCount > 0 && (settledCount / totalCount) >= threshold;
+    } else {
+        allSettled = enemies.length > 0 && !enemies.some(e => e && !e.hasSettled);
+    }
     const effectiveGridDir = allSettled ? gridDir : 0;
 
     // Cache player hitbox size once (avoid repeated property access per enemy)
@@ -5614,6 +5742,25 @@ function draw() {
             if (!eb) continue; // Safety check
             // Off-screen culling (X and Y)
             if (eb.x > -20 && eb.x < gameWidth + 20 && eb.y > -20 && eb.y < gameHeight + 20) eb.draw(ctx);
+        }
+
+        // v5.32: Draw danger zones (bomber)
+        for (let dzi = 0; dzi < dangerZones.length; dzi++) {
+            const dz = dangerZones[dzi];
+            const dzAlpha = dz.alpha * (dz.timer / dz.duration);
+            const pulse = Math.sin(Date.now() * 0.008) * 0.1 + 0.9;
+            ctx.globalAlpha = dzAlpha * pulse;
+            ctx.fillStyle = dz.color;
+            ctx.beginPath();
+            ctx.arc(dz.x, dz.y, dz.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = dz.color;
+            ctx.lineWidth = 2;
+            ctx.globalAlpha = dzAlpha * 0.6;
+            ctx.beginPath();
+            ctx.arc(dz.x, dz.y, dz.radius, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.globalAlpha = 1;
         }
 
         // PowerUps with off-screen culling

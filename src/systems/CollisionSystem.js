@@ -222,6 +222,16 @@ window.Game = window.Game || {};
                     // v5.15: Determine elemental type from bullet
                     const elemType = bullet._elemFire ? 'fire' : bullet._elemLaser ? 'laser' : bullet._elemElectric ? 'electric' : null;
                     const shouldDie = e.takeDamage(dmg, elemType);
+
+                    // v5.32: Reflector — bullet was absorbed, spawn reflected bullet
+                    if (shouldDie === 'reflect') {
+                        bullet.markedForDeletion = true;
+                        G.Bullet.Pool.release(bullet);
+                        bullets.splice(bIdx, 1);
+                        if (cb.onBulletReflected) cb.onBulletReflected(e, bullet);
+                        return;
+                    }
+
                     cb.onEnemyHit(e, bullet, shouldDie);
 
                     // v5.13: Laser beam impact VFX

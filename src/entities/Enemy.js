@@ -56,6 +56,27 @@ class Enemy extends window.Game.Entity {
 
         this.isMinion = false;        // Boss minion type
 
+        // v5.32: Elite variant state
+        this.isElite = false;
+        this.eliteType = null;       // 'ARMORED', 'EVADER', 'REFLECTOR'
+        this._evaderCooldown = 0;
+        this._evaderDashing = false;
+        this._evaderDashVx = 0;
+        this._evaderDashTimer = 0;
+        this.reflectCharges = 0;
+        this._reflectBroken = false;
+
+        // v5.32: Behavior state
+        this.behavior = null;        // 'FLANKER', 'BOMBER', 'HEALER', 'CHARGER'
+        this._behaviorPhase = 'IDLE';
+        this._behaviorTimer = 0;
+        this._behaviorTimer2 = 0;
+        this._flankerDir = 0;
+        this._flankerFireTimer = 0;
+        this._chargerOriginY = 0;
+        this._chargerTargetY = 0;
+        this._healerPulseTimer = 0;
+
         // Formation entry system
         this.isEntering = false;      // True while flying to position
         this.targetX = x;             // Final X position
@@ -296,6 +317,150 @@ class Enemy extends window.Game.Entity {
             }
         }
 
+        // v5.32: EVADER DASH — dodge nearby player bullets
+        if (this.isElite && this.eliteType === 'EVADER') {
+            if (this._evaderCooldown > 0) this._evaderCooldown -= dt;
+            if (this._evaderDashing) {
+                this._evaderDashTimer -= dt;
+                this.x += this._evaderDashVx * dt;
+                // Clamp to screen
+                const gw = window.Game._gameWidth || 600;
+                this.x = Math.max(30, Math.min(gw - 30, this.x));
+                if (this._evaderDashTimer <= 0) this._evaderDashing = false;
+            } else if (this._evaderCooldown <= 0) {
+                const evCfg = window.Game.Balance?.ELITE_VARIANTS?.EVADER;
+                if (evCfg?.ENABLED) {
+                    const pBullets = window.Game._playerBullets;
+                    if (pBullets) {
+                        const detectR = evCfg.DETECT_RADIUS;
+                        const detectRSq = detectR * detectR;
+                        for (let bi = 0; bi < pBullets.length; bi++) {
+                            const pb = pBullets[bi];
+                            if (!pb || pb.markedForDeletion) continue;
+                            const bdx = pb.x - this.x;
+                            const bdy = pb.y - this.y;
+                            if (bdx * bdx + bdy * bdy < detectRSq && pb.vy < 0) {
+                                // Dash sideways away from bullet
+                                const dashDir = bdx > 0 ? -1 : 1;
+                                this._evaderDashVx = dashDir * evCfg.DASH_SPEED;
+                                this._evaderDashTimer = evCfg.DASH_DISTANCE / evCfg.DASH_SPEED;
+                                this._evaderDashing = true;
+                                this._evaderCooldown = evCfg.COOLDOWN;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // v5.32: BEHAVIOR UPDATE — Flanker, Bomber, Healer, Charger
+        const behCfg = window.Game.Balance?.ENEMY_BEHAVIORS;
+        if (this.behavior && behCfg?.ENABLED) {
+            if (this.behavior === 'FLANKER' && behCfg.FLANKER?.ENABLED) {
+                if (this._behaviorPhase === 'RUN') {
+                    this._behaviorTimer -= dt;
+                    this.x += this._flankerDir * behCfg.FLANKER.ENTRY_SPEED * dt;
+                    // Fire during run
+                    this._flankerFireTimer -= dt;
+                    if (this._flankerFireTimer <= 0 && playerY !== undefined) {
+                        this._flankerFireTimer = behCfg.FLANKER.FIRE_INTERVAL;
+                        if (window.Game.Events) {
+                            const bulletSpeed = 150;
+                            const bd = this.buildBullet({ x: playerX, y: playerY }, bulletSpeed, 1);
+                            if (bd) window.Game.Events.emit('harmonic_bullets', { bullets: [bd] });
+                        }
+                    }
+                    if (this._behaviorTimer <= 0) {
+                        // Settle into formation
+                        this._behaviorPhase = 'SETTLING';
+                        this.isEntering = true;
+                        this.entryDelay = 0;
+                        this.entryProgress = 0;
+                        this.hasSettled = false;
+                        this.entryTimer = 0;
+                    }
+                    return; // Skip normal movement during flanker run
+                }
+            }
+
+            if (this.behavior === 'BOMBER' && behCfg.BOMBER?.ENABLED) {
+                this._behaviorTimer -= dt;
+                if (this._behaviorTimer <= 0) {
+                    this._behaviorTimer = behCfg.BOMBER.BOMB_COOLDOWN;
+                    if (window.Game.Events) {
+                        window.Game.Events.emit('bomber_drop', {
+                            x: this.x, y: this.y + 29,
+                            speed: behCfg.BOMBER.BOMB_SPEED,
+                            zoneDuration: behCfg.BOMBER.ZONE_DURATION,
+                            zoneRadius: behCfg.BOMBER.ZONE_RADIUS
+                        });
+                    }
+                }
+            }
+
+            if (this.behavior === 'HEALER' && behCfg.HEALER?.ENABLED) {
+                this._healerPulseTimer -= dt;
+                if (this._healerPulseTimer <= 0) {
+                    this._healerPulseTimer = behCfg.HEALER.PULSE_INTERVAL;
+                    const healR = behCfg.HEALER.AURA_RADIUS;
+                    const healRSq = healR * healR;
+                    const healRate = behCfg.HEALER.HEAL_RATE;
+                    const allEnemies = window.Game.enemies;
+                    if (allEnemies) {
+                        for (let hi = 0; hi < allEnemies.length; hi++) {
+                            const he = allEnemies[hi];
+                            if (!he || he === this || !he.active) continue;
+                            const hdx = he.x - this.x;
+                            const hdy = he.y - this.y;
+                            if (hdx * hdx + hdy * hdy <= healRSq) {
+                                he.hp = Math.min(he.maxHp, he.hp + he.maxHp * healRate);
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (this.behavior === 'CHARGER' && behCfg.CHARGER?.ENABLED) {
+                const chCfg = behCfg.CHARGER;
+                if (this._behaviorPhase === 'IDLE') {
+                    this._behaviorTimer -= dt;
+                    if (this._behaviorTimer <= 0) {
+                        this._behaviorPhase = 'WINDUP';
+                        this._behaviorTimer = chCfg.WINDUP_TIME;
+                        this._chargerOriginY = this.y;
+                        this._chargerTargetY = this.y + chCfg.CHARGE_DISTANCE;
+                    }
+                } else if (this._behaviorPhase === 'WINDUP') {
+                    this._behaviorTimer -= dt;
+                    // Shake during windup
+                    this._hitShakeX = (Math.random() - 0.5) * chCfg.WINDUP_SHAKE;
+                    this._hitShakeY = (Math.random() - 0.5) * chCfg.WINDUP_SHAKE;
+                    if (this._behaviorTimer <= 0) {
+                        this._behaviorPhase = 'CHARGING';
+                    }
+                } else if (this._behaviorPhase === 'CHARGING') {
+                    this.y += chCfg.CHARGE_SPEED * dt;
+                    if (this.y >= this._chargerTargetY) {
+                        this.y = this._chargerTargetY;
+                        this._behaviorPhase = 'RETREATING';
+                    }
+                    return; // Skip normal movement during charge
+                } else if (this._behaviorPhase === 'RETREATING') {
+                    this.y -= chCfg.RETREAT_SPEED * dt;
+                    if (this.y <= this._chargerOriginY) {
+                        this.y = this._chargerOriginY;
+                        this.baseY = this._chargerOriginY;
+                        this._behaviorPhase = 'IDLE';
+                        this._behaviorTimer = chCfg.CHARGE_INTERVAL;
+                        this._hitShakeX = 0;
+                        this._hitShakeY = 0;
+                    }
+                    return; // Skip normal movement during retreat
+                }
+            }
+        }
+
         // Horizontal Grid Move
         this.x += gridSpeed * gridDir * dt;
 
@@ -343,7 +508,16 @@ class Enemy extends window.Game.Entity {
     }
 
     // Take damage - returns true if enemy should die
+    // v5.32: Returns 'reflect' string if Reflector absorbs the hit
     takeDamage(amount, elemType) {
+        // v5.32: Reflector — absorb first hit, consume charge
+        if (this.isElite && this.eliteType === 'REFLECTOR' && this.reflectCharges > 0) {
+            this.reflectCharges--;
+            this._reflectBroken = true;
+            this.hitFlash = 1;
+            if (window.Game.Audio) window.Game.Audio.play('grazeNearMiss');
+            return 'reflect';
+        }
         this.hp -= amount;
         this.hitFlash = 1;
         this._hitShakeTimer = window.Game.Balance?.VFX?.HIT_SHAKE_DURATION || 0.06;
@@ -452,6 +626,149 @@ class Enemy extends window.Game.Entity {
             ctx.arc(x, y, 25, 0, Math.PI * 2);
             ctx.fill();
             ctx.globalAlpha = 1;
+        }
+
+        // v5.32: Elite variant visual overlays
+        if (this.isElite) {
+            const eliteCfg = window.Game.Balance?.ELITE_VARIANTS;
+            if (this.eliteType === 'ARMORED' && eliteCfg?.ARMORED?.ENABLED) {
+                // Metallic sheen sweep
+                const sheenT = (Date.now() * 0.001) % 2;
+                const sheenX = x - 25 + sheenT * 25;
+                ctx.globalAlpha = eliteCfg.ARMORED.SHEEN_ALPHA;
+                ctx.fillStyle = eliteCfg.ARMORED.SHEEN_COLOR;
+                ctx.beginPath();
+                ctx.moveTo(sheenX, y - 20);
+                ctx.lineTo(sheenX + 8, y - 20);
+                ctx.lineTo(sheenX + 4, y + 20);
+                ctx.lineTo(sheenX - 4, y + 20);
+                ctx.closePath();
+                ctx.fill();
+                // Shield icon
+                ctx.globalAlpha = 0.6;
+                ctx.strokeStyle = eliteCfg.ARMORED.SHEEN_COLOR;
+                ctx.lineWidth = 1.5;
+                const icoS = eliteCfg.ARMORED.ICON_SIZE;
+                ctx.beginPath();
+                ctx.moveTo(x, y - 28 - icoS);
+                ctx.lineTo(x - icoS, y - 28);
+                ctx.lineTo(x - icoS * 0.6, y - 28 + icoS);
+                ctx.lineTo(x, y - 28 + icoS * 1.3);
+                ctx.lineTo(x + icoS * 0.6, y - 28 + icoS);
+                ctx.lineTo(x + icoS, y - 28);
+                ctx.closePath();
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+            } else if (this.eliteType === 'EVADER' && eliteCfg?.EVADER?.ENABLED) {
+                // Speed lines when dashing
+                if (this._evaderDashing) {
+                    const dir = this._evaderDashVx > 0 ? -1 : 1;
+                    ctx.globalAlpha = eliteCfg.EVADER.LINE_ALPHA;
+                    ctx.strokeStyle = '#00f0ff';
+                    ctx.lineWidth = 1.5;
+                    for (let li = 0; li < eliteCfg.EVADER.LINE_COUNT; li++) {
+                        const ly = y - 10 + li * 10;
+                        ctx.beginPath();
+                        ctx.moveTo(x + dir * 20, ly);
+                        ctx.lineTo(x + dir * 35, ly);
+                        ctx.stroke();
+                    }
+                    ctx.globalAlpha = 1;
+                }
+            } else if (this.eliteType === 'REFLECTOR' && eliteCfg?.REFLECTOR?.ENABLED) {
+                // Prismatic shimmer (active) or broken crack (depleted)
+                if (this.reflectCharges > 0) {
+                    const hue = (Date.now() * eliteCfg.REFLECTOR.SHIMMER_SPEED) % 360;
+                    ctx.globalAlpha = eliteCfg.REFLECTOR.SHIMMER_ALPHA;
+                    ctx.strokeStyle = `hsl(${hue}, 100%, 70%)`;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(x, y, 27, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.globalAlpha = 1;
+                } else if (this._reflectBroken) {
+                    ctx.globalAlpha = eliteCfg.REFLECTOR.BROKEN_ALPHA;
+                    ctx.strokeStyle = '#888';
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([3, 3]);
+                    ctx.beginPath();
+                    ctx.arc(x, y, 27, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    ctx.globalAlpha = 1;
+                }
+            }
+        }
+
+        // v5.32: Behavior visual indicators
+        if (this.behavior) {
+            const bCfg = window.Game.Balance?.ENEMY_BEHAVIORS;
+            if (this.behavior === 'HEALER' && bCfg?.HEALER?.ENABLED) {
+                // Green aura pulse
+                const pulse = Math.sin(Date.now() * 0.004) * 0.5 + 0.5;
+                ctx.globalAlpha = bCfg.HEALER.AURA_ALPHA * (0.5 + pulse * 0.5);
+                ctx.strokeStyle = bCfg.HEALER.AURA_COLOR;
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.arc(x, y, bCfg.HEALER.AURA_RADIUS * (0.8 + pulse * 0.2), 0, Math.PI * 2);
+                ctx.stroke();
+                // Green cross icon
+                ctx.globalAlpha = 0.7;
+                ctx.strokeStyle = bCfg.HEALER.AURA_COLOR;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(x, y - 30);
+                ctx.lineTo(x, y - 36);
+                ctx.moveTo(x - 3, y - 33);
+                ctx.lineTo(x + 3, y - 33);
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+            } else if (this.behavior === 'CHARGER' && bCfg?.CHARGER?.ENABLED) {
+                if (this._behaviorPhase === 'WINDUP') {
+                    ctx.globalAlpha = 0.5;
+                    ctx.fillStyle = bCfg.CHARGER.FLASH_COLOR;
+                    ctx.beginPath();
+                    ctx.arc(x, y, 28, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.globalAlpha = 1;
+                } else if (this._behaviorPhase === 'CHARGING') {
+                    // Red trail
+                    ctx.globalAlpha = 0.4;
+                    for (let ti = 1; ti <= 3; ti++) {
+                        ctx.fillStyle = bCfg.CHARGER.FLASH_COLOR;
+                        ctx.beginPath();
+                        ctx.arc(x, y - ti * 12, 18 - ti * 3, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    ctx.globalAlpha = 1;
+                }
+            } else if (this.behavior === 'BOMBER' && bCfg?.BOMBER?.ENABLED) {
+                // Small bomb icon
+                ctx.globalAlpha = 0.6;
+                ctx.fillStyle = bCfg.BOMBER.ZONE_COLOR;
+                ctx.beginPath();
+                ctx.arc(x, y - 30, 4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#ff8800';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(x, y - 34);
+                ctx.lineTo(x + 2, y - 38);
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+            } else if (this.behavior === 'FLANKER' && this._behaviorPhase === 'RUN') {
+                // Direction chevron
+                const dir = this._flankerDir;
+                ctx.globalAlpha = 0.5;
+                ctx.strokeStyle = '#ffaa00';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(x + dir * 25, y - 5);
+                ctx.lineTo(x + dir * 30, y);
+                ctx.lineTo(x + dir * 25, y + 5);
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+            }
         }
 
         ctx.restore();

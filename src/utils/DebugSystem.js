@@ -2582,6 +2582,216 @@ window.Game.Debug = {
 
         // Restore rotation
         G.BOSS_ROTATION = origRotation;
+    },
+    // ========================================
+    // v5.32: ELITE + BEHAVIOR + STREAMING DEBUG
+    // ========================================
+
+    /**
+     * dbg.elites() — Report elite enemies on screen
+     * Usage: dbg.elites()
+     */
+    elites() {
+        const enemies = G.enemies;
+        if (!enemies || enemies.length === 0) {
+            console.log('[ELITE] No enemies on screen');
+            return;
+        }
+        const elites = enemies.filter(e => e && e.isElite);
+        console.log(`[ELITE] ${elites.length}/${enemies.length} enemies are elite`);
+        const counts = {};
+        elites.forEach(e => { counts[e.eliteType] = (counts[e.eliteType] || 0) + 1; });
+        Object.entries(counts).forEach(([type, n]) => console.log(`  ${type}: ${n}`));
+        if (elites.length === 0) {
+            console.log('  (none — try dbg.forceElite("ARMORED") to force)');
+        }
+    },
+
+    /**
+     * dbg.forceElite(type) — Force ALL current enemies to be elite
+     * Usage: dbg.forceElite('ARMORED'), dbg.forceElite('EVADER'), dbg.forceElite('REFLECTOR')
+     */
+    forceElite(type) {
+        const enemies = G.enemies;
+        if (!enemies || enemies.length === 0) {
+            console.warn('[ELITE] No enemies on screen. Start a game first.');
+            return;
+        }
+        type = (type || 'ARMORED').toUpperCase();
+        const cfg = G.Balance?.ELITE_VARIANTS?.[type];
+        if (!cfg) {
+            console.warn(`[ELITE] Unknown type "${type}". Use: ARMORED, EVADER, REFLECTOR`);
+            return;
+        }
+        let count = 0;
+        enemies.forEach(e => {
+            if (!e) return;
+            e.isElite = true;
+            e.eliteType = type;
+            if (type === 'ARMORED') {
+                e.hp = e.maxHp * (cfg.HP_MULT || 2);
+                e.maxHp = e.hp;
+                e.scoreVal = Math.round(e.scoreVal * (cfg.SCORE_MULT || 2));
+            } else if (type === 'EVADER') {
+                e._evaderCooldown = 0;
+            } else if (type === 'REFLECTOR') {
+                e.reflectCharges = cfg.CHARGES || 1;
+                e._reflectBroken = false;
+            }
+            count++;
+        });
+        console.log(`[ELITE] Forced ${count} enemies to ${type}`);
+    },
+
+    /**
+     * dbg.behaviors() — Report behavior enemies on screen
+     * Usage: dbg.behaviors()
+     */
+    behaviors() {
+        const enemies = G.enemies;
+        if (!enemies || enemies.length === 0) {
+            console.log('[BEHAVIOR] No enemies on screen');
+            return;
+        }
+        const withBeh = enemies.filter(e => e && e.behavior);
+        console.log(`[BEHAVIOR] ${withBeh.length}/${enemies.length} enemies have behaviors`);
+        const counts = {};
+        withBeh.forEach(e => { counts[e.behavior] = (counts[e.behavior] || 0) + 1; });
+        Object.entries(counts).forEach(([type, n]) => console.log(`  ${type}: ${n} (phase: ${withBeh.find(e => e.behavior === type)?._behaviorPhase || '?'})`));
+        if (withBeh.length === 0) {
+            console.log('  (none — try dbg.forceBehavior("CHARGER") to force)');
+        }
+    },
+
+    /**
+     * dbg.forceBehavior(type) — Force behavior on ALL current enemies
+     * Usage: dbg.forceBehavior('FLANKER'), dbg.forceBehavior('BOMBER'), dbg.forceBehavior('HEALER'), dbg.forceBehavior('CHARGER')
+     */
+    forceBehavior(type) {
+        const enemies = G.enemies;
+        if (!enemies || enemies.length === 0) {
+            console.warn('[BEHAVIOR] No enemies on screen. Start a game first.');
+            return;
+        }
+        type = (type || 'CHARGER').toUpperCase();
+        const cfg = G.Balance?.ENEMY_BEHAVIORS?.[type];
+        if (!cfg) {
+            console.warn(`[BEHAVIOR] Unknown type "${type}". Use: FLANKER, BOMBER, HEALER, CHARGER`);
+            return;
+        }
+        const gw = G._gameWidth || 400;
+        let count = 0;
+        enemies.forEach(e => {
+            if (!e) return;
+            e.behavior = type;
+            if (type === 'FLANKER') {
+                e._behaviorPhase = 'RUN';
+                e._behaviorTimer = cfg.RUN_DURATION;
+                e._flankerDir = e.x < gw / 2 ? 1 : -1;
+                e._flankerFireTimer = cfg.FIRE_INTERVAL;
+            } else if (type === 'BOMBER') {
+                e._behaviorTimer = 1; // Quick first bomb
+            } else if (type === 'HEALER') {
+                e._healerPulseTimer = cfg.PULSE_INTERVAL;
+            } else if (type === 'CHARGER') {
+                e._behaviorPhase = 'IDLE';
+                e._behaviorTimer = 1; // Quick first charge
+            }
+            count++;
+        });
+        console.log(`[BEHAVIOR] Forced ${count} enemies to ${type}`);
+    },
+
+    /**
+     * dbg.streaming() — Report streaming state
+     * Usage: dbg.streaming()
+     */
+    streaming() {
+        const wm = G.WaveManager;
+        if (!wm) {
+            console.log('[STREAMING] WaveManager not available');
+            return;
+        }
+        const cfg = G.Balance?.STREAMING;
+        console.log('╔════════════════════════════════════════╗');
+        console.log('║         STREAMING FLOW STATUS          ║');
+        console.log('╠════════════════════════════════════════╣');
+        console.log(`║ Enabled:        ${cfg?.ENABLED ? 'YES' : 'NO'}`);
+        console.log(`║ Active:         ${wm.isStreaming ? 'YES' : 'NO'}`);
+        console.log(`║ Pending batches:${(wm.pendingBatches || []).length}`);
+        console.log(`║ Batch index:    ${wm.batchIndex || 0}`);
+        console.log(`║ Spawned count:  ${wm.streamingSpawnedCount || 0}`);
+        console.log(`║ Batch timer:    ${(wm.batchTimer || 0).toFixed(2)}s`);
+        console.log(`║ Batch delay:    ${(wm._batchDelay || 0).toFixed(2)}s`);
+        const enemies = G.enemies;
+        if (enemies) {
+            const settled = enemies.filter(e => e && e.hasSettled).length;
+            const entering = enemies.filter(e => e && e.isEntering).length;
+            console.log(`║ On screen:      ${enemies.length} (${settled} settled, ${entering} entering)`);
+        }
+        console.log('╚════════════════════════════════════════╝');
+    },
+
+    /**
+     * dbg.waveReport() — Full status of current wave: elites, behaviors, streaming
+     * Usage: dbg.waveReport()
+     */
+    waveReport() {
+        console.log('╔════════════════════════════════════════╗');
+        console.log('║         v5.32 WAVE REPORT              ║');
+        console.log('╠════════════════════════════════════════╣');
+        const enemies = G.enemies || [];
+        const elites = enemies.filter(e => e && e.isElite);
+        const behavs = enemies.filter(e => e && e.behavior);
+        console.log(`║ Enemies:   ${enemies.length}`);
+        console.log(`║ Elites:    ${elites.length}`);
+        if (elites.length > 0) {
+            const ec = {};
+            elites.forEach(e => ec[e.eliteType] = (ec[e.eliteType] || 0) + 1);
+            Object.entries(ec).forEach(([t, n]) => console.log(`║   ${t}: ${n}`));
+        }
+        console.log(`║ Behaviors: ${behavs.length}`);
+        if (behavs.length > 0) {
+            const bc = {};
+            behavs.forEach(e => bc[e.behavior] = (bc[e.behavior] || 0) + 1);
+            Object.entries(bc).forEach(([t, n]) => console.log(`║   ${t}: ${n}`));
+        }
+        const cfg = G.Balance;
+        console.log(`║ Elite:     ${cfg?.ELITE_VARIANTS?.ENABLED ? 'ON' : 'OFF'}`);
+        console.log(`║ Behaviors: ${cfg?.ENEMY_BEHAVIORS?.ENABLED ? 'ON' : 'OFF'}`);
+        console.log(`║ Streaming: ${cfg?.STREAMING?.ENABLED ? 'ON' : 'OFF'}`);
+        console.log('╚════════════════════════════════════════╝');
+        this.streaming();
+    },
+
+    /**
+     * dbg.toggleElites() — Toggle elite variants on/off
+     */
+    toggleElites() {
+        const cfg = G.Balance?.ELITE_VARIANTS;
+        if (!cfg) { console.warn('[ELITE] Config not found'); return; }
+        cfg.ENABLED = !cfg.ENABLED;
+        console.log(`[ELITE] Elite variants: ${cfg.ENABLED ? 'ON' : 'OFF'}`);
+    },
+
+    /**
+     * dbg.toggleBehaviors() — Toggle enemy behaviors on/off
+     */
+    toggleBehaviors() {
+        const cfg = G.Balance?.ENEMY_BEHAVIORS;
+        if (!cfg) { console.warn('[BEHAVIOR] Config not found'); return; }
+        cfg.ENABLED = !cfg.ENABLED;
+        console.log(`[BEHAVIOR] Enemy behaviors: ${cfg.ENABLED ? 'ON' : 'OFF'}`);
+    },
+
+    /**
+     * dbg.toggleStreaming() — Toggle streaming flow on/off
+     */
+    toggleStreaming() {
+        const cfg = G.Balance?.STREAMING;
+        if (!cfg) { console.warn('[STREAMING] Config not found'); return; }
+        cfg.ENABLED = !cfg.ENABLED;
+        console.log(`[STREAMING] Streaming flow: ${cfg.ENABLED ? 'ON' : 'OFF'}`);
     }
 };
 
@@ -2589,4 +2799,4 @@ window.Game.Debug = {
 window.dbg = window.Game.Debug;
 
 // Console helper message
-console.log('[DEBUG] DebugSystem loaded. Commands: dbg.stats(), dbg.showOverlay(), dbg.perf(), dbg.perfReport(), dbg.entityReport(), dbg.boss(type), dbg.debugBoss(), dbg.debugHUD(), dbg.hudStatus(), dbg.toggleHudMsg(key), dbg.maxWeapon(), dbg.weaponStatus(), dbg.godchain(), dbg.godchainStatus(), dbg.powerUpReport(), dbg.progressionReport(), dbg.contagionReport(), dbg.hitboxes(), dbg.formations(), dbg.arcade(), dbg.arcadeHelp(), dbg.completion()');
+console.log('[DEBUG] DebugSystem loaded. Commands: dbg.stats(), dbg.showOverlay(), dbg.perf(), dbg.perfReport(), dbg.entityReport(), dbg.boss(type), dbg.debugBoss(), dbg.debugHUD(), dbg.hudStatus(), dbg.toggleHudMsg(key), dbg.maxWeapon(), dbg.weaponStatus(), dbg.godchain(), dbg.godchainStatus(), dbg.powerUpReport(), dbg.progressionReport(), dbg.contagionReport(), dbg.hitboxes(), dbg.formations(), dbg.arcade(), dbg.arcadeHelp(), dbg.completion(), dbg.waveReport(), dbg.elites(), dbg.behaviors(), dbg.streaming()');

@@ -1,5 +1,19 @@
 # Changelog
 
+## v5.32.0 - 2026-02-18
+### Gameplay Feel & Polish — Elite Variants + Enemy Behaviors + Streaming Flow
+- **feat(elite)**: Elite Enemy Variants — one variant per cycle: C1 Armored (HP×2, speed×0.8, metallic sheen), C2 Evader (dashes sideways when bullet approaches, 2s cooldown), C3 Reflector (reflects first bullet back as enemy shot, prismatic shimmer). Only MEDIUM+STRONG tiers eligible. 10%/15%/20% chance per cycle (Story), +5% Arcade, +5% Bear Market
+- **feat(behavior)**: Flanker — enters from side, flies horizontally firing, then joins formation. 2-4 per wave (C1W3+)
+- **feat(behavior)**: Bomber — drops slow bombs that create pulsing danger zones on ground (2s, r=40px, 1 dmg). 1-2 per wave (C2W1+)
+- **feat(behavior)**: Healer — green aura (60px), regenerates 5% HP/s to nearby enemies, doesn't fire. Priority kill target. 1 per wave (C2W3+)
+- **feat(behavior)**: Charger — windup shake+flash → charge forward 80px at 500px/s → retreat. 2-3 per wave (C2W2+)
+- **feat(streaming)**: Streaming Enemy Flow — replaces discrete horde1→horde2 with continuous drip-feed. Batch size 5/6/7 per cycle, configurable delays. Grid movement starts at 50% settled. Escalation: behavior bonus +3%/batch, fire rate +2%/batch
+- **feat(debug)**: 9 new debug commands — `dbg.elites()`, `dbg.forceElite(type)`, `dbg.behaviors()`, `dbg.forceBehavior(type)`, `dbg.streaming()`, `dbg.waveReport()`, `dbg.toggleElites()`, `dbg.toggleBehaviors()`, `dbg.toggleStreaming()`
+- **config**: `Balance.ELITE_VARIANTS` (per-variant kill-switches), `Balance.ENEMY_BEHAVIORS` (per-behavior kill-switches), `Balance.STREAMING` (master kill-switch)
+- **change(collision)**: Reflector interception in CollisionSystem — reflected bullets spawn as enemy shots toward player with spread
+- **change(conductor)**: HarmonicConductor threshold-based areEnemiesEntering() for streaming mode (>50% entering = block, not any)
+- **change(main)**: Danger zone system for Bomber bombs, battlefield clearing includes streaming state + danger zones
+
 ## v5.31.0 - 2026-02-18
 ### Gameplay Polish + HYPER Rework + Mobile Hardening
 - **feat(shield)**: Energy Skin — shield conforms to 8-vertex ship body (4-layer glow + 3 perimeter sparks). Destroys enemy bullets on contact (r=35px)

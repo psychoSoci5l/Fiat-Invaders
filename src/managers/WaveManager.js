@@ -36,6 +36,13 @@ window.Game.WaveManager = {
         this.hordeTransitionTimer = 0;
         this.isHordeTransition = false;
         this.hordeSpawned = false;
+        // v5.32: Streaming state
+        this.pendingBatches = [];
+        this.batchTimer = 0;
+        this.batchIndex = 0;
+        this.isStreaming = false;
+        this.streamingSpawnedCount = 0;
+        this._behaviorCounts = {};
         dbg.log('WAVE', `[WM] RESET complete. wave=${this.wave}`);
     },
 
@@ -77,6 +84,23 @@ window.Game.WaveManager = {
                 return { action: 'START_WAVE' };
             }
             return null;
+        }
+
+        // v5.32: Streaming batch timer
+        if (this.isStreaming && this.pendingBatches && this.pendingBatches.length > 0) {
+            this.batchTimer += dt;
+            if (this.batchTimer >= (this._batchDelay || 1.5)) {
+                this.batchTimer = 0;
+                return { action: 'SPAWN_BATCH' };
+            }
+        }
+
+        // v5.32: Streaming wave completion — all batches spawned AND enemies dead
+        if (this.isStreaming && this.pendingBatches && this.pendingBatches.length === 0 &&
+            enemiesCount === 0 && this.streamingSpawnedCount > 0) {
+            this.isStreaming = false;
+            this.streamingSpawnedCount = 0;
+            // Fall through to normal wave transition logic
         }
 
         if (this.isHordeTransition) {
@@ -315,11 +339,92 @@ window.Game.WaveManager = {
             enemy.canTeleport = Math.random() < behaviorChance;
         }
 
+        // v5.32: Elite variant assignment
+        const eliteCfg = Balance.ELITE_VARIANTS;
+        if (eliteCfg?.ENABLED) {
+            const tier = this._getEnemyTier(symbol, Balance);
+            if (eliteCfg.ELIGIBLE_TIERS.includes(tier)) {
+                const cycleIdx = Math.min(cycle - 1, 2);
+                const variantType = eliteCfg.CYCLE_VARIANTS[cycle] || eliteCfg.CYCLE_VARIANTS[1];
+                const isArcade = G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode();
+                const chances = isArcade ? eliteCfg.CHANCE.ARCADE : eliteCfg.CHANCE.STORY;
+                let chance = chances[cycleIdx] || 0.10;
+                if (window.isBearMarket) chance += eliteCfg.CHANCE.BEAR_BONUS;
+                // Per-variant kill-switch
+                const variantCfg = eliteCfg[variantType];
+                if (variantCfg?.ENABLED !== false && Math.random() < chance) {
+                    enemy.isElite = true;
+                    enemy.eliteType = variantType;
+                    if (variantType === 'ARMORED') {
+                        enemy.hp *= variantCfg.HP_MULT;
+                        enemy.maxHp = enemy.hp;
+                        enemy.scoreVal = Math.round(enemy.scoreVal * variantCfg.SCORE_MULT);
+                    } else if (variantType === 'EVADER') {
+                        enemy._evaderCooldown = 1; // Initial grace
+                    } else if (variantType === 'REFLECTOR') {
+                        enemy.reflectCharges = variantCfg.CHARGES;
+                    }
+                }
+            }
+        }
+
+        // v5.32: Behavior assignment (mutually exclusive with behaviors, stackable with elite)
+        const behCfg = Balance.ENEMY_BEHAVIORS;
+        if (behCfg?.ENABLED) {
+            const globalWave = ((cycle - 1) * 5) + (((this.wave - 1) % this.getWavesPerCycle()) + 1);
+            const isArcadeBeh = G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode();
+            const behRate = isArcadeBeh ? (behCfg.BEHAVIOR_RATE_ARCADE || 0.22) : (behCfg.BEHAVIOR_RATE || 0.18);
+            // Extra chance from streaming escalation
+            const extraBehChance = hordeMods._behaviorEscalation || 0;
+            if (Math.random() < behRate + extraBehChance) {
+                const available = [];
+                if (behCfg.FLANKER?.ENABLED && globalWave >= behCfg.MIN_WAVE.FLANKER) available.push('FLANKER');
+                if (behCfg.BOMBER?.ENABLED && globalWave >= behCfg.MIN_WAVE.BOMBER) available.push('BOMBER');
+                if (behCfg.HEALER?.ENABLED && globalWave >= behCfg.MIN_WAVE.HEALER) available.push('HEALER');
+                if (behCfg.CHARGER?.ENABLED && globalWave >= behCfg.MIN_WAVE.CHARGER) available.push('CHARGER');
+                if (available.length > 0) {
+                    // Check caps via _behaviorCounts (set by caller)
+                    const counts = this._behaviorCounts || {};
+                    const shuffled = available.filter(b => (counts[b] || 0) < (behCfg.CAPS[b] || 99));
+                    if (shuffled.length > 0) {
+                        const pick = shuffled[Math.floor(Math.random() * shuffled.length)];
+                        enemy.behavior = pick;
+                        counts[pick] = (counts[pick] || 0) + 1;
+                        this._behaviorCounts = counts;
+                        // Init behavior state
+                        if (pick === 'FLANKER') {
+                            enemy._behaviorPhase = 'RUN';
+                            enemy._behaviorTimer = behCfg.FLANKER.RUN_DURATION;
+                            enemy._flankerDir = enemy.x < (gameWidth / 2) ? 1 : -1;
+                            enemy._flankerFireTimer = behCfg.FLANKER.FIRE_INTERVAL;
+                            // Start from side instead of formation position
+                            enemy.x = enemy._flankerDir > 0 ? -40 : gameWidth + 40;
+                            enemy.y = pos.y;
+                        } else if (pick === 'BOMBER') {
+                            enemy._behaviorTimer = behCfg.BOMBER.BOMB_COOLDOWN * (0.5 + Math.random() * 0.5);
+                        } else if (pick === 'HEALER') {
+                            enemy._healerPulseTimer = behCfg.HEALER.PULSE_INTERVAL;
+                        } else if (pick === 'CHARGER') {
+                            enemy._behaviorPhase = 'IDLE';
+                            enemy._behaviorTimer = behCfg.CHARGER.CHARGE_INTERVAL * (0.3 + Math.random() * 0.7);
+                        }
+                    }
+                }
+            }
+        }
+
         // Fire rate with horde modifier
         const baseFireDelay = (index * 0.15) + (Math.random() * 0.2);
         enemy.fireTimer = baseFireDelay / hordeMods.fireRateMult;
 
         return enemy;
+    },
+
+    // v5.32: Get tier name for a currency symbol
+    _getEnemyTier(symbol, Balance) {
+        if (Balance.TIERS.STRONG.includes(symbol)) return 'STRONG';
+        if (Balance.TIERS.MEDIUM.includes(symbol)) return 'MEDIUM';
+        return 'WEAK';
     },
 
     /**
@@ -405,6 +510,168 @@ window.Game.WaveManager = {
             'FINAL_FORM': 'SINE_WAVE'
         };
         return patterns[formation] || 'RECT';
+    },
+
+    // ========================================
+    // v5.32: STREAMING WAVE SYSTEM
+    // ========================================
+
+    /**
+     * Prepare a streaming wave — merge horde1+horde2 into batches
+     * Returns first batch immediately, queues rest in pendingBatches
+     */
+    prepareStreamingWave(gameWidth) {
+        const G = window.Game;
+        const Balance = G.Balance;
+        const dbg = G.Debug;
+        const cycle = window.marketCycle || 1;
+        const cycleIdx = Math.min(cycle - 1, 2);
+        const waveInCycle = ((this.wave - 1) % this.getWavesPerCycle()) + 1;
+        const waveDef = Balance.getWaveDefinition(cycle, waveInCycle);
+        const streamCfg = Balance.STREAMING;
+
+        if (!waveDef) {
+            dbg.log('WAVE', `[WM] Streaming: no def for C${cycle}W${waveInCycle}, fallback to horde`);
+            return null;
+        }
+
+        // Merge horde1 + horde2 counts
+        const h1 = waveDef.horde1;
+        const h2 = waveDef.horde2;
+        let totalCount = h1.count + h2.count;
+
+        // Apply scaling
+        if (window.isBearMarket) {
+            totalCount = Math.floor(totalCount * (Balance.WAVE_DEFINITIONS.BEAR_MARKET.COUNT_MULT || 1.25));
+        }
+        const cycleMult = Balance.WAVE_DEFINITIONS.CYCLE_COUNT_MULT?.[cycleIdx] || 1.0;
+        totalCount = Math.floor(totalCount * cycleMult);
+        const isArcade = G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode();
+        if (isArcade && Balance.ARCADE) {
+            totalCount = Math.floor(totalCount * (Balance.ARCADE.ENEMY_COUNT_MULT || 1.15));
+        }
+        if (G.RankSystem) {
+            totalCount = Math.max(4, Math.round(totalCount * G.RankSystem.getEnemyCountMultiplier()));
+        }
+
+        // Generate unified formation
+        const formation = h1.formation; // Use horde1's formation for full wave
+        const positions = this.generateFormation(formation, totalCount, gameWidth);
+
+        // Merge currencies
+        const h1Ratio = h1.count / (h1.count + h2.count);
+        const allCurrencies = [];
+        const h1Count = Math.round(positions.length * h1Ratio);
+        for (let i = 0; i < positions.length; i++) {
+            const pool = i < h1Count ? h1.currencies : h2.currencies;
+            allCurrencies.push(pool[Math.floor(Math.random() * pool.length)]);
+        }
+
+        // Split into batches
+        const batchSize = streamCfg.BATCH_SIZE[cycleIdx] || 6;
+        const batches = [];
+        for (let i = 0; i < positions.length; i += batchSize) {
+            const end = Math.min(i + batchSize, positions.length);
+            batches.push({
+                positions: positions.slice(i, end),
+                currencies: allCurrencies.slice(i, end),
+                batchIdx: batches.length,
+                isSecondHalf: i >= h1Count
+            });
+        }
+
+        if (batches.length === 0) return null;
+
+        // Spawn first batch
+        const firstBatch = batches.shift();
+        const hordeMods1 = Balance.getHordeModifiers(1);
+        const entryPath = this._pickEntryPath();
+        this._behaviorCounts = {};
+
+        const enemies = [];
+        for (let i = 0; i < firstBatch.positions.length; i++) {
+            const pos = firstBatch.positions[i];
+            const currencyType = Balance.getCurrencyBySymbol(firstBatch.currencies[i]);
+            if (!currencyType) continue;
+            const enemy = this.createEnemy(pos, currencyType, cycle, hordeMods1, i, entryPath, gameWidth);
+            enemies.push(enemy);
+        }
+
+        // Store remaining batches
+        this.pendingBatches = batches;
+        this.batchTimer = 0;
+        this.batchIndex = 1;
+        this.isStreaming = true;
+        this.streamingSpawnedCount = enemies.length;
+        this._streamingCycle = cycle;
+        this._streamingGameWidth = gameWidth;
+        this._streamingEntryPath = entryPath;
+        this._streamingH1Count = h1Count;
+
+        // Compute batch delay
+        const delays = isArcade ? streamCfg.BATCH_DELAY.ARCADE : streamCfg.BATCH_DELAY.STORY;
+        this._batchDelay = delays[cycleIdx] || 1.5;
+
+        this.hordeSpawned = true;
+        this.waveInProgress = false;
+        // Don't increment wave yet — wave completes when all batches done + enemies dead
+
+        const movementPattern = this.getMovementPattern(formation);
+        dbg.log('WAVE', `[WM] Streaming: ${enemies.length} first batch, ${batches.length} pending, total ${totalCount}`);
+
+        return { enemies, pattern: movementPattern, isStreaming: true };
+    },
+
+    /**
+     * Spawn next batch from pending queue
+     */
+    spawnNextBatch() {
+        const G = window.Game;
+        const Balance = G.Balance;
+        const dbg = G.Debug;
+
+        if (!this.pendingBatches || this.pendingBatches.length === 0) {
+            this.isStreaming = false;
+            return null;
+        }
+
+        const batch = this.pendingBatches.shift();
+        const cycle = this._streamingCycle || (window.marketCycle || 1);
+        const gameWidth = this._streamingGameWidth || G._gameWidth || 400;
+        const entryPath = this._streamingEntryPath || 'SINE';
+
+        // Horde mods: use horde2 mods for second-half batches
+        const hordeNum = batch.isSecondHalf ? 2 : 1;
+        const hordeMods = Balance.getHordeModifiers(hordeNum);
+
+        // v5.32: Escalation — behaviors + fire rate increase per batch
+        const escCfg = Balance.STREAMING?.ESCALATION;
+        if (escCfg) {
+            hordeMods._behaviorEscalation = batch.batchIdx * (escCfg.BEHAVIOR_BONUS_PER_BATCH || 0.03);
+            hordeMods.fireRateMult *= 1 + batch.batchIdx * (escCfg.FIRE_RATE_PER_BATCH || 0.02);
+        }
+
+        const enemies = [];
+        for (let i = 0; i < batch.positions.length; i++) {
+            const pos = batch.positions[i];
+            const currencyType = Balance.getCurrencyBySymbol(batch.currencies[i]);
+            if (!currencyType) continue;
+            const globalIdx = this.streamingSpawnedCount + i;
+            const enemy = this.createEnemy(pos, currencyType, cycle, hordeMods, globalIdx, entryPath, gameWidth);
+            enemies.push(enemy);
+        }
+
+        this.streamingSpawnedCount += enemies.length;
+        this.batchIndex++;
+
+        // Check if this was the last batch
+        if (this.pendingBatches.length === 0) {
+            this.wave++;
+            dbg.log('WAVE', `[WM] Streaming: last batch spawned, wave → ${this.wave}`);
+        }
+
+        dbg.log('WAVE', `[WM] Streaming batch #${batch.batchIdx}: ${enemies.length} enemies (${this.pendingBatches.length} remaining)`);
+        return { enemies, isBatch: true };
     },
 
     // ========================================
