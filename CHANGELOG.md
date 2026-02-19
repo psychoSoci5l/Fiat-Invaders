@@ -1,5 +1,19 @@
 # Changelog
 
+## v6.7.0 - 2026-02-19
+
+### Audio Richness Enhancement
+- **feat(audio)**: Instrument sub-bus routing — bass, arp, melody, drums, pad each have dedicated GainNode buses for independent processing
+- **feat(audio)**: Stereo panning — instruments spread across stereo field (arp left, melody right, hihat right, crash left) via StereoPannerNode
+- **feat(audio)**: Convolution reverb — procedural stereo impulse response (1.5s decay, 0.7 damping). Per-instrument send levels (pad 35%, arp 25%, melody 20%). 5 SFX types get reverb sends (explosion, bossSpawn, waveComplete, levelUp, godchainActivate)
+- **feat(audio)**: Arp LFO filter — persistent sine oscillator (2Hz) modulates lowpass filter cutoff (800-4000Hz) on arp bus for evolving timbre
+- **feat(audio)**: Melody per-note filter envelope — lowpass with attack/release sweep (800→3000→800Hz) adds brightness transient to each note
+- **feat(audio)**: Pad chorus — alternating ±8 cents detune on pad oscillators for width. Tremolo LFO (0.5Hz, 30% depth) for movement
+- **feat(audio)**: Drum enhancement — kick sub-bass layer (50Hz sine, 0.15s decay), snare tonal body (200Hz triangle, 0.06s), configurable open hihat decay
+- **feat(audio)**: Relaxed compressor — ratio 6:1 at -18dB threshold (was 12:1 at -24dB) preserves dynamics on ULTRA/HIGH
+- **feat(audio)**: Quality-tier scaling — ULTRA/HIGH: full effects. MEDIUM: no reverb/LFO/tremolo, tighter compressor. LOW: also no stereo, original compressor values (identical to pre-v6.7 sound)
+- **refactor(audio)**: All audio richness features have individual kill-switches in `Balance.AUDIO` (REVERB.ENABLED, STEREO.ENABLED, LFO.*.ENABLED, DRUMS.*.ENABLED)
+
 ## v6.6.0 - 2026-02-18
 
 ### Desktop Mouse Controls + Android Fix + Console Cleanup

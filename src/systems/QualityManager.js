@@ -252,6 +252,9 @@
         // Energy skin
         if ('ENERGY_SKIN_OUTER_STROKE' in tier && vfx?.ENERGY_SKIN) vfx.ENERGY_SKIN.OUTER_STROKE = tier.ENERGY_SKIN_OUTER_STROKE;
         if ('ENERGY_SKIN_SPARK_COUNT' in tier && vfx?.ENERGY_SKIN) vfx.ENERGY_SKIN.SPARK_COUNT = tier.ENERGY_SKIN_SPARK_COUNT;
+
+        // v6.7: Audio richness tier scaling
+        if (G.Audio?.applyQualityTier) G.Audio.applyQualityTier(tierName);
     }
 
     // ── FPS calculation ──────────────────────────────────────────

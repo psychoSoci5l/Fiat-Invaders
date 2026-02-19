@@ -51,6 +51,25 @@ class AudioSystem {
         // v4.34: Bear market distortion node
         this._distortionNode = null;
         this._bearFilterNode = null;
+
+        // v6.7: Audio richness — persistent sub-buses & effects
+        this._bassBus = null;
+        this._arpBus = null;
+        this._melBus = null;
+        this._drumBus = null;
+        this._padBus = null;
+        this._reverbConvolver = null;
+        this._reverbWet = null;
+        this._reverbBus = null;
+        this._sfxReverbSend = null;
+        this._arpLFO = null;
+        this._arpFilter = null;
+        this._padTremoloLFO = null;
+        this._padTremoloGain = null;
+        this._stereoPanners = {};     // { bass, arp, melody, kick, snare, hihat, crash, pad }
+        this._reverbSends = {};       // { bass, arp, melody, pad, drums }
+        this._drumPanners = {};       // { kick, snare, hihat, crash }
+        this._currentAudioTier = null;
     }
 
     init() {
@@ -94,6 +113,25 @@ class AudioSystem {
 
             this.masterGain.connect(this.compressor);
             this.compressor.connect(this.ctx.destination);
+
+            // v6.7: Create instrument sub-buses → musicGain
+            this._bassBus = this.ctx.createGain();
+            this._arpBus = this.ctx.createGain();
+            this._melBus = this.ctx.createGain();
+            this._drumBus = this.ctx.createGain();
+            this._padBus = this.ctx.createGain();
+            this._bassBus.connect(this.musicGain);
+            this._arpBus.connect(this.musicGain);
+            this._melBus.connect(this.musicGain);
+            this._drumBus.connect(this.musicGain);
+            this._padBus.connect(this.musicGain);
+
+            // v6.7: Audio richness chain (order matters)
+            this._applyCompressorConfig(this.ctx);
+            this._initStereoPanning(this.ctx);
+            this._initReverbBus(this.ctx);
+            this._initArpLFO(this.ctx);
+            this._initPadTremolo(this.ctx);
 
             // On mobile, context auto-starts suspended (browser policy)
             // On desktop, context starts running — audio plays when startMusic() is called
@@ -268,6 +306,156 @@ class AudioSystem {
         }
     }
 
+    // ===== v6.7: AUDIO RICHNESS INIT METHODS =====
+
+    _applyCompressorConfig(ac) {
+        const cfg = G.Balance?.AUDIO?.COMPRESSOR;
+        if (!cfg || !this.compressor) return;
+        this.compressor.threshold.value = cfg.THRESHOLD;
+        this.compressor.knee.value = cfg.KNEE;
+        this.compressor.ratio.value = cfg.RATIO;
+        this.compressor.attack.value = cfg.ATTACK;
+        this.compressor.release.value = cfg.RELEASE;
+    }
+
+    _initStereoPanning(ac) {
+        const cfg = G.Balance?.AUDIO?.STEREO;
+        if (!cfg?.ENABLED) return;
+        if (typeof ac.createStereoPanner !== 'function') return;
+
+        const panCfg = cfg.PAN;
+        // Instrument bus panners — insert between bus and musicGain
+        const busPairs = [
+            ['bass', this._bassBus], ['arp', this._arpBus],
+            ['melody', this._melBus], ['pad', this._padBus]
+        ];
+        busPairs.forEach(([name, bus]) => {
+            const panner = ac.createStereoPanner();
+            panner.pan.value = panCfg[name] ?? 0;
+            bus.disconnect();
+            bus.connect(panner);
+            panner.connect(this.musicGain);
+            this._stereoPanners[name] = panner;
+        });
+
+        // Drum element panners (individual — used in playDrumsFromData)
+        ['kick', 'snare', 'hihat', 'crash'].forEach(elem => {
+            const panner = ac.createStereoPanner();
+            panner.pan.value = panCfg[elem] ?? 0;
+            panner.connect(this._drumBus);
+            this._drumPanners[elem] = panner;
+        });
+    }
+
+    _initReverbBus(ac) {
+        const cfg = G.Balance?.AUDIO?.REVERB;
+        if (!cfg?.ENABLED) return;
+
+        // Generate procedural impulse response (stereo)
+        const sampleRate = ac.sampleRate;
+        const length = Math.ceil(sampleRate * cfg.DECAY);
+        const impulse = ac.createBuffer(2, length, sampleRate);
+        for (let ch = 0; ch < 2; ch++) {
+            const data = impulse.getChannelData(ch);
+            for (let i = 0; i < length; i++) {
+                // Exponential decay with damping (high-freq rolloff via random sign balance)
+                const t = i / sampleRate;
+                const decay = Math.exp(-t * (3.0 / cfg.DECAY));
+                const damping = 1.0 - cfg.DAMPING * (t / cfg.DECAY);
+                data[i] = (Math.random() * 2 - 1) * decay * Math.max(0, damping);
+            }
+        }
+
+        this._reverbConvolver = ac.createConvolver();
+        this._reverbConvolver.buffer = impulse;
+
+        this._reverbWet = ac.createGain();
+        this._reverbWet.gain.value = cfg.WET_LEVEL;
+
+        this._reverbBus = ac.createGain();
+        this._reverbBus.gain.value = 1.0;
+
+        // Chain: reverbBus → convolver → wet → masterGain
+        this._reverbBus.connect(this._reverbConvolver);
+        this._reverbConvolver.connect(this._reverbWet);
+        this._reverbWet.connect(this.masterGain);
+
+        // Create send gains from each instrument bus
+        const sendCfg = cfg.SEND;
+        const busPairs = [
+            ['bass', this._bassBus], ['arp', this._arpBus],
+            ['melody', this._melBus], ['pad', this._padBus],
+            ['drums', this._drumBus]
+        ];
+        busPairs.forEach(([name, bus]) => {
+            const sendGain = ac.createGain();
+            sendGain.gain.value = sendCfg[name] ?? 0;
+            bus.connect(sendGain);
+            sendGain.connect(this._reverbBus);
+            this._reverbSends[name] = sendGain;
+        });
+
+        // SFX reverb send (single shared node, gain set per-SFX)
+        this._sfxReverbSend = ac.createGain();
+        this._sfxReverbSend.gain.value = 0;
+        this._sfxReverbSend.connect(this._reverbBus);
+    }
+
+    _initArpLFO(ac) {
+        const cfg = G.Balance?.AUDIO?.LFO?.ARP_FILTER;
+        if (!cfg?.ENABLED) return;
+
+        // Create filter between arpBus and its downstream (panner or musicGain)
+        this._arpFilter = ac.createBiquadFilter();
+        this._arpFilter.type = 'lowpass';
+        this._arpFilter.frequency.value = (cfg.MIN_FREQ + cfg.MAX_FREQ) / 2;
+        this._arpFilter.Q.value = cfg.Q;
+
+        // Disconnect arpBus from current downstream, insert filter
+        const downstream = this._stereoPanners.arp || this.musicGain;
+        this._arpBus.disconnect();
+        this._arpBus.connect(this._arpFilter);
+        this._arpFilter.connect(downstream);
+        // Reconnect reverb send if exists
+        if (this._reverbSends.arp) {
+            this._arpBus.connect(this._reverbSends.arp);
+        }
+
+        // LFO oscillator → gain (depth) → filter.frequency
+        this._arpLFO = ac.createOscillator();
+        this._arpLFO.type = 'sine';
+        this._arpLFO.frequency.value = cfg.RATE;
+        const lfoGain = ac.createGain();
+        lfoGain.gain.value = (cfg.MAX_FREQ - cfg.MIN_FREQ) / 2;
+        this._arpLFO.connect(lfoGain);
+        lfoGain.connect(this._arpFilter.frequency);
+        this._arpLFO.start();
+        this._arpLFOGain = lfoGain;
+    }
+
+    _initPadTremolo(ac) {
+        const cfg = G.Balance?.AUDIO?.LFO?.PAD_TREMOLO;
+        if (!cfg?.ENABLED) return;
+
+        // LFO → gain depth → padBus.gain (amplitude modulation)
+        this._padTremoloLFO = ac.createOscillator();
+        this._padTremoloLFO.type = 'sine';
+        this._padTremoloLFO.frequency.value = cfg.RATE;
+        this._padTremoloGain = ac.createGain();
+        this._padTremoloGain.gain.value = cfg.DEPTH;
+        this._padTremoloLFO.connect(this._padTremoloGain);
+        this._padTremoloGain.connect(this._padBus.gain);
+        this._padTremoloLFO.start();
+    }
+
+    _getSfxReverbOutput(type) {
+        const cfg = G.Balance?.AUDIO?.REVERB;
+        if (!cfg?.ENABLED || !this._sfxReverbSend || !cfg.SFX_SENDS) return null;
+        const sendLevel = cfg.SFX_SENDS[type];
+        if (!sendLevel) return null;
+        return { node: this._sfxReverbSend, level: sendLevel };
+    }
+
     play(type, opts) {
         if (!this.ctx || this.ctx.state !== 'running') return;
         // v4.34: Skip SFX if muted
@@ -294,6 +482,16 @@ class AudioSystem {
     _playSfx(type, opts) {
         const t = this.ctx.currentTime;
         const output = this.getSfxOutput();
+
+        // v6.7: SFX reverb send for qualifying types
+        const reverbInfo = this._getSfxReverbOutput(type);
+        if (reverbInfo) {
+            reverbInfo.node.gain.setValueAtTime(reverbInfo.level, t);
+            // Schedule gain back to 0 after 1s to avoid bleed
+            reverbInfo.node.gain.setValueAtTime(0, t + 1.0);
+        }
+        // SFX reverb: qualifying types also connect their final gain to sfxReverbSend
+        const sfxReverbNode = reverbInfo ? reverbInfo.node : null;
 
         // === COUNTDOWN TICK (Wave intermission) ===
         if (type === 'countdownTick') {
@@ -516,6 +714,7 @@ class AudioSystem {
 
             sub.start(t);
             sub.stop(t + 0.3);
+            if (sfxReverbNode) subG.connect(sfxReverbNode);
         }
         else if (type === 'coin') {
             const osc = this.ctx.createOscillator();
@@ -586,6 +785,7 @@ class AudioSystem {
             sweepGain.gain.exponentialRampToValueAtTime(0.01, t + 0.8);
             sweep.start(t);
             sweep.stop(t + 0.8);
+            if (sfxReverbNode) sweepGain.connect(sfxReverbNode);
         }
         else if (type === 'shield') {
             const osc = this.ctx.createOscillator();
@@ -694,6 +894,7 @@ class AudioSystem {
                 gain.gain.exponentialRampToValueAtTime(0.02, start + 0.15);
                 osc.start(start);
                 osc.stop(start + 0.15);
+                if (sfxReverbNode) gain.connect(sfxReverbNode);
             });
         }
         else if (type === 'bossPhaseChange') {
@@ -756,6 +957,7 @@ class AudioSystem {
                 osc.stop(start + 0.2);
                 osc2.start(start);
                 osc2.stop(start + 0.2);
+                if (sfxReverbNode) gain.connect(sfxReverbNode);
             });
         }
         else if (type === 'bearMarketToggle') {
@@ -976,6 +1178,7 @@ class AudioSystem {
             sweepGain.gain.setValueAtTime(0.06, t);
             sweepGain.gain.exponentialRampToValueAtTime(0.01, t + 0.3);
             sweep.start(t); sweep.stop(t + 0.35);
+            if (sfxReverbNode) sweepGain.connect(sfxReverbNode);
         }
         else if (type === 'hyperDeactivate') {
             const osc = this.ctx.createOscillator();
@@ -1504,7 +1707,7 @@ class AudioSystem {
 
     playBassFromData(t, noteData) {
         if (!noteData || !noteData.f) return;
-        const output = this.getMusicOutput();
+        const output = this._bassBus || this.getMusicOutput();
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         const filter = this.ctx.createBiquadFilter();
@@ -1535,7 +1738,7 @@ class AudioSystem {
 
     playArpFromData(t, noteData) {
         if (!noteData || !noteData.f) return;
-        const output = this.getMusicOutput();
+        const output = this._arpBus || this.getMusicOutput();
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.connect(gain);
@@ -1556,11 +1759,9 @@ class AudioSystem {
 
     playMelodyFromData(t, noteData) {
         if (!noteData || !noteData.f) return;
-        const output = this.getMusicOutput();
+        const output = this._melBus || this.getMusicOutput();
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
-        osc.connect(gain);
-        gain.connect(output);
 
         let freq = noteData.f * this._getBearPitchMult();
         osc.frequency.value = freq;
@@ -1568,23 +1769,43 @@ class AudioSystem {
 
         const dur = (noteData.d || 0.5) * this.getCurrentTempo() * 4;
         const vol = (noteData.v || 0.5) * 0.1;
+        const safeDur = Math.max(0.05, dur);
+
+        // v6.7: Per-note lowpass filter with attack/release envelope
+        const lfoCfg = G.Balance?.AUDIO?.LFO?.MELODY_FILTER;
+        if (lfoCfg?.ENABLED) {
+            const filter = this.ctx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.Q.value = lfoCfg.Q;
+            filter.frequency.setValueAtTime(lfoCfg.RELEASE_FREQ, t);
+            filter.frequency.exponentialRampToValueAtTime(lfoCfg.ATTACK_FREQ, t + safeDur * 0.15);
+            filter.frequency.exponentialRampToValueAtTime(lfoCfg.RELEASE_FREQ, t + safeDur);
+            osc.connect(filter);
+            filter.connect(gain);
+        } else {
+            osc.connect(gain);
+        }
+        gain.connect(output);
+
         gain.gain.setValueAtTime(vol, t);
-        gain.gain.exponentialRampToValueAtTime(0.01, t + Math.max(0.05, dur));
+        gain.gain.exponentialRampToValueAtTime(0.01, t + safeDur);
 
         osc.start(t);
-        osc.stop(t + Math.max(0.05, dur));
+        osc.stop(t + safeDur);
     }
 
     playDrumsFromData(t, drumData) {
         if (!drumData) return;
-        const output = this.getMusicOutput();
+        const output = this._drumBus || this.getMusicOutput();
+        const drumsCfg = G.Balance?.AUDIO?.DRUMS;
 
         // Kick
         if (drumData.k) {
+            const kickOut = this._drumPanners.kick || output;
             const kick = this.ctx.createOscillator();
             const kickGain = this.ctx.createGain();
             kick.connect(kickGain);
-            kickGain.connect(output);
+            kickGain.connect(kickOut);
             kick.type = 'sine';
             kick.frequency.setValueAtTime(150, t);
             kick.frequency.exponentialRampToValueAtTime(40, t + 0.1);
@@ -1592,17 +1813,33 @@ class AudioSystem {
             kickGain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
             kick.start(t);
             kick.stop(t + 0.1);
+
+            // v6.7: Kick sub-bass layer
+            if (drumsCfg?.KICK_SUB?.ENABLED) {
+                const sub = this.ctx.createOscillator();
+                const subG = this.ctx.createGain();
+                sub.connect(subG);
+                subG.connect(kickOut);
+                sub.type = 'sine';
+                sub.frequency.setValueAtTime(drumsCfg.KICK_SUB.FREQ, t);
+                sub.frequency.exponentialRampToValueAtTime(20, t + drumsCfg.KICK_SUB.DECAY);
+                subG.gain.setValueAtTime(drumsCfg.KICK_SUB.VOLUME, t);
+                subG.gain.exponentialRampToValueAtTime(0.001, t + drumsCfg.KICK_SUB.DECAY);
+                sub.start(t);
+                sub.stop(t + drumsCfg.KICK_SUB.DECAY + 0.01);
+            }
         }
 
         // Snare
         if (drumData.s) {
+            const snareOut = this._drumPanners.snare || output;
             const noise = this.createNoiseOsc(0.08);
             if (noise) {
                 const filter = this.ctx.createBiquadFilter();
                 const noiseGain = this.ctx.createGain();
                 noise.connect(filter);
                 filter.connect(noiseGain);
-                noiseGain.connect(output);
+                noiseGain.connect(snareOut);
                 filter.type = 'highpass';
                 filter.frequency.value = 2000;
                 noiseGain.gain.setValueAtTime(0.1, t);
@@ -1610,19 +1847,36 @@ class AudioSystem {
                 noise.start(t);
                 noise.stop(t + 0.08);
             }
+
+            // v6.7: Snare body (tonal layer)
+            if (drumsCfg?.SNARE_BODY?.ENABLED) {
+                const body = this.ctx.createOscillator();
+                const bodyG = this.ctx.createGain();
+                body.connect(bodyG);
+                bodyG.connect(snareOut);
+                body.type = 'triangle';
+                body.frequency.setValueAtTime(drumsCfg.SNARE_BODY.FREQ, t);
+                body.frequency.exponentialRampToValueAtTime(80, t + drumsCfg.SNARE_BODY.DECAY);
+                bodyG.gain.setValueAtTime(drumsCfg.SNARE_BODY.VOLUME, t);
+                bodyG.gain.exponentialRampToValueAtTime(0.001, t + drumsCfg.SNARE_BODY.DECAY);
+                body.start(t);
+                body.stop(t + drumsCfg.SNARE_BODY.DECAY + 0.01);
+            }
         }
 
         // Hi-hat
         if (drumData.h) {
+            const hhOut = this._drumPanners.hihat || output;
             const isOpen = drumData.h === 0.5;
-            const hhDur = isOpen ? 0.08 : 0.03;
+            const openDecay = drumsCfg?.HIHAT_OPEN_DECAY ?? 0.08;
+            const hhDur = isOpen ? openDecay : 0.03;
             const noise = this.createNoiseOsc(hhDur);
             if (noise) {
                 const filter = this.ctx.createBiquadFilter();
                 const hhGain = this.ctx.createGain();
                 noise.connect(filter);
                 filter.connect(hhGain);
-                hhGain.connect(output);
+                hhGain.connect(hhOut);
                 filter.type = 'highpass';
                 filter.frequency.value = 8000;
                 hhGain.gain.setValueAtTime(isOpen ? 0.06 : 0.04, t);
@@ -1634,13 +1888,14 @@ class AudioSystem {
 
         // Crash
         if (drumData.c) {
+            const crashOut = this._drumPanners.crash || output;
             const noise = this.createNoiseOsc(0.3);
             if (noise) {
                 const filter = this.ctx.createBiquadFilter();
                 const crashGain = this.ctx.createGain();
                 noise.connect(filter);
                 filter.connect(crashGain);
-                crashGain.connect(output);
+                crashGain.connect(crashOut);
                 filter.type = 'highpass';
                 filter.frequency.value = 4000;
                 crashGain.gain.setValueAtTime(0.08, t);
@@ -1655,17 +1910,22 @@ class AudioSystem {
         if (!padData || !padData.freqs) return;
         this._stopPad();
 
-        const output = this.getMusicOutput();
+        const output = this._padBus || this.getMusicOutput();
         const pitchMult = this._getBearPitchMult();
+        const detuneCfg = G.Balance?.AUDIO?.LFO?.PAD_DETUNE;
         this.padNodes = [];
 
-        padData.freqs.forEach(freq => {
+        padData.freqs.forEach((freq, i) => {
             const osc = this.ctx.createOscillator();
             const gain = this.ctx.createGain();
             osc.connect(gain);
             gain.connect(output);
             osc.type = padData.w || 'triangle';
             osc.frequency.value = freq * pitchMult;
+            // v6.7: Alternate detune ±cents for chorus width
+            if (detuneCfg?.ENABLED) {
+                osc.detune.value = (i % 2 === 0) ? detuneCfg.CENTS : -detuneCfg.CENTS;
+            }
             gain.gain.setValueAtTime(padData.v || 0.08, t);
             // Pad sustains for ~4 beats then fades
             const sustainTime = this.getCurrentTempo() * 16;
@@ -1688,6 +1948,74 @@ class AudioSystem {
                 } catch (e) { /* already stopped */ }
             });
             this.padNodes = null;
+        }
+    }
+
+    // ===== v6.7: Quality tier audio scaling =====
+    applyQualityTier(tierName) {
+        if (!this.ctx) return;
+        this._currentAudioTier = tierName;
+        const cfg = G.Balance?.AUDIO;
+        if (!cfg) return;
+
+        if (tierName === 'ULTRA' || tierName === 'HIGH') {
+            // Full effects — restore config values
+            if (this._reverbWet) this._reverbWet.gain.value = cfg.REVERB?.WET_LEVEL ?? 0.15;
+            // Stereo: restore config pan values
+            const panCfg = cfg.STEREO?.PAN;
+            if (panCfg) {
+                Object.keys(this._stereoPanners).forEach(k => {
+                    if (this._stereoPanners[k]) this._stereoPanners[k].pan.value = panCfg[k] ?? 0;
+                });
+                Object.keys(this._drumPanners).forEach(k => {
+                    if (this._drumPanners[k]) this._drumPanners[k].pan.value = panCfg[k] ?? 0;
+                });
+            }
+            // Arp LFO: restore
+            if (this._arpLFOGain) this._arpLFOGain.gain.value = ((cfg.LFO?.ARP_FILTER?.MAX_FREQ ?? 4000) - (cfg.LFO?.ARP_FILTER?.MIN_FREQ ?? 800)) / 2;
+            // Pad tremolo: restore
+            if (this._padTremoloGain) this._padTremoloGain.gain.value = cfg.LFO?.PAD_TREMOLO?.DEPTH ?? 0.3;
+            // Compressor: relaxed
+            if (this.compressor) {
+                this.compressor.threshold.value = cfg.COMPRESSOR?.THRESHOLD ?? -18;
+                this.compressor.ratio.value = cfg.COMPRESSOR?.RATIO ?? 6;
+            }
+            // ULTRA: slightly more reverb
+            if (tierName === 'ULTRA' && this._reverbWet) {
+                this._reverbWet.gain.value = 0.18;
+            }
+        }
+        else if (tierName === 'MEDIUM') {
+            // Disable: reverb, LFO, tremolo, drum enhancements (via config check at play-time)
+            if (this._reverbWet) this._reverbWet.gain.value = 0;
+            // Arp LFO: silence
+            if (this._arpLFOGain) this._arpLFOGain.gain.value = 0;
+            // Pad tremolo: silence
+            if (this._padTremoloGain) this._padTremoloGain.gain.value = 0;
+            // Stereo: keep
+            // Compressor: tighter
+            if (this.compressor) {
+                this.compressor.threshold.value = -20;
+                this.compressor.ratio.value = 8;
+            }
+        }
+        else if (tierName === 'LOW') {
+            // Disable everything — identical to pre-v6.7 sound
+            if (this._reverbWet) this._reverbWet.gain.value = 0;
+            if (this._arpLFOGain) this._arpLFOGain.gain.value = 0;
+            if (this._padTremoloGain) this._padTremoloGain.gain.value = 0;
+            // Stereo: flatten all panners to center
+            Object.keys(this._stereoPanners).forEach(k => {
+                if (this._stereoPanners[k]) this._stereoPanners[k].pan.value = 0;
+            });
+            Object.keys(this._drumPanners).forEach(k => {
+                if (this._drumPanners[k]) this._drumPanners[k].pan.value = 0;
+            });
+            // Compressor: original aggressive values
+            if (this.compressor) {
+                this.compressor.threshold.value = -24;
+                this.compressor.ratio.value = 12;
+            }
         }
     }
 

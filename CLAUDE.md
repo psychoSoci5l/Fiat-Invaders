@@ -144,7 +144,7 @@ Detailed tables, parameters, and implementation specifics → **SYSTEM_REFERENCE
 - **Title Animation** — `Balance.TITLE_ANIM`. 2s intro, skip on tap, `prefers-reduced-motion` → auto-skip
 
 ### Audio
-- **Audio System** — `Balance.AUDIO`. Procedural music (MusicData.js), separate Music/SFX gain. `toggleMusic()`/`toggleSfx()`. Bear market: -1 semitone, +10% tempo
+- **Audio System** — `Balance.AUDIO`. Procedural music (MusicData.js), separate Music/SFX gain. `toggleMusic()`/`toggleSfx()`. Bear market: -1 semitone, +10% tempo. **Audio Richness (v6.7)**: 5 instrument sub-buses (bass/arp/melody/drums/pad), stereo panning (`StereoPannerNode`), convolution reverb (procedural impulse, per-instrument sends), arp LFO filter (2Hz sine → lowpass), melody per-note filter envelope, pad chorus (±8¢ detune) + tremolo (0.5Hz), drum enhancement (kick sub 50Hz, snare body 200Hz), relaxed compressor (6:1 @ -18dB). Quality-tier scaling via `G.Audio.applyQualityTier(tier)`: ULTRA/HIGH=full, MEDIUM=no reverb/LFO/tremolo, LOW=also no stereo (identical to pre-v6.7). Config: `AUDIO.REVERB/STEREO/LFO/COMPRESSOR/DRUMS`, all with individual kill-switches
 
 ### Debug
 - **Debug System** — `dbg.*` console API. **Silent by default** (`ENABLED: false`, all categories off). Use `dbg.on()` to enable master + all categories, or `dbg.debugBoss()`/`dbg.debugWaves()` for specific debugging. Key commands: `dbg.balanceTest()`, `dbg.report()`, `dbg.hitboxes()`, `dbg.maxWeapon()`, `dbg.arcade()`, `dbg.arcadeHelp()`, `dbg.elites()`, `dbg.behaviors()`, `dbg.streaming()`, `dbg.waveReport()`, `dbg.toggleElites()`, `dbg.toggleBehaviors()`, `dbg.toggleStreaming()`. Full reference in SYSTEM_REFERENCE.md

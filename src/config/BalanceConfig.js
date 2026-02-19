@@ -2469,7 +2469,33 @@
             MUSIC_VOLUME: 0.7,       // Default music volume (0-1)
             SFX_VOLUME: 0.8,         // Default SFX volume (0-1)
             MUSIC_ENABLED: true,     // Music kill-switch
-            SFX_ENABLED: true        // SFX kill-switch
+            SFX_ENABLED: true,       // SFX kill-switch
+
+            // --- Audio Richness (v6.7) ---
+            REVERB: {
+                ENABLED: true,
+                DECAY: 1.5,              // Impulse response length (seconds)
+                DAMPING: 0.7,            // High-frequency damping (0-1)
+                WET_LEVEL: 0.15,         // Master reverb wet mix
+                SEND: { bass: 0.08, arp: 0.25, melody: 0.20, pad: 0.35, drums: 0.05 },
+                SFX_SENDS: { explosion: 0.20, bossSpawn: 0.30, waveComplete: 0.25, levelUp: 0.20, godchainActivate: 0.30 }
+            },
+            STEREO: {
+                ENABLED: true,
+                PAN: { bass: 0, arp: -0.3, melody: 0.3, kick: 0, snare: 0, hihat: 0.4, crash: -0.2, pad: 0 }
+            },
+            LFO: {
+                ARP_FILTER: { ENABLED: true, RATE: 2, MIN_FREQ: 800, MAX_FREQ: 4000, Q: 2 },
+                MELODY_FILTER: { ENABLED: true, ATTACK_FREQ: 3000, RELEASE_FREQ: 800, Q: 1 },
+                PAD_TREMOLO: { ENABLED: true, RATE: 0.5, DEPTH: 0.3 },
+                PAD_DETUNE: { ENABLED: true, CENTS: 8 }
+            },
+            COMPRESSOR: { THRESHOLD: -18, KNEE: 30, RATIO: 6, ATTACK: 0.003, RELEASE: 0.25 },
+            DRUMS: {
+                KICK_SUB: { ENABLED: true, FREQ: 50, DECAY: 0.15, VOLUME: 0.12 },
+                SNARE_BODY: { ENABLED: true, FREQ: 200, DECAY: 0.06, VOLUME: 0.06 },
+                HIHAT_OPEN_DECAY: 0.12
+            }
         },
 
         // --- HELPER FUNCTIONS ---
