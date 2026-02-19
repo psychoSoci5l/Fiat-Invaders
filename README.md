@@ -39,9 +39,9 @@
 
 ## 🎮 How to Play
 
-*   **Move**: Hold Left Click (Desktop) or Drag (Mobile).
-*   **Shoot**: Automatic while holding Left Click / touching. Keyboard: Spacebar.
-*   **Shield**: Right Click (Desktop) or Tap Ship (Mobile). Keyboard: S / ↓.
+*   **Move**: Hold Left Click (Desktop), Drag (Mobile), or Tilt phone (TILT mode).
+*   **Shoot**: Automatic while holding Left Click / touching / tilting. Keyboard: Spacebar.
+*   **Shield**: Right Click (Desktop) or Tap Ship (Mobile/Tilt). Keyboard: S / ↓.
 *   **HYPER**: Press H when DIP meter is full (auto-activates on mobile).
 
 Full player manual available in-game (Settings → Manual), in both English and Italian.

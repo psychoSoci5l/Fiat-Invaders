@@ -316,7 +316,7 @@
 ## DA VERIFICARE — Conseguenze Ship Redesign
 
 - [x] PWA icon: rigenerati in v5.29.0 con Premium Arsenal LV3
-- [ ] Splashscreen video: `splashscreen.mp4` potrebbe mostrare vecchia silhouette — verificare
+- [x] Splashscreen video: verificato OK
 - [x] Hangar/intro screen: ship preview aggiornata
 - [x] Touch responsiveness: tap-on-ship shield testato e funzionante
 
@@ -476,13 +476,13 @@
 - ~~Game completion cinematic~~ ✅ v5.21.0
 - ~~Adaptive drop balancer~~ ✅ v5.19.0
 - Daily challenge mode
-- Accelerometer ship control option (tilt-to-move alternative input)
+- ~~Accelerometer ship control option (tilt-to-move alternative input)~~ ✅ v6.8.0 (TILT mode)
 - ~~Unify two-wave deployment pause into single continuous enemy flow~~ ✅ v6.0.0 (Phase-Based Streaming)
 - ~~Leaderboard (local, no server)~~ ✅ v5.17.0 (online with Cloudflare Workers)
 
 ### Technical
-- WebGL renderer option for low-end devices
-- Asset preloading with progress bar
+- ~~WebGL renderer option for low-end devices~~ ✅ done
+
 
 ### Content
 - New bosses (IMF, World Bank)
