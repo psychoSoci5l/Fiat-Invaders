@@ -5,6 +5,8 @@ class InputSystem {
         this.keys = {};
         this.touch = { active: false, x: 0, shield: false, hyper: false, axisX: 0, joystickActive: false, joystickId: null, useJoystick: false, deadzone: 0.15, sensitivity: 1.0, dragOriginX: 0, newDrag: false };
         this.mouse = { active: false, x: 0, xPct: 0, shield: false };
+        // v6.8: Tilt (accelerometer) control
+        this.tilt = { available: false, permitted: false, active: false, gamma: 0, filtered: 0, calibration: 0, axisX: 0 };
         // v5.7: Tap-on-ship shield activation
         this._tapStart = null; // {x, y, time}
         this._playerPos = { x: 0, y: 0 }; // Canvas coords, updated by Player
@@ -37,6 +39,7 @@ class InputSystem {
                 this._tapStart = { x: e.touches[0].clientX, y: e.touches[0].clientY, time: Date.now() };
             }
 
+            if (this.tilt.active) return; // Tilt mode: no swipe movement
             if (this.touch.useJoystick) return;
             if (this.touch.joystickActive) return;
             if (e.cancelable) e.preventDefault();
@@ -220,6 +223,19 @@ class InputSystem {
                 canvas.addEventListener('contextmenu', e => e.preventDefault());
             }
         }
+
+        // v6.8: Tilt (accelerometer) — mobile only
+        if ('ontouchstart' in window && window.DeviceOrientationEvent) {
+            this.tilt.available = true;
+            this._tiltDataReceived = false;
+            window.addEventListener('deviceorientation', (e) => {
+                if (e.gamma === null || e.gamma === undefined) return;
+                this._tiltDataReceived = true;
+                this.tilt.gamma = e.gamma;
+                if (this.tilt.active) this._updateTiltAxis();
+            }, { passive: true });
+            // Tilt restore handled by main.js after permission check
+        }
     }
 
     on(event, activeCallback) {
@@ -249,10 +265,55 @@ class InputSystem {
 
     setControlMode(mode) {
         const useJoy = (mode === 'JOYSTICK');
+        const useTilt = (mode === 'TILT');
         this.touch.useJoystick = useJoy;
+        this.tilt.active = useTilt;
         const joy = document.getElementById('joystick');
         if (joy) joy.style.display = useJoy ? 'block' : 'none';
-        localStorage.setItem('fiat_control_mode', useJoy ? 'JOYSTICK' : 'SWIPE');
+        if (useTilt) this.calibrateTilt();
+        // Save base mode (SWIPE/JOYSTICK) and tilt state separately
+        if (!useTilt) localStorage.setItem('fiat_control_mode', mode);
+        localStorage.setItem('fiat_tilt_on', useTilt ? '1' : '0');
+    }
+
+    // v6.8: Tilt axis processing
+    _updateTiltAxis() {
+        const cfg = window.Game.Balance?.PLAYER?.TILT;
+        const maxAngle = cfg?.MAX_ANGLE ?? 30;
+        const smoothing = cfg?.SMOOTHING ?? 0.25;
+        // Apply calibration offset
+        let raw = this.tilt.gamma - this.tilt.calibration;
+        // Low-pass filter
+        this.tilt.filtered = this.tilt.filtered + smoothing * (raw - this.tilt.filtered);
+        // Normalize to -1..1
+        let norm = this.tilt.filtered / maxAngle;
+        norm = Math.max(-1, Math.min(1, norm));
+        // Apply sensitivity and deadzone (reuse joystick settings)
+        norm *= (this.touch.sensitivity || 1.0);
+        norm = this._applyDeadzone(norm);
+        this.tilt.axisX = Math.max(-1, Math.min(1, norm));
+    }
+
+    calibrateTilt() {
+        this.tilt.calibration = this.tilt.gamma;
+        this.tilt.filtered = 0;
+        this.tilt.axisX = 0;
+    }
+
+    async requestTiltPermission() {
+        // iOS 13+ requires explicit permission request
+        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+            try {
+                const result = await DeviceOrientationEvent.requestPermission();
+                this.tilt.permitted = (result === 'granted');
+            } catch (e) {
+                this.tilt.permitted = false;
+            }
+        } else {
+            // Android/non-iOS: auto-granted, but verify data arrives
+            this.tilt.permitted = true;
+        }
+        return this.tilt.permitted;
     }
 
     setJoystickSettings(deadzone, sensitivity) {

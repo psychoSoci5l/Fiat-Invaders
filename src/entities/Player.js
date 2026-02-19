@@ -358,6 +358,9 @@ class Player extends window.Game.Entity {
         if (input.touch.joystickActive) {
             this.vx = input.touch.axisX * speed;
         }
+        else if (input.tilt?.active) {
+            this.vx = input.tilt.axisX * speed;
+        }
         else if (input.touch.active) {
             // Relative drag: finger delta moves ship from anchor position
             if (input.touch.newDrag) {
@@ -381,8 +384,8 @@ class Player extends window.Game.Entity {
             this.vx -= accel * dt;
         }
 
-        // Apply Friction (Only if not touching/mousing, or tweak above)
-        if (!input.touch.active && !input.mouse?.active) this.vx *= friction;
+        // Apply Friction (Only if not touching/mousing/tilting, or tweak above)
+        if (!input.touch.active && !input.mouse?.active && !(input.tilt?.active && Math.abs(input.tilt.axisX) > 0.01)) this.vx *= friction;
 
         // Cap speed (optional, but good for control)
         if (this.vx > speed) this.vx = speed;
@@ -661,7 +664,7 @@ class Player extends window.Game.Entity {
 
         // Action: Fire (blocked while enemies entering formation)
         // Check input for fire (Space, Touch, Up)
-        const isShooting = input.isDown('Space') || input.touch.active || input.isDown('ArrowUp') || input.mouse?.active;
+        const isShooting = input.isDown('Space') || input.touch.active || input.isDown('ArrowUp') || input.mouse?.active || (input.tilt?.active && G.Balance?.PLAYER?.TILT?.AUTOFIRE !== false);
         if (isShooting && this.cooldown <= 0 && !blockFiring) {
             return this.fire(); // Returns array of bullets to spawn
         }

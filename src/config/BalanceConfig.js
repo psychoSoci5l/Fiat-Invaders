@@ -53,6 +53,12 @@
                 NARROW: 4,            // Narrow pattern X offset
                 FIRE: 10,             // Fire pattern X offset
                 WIDE: 25              // Wide/triple pattern X offset
+            },
+            TILT: {
+                ENABLED: true,        // Kill-switch for tilt control mode
+                MAX_ANGLE: 30,        // Degrees from neutral to full speed
+                SMOOTHING: 0.25,      // Low-pass filter (0=none, 1=raw)
+                AUTOFIRE: true        // Constant fire in tilt mode
             }
         },
 

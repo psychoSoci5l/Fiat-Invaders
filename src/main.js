@@ -2297,6 +2297,20 @@ function init() {
 
     inputSys.init();
 
+    // v6.8: Restore TILT mode if saved — verify permission, fallback
+    if (localStorage.getItem('fiat_tilt_on') === '1' && inputSys.tilt.available) {
+        // Attempt permission silently (Android auto-grants, iOS needs user gesture — will fallback)
+        inputSys.requestTiltPermission().then(granted => {
+            if (granted) {
+                inputSys.setControlMode('TILT');
+            } else {
+                localStorage.setItem('fiat_tilt_on', '0');
+            }
+            updateTiltUI();
+            updateUIText();
+        });
+    }
+
     // Vibration fallback: visual flash when vibration unavailable
     inputSys.setVibrationFallback((pattern) => {
         // Convert pattern to intensity (longer = stronger flash)
@@ -2799,7 +2813,7 @@ function updateUIText() {
             langBtn.classList.remove('active');
         }
     }
-    // Control toggle-switch
+    // Control toggle-switch (binary SWIPE / JOY)
     const controlBtn = document.getElementById('control-btn');
     if (controlBtn) {
         const isJoystick = G.Input && G.Input.touch && G.Input.touch.useJoystick;
@@ -2811,6 +2825,7 @@ function updateUIText() {
             controlBtn.classList.remove('active');
         }
     }
+    updateTiltUI();
 
     // Quality tier label
     const qualityLabel = document.getElementById('set-quality-label');
@@ -3469,11 +3484,67 @@ function updateManualText() {
     });
 }
 window.toggleControlMode = function () {
-    const useJoystick = !(G.Input && G.Input.touch && G.Input.touch.useJoystick);
-    if (G.Input && G.Input.setControlMode) G.Input.setControlMode(useJoystick ? 'JOYSTICK' : 'SWIPE');
-    showControlToast(useJoystick ? 'JOYSTICK' : 'SWIPE');
+    if (!G.Input) return;
+    const savedBase = localStorage.getItem('fiat_control_mode') || 'SWIPE';
+    const next = (savedBase === 'SWIPE') ? 'JOYSTICK' : 'SWIPE';
+    G.Input.setControlMode(next);
+    showControlToast(next);
+    updateTiltUI();
     updateUIText();
 };
+
+// v6.8: TILT toggle (separate from SWIPE/JOY)
+window.toggleTilt = function () {
+    if (!G.Input) return;
+    const wasActive = G.Input.tilt.active;
+    if (wasActive) {
+        // Turn off tilt — revert to saved SWIPE/JOY base mode
+        const base = localStorage.getItem('fiat_control_mode') || 'SWIPE';
+        G.Input.setControlMode(base);
+        showControlToast(base);
+        updateTiltUI();
+        updateUIText();
+    } else {
+        // Turn on tilt — request permission
+        G.Input.requestTiltPermission().then(function(granted) {
+            if (granted) {
+                G.Input.setControlMode('TILT');
+                showControlToast('TILT');
+            } else {
+                showControlToast(t('TILT_DENIED'));
+            }
+            updateTiltUI();
+            updateUIText();
+        }).catch(function() {
+            showControlToast(t('TILT_DENIED'));
+            updateTiltUI();
+            updateUIText();
+        });
+    }
+};
+
+window.calibrateTilt = function () {
+    if (G.Input && G.Input.calibrateTilt) G.Input.calibrateTilt();
+};
+
+function updateTiltUI() {
+    const isMobile = ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+    const tiltAvail = isMobile && G.Input?.tilt?.available && G.Balance?.PLAYER?.TILT?.ENABLED !== false;
+    const tiltRow = document.getElementById('tilt-toggle-row');
+    const calibRow = document.getElementById('tilt-calibrate-row');
+    const tiltActive = G.Input?.tilt?.active;
+    // Show tilt toggle only on mobile with gyroscope
+    if (tiltRow) tiltRow.style.display = tiltAvail ? '' : 'none';
+    // Show calibrate only when tilt is active
+    if (calibRow) calibRow.style.display = tiltActive ? '' : 'none';
+    // Update tilt toggle button state
+    const tiltBtn = document.getElementById('tilt-btn');
+    if (tiltBtn) {
+        const label = tiltBtn.querySelector('.switch-label');
+        if (label) label.innerText = tiltActive ? 'ON' : 'OFF';
+        if (tiltActive) { tiltBtn.classList.add('active'); } else { tiltBtn.classList.remove('active'); }
+    }
+}
 
 function showControlToast(mode) {
     if (!ui.controlToast) return;

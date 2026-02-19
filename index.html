@@ -411,6 +411,18 @@ Tap your ship to activate</p>
                 <span class="setting-label" data-i18n-label="sensitivity">SENSIBILITÀ</span>
                 <input type="range" class="slider-cell" id="joy-sensitivity" min="50" max="150" value="100">
             </div>
+            <div class="setting-row mobile-only" id="tilt-toggle-row" style="display:none;">
+                <span class="setting-label">TILT</span>
+                <button class="toggle-switch" onclick="toggleTilt()" id="tilt-btn">
+                    <span class="switch-track"></span>
+                    <span class="switch-thumb"></span>
+                    <span class="switch-label">OFF</span>
+                </button>
+            </div>
+            <div class="setting-row mobile-only" id="tilt-calibrate-row" style="display:none;">
+                <span class="setting-label" data-i18n="SET_CALIBRATE">CALIBRATE</span>
+                <button class="btn btn-toggle" onclick="calibrateTilt()" data-i18n="SET_CALIBRATE_BTN">RESET ZERO</button>
+            </div>
 
             <!-- SECTION: DISPLAY (v6.1) -->
             <div class="settings-section-header" data-i18n="SET_DISPLAY">DISPLAY</div>

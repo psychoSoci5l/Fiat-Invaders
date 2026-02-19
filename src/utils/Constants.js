@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v6.7.0 FIAT vs CRYPTO";
+window.Game.VERSION = "v6.8.0 FIAT vs CRYPTO";
 
 // Leaderboard API
 window.Game.LEADERBOARD_API = 'https://fiat-vs-crypto-leaderboard.psychosocial-01.workers.dev/api';
@@ -217,6 +217,9 @@ window.Game.TEXTS = {
         SET_MUSIC: "MUSIC",
         SET_SFX: "SFX",
         SET_MANUAL: "MANUAL",
+        SET_CALIBRATE: "CALIBRATE",
+        SET_CALIBRATE_BTN: "RESET ZERO",
+        TILT_DENIED: "TILT DENIED",
         SET_FEEDBACK: "FEEDBACK",
         SET_CREDITS: "CREDITS",
         GC_TITLE: "PROTOCOL COMPLETE",
@@ -449,6 +452,9 @@ window.Game.TEXTS = {
         SET_MUSIC: "MUSICA",
         SET_SFX: "EFFETTI",
         SET_MANUAL: "MANUALE",
+        SET_CALIBRATE: "CALIBRAZIONE",
+        SET_CALIBRATE_BTN: "AZZERA",
+        TILT_DENIED: "TILT NEGATO",
         SET_FEEDBACK: "FEEDBACK",
         SET_CREDITS: "CREDITI",
         GC_TITLE: "PROTOCOLLO COMPLETATO",

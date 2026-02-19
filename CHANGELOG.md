@@ -1,5 +1,16 @@
 # Changelog
 
+## v6.8.0 - 2026-02-19
+
+### Accelerometer Ship Control (TILT mode)
+- **feat(input)**: TILT control mode — tilt phone left/right to move ship using DeviceOrientation API (`event.gamma`). Third option in SWIPE→JOY→TILT cycle (mobile-only)
+- **feat(input)**: iOS permission handling — `DeviceOrientationEvent.requestPermission()` on user gesture. Auto-granted on Android. Denied → fallback to SWIPE with toast
+- **feat(input)**: Tilt calibration — `calibrateTilt()` sets current phone angle as neutral zero. Auto-calibrates on mode switch. CALIBRATE button in settings
+- **feat(input)**: Low-pass filter + deadzone — configurable smoothing (0.25), reuses joystick deadzone/sensitivity sliders. `Balance.PLAYER.TILT` config with kill-switch
+- **feat(input)**: Autofire in tilt mode — constant fire without touching screen (`TILT.AUTOFIRE`). Shield via tap-on-ship (existing gesture)
+- **feat(ui)**: 3-way control toggle — settings button cycles SWIPE→JOY→TILT. TILT hidden on desktop. Calibrate row shown only in TILT mode
+- **feat(i18n)**: New strings — SET_CALIBRATE, SET_CALIBRATE_BTN, TILT_DENIED (EN/IT)
+
 ## v6.7.0 - 2026-02-19
 
 ### Audio Richness Enhancement
