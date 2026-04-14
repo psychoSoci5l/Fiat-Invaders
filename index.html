@@ -682,7 +682,7 @@ Tap your ship to activate</p>
 
     <!-- Browser compatibility check (must run before any game code) -->
     <script>
-    try { eval('var _t={a:1};_t?.a??0'); } catch(e) {
+    try { var _t={a:1}; var _r=_t?.a??0; if(_r!==1) throw 1; } catch(e) {
         document.getElementById('splash-layer').style.display='none';
         document.body.innerHTML='<div style="position:fixed;inset:0;background:#000;color:#fff;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;font-family:sans-serif"><div><h2 style="color:#ff2d95">Browser Update Required</h2><p style="color:#aaa;line-height:1.6">FIAT vs CRYPTO requires a modern browser.<br>Please update Chrome from the Play Store or App Store.</p><p style="margin-top:16px;color:#666;font-size:13px">Required: Chrome 80+ / Safari 14+</p></div></div>';
         throw new Error('Browser too old');
