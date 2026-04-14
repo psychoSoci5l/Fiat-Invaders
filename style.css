@@ -2416,12 +2416,19 @@ body {
     padding: 30px;
     width: 90%;
     max-width: 400px;
+    max-height: 90vh;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #bb44ff #000000;
     text-align: center;
     border-radius: 12px;
     box-shadow: 0 0 30px rgba(0, 240, 255, 0.2);
     box-sizing: border-box;
-    overflow: hidden;
 }
+.modal-content::-webkit-scrollbar { width: 6px; }
+.modal-content::-webkit-scrollbar-track { background: #000000; }
+.modal-content::-webkit-scrollbar-thumb { background: #bb44ff; border-radius: 3px; }
+.modal-content::-webkit-scrollbar-thumb:hover { background: #cc66ff; }
 
 .setting-row {
     display: flex;
@@ -3602,7 +3609,13 @@ body.bear-mode .neon-title {
     overscroll-behavior: contain;
     padding: 16px 20px;
     text-align: left;
+    scrollbar-width: thin;
+    scrollbar-color: #bb44ff #000000;
 }
+.whatsnew-scroll::-webkit-scrollbar { width: 6px; }
+.whatsnew-scroll::-webkit-scrollbar-track { background: #000000; }
+.whatsnew-scroll::-webkit-scrollbar-thumb { background: #bb44ff; border-radius: 3px; }
+.whatsnew-scroll::-webkit-scrollbar-thumb:hover { background: #cc66ff; }
 .whatsnew-box .btn {
     flex-shrink: 0;
     margin: 15px 20px 20px;

@@ -584,6 +584,30 @@ window.Game = window.Game || {};
     // What's New panel (v4.50, i18n v5.18)
     const WHATS_NEW = [
         {
+            version: 'v6.9', date: '2026-04-14',
+            title: { EN: '"Major Release" — Architecture + Balance', IT: '"Major Release" — Architettura + Bilanciamento' },
+            items: {
+                EN: [
+                    'HYPER manual activation — fill the DIP meter, tap HYPER button to unleash (strategic choice)',
+                    'Smoother difficulty curve — C2 enemies less tanky, weapon upgrades more impactful',
+                    'Arcade rebalance — Nano Shield 22s, Jackpot reworked, Speed Demon buffed, guaranteed OFFENSE+DEFENSE cards',
+                    'Score multiplier cap at 12x — fairer leaderboard competition',
+                    'Specials last 10s instead of 8s — more time to enjoy HOMING/PIERCE/MISSILE',
+                    'Multi-touch fix — shield tap no longer interferes with movement',
+                    'Security hardened — server-side score validation, anti-replay protection'
+                ],
+                IT: [
+                    'HYPER attivazione manuale — riempi il meter DIP, tocca il pulsante HYPER per attivarlo (scelta strategica)',
+                    'Curva difficoltà più graduale — nemici C2 meno resistenti, upgrade armi più percepiti',
+                    'Ribilanciamento Arcade — Nano Shield 22s, Jackpot rivisitato, Speed Demon potenziato, carte OFFENSE+DEFENSE garantite',
+                    'Cap moltiplicatore punteggio a 12x — classifica più equa',
+                    'Speciali durano 10s invece di 8s — più tempo per godersi HOMING/PIERCE/MISSILE',
+                    'Fix multi-touch — tap scudo non interferisce più col movimento',
+                    'Sicurezza rafforzata — validazione punteggio server-side, protezione anti-replay'
+                ]
+            }
+        },
+        {
             version: 'v6.5', date: '2026-02-18',
             title: { EN: '"Adaptive Quality" Release', IT: 'Release "Qualit\u00e0 Adattiva"' },
             items: {
