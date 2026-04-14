@@ -1,5 +1,6 @@
 // SpatialGrid.js — Spatial hash grid for collision optimization
 // v4.46: Reduces O(n*m) collision checks to near O(n)
+// v7.0: Reuse query results array to avoid GC pressure at 60fps
 window.Game = window.Game || {};
 
 (function() {
@@ -9,6 +10,7 @@ window.Game = window.Game || {};
         constructor() {
             this.cellSize = CELL_SIZE;
             this.cells = new Map();
+            this._queryResults = []; // v7.0: reusable results array
         }
 
         _key(cx, cy) {
@@ -16,7 +18,8 @@ window.Game = window.Game || {};
         }
 
         clear() {
-            this.cells.clear();
+            // Clear cell arrays without deallocating them
+            this.cells.forEach(cell => { cell.length = 0; });
         }
 
         insert(entity) {
@@ -33,10 +36,11 @@ window.Game = window.Game || {};
 
         /**
          * Query all entities within radius of (x, y).
-         * Returns array of entities (may include duplicates if entity spans cells).
+         * Returns shared array — caller must consume before next query() call.
          */
         query(x, y, radius) {
-            const results = [];
+            const results = this._queryResults;
+            results.length = 0;
             const minCx = Math.floor((x - radius) / this.cellSize);
             const maxCx = Math.floor((x + radius) / this.cellSize);
             const minCy = Math.floor((y - radius) / this.cellSize);

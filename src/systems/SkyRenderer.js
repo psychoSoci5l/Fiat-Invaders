@@ -18,13 +18,10 @@
 
     const G = window.Game = window.Game || {};
 
-    // Ellipse fallback for old/broken GPU drivers
-    const _hasEllipse = typeof CanvasRenderingContext2D.prototype.ellipse === 'function';
-    function safeEllipse(ctx, x, y, rx, ry, rot, start, end) {
-        if (_hasEllipse) { ctx.ellipse(x, y, rx, ry, rot, start, end); return; }
-        ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.scale(1, ry / rx);
-        ctx.arc(0, 0, rx, start, end); ctx.restore();
-    }
+    // v7.0: ellipse fallback now in ColorUtils.js (G.safeEllipse)
+    const safeEllipse = G.safeEllipse || G.ColorUtils?.safeEllipse || function(ctx, x, y, rx, ry, rot, start, end) {
+        ctx.ellipse(x, y, rx, ry, rot, start, end);
+    };
 
     // Screen dimensions (set via init)
     let gameWidth = 0;

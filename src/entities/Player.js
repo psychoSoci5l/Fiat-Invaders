@@ -2471,7 +2471,7 @@ class Player extends window.Game.Entity {
         // 1. Glass ellipse (semi-transparent)
         ctx.fillStyle = CU.rgba(100, 160, 255, glassAlpha);
         ctx.beginPath();
-        ctx.ellipse(0, cy, rx, ry, 0, 0, Math.PI * 2);
+        G.safeEllipse(ctx,0, cy, rx, ry, 0, 0, Math.PI * 2);
         ctx.fill();
 
         // 2. Metallic border
@@ -2484,7 +2484,7 @@ class Player extends window.Game.Entity {
 
         // 3. Glass highlight (upper-left arc)
         ctx.beginPath();
-        ctx.ellipse(-rx * 0.3, cy - ry * 0.3, rx * 0.5, ry * 0.4, -0.4, -Math.PI * 0.8, Math.PI * 0.1);
+        G.safeEllipse(ctx,-rx * 0.3, cy - ry * 0.3, rx * 0.5, ry * 0.4, -0.4, -Math.PI * 0.8, Math.PI * 0.1);
         ctx.strokeStyle = CU.rgba(255, 255, 255, 0.25);
         ctx.lineWidth = 1.2;
         ctx.stroke();

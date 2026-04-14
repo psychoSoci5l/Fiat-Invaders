@@ -314,7 +314,7 @@
         // Design: Ikeda Philosophy - the decision to risk everything for glory.
         HYPER: {
             METER_THRESHOLD: 100,     // Graze meter value to enable HYPER activation
-            AUTO_ACTIVATE: true,      // v4.21: Auto-trigger HYPER when meter is full (no manual input needed)
+            AUTO_ACTIVATE: false,     // v7.0: Manual activation via HYPER button/H key (was auto in v4.21)
             BASE_DURATION: 10.0,      // v4.60: 5→10s fixed duration (no extensions)
             GRAZE_EXTENSION: 0,       // v4.60: disabled (was 0.3)
             MAX_DURATION: 10.0,       // v4.60: matches BASE_DURATION (fixed)
@@ -522,7 +522,7 @@
         ENEMY_HP: {
             BASE: 30,                 // v5.18.2: 28→30 (+7%, slightly tankier baseline)
             SCALE: 40,                // v4.48: 30→40 (+33%, late waves tankier)
-            CYCLE_MULT: [1.0, 2.5, 3.2]  // v4.48b: C2 2.5 (slows GODCHAIN carry-over to boss), C3 3.2 (compensates lighter BOJ)
+            CYCLE_MULT: [1.0, 1.8, 2.8]  // v7.0: C2 2.5→1.8 (smoother curve), C3 3.2→2.8 (proportional reduction)
         },
 
         // --- ENEMY BEHAVIORS ---
@@ -1271,7 +1271,7 @@
             // LV 4-5 only reachable during HYPER
             LEVELS: {
                 1: { name: 'Single',     bullets: 1, cooldownMult: 0.70, damageMult: 1.20, spreadDeg: 0 },
-                2: { name: 'Dual',       bullets: 2, cooldownMult: 0.85, damageMult: 1.30, spreadDeg: 0 },
+                2: { name: 'Dual',       bullets: 2, cooldownMult: 0.75, damageMult: 1.30, spreadDeg: 0 },  // v7.0: 0.85→0.75 (upgrade more impactful)
                 3: { name: 'Triple MAX', bullets: 3, cooldownMult: 0.65, damageMult: 1.70, spreadDeg: 6 },
                 // HYPER-only levels (not reachable without HYPER):
                 4: { name: 'HYPER+',     bullets: 3, cooldownMult: 0.45, damageMult: 2.00, spreadDeg: 10 },
@@ -1283,7 +1283,7 @@
             MISSILE_DAMAGE_BONUS: 2.0,   // stacked on damageMult
 
             // Special duration (HOMING/PIERCE/MISSILE)
-            SPECIAL_DURATION: 8,              // v5.25: 12→8
+            SPECIAL_DURATION: 10,             // v7.0: 8→10 (more enjoyment time with specials)
 
             // Utility duration (SHIELD/SPEED)
             UTILITY_DURATION: 8,              // v5.25: 12→8
@@ -1955,6 +1955,7 @@
         // --- HYPERGOD v5.26 (simultaneous HYPER + GODCHAIN) ---
         HYPERGOD: {
             SCORE_MULT: 5.0,            // HYPER=3x, HYPERGOD=5x
+            TOTAL_MULT_CAP: 12.0,       // v7.0: Cap combined multiplier (HYPERGOD*combo*streak) to prevent 25x+ degenerate scores
         },
 
         // --- SKY & BACKGROUND v4.24 (Cell-Shading Enhancement) ---

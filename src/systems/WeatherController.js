@@ -561,7 +561,7 @@
                 ctx.globalAlpha = f.a;
                 ctx.fillStyle = fogColor;
                 ctx.beginPath();
-                ctx.ellipse(f.x + f.w * 0.5, f.y + f.h * 0.5, f.w * 0.5, f.h * 0.5, 0, 0, Math.PI * 2);
+                G.safeEllipse(ctx,f.x + f.w * 0.5, f.y + f.h * 0.5, f.w * 0.5, f.h * 0.5, 0, 0, Math.PI * 2);
                 ctx.fill();
             }
             ctx.globalAlpha = 1;

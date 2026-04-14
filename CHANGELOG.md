@@ -1,5 +1,55 @@
 # Changelog
 
+## v6.9.6 - 2026-04-14
+
+### Game Design Tuning (Phase 4)
+- **balance**: Enemy HP C1→C2 scaling reduced from 2.5x to 1.8x, C3 from 3.2x to 2.8x (smoother difficulty curve)
+- **balance**: LV2 weapon cooldown from 0.85x to 0.75x (upgrade feels more impactful)
+- **balance**: Special duration (HOMING/PIERCE/MISSILE) from 8s to 10s (more enjoyment time)
+- **feat(gameplay)**: HYPER manual activation — meter fills, player taps HYPER button or H key to activate (was auto-trigger). Adds strategic choice: save HYPER for boss or use early
+- **balance(arcade)**: Nano Shield cooldown from 45s to 22s (was too long to matter)
+- **balance(arcade)**: Jackpot penalty changed from -1 life to -50% graze gain (less punishing, more interesting trade-off)
+- **balance(arcade)**: Speed Demon no longer accelerates enemies — only buffs player + bullet speed
+- **feat(arcade)**: Category-balanced modifier selection — 3-card picks now guarantee at least 1 OFFENSE + 1 DEFENSE (prevents pure RNG screw)
+- **balance**: HYPERGOD total multiplier cap at 12x (was uncapped at ~25x). Prevents degenerate score inflation
+- **fix(worker)**: Leaderboard score ceiling adjusted for new multiplier cap (15000→12000 base)
+
+## v6.9.5 - 2026-04-14
+
+### Quality — Bug Fixes + Test Suite (Phase 3)
+- **fix(core)**: ObjectPool MAX_SIZE cap — `release()` now respects `maxSize` parameter (default 200), prevents unbounded reserve growth / memory leak
+- **fix(render)**: Global `safeEllipse()` fallback — 13 direct `ctx.ellipse()` calls replaced with `G.safeEllipse()` across Boss.js, Bullet.js, Player.js, WeatherController.js. Prevents crash on old GPU drivers. SkyRenderer's local fallback unified into ColorUtils
+- **fix(input)**: Multi-touch SWIPE identifier tracking — primary swipe finger tracked via `_activeTouchId` (touch identifier), preventing finger confusion in multi-touch scenarios (e.g., shield tap + drag). Fallback to `touches[0]` for backward compatibility
+- **test**: 4 new test suites — CollisionSystem (interface + init + buildGrids), DropSystem (pity timer + suppression), WaveManager (progression + reset), Score (config + multipliers + HYPER)
+- **test**: GameStateMachine blocked transitions — 6 new tests verifying invalid state transitions return false
+
+## v6.9.4 - 2026-04-14
+
+### Architecture — Module Extraction (Phase 2 continued)
+- **refactor(core)**: Extract `GameplayCallbacks.js` — all 560 lines of collision callbacks (`initCollisionSystem` + 12 callback handlers) moved to `src/core/GameplayCallbacks.js`. Dependencies injected via getter/setter pattern
+- **refactor(ui)**: Extract `DebugOverlay.js` — 277 lines of debug overlay system (triple-tap, device/perf/session diagnostics, email report) moved to `src/ui/DebugOverlay.js`
+- **refactor(ui)**: Extract `IntroScreen.js` — 1303 lines of intro screen system (SPLASH/SELECTION state machine, ship carousel + rendering, What's New panel, launch animation, backToIntro) moved to `src/ui/IntroScreen.js`
+- **refactor(ui)**: Extract `GameCompletion.js` — 310 lines of game over, campaign victory, completion screens (triggerGameOver, showCampaignVictory, showGameCompletion, victory buttons) moved to `src/ui/GameCompletion.js`
+- **refactor(main)**: main.js reduced from 6596 to 4348 lines (−2248, −34.1%). Five modules extracted total (including LeaderboardClient from previous session)
+- **chore**: Updated index.html script order and sw.js cache list for new modules
+
+## v6.9.0 - 2026-04-14
+
+### Architecture — Foundation + Module Extraction (Phase 1 + Phase 2 start)
+- **security**: HMAC signature moved server-side in Cloudflare Worker v2.0. Client no longer signs scores
+- **security**: CORS restricted to production domain only
+- **security**: Nonce anti-replay with 10min TTL in KV
+- **security**: Play duration validation (minimum 15s)
+- **security**: CSP headers rewritten with full policy
+- **fix(sw)**: Added WeatherController.js and LeaderboardClient.js to cache list
+- **feat(core)**: Page Visibility API auto-pause on tab/app switch
+- **refactor(core)**: EventBus rewritten — safe emit with error logging, snapshot array, deferred removal, once(), removeAllListeners()
+- **refactor(core)**: GameStateMachine rewritten — blocks invalid transitions, onChange listener, boolean return
+- **refactor(core)**: Extract `LeaderboardClient.js` — nickname, device ID, nonce, pending score, leaderboard API (~280 lines)
+- **fix(core)**: togglePause remembers exact pre-pause state (PLAY/WARMUP/INTERMISSION)
+- **fix(core)**: Safe localStorage helpers (safeGetItem/safeSetItem/safeGetJSON) applied to critical points
+- **perf(systems)**: SpatialGrid.query() reuses result array (zero alloc per frame)
+
 ## v6.8.0 - 2026-02-19
 
 ### Accelerometer Ship Control (TILT mode)

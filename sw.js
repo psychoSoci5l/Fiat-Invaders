@@ -1,7 +1,7 @@
 // Service Worker for FIAT vs CRYPTO
 // ⚠️ VERSION SYNC: Must match src/utils/Constants.js window.Game.VERSION
 // When updating version: 1) Constants.js  2) sw.js  3) CHANGELOG.md
-const SW_VERSION = '6.8.0';
+const SW_VERSION = '6.9.6';
 const CACHE_NAME = `fiat-vs-crypto-v${SW_VERSION}`;
 
 // All assets to cache
@@ -59,6 +59,7 @@ const ASSETS_TO_CACHE = [
     './src/systems/ParticleSystem.js',
     './src/systems/EffectsRenderer.js',
     './src/systems/SkyRenderer.js',
+    './src/systems/WeatherController.js',
     './src/systems/TransitionManager.js',
     './src/systems/TitleAnimator.js',
     './src/systems/MessageSystem.js',
@@ -69,6 +70,13 @@ const ASSETS_TO_CACHE = [
     './src/systems/QualityManager.js',
     // UI
     './src/ui/ModifierChoiceScreen.js',
+    // Leaderboard (v7.0)
+    './src/managers/LeaderboardClient.js',
+    // v7.0: Extracted modules
+    './src/ui/DebugOverlay.js',
+    './src/ui/IntroScreen.js',
+    './src/ui/GameCompletion.js',
+    './src/core/GameplayCallbacks.js',
     // Main
     './src/main.js'
 ];

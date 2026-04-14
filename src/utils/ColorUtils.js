@@ -213,6 +213,23 @@
         return cached;
     }
 
+    // v7.0: Global ellipse() fallback for old GPU drivers
+    const _hasEllipse = typeof CanvasRenderingContext2D !== 'undefined' &&
+        typeof CanvasRenderingContext2D.prototype.ellipse === 'function';
+
+    function safeEllipse(ctx, x, y, rx, ry, rot, start, end) {
+        if (_hasEllipse) {
+            ctx.ellipse(x, y, rx, ry, rot, start, end);
+        } else {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(rot);
+            ctx.scale(1, ry / rx);
+            ctx.arc(0, 0, rx, start, end);
+            ctx.restore();
+        }
+    }
+
     // Export to namespace
     G.ColorUtils = {
         parseHex,
@@ -225,6 +242,9 @@
         hexToRgba,
         withAlpha,
         rgba,
-        font
+        font,
+        safeEllipse
     };
+    // Shortcut alias for use in draw code
+    G.safeEllipse = safeEllipse;
 })();

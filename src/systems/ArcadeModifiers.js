@@ -45,9 +45,9 @@
         // --- DEFENSE ---
         {
             id: 'NANO_SHIELD', name: 'Nano Shield', category: CATEGORIES.DEFENSE,
-            desc: { EN: 'Auto-shield every 45s', IT: 'Auto-scudo ogni 45s' },
+            desc: { EN: 'Auto-shield every 22s', IT: 'Auto-scudo ogni 22s' },
             icon: '\uD83D\uDEE1\uFE0F', stackable: false,
-            apply(bonuses) { bonuses.nanoShieldCooldown = 45; bonuses.nanoShieldTimer = 45; }
+            apply(bonuses) { bonuses.nanoShieldCooldown = 22; bonuses.nanoShieldTimer = 22; }  // v7.0: 45→22s
         },
         {
             id: 'EXTRA_LIFE', name: 'Extra Life', category: CATEGORIES.DEFENSE,
@@ -89,15 +89,15 @@
         },
         {
             id: 'SPEED_DEMON', name: 'Speed Demon', category: CATEGORIES.WILD,
-            desc: { EN: 'Everything +25% speed', IT: 'Tutto +25% velocita' },
+            desc: { EN: 'Player +25% speed', IT: 'Giocatore +25% velocita' },
             icon: '\uD83D\uDCA8', stackable: false,
-            apply(bonuses) { bonuses.speedMult *= 1.25; bonuses.enemyBulletSpeedMult *= 1.25; }
+            apply(bonuses) { bonuses.speedMult *= 1.25; }  // v7.0: enemies no longer accelerate
         },
         {
             id: 'JACKPOT', name: 'Jackpot', category: CATEGORIES.WILD,
-            desc: { EN: 'Pity timers halved but -1 life', IT: 'Pity dimezzati ma -1 vita' },
+            desc: { EN: 'Pity timers halved but graze -50%', IT: 'Pity dimezzati ma graze -50%' },
             icon: '\uD83C\uDFB0', stackable: false,
-            apply(bonuses) { bonuses.pityMult *= 0.50; bonuses.extraLives -= 1; }
+            apply(bonuses) { bonuses.pityMult *= 0.50; bonuses.grazeGainMult = (bonuses.grazeGainMult || 1) * 0.50; }  // v7.0: -1 life → -50% graze gain
         },
         {
             id: 'BERSERKER', name: 'Berserker', category: CATEGORIES.WILD,
@@ -129,7 +129,30 @@
             return true;
         });
 
-        // Shuffle and pick
+        // v7.0: Category-balanced selection — guarantee 1 OFFENSE + 1 DEFENSE in 3+ card picks
+        if (count >= 3) {
+            const offense = available.filter(m => m.category === CATEGORIES.OFFENSE);
+            const defense = available.filter(m => m.category === CATEGORIES.DEFENSE);
+            const wild = available.filter(m => m.category === CATEGORIES.WILD);
+
+            if (offense.length > 0 && defense.length > 0) {
+                const picked = [];
+                // Pick 1 random OFFENSE
+                picked.push(offense[Math.floor(Math.random() * offense.length)]);
+                // Pick 1 random DEFENSE
+                picked.push(defense[Math.floor(Math.random() * defense.length)]);
+                // Fill remaining from all available (excluding already picked)
+                const remaining = available.filter(m => !picked.includes(m));
+                const shuffledRem = remaining.sort(() => Math.random() - 0.5);
+                for (let i = 0; i < count - 2 && i < shuffledRem.length; i++) {
+                    picked.push(shuffledRem[i]);
+                }
+                // Shuffle final order so guaranteed slots aren't always first
+                return picked.sort(() => Math.random() - 0.5);
+            }
+        }
+
+        // Fallback: pure random shuffle (for 2-card picks or depleted categories)
         const shuffled = available.slice().sort(() => Math.random() - 0.5);
         return shuffled.slice(0, Math.min(count, shuffled.length));
     }

@@ -1,10 +1,11 @@
 window.Game = window.Game || {};
 
 class ObjectPool {
-    constructor(createFn, initialSize = 10) {
+    constructor(createFn, initialSize = 10, maxSize = 200) {
         this.createFn = createFn;
         this.active = [];
         this.reserve = [];
+        this.maxSize = maxSize;
 
         // Pre-populate
         for (let i = 0; i < initialSize; i++) {
@@ -36,7 +37,9 @@ class ObjectPool {
     release(obj) {
         if (!obj._inPool) {
             obj._inPool = true;
-            this.reserve.push(obj);
+            if (this.reserve.length < this.maxSize) {
+                this.reserve.push(obj);
+            }
         }
     }
 }

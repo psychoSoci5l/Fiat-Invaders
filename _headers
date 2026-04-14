@@ -1,2 +1,5 @@
 /*
-  Content-Security-Policy: frame-ancestors 'self' https://psychosoci5l.com https://www.psychosoci5l.com https://*.psychosoci5l.com http://localhost:5500 http://127.0.0.1:5500
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' blob:; connect-src 'self' https://fiat-vs-crypto-leaderboard.psychosocial-01.workers.dev; font-src 'self'; frame-ancestors 'self' https://psychosoci5l.com https://www.psychosoci5l.com https://*.psychosoci5l.com; base-uri 'self'; form-action 'self'
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Referrer-Policy: strict-origin-when-cross-origin

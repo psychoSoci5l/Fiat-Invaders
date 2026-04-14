@@ -8,7 +8,8 @@ class InputSystem {
         // v6.8: Tilt (accelerometer) control
         this.tilt = { available: false, permitted: false, active: false, gamma: 0, filtered: 0, calibration: 0, axisX: 0 };
         // v5.7: Tap-on-ship shield activation
-        this._tapStart = null; // {x, y, time}
+        this._tapStart = null; // {x, y, time, id}
+        this._activeTouchId = null; // v7.0: Track primary swipe finger
         this._playerPos = { x: 0, y: 0 }; // Canvas coords, updated by Player
         this.callbacks = {};
         this.debugMode = false;  // Touch debug overlay
@@ -34,9 +35,15 @@ class InputSystem {
                 return;
             }
 
-            // v5.7: Record tap start for shield (before joystick check, works in all modes)
+            // v7.0: Track active touch by identifier for multi-touch reliability
             if (e.type === 'touchstart' && e.touches.length > 0) {
-                this._tapStart = { x: e.touches[0].clientX, y: e.touches[0].clientY, time: Date.now() };
+                const t0 = e.touches[0];
+                // v5.7: Record tap start for shield (before joystick check, works in all modes)
+                this._tapStart = { x: t0.clientX, y: t0.clientY, time: Date.now(), id: t0.identifier };
+                // Track primary swipe touch
+                if (this._activeTouchId == null) {
+                    this._activeTouchId = t0.identifier;
+                }
             }
 
             if (this.tilt.active) return; // Tilt mode: no swipe movement
@@ -45,7 +52,17 @@ class InputSystem {
             if (e.cancelable) e.preventDefault();
             this.touch.active = true;
             if (e.touches.length > 0) {
-                const clientX = e.touches[0].clientX;
+                // v7.0: Find the tracked touch by identifier, fallback to touches[0]
+                let activeTouch = null;
+                if (this._activeTouchId != null) {
+                    for (let i = 0; i < e.touches.length; i++) {
+                        if (e.touches[i].identifier === this._activeTouchId) {
+                            activeTouch = e.touches[i]; break;
+                        }
+                    }
+                }
+                if (!activeTouch) activeTouch = e.touches[0];
+                const clientX = activeTouch.clientX;
                 this.touch.x = clientX;
                 this.touch.xPct = clientX / window.innerWidth;
                 if (e.type === 'touchstart') {
@@ -58,10 +75,26 @@ class InputSystem {
         window.addEventListener('touchstart', handleTouch, { passive: false });
         window.addEventListener('touchmove', handleTouch, { passive: false });
         window.addEventListener('touchend', (e) => {
+            // v7.0: Clear active touch ID when the tracked finger lifts
+            if (e.changedTouches.length > 0) {
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === this._activeTouchId) {
+                        this._activeTouchId = null;
+                        break;
+                    }
+                }
+            }
             if (!this.touch.joystickActive) this.touch.active = false;
             // v5.7: Tap-on-ship shield activation
             if (this._tapStart && e.changedTouches.length > 0) {
-                const t = e.changedTouches[0];
+                // v7.0: Match by identifier for correct multi-touch tracking
+                let t = null;
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === this._tapStart.id) {
+                        t = e.changedTouches[i]; break;
+                    }
+                }
+                if (!t) t = e.changedTouches[0];
                 const elapsed = Date.now() - this._tapStart.time;
                 const dx = t.clientX - this._tapStart.x;
                 const dy = t.clientY - this._tapStart.y;

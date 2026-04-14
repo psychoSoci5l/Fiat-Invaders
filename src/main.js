@@ -46,14 +46,20 @@ window.Game.images = {}; // Placeholder, populated by main.js
 let canvas, ctx, gameContainer, saSentinel;
 let gameWidth = window.Game.Balance.GAME.BASE_WIDTH;
 let gameHeight = window.Game.Balance.GAME.BASE_HEIGHT;
+// v7.0: G.GameState is the SINGLE source of truth for game state.
+// `gameState` is a local read-only alias kept in sync via onChange listener.
 let gameState = 'VIDEO';
-// v4.28.0: Sync local gameState with GameStateMachine on every transition
 function setGameState(newState) {
-    gameState = newState;
-    if (G.GameState) G.GameState.transition(newState);
+    if (!G.GameState) { gameState = newState; return true; }
+    const ok = G.GameState.transition(newState);
+    if (ok) gameState = newState;
+    return ok;
 }
 G._setGameState = setGameState; // debug access
-if (G.GameState) G.GameState.forceSet('VIDEO');
+if (G.GameState) {
+    G.GameState.forceSet('VIDEO');
+    G.GameState.onChange((state) => { gameState = state; });
+}
 let userLang = navigator.language || navigator.userLanguage;
 let currentLang = userLang.startsWith('it') ? 'IT' : 'EN';
 G._currentLang = currentLang; // v4.11.0: Expose for StoryScreen localization
@@ -131,6 +137,20 @@ function loadAssets() {
 }
 loadAssets(); // Start loading immediately
 
+// v7.0: Safe localStorage helpers (QuotaExceededError / SecurityError protection)
+function safeGetItem(key, fallback) {
+    try { return localStorage.getItem(key); }
+    catch { return fallback !== undefined ? fallback : null; }
+}
+function safeSetItem(key, value) {
+    try { localStorage.setItem(key, value); return true; }
+    catch { return false; }
+}
+function safeGetJSON(key, fallback) {
+    try { return JSON.parse(localStorage.getItem(key) || 'null') || fallback; }
+    catch { return fallback; }
+}
+
 // HIGH SCORE — mode-specific persistence (v4.50)
 function highScoreKey() {
     const isStory = G.CampaignState && G.CampaignState.isEnabled();
@@ -147,7 +167,7 @@ function loadArcadeRecords() {
     catch { return { bestCycle: 0, bestLevel: 0, bestKills: 0 }; }
 }
 function saveArcadeRecords(records) {
-    localStorage.setItem('fiat_arcade_records', JSON.stringify(records));
+    safeSetItem('fiat_arcade_records', JSON.stringify(records));
 }
 function checkArcadeRecords() {
     const records = loadArcadeRecords();
@@ -160,349 +180,17 @@ function checkArcadeRecords() {
 }
 // Note: High score UI update happens in updateModeIndicator() when intro screen is shown
 
-// === PLATFORM DETECTION (v5.17.2) ===
-function getPlatform() {
-    return ('ontouchstart' in window || navigator.maxTouchPoints > 0) ? 'M' : 'D';
-}
+// v7.0: Nickname, DeviceID, Nonce, Pending Score, Leaderboard API
+// → Extracted to src/managers/LeaderboardClient.js
+// Local aliases for backward compat within main.js
+const getNickname = G.getNickname;
+const hasNickname = G.hasNickname;
+const showNicknamePrompt = G.showNicknamePrompt;
+const flushPendingScore = G.flushPendingScore;
+const savePendingScore = G.savePendingScore;
 
-// === NICKNAME MANAGER (v5.17) ===
-function getNickname() { return localStorage.getItem('fiat_nickname') || ''; }
-function hasNickname() { return getNickname().length >= 3; }
-function setNickname(name) {
-    const clean = (name || '').toUpperCase().trim();
-    if (!/^[A-Z0-9 ]{3,6}$/.test(clean)) return false;
-    localStorage.setItem('fiat_nickname', clean);
-    return true;
-}
-function showNicknamePrompt(callback, options) {
-    const opts = options || {};
-    const overlay = document.getElementById('nickname-overlay');
-    const input = document.getElementById('nickname-input');
-    const error = document.getElementById('nickname-error');
-    const btn = document.getElementById('nickname-confirm');
-    const skipBtn = document.getElementById('nickname-skip');
-    const title = document.getElementById('nickname-title');
-    if (!overlay || !input || !btn) { callback(false); return; }
-    overlay.style.display = 'flex';
-    if (title) title.textContent = opts.title || t('NICK_TITLE');
-    input.placeholder = t('NICK_PLACEHOLDER');
-    btn.textContent = t('NICK_CONFIRM');
-    if (skipBtn) {
-        skipBtn.textContent = t('NICK_SKIP');
-        skipBtn.style.display = opts.hideSkip ? 'none' : '';
-    }
-    if (error) error.style.display = 'none';
-    input.value = getNickname();
-    function cleanup() {
-        overlay.style.display = 'none';
-        input.removeEventListener('keydown', onKey);
-        btn.removeEventListener('click', submit);
-        if (skipBtn) skipBtn.removeEventListener('click', skip);
-    }
-    function submit() {
-        if (setNickname(input.value)) {
-            cleanup();
-            callback(true);
-        } else {
-            if (error) {
-                error.textContent = t('NICK_INVALID');
-                error.style.display = 'block';
-            }
-        }
-    }
-    function skip() {
-        cleanup();
-        callback(false);
-    }
-    function onKey(e) { if (e.key === 'Enter') submit(); }
-    input.addEventListener('keydown', onKey);
-    btn.addEventListener('click', submit);
-    if (skipBtn) skipBtn.addEventListener('click', skip);
-}
-
-// === DEVICE ID (v5.23.8) ===
-function getDeviceId() {
-    let id = localStorage.getItem('fiat_device_id');
-    if (!id) {
-        id = crypto.randomUUID ? crypto.randomUUID() :
-            'xxxxxxxx-xxxx-4xxx'.replace(/x/g, () => Math.floor(Math.random() * 16).toString(16));
-        localStorage.setItem('fiat_device_id', id);
-    }
-    return id;
-}
-
-// === SCORE INTEGRITY (v5.17.2) ===
-const _sk = (()=>{
-    const d = [44,9,80,110,122,77,5,3,34,71,120,36,115,18,99,45,29,76,93,14,125,11,106,38];
-    const m = [74,127,51,92];
-    return d.map((v,i) => String.fromCharCode(v ^ m[i % m.length])).join('');
-})();
-async function signScore(payload) {
-    let message = `${payload.s}|${payload.k}|${payload.c}|${payload.w}|${payload.sh}|${payload.mode}|${payload.p}|${payload.t}`;
-    if (payload.d) message += `|${payload.d}`;
-    const key = await crypto.subtle.importKey(
-        'raw', new TextEncoder().encode(_sk),
-        { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
-    );
-    const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(message));
-    return [...new Uint8Array(sig)].map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-// === PENDING SCORE QUEUE (v5.23) ===
-function savePendingScore(data) {
-    const existing = JSON.parse(localStorage.getItem('fiat_pending_score') || 'null');
-    if (existing && existing.score >= data.score) return;
-    localStorage.setItem('fiat_pending_score', JSON.stringify(data));
-}
-function getPendingScore() {
-    return JSON.parse(localStorage.getItem('fiat_pending_score') || 'null');
-}
-function clearPendingScore() {
-    localStorage.removeItem('fiat_pending_score');
-}
-async function flushPendingScore() {
-    const pending = getPendingScore();
-    if (!pending || !hasNickname()) return;
-    const result = await G.Leaderboard.submitScore(pending);
-    if (result.ok) clearPendingScore();
-}
-
-// === LEADERBOARD SYSTEM (v5.17) ===
-G.Leaderboard = {
-    _cache: null,
-    _cacheTime: 0,
-    _visible: false,
-
-    _getMode() {
-        return (G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode()) ? 'arcade' : 'story';
-    },
-
-    async fetchScores(mode) {
-        mode = mode || this._getMode();
-        // Cache for 30s
-        if (this._cache && Date.now() - this._cacheTime < 30000) return this._cache;
-        try {
-            const res = await fetch(`${G.LEADERBOARD_API}/lb?mode=${mode}`);
-            const data = await res.json();
-            if (data.ok) {
-                this._cache = data.scores;
-                this._cacheTime = Date.now();
-                return data.scores;
-            }
-        } catch (e) { /* offline */ }
-        return null;
-    },
-
-    async submitScore(data) {
-        const payload = {
-            n: getNickname(),
-            s: Math.floor(data.score),
-            k: data.kills,
-            c: data.cycle,
-            w: data.wave,
-            sh: data.ship,
-            b: data.bear ? 1 : 0,
-            p: getPlatform(),
-            mode: data.mode || 'story',
-            d: getDeviceId(),
-            t: Date.now()
-        };
-        try {
-            const sig = await signScore(payload);
-            const res = await fetch(`${G.LEADERBOARD_API}/score`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ payload, sig })
-            });
-            const result = await res.json();
-            this._cache = null; // Invalidate cache
-            return result;
-        } catch (e) {
-            return { ok: false, error: 'offline' };
-        }
-    },
-
-    async getRank(mode, score) {
-        try {
-            const res = await fetch(`${G.LEADERBOARD_API}/rank?mode=${mode || 'story'}&score=${Math.floor(score)}`);
-            return await res.json();
-        } catch (e) {
-            return { ok: false, error: 'offline' };
-        }
-    },
-
-    toggle() {
-        const panel = document.getElementById('leaderboard-panel');
-        if (!panel) return;
-        this._visible = !this._visible;
-        panel.style.display = this._visible ? 'flex' : 'none';
-        if (this._visible) this._loadAndRender();
-    },
-
-    async _loadAndRender() {
-        const loading = document.getElementById('lb-loading');
-        const table = document.getElementById('lb-table');
-        const empty = document.getElementById('lb-empty');
-        const title = document.getElementById('lb-title');
-        const closeBtn = document.getElementById('lb-close-btn');
-        const feedbackBtn = document.getElementById('lb-feedback-btn');
-        if (title) title.textContent = t('LB_TITLE');
-        if (closeBtn) closeBtn.textContent = t('CLOSE');
-        if (feedbackBtn) feedbackBtn.textContent = 'FEEDBACK';
-        if (loading) loading.style.display = 'block';
-        if (loading) loading.textContent = t('LB_LOADING');
-        if (table) table.style.display = 'none';
-        if (empty) empty.style.display = 'none';
-
-        // Update table headers
-        const ths = table ? table.querySelectorAll('th') : [];
-        if (ths.length >= 5) {
-            ths[0].textContent = t('LB_RANK');
-            ths[1].textContent = t('LB_PLAYER');
-            ths[2].textContent = t('LB_SCORE');
-            ths[3].textContent = 'SHIP';
-            ths[4].textContent = '';
-        }
-
-        const scores = await this.fetchScores();
-        if (loading) loading.style.display = 'none';
-        if (!scores) {
-            if (empty) { empty.textContent = t('LB_ERROR'); empty.style.display = 'block'; }
-            return;
-        }
-        if (scores.length === 0) {
-            if (empty) { empty.textContent = t('LB_EMPTY'); empty.style.display = 'block'; }
-            return;
-        }
-        // Fetch player rank for table + rank section
-        const nick = getNickname();
-        let playerInfo = null;
-        const rankSection = document.getElementById('lb-player-rank');
-        if (nick) {
-            const mode = this._getMode();
-            const hsKey = mode === 'arcade' ? 'fiat_highscore_arcade' : 'fiat_highscore_story';
-            const hs = parseInt(localStorage.getItem(hsKey)) || 0;
-            const result = await this.getRank(mode, hs);
-            if (result.ok && result.rank > 0) {
-                playerInfo = { nick, score: hs, rank: result.rank };
-                if (rankSection) {
-                    rankSection.style.display = 'flex';
-                    const label = rankSection.querySelector('.lb-rank-label');
-                    const val = document.getElementById('lb-rank-val');
-                    if (label) label.textContent = t('LB_YOUR_RANK');
-                    if (val) val.textContent = `#${result.rank}`;
-                }
-            } else if (rankSection) {
-                rankSection.style.display = 'none';
-            }
-        }
-        this.renderTable(scores, playerInfo);
-        if (table) table.style.display = 'table';
-    },
-
-    renderTable(scores, playerInfo) {
-        const tbody = document.getElementById('lb-tbody');
-        if (!tbody) return;
-        const nick = getNickname();
-        tbody.innerHTML = '';
-        const medals = ['', '\u{1F947}', '\u{1F948}', '\u{1F949}']; // 🥇🥈🥉
-        let playerInList = false;
-        scores.forEach((entry, i) => {
-            const tr = document.createElement('tr');
-            const rank = i + 1;
-            if (rank === 1) tr.className = 'lb-rank-1';
-            else if (rank === 2) tr.className = 'lb-rank-2';
-            else if (rank === 3) tr.className = 'lb-rank-3';
-            if (entry.n === nick) { tr.classList.add('lb-self'); playerInList = true; }
-            const platIcon = entry.p === 'M' ? '📱' : entry.p === 'D' ? '🖥' : '';
-            const rankDisplay = rank <= 3 ? medals[rank] : rank;
-            tr.innerHTML = `<td>${rankDisplay}</td><td>${entry.n}</td><td>${entry.s.toLocaleString()}</td><td>${entry.sh}</td><td class="lb-col-plat">${platIcon}</td>`;
-            tbody.appendChild(tr);
-        });
-        // Player row when not in displayed scores
-        if (!playerInList && playerInfo && playerInfo.rank > 0) {
-            const sepTr = document.createElement('tr');
-            sepTr.className = 'lb-separator';
-            sepTr.innerHTML = '<td colspan="5">\u00B7\u00B7\u00B7</td>';
-            tbody.appendChild(sepTr);
-            const tr = document.createElement('tr');
-            tr.className = 'lb-self';
-            tr.innerHTML = `<td>${playerInfo.rank}</td><td>${playerInfo.nick}</td><td>${playerInfo.score.toLocaleString()}</td><td>-</td><td></td>`;
-            tbody.appendChild(tr);
-        }
-        // Motivational message if few entries
-        const scrollEl = tbody.closest('.leaderboard-scroll');
-        const existingMsg = scrollEl ? scrollEl.querySelector('.lb-motivational') : null;
-        if (existingMsg) existingMsg.remove();
-        if (scores.length < 5 && scrollEl) {
-            const msg = document.createElement('div');
-            msg.className = 'lb-motivational';
-            msg.textContent = t('LB_FEW_ENTRIES');
-            scrollEl.appendChild(msg);
-        }
-    },
-
-    async renderGameoverRank(scoreVal, killCount, cycle, wave, ship, bear) {
-        const section = document.getElementById('gameover-rank-section');
-        const rankVal = document.getElementById('gameover-rank-val');
-        const top5El = document.getElementById('gameover-top5');
-        const viewBtn = document.getElementById('btn-view-lb');
-        if (!section) return;
-
-        // v5.23: Try to flush any previously queued score first
-        await flushPendingScore();
-
-        if (viewBtn) viewBtn.textContent = t('LB_VIEW_FULL');
-
-        if (!hasNickname()) { section.style.display = 'none'; return; }
-        section.style.display = 'block';
-
-        const rankLabel = section.querySelector('.rank-label');
-        if (rankLabel) rankLabel.textContent = t('LB_YOUR_RANK');
-        if (rankVal) rankVal.textContent = t('LB_SUBMITTING');
-
-        // Submit score
-        const scoreData = { score: scoreVal, kills: killCount, cycle, wave, ship, bear, mode: this._getMode() };
-        const result = await this.submitScore(scoreData);
-
-        // Remove previous tier badge
-        const oldTier = section.querySelector('.gameover-rank-tier');
-        if (oldTier) oldTier.remove();
-
-        if (result.ok && result.rank > 0) {
-            if (rankVal) rankVal.textContent = `#${result.rank}`;
-            // Show tier badge for top 10/5/3
-            let tierText = null, tierClass = '';
-            if (result.rank <= 3) { tierText = t('LB_TOP3'); tierClass = 'rank-tier-3'; }
-            else if (result.rank <= 5) { tierText = t('LB_TOP5'); tierClass = 'rank-tier-5'; }
-            else if (result.rank <= 10) { tierText = t('LB_TOP10'); tierClass = 'rank-tier-10'; }
-            if (tierText) {
-                const badge = document.createElement('div');
-                badge.className = `gameover-rank-tier ${tierClass}`;
-                badge.textContent = tierText;
-                section.insertBefore(badge, section.firstChild);
-            }
-        } else if (result.ok && result.rank === -1) {
-            if (rankVal) rankVal.textContent = '-';
-        } else {
-            // v5.23: Queue score for later submission
-            savePendingScore(scoreData);
-            if (rankVal) rankVal.textContent = t('LB_QUEUED');
-        }
-
-        // Fetch top 5 for mini-display
-        const scores = await this.fetchScores();
-        if (top5El && scores && scores.length > 0) {
-            const top5 = scores.slice(0, 5);
-            const nick = getNickname();
-            top5El.innerHTML = top5.map((e, i) => {
-                const cls = e.n === nick ? 'top5-self' : (i === 0 ? 'top5-gold' : '');
-                const pi = e.p === 'M' ? '📱' : e.p === 'D' ? '🖥' : '';
-                return `<span class="${cls}">${i + 1}. ${e.n} ${e.s.toLocaleString()} ${pi}</span>`;
-            }).join('<br>');
-        }
-    }
-};
+// v7.0: Leaderboard system extracted to src/managers/LeaderboardClient.js
+// G.Leaderboard is now defined there
 
 // WEAPON PROGRESSION - Persisted in localStorage
 const BASE_WEAPONS = ['WIDE', 'NARROW', 'FIRE']; // Always unlocked
@@ -554,575 +242,112 @@ function buildPlayerState() {
     return _playerState;
 }
 
-// v4.29: Pre-allocated objects for CollisionSystem callbacks — avoids per-call allocation
-const _sparkOpts = { weaponLevel: 1, isKill: false, isHyper: false };
-
-// v4.28.0: CollisionSystem initialization with callbacks
+// v7.0: CollisionSystem callbacks extracted to src/core/GameplayCallbacks.js
+// initCollisionSystem() now delegates to G.GameplayCallbacks.init(deps)
 function initCollisionSystem() {
-    if (!G.CollisionSystem) return;
-    G.CollisionSystem.init({
+    if (!G.GameplayCallbacks) return;
+    G.GameplayCallbacks.init({
+        // Entity refs
         player: player,
         getBullets: () => bullets,
         getEnemyBullets: () => enemyBullets,
         getEnemies: () => enemies,
         getBoss: () => boss,
         getMiniBoss: () => miniBoss,
-        getState: () => ({}),
-        callbacks: {
-            // Player hit by enemy bullet (normal — not HYPER)
-            onPlayerHit(eb, ebIdx, ebArr) {
-                updateLivesUI(true);
-                G.Bullet.Pool.release(eb);
-                ebArr.splice(ebIdx, 1);
-                shake = 30; // v5.31: 20→30 (stronger impact feedback)
-                bulletCancelStreak = 0;
-                bulletCancelTimer = 0;
-                grazeCount = 0;
-                grazeMeter = Math.max(0, grazeMeter - 30);
-                emitEvent('player_hit', { hp: player.hp, maxHp: player.maxHp });
-                // v5.31: Impact particles on hit
-                if (G.ParticleSystem) G.ParticleSystem.createExplosion(player.x, player.y, '#ff4444', 8);
-                if (player.hp <= 0) {
-                    startDeathSequence();
-                } else {
-                    applyHitStop('PLAYER_HIT', false);
-                    triggerScreenFlash('PLAYER_HIT');
-                    G.EffectsRenderer.triggerDamageVignette();
-                }
-                streak = 0;
-                killStreak = 0;
-                killStreakMult = 1.0;
-            },
-            // HYPER mode instant death
-            onPlayerHyperDeath(eb, ebIdx, ebArr) {
-                player.deactivateHyper();
-                player.hp = 0;
-                if (G.Debug) G.Debug.trackPlayerDeath(lives, level, 'hyper');
-                deathAlreadyTracked = true;
-                G.Bullet.Pool.release(eb);
-                ebArr.splice(ebIdx, 1);
-                shake = 60;
-                showDanger(t('HYPER_FAILED'));
-                startDeathSequence();
-            },
-            // Graze (near miss)
-            onGraze(eb, isCloseGraze, isHyperActive) {
-                // Note: lastGrazeTime NOT reset here — meter decay is tied to proximity kills only
-                const grazeBonus = isCloseGraze ? Balance.GRAZE.CLOSE_BONUS : 1;
-                if (G.Debug) G.Debug.trackGraze(isCloseGraze);
-
-                if (isHyperActive) {
-                    const isHyperGodGraze = player._godchainActive;
-                    const hyperMult = isHyperGodGraze ? (Balance.HYPERGOD?.SCORE_MULT ?? 5) : Balance.HYPER.SCORE_MULT;
-                    const grazePoints = Math.floor(Balance.GRAZE.POINTS_BASE * hyperMult * grazeBonus);
-                    score += grazePoints;
-                    updateScore(score, grazePoints);
-                    createGrazeSpark(eb.x, eb.y, player.x, player.y, true);
-                    createGrazeSpark(eb.x, eb.y, player.x, player.y, true);
-                    if (totalTime - lastGrazeSoundTime > Balance.GRAZE.SOUND_THROTTLE) {
-                        audioSys.play('hyperGraze');
-                        lastGrazeSoundTime = totalTime;
-                    }
-                } else {
-                    grazeCount += grazeBonus;
-                    if (G.RankSystem) G.RankSystem.onGraze();
-                    // Graze gives score + VFX but NOT meter (meter from proximity kills)
-                    grazeMultiplier = 1 + (grazeMeter / Balance.GRAZE.MULT_DIVISOR) * (Balance.GRAZE.MULT_MAX - 1);
-                    const grazePoints = Math.floor(Balance.GRAZE.POINTS_BASE * grazeMultiplier * grazeBonus);
-                    score += grazePoints;
-                    updateScore(score, grazePoints);
-                    createGrazeSpark(eb.x, eb.y, player.x, player.y, isCloseGraze);
-                    if (isCloseGraze) applyHitStop('CLOSE_GRAZE', true);
-                    const soundThrottle = Balance.GRAZE.SOUND_THROTTLE || 0.1;
-                    if (totalTime - lastGrazeSoundTime > soundThrottle) {
-                        audioSys.play(isCloseGraze ? 'grazeNearMiss' : 'graze');
-                        lastGrazeSoundTime = totalTime;
-                    }
-                    if (grazeCount > 0 && grazeCount % 10 === 0) audioSys.play('grazeStreak');
-                }
-                // Arcade: graze extends combo timer
-                if (G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode() && G.RunState.comboTimer > 0) {
-                    G.RunState.comboTimer += Balance.ARCADE.COMBO.GRAZE_EXTEND;
-                }
-                updateGrazeUI();
-            },
-            // Enemy hit (but not killed)
-            onEnemyHit(e, bullet, shouldDie) {
-                audioSys.play('hitEnemy');
-                const sparkColor = bullet.color || player.stats?.color || '#fff';
-                _sparkOpts.weaponLevel = player.weaponLevel ?? 1;
-                _sparkOpts.isKill = shouldDie;
-                _sparkOpts.isHyper = player.isHyperActive && player.isHyperActive();
-                createBulletSpark(e.x, e.y, sparkColor, _sparkOpts);
-            },
-            // Enemy killed
-            onEnemyKilled(e, bullet, enemyIdx, enemies) {
-                // v5.15: Determine tier + elemType for destruction SFX
-                const _destroyCfg = Balance.VFX?.ENEMY_DESTROY;
-                let _killTier = 'WEAK';
-                if (Balance.isStrongTier && Balance.isStrongTier(e.symbol)) _killTier = 'STRONG';
-                else if (Balance.isMediumTier && Balance.isMediumTier(e.symbol)) _killTier = 'MEDIUM';
-                const _killElemType = bullet._elemFire ? 'fire' : bullet._elemLaser ? 'laser' : bullet._elemElectric ? 'electric' : null;
-                if (_destroyCfg?.SFX?.ENABLED) {
-                    audioSys.play('enemyDestroy', { tier: _killTier });
-                    if (_killElemType) audioSys.play('elemDestroyLayer', { elemType: _killElemType });
-                } else {
-                    audioSys.play('coinScore');
-                }
-                applyHitStop('ENEMY_KILL', true);
-                if (G.RankSystem) G.RankSystem.onKill();
-
-                // Kill streak
-                const now = totalTime;
-                if (now - lastKillTime < Balance.SCORE.STREAK_TIMEOUT) {
-                    killStreak++;
-                    killStreakMult = Math.min(Balance.SCORE.STREAK_MULT_MAX, 1 + killStreak * Balance.SCORE.STREAK_MULT_PER_KILL);
-                    if (killStreak === 10) { applyHitStop('STREAK_10', false); triggerScreenFlash('STREAK_10'); triggerScoreStreakColor(10); }
-                    else if (killStreak === 25) { applyHitStop('STREAK_25', false); triggerScreenFlash('STREAK_25'); triggerScoreStreakColor(25); }
-                    else if (killStreak === 50) { applyHitStop('STREAK_50', false); triggerScreenFlash('STREAK_50'); triggerScoreStreakColor(50); }
-                } else {
-                    killStreak = 1;
-                    killStreakMult = 1.0;
-                }
-                lastKillTime = now;
-
-                // Arcade combo system
-                const _isArcade = G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode();
-                const comboCfg = Balance.ARCADE && Balance.ARCADE.COMBO;
-                let comboMult = 1.0;
-                if (_isArcade && comboCfg) {
-                    const rs = G.RunState;
-                    rs.comboCount++;
-                    rs.comboTimer = comboCfg.TIMEOUT;
-                    rs.comboDecayAnim = 0;
-                    comboMult = Math.min(comboCfg.MULT_CAP, 1.0 + rs.comboCount * comboCfg.MULT_PER_COMBO);
-                    rs.comboMult = comboMult;
-                    if (rs.comboCount > rs.bestCombo) rs.bestCombo = rs.comboCount;
-                }
-
-                // Arcade modifier score multiplier
-                const arcadeScoreMult = (_isArcade && G.RunState.arcadeBonuses) ? G.RunState.arcadeBonuses.scoreMult : 1;
-
-                // Score calculation
-                const perkMult = 1;
-                const bearMult = isBearMarket ? Balance.SCORE.BEAR_MARKET_MULT : 1;
-                const grazeKillBonus = grazeMeter >= Balance.SCORE.GRAZE_KILL_THRESHOLD ? Balance.SCORE.GRAZE_KILL_BONUS : 1;
-                const isHyperGod = (player.isHyperActive && player.isHyperActive()) && player._godchainActive;
-                const hyperMult = isHyperGod
-                    ? (Balance.HYPERGOD?.SCORE_MULT ?? 5)
-                    : ((player.isHyperActive && player.isHyperActive()) ? Balance.HYPER.SCORE_MULT : 1);
-                const isLastEnemy = enemies.length === 0;
-                const lastEnemyMult = isLastEnemy && G.HarmonicConductor ? G.HarmonicConductor.getLastEnemyBonus() : 1;
-                const killScore = Math.floor(e.scoreVal * bearMult * perkMult * killStreakMult * grazeKillBonus * hyperMult * lastEnemyMult * comboMult * arcadeScoreMult);
-                score += killScore;
-                updateScore(score, killScore);
-
-                if (isLastEnemy && lastEnemyMult > 1) {
-                    applyHitStop('STREAK_25', false);
-                    triggerScreenFlash('STREAK_25');
-                    showGameInfo("💀 " + t('LAST_FIAT') + " x" + lastEnemyMult.toFixed(0));
-                }
-
-                // v4.44: Clear player bullets when last enemy dies (prevent pre-damage on incoming boss/wave)
-                if (isLastEnemy) {
-                    clearBattlefield({ enemyBullets: false });
-                }
-
-                createEnemyDeathExplosion(e.x, e.y, e.color, e.symbol || '$', e.shape, _killElemType);
-
-                // Arcade: Volatile Rounds — AoE damage on kill
-                if (_isArcade && G.RunState.arcadeBonuses.volatileRounds && enemies.length > 0) {
-                    const vr = Balance.ARCADE?.MODIFIER_TUNING?.VOLATILE_ROUNDS;
-                    const aoeRadius = vr?.AOE_RADIUS ?? 30;
-                    const aoeDmg = Math.floor((player.stats.baseDamage ?? 14) * (vr?.DMG_MULT ?? 0.5));
-                    for (let vi = enemies.length - 1; vi >= 0; vi--) {
-                        const ve = enemies[vi];
-                        if (!ve || !ve.active) continue;
-                        const dx = ve.x - e.x, dy = ve.y - e.y;
-                        if (dx * dx + dy * dy < aoeRadius * aoeRadius) {
-                            ve.hp -= aoeDmg;
-                            ve.hitFlash = vr?.HIT_FLASH ?? 0.1;
-                            createExplosion(ve.x, ve.y, e.color, 4);
-                        }
-                    }
-                }
-
-                // Arcade: Chain Lightning — kill chains to 1 nearby enemy
-                if (_isArcade && G.RunState.arcadeBonuses.chainLightning && enemies.length > 0) {
-                    const cl = Balance.ARCADE?.MODIFIER_TUNING?.CHAIN_LIGHTNING;
-                    const clRange = cl?.RANGE ?? 100;
-                    let closest = null, closestDist = clRange * clRange;
-                    for (let ci = 0; ci < enemies.length; ci++) {
-                        const ce = enemies[ci];
-                        if (!ce || !ce.active) continue;
-                        const dx = ce.x - e.x, dy = ce.y - e.y;
-                        const d2 = dx * dx + dy * dy;
-                        if (d2 < closestDist) { closest = ce; closestDist = d2; }
-                    }
-                    if (closest) {
-                        const chainDmg = Math.floor((player.stats.baseDamage ?? 14) * (cl?.DMG_MULT ?? 0.3));
-                        closest.hp -= chainDmg;
-                        closest.hitFlash = cl?.HIT_FLASH ?? 0.15;
-                        createExplosion(closest.x, closest.y, '#00f0ff', 5);
-                    }
-                }
-
-                // Multi-kill
-                _frameKills++;
-                if (_frameKills >= 2) {
-                    triggerScreenFlash('MULTI_KILL');
-                    applyHitStop('STREAK_10', false);
-                }
-                if (Balance?.isStrongTier && Balance.isStrongTier(e.symbol)) {
-                    const vfx = Balance?.VFX || {};
-                    shake = Math.max(shake, vfx.STRONG_KILL_SHAKE || 3);
-                }
-
-                killCount++;
-                streak++;
-                if (streak > bestStreak) bestStreak = streak;
-                if (G.Debug) G.Debug.trackKillStreak(streak);
-                updateKillCounter();
-                checkStreakMeme();
-                emitEvent('enemy_killed', { score: killScore, x: e.x, y: e.y });
-
-                // Proximity Kill Meter — closer kills (vertically) fill meter faster
-                // v4.61: Skip accumulation during HYPER (meter resets to 0 on HYPER end)
-                const dist = Math.abs(e.y - player.y);
-                const proxCfg = Balance.PROXIMITY_KILL;
-                if (dist < proxCfg.MAX_DISTANCE && !(player.isHyperActive && player.isHyperActive())) {
-                    const t2 = 1 - Math.max(0, (dist - proxCfg.CLOSE_DISTANCE)) / (proxCfg.MAX_DISTANCE - proxCfg.CLOSE_DISTANCE);
-                    const gain = proxCfg.METER_GAIN_MIN + t2 * (proxCfg.METER_GAIN_MAX - proxCfg.METER_GAIN_MIN);
-                    lastGrazeTime = totalTime;
-                    grazeMeter = Math.min(100, grazeMeter + gain);
-                    if (grazeMeter >= Balance.HYPER.METER_THRESHOLD && player.hyperCooldown <= 0) {
-                        if (Balance.HYPER.AUTO_ACTIVATE && player.canActivateHyper && player.canActivateHyper(grazeMeter)) {
-                            player.activateHyper();
-                            grazeMeter = 0;
-                            updateGrazeUI();
-                            triggerScreenFlash('HYPER_ACTIVATE');
-                        } else if (!player.hyperAvailable) {
-                            player.hyperAvailable = true;
-                            // v5.4.0: No text — slim bar in drawHyperUI handles visual
-                            audioSys.play('hyperReady');
-                        }
-                    }
-                    updateGrazeUI();
-                }
-
-
-                // Mini-boss trigger
-                const _arcadeMini = (G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode() && Balance.ARCADE) ? Balance.ARCADE.MINI_BOSS : null;
-                const _mbCooldown = _arcadeMini ? _arcadeMini.COOLDOWN : Balance.MINI_BOSS.COOLDOWN;
-                const _mbMaxWave = _arcadeMini ? _arcadeMini.MAX_PER_WAVE : (Balance.MINI_BOSS.MAX_PER_WAVE || 2);
-                if (!(G.CampaignState && G.CampaignState.isEnabled()) && e.symbol && fiatKillCounter[e.symbol] !== undefined && !miniBoss && !boss && !e.isMinion && bossWarningTimer <= 0 && (totalTime - lastMiniBossSpawnTime) >= _mbCooldown && miniBossThisWave < _mbMaxWave) {
-                    fiatKillCounter[e.symbol]++;
-                    const mapping = Balance.MINI_BOSS.CURRENCY_BOSS_MAP?.[e.symbol];
-                    const _threshMult = _arcadeMini ? (_arcadeMini.THRESHOLD_MULT || 0.65) : 1.0;
-                    const threshold = Math.floor((mapping?.threshold || Balance.MINI_BOSS.KILL_THRESHOLD) * _threshMult);
-                    G.Debug.log('MINIBOSS', `Kill ${e.symbol}: ${fiatKillCounter[e.symbol]}/${threshold}`);
-                    if (fiatKillCounter[e.symbol] >= threshold) {
-                        let bossType = mapping?.boss || 'FEDERAL_RESERVE';
-                        if (bossType === 'RANDOM') {
-                            const rotation = G.BOSS_ROTATION || ['FEDERAL_RESERVE', 'BCE', 'BOJ'];
-                            bossType = rotation[Math.floor(Math.random() * rotation.length)];
-                        } else if (bossType === 'CYCLE_BOSS') {
-                            const rotation = G.BOSS_ROTATION || ['FEDERAL_RESERVE', 'BCE', 'BOJ'];
-                            bossType = rotation[(marketCycle - 1) % rotation.length];
-                        }
-                        G.Debug.trackMiniBossSpawn(bossType, e.symbol, fiatKillCounter[e.symbol]);
-                        G.Debug._miniBossStartInfo = { type: bossType, trigger: e.symbol, killCount: fiatKillCounter[e.symbol], startTime: Date.now() };
-                        lastMiniBossSpawnTime = totalTime;
-                        miniBossThisWave++;
-                        spawnMiniBoss(bossType, e.color);
-                        Object.keys(fiatKillCounter).forEach(k => fiatKillCounter[k] = 0);
-                    }
-                }
-
-                // Drop logic
-                const useEvolution = !!(Balance.WEAPON_EVOLUTION && player.weaponLevel);
-                const dropInfo = G.DropSystem.tryEnemyDrop(e.symbol, e.x, e.y, totalTime, useEvolution ? buildPlayerState() : getUnlockedWeapons, useEvolution);
-                if (dropInfo) {
-                    powerUps.push(new G.PowerUp(dropInfo.x, dropInfo.y, dropInfo.type));
-                    if (G.Debug) G.Debug.trackDropSpawned(dropInfo.type, dropInfo.category, 'enemy');
-                }
-            },
-            // Boss hit by player bullet
-            onBossHit(bullet, dmg, boss, bIdx, bArr) {
-                audioSys.play('hitEnemy');
-                // v4.45: Score per boss hit (was 0 — score stayed frozen during boss fight)
-                const hitScore = Math.floor(dmg * 2);
-                score += hitScore;
-                updateScore(score, hitScore);
-                // Proximity Kill Meter: boss hits give small meter gain (skip during HYPER)
-                const bossGain = Balance.PROXIMITY_KILL.BOSS_HIT_GAIN;
-                if (bossGain > 0 && !(player.isHyperActive && player.isHyperActive())) {
-                    lastGrazeTime = totalTime;
-                    grazeMeter = Math.min(100, grazeMeter + bossGain);
-                    updateGrazeUI();
-                }
-                // Boss drops
-                const useEvolutionBoss = !!(Balance.WEAPON_EVOLUTION && player.weaponLevel);
-                const bossDropInfo = G.DropSystem.tryBossDrop(
-                    boss.x + boss.width / 2, boss.y + boss.height, totalTime,
-                    useEvolutionBoss ? buildPlayerState() : getUnlockedWeapons,
-                    useEvolutionBoss
-                );
-                if (bossDropInfo) {
-                    powerUps.push(new G.PowerUp(bossDropInfo.x, bossDropInfo.y, bossDropInfo.type));
-                    audioSys.play('coinPerk');
-                    if (G.Debug) G.Debug.trackDropSpawned(bossDropInfo.type, bossDropInfo.category, 'boss');
-                }
-            },
-            // Boss killed — v5.11: Cinematic boss evolution flow
-            onBossDeath(deadBoss) {
-                const defeatedBossType = deadBoss.bossType || 'FEDERAL_RESERVE';
-                const defeatedBossName = deadBoss.name || 'THE FED';
-                const bossX = deadBoss.x + deadBoss.width / 2;
-                const bossY = deadBoss.y + deadBoss.height / 2;
-
-                // T=0: Main explosion + FREEZE
-                createBossDeathExplosion(bossX, bossY);
-                applyHitStop('BOSS_DEFEAT_FREEZE', true);
-                triggerScreenFlash('BOSS_DEFEAT');
-                if (G.TransitionManager) G.TransitionManager.startFadeOut(0.8, '#ffffff');
-                const bossBonus = Balance.SCORE.BOSS_DEFEAT_BASE + (marketCycle * Balance.SCORE.BOSS_DEFEAT_PER_CYCLE);
-                score += bossBonus;
-                updateScore(score, bossBonus);
-                boss.active = false; boss = null; window.boss = null; shake = Balance.EFFECTS.SHAKE.BOSS_DEFEAT || 80; audioSys.play('explosion');
-                audioSys.setBossPhase(0);
-                if (G.Events) G.Events.emit('weather:boss_defeat');
-                if (G.WeatherController) G.WeatherController.setLevel(level, isBearMarket, false);
-                enemyBullets.forEach(b => G.Bullet.Pool.release(b));
-                enemyBullets.length = 0;
-                window.enemyBullets = enemyBullets;
-                bossJustDefeated = true;
-                if (player && player.hyperActive) player.deactivateHyper();
-                grazeMeter = 0;
-                updateGrazeUI();
-                enemies.length = 0;
-                G.enemies = enemies;
-                if (G.HarmonicConductor) G.HarmonicConductor.enemies = enemies;
-                if (miniBoss) { G.MiniBossManager.clear(); miniBoss = null; }
-                updateScore(score);
-                showVictory("🏆 " + defeatedBossName + ' ' + t('DEFEATED'));
-                const victoryMemes = { 'FEDERAL_RESERVE': "💥 INFLATION CANCELLED!", 'BCE': "💥 FRAGMENTATION COMPLETE!", 'BOJ': "💥 YEN LIBERATED!" };
-                G.MemeEngine.queueMeme('BOSS_DEFEATED', victoryMemes[defeatedBossType] || "CENTRAL BANK DESTROYED!", defeatedBossName);
-                G.Debug.trackBossDefeat(defeatedBossType, level, marketCycle);
-                if (G.Debug) { G.Debug.trackBossFightEnd(defeatedBossType, marketCycle); G.Debug.trackCycleEnd(marketCycle, Math.floor(score)); }
-                marketCycle++;
-                window.marketCycle = marketCycle;
-
-                // v5.11: APC with 3-level formula
-                const APC = G.Balance.ADAPTIVE_POWER;
-                if (APC && APC.ENABLED && marketCycle >= 2) {
-                    const wl = player ? (player.weaponLevel ?? 1) : 1;
-                    const stacks = G.RunState.perkStacks || {};
-                    let totalStacks = 0;
-                    for (const k in stacks) totalStacks += stacks[k];
-                    const hasSpec = !!(player && player.special);
-                    const W = APC.WEIGHTS;
-                    const weaponScore = (wl - 1) / 2; // v5.11: 3 levels (0, 0.5, 1.0)
-                    const perkScore = Math.min(totalStacks / 8, 1);
-                    const specialScore = hasSpec ? 1.0 : 0.0;
-                    const ps = W.WEAPON * weaponScore + W.PERKS * perkScore + W.SPECIAL * specialScore;
-                    const hpM = APC.HP_FLOOR + ps * APC.HP_RANGE;
-                    let pAdj = 0;
-                    if (ps < APC.WEAK_THRESHOLD) pAdj = APC.PITY_BONUS_WEAK;
-                    else if (ps > APC.STRONG_THRESHOLD) pAdj = APC.PITY_PENALTY_STRONG;
-                    G.RunState.cyclePower = { score: ps, hpMult: hpM, pityAdj: pAdj };
-                }
-                G.Debug.trackCycleUp(marketCycle);
-                if (G.Debug) G.Debug.trackCycleStart(marketCycle);
-                waveMgr.reset();
-                waveMgr.waveInProgress = true;
-                G.DropSystem.specialDroppedThisCycle = false; // v5.18: reset guaranteed SPECIAL for new cycle
-                fiatKillCounter = { '¥': 0, '₽': 0, '₹': 0, '€': 0, '£': 0, '₣': 0, '₺': 0, '$': 0, '元': 0, 'Ⓒ': 0 };
-                if (G.HarmonicConductor) { G.HarmonicConductor.reset(); G.HarmonicConductor.setDifficulty(level, marketCycle, isBearMarket); }
-                const campaignState2 = G.CampaignState;
-                const _isArcadeMode = !(campaignState2 && campaignState2.isEnabled());
-                const campaignComplete = !!(campaignState2 && campaignState2.isEnabled() && defeatedBossType === 'BOJ');
-                const chapterId = G.BOSS_TO_CHAPTER && G.BOSS_TO_CHAPTER[defeatedBossType];
-                const shouldShowChapter = chapterId && shouldShowStory(chapterId);
-
-                // === v5.11: Cinematic boss death sequence ===
-                const BD = Balance.VFX?.BOSS_DEATH;
-
-                // v5.13.1: All boss death timeouts tracked for cleanup on restart
-                clearBossDeathTimeouts();
-
-                // T=0.3: Coin rain
-                if (BD?.COIN_RAIN?.ENABLED && G.ParticleSystem) {
-                    bossDeathTimeout(() => {
-                        const cw = G.Balance.GAME?.BASE_WIDTH || 600;
-                        const ch = G.Balance.GAME?.BASE_HEIGHT || 800;
-                        G.ParticleSystem.createCoinRain(cw, ch);
-                    }, (BD.COIN_RAIN.START_DELAY || 0.3) * 1000);
-                }
-
-                // T=0.5: Freeze ends → SLOWMO
-                bossDeathTimeout(() => {
-                    applyHitStop('BOSS_DEFEAT_SLOWMO', false);
-                }, 500);
-
-                // Chain explosions (config-driven)
-                if (BD) {
-                    const chainCount = BD.CHAIN_EXPLOSIONS || 6;
-                    const times = BD.CHAIN_TIMES || [0.0, 0.4, 0.8, 1.3, 1.8, 2.5];
-                    const offsets = BD.CHAIN_OFFSETS || [[0,0],[-50,-30],[40,20],[-30,40],[50,-20],[0,10]];
-                    const scales = BD.CHAIN_SCALE || [1.0, 0.8, 0.9, 1.0, 1.1, 1.5];
-                    for (let i = 1; i < chainCount; i++) { // i=0 is the main explosion already fired
-                        const delay = (times[i] || i * 0.4) * 1000;
-                        const ox = offsets[i] ? offsets[i][0] : 0;
-                        const oy = offsets[i] ? offsets[i][1] : 0;
-                        const sc = scales[i] || 1.0;
-                        bossDeathTimeout(() => {
-                            createBossDeathExplosion(bossX + ox, bossY + oy);
-                            if (sc >= 1.5) {
-                                // Climax explosion: extra flash + shake
-                                triggerScreenFlash('BOSS_DEFEAT');
-                                shake = Math.max(shake, 40);
-                            }
-                            audioSys.play('explosion');
-                        }, delay);
-                    }
-                }
-
-                // Evolution item spawn + fly
-                const WE = Balance.WEAPON_EVOLUTION;
-                const canEvolve = player && player.weaponLevel < (WE?.MAX_WEAPON_LEVEL || 3);
-                if (canEvolve && BD?.EVOLUTION_ITEM) {
-                    const evoConf = BD.EVOLUTION_ITEM;
-                    const spawnDelay = (evoConf.SPAWN_DELAY || 2.8) * 1000;
-                    const flyDuration = (evoConf.FLY_DURATION || 1.2) * 1000;
-
-                    bossDeathTimeout(() => {
-                        // Create evolution item object (managed inline)
-                        const evoItem = {
-                            x: bossX, y: bossY,
-                            startX: bossX, startY: bossY,
-                            timer: 0,
-                            duration: flyDuration,
-                            active: true,
-                            size: evoConf.SIZE || 28,
-                            glowColor: evoConf.GLOW_COLOR || '#00f0ff'
-                        };
-                        // Store on window for game loop access
-                        window._evolutionItem = evoItem;
-                    }, spawnDelay);
-                }
-
-                // Delayed transition — let the celebration breathe
-                const celebDelay = (Balance.TIMING.BOSS_CELEBRATION_DELAY || 5.0) * 1000;
-                bossDeathTimeout(() => {
-                    if (_isArcadeMode && G.ModifierChoiceScreen) {
-                        const picks = Balance.ARCADE.MODIFIERS.POST_BOSS_PICKS || 3;
-                        if (G.RunState.arcadeBonuses.lastStandAvailable) {
-                            G.RunState.arcadeBonuses.lastStandAvailable = true;
-                        }
-                        startIntermission(t('CYCLE') + ' ' + marketCycle + ' ' + t('BEGINS'));
-                        bossDeathTimeout(() => {
-                            G.ModifierChoiceScreen.show(picks, () => {
-                                const extraL = G.RunState.arcadeBonuses.extraLives;
-                                if (extraL > 0) {
-                                    lives += extraL;
-                                    G.RunState.arcadeBonuses.extraLives = 0;
-                                    updateLivesUI();
-                                } else if (extraL < 0) {
-                                    lives = Math.max(1, lives + extraL);
-                                    G.RunState.arcadeBonuses.extraLives = 0;
-                                    updateLivesUI();
-                                }
-                            });
-                        }, 1500);
-                    } else if (campaignComplete && shouldShowChapter) {
-                        showStoryScreen(chapterId, () => {
-                            if (!localStorage.getItem('fiat_completion_seen')) {
-                                showGameCompletion(() => showCampaignVictory());
-                            } else {
-                                showCampaignVictory();
-                            }
-                        });
-                    } else if (campaignComplete) {
-                        if (!localStorage.getItem('fiat_completion_seen')) {
-                            showGameCompletion(() => showCampaignVictory());
-                        } else {
-                            showCampaignVictory();
-                        }
-                    } else if (shouldShowChapter) {
-                        showStoryScreen(chapterId, () => { restoreGameUI(); startIntermission(t('CYCLE') + ' ' + marketCycle + ' ' + t('BEGINS')); });
-                    } else {
-                        startIntermission(t('CYCLE') + ' ' + marketCycle + ' ' + t('BEGINS'));
-                    }
-                }, celebDelay);
-                emitEvent('boss_killed', { level: level, cycle: marketCycle, bossType: defeatedBossType, campaignComplete: campaignComplete });
-                const bossDefeatPool = G.DIALOGUES && G.DIALOGUES.BOSS_DEFEAT && G.DIALOGUES.BOSS_DEFEAT[defeatedBossType];
-                if (bossDefeatPool && bossDefeatPool.length > 0) {
-                    const bossQuote = bossDefeatPool[Math.floor(Math.random() * bossDefeatPool.length)];
-                    const quoteText = (typeof bossQuote === 'string' ? bossQuote : (bossQuote && bossQuote.text)) || '';
-                    if (quoteText) G.MemeEngine.queueMeme('BOSS_DEFEATED', '\u201C' + quoteText + '\u201D', defeatedBossName);
-                }
-            },
-            // v5.31: Shield destroys enemy bullet on contact
-            onShieldBulletDestroy(eb, ebIdx, ebArr) {
-                createBulletSpark(eb.x, eb.y, '#00f0ff', { isCancel: true });
-                eb.markedForDeletion = true;
-                G.Bullet.Pool.release(eb);
-                ebArr.splice(ebIdx, 1);
-                if (audioSys) audioSys.play('bulletCancel');
-            },
-            // v5.31: Energy Link beam cancels enemy bullet
-            onLinkBeamCancel(eb, ebIdx, ebArr) {
-                createBulletSpark(eb.x, eb.y, '#00ccff', { isCancel: true });
-                eb.markedForDeletion = true;
-                G.Bullet.Pool.release(eb);
-                ebArr.splice(ebIdx, 1);
-                if (audioSys) audioSys.play('bulletCancel');
-            },
-            // v5.32: Reflector — enemy reflects player bullet back as enemy bullet
-            onBulletReflected(enemy, originalBullet) {
-                const refCfg = Balance.ELITE_VARIANTS?.REFLECTOR;
-                if (!refCfg) return;
-                const angle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
-                const spread = (Math.random() - 0.5) * (refCfg.REFLECT_SPREAD || 0.3);
-                const speed = refCfg.REFLECT_SPEED || 200;
-                const newBullet = {
-                    x: enemy.x, y: enemy.y + 29,
-                    vx: Math.cos(angle + spread) * speed,
-                    vy: Math.sin(angle + spread) * speed,
-                    color: '#ff44ff', w: 5, h: 5,
-                    shape: 'coin', ownerColor: enemy.color,
-                    isReflected: true
-                };
-                if (G.Events) G.Events.emit('harmonic_bullets', { bullets: [newBullet] });
-                if (audioSys) audioSys.play('grazeNearMiss');
-                // VFX flash at enemy
-                createBulletSpark(enemy.x, enemy.y, '#ff44ff', { isCancel: true });
-            },
-            // Bullet cancel (player bullet vs enemy bullet)
-            onBulletCancel(pb, eb, pbIdx, ebIdx, pbArr, ebArr) {
-                createBulletSpark(eb.x, eb.y, eb.color || '#ff4444', { isCancel: true });
-                eb.markedForDeletion = true;
-                G.Bullet.Pool.release(eb);
-                ebArr.splice(ebIdx, 1);
-                bulletCancelStreak += 1;
-                if (!pb.penetration) {
-                    pb.pierceHP = (pb.pierceHP || 1) - 1;
-                    if (pb.pierceHP <= 0) {
-                        pb.markedForDeletion = true;
-                        G.Bullet.Pool.release(pb);
-                        pbArr.splice(pbIdx, 1);
-                    }
-                }
-            }
-        }
+        // State getters
+        getScore: () => score,
+        getLives: () => lives,
+        getShake: () => shake,
+        getGrazeMeter: () => grazeMeter,
+        getGrazeCount: () => grazeCount,
+        getGrazeMultiplier: () => grazeMultiplier,
+        getTotalTime: () => totalTime,
+        getLastGrazeSoundTime: () => lastGrazeSoundTime,
+        getBulletCancelStreak: () => bulletCancelStreak,
+        getBulletCancelTimer: () => bulletCancelTimer,
+        getKillStreak: () => killStreak,
+        getKillStreakMult: () => killStreakMult,
+        getLastKillTime: () => lastKillTime,
+        getStreak: () => streak,
+        getBestStreak: () => bestStreak,
+        getMarketCycle: () => marketCycle,
+        getLevel: () => level,
+        getKillCount: () => killCount,
+        getIsBearMarket: () => isBearMarket,
+        getFrameKills: () => _frameKills,
+        getLastGrazeTime: () => lastGrazeTime,
+        getMiniBossThisWave: () => miniBossThisWave,
+        getLastMiniBossSpawnTime: () => lastMiniBossSpawnTime,
+        getFiatKillCounter: () => fiatKillCounter,
+        getDeathAlreadyTracked: () => deathAlreadyTracked,
+        getBossJustDefeated: () => bossJustDefeated,
+        getBossWarningTimer: () => bossWarningTimer,
+        // State setters
+        setScore: (v) => { score = v; },
+        setShake: (v) => { shake = v; },
+        setGrazeMeter: (v) => { grazeMeter = v; },
+        setGrazeCount: (v) => { grazeCount = v; },
+        setGrazeMultiplier: (v) => { grazeMultiplier = v; },
+        setBulletCancelStreak: (v) => { bulletCancelStreak = v; },
+        setBulletCancelTimer: (v) => { bulletCancelTimer = v; },
+        setKillStreak: (v) => { killStreak = v; },
+        setKillStreakMult: (v) => { killStreakMult = v; },
+        setLastKillTime: (v) => { lastKillTime = v; },
+        setStreak: (v) => { streak = v; },
+        setBestStreak: (v) => { bestStreak = v; },
+        setMarketCycle: (v) => { marketCycle = v; runState.marketCycle = v; window.marketCycle = v; },
+        setKillCount: (v) => { killCount = v; },
+        setFrameKills: (v) => { _frameKills = v; },
+        setLastGrazeTime: (v) => { lastGrazeTime = v; },
+        setLastGrazeSoundTime: (v) => { lastGrazeSoundTime = v; },
+        setMiniBossThisWave: (v) => { miniBossThisWave = v; },
+        setLastMiniBossSpawnTime: (v) => { lastMiniBossSpawnTime = v; },
+        setDeathAlreadyTracked: (v) => { deathAlreadyTracked = v; },
+        setBossJustDefeated: (v) => { bossJustDefeated = v; },
+        setMiniBoss: (v) => { miniBoss = v; },
+        setBoss: (v) => { boss = v; window.boss = v; },
+        setLives: (v) => { lives = v; },
+        resetFiatKillCounter: () => { fiatKillCounter = { '¥': 0, '₽': 0, '₹': 0, '€': 0, '£': 0, '₣': 0, '₺': 0, '$': 0, '元': 0, 'Ⓒ': 0 }; },
+        addPowerUp: (pu) => { powerUps.push(pu); },
+        // Function refs
+        t: t,
+        updateScore: updateScore,
+        updateLivesUI: updateLivesUI,
+        startDeathSequence: startDeathSequence,
+        applyHitStop: applyHitStop,
+        triggerScreenFlash: triggerScreenFlash,
+        emitEvent: emitEvent,
+        createGrazeSpark: createGrazeSpark,
+        updateGrazeUI: updateGrazeUI,
+        showDanger: showDanger,
+        showVictory: showVictory,
+        showGameInfo: showGameInfo,
+        createBulletSpark: createBulletSpark,
+        createExplosion: createExplosion,
+        createEnemyDeathExplosion: createEnemyDeathExplosion,
+        createBossDeathExplosion: createBossDeathExplosion,
+        triggerScoreStreakColor: triggerScoreStreakColor,
+        updateKillCounter: updateKillCounter,
+        checkStreakMeme: checkStreakMeme,
+        clearBattlefield: clearBattlefield,
+        spawnMiniBoss: spawnMiniBoss,
+        startIntermission: startIntermission,
+        showStoryScreen: showStoryScreen,
+        showGameCompletion: showGameCompletion,
+        showCampaignVictory: showCampaignVictory,
+        restoreGameUI: restoreGameUI,
+        buildPlayerState: buildPlayerState,
+        getUnlockedWeapons: getUnlockedWeapons,
+        bossDeathTimeout: bossDeathTimeout,
+        clearBossDeathTimeouts: clearBossDeathTimeouts,
+        shouldShowStory: shouldShowStory,
     });
 }
 
 function checkWeaponUnlocks(cycle) {
     if (cycle > maxCycleReached) {
         maxCycleReached = cycle;
-        localStorage.setItem('fiat_maxcycle', maxCycleReached);
+        safeSetItem('fiat_maxcycle', maxCycleReached);
         // Check for new unlocks
         for (const [weapon, reqCycle] of Object.entries(WEAPON_UNLOCK_CYCLE)) {
             if (reqCycle === cycle) {
@@ -1262,6 +487,7 @@ const ui = {};
 
 // --- HELPER FUNCTIONS ---
 function t(key) { return Constants.TEXTS[currentLang][key] || key; }
+G.t = t; // v7.0: Expose for extracted modules (LeaderboardClient, etc.)
 
 // v2.24.6: Global bullet cap check (prevents runaway patterns like BOJ mini-boss)
 function canSpawnEnemyBullet() {
@@ -1547,575 +773,15 @@ function applyRandomPerk() {
 }
 function renderPerkBar(id) { G.PerkManager.renderBar(id); }
 
-// --- INTRO SHIP ANIMATION & SELECTION ---
-let introShipCanvas = null;
-let introShipCtx = null;
-let introShipTime = 0;
-let introShipAnimId = null;
-let selectedShipIndex = 0;
-let introState = 'SPLASH'; // 'SPLASH' or 'SELECTION'
-const SHIP_KEYS = ['BTC', 'ETH', 'SOL'];
-const SHIP_DISPLAY = {
-    // hit = hitbox rating (higher = smaller hitbox = easier to dodge)
-    BTC: { name: 'BTC STRIKER', accent: '#bb44ff', symbol: '₿',
-        bodyDark: '#2a2040', bodyLight: '#6644aa', noseDark: '#4d3366', noseLight: '#9966cc',
-        finDark: '#1a4455', finLight: '#2a6677', spd: 6, pwr: 7, hit: 5 },
-    ETH: { name: 'ETH HEAVY', accent: '#8c7ae6', symbol: 'Ξ',
-        bodyDark: '#1a2040', bodyLight: '#4a5a8e', noseDark: '#2a3366', noseLight: '#7a8ecc',
-        finDark: '#1a3455', finLight: '#2a5077', spd: 4, pwr: 8, hit: 3 },
-    SOL: { name: 'SOL SPEEDSTER', accent: '#00d2d3', symbol: '◎',
-        bodyDark: '#0a2a2a', bodyLight: '#1a6a6a', noseDark: '#0a3a3a', noseLight: '#2a8a8a',
-        finDark: '#0a3455', finLight: '#1a5a77', spd: 9, pwr: 5, hit: 8 }
-};
+// v7.0: Intro screen extracted to src/ui/IntroScreen.js
+// Local aliases for backward compatibility within main.js
+const SHIP_KEYS = G.IntroScreen ? G.IntroScreen.SHIP_KEYS : ['BTC', 'ETH', 'SOL'];
+const SHIP_DISPLAY = G.IntroScreen ? G.IntroScreen.SHIP_DISPLAY : {};
 
-function initIntroShip() {
-    // Cancel any existing rAF loop before starting a new one (prevents N loops after N restarts)
-    if (introShipAnimId) { cancelAnimationFrame(introShipAnimId); introShipAnimId = null; }
-    introShipCanvas = document.getElementById('intro-ship-canvas');
-    if (!introShipCanvas) return;
-    introShipCtx = introShipCanvas.getContext('2d');
-    updateShipUI();
-    animateIntroShip();
-}
+// initIntroShip, initSplashShip → G.IntroScreen
 
-// --- INTRO SHIP INIT (unified) ---
-function initSplashShip() {
-    // Now uses the same canvas as selection
-    initIntroShip();
-}
+// _cleanupAnimClasses, state transitions, ship UI, animateIntroShip → G.IntroScreen
 
-// --- v4.35: Title animation helpers ---
-let _introActionCooldown = 0;
-
-function _cleanupAnimClasses() {
-    const els = [
-        document.getElementById('mode-selector'),
-        document.getElementById('mode-explanation'),
-        document.querySelector('.primary-action-container'),
-        document.querySelector('.intro-icons'),
-        document.querySelector('.intro-version'),
-        document.getElementById('intro-title')
-    ];
-    els.forEach(el => {
-        if (el) el.classList.remove('anim-hidden', 'anim-show', 'anim-active');
-    });
-    // Also clean subtitle visibility class
-    const sub = document.getElementById('title-subtitle');
-    if (sub) sub.classList.remove('anim-visible');
-}
-
-// --- STATE TRANSITIONS ---
-// v4.43: Inner selection logic (called after paper tear closes or directly)
-function _doEnterSelection() {
-    if (introState === 'SELECTION') return;
-    introState = 'SELECTION';
-    audioSys.play('coinUI');
-    // v4.35: Hide title animator and clean up anim classes
-    if (G.TitleAnimator) G.TitleAnimator.hide();
-    _cleanupAnimClasses();
-
-    // Hide splash elements
-    const title = document.getElementById('intro-title');
-    const modeSelector = document.getElementById('mode-selector');
-    const introVersion = document.querySelector('.intro-version');
-    const modeExpl = document.getElementById('mode-explanation');
-    if (title) title.classList.add('hidden');
-    if (modeSelector) modeSelector.classList.add('hidden');
-    if (introVersion) introVersion.style.display = 'none';
-    if (modeExpl) modeExpl.classList.add('hidden');
-    // Hide PWA install banner when entering selection
-    setStyle('pwa-install-banner', 'display', 'none');
-
-    // Show selection elements
-    const header = document.getElementById('selection-header');
-    const info = document.getElementById('selection-info');
-    const modeIndicator = document.getElementById('current-mode-indicator');
-    const scoreRow = document.getElementById('selection-score-row');
-    const arrowLeft = document.getElementById('arrow-left');
-    const arrowRight = document.getElementById('arrow-right');
-    const shipArea = document.querySelector('.ship-area');
-
-    if (header) header.style.display = 'block';
-    if (info) info.style.display = 'block';
-    if (modeIndicator) modeIndicator.style.display = 'flex';
-    if (scoreRow) scoreRow.style.display = 'flex';
-    if (arrowLeft) arrowLeft.classList.add('visible');
-    if (arrowRight) arrowRight.classList.add('visible');
-    if (shipArea) shipArea.classList.remove('hidden');
-
-    // Update primary action button to LAUNCH state
-    updatePrimaryButton('SELECTION');
-
-    // Update badge content
-    updateModeIndicator();
-
-    // Update ship display
-    updateShipUI();
-}
-
-window.enterSelectionState = function() {
-    if (introState === 'SELECTION') return;
-    _doEnterSelection();
-}
-
-// Go back to mode selection from ship selection
-window.goBackToModeSelect = function() {
-    if (introState === 'SPLASH') return;
-    introState = 'SPLASH';
-    audioSys.play('coinUI');
-    // v4.35: Restore title animator in loop state (no replay)
-    if (G.TitleAnimator && !G.TitleAnimator.isActive()) {
-        G.TitleAnimator.start(true);
-    }
-
-    // Hide selection elements
-    const header = document.getElementById('selection-header');
-    const info = document.getElementById('selection-info');
-    const modeIndicator = document.getElementById('current-mode-indicator');
-    const scoreRow = document.getElementById('selection-score-row');
-    const arrowLeft = document.getElementById('arrow-left');
-    const arrowRight = document.getElementById('arrow-right');
-
-    if (header) header.style.display = 'none';
-    if (info) info.style.display = 'none';
-    if (modeIndicator) modeIndicator.style.display = 'none';
-    if (scoreRow) scoreRow.style.display = 'none';
-    if (arrowLeft) arrowLeft.classList.remove('visible');
-    if (arrowRight) arrowRight.classList.remove('visible');
-
-    // Show splash elements
-    const title = document.getElementById('intro-title');
-    const modeSelector = document.getElementById('mode-selector');
-    const introVersion = document.querySelector('.intro-version');
-    const modeExpl = document.getElementById('mode-explanation');
-    const shipArea = document.querySelector('.ship-area');
-    if (title) title.classList.remove('hidden');
-    if (modeSelector) modeSelector.classList.remove('hidden');
-    if (introVersion) introVersion.style.display = 'block';
-    if (modeExpl) modeExpl.classList.remove('hidden');
-    if (shipArea) shipArea.classList.add('hidden');
-
-    // Update primary action button to TAP TO START state
-    updatePrimaryButton('SPLASH');
-}
-
-// Handle primary action button click (unified for both states)
-window.handlePrimaryAction = function() {
-    // v4.35: Cooldown prevents rapid-fire state transitions
-    if (_introActionCooldown > 0) return;
-    if (introState === 'SPLASH') {
-        // v4.35: Skip animation on button tap during ANIMATING
-        if (G.TitleAnimator && G.TitleAnimator.isAnimating()) {
-            G.TitleAnimator.skip();
-            _introActionCooldown = 0.4;
-            return;
-        }
-        enterSelectionState();
-    } else {
-        launchShipAndStart();
-    }
-}
-
-// Update primary button appearance based on state
-function updatePrimaryButton(state) {
-    const btn = document.getElementById('btn-primary-action');
-    if (!btn) return;
-
-    if (state === 'SELECTION') {
-        btn.classList.add('launch-state');
-        btn.innerHTML = t('LAUNCH');
-    } else {
-        btn.classList.remove('launch-state');
-        btn.innerHTML = t('TAP_START');
-    }
-}
-
-// Update the mode indicator in selection screen
-function updateModeIndicator() {
-    const campaignState = G.CampaignState;
-    const isStory = campaignState && campaignState.isEnabled();
-
-    // Reload highScore for current mode (v4.50)
-    highScore = loadHighScoreForMode();
-
-    const modeText = document.getElementById('mode-indicator-text');
-    const hint = document.getElementById('mode-indicator-hint');
-    const scoreLabel = document.getElementById('score-row-label');
-    const scoreValue = document.getElementById('badge-score-value');
-
-    if (modeText) {
-        modeText.innerText = isStory ? (t('MODE_STORY') || t('CAMPAIGN')) + ' MODE' : t('MODE_ARCADE') + ' MODE';
-    }
-    if (hint) {
-        hint.innerText = t('CHANGE_MODE');
-    }
-    if (scoreLabel) {
-        scoreLabel.innerText = t('HIGH_SCORE');
-    }
-    if (scoreValue) {
-        scoreValue.innerText = highScore.toLocaleString();
-    }
-
-    // Arcade records row (v4.50)
-    const recordsRow = document.getElementById('arcade-records-row');
-    if (recordsRow) {
-        if (!isStory) {
-            const rec = loadArcadeRecords();
-            recordsRow.style.display = (rec.bestCycle || rec.bestLevel || rec.bestKills) ? 'flex' : 'none';
-            const cl = document.getElementById('rec-cycle-label');
-            const ll = document.getElementById('rec-level-label');
-            const kl = document.getElementById('rec-kills-label');
-            if (cl) cl.innerText = t('BEST_CYCLE');
-            if (ll) ll.innerText = t('BEST_LEVEL');
-            if (kl) kl.innerText = t('BEST_KILLS');
-            setUI('rec-cycle-val', rec.bestCycle);
-            setUI('rec-level-val', rec.bestLevel);
-            setUI('rec-kills-val', rec.bestKills);
-        } else {
-            recordsRow.style.display = 'none';
-        }
-    }
-}
-
-window.cycleShip = function(dir) {
-    selectedShipIndex = (selectedShipIndex + dir + SHIP_KEYS.length) % SHIP_KEYS.length;
-    updateShipUI();
-}
-
-// --- GAME MODE SELECTION (Arcade vs Campaign) ---
-window.setGameMode = function(mode) {
-    const campaignState = G.CampaignState;
-    const isEnabled = mode === 'campaign';
-
-    // Reset story progress when switching TO Story mode (fixes intermittent start bug)
-    if (isEnabled && !campaignState.isEnabled()) {
-        campaignState.storyProgress = {
-            PROLOGUE: false,
-            CHAPTER_1: false,
-            CHAPTER_2: false,
-            CHAPTER_3: false
-        };
-    }
-
-    campaignState.setEnabled(isEnabled);
-
-    // Always reset boss defeats when starting Story Mode (v4.11.0)
-    // Prevents partial progress from previous sessions carrying over
-    if (isEnabled) {
-        campaignState.resetCampaign();
-    }
-
-    // Update mode selector pills (SPLASH state)
-    const storyPill = document.getElementById('mode-pill-story');
-    const arcadePill = document.getElementById('mode-pill-arcade');
-
-    if (storyPill) storyPill.classList.toggle('active', isEnabled);
-    if (arcadePill) arcadePill.classList.toggle('active', !isEnabled);
-
-    // Update mode explanation (SPLASH state)
-    const storyDesc = document.getElementById('mode-story-desc');
-    const arcadeDesc = document.getElementById('mode-arcade-desc');
-    if (storyDesc) storyDesc.style.display = isEnabled ? 'block' : 'none';
-    if (arcadeDesc) arcadeDesc.style.display = isEnabled ? 'none' : 'block';
-
-    // Update mode indicator if in selection state
-    if (introState === 'SELECTION') {
-        updateModeIndicator();
-    }
-
-    audioSys.play('coinUI');
-}
-
-function updateCampaignProgressUI() {
-    const campaignState = G.CampaignState;
-    if (!campaignState) return;
-
-    const slots = {
-        'slot-fed': 'FEDERAL_RESERVE',
-        'slot-bce': 'BCE',
-        'slot-boj': 'BOJ'
-    };
-
-    const nextBoss = campaignState.getNextBoss();
-
-    for (const [slotId, bossType] of Object.entries(slots)) {
-        const el = document.getElementById(slotId);
-        if (!el) continue;
-
-        el.classList.remove('locked', 'defeated', 'current');
-
-        if (campaignState.isBossDefeated(bossType)) {
-            el.classList.add('defeated');
-        } else if (!campaignState.isBossUnlocked(bossType)) {
-            el.classList.add('locked');
-        } else if (bossType === nextBoss) {
-            el.classList.add('current');
-        }
-    }
-}
-
-function updateShipUI() {
-    const key = SHIP_KEYS[selectedShipIndex];
-    const ship = SHIP_DISPLAY[key];
-
-    const nameEl = document.getElementById('ship-name');
-    const statsEl = document.getElementById('ship-stats');
-
-    if (nameEl) {
-        nameEl.textContent = ship.name;
-        nameEl.style.color = ship.accent;
-        // Black outline for readability on any background
-        nameEl.style.textShadow = `0 0 10px ${ship.accent}, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 8px rgba(0,0,0,0.8)`;
-    }
-
-    if (statsEl) {
-        // Scale stats to 8-bar display (spd 4-9, pwr 5-8, hit 3-8)
-        const spdScaled = Math.round(ship.spd * 0.8);
-        const pwrScaled = Math.round(ship.pwr * 0.8);
-        const hitScaled = Math.round(ship.hit * 0.8);  // Hitbox: higher = smaller = better
-        const spdBar = '█'.repeat(spdScaled) + '░'.repeat(8 - spdScaled);
-        const pwrBar = '█'.repeat(pwrScaled) + '░'.repeat(8 - pwrScaled);
-        const hitBar = '█'.repeat(hitScaled) + '░'.repeat(8 - hitScaled);
-        statsEl.innerHTML = `
-            <span class="stat-item">SPD ${spdBar}</span>
-            <span class="stat-item">PWR ${pwrBar}</span>
-            <span class="stat-item">HIT ${hitBar}</span>
-        `;
-    }
-}
-
-function animateIntroShip() {
-    if (!introShipCtx) return;
-    introShipTime += 0.05;
-
-    const ctx = introShipCtx;
-    const w = introShipCanvas.width;
-    const h = introShipCanvas.height;
-    const cx = w / 2, cy = h / 2 + 10;
-
-    ctx.clearRect(0, 0, w, h);
-
-    // In SPLASH always show BTC, in SELECTION show selected ship
-    const key = (introState === 'SPLASH') ? 'BTC' : SHIP_KEYS[selectedShipIndex];
-    const ship = SHIP_DISPLAY[key];
-    const scale = 1.05; // v5.28: 1.35→1.05 (ship is +30% larger now)
-
-    // Hover animation
-    const hover = Math.sin(introShipTime * 2) * 6;
-
-    ctx.save();
-    ctx.translate(cx, cy + hover);
-    ctx.scale(scale, scale);
-
-    // v5.28: Swept-back delta — narrower, more aggressive
-    const outline = '#1a1028';
-    // LV1 geom
-    const ws = 40;   // wingSpan (half-width at tips)
-    const sw = 13;   // shoulderW (half-width at shoulders)
-    // Fixed Y
-    const tipY = -36;
-    const shoulderY = -10;
-    const wingTipY = 36;     // REARMOST! (more swept back)
-    const innerTailY = 13;
-    const tailY = 5;
-    // X positions
-    const shoulderX = sw;
-    const wingTipX = ws;
-    const innerTailX = 7;
-
-    // === TWIN EXHAUST FLAMES at inner tail (±5, 10) ===
-    const flameHeight = 18 + Math.sin(introShipTime * 12) * 7;
-    const flameWidth = 5 + Math.sin(introShipTime * 10) * 2;
-    const pulse = 1 + Math.sin(introShipTime * 8) * 0.15;
-
-    for (const side of [-1, 1]) {
-        const nx = side * innerTailX;
-        ctx.fillStyle = '#cc3300'; ctx.globalAlpha = 0.6;
-        ctx.beginPath();
-        ctx.moveTo(nx - flameWidth * 1.4 * pulse, innerTailY);
-        ctx.lineTo(nx, innerTailY + flameHeight * 1.2);
-        ctx.lineTo(nx + flameWidth * 1.4 * pulse, innerTailY);
-        ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
-        ctx.fillStyle = '#ff6600';
-        ctx.beginPath();
-        ctx.moveTo(nx - flameWidth, innerTailY);
-        ctx.lineTo(nx, innerTailY + flameHeight);
-        ctx.lineTo(nx + flameWidth, innerTailY);
-        ctx.closePath(); ctx.fill();
-        ctx.fillStyle = '#ffcc00';
-        ctx.beginPath();
-        ctx.moveTo(nx - flameWidth * 0.5, innerTailY);
-        ctx.lineTo(nx, innerTailY + flameHeight * 0.65);
-        ctx.lineTo(nx + flameWidth * 0.5, innerTailY);
-        ctx.closePath(); ctx.fill();
-        ctx.fillStyle = '#fff';
-        ctx.beginPath();
-        ctx.moveTo(nx - flameWidth * 0.2, innerTailY);
-        ctx.lineTo(nx, innerTailY + flameHeight * 0.35);
-        ctx.lineTo(nx + flameWidth * 0.2, innerTailY);
-        ctx.closePath(); ctx.fill();
-    }
-
-    // === BODY — 8-vertex inverted V (∧) ===
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = outline;
-
-    // Left half (dark)
-    ctx.fillStyle = ship.bodyDark;
-    ctx.beginPath();
-    ctx.moveTo(0, tipY);
-    ctx.lineTo(-shoulderX, shoulderY);
-    ctx.lineTo(-wingTipX, wingTipY);
-    ctx.lineTo(-innerTailX, innerTailY);
-    ctx.lineTo(0, tailY);
-    ctx.closePath(); ctx.fill();
-
-    // Right half (light)
-    ctx.fillStyle = ship.bodyLight;
-    ctx.beginPath();
-    ctx.moveTo(0, tipY);
-    ctx.lineTo(shoulderX, shoulderY);
-    ctx.lineTo(wingTipX, wingTipY);
-    ctx.lineTo(innerTailX, innerTailY);
-    ctx.lineTo(0, tailY);
-    ctx.closePath(); ctx.fill();
-
-    // Full outline
-    ctx.beginPath();
-    ctx.moveTo(0, tipY);
-    ctx.lineTo(-shoulderX, shoulderY);
-    ctx.lineTo(-wingTipX, wingTipY);
-    ctx.lineTo(-innerTailX, innerTailY);
-    ctx.lineTo(0, tailY);
-    ctx.lineTo(innerTailX, innerTailY);
-    ctx.lineTo(wingTipX, wingTipY);
-    ctx.lineTo(shoulderX, shoulderY);
-    ctx.closePath(); ctx.stroke();
-
-    // === DORSAL SPINE ===
-    ctx.save();
-    ctx.strokeStyle = ship.accent;
-    ctx.lineWidth = 1.5;
-    ctx.globalAlpha = 0.6;
-    ctx.beginPath();
-    ctx.moveTo(0, tipY + 6);
-    ctx.lineTo(0, tailY - 1);
-    ctx.stroke();
-    ctx.restore();
-
-    // === NOSE ACCENT ===
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = outline;
-    ctx.fillStyle = ship.noseDark;
-    ctx.beginPath();
-    ctx.moveTo(0, tipY);
-    ctx.lineTo(-shoulderX - 1, shoulderY + 2);
-    ctx.lineTo(0, shoulderY + 2);
-    ctx.closePath(); ctx.fill();
-    ctx.fillStyle = ship.noseLight;
-    ctx.beginPath();
-    ctx.moveTo(0, tipY);
-    ctx.lineTo(0, shoulderY + 2);
-    ctx.lineTo(shoulderX + 1, shoulderY + 2);
-    ctx.closePath(); ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(0, tipY);
-    ctx.lineTo(-shoulderX - 1, shoulderY + 2);
-    ctx.lineTo(shoulderX + 1, shoulderY + 2);
-    ctx.closePath(); ctx.stroke();
-
-    // === NOSE CANNON (v5.28: cannonLen=10) ===
-    {
-        const cLen = 10;
-        const cTop = tipY - cLen;
-        const nbPulse = Math.sin(introShipTime * 6) * 0.3 + 0.7;
-        ctx.fillStyle = ship.noseLight; ctx.strokeStyle = outline; ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.rect(-4, cTop, 2.5, cLen); ctx.fill(); ctx.stroke();
-        ctx.beginPath(); ctx.rect(1.5, cTop, 2.5, cLen); ctx.fill(); ctx.stroke();
-        ctx.fillStyle = ship.noseDark;
-        ctx.beginPath(); ctx.rect(-5, cTop - 1.5, 10, 3); ctx.fill(); ctx.stroke();
-        ctx.fillStyle = ship.accent;
-        ctx.globalAlpha = nbPulse * 0.7;
-        ctx.beginPath(); ctx.arc(0, cTop, 2.2, 0, Math.PI * 2); ctx.fill();
-        ctx.globalAlpha = 1;
-    }
-
-    // === WING TIP ACCENTS ===
-    {
-        const wtPulse = Math.sin(introShipTime * 5) * 0.3 + 0.7;
-        ctx.fillStyle = ship.accent;
-        ctx.globalAlpha = wtPulse * 0.5;
-        ctx.beginPath(); ctx.arc(-wingTipX, wingTipY, 2.5, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(wingTipX, wingTipY, 2.5, 0, Math.PI * 2); ctx.fill();
-        ctx.globalAlpha = 1;
-    }
-
-    // === RIM LIGHTING ===
-    ctx.strokeStyle = '#9977cc';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(3, tipY + 4);
-    ctx.lineTo(shoulderX + 1, shoulderY);
-    ctx.lineTo(wingTipX - 4, wingTipY - 2);
-    ctx.stroke();
-    ctx.strokeStyle = ship.noseLight; ctx.lineWidth = 1; ctx.globalAlpha = 0.5;
-    ctx.beginPath();
-    ctx.moveTo(2, tipY + 2);
-    ctx.lineTo(shoulderX, shoulderY + 2);
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-
-    // === COCKPIT (₿ symbol, no canopy) ===
-    if (key === 'BTC') {
-        const s = 0.85;
-        const cockpitColor = '#00f0ff';
-        ctx.save();
-        ctx.translate(0, -12);
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        const drawBPath = () => {
-            ctx.beginPath();
-            ctx.moveTo(-3 * s, -7 * s); ctx.lineTo(-3 * s, 7 * s);
-            ctx.moveTo(-3 * s, -7 * s); ctx.lineTo(1 * s, -7 * s);
-            ctx.quadraticCurveTo(6 * s, -7 * s, 6 * s, -3.5 * s);
-            ctx.quadraticCurveTo(6 * s, 0, 1 * s, 0);
-            ctx.lineTo(-3 * s, 0);
-            ctx.moveTo(1 * s, 0);
-            ctx.quadraticCurveTo(7 * s, 0, 7 * s, 3.5 * s);
-            ctx.quadraticCurveTo(7 * s, 7 * s, 1 * s, 7 * s);
-            ctx.lineTo(-3 * s, 7 * s);
-            ctx.moveTo(-1 * s, -9 * s); ctx.lineTo(-1 * s, -6 * s);
-            ctx.moveTo(2 * s, -9 * s); ctx.lineTo(2 * s, -6 * s);
-            ctx.moveTo(-1 * s, 6 * s); ctx.lineTo(-1 * s, 9 * s);
-            ctx.moveTo(2 * s, 6 * s); ctx.lineTo(2 * s, 9 * s);
-            ctx.stroke();
-        };
-        ctx.lineWidth = 5 * s;
-        ctx.strokeStyle = 'rgba(0, 240, 255, 0.3)';
-        drawBPath();
-        ctx.lineWidth = 1.8 * s;
-        ctx.strokeStyle = cockpitColor;
-        drawBPath();
-        ctx.lineWidth = 0.8 * s;
-        ctx.strokeStyle = '#ffffff';
-        ctx.globalAlpha = 0.8;
-        drawBPath();
-        ctx.restore();
-    } else {
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 14px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.shadowColor = ship.accent;
-        ctx.shadowBlur = 8;
-        ctx.fillText(ship.symbol, 0, -10);
-        ctx.shadowBlur = 0;
-    }
-
-    ctx.restore();
-
-    introShipAnimId = requestAnimationFrame(animateIntroShip);
-}
 
 // Helper to lighten a hex color (uses ColorUtils)
 function lightenColor(hex, percent) {
@@ -2170,7 +836,7 @@ function init() {
         card.addEventListener('touchstart', (e) => {
             e.stopPropagation();
             e.preventDefault();
-            selectShip(type);
+            window.selectShip(type);
         });
     });
 
@@ -2334,7 +1000,7 @@ function init() {
         if (!splash || splash.style.opacity === '0') return;
         // App startup (log removed for production)
         setGameState('INTRO');
-        introState = 'SPLASH';
+        if (G.IntroScreen) G.IntroScreen.resetToSplash();
         splash.style.opacity = '0';
         audioSys.init();
         setTimeout(() => {
@@ -2361,7 +1027,7 @@ function init() {
             if (arrowRight) arrowRight.classList.remove('visible');
 
             // Reset primary button to TAP TO START state
-            updatePrimaryButton('SPLASH');
+            if (G.IntroScreen) G.IntroScreen.updatePrimaryButton('SPLASH');
 
             // v4.51: Glow What's New button if version changed since last visit
             try {
@@ -2394,7 +1060,7 @@ function init() {
             }
 
             try { updateUIText(); } catch (e) { }
-            initIntroShip();
+            if (G.IntroScreen) G.IntroScreen.initIntroShip();
 
             // Initialize sky background for INTRO state
             if (G.SkyRenderer) G.SkyRenderer.init(gameWidth, gameHeight);
@@ -2403,7 +1069,7 @@ function init() {
 
             // Restore campaign mode UI state (v4.8: sync UI with stored preference)
             if (G.CampaignState) {
-                setGameMode(G.CampaignState.isEnabled() ? 'campaign' : 'arcade');
+                window.setGameMode(G.CampaignState.isEnabled() ? 'campaign' : 'arcade');
             }
 
             // Open curtain after intro screen is ready
@@ -2466,7 +1132,7 @@ function init() {
         if (gameState === 'VIDEO') startApp();
         else if (gameState === 'STORY_SCREEN' && G.StoryScreen) G.StoryScreen.handleTap();
         else if (gameState === 'PLAY' || gameState === 'WARMUP' || gameState === 'PAUSE') togglePause();
-        else if (gameState === 'SETTINGS') backToIntro();
+        else if (gameState === 'SETTINGS') window.backToIntro();
     });
 
     inputSys.on('start', () => {
@@ -2477,31 +1143,20 @@ function init() {
         }
         else if (gameState === 'INTRO') {
             // v4.35: Cooldown prevents rapid-fire state transitions (key repeat)
-            if (_introActionCooldown > 0) return;
-            // v4.35: Skip title animation on tap during ANIMATING
-            if (introState === 'SPLASH' && G.TitleAnimator && G.TitleAnimator.isAnimating()) {
-                G.TitleAnimator.skip();
-                _introActionCooldown = 0.4;
-                return;
-            }
-            // Two-phase intro: SPLASH -> SELECTION -> PLAY
-            if (introState === 'SPLASH') {
-                enterSelectionState();
-            } else {
-                launchShipAndStart();
-            }
+            // v7.0: Intro action handling delegated to IntroScreen
+            window.handlePrimaryAction();
         }
-        else if (gameState === 'GAMEOVER') backToIntro();
+        else if (gameState === 'GAMEOVER') window.backToIntro();
     });
 
     inputSys.on('navigate', (code) => {
         // Ship selection only available in SELECTION state
-        if (gameState === 'INTRO' && introState === 'SELECTION') {
+        if (gameState === 'INTRO' && G.IntroScreen && G.IntroScreen.getIntroState() === 'SELECTION') {
             if (code === 'ArrowRight' || code === 'KeyD') {
-                cycleShip(1);
+                window.cycleShip(1);
             }
             if (code === 'ArrowLeft' || code === 'KeyA') {
-                cycleShip(-1);
+                window.cycleShip(-1);
             }
         }
     });
@@ -2551,7 +1206,7 @@ function init() {
 
         updateUIText();
         setGameState('INTRO');
-        introState = 'SPLASH';
+        if (G.IntroScreen) G.IntroScreen.resetToSplash();
         initIntroShip();
         if (G.WeatherController) G.WeatherController.setIntroMode();
 
@@ -2585,6 +1240,60 @@ function init() {
     };
     canvas.addEventListener('click', storyTapHandler);
     canvas.addEventListener('touchstart', storyTapHandler, { passive: false });
+
+    // v7.0: Initialize extracted modules
+    if (G.DebugOverlay) G.DebugOverlay.init();
+    if (G.IntroScreen) G.IntroScreen.init({
+        getPlayer: () => player,
+        getHighScore: () => highScore,
+        setHighScore: (v) => { highScore = v; },
+        getGameWidth: () => gameWidth,
+        getGameHeight: () => gameHeight,
+        getCurrentLang: () => currentLang,
+        getUI: () => ui,
+        getBullets: () => bullets,
+        getEnemyBullets: () => enemyBullets,
+        setShake: (v) => { shake = v; },
+        t: t,
+        setStyle: setStyle,
+        setUI: setUI,
+        setGameState: setGameState,
+        startGame: startGame,
+        showStoryScreen: showStoryScreen,
+        shouldShowStory: shouldShowStory,
+        clearBossDeathTimeouts: clearBossDeathTimeouts,
+        closePerkChoice: closePerkChoice,
+        loadHighScoreForMode: loadHighScoreForMode,
+        loadArcadeRecords: loadArcadeRecords,
+        updateUIText: updateUIText,
+        updateTiltUI: updateTiltUI,
+        showControlToast: showControlToast,
+    });
+
+    if (G.GameCompletion) G.GameCompletion.init({
+        getScore: () => score,
+        getHighScore: () => highScore,
+        setHighScore: (v) => { highScore = v; },
+        getIsBearMarket: () => isBearMarket,
+        setIsBearMarket: (v) => { isBearMarket = v; window.isBearMarket = v; },
+        getTotalTime: () => totalTime,
+        getMarketCycle: () => marketCycle,
+        getLevel: () => level,
+        getKillCount: () => killCount,
+        getBestStreak: () => bestStreak,
+        getUI: () => ui,
+        setShake: (v) => { shake = v; },
+        t: t,
+        setStyle: setStyle,
+        setUI: setUI,
+        setGameState: setGameState,
+        emitEvent: emitEvent,
+        safeSetItem: safeSetItem,
+        highScoreKey: highScoreKey,
+        startGame: startGame,
+        checkArcadeRecords: checkArcadeRecords,
+        getRandomMeme: getRandomMeme,
+    });
 
     requestAnimationFrame(loop);
 }
@@ -2731,7 +1440,7 @@ function updateUIText() {
     // Primary action button
     const btnPrimary = document.getElementById('btn-primary-action');
     if (btnPrimary) {
-        if (introState === 'SELECTION') {
+        if (G.IntroScreen && G.IntroScreen.getIntroState() === 'SELECTION') {
             btnPrimary.innerHTML = t('LAUNCH');
         } else {
             btnPrimary.innerHTML = t('TAP_START');
@@ -2743,7 +1452,7 @@ function updateUIText() {
     if (modeHint) modeHint.innerText = t('CHANGE_MODE');
     const scoreRowLabel = document.getElementById('score-row-label');
     if (scoreRowLabel) scoreRowLabel.innerText = t('HIGH_SCORE');
-    updateModeIndicator();
+    if (G.IntroScreen) G.IntroScreen.updateModeIndicator();
 
     // HUD labels
     const scoreLabel = document.getElementById('score-label');
@@ -2912,539 +1621,11 @@ G.sendFeedback = function () {
     G.toggleFeedback();
 };
 
-// ============================================================
-// DEBUG OVERLAY (v6.4) — Triple-tap at game over + intro
-// ============================================================
-const _debugTapTimes = [];
-const _DEBUG_TAP_WINDOW = 800;
-const _DEBUG_TAP_COUNT = 3;
-let _debugOverlayContext = 'GAMEOVER';
+// v7.0: Debug overlay extracted to src/ui/DebugOverlay.js
+// Expose score/killCount for debug overlay reads
+G._debugCtx = { get score() { return score; }, get killCount() { return killCount; } };
 
-// Game over triple-tap
-(function _initDebugOverlay() {
-    const goScreen = document.getElementById('gameover-screen');
-    if (!goScreen) return;
-
-    function _onDebugTap(e) {
-        if (!G.GameState || !G.GameState.is('GAMEOVER')) return;
-        if (e.target.closest && e.target.closest('button, a, input')) return;
-
-        const now = Date.now();
-        _debugTapTimes.push(now);
-        while (_debugTapTimes.length > 0 && now - _debugTapTimes[0] > _DEBUG_TAP_WINDOW) {
-            _debugTapTimes.shift();
-        }
-        if (_debugTapTimes.length >= _DEBUG_TAP_COUNT) {
-            _debugTapTimes.length = 0;
-            _showDebugOverlay('GAMEOVER');
-        }
-    }
-
-    goScreen.addEventListener('touchend', _onDebugTap, { passive: true });
-    goScreen.addEventListener('click', _onDebugTap);
-})();
-
-// Intro triple-tap on version tag
-(function _initIntroDebugTap() {
-    const vTag = document.getElementById('version-tag');
-    if (!vTag) return;
-    const tapTimes = [];
-
-    function _onIntroTap(e) {
-        if (!G.GameState || !G.GameState.is('INTRO')) return;
-        e.stopPropagation();
-
-        const now = Date.now();
-        tapTimes.push(now);
-        while (tapTimes.length > 0 && now - tapTimes[0] > _DEBUG_TAP_WINDOW) {
-            tapTimes.shift();
-        }
-        if (tapTimes.length >= _DEBUG_TAP_COUNT) {
-            tapTimes.length = 0;
-            _showDebugOverlay('INTRO');
-        }
-    }
-
-    vTag.addEventListener('touchend', _onIntroTap, { passive: false });
-    vTag.addEventListener('click', _onIntroTap);
-})();
-
-function _collectDebugDevice() {
-    return [
-        { label: 'Screen', val: `${screen.width}×${screen.height}` },
-        { label: 'Viewport', val: `${innerWidth}×${innerHeight}` },
-        { label: 'DPR', val: `${devicePixelRatio}` },
-        { label: 'Safe Top', val: `${G._safeTop ?? '?'}` },
-        { label: 'Safe Bot', val: `${G._safeBottom ?? '?'}` },
-        { label: 'PWA', val: `${!!window.isPWA}` },
-        { label: 'UA', val: (navigator.userAgent || '').substring(0, 120), full: true }
-    ];
-}
-
-function _collectDebugPerf() {
-    const qm = G.QualityManager;
-    if (!qm) return [{ label: 'Status', val: 'QualityManager N/A', cls: 'warn' }];
-    const s = qm.getStats();
-    const saved = localStorage.getItem('fiat_quality_tier');
-    return [
-        { label: 'FPS Now', val: `${s.fps}` },
-        { label: 'FPS Avg', val: `${s.avgFps}` },
-        { label: 'Tier', val: s.tier },
-        { label: 'Mode', val: s.auto ? 'AUTO' : 'MANUAL' },
-        { label: 'Saved Pref', val: saved || 'none' },
-        { label: 'Samples', val: `${s.samples}` }
-    ];
-}
-
-function _collectDebugSession() {
-    const isStory = G.CampaignState && G.CampaignState.isEnabled();
-    const stacks = G.RunState ? (G.RunState.perkStacks || {}) : {};
-    const perks = [stacks.fire ? 'F' : '-', stacks.laser ? 'L' : '-', stacks.electric ? 'E' : '-'].join('');
-    const nick = localStorage.getItem('fiat_nickname') || '-';
-    return [
-        { label: 'Version', val: G.VERSION || '?' },
-        { label: 'Mode', val: isStory ? 'STORY' : 'ARCADE' },
-        { label: 'Cycle', val: `${window.marketCycle ?? '?'}` },
-        { label: 'Level', val: `${window.currentLevel ?? '?'}` },
-        { label: 'Wave', val: `${waveMgr ? waveMgr.wave : '?'}` },
-        { label: 'Score', val: `${score ?? '?'}` },
-        { label: 'Kills', val: `${killCount ?? '?'}` },
-        { label: 'Bear Mkt', val: `${!!window.isBearMarket}` },
-        { label: 'Perks', val: perks },
-        { label: 'Nickname', val: nick }
-    ];
-}
-
-function _collectDebugSessionFromLog(prev) {
-    if (!prev) return [{ label: 'Status', val: 'No previous session', cls: 'warn' }];
-    const c = prev.counters || {};
-    return [
-        { label: 'Version', val: prev.v || '?' },
-        { label: 'Kills', val: `${c.kills ?? '?'}` },
-        { label: 'Deaths', val: `${c.deaths ?? '?'}` },
-        { label: 'Waves', val: `${c.waves ?? '?'}` },
-        { label: 'Bosses', val: `${c.bosses ?? '?'}` },
-        { label: 'Ended', val: prev.ts ? _formatAge(prev.ts) : '?' }
-    ];
-}
-
-function _collectDebugJudgment() {
-    const qm = G.QualityManager;
-    if (!qm) return [{ label: 'Verdict', val: 'N/A', cls: 'warn' }];
-    const avg = qm.getStats().avgFps;
-    let verdict, cls;
-    if (avg >= 58) { verdict = 'ULTRA-CAPABLE'; cls = 'good'; }
-    else if (avg >= 50) { verdict = 'HIGH'; cls = 'good'; }
-    else if (avg >= 40) { verdict = 'MEDIUM'; cls = 'warn'; }
-    else { verdict = 'LOW'; cls = 'bad'; }
-    return [
-        { label: 'Avg FPS', val: `${avg}` },
-        { label: 'Verdict', val: verdict, cls }
-    ];
-}
-
-function _formatAge(timestamp) {
-    const diff = Date.now() - timestamp;
-    if (diff < 60000) return `${Math.round(diff / 1000)}s ago`;
-    if (diff < 3600000) return `${Math.round(diff / 60000)}m ago`;
-    if (diff < 86400000) return `${Math.round(diff / 3600000)}h ago`;
-    return `${Math.round(diff / 86400000)}d ago`;
-}
-
-function _formatLogTime(ms) {
-    const sec = Math.floor(ms / 1000);
-    const min = Math.floor(sec / 60);
-    const s = sec % 60;
-    return `+${min}:${s.toString().padStart(2, '0')}`;
-}
-
-function _renderDebugSection(containerId, rows) {
-    const el = document.getElementById(containerId);
-    if (!el) return;
-    el.innerHTML = rows.map(r => {
-        const cls = r.full ? ' full' : '';
-        const valCls = r.cls ? ` ${r.cls}` : '';
-        return `<div class="debug-row${cls}"><span class="debug-label">${r.label}</span><span class="debug-val${valCls}">${r.val}</span></div>`;
-    }).join('');
-}
-
-function _renderErrorSection(errorData) {
-    const section = document.getElementById('debug-error-section');
-    const el = document.getElementById('debug-error');
-    if (!section || !el) return;
-    if (!errorData) { section.style.display = 'none'; return; }
-
-    section.style.display = '';
-    const rows = [
-        { label: 'Message', val: (errorData.msg || 'Unknown').substring(0, 120), full: true, cls: 'bad' }
-    ];
-    if (errorData.url) rows.push({ label: 'Location', val: `${errorData.url}:${errorData.line || '?'}:${errorData.col || '?'}`, full: true });
-    if (errorData.time) rows.push({ label: 'When', val: _formatAge(errorData.time) });
-    _renderDebugSection('debug-error', rows);
-}
-
-function _renderSessionLogSection(logEntries) {
-    const section = document.getElementById('debug-log-section');
-    const el = document.getElementById('debug-log');
-    if (!section || !el) return;
-    if (!logEntries || logEntries.length === 0) { section.style.display = 'none'; return; }
-
-    section.style.display = '';
-    el.innerHTML = logEntries.map(e => {
-        const cls = (e.c || '').toLowerCase();
-        return `<div class="debug-log-entry ${cls}">${_formatLogTime(e.t)} [${e.c}] ${e.m}</div>`;
-    }).join('');
-}
-
-function _showDebugOverlay(context) {
-    _debugOverlayContext = context || 'GAMEOVER';
-
-    // Always: device, perf, judgment
-    _renderDebugSection('debug-device', _collectDebugDevice());
-    _renderDebugSection('debug-perf', _collectDebugPerf());
-    _renderDebugSection('debug-judgment', _collectDebugJudgment());
-
-    if (_debugOverlayContext === 'GAMEOVER') {
-        // Current session data
-        _renderDebugSection('debug-session', _collectDebugSession());
-        _renderErrorSection(window._lastError || null);
-        _renderSessionLogSection(G.Debug ? G.Debug.sessionLog : []);
-    } else {
-        // INTRO: previous session from localStorage
-        const prev = G.Debug ? G.Debug.getPreviousSessionLog() : null;
-        _renderDebugSection('debug-session', _collectDebugSessionFromLog(prev));
-        _renderErrorSection(prev ? prev.error : null);
-        _renderSessionLogSection(prev ? prev.log : []);
-    }
-
-    const overlay = document.getElementById('debug-overlay');
-    if (overlay) overlay.style.display = 'flex';
-
-    const sendBtn = document.getElementById('debug-send-btn');
-    const closeBtn = document.getElementById('debug-close-btn');
-    if (sendBtn) sendBtn.onclick = _sendDebugReport;
-    if (closeBtn) closeBtn.onclick = _hideDebugOverlay;
-}
-
-function _hideDebugOverlay() {
-    const overlay = document.getElementById('debug-overlay');
-    if (overlay) overlay.style.display = 'none';
-}
-
-function _formatDebugReportText() {
-    const sections = [
-        { title: 'DEVICE', rows: _collectDebugDevice() },
-        { title: 'PERFORMANCE', rows: _collectDebugPerf() },
-        { title: 'QUALITY JUDGMENT', rows: _collectDebugJudgment() }
-    ];
-
-    if (_debugOverlayContext === 'GAMEOVER') {
-        sections.splice(2, 0, { title: 'GAME SESSION', rows: _collectDebugSession() });
-    } else {
-        const prev = G.Debug ? G.Debug.getPreviousSessionLog() : null;
-        sections.splice(2, 0, { title: 'PREV SESSION', rows: _collectDebugSessionFromLog(prev) });
-    }
-
-    let text = '';
-    for (const s of sections) {
-        text += `--- ${s.title} ---\n`;
-        for (const r of s.rows) text += `${r.label}: ${r.val}\n`;
-        text += '\n';
-    }
-
-    // Error
-    const errData = _debugOverlayContext === 'GAMEOVER'
-        ? window._lastError
-        : (G.Debug ? G.Debug.getPreviousSessionLog() : null)?.error;
-    if (errData) {
-        text += `--- LAST ERROR ---\n${(errData.msg || 'Unknown').substring(0, 200)}\n`;
-        if (errData.url) text += `at ${errData.url}:${errData.line}:${errData.col}\n`;
-        text += '\n';
-    }
-
-    // Log (budget ~600 chars)
-    const logEntries = _debugOverlayContext === 'GAMEOVER'
-        ? (G.Debug ? G.Debug.sessionLog : [])
-        : (G.Debug ? G.Debug.getPreviousSessionLog() : null)?.log || [];
-    if (logEntries.length > 0) {
-        text += '--- SESSION LOG ---\n';
-        let logText = '';
-        for (const e of logEntries) {
-            const line = `${_formatLogTime(e.t)} [${e.c}] ${e.m}\n`;
-            if (logText.length + line.length > 600) { logText += '[...]\n'; break; }
-            logText += line;
-        }
-        text += logText;
-    }
-
-    return text;
-}
-
-function _sendDebugReport() {
-    const ver = G.VERSION || '?';
-    const ctx = _debugOverlayContext === 'INTRO' ? ' (prev session)' : '';
-    const subject = `FIAT vs CRYPTO Debug Report ${ver}${ctx}`;
-    let body = _formatDebugReportText();
-    if (body.length > 1800) body = body.substring(0, 1800) + '\n[truncated]';
-    const mailto = `mailto:psychoSocial_01@proton.me?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.open(mailto);
-}
-
-// What's New panel (v4.50, i18n v5.18)
-const WHATS_NEW = [
-    {
-        version: 'v6.5', date: '2026-02-18',
-        title: { EN: '"Adaptive Quality" Release', IT: 'Release "Qualità Adattiva"' },
-        items: {
-            EN: [
-                'Adaptive Quality System — auto-detects device performance, adjusts effects in real-time',
-                'ULTRA tier for high-end devices — boosted particles, glow, and cinematic effects',
-                'Smoother wave streaming — fixed phase transitions, boss timing, and formation flow',
-                'Story texts rewritten for clarity — accessible language, no technical jargon',
-                'Hidden debug overlay for testers — triple-tap at game over for diagnostics',
-                'Browser compatibility check — graceful fallback for older browsers'
-            ],
-            IT: [
-                'Sistema Qualità Adattiva — rileva le prestazioni del dispositivo, regola gli effetti in tempo reale',
-                'Tier ULTRA per dispositivi di fascia alta — particelle, glow ed effetti cinematici potenziati',
-                'Streaming wave più fluido — transizioni di fase, timing boss e flusso formazioni corretti',
-                'Testi narrativi riscritti per chiarezza — linguaggio accessibile, niente gergo tecnico',
-                'Overlay debug nascosto per tester — triplo tap al game over per diagnostica',
-                'Controllo compatibilità browser — fallback per browser datati'
-            ]
-        }
-    },
-    {
-        version: 'v6.0', date: '2026-02-18',
-        title: { EN: '"RafaX Release" — Phase Streaming + Elite Variants', IT: '"RafaX Release" — Streaming a Fasi + Varianti Elite' },
-        items: {
-            EN: [
-                'Phase-based streaming: waves have 2-3 independent phases, each with own formation',
-                'Next phase triggers when most enemies are defeated — no screen flooding',
-                'Elite Variants: Armored (C1), Evader (C2), Reflector (C3) — one per cycle',
-                '4 enemy behaviors: Flanker, Bomber, Healer, Charger',
-                'Per-phase escalation: fire rate and behavior chance increase each phase'
-            ],
-            IT: [
-                'Streaming a fasi: le wave hanno 2-3 fasi indipendenti, ognuna con propria formazione',
-                'La fase successiva parte quando la maggior parte dei nemici \u00e8 sconfitta — niente sovraffollamento',
-                'Varianti Elite: Corazzato (C1), Evasore (C2), Riflettore (C3) — una per ciclo',
-                '4 comportamenti nemici: Flanker, Bombardiere, Guaritore, Caricatore',
-                'Escalation per fase: rateo di fuoco e probabilit\u00e0 comportamenti aumentano ogni fase'
-            ]
-        }
-    },
-    {
-        version: 'v5.31', date: '2026-02-18',
-        title: { EN: 'Shield Energy Skin + HYPER Rework', IT: 'Scudo Energy Skin + Rework HYPER' },
-        items: {
-            EN: [
-                'Shield redesigned as body-conforming energy skin with 4-layer glow',
-                'HYPER aura reworked: golden speed lines + horizontal timer bar replace circles',
-                'Bullet Banking: bullets follow ship movement slightly',
-                'Mobile hardening: blocked overscroll, contextmenu, gesture events'
-            ],
-            IT: [
-                'Scudo ridisegnato come skin energetica aderente al corpo con glow a 4 livelli',
-                'Aura HYPER rielaborata: speed lines dorate + barra timer orizzontale al posto dei cerchi',
-                'Bullet Banking: i proiettili seguono leggermente il movimento della nave',
-                'Hardening mobile: bloccati overscroll, contextmenu, eventi gesture'
-            ]
-        }
-    },
-    {
-        version: 'v5.30', date: '2026-02-18',
-        title: { EN: 'Ship Flight Dynamics', IT: 'Dinamica di Volo Nave' },
-        items: {
-            EN: [
-                '5 visual flight effects: Banking Tilt, Hover Bob, Asymmetric Thrust, Wing Vapor Trails, Squash & Stretch',
-                'Ship tilts smoothly when moving sideways with asymmetric recovery',
-                'Wing vapor trails appear at high speed, color-reactive for HYPER/GODCHAIN',
-                'All effects are visual-only with individual kill-switches'
-            ],
-            IT: [
-                '5 effetti visivi di volo: Inclinazione, Oscillazione, Spinta Asimmetrica, Scie Alari, Squash & Stretch',
-                'La nave si inclina fluidamente nei movimenti laterali con recupero asimmetrico',
-                'Scie di vapore alari ad alta velocit\u00e0, colore reattivo per HYPER/GODCHAIN',
-                'Tutti gli effetti sono solo visivi con kill-switch individuali'
-            ]
-        }
-    },
-    {
-        version: 'v5.29', date: '2026-02-18',
-        title: { EN: 'Game Over Redesign + OLED Deep Black', IT: 'Redesign Game Over + Nero OLED' },
-        items: {
-            EN: [
-                'Game Over screen redesigned — hero score with violet glow, inline stats row',
-                'All panels and overlays now use pure OLED black for deeper contrast',
-                'Inner containers (cards, modals, sections) upgraded to true black',
-                'PWA icon regenerated to match the new v5.28 ship design'
-            ],
-            IT: [
-                'Schermata Game Over ridisegnata — punteggio hero con glow viola, stats in riga',
-                'Tutti i pannelli e overlay ora usano nero OLED puro per contrasto più profondo',
-                'Container interni (card, modali, sezioni) aggiornati a nero puro',
-                'Icona PWA rigenerata per la nuova nave v5.28'
-            ]
-        }
-    },
-    {
-        version: 'v5.28', date: '2026-02-18',
-        title: { EN: 'Ship Redesign "Premium Arsenal"', IT: 'Redesign Nave "Arsenal Premium"' },
-        items: {
-            EN: [
-                'Ship 30% larger with swept-back delta silhouette',
-                'Glass cockpit canopy with reactive ₿ symbol — changes color by element',
-                'Heavy central barrel at LV3 with triple-layer neon rails',
-                'Energy circuit lines connecting reactor to all cannons at max level',
-                'Energy Surge slow-motion effect on weapon transitions'
-            ],
-            IT: [
-                'Nave 30% più grande con silhouette delta a freccia',
-                'Canopy cockpit vetrato con simbolo ₿ reattivo — cambia colore per elemento',
-                'Canna centrale pesante a LV3 con triplo strato di binari neon',
-                'Linee circuito energetico dal reattore a tutti i cannoni al livello massimo',
-                'Effetto slow-motion Energy Surge sulle transizioni arma'
-            ]
-        }
-    },
-    {
-        version: 'v5.27', date: '2026-02-17',
-        title: { EN: 'Polish & Feel', IT: 'Rifinitura & Sensazioni' },
-        items: {
-            EN: [
-                'Boss HP bar simplified — diamond notch markers on phase thresholds',
-                'Cannon tint now reflects your active element (fire/laser/electric/GODCHAIN)',
-                'Game start countdown 3→2→1→GO! with tick sound effects',
-                'Tutorial text revamped with arcade-style messages'
-            ],
-            IT: [
-                'Barra HP boss semplificata — tacche diamante sulle soglie di fase',
-                'Tinta cannone ora riflette l\'elemento attivo (fuoco/laser/elettrico/GODCHAIN)',
-                'Countdown di inizio partita 3→2→1→GO! con effetti sonori tick',
-                'Testo tutorial rinnovato con messaggi stile arcade'
-            ]
-        }
-    },
-    {
-        version: 'v5.26', date: '2026-02-17',
-        title: { EN: 'Unified Combat HUD + HYPERGOD', IT: 'HUD Combattimento Unificato + HYPERGOD' },
-        items: {
-            EN: [
-                'NEW: HYPERGOD state — activate HYPER during GODCHAIN for 5× score multiplier',
-                'HYPER, GODCHAIN and HYPERGOD unified in a single top combat bar with fill animation',
-                'Prismatic gradient effect for HYPERGOD display',
-                'Combat bar persists through wave transitions and pickups'
-            ],
-            IT: [
-                'NUOVO: Stato HYPERGOD — attiva HYPER durante GODCHAIN per moltiplicatore punteggio 5×',
-                'HYPER, GODCHAIN e HYPERGOD unificati in una singola barra combattimento con animazione fill',
-                'Effetto gradiente prismatico per il display HYPERGOD',
-                'La barra combattimento persiste tra transizioni wave e pickup'
-            ]
-        }
-    },
-    {
-        version: 'v5.25', date: '2026-02-16',
-        title: { EN: 'Power-Up Redesign + Status HUD', IT: 'Redesign Power-Up + HUD Stato' },
-        items: {
-            EN: [
-                'All power-ups redesigned as uniform circles with white icons and pulsing blink',
-                'HOMING bullet is now an orange orb tracker (opposite to blue MISSILE)',
-                'NEW: Status HUD shows active power-up countdown with live timer',
-                'Elemental CSS effects on status display — fire flicker, electric flash, laser glow',
-                'Shield blinks faster in the last 1.5 seconds as a warning'
-            ],
-            IT: [
-                'Tutti i power-up ridisegnati come cerchi uniformi con icone bianche e lampeggio pulsante',
-                'Il proiettile HOMING è ora un orb tracker arancione (opposto al MISSILE blu)',
-                'NUOVO: HUD stato mostra il countdown del power-up attivo con timer live',
-                'Effetti CSS elementali sul display stato — fiamma, flash elettrico, glow laser',
-                'Lo scudo lampeggia più veloce negli ultimi 1.5 secondi come avvertimento'
-            ]
-        }
-    },
-    {
-        version: 'v5.24', date: '2026-02-16',
-        title: { EN: 'Android Compatibility + Stability', IT: 'Compatibilità Android + Stabilità' },
-        items: {
-            EN: [
-                'Tutorial now remembered per mode — won\'t show again after first completion',
-                'Fixed enemy entry animation timeout — prevents firing blockade on slow devices',
-                'Global error handler for better crash diagnostics',
-                'Android PWA: resolved enemy glitching and firing issues'
-            ],
-            IT: [
-                'Tutorial ora ricordato per modalità — non si ripresenta dopo il primo completamento',
-                'Corretto timeout animazione entrata nemici — previene blocco sparo su dispositivi lenti',
-                'Gestore errori globale per migliore diagnostica crash',
-                'PWA Android: risolti problemi glitch nemici e sparo'
-            ]
-        }
-    },
-    {
-        version: 'v5.23', date: '2026-02-16',
-        title: { EN: 'Leaderboard Upgrade + Polish', IT: 'Classifica Potenziata + Pulizia' },
-        items: {
-            EN: [
-                'Leaderboard: 1 entry per nickname (best score only), 1 nickname per device',
-                'Boss HP bar and name now displayed below the boss — cleaner battlefield',
-                'Game over properly hides HUD elements (graze meter, DIP bar)',
-                'Swipe controls: relative drag mode + sensitivity slider affects all modes',
-                'PWA safe area: reliable layout on iOS standalone mode'
-            ],
-            IT: [
-                'Classifica: 1 entry per nickname (solo miglior punteggio), 1 nickname per dispositivo',
-                'Barra HP e nome boss ora mostrati sotto il boss — campo di battaglia più pulito',
-                'Il game over nasconde correttamente gli elementi HUD (graze meter, barra DIP)',
-                'Controlli swipe: modalità drag relativo + slider sensibilità per tutte le modalità',
-                'PWA safe area: layout affidabile su iOS in modalità standalone'
-            ]
-        }
-    },
-];
-const WHATS_NEW_PLANNED = [
-    { EN: 'Achievement system', IT: 'Sistema achievement' },
-    { EN: 'New bosses', IT: 'Nuovi boss' }
-];
-function renderWhatsNew() {
-    const container = document.getElementById('whatsnew-content');
-    if (!container) return;
-    const lang = currentLang || 'EN';
-    let html = '';
-    for (const entry of WHATS_NEW) {
-        const title = entry.title[lang] || entry.title.EN;
-        const items = entry.items[lang] || entry.items.EN;
-        html += `<div class="whatsnew-version"><h3>${entry.version} — ${title}</h3><span class="wn-date">${entry.date}</span><ul>`;
-        for (const item of items) html += `<li>${item}</li>`;
-        html += '</ul></div>';
-    }
-    if (WHATS_NEW_PLANNED.length) {
-        html += `<div class="whatsnew-planned"><h3>${t('COMING_SOON') || 'COMING SOON'}</h3><ul>`;
-        for (const item of WHATS_NEW_PLANNED) html += `<li>${item[lang] || item.EN}</li>`;
-        html += '</ul></div>';
-    }
-    container.innerHTML = html;
-}
-window.toggleWhatsNew = function () {
-    const panel = document.getElementById('whatsnew-panel');
-    if (!panel) return;
-    const isVisible = panel.style.display === 'flex';
-    panel.style.display = isVisible ? 'none' : 'flex';
-    if (!isVisible) {
-        renderWhatsNew();
-        // i18n
-        const title = document.getElementById('whatsnew-title');
-        const closeBtn = document.getElementById('btn-whatsnew-close');
-        if (title) title.innerText = t('WHATS_NEW') || "WHAT'S NEW";
-        if (closeBtn) closeBtn.innerText = t('CLOSE') || 'CLOSE';
-        audioSys.play('coinUI');
-        // Mark version as seen — remove glow
-        try { localStorage.setItem('fiat_whatsnew_seen', G.VERSION); } catch(e) {}
-        const wnBtn = document.getElementById('intro-whatsnew');
-        if (wnBtn) wnBtn.classList.remove('btn-glow-notify');
-    }
-};
+// v7.0: WHATS_NEW, renderWhatsNew, toggleWhatsNew → G.IntroScreen
 
 // Manual modal functions
 window.toggleManual = function () {
@@ -3555,296 +1736,7 @@ function showControlToast(mode) {
         ui.controlToast.style.display = 'none';
     }, 1200);
 }
-window.goToHangar = function () {
-    audioSys.init();
-    audioSys.startMusic(); // Resumes context + starts music
-    window.scrollTo(0, 0);
-    setStyle('intro-screen', 'display', 'none');
-    setStyle('hangar-screen', 'display', 'flex');
-    setGameState('HANGAR');
-    if (G.SkyRenderer) G.SkyRenderer.init(gameWidth, gameHeight);
-    if (G.WeatherController) G.WeatherController.init(gameWidth, gameHeight); // Start BG effect early
-    if (G.MessageSystem) G.MessageSystem.init(gameWidth, gameHeight, {
-        onShake: (intensity) => { shake = Math.max(shake, intensity); },
-        onPlaySound: (sound) => { if (audioSys) audioSys.play(sound); }
-    });
-    if (G.MemeEngine) G.MemeEngine.initDOM();
-    if (G.MessageSystem) G.MessageSystem.initDOM();
-}
-
-// Ship launch animation - goes directly to game (skips hangar)
-let isLaunching = false;
-window.launchShipAndStart = function () {
-    if (isLaunching) return;
-    isLaunching = true;
-
-    // v5.23: Prompt nickname once per session; skip allowed
-    if (!hasNickname() && !window._nickPromptShown) {
-        window._nickPromptShown = true;
-        isLaunching = false;
-        showNicknamePrompt(() => launchShipAndStart());
-        return;
-    }
-
-    // Init audio context and resume immediately (must be synchronous with user gesture)
-    if (!audioSys.ctx) audioSys.init();
-    if (audioSys.ctx && audioSys.ctx.state === 'suspended') {
-        audioSys.unlockWebAudio();
-        audioSys.ctx.resume().catch(e => console.warn('[Audio] resume failed:', e));
-    }
-
-    const shipCanvas = document.getElementById('intro-ship-canvas');
-    const introScreen = document.getElementById('intro-screen');
-    const curtain = document.getElementById('curtain-overlay');
-
-    // v5.0: ship canvas removed from HTML — skip launch animation if missing
-    if (!shipCanvas) {
-        if (introScreen) { introScreen.style.display = 'none'; }
-        selectedShipIndex = 0;
-        player.configure(SHIP_KEYS[selectedShipIndex]);
-        audioSys.startMusic();
-        if (G.SkyRenderer) G.SkyRenderer.init(gameWidth, gameHeight);
-        if (G.WeatherController) G.WeatherController.init(gameWidth, gameHeight);
-        const campaignState = G.CampaignState;
-        if (campaignState && campaignState.isEnabled() && shouldShowStory('PROLOGUE')) {
-            setTimeout(() => { if (curtain) curtain.classList.add('open'); }, 100);
-            showStoryScreen('PROLOGUE', () => { startGame(); });
-        } else {
-            startGame();
-            setTimeout(() => { if (curtain) curtain.classList.add('open'); }, 100);
-        }
-        isLaunching = false;
-        return;
-    }
-
-    // CRITICAL: Get ship's current position before moving it
-    const shipRect = shipCanvas.getBoundingClientRect();
-    const shipStartX = shipRect.left;
-    const shipStartY = shipRect.top;
-    const originalParent = shipCanvas.parentNode;
-    const originalNextSibling = shipCanvas.nextSibling;
-
-    // Create a fixed container and move the ACTUAL canvas into it
-    const launchShip = document.createElement('div');
-    launchShip.id = 'launch-ship-container';
-    launchShip.style.cssText = `
-        position: fixed;
-        left: ${shipStartX}px;
-        top: ${shipStartY}px;
-        width: ${shipRect.width}px;
-        height: ${shipRect.height}px;
-        z-index: 10000;
-        pointer-events: none;
-    `;
-
-    // Move the actual canvas (not clone!) so it keeps its drawing
-    launchShip.appendChild(shipCanvas);
-    document.body.appendChild(launchShip);
-    shipCanvas.style.width = '100%';
-    shipCanvas.style.height = '100%';
-
-    // Helper: check if element is visible
-    const isVisible = (el) => {
-        if (!el) return false;
-        if (el.closest('.hidden')) return false;
-        const style = getComputedStyle(el);
-        if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return false;
-        return true;
-    };
-
-    // Destroy element with explosion effect
-    function destroyElement(el, delay = 0) {
-        setTimeout(() => {
-            audioSys.play('shoot');
-
-            const rect = el.getBoundingClientRect();
-            const text = el.innerText || el.textContent || '';
-            const chars = text.split('');
-
-            // Create flying letter particles
-            chars.forEach((char, i) => {
-                if (char.trim() === '') return;
-                const particle = document.createElement('span');
-                particle.className = 'text-particle';
-                particle.innerText = char;
-                particle.style.left = (rect.left + (i / chars.length) * rect.width) + 'px';
-                particle.style.top = rect.top + 'px';
-                particle.style.color = getComputedStyle(el).color;
-                particle.style.fontSize = getComputedStyle(el).fontSize;
-                particle.style.fontWeight = getComputedStyle(el).fontWeight;
-
-                const vx = (Math.random() - 0.5) * 500;
-                const vy = (Math.random() - 0.5) * 400;
-                const rotation = (Math.random() - 0.5) * 720;
-
-                particle.style.setProperty('--vx', vx + 'px');
-                particle.style.setProperty('--vy', vy + 'px');
-                particle.style.setProperty('--rot', rotation + 'deg');
-
-                document.body.appendChild(particle);
-                setTimeout(() => particle.remove(), 1200);
-            });
-
-            // Hide original element
-            el.style.opacity = '0';
-            el.style.transform = 'scale(1.3)';
-            el.style.transition = 'all 0.15s';
-        }, delay);
-    }
-
-    // IMMEDIATELY explode all visible UI elements (staggered for effect)
-    const elementsToExplode = [
-        '.intro-icons',
-        '.intro-version',
-        '.current-mode-indicator',
-        '.selection-score-row',
-        '.selection-info',
-        '.selection-header',
-        '.intro-title',
-        '.mode-selector',
-        '.primary-action-container'
-    ];
-
-    // Track destroyed elements for reset in finishLaunch
-    const destroyTargets = [];
-
-    let explodeDelay = 0;
-    elementsToExplode.forEach(selector => {
-        const el = document.querySelector(selector);
-        if (el && isVisible(el)) {
-            destroyTargets.push({ el });
-            destroyElement(el, explodeDelay);
-            explodeDelay += 40; // Stagger explosions
-        }
-    });
-
-    // Hide intro-screen container after explosions start (keeps canvas visible via launchShip)
-    setTimeout(() => {
-        if (introScreen) {
-            introScreen.style.opacity = '0';
-            introScreen.style.pointerEvents = 'none';
-        }
-    }, 150);
-
-    // Animation variables
-    let currentY = shipStartY;
-    let velocity = 0;
-    const maxVelocity = 600;
-    const acceleration = 400;
-    let lastTime = performance.now();
-    let launchTime = 0;
-
-    // Animation loop
-    function animateLaunch(currentTime) {
-        const dt = Math.min((currentTime - lastTime) / 1000, 0.05);
-        lastTime = currentTime;
-        launchTime += dt;
-
-        // Phase 1: Charge up (shake and glow) for 0.4s
-        if (launchTime < 0.4) {
-            const intensity = launchTime / 0.4;
-            const shake = Math.sin(launchTime * 60) * (2 + intensity * 5);
-            const glow = 20 + intensity * 40;
-            launchShip.style.transform = `translateX(${shake}px) scale(${1 + intensity * 0.1})`;
-            launchShip.style.filter = `drop-shadow(0 0 ${glow}px rgba(247, 147, 26, 0.9))`;
-
-            requestAnimationFrame(animateLaunch);
-            return;
-        }
-
-        // Phase 2: LIFTOFF!
-        const flightTime = launchTime - 0.4;
-
-        // Accelerate
-        const accelMult = Math.min(1, flightTime * 2);
-        velocity += acceleration * accelMult * dt;
-        if (velocity > maxVelocity) velocity = maxVelocity;
-
-        // Move ship UP
-        currentY -= velocity * dt;
-
-        // Visual effects
-        const scale = 1.1 + Math.min(0.25, (shipStartY - currentY) * 0.0004);
-        const glowSize = 40 + (shipStartY - currentY) * 0.06;
-        const trailLength = Math.min(80, (shipStartY - currentY) * 0.15);
-
-        launchShip.style.top = currentY + 'px';
-        launchShip.style.transform = `scale(${scale})`;
-        launchShip.style.filter = `drop-shadow(0 ${trailLength}px ${glowSize}px rgba(255, 150, 0, 0.9))`;
-
-        // Continue until off screen
-        if (currentY > -shipRect.height - 100) {
-            requestAnimationFrame(animateLaunch);
-        } else {
-            finishLaunch();
-        }
-
-        // Close curtain when ship is halfway up
-        if (currentY < window.innerHeight * 0.4 && curtain && curtain.classList.contains('open')) {
-            curtain.classList.remove('open');
-        }
-    }
-
-    function finishLaunch() {
-        isLaunching = false;
-
-        // IMPORTANT: Hide intro screen FIRST to prevent visual glitch
-        setStyle('intro-screen', 'display', 'none');
-
-        // Move canvas back to original parent
-        shipCanvas.style.width = '';
-        shipCanvas.style.height = '';
-        shipCanvas.style.transform = '';
-        shipCanvas.style.filter = '';
-
-        if (originalNextSibling) {
-            originalParent.insertBefore(shipCanvas, originalNextSibling);
-        } else {
-            originalParent.appendChild(shipCanvas);
-        }
-
-        // Remove launch container
-        if (launchShip && launchShip.parentNode) {
-            launchShip.remove();
-        }
-
-        // Reset destroyed elements
-        destroyTargets.forEach(t => {
-            if (t.el) {
-                t.el.style.opacity = '';
-                t.el.style.transform = '';
-                t.el.style.transition = '';
-            }
-        });
-
-        // Configure player with selected ship
-        const selectedShipKey = SHIP_KEYS[selectedShipIndex];
-        player.configure(selectedShipKey);
-
-        audioSys.startMusic();
-        if (G.SkyRenderer) G.SkyRenderer.init(gameWidth, gameHeight);
-    if (G.WeatherController) G.WeatherController.init(gameWidth, gameHeight);
-
-        // Show prologue if needed, then start game (WARMUP + tutorial on first play)
-        const campaignState = G.CampaignState;
-        if (campaignState && campaignState.isEnabled() && shouldShowStory('PROLOGUE')) {
-            setTimeout(() => {
-                if (curtain) curtain.classList.add('open');
-            }, 100);
-            showStoryScreen('PROLOGUE', () => {
-                startGame();
-            });
-        } else {
-            startGame();
-            setTimeout(() => {
-                if (curtain) curtain.classList.add('open');
-            }, 100);
-        }
-    }
-
-    // Start animation
-    requestAnimationFrame(animateLaunch);
-}
+// v7.0: goToHangar, launchShipAndStart → G.IntroScreen
 
 // === Tutorial System (v5.12 progressive steps) ===
 let tutorialCallback = null;
@@ -3936,175 +1828,35 @@ function completeTutorial() {
 
 window.togglePause = function () {
     if (gameState === 'PLAY' || gameState === 'WARMUP' || gameState === 'INTERMISSION') {
-        const wasWarmup = gameState === 'WARMUP';
+        window._pausedFromState = gameState; // v7.0: remember exact state for correct resume
         setGameState('PAUSE'); setStyle('pause-screen', 'display', 'flex'); setStyle('pause-btn', 'display', 'none');
-        if (wasWarmup) window._pausedFromWarmup = true;
     }
     else if (gameState === 'PAUSE') {
-        if (window._pausedFromWarmup) { setGameState('WARMUP'); window._pausedFromWarmup = false; }
-        else { setGameState('PLAY'); }
+        const resumeTo = window._pausedFromState || 'PLAY';
+        setGameState(resumeTo);
+        window._pausedFromState = null;
         setStyle('pause-screen', 'display', 'none'); setStyle('pause-btn', 'display', 'block');
     }
 };
+
+// v7.0: Auto-pause on tab/app switch via Page Visibility API
+document.addEventListener('visibilitychange', function () {
+    if (document.hidden && (gameState === 'PLAY' || gameState === 'WARMUP' || gameState === 'INTERMISSION')) {
+        window.togglePause();
+    }
+});
 window.restartRun = function () {
     setStyle('pause-screen', 'display', 'none');
     audioSys.resetState(); // Reset audio state for new run
     startGame();
 };
 window.restartFromGameOver = function () {
-    _hideDebugOverlay();
+    if (G.DebugOverlay) G.DebugOverlay.hide();
     setStyle('gameover-screen', 'display', 'none');
     audioSys.resetState(); // Reset audio state for new run
     startGame();
 };
-window.backToIntro = function () {
-    _hideDebugOverlay();
-    clearBossDeathTimeouts(); // v5.13.1: Cancel orphan boss death timeouts
-
-    // Immediately hide touch controls (before curtain animation)
-    if (ui.touchControls) {
-        ui.touchControls.classList.remove('visible');
-        ui.touchControls.style.display = 'none';
-    }
-    setStyle('control-zone-hint', 'display', 'none');
-
-    // Close curtain first
-    const curtain = document.getElementById('curtain-overlay');
-    if (curtain) curtain.classList.remove('open');
-
-    setTimeout(() => {
-        // v4.21: Comprehensive cleanup of ALL game overlays
-        setStyle('pause-screen', 'display', 'none');
-        setStyle('gameover-screen', 'display', 'none');
-        setStyle('hangar-screen', 'display', 'none');
-        setStyle('perk-modal', 'display', 'none');
-        // v4.37: Hide tutorial overlay
-        setStyle('tutorial-overlay', 'display', 'none');
-        if (ui.uiLayer) ui.uiLayer.style.display = 'none'; // HIDE HUD
-        if (ui.touchControls) {
-            ui.touchControls.classList.remove('visible');
-            ui.touchControls.style.display = 'none';
-        }
-        // Hide meme popup
-        const memePopup = document.getElementById('meme-popup');
-        if (memePopup) { memePopup.classList.remove('show'); memePopup.classList.remove('hide'); }
-        // Hide dialogue overlay (story mode leaves it with pointer-events)
-        const dialogueContainer = document.getElementById('dialogue-container');
-        if (dialogueContainer) dialogueContainer.classList.remove('visible');
-        // Hide campaign victory screen if exists
-        const victoryScreen = document.getElementById('campaign-victory-screen');
-        if (victoryScreen) victoryScreen.style.display = 'none';
-        // Hide game completion screen/video if exists
-        const gcScreen = document.getElementById('game-completion-screen');
-        if (gcScreen) gcScreen.style.display = 'none';
-        const compVid = document.getElementById('completion-video');
-        if (compVid) { compVid.pause(); compVid.style.display = 'none'; }
-        closePerkChoice();
-
-        // Show intro screen and reset styles from launch animation
-        const introScreen = document.getElementById('intro-screen');
-        if (introScreen) {
-            introScreen.style.display = 'flex';
-            introScreen.style.opacity = '1';
-            introScreen.style.pointerEvents = 'auto';
-        }
-
-        // v4.51: Glow What's New button if version changed
-        try {
-            const seenVer = localStorage.getItem('fiat_whatsnew_seen');
-            if (seenVer !== G.VERSION) {
-                const wnBtn = document.getElementById('intro-whatsnew');
-                if (wnBtn) wnBtn.classList.add('btn-glow-notify');
-            }
-        } catch(e) {}
-
-        setGameState('INTRO');
-        introState = 'SPLASH';
-        if (G.WeatherController) G.WeatherController.setIntroMode();
-
-        // Reset to splash state (unified intro v4.8.1)
-        const title = document.getElementById('intro-title');
-        const modeSelector = document.getElementById('mode-selector');
-        const header = document.getElementById('selection-header');
-        const info = document.getElementById('selection-info');
-        const modeIndicator = document.getElementById('current-mode-indicator');
-        const scoreRow = document.getElementById('selection-score-row');
-        const arrowLeft = document.getElementById('arrow-left');
-        const arrowRight = document.getElementById('arrow-right');
-
-        // Show splash elements and reset styles from destroy animation
-        if (title) {
-            title.classList.remove('hidden');
-            title.style.opacity = '';
-            title.style.transform = '';
-        }
-        if (modeSelector) {
-            modeSelector.classList.remove('hidden');
-            modeSelector.style.opacity = '';
-            modeSelector.style.transform = '';
-        }
-
-        // Reset mode explanation and ship area (hidden by enterSelectionState)
-        const modeExpl = document.getElementById('mode-explanation');
-        const shipArea = document.querySelector('.ship-area');
-        if (modeExpl) modeExpl.classList.remove('hidden');
-        if (shipArea) shipArea.classList.add('hidden');
-
-        // Reset primary button to TAP TO START state
-        updatePrimaryButton('SPLASH');
-
-        // Hide selection elements
-        if (header) header.style.display = 'none';
-        if (info) info.style.display = 'none';
-        if (modeIndicator) modeIndicator.style.display = 'none';
-        if (scoreRow) scoreRow.style.display = 'none';
-        if (arrowLeft) arrowLeft.classList.remove('visible');
-        if (arrowRight) arrowRight.classList.remove('visible');
-
-        // Reset other elements that were exploded during launch
-        const introIcons = document.querySelector('.intro-icons');
-        const introVersion = document.querySelector('.intro-version');
-        if (introIcons) {
-            introIcons.style.opacity = '1';
-            introIcons.style.transform = '';
-        }
-        if (introVersion) {
-            introVersion.style.opacity = '';
-            introVersion.style.transform = '';
-            introVersion.style.display = '';
-        }
-
-        // Release pooled bullets before leaving gameplay (prevents pool leak across restarts)
-        if (typeof bullets !== 'undefined' && bullets.length) { bullets.forEach(b => G.Bullet.Pool.release(b)); bullets.length = 0; }
-        if (typeof enemyBullets !== 'undefined' && enemyBullets.length) { enemyBullets.forEach(b => G.Bullet.Pool.release(b)); enemyBullets.length = 0; }
-
-        audioSys.resetState();
-        audioSys.init();
-        if (G.HarmonicConductor) G.HarmonicConductor.reset();
-        initIntroShip();
-
-        // v4.35: Restart TitleAnimator in skip mode (no replay on return)
-        if (G.TitleAnimator) {
-            _cleanupAnimClasses();
-            const subtitleEl = document.getElementById('title-subtitle');
-            if (subtitleEl) subtitleEl.textContent = t('TITLE_SUBTITLE');
-            G.TitleAnimator.init(gameWidth, gameHeight, {});
-            G.TitleAnimator.start(true);
-        }
-
-        // Reopen curtain
-        setTimeout(() => {
-            if (curtain) curtain.classList.add('open');
-        }, 100);
-    }, 800);
-};
-
-function selectShip(type) {
-    player.configure(type);
-    setStyle('hangar-screen', 'display', 'none');
-    startGame();
-}
-window.selectShip = selectShip;
+// v7.0: backToIntro, selectShip → G.IntroScreen
 
 window.toggleBearMode = function () {
     isBearMarket = !isBearMarket;
@@ -4358,7 +2110,7 @@ function triggerScoreStreakColor(streakLevel) {
 }
 
 function startGame() {
-    _hideDebugOverlay();
+    if (G.DebugOverlay) G.DebugOverlay.hide();
     audioSys.init();
     clearBossDeathTimeouts(); // v5.13.1: Cancel orphan boss death timeouts
 
@@ -6380,8 +4132,8 @@ function loop(timestamp) {
     // Remove old "delayed game over" check since executeDeath handles it
     // if (player && player.hp <= 0 && hitStopTimer <= 0 && gameState === 'PLAY') { ... }
 
-    // v4.35: Update title animation timeline + cooldown
-    if (_introActionCooldown > 0) _introActionCooldown -= dt;
+    // v7.0: Intro cooldown tick delegated to IntroScreen
+    if (G.IntroScreen) G.IntroScreen.tick(dt);
     if (gameState === 'INTRO' && G.TitleAnimator && G.TitleAnimator.isActive()) {
         G.TitleAnimator.update(dt);
     }
@@ -6448,314 +4200,11 @@ function loop(timestamp) {
     requestAnimationFrame(loop);
 }
 
-// Game Center Mock (replace with Capacitor plugin for iOS)
-function submitToGameCenter(scoreValue) {
-    emitEvent('gamecenter_submit', { score: scoreValue });
-}
-
-// Game Completion — cinematic video + credits overlay (first completion only)
-function showGameCompletion(onComplete) {
-    const vid = document.getElementById('completion-video');
-    if (!vid) { if (onComplete) onComplete(); return; }
-
-    // Select video based on language
-    const lang = (G._currentLang || 'EN').toLowerCase();
-    vid.src = 'completion-' + lang + '.mp4';
-    vid.style.display = 'block';
-    vid.currentTime = 0;
-
-    const finish = () => {
-        vid.style.display = 'none';
-        vid.onended = null;
-        showCompletionOverlay(onComplete);
-    };
-
-    vid.play().then(() => {
-        vid.onended = finish;
-    }).catch(() => finish()); // fallback if video won't play
-
-    // Skip on tap/click
-    const skipHandler = () => {
-        vid.removeEventListener('click', skipHandler);
-        vid.removeEventListener('touchstart', skipHandler);
-        vid.onended = null;
-        vid.pause();
-        finish();
-    };
-    vid.addEventListener('click', skipHandler);
-    vid.addEventListener('touchstart', skipHandler);
-
-    // Safety timeout (20s)
-    setTimeout(() => { if (vid.style.display === 'block') finish(); }, 20000);
-}
-
-// Completion Overlay — credits, links, continue button
-function showCompletionOverlay(onComplete) {
-    let overlay = document.getElementById('game-completion-screen');
-    if (!overlay) {
-        overlay = document.createElement('div');
-        overlay.id = 'game-completion-screen';
-        overlay.className = 'gc-screen';
-        document.body.appendChild(overlay);
-    }
-
-    overlay.innerHTML = `
-        <div class="gc-container">
-            <div class="gc-section gc-s1">
-                <h1 class="gc-title">${t('GC_TITLE')}</h1>
-            </div>
-            <div class="gc-section gc-s2">
-                <p class="gc-text">${t('GC_THANKS_1')}</p>
-                <p class="gc-text">${t('GC_THANKS_2')}</p>
-                <p class="gc-text gc-accent">${t('GC_THANKS_3')}</p>
-            </div>
-            <div class="gc-section gc-s3">
-                <p class="gc-label">${t('GC_CREDIT')}</p>
-                <p class="gc-author">psychoSocial</p>
-                <a href="https://www.psychosoci5l.com/" target="_blank"
-                   rel="noopener noreferrer" class="gc-link">psychosoci5l.com</a>
-            </div>
-            <div class="gc-section gc-s4">
-                <p class="gc-label gc-label-cyan">${t('GC_OPENSOURCE_TITLE')}</p>
-                <p class="gc-text-sm">${t('GC_OPENSOURCE_1')}</p>
-                <p class="gc-text-sm">${t('GC_OPENSOURCE_2')}</p>
-                <a href="https://github.com/psychoSoci5l/Fiat-Invaders" target="_blank"
-                   rel="noopener noreferrer" class="gc-link gc-link-gh">GitHub</a>
-            </div>
-            <div class="gc-section gc-s5">
-                <p class="gc-privacy">${t('GC_PRIVACY')}</p>
-            </div>
-            <div class="gc-section gc-s6">
-                <p class="gc-text-sm">${t('GC_BTC_HISTORY')}</p>
-                <a href="https://psychosoci5l.com/resources/bitcoin/storia-bitcoin.html"
-                   target="_blank" rel="noopener noreferrer"
-                   class="gc-link gc-link-btc">${t('GC_BTC_LINK')}</a>
-            </div>
-            <div class="gc-section gc-s7">
-                <button class="btn btn-primary btn-lg" id="gc-continue-btn">
-                    ${t('GC_CONTINUE')}</button>
-            </div>
-        </div>
-    `;
-
-    overlay.style.display = 'flex';
-
-    // v5.23: iOS PWA standalone fix — target="_blank" may not open external links
-    overlay.querySelectorAll('a[target="_blank"]').forEach(a => {
-        a.addEventListener('click', (e) => {
-            e.preventDefault();
-            window.open(a.href, '_blank', 'noopener,noreferrer');
-        });
-    });
-
-    document.getElementById('gc-continue-btn').addEventListener('click', () => {
-        try { localStorage.setItem('fiat_completion_seen', '1'); } catch(e) {}
-        overlay.classList.add('gc-fadeout');
-        setTimeout(() => {
-            overlay.style.display = 'none';
-            overlay.classList.remove('gc-fadeout');
-            if (onComplete) onComplete();
-        }, 500);
-    }, { once: true });
-}
-
-// Campaign Victory - All 3 central banks defeated!
-function showCampaignVictory() {
-    const campaignState = G.CampaignState;
-
-    // Analytics: End run tracking (v4.11.0 — was missing, score stayed 0)
-    if (G.Debug) G.Debug.endAnalyticsRun(Math.floor(score));
-
-    // Dramatic screen effects
-    shake = 30;
-    if (G.TransitionManager) G.TransitionManager.startFadeOut(1.0, '#ffd700'); // Gold!
-
-    // Show campaign complete screen
-    setGameState('CAMPAIGN_VICTORY');
-
-    // Create victory overlay if doesn't exist
-    let victoryOverlay = document.getElementById('campaign-victory-screen');
-    if (!victoryOverlay) {
-        victoryOverlay = document.createElement('div');
-        victoryOverlay.id = 'campaign-victory-screen';
-        victoryOverlay.className = 'campaign-victory-screen';
-        document.body.appendChild(victoryOverlay);
-    }
-
-    // Build content — suggest Bear Market if not already active
-    const showBearSuggestion = !isBearMarket;
-    victoryOverlay.innerHTML = `
-        <div class="victory-content">
-            <h1 class="victory-title">${t('CV_TITLE')}</h1>
-            <div class="victory-subtitle">${t('CV_SUBTITLE')}</div>
-            <div class="boss-trophies">
-                <div class="trophy">💵 FED</div>
-                <div class="trophy">💶 BCE</div>
-                <div class="trophy">💴 BOJ</div>
-            </div>
-            <div class="final-score">${t('CV_SCORE')}: <span id="campaign-final-score">0</span></div>
-            ${showBearSuggestion ? `
-            <div class="cv-bear-suggestion">
-                <p class="cv-bear-text">${t('CV_BEAR_HINT')}</p>
-            </div>` : ''}
-            <div class="victory-actions">
-                ${showBearSuggestion ? `<button class="btn btn-danger btn-lg btn-block" onclick="activateBearFromVictory()">${t('CV_BEAR_BTN')}</button>` : ''}
-                <button class="btn btn-primary btn-lg btn-block" onclick="replayStoryFromVictory()">${t('CV_REPLAY')}</button>
-                <button class="btn btn-secondary btn-block" onclick="backToIntroFromVictory()">${t('CV_MENU')}</button>
-            </div>
-        </div>
-    `;
-
-    // Update score
-    const scoreEl = document.getElementById('campaign-final-score');
-    if (scoreEl) scoreEl.textContent = Math.floor(score);
-
-    victoryOverlay.style.display = 'flex';
-
-    // Epic victory audio
-    audioSys.play('levelUp');
-    setTimeout(() => audioSys.play('levelUp'), 300);
-    setTimeout(() => audioSys.play('levelUp'), 600);
-
-    // Save high score (mode-specific v4.50)
-    if (score > highScore) {
-        highScore = Math.floor(score);
-        localStorage.setItem(highScoreKey(), highScore);
-        // Update badge score display (v4.8)
-        const badgeScore = document.getElementById('badge-score-value');
-        if (badgeScore) badgeScore.innerText = highScore.toLocaleString();
-        submitToGameCenter(highScore);
-    }
-
-    emitEvent('campaign_complete', { score: score, ngPlusLevel: campaignState?.ngPlusLevel || 0 });
-}
-
-// Activate Bear Market from campaign victory and replay
-window.activateBearFromVictory = function() {
-    // Enable Bear Market
-    if (!isBearMarket) {
-        isBearMarket = true;
-        window.isBearMarket = true;
-        document.body.classList.add('bear-mode');
-        // Update toggle in settings
-        const toggle = document.getElementById('bear-toggle');
-        if (toggle) {
-            toggle.classList.add('active');
-            const label = toggle.querySelector('.switch-label');
-            if (label) label.textContent = 'ON';
-        }
-    }
-
-    // Reset campaign and start fresh
-    const campaignState = G.CampaignState;
-    if (campaignState) campaignState.resetCampaign();
-
-    const victoryOverlay = document.getElementById('campaign-victory-screen');
-    if (victoryOverlay) victoryOverlay.style.display = 'none';
-
-    startGame();
-    updateCampaignProgressUI();
-    audioSys.play('bearMarketToggle');
-}
-
-// Replay Story mode from campaign victory
-window.replayStoryFromVictory = function() {
-    const campaignState = G.CampaignState;
-    if (campaignState) campaignState.resetCampaign();
-
-    const victoryOverlay = document.getElementById('campaign-victory-screen');
-    if (victoryOverlay) victoryOverlay.style.display = 'none';
-
-    startGame();
-    updateCampaignProgressUI();
-    audioSys.play('coinUI');
-}
-
-// Return to intro from campaign victory
-window.backToIntroFromVictory = function() {
-    const victoryOverlay = document.getElementById('campaign-victory-screen');
-    if (victoryOverlay) victoryOverlay.style.display = 'none';
-
-    backToIntro();
-}
-
-function triggerGameOver() {
-    // Analytics: End run tracking
-    if (G.Debug) {
-        G.Debug.endAnalyticsRun(Math.floor(score));
-    }
-
-    const wasNewHighScore = score > highScore;
-    if (wasNewHighScore) {
-        highScore = Math.floor(score);
-        localStorage.setItem(highScoreKey(), highScore);
-        // Update badge score display (v4.8)
-        const badgeScore = document.getElementById('badge-score-value');
-        if (badgeScore) badgeScore.innerText = highScore.toLocaleString();
-        submitToGameCenter(highScore); // Game Center hook
-    }
-    setGameState('GAMEOVER');
-    setStyle('gameover-screen', 'display', 'flex');
-    setUI('finalScore', Math.floor(score));
-    if (ui.gameoverMeme) ui.gameoverMeme.innerText = getRandomMeme();
-
-    // Arcade stats & records (v4.50)
-    const isStory = G.CampaignState && G.CampaignState.isEnabled();
-    const statsRow = document.getElementById('arcade-stats-row');
-    const bestBadge = document.getElementById('new-best-badge');
-    if (!isStory) {
-        if (statsRow) {
-            statsRow.style.display = 'flex';
-            setUI('arcadeCycleVal', marketCycle);
-            setUI('arcadeLevelVal', level);
-            setUI('arcadeWaveVal', waveMgr.wave);
-        }
-        // Arcade combo + modifier stats
-        const comboRow = document.getElementById('arcade-combo-row');
-        if (comboRow) {
-            comboRow.style.display = 'flex';
-            setUI('arcadeBestCombo', G.RunState.bestCombo || 0);
-            setUI('arcadeModCount', G.RunState.arcadeModifierPicks || 0);
-        }
-        const result = checkArcadeRecords();
-        if (bestBadge) {
-            bestBadge.style.display = result.newBest ? 'inline-block' : 'none';
-            bestBadge.innerText = t('NEW_BEST');
-        }
-    } else {
-        if (statsRow) statsRow.style.display = 'none';
-        if (bestBadge) bestBadge.style.display = 'none';
-        const comboRow2 = document.getElementById('arcade-combo-row');
-        if (comboRow2) comboRow2.style.display = 'none';
-    }
-
-    // Story: Game over dialogue
-    if (G.Story) {
-        G.Story.onGameOver();
-    }
-    if (ui.kills) ui.kills.innerText = killCount;
-    if (ui.streak) ui.streak.innerText = bestStreak;
-    setStyle('pause-btn', 'display', 'none');
-    if (ui.uiLayer) ui.uiLayer.style.display = 'none'; // Hide HUD (graze meter etc.)
-    audioSys.play('explosion');
-
-    // v5.23: Leaderboard submit (async, non-blocking)
-    const isStoryMode = G.CampaignState && G.CampaignState.isEnabled();
-    if (isStoryMode) {
-        const shipKey = SHIP_KEYS[selectedShipIndex] || 'BTC';
-        const _doRank = () => G.Leaderboard.renderGameoverRank(
-            Math.floor(score), killCount, marketCycle,
-            waveMgr.wave, shipKey, !!window.isBearMarket
-        );
-        if (hasNickname()) {
-            _doRank();
-        } else if (wasNewHighScore) {
-            // New record without nickname: prompt with option to submit
-            showNicknamePrompt((entered) => { if (entered) _doRank(); },
-                { title: t('NICK_RECORD_TITLE'), hideSkip: false });
-        }
-    }
-}
+// v7.0: Game completion/victory/game over extracted to src/ui/GameCompletion.js
+// Local aliases for backward compatibility
+function showGameCompletion(onComplete) { if (G.GameCompletion) G.GameCompletion.showGameCompletion(onComplete); }
+function showCampaignVictory() { if (G.GameCompletion) G.GameCompletion.showCampaignVictory(); }
+function triggerGameOver() { if (G.GameCompletion) G.GameCompletion.triggerGameOver(); }
 
 // v5.0.8: Snapshot player power state for progression tracking
 function _snapPlayerState() {

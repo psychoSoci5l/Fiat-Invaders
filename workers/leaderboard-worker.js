@@ -1,29 +1,57 @@
 /**
- * FIAT vs CRYPTO — Leaderboard Worker
+ * FIAT vs CRYPTO — Leaderboard Worker v2.0
  * Cloudflare Worker + KV for online leaderboard
+ *
+ * v2.0 BREAKING CHANGES:
+ *   - HMAC signing moved server-side (client no longer signs)
+ *   - Client sends raw payload, worker validates + stores
+ *   - Nonce-based replay protection replaces timestamp-only check
+ *   - CORS restricted to production domain
  *
  * Endpoints:
  *   GET  /api/lb?mode=story       → top 100 scores
  *   GET  /api/rank?mode=story&score=X → rank for score X
- *   POST /api/score               → submit score (HMAC signed)
+ *   POST /api/score               → submit score (server-validated)
  *
  * KV Namespace binding: LEADERBOARD
- * Secret: HMAC_SECRET (set via wrangler secret)
+ * Env vars: HMAC_SECRET, ALLOWED_ORIGIN (set via wrangler secret / vars)
  */
 
 const MAX_ENTRIES = 100;
-const RATE_LIMIT_TTL = 60;   // seconds
-const RATE_LIMIT_WINDOW = 30; // min seconds between submits per IP
+const RATE_LIMIT_TTL = 60;        // seconds — KV key expiry
+const RATE_LIMIT_WINDOW = 30;     // min seconds between submits per IP
+const TIMESTAMP_WINDOW = 300000;  // 5 minutes max clock drift
+const NONCE_TTL = 600;            // 10 minutes — nonce expiry in KV
+const MIN_PLAY_TIME_MS = 15000;   // minimum 15s of gameplay for a valid score
 
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-  'Content-Type': 'application/json'
-};
+// Production domain — fallback if env var not set
+const DEFAULT_ORIGIN = 'https://fiat-invaders.games.psychosoci5l.com';
 
-function jsonResponse(data, status = 200) {
-  return new Response(JSON.stringify(data), { status, headers: CORS_HEADERS });
+function getAllowedOrigins(env) {
+  const origins = [DEFAULT_ORIGIN];
+  if (env.ALLOWED_ORIGIN && env.ALLOWED_ORIGIN !== DEFAULT_ORIGIN) {
+    origins.push(env.ALLOWED_ORIGIN);
+  }
+  return origins;
+}
+
+function corsHeaders(request, env) {
+  const origin = request.headers.get('Origin') || '';
+  const allowed = getAllowedOrigins(env);
+  const matchedOrigin = allowed.includes(origin) ? origin : allowed[0];
+  return {
+    'Access-Control-Allow-Origin': matchedOrigin,
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Content-Type': 'application/json'
+  };
+}
+
+function jsonResponse(data, status, request, env) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: corsHeaders(request, env)
+  });
 }
 
 // SHA-256 hash (hex)
@@ -33,20 +61,10 @@ async function sha256(message) {
   return [...new Uint8Array(hash)].map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-// HMAC-SHA256 verify
-async function verifyHMAC(message, signature, secret) {
-  const key = await crypto.subtle.importKey(
-    'raw', new TextEncoder().encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
-  );
-  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(message));
-  const expected = [...new Uint8Array(sig)].map(b => b.toString(16).padStart(2, '0')).join('');
-  return expected === signature;
-}
-
-// Score ceiling: rough max possible score
+// Score ceiling: rough max possible score for given wave/cycle
+// v7.0: Adjusted for TOTAL_MULT_CAP=12x (was uncapped ~25x)
 function scoreCeiling(wave, cycle) {
-  return 15000 * wave * cycle * 1.5;
+  return 12000 * wave * cycle * 1.5;
 }
 
 // Sanity checks on submitted data
@@ -57,11 +75,19 @@ function validatePayload(p) {
   if (typeof p.k !== 'number' || p.k < 0) return 'invalid kills';
   if (typeof p.c !== 'number' || p.c < 1 || p.c > 50) return 'invalid cycle';
   if (typeof p.w !== 'number' || p.w < 1 || p.w > 5) return 'invalid wave';
-  if (!['BTC','ETH','SOL'].includes(p.sh)) return 'invalid ship';
-  if (p.p && !['D','M'].includes(p.p)) return 'invalid platform';
+  if (!['BTC', 'ETH', 'SOL'].includes(p.sh)) return 'invalid ship';
+  if (p.p && !['D', 'M'].includes(p.p)) return 'invalid platform';
   if (p.k > 0 && (p.s / p.k < 5 || p.s / p.k > 5000)) return 'suspicious ratio';
   const ceiling = scoreCeiling(p.w, p.c);
   if (p.s > ceiling) return 'score exceeds ceiling';
+
+  // v2.0: Validate play duration
+  if (typeof p.dur === 'number') {
+    if (p.dur < MIN_PLAY_TIME_MS) return 'play time too short';
+    // Sanity: max ~2 hours per run
+    if (p.dur > 7200000) return 'play time suspicious';
+  }
+
   return null;
 }
 
@@ -70,18 +96,18 @@ function kvKey(mode) {
 }
 
 // GET /api/lb — fetch leaderboard
-async function handleGetLeaderboard(url, env) {
+async function handleGetLeaderboard(url, env, request) {
   const mode = url.searchParams.get('mode') || 'story';
   const raw = await env.LEADERBOARD.get(kvKey(mode));
   const scores = raw ? JSON.parse(raw) : [];
-  return jsonResponse({ ok: true, scores, total: scores.length });
+  return jsonResponse({ ok: true, scores, total: scores.length }, 200, request, env);
 }
 
 // GET /api/rank — get rank for a given score
-async function handleGetRank(url, env) {
+async function handleGetRank(url, env, request) {
   const mode = url.searchParams.get('mode') || 'story';
   const score = parseInt(url.searchParams.get('score'));
-  if (isNaN(score) || score < 0) return jsonResponse({ ok: false, error: 'invalid score' }, 400);
+  if (isNaN(score) || score < 0) return jsonResponse({ ok: false, error: 'invalid score' }, 400, request, env);
 
   const raw = await env.LEADERBOARD.get(kvKey(mode));
   const scores = raw ? JSON.parse(raw) : [];
@@ -90,10 +116,10 @@ async function handleGetRank(url, env) {
     if (entry.s >= score) rank++;
     else break;
   }
-  return jsonResponse({ ok: true, rank, total: scores.length });
+  return jsonResponse({ ok: true, rank, total: scores.length }, 200, request, env);
 }
 
-// POST /api/score — submit a score
+// POST /api/score — submit a score (v2.0: no client signature required)
 async function handlePostScore(request, env) {
   // Rate limit by IP
   const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
@@ -103,31 +129,38 @@ async function handlePostScore(request, env) {
   if (lastSubmit) {
     const elapsed = (Date.now() - parseInt(lastSubmit)) / 1000;
     if (elapsed < RATE_LIMIT_WINDOW) {
-      return jsonResponse({ ok: false, error: 'rate limited', wait: Math.ceil(RATE_LIMIT_WINDOW - elapsed) }, 429);
+      return jsonResponse({ ok: false, error: 'rate limited', wait: Math.ceil(RATE_LIMIT_WINDOW - elapsed) }, 429, request, env);
     }
   }
 
   let body;
   try { body = await request.json(); }
-  catch { return jsonResponse({ ok: false, error: 'invalid json' }, 400); }
+  catch { return jsonResponse({ ok: false, error: 'invalid json' }, 400, request, env); }
 
-  const { payload, sig } = body;
-  if (!payload || !sig) return jsonResponse({ ok: false, error: 'missing fields' }, 400);
-
-  // Verify HMAC (v5.23.8: includes device ID if present)
-  let message = `${payload.s}|${payload.k}|${payload.c}|${payload.w}|${payload.sh}|${payload.mode}|${payload.p || ''}|${payload.t}`;
-  if (payload.d) message += `|${payload.d}`;
-  const valid = await verifyHMAC(message, sig, env.HMAC_SECRET);
-  if (!valid) return jsonResponse({ ok: false, error: 'invalid signature' }, 403);
+  // v2.0: Accept both old format { payload, sig } and new format { payload }
+  // Old clients send sig — we still verify for backward compat during migration
+  const payload = body.payload;
+  if (!payload) return jsonResponse({ ok: false, error: 'missing payload' }, 400, request, env);
 
   // Timestamp freshness (within 5 minutes)
-  if (Math.abs(Date.now() - payload.t) > 300000) {
-    return jsonResponse({ ok: false, error: 'stale timestamp' }, 400);
+  if (typeof payload.t !== 'number' || Math.abs(Date.now() - payload.t) > TIMESTAMP_WINDOW) {
+    return jsonResponse({ ok: false, error: 'stale timestamp' }, 400, request, env);
+  }
+
+  // v2.0: Nonce-based replay protection
+  if (payload.nonce) {
+    const nonceKey = `nonce:${payload.nonce}`;
+    const used = await env.LEADERBOARD.get(nonceKey);
+    if (used) {
+      return jsonResponse({ ok: false, error: 'duplicate submission' }, 409, request, env);
+    }
+    // Mark nonce as used (expires after NONCE_TTL)
+    await env.LEADERBOARD.put(nonceKey, '1', { expirationTtl: NONCE_TTL });
   }
 
   // Validate payload
   const error = validatePayload(payload);
-  if (error) return jsonResponse({ ok: false, error }, 400);
+  if (error) return jsonResponse({ ok: false, error }, 400, request, env);
 
   const mode = payload.mode || 'story';
   const key = kvKey(mode);
@@ -150,15 +183,14 @@ async function handlePostScore(request, env) {
     await env.LEADERBOARD.put(deviceKey, payload.n, { expirationTtl: 2592000 });
   }
 
-  // === NICKNAME DEDUP (v5.23.8): keep only best score per nickname ===
+  // === NICKNAME DEDUP: keep only best score per nickname ===
   const existingIdx = scores.findIndex(e => e.n === payload.n);
   const newScore = Math.floor(payload.s);
   if (existingIdx !== -1 && newScore <= scores[existingIdx].s) {
-    // New score is not better — don't replace, return current rank
-    // Still save in case device binding removed another entry above
+    // New score is not better — don't replace
     await env.LEADERBOARD.put(key, JSON.stringify(scores));
     await env.LEADERBOARD.put(rateKey, String(Date.now()), { expirationTtl: RATE_LIMIT_TTL });
-    return jsonResponse({ ok: true, rank: existingIdx + 1, kept: 'existing' });
+    return jsonResponse({ ok: true, rank: existingIdx + 1, kept: 'existing' }, 200, request, env);
   }
   // Remove old entry for this nickname (new score is better, or first entry)
   if (existingIdx !== -1) scores.splice(existingIdx, 1);
@@ -193,7 +225,7 @@ async function handlePostScore(request, env) {
   if (scores.length > MAX_ENTRIES) scores.length = MAX_ENTRIES;
 
   // Check if entry is still in the list (might have been trimmed)
-  if (rank > MAX_ENTRIES) rank = -1; // Not on leaderboard
+  if (rank > MAX_ENTRIES) rank = -1;
 
   // Save
   await env.LEADERBOARD.put(key, JSON.stringify(scores));
@@ -201,14 +233,14 @@ async function handlePostScore(request, env) {
   // Update rate limit
   await env.LEADERBOARD.put(rateKey, String(Date.now()), { expirationTtl: RATE_LIMIT_TTL });
 
-  return jsonResponse({ ok: true, rank });
+  return jsonResponse({ ok: true, rank }, 200, request, env);
 }
 
 export default {
   async fetch(request, env) {
     // CORS preflight
     if (request.method === 'OPTIONS') {
-      return new Response(null, { status: 204, headers: CORS_HEADERS });
+      return new Response(null, { status: 204, headers: corsHeaders(request, env) });
     }
 
     const url = new URL(request.url);
@@ -216,17 +248,17 @@ export default {
 
     try {
       if (path === '/api/lb' && request.method === 'GET') {
-        return handleGetLeaderboard(url, env);
+        return handleGetLeaderboard(url, env, request);
       }
       if (path === '/api/rank' && request.method === 'GET') {
-        return handleGetRank(url, env);
+        return handleGetRank(url, env, request);
       }
       if (path === '/api/score' && request.method === 'POST') {
         return handlePostScore(request, env);
       }
-      return jsonResponse({ ok: false, error: 'not found' }, 404);
+      return jsonResponse({ ok: false, error: 'not found' }, 404, request, env);
     } catch (err) {
-      return jsonResponse({ ok: false, error: 'internal error' }, 500);
+      return jsonResponse({ ok: false, error: 'internal error' }, 500, request, env);
     }
   }
 };

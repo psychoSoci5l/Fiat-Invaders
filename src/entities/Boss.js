@@ -988,7 +988,7 @@ class Boss extends window.Game.Entity {
         // Eye white (almond shape)
         ctx.fillStyle = p === 3 ? CU.rgba(57, 255, 20, 0.9) : CU.rgba(255, 255, 255, 0.95);
         ctx.beginPath();
-        ctx.ellipse(cx, eyeY, eyeW, eyeH, 0, 0, Math.PI * 2);
+        G.safeEllipse(ctx,cx, eyeY, eyeW, eyeH, 0, 0, Math.PI * 2);
         ctx.fill();
 
         // Eye iris ring
@@ -1037,14 +1037,14 @@ class Boss extends window.Game.Entity {
         ctx.strokeStyle = CU.rgba(acR, acG, acB, 0.8);
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.ellipse(cx, eyeY, eyeW, eyeH, 0, 0, Math.PI * 2);
+        G.safeEllipse(ctx,cx, eyeY, eyeW, eyeH, 0, 0, Math.PI * 2);
         ctx.stroke();
         // Eye outline glow
         ctx.globalCompositeOperation = 'lighter';
         ctx.strokeStyle = CU.rgba(acR, acG, acB, 0.2);
         ctx.lineWidth = 5;
         ctx.beginPath();
-        ctx.ellipse(cx, eyeY, eyeW + 2, eyeH + 2, 0, 0, Math.PI * 2);
+        G.safeEllipse(ctx,cx, eyeY, eyeW + 2, eyeH + 2, 0, 0, Math.PI * 2);
         ctx.stroke();
         ctx.globalCompositeOperation = 'source-over';
 
@@ -1494,7 +1494,7 @@ class Boss extends window.Game.Entity {
                 const dripAlpha = Math.max(0.1, 0.5 - (dripLen / 30));
                 ctx.fillStyle = CU.rgba(gdR, gdG - 50, 0, dripAlpha);
                 ctx.beginPath();
-                ctx.ellipse(dripX, kasagiY + kasagiH + dripLen, 2, dripLen / 3, 0, 0, Math.PI * 2);
+                G.safeEllipse(ctx,dripX, kasagiY + kasagiH + dripLen, 2, dripLen / 3, 0, 0, Math.PI * 2);
                 ctx.fill();
             }
         }

@@ -117,7 +117,7 @@
         <div class="mode-selector" id="mode-selector">
             <div class="mode-pills">
                 <button class="mode-pill active" id="mode-pill-story" onclick="setGameMode('campaign')">STORY</button>
-                <button class="mode-pill" id="mode-pill-arcade" onclick="setGameMode('arcade')" disabled style="opacity:0.35;pointer-events:none;font-size:10px;">ARCADE — WIP</button>
+                <button class="mode-pill" id="mode-pill-arcade" onclick="setGameMode('arcade')">ARCADE</button>
             </div>
         </div>
 
@@ -744,6 +744,13 @@ Tap your ship to activate</p>
     <script src="src/ui/ModifierChoiceScreen.js"></script>
     <!-- Quality Tiers (v6.1) -->
     <script src="src/systems/QualityManager.js"></script>
+    <!-- Leaderboard (v7.0: extracted from main.js) -->
+    <script src="src/managers/LeaderboardClient.js"></script>
+    <!-- v7.0: Extracted from main.js -->
+    <script src="src/ui/DebugOverlay.js"></script>
+    <script src="src/ui/IntroScreen.js"></script>
+    <script src="src/ui/GameCompletion.js"></script>
+    <script src="src/core/GameplayCallbacks.js"></script>
     <script type="module" src="src/main.js"></script>
     <script>
         if ('serviceWorker' in navigator) {

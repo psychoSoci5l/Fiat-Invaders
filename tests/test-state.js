@@ -55,6 +55,46 @@
         GS.forceSet(initial);
     });
 
+    _testRunner.suite('GameStateMachine blocked transitions', (assert) => {
+        const GS = window.Game.GameState;
+        const initial = GS.current;
+
+        // VIDEO can only go to INTRO — VIDEO -> PLAY should fail
+        GS.forceSet('VIDEO');
+        var result = GS.transition('PLAY');
+        assert(result === false, 'VIDEO -> PLAY is blocked');
+        assert(GS.current === 'VIDEO', 'state unchanged after blocked VIDEO -> PLAY');
+
+        // GAMEOVER can only go to INTRO — GAMEOVER -> PLAY should fail
+        GS.forceSet('GAMEOVER');
+        result = GS.transition('PLAY');
+        assert(result === false, 'GAMEOVER -> PLAY is blocked');
+        assert(GS.current === 'GAMEOVER', 'state unchanged after blocked GAMEOVER -> PLAY');
+
+        // GAMEOVER -> WARMUP should also fail
+        result = GS.transition('WARMUP');
+        assert(result === false, 'GAMEOVER -> WARMUP is blocked');
+
+        // PLAY -> INTRO should fail (must go through GAMEOVER or PAUSE first)
+        GS.forceSet('PLAY');
+        result = GS.transition('INTRO');
+        assert(result === false, 'PLAY -> INTRO is blocked');
+        assert(GS.current === 'PLAY', 'state unchanged after blocked PLAY -> INTRO');
+
+        // PLAY -> VIDEO should fail
+        result = GS.transition('VIDEO');
+        assert(result === false, 'PLAY -> VIDEO is blocked');
+
+        // INTRO -> GAMEOVER should fail
+        GS.forceSet('INTRO');
+        result = GS.transition('GAMEOVER');
+        assert(result === false, 'INTRO -> GAMEOVER is blocked');
+        assert(GS.current === 'INTRO', 'state unchanged after blocked INTRO -> GAMEOVER');
+
+        // Restore initial state
+        GS.forceSet(initial);
+    });
+
     _testRunner.suite('RunState', (assert) => {
         const RS = window.Game.RunState;
         assert(RS, 'RunState exists');

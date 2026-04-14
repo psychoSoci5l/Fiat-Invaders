@@ -1,13 +1,14 @@
 // GameStateMachine.js — Centralized game state transitions
-// v4.28.0: Decomposition Step 3
+// v7.0: Rewrite — invalid transitions are BLOCKED (not warn-only)
 
 window.Game = window.Game || {};
 
-(function() {
+(function () {
     const G = window.Game;
 
     const GameStateMachine = {
         _current: 'VIDEO',
+        _listeners: [],
 
         // Valid transition map — only listed transitions are allowed
         VALID_TRANSITIONS: {
@@ -17,7 +18,7 @@ window.Game = window.Game || {};
             'STORY_SCREEN':     ['PLAY', 'WARMUP', 'INTERMISSION', 'INTRO', 'CAMPAIGN_VICTORY'],
             'WARMUP':           ['PLAY', 'PAUSE', 'INTRO'],
             'PLAY':             ['PAUSE', 'INTERMISSION', 'GAMEOVER', 'STORY_SCREEN', 'CAMPAIGN_VICTORY'],
-            'PAUSE':            ['PLAY', 'WARMUP', 'INTRO'],
+            'PAUSE':            ['PLAY', 'WARMUP', 'INTERMISSION', 'INTRO'],
             'INTERMISSION':     ['PLAY', 'STORY_SCREEN', 'PAUSE'],
             'GAMEOVER':         ['INTRO'],
             'CAMPAIGN_VICTORY': ['INTRO'],
@@ -30,21 +31,30 @@ window.Game = window.Game || {};
 
         /**
          * Transition to a new state.
-         * Validates the transition and logs warnings for invalid ones.
+         * BLOCKS invalid transitions and returns false.
          * @param {string} newState
          * @returns {boolean} true if transition succeeded
          */
         transition(newState) {
-            // Self-transition: no-op (e.g. PLAY→PLAY during seamless wave transitions)
+            // Self-transition: no-op
             if (newState === this._current) return true;
+
             const valid = this.VALID_TRANSITIONS[this._current];
             if (!valid || !valid.includes(newState)) {
-                console.warn(`[GameState] Invalid transition: ${this._current} → ${newState}`);
-                // Allow it anyway for backward compat (warn-only)
+                console.error(`[GameState] BLOCKED invalid transition: ${this._current} → ${newState}`);
+                return false;
             }
+
             const prev = this._current;
             this._current = newState;
             if (G.Debug) G.Debug.log('STATE', `${prev} → ${newState}`);
+
+            // Notify listeners
+            for (let i = 0; i < this._listeners.length; i++) {
+                try { this._listeners[i](newState, prev); }
+                catch (e) { console.error('[GameState] Listener error:', e); }
+            }
+
             return true;
         },
 
@@ -58,11 +68,26 @@ window.Game = window.Game || {};
         },
 
         /**
-         * Force set state without validation (for init/reset).
+         * Force set state without validation (for init/reset ONLY).
          * @param {string} state
          */
         forceSet(state) {
+            const prev = this._current;
             this._current = state;
+            if (G.Debug) G.Debug.log('STATE', `FORCE ${prev} → ${state}`);
+        },
+
+        /**
+         * Register a listener for state changes.
+         * @param {function(newState, prevState)} fn
+         * @returns {function} unsubscribe function
+         */
+        onChange(fn) {
+            this._listeners.push(fn);
+            return () => {
+                const idx = this._listeners.indexOf(fn);
+                if (idx >= 0) this._listeners.splice(idx, 1);
+            };
         }
     };
 

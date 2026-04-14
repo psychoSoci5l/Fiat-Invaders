@@ -616,7 +616,7 @@ class Bullet extends window.Game.Entity {
         ctx.fillStyle = '#bb44ff';
         ctx.globalAlpha = 0.25;
         ctx.beginPath();
-        ctx.ellipse(this.x, this.y, w + 6, h * 0.6, 0, 0, Math.PI * 2);
+        G.safeEllipse(ctx,this.x, this.y, w + 6, h * 0.6, 0, 0, Math.PI * 2);
         ctx.fill();
         ctx.globalAlpha = 1;
 
@@ -628,7 +628,7 @@ class Bullet extends window.Game.Entity {
             ctx.fillStyle = '#bb44ff';
             ctx.globalAlpha = 0.15 * i;
             ctx.beginPath();
-            ctx.ellipse(this.x, this.y + (i * 6), w - i * 2, h * 0.3, 0, 0, Math.PI * 2);
+            G.safeEllipse(ctx,this.x, this.y + (i * 6), w - i * 2, h * 0.3, 0, 0, Math.PI * 2);
             ctx.fill();
         }
         ctx.globalAlpha = 1;
@@ -648,7 +648,7 @@ class Bullet extends window.Game.Entity {
         // Inner energy core
         ctx.fillStyle = '#dd88ff';
         ctx.beginPath();
-        ctx.ellipse(this.x, this.y - 2, w * 0.5, h * 0.25, 0, 0, Math.PI * 2);
+        G.safeEllipse(ctx,this.x, this.y - 2, w * 0.5, h * 0.25, 0, 0, Math.PI * 2);
         ctx.fill();
 
         // Bright center spark
@@ -1298,7 +1298,7 @@ class Bullet extends window.Game.Entity {
         // Main coin body (ellipse) — v4.56: ownerColor tint
         ctx.fillStyle = this.ownerColor || this.color;
         ctx.beginPath();
-        ctx.ellipse(this.x, this.y, ellipseWidth * pulse, r * pulse, 0, 0, Math.PI * 2);
+        G.safeEllipse(ctx,this.x, this.y, ellipseWidth * pulse, r * pulse, 0, 0, Math.PI * 2);
         ctx.fill();
 
         // v4.17: Dark contour (was white)
@@ -1310,7 +1310,7 @@ class Bullet extends window.Game.Entity {
         ctx.strokeStyle = window.Game.ColorUtils.darken(this.ownerColor || this.color, 0.3);
         ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.ellipse(this.x, this.y, ellipseWidth * 0.6, r * 0.6, 0, 0, Math.PI * 2);
+        G.safeEllipse(ctx,this.x, this.y, ellipseWidth * 0.6, r * 0.6, 0, 0, Math.PI * 2);
         ctx.stroke();
 
         // Edge shine (metallic highlight)
@@ -1318,7 +1318,7 @@ class Bullet extends window.Game.Entity {
             ctx.fillStyle = '#fff';
             ctx.globalAlpha = Math.cos(rotation) * 0.6;
             ctx.beginPath();
-            ctx.ellipse(this.x - ellipseWidth * 0.3, this.y - r * 0.2, ellipseWidth * 0.2, r * 0.3, -0.3, 0, Math.PI * 2);
+            G.safeEllipse(ctx,this.x - ellipseWidth * 0.3, this.y - r * 0.2, ellipseWidth * 0.2, r * 0.3, -0.3, 0, Math.PI * 2);
             ctx.fill();
             ctx.globalAlpha = 1;
         }
