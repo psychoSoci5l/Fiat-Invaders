@@ -118,6 +118,7 @@
             <div class="mode-pills">
                 <button class="mode-pill active" id="mode-pill-story" onclick="setGameMode('campaign')">STORY</button>
                 <button class="mode-pill" id="mode-pill-arcade" onclick="setGameMode('arcade')">ARCADE</button>
+                <button class="mode-pill" id="mode-pill-daily" onclick="setGameMode('daily')" data-i18n="MODE_DAILY">DAILY</button>
             </div>
         </div>
 
@@ -128,6 +129,9 @@
             </p>
             <p class="mode-desc" id="mode-arcade-desc" data-i18n="MODE_ARCADE_DESC" style="display: none;">
                 Roguelike protocols. Infinite runs. Every choice matters.
+            </p>
+            <p class="mode-desc" id="mode-daily-desc" data-i18n="MODE_DAILY_DESC" style="display: none;">
+                One seed. One attempt. Same world for everyone — until UTC midnight.
             </p>
         </div>
 
@@ -171,6 +175,9 @@
             </button>
             <button class="btn btn-icon" onclick="toggleWhatsNew()" id="intro-whatsnew">
                 <svg viewBox="0 0 24 24" class="icon-svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+            </button>
+            <button class="btn btn-icon" onclick="toggleProfile()" id="intro-profile" aria-label="Profile">
+                <svg viewBox="0 0 24 24" class="icon-svg"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
             </button>
         </div>
 
@@ -502,6 +509,21 @@ Tap your ship to activate</p>
         </div>
     </div>
 
+    <!-- ACHIEVEMENT TOAST STACK (v7.0 Phase 5.1) -->
+    <div id="achievement-toast-stack" aria-live="polite"></div>
+
+    <!-- PROFILE PANEL (v7.0 Phase 5.1) - Outside game-container for proper stacking -->
+    <div id="profile-panel" style="display: none;">
+        <div class="profile-box">
+            <h2 class="profile-title" id="profile-title">PILOT PROFILE</h2>
+            <div class="profile-scroll" id="profile-content"></div>
+            <div class="profile-actions">
+                <button class="btn btn-secondary btn-sm" id="btn-profile-reset" onclick="resetProfileStats()">RESET STATS</button>
+                <button class="btn btn-primary" id="btn-profile-close" onclick="toggleProfile()">CLOSE</button>
+            </div>
+        </div>
+    </div>
+
     <!-- WHAT'S NEW PANEL (v4.50) - Outside game-container for proper stacking -->
     <div id="whatsnew-panel" style="display: none;">
         <div class="whatsnew-box">
@@ -694,6 +716,7 @@ Tap your ship to activate</p>
     <script src="src/utils/DebugSystem.js"></script>
     <script src="src/utils/ColorUtils.js"></script>
     <script src="src/utils/MathUtils.js"></script>
+    <script src="src/utils/RNG.js"></script>
     <script src="src/config/BalanceConfig.js"></script>
     <script src="src/audio/MusicData.js"></script>
     <script src="src/systems/BulletPatterns.js"></script>
@@ -714,6 +737,7 @@ Tap your ship to activate</p>
     <script src="src/core/ObjectPool.js"></script>
     <script src="src/systems/ParticleSystem.js"></script>
     <script src="src/systems/EffectsRenderer.js"></script>
+    <script src="src/systems/ScrollEngine.js"></script>
     <script src="src/systems/SkyRenderer.js"></script>
     <script src="src/systems/WeatherController.js"></script>
     <script src="src/systems/TransitionManager.js"></script>
@@ -726,7 +750,10 @@ Tap your ship to activate</p>
     <script src="src/entities/Boss.js"></script>
     <script src="src/entities/PowerUp.js"></script>
     <script src="src/managers/WaveManager.js"></script>
+    <!-- v8: Scripted spawn table (replaces WaveManager when V8_MODE enabled) -->
+    <script src="src/v8/LevelScript.js"></script>
     <script src="src/managers/CampaignState.js"></script>
+    <script src="src/managers/DailyMode.js"></script>
     <!-- Story System -->
     <script src="src/story/StoryScreenData.js"></script>
     <script src="src/story/StoryBackgrounds.js"></script>
@@ -746,6 +773,9 @@ Tap your ship to activate</p>
     <script src="src/systems/QualityManager.js"></script>
     <!-- Leaderboard (v7.0: extracted from main.js) -->
     <script src="src/managers/LeaderboardClient.js"></script>
+    <!-- Stats (v7.0 Phase 5.1: meta-progression) -->
+    <script src="src/managers/StatsTracker.js"></script>
+    <script src="src/managers/AchievementSystem.js"></script>
     <!-- v7.0: Extracted from main.js -->
     <script src="src/ui/DebugOverlay.js"></script>
     <script src="src/ui/IntroScreen.js"></script>

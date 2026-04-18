@@ -37,6 +37,9 @@
     let skyTime = 0;
     let shootingStarTimer = 0;
 
+    // v8 S02: NEAR-layer streaks (parallax foreground)
+    let nearStreaks = [];
+
     // Gradient cache
     let cachedGradient = null;
     let cachedGradientKey = '';
@@ -120,6 +123,7 @@
         initFloatingSymbols();
         initStars();
         initAtmosphericParticles();
+        initNearStreaks();
         skyTime = 0;
         shootingStarTimer = 2 + Math.random() * 5;
         lightningTimer = 0;
@@ -151,14 +155,15 @@
      */
     function initStars() {
         const cfg = G.Balance?.SKY?.STARS;
-        const count = cfg?.COUNT || 90;
+        // v8 S01: +50% density and full-height distribution for vertical scroll visibility
+        const count = Math.round((cfg?.COUNT || 90) * 1.5);
         const minSize = cfg?.MIN_SIZE || 1.5;
         const maxSize = cfg?.MAX_SIZE || 3.5;
         stars = [];
         for (let i = 0; i < count; i++) {
             stars.push({
                 x: (i * 137.5 + 42) % gameWidth,
-                y: (i * 89.3 + 17) % (gameHeight * 0.65),
+                y: (i * 89.3 + 17) % gameHeight,   // v8 S01: full-height (was * 0.65)
                 size: minSize + ((i * 31) % 100) / 100 * (maxSize - minSize),
                 brightness: 0.3 + ((i * 53) % 100) / 100 * 0.7,
                 twinklePhase: (i * 1.7) % (Math.PI * 2),
@@ -324,6 +329,35 @@
     }
 
     /**
+     * v8 S02: NEAR-layer streaks — fast downward-moving bars that react to scroll speed.
+     * Pool allocated once; respawn when off-screen. Additive blend for neon feel.
+     */
+    function initNearStreaks() {
+        const cfg = G.Balance?.SKY?.V8_PARALLAX?.STREAKS;
+        const count = cfg?.COUNT || 30;
+        nearStreaks = [];
+        for (let i = 0; i < count; i++) {
+            nearStreaks.push({
+                x: Math.random() * gameWidth,
+                y: Math.random() * gameHeight,
+                len: (cfg?.MIN_LEN || 6) + Math.random() * ((cfg?.MAX_LEN || 22) - (cfg?.MIN_LEN || 6)),
+                alpha: (cfg?.MIN_ALPHA || 0.15) + Math.random() * ((cfg?.MAX_ALPHA || 0.55) - (cfg?.MIN_ALPHA || 0.15)),
+                color: (cfg?.COLORS || ['#00f0ff', '#ff2d95', '#bb44ff'])[i % 3],
+                depth: 0.7 + Math.random() * 0.6   // 0.7 - 1.3 individual multiplier
+            });
+        }
+    }
+
+    function _respawnStreak(s, aboveTop) {
+        const cfg = G.Balance?.SKY?.V8_PARALLAX?.STREAKS;
+        s.x = Math.random() * gameWidth;
+        s.y = aboveTop ? (-20 - Math.random() * 80) : Math.random() * gameHeight;
+        s.len = (cfg?.MIN_LEN || 6) + Math.random() * ((cfg?.MAX_LEN || 22) - (cfg?.MIN_LEN || 6));
+        s.alpha = (cfg?.MIN_ALPHA || 0.15) + Math.random() * ((cfg?.MAX_ALPHA || 0.55) - (cfg?.MIN_ALPHA || 0.15));
+        s.depth = 0.7 + Math.random() * 0.6;
+    }
+
+    /**
      * Reset sky state (for new game)
      */
     function reset() {
@@ -332,6 +366,7 @@
         initFloatingSymbols();
         initStars();
         initAtmosphericParticles();
+        initNearStreaks();
         shootingStars = [];
         skyTime = 0;
         shootingStarTimer = 2 + Math.random() * 5;
@@ -433,12 +468,34 @@
             }
         }
 
-        // Star parallax drift
+        // Star parallax drift (horizontal ambient)
         const starDrift = (G.Balance?.SKY?.STARS?.DRIFT_SPEED || 3) * dt;
+        // v8 S01: vertical scroll contribution (depth-factored parallax)
+        const scrollSpeed = (G.ScrollEngine && G.ScrollEngine.enabled && gameState === 'PLAY')
+            ? G.ScrollEngine.getSpeed() : 0;
+        const scrollDY = scrollSpeed * dt;
         for (let i = 0; i < stars.length; i++) {
             const s = stars[i];
             s.x -= starDrift * s.depthFactor;
             if (s.x < -5) s.x += gameWidth + 10;
+            if (scrollDY > 0) {
+                s.y += scrollDY * s.depthFactor;
+                if (s.y > gameHeight + 5) s.y -= gameHeight + 10;
+            }
+        }
+
+        // v8 S02: NEAR-layer streaks — fast parallax, reactive to scroll speed
+        const v8Parallax = G.Balance?.SKY?.V8_PARALLAX;
+        if (v8Parallax?.ENABLED && v8Parallax?.STREAKS?.ENABLED !== false && nearStreaks.length > 0) {
+            const baseSpeed = v8Parallax.BASE_SPEED || 100;
+            const nearMult = v8Parallax.NEAR_MULT || 1.2;
+            // Use scrollSpeed if PLAY and scrolling, else idle hum (baseSpeed*0.3)
+            const effSpeed = (scrollSpeed > 0 ? scrollSpeed : baseSpeed * 0.3) * nearMult;
+            for (let i = 0; i < nearStreaks.length; i++) {
+                const s = nearStreaks[i];
+                s.y += effSpeed * s.depth * dt;
+                if (s.y > gameHeight + 30) _respawnStreak(s, true);
+            }
         }
 
         // Bear Market Lightning
@@ -522,6 +579,7 @@
             if (skyEnabled && G.Balance?.SKY?.PARTICLES?.ENABLED !== false) {
                 drawAtmosphericParticles(ctx, level, isBearMarket, bossActive);
             }
+            drawNearStreaks(ctx, bossActive);
             drawClouds(ctx, level, isBearMarket);
             drawGroundFog(ctx, level, isBearMarket, bossActive);
             drawLightning(ctx);
@@ -533,10 +591,34 @@
             if (skyEnabled && G.Balance?.SKY?.PARTICLES?.ENABLED !== false) {
                 drawAtmosphericParticles(ctx, level, isBearMarket, bossActive);
             }
+            drawNearStreaks(ctx, bossActive);
             drawClouds(ctx, level, isBearMarket);
             drawGroundFog(ctx, level, isBearMarket, bossActive);
             drawLightning(ctx);
         }
+    }
+
+    /**
+     * v8 S02: NEAR-layer streaks (parallax foreground, additive blend)
+     */
+    function drawNearStreaks(ctx, bossActive) {
+        if (bossActive) return;
+        const cfg = G.Balance?.SKY?.V8_PARALLAX;
+        if (!cfg?.ENABLED || cfg?.STREAKS?.ENABLED === false) return;
+        if (nearStreaks.length === 0) return;
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.lineWidth = 1.5;
+        for (let i = 0; i < nearStreaks.length; i++) {
+            const s = nearStreaks[i];
+            ctx.strokeStyle = s.color;
+            ctx.globalAlpha = s.alpha;
+            ctx.beginPath();
+            ctx.moveTo(s.x, s.y);
+            ctx.lineTo(s.x, s.y + s.len);
+            ctx.stroke();
+        }
+        ctx.restore();
     }
 
     /**

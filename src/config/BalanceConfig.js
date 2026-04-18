@@ -16,6 +16,26 @@
     const G = window.Game = window.Game || {};
 
     G.Balance = {
+        // --- V8 MODE (Gradius scroll protocol) ---
+        // Master kill-switch. When ENABLED: WaveManager goes dormant, LevelScript drives spawns.
+        // Disable to return the game to the v6 wave-based behavior.
+        V8_MODE: {
+            ENABLED: true,
+            LEVEL_DURATION_S: 180,      // Total level length (boss fight excluded)
+            BOSS_AT_S: 170,             // Seconds into level before boss trigger
+            DEFAULT_ENEMY_VY: 40,       // px/s — fall-with-scroll speed for scripted enemies
+            SPAWN_Y_OFFSET: -80,        // Spawn Y (above screen) for scripted enemies
+
+            // --- S3: entry patterns (Gradius-style movement) ---
+            PATTERNS: {
+                ENABLED: true,
+                DIVE:  { ACCEL: 35 },                       // vy += ACCEL*dt (simple fall)
+                SINE:  { AMPLITUDE: 70, FREQ: 2.0 },        // horizontal serpentine while descending
+                HOVER: { Y_TARGET_RATIO: 0.28, DWELL: 2.5, EXIT_VY: -180, APPROACH_VY: 60 },
+                SWOOP: { APPROACH_VY: 50, CURVE_FREQ: 1.3, CURVE_AMP: 140, SIDE_MARGIN: 30 }
+            }
+        },
+
         // --- DIFFICULTY SCALING (Stepped Progression) ---
         // 3 cycles = complete run (~12 min). Difficulty jumps per cycle, subtle increase per wave.
         DIFFICULTY: {
@@ -2210,6 +2230,24 @@
                     LINE_WIDTH: 1.5
                 },
                 INTRO: ['birds']
+            },
+
+            // --- V8 PARALLAX (scroll-aware depth) ---
+            V8_PARALLAX: {
+                ENABLED: true,
+                BASE_SPEED: 100,        // px/s — reference speed for multipliers below
+                FAR_MULT: 0.15,         // far hills: slow drift relative to scroll
+                MID_MULT: 0.50,
+                NEAR_MULT: 1.20,        // near-layer streaks sfrecciano
+                STREAKS: {
+                    ENABLED: true,
+                    COUNT: 30,
+                    MIN_LEN: 6,
+                    MAX_LEN: 22,
+                    MIN_ALPHA: 0.15,
+                    MAX_ALPHA: 0.55,
+                    COLORS: ['#00f0ff', '#ff2d95', '#bb44ff']
+                }
             }
         },
 

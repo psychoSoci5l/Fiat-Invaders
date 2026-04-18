@@ -44,6 +44,11 @@ window.Game.WaveManager = {
     update(dt, gameState, enemiesCount, bossActive) {
         const G = window.Game;
 
+        // v8: LevelScript drives spawns. WaveManager stays dormant.
+        if (G.Balance && G.Balance.V8_MODE && G.Balance.V8_MODE.ENABLED) {
+            return null;
+        }
+
         if (gameState === 'INTERMISSION') {
             this.intermissionTimer -= dt;
             if (this.intermissionTimer <= 0) {

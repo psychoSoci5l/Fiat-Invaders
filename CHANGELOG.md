@@ -1,5 +1,28 @@
 # Changelog
 
+## v7.0.1 — V8 density pass - 2026-04-18
+
+Hotfix sul v7.0.0 GRADIUS PROTOCOL dopo playtest validato — gli enemy arrivavano uno alla volta, sensazione di gioco vuoto.
+
+- **feat(v8)**: `LevelScript.SCRIPT` riscritto a burst (59 burst / 215 spawn vs 95 soli di v7.0.0). Densità 0.8→1.8 spawn/s, mai 1 nemico alla volta, alive avg 2.5→16 con picco 37 al corridor crush. Telemetria validata su run completa
+- **feat(v8)**: Metriche live in `LevelScript._stats` (bursts/spawned/killed/aliveMax/deadTimeSec) via hook `enemy_killed`. Leggibili on-demand con `dbg.v8()` — output include `avgTTK`, `deadTime%`, `aliveAvg/Max`
+- **feat(v8)**: Indicatore HUD top-center `BOSS T-XXs` (cyan countdown) → `⚠ CORRIDOR CRUSH ⚠` (magenta pulsing, 150-168s) → `BOSS INCOMING` (magenta pulsing, 168-170s) → `VICTORY +Ns` (gold, post-boss breathing)
+- **feat(debug)**: `dbg.v8()` / `dbg.toggleV8()` in startup help; auto-enable categoria `V8` su `DOMContentLoaded` quando `V8_MODE.ENABLED=true`
+- **chore(v8)**: rimosso log periodico 10s (rumore post-validazione). Log puntuali (primed/anchor/boss trigger/halt/resume/level end) conservati
+- **regression**: Kill-switch `Balance.V8_MODE.ENABLED = false` continua a riportare al comportamento wave-based v6.11 (audit statico su 7 punti gated)
+
+## v7.0.0 — V8 GRADIUS PROTOCOL - 2026-04-18
+
+### Major — Transition from Space-Invaders to Gradius-style vertical scroller
+- **feat(v8)**: `LevelScript` scripted spawn table — bypass WaveManager; one fixed ~170s level ending at boss. Kill-switch: `Balance.V8_MODE.ENABLED`
+- **feat(v8)**: 4 enemy entry patterns — `DIVE` (accelerating fall), `SINE` (horizontal serpentine), `HOVER` (stop at 28% y, dwell 2.5s, exit upward), `SWOOP` (enters from side margins with curve). Configurable in `Balance.V8_MODE.PATTERNS`
+- **feat(v8)**: Scroll-aware NEAR-layer parallax — additive-blend cyan/magenta/violet streaks, speed-reactive. Star parallax already depth-factored. Config: `Balance.SKY.V8_PARALLAX` with kill-switches
+- **feat(v8)**: Corridor crush set-piece at t=150s — ScrollEngine speed ramp 1.0 → 1.8 → decay, shake + damage vignette peak at t=152s, release at t=168s
+- **feat(v8)**: Boss halt/resume — ScrollEngine freezes on boss spawn; after boss death resumes at 40 px/s for a 10s breathing window, then triggers victory gameover
+- **feat(v8)**: ScrollEngine API — `setSpeedMultiplier(target, ramp, decayTo, decayRamp)`, `halt()`, `resume(override)`, `clearSpeedOverride()`
+- **feat(debug)**: `V8` log category (silent by default). New commands: `dbg.v8()` prints snapshot (ScrollEngine + LevelScript + enemies + boss), `dbg.toggleV8()` enables live V8 log spam. DebugOverlay (triple-tap) now shows V8 status rows when mode is enabled
+- **regression**: Kill-switch `Balance.V8_MODE.ENABLED = false` restores v6.11 wave-based flow identically
+
 ## v6.9.6 - 2026-04-14
 
 ### Game Design Tuning (Phase 4)

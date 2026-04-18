@@ -387,6 +387,13 @@ window.Game = window.Game || {};
                     ebArr.length = 0;
                     window.enemyBullets = ebArr;
                     d.setBossJustDefeated(true);
+
+                    // v8 S05: resume scroll at reduced "breathing" speed, then schedule level end.
+                    if (Balance.V8_MODE && Balance.V8_MODE.ENABLED) {
+                        if (G.ScrollEngine && G.ScrollEngine.resume) G.ScrollEngine.resume(40);
+                        if (G.LevelScript && G.LevelScript.scheduleLevelEnd) G.LevelScript.scheduleLevelEnd(10);
+                    }
+
                     if (d.player && d.player.hyperActive) d.player.deactivateHyper();
                     d.setGrazeMeter(0);
                     d.updateGrazeUI();

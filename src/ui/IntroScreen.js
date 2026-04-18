@@ -242,13 +242,16 @@ window.Game = window.Game || {};
         updateShipUI();
     }
 
-    // --- GAME MODE SELECTION (Arcade vs Campaign) ---
+    // --- GAME MODE SELECTION (Story / Arcade / Daily) ---
     window.setGameMode = function(mode) {
         const campaignState = G.CampaignState;
-        const isEnabled = mode === 'campaign';
+        const isStory = mode === 'campaign';
+        const isDaily = mode === 'daily';
+        // Daily runs on arcade rules under the hood — campaign stays disabled.
+        const campaignOn = isStory;
 
         // Reset story progress when switching TO Story mode (fixes intermittent start bug)
-        if (isEnabled && !campaignState.isEnabled()) {
+        if (campaignOn && !campaignState.isEnabled()) {
             campaignState.storyProgress = {
                 PROLOGUE: false,
                 CHAPTER_1: false,
@@ -257,26 +260,31 @@ window.Game = window.Game || {};
             };
         }
 
-        campaignState.setEnabled(isEnabled);
+        campaignState.setEnabled(campaignOn);
 
         // Always reset boss defeats when starting Story Mode (v4.11.0)
-        // Prevents partial progress from previous sessions carrying over
-        if (isEnabled) {
+        if (campaignOn) {
             campaignState.resetCampaign();
         }
+
+        if (G.DailyMode) G.DailyMode.setActive(isDaily);
 
         // Update mode selector pills (SPLASH state)
         const storyPill = document.getElementById('mode-pill-story');
         const arcadePill = document.getElementById('mode-pill-arcade');
+        const dailyPill = document.getElementById('mode-pill-daily');
 
-        if (storyPill) storyPill.classList.toggle('active', isEnabled);
-        if (arcadePill) arcadePill.classList.toggle('active', !isEnabled);
+        if (storyPill) storyPill.classList.toggle('active', isStory);
+        if (arcadePill) arcadePill.classList.toggle('active', mode === 'arcade');
+        if (dailyPill) dailyPill.classList.toggle('active', isDaily);
 
         // Update mode explanation (SPLASH state)
         const storyDesc = document.getElementById('mode-story-desc');
         const arcadeDesc = document.getElementById('mode-arcade-desc');
-        if (storyDesc) storyDesc.style.display = isEnabled ? 'block' : 'none';
-        if (arcadeDesc) arcadeDesc.style.display = isEnabled ? 'none' : 'block';
+        const dailyDesc = document.getElementById('mode-daily-desc');
+        if (storyDesc) storyDesc.style.display = isStory ? 'block' : 'none';
+        if (arcadeDesc) arcadeDesc.style.display = mode === 'arcade' ? 'block' : 'none';
+        if (dailyDesc) dailyDesc.style.display = isDaily ? 'block' : 'none';
 
         // Update mode indicator if in selection state
         if (introState === 'SELECTION') {
@@ -841,6 +849,109 @@ window.Game = window.Game || {};
         }
         container.innerHTML = html;
     }
+    // v7.0 Phase 5.1: Achievement toast notification
+    function showAchievementToasts(defs) {
+        const stack = document.getElementById('achievement-toast-stack');
+        if (!stack || !defs || !defs.length) return;
+        const tag = d.t('ACHIEVEMENT_UNLOCKED') || 'ACHIEVEMENT UNLOCKED';
+        defs.forEach((def, i) => {
+            const name = d.t('ACH_' + def.id + '_NAME') || def.id;
+            const desc = d.t('ACH_' + def.id + '_DESC') || '';
+            const el = document.createElement('div');
+            el.className = 'achievement-toast';
+            el.innerHTML = `<span class="ach-icon">${def.icon}</span><div class="ach-body"><div class="ach-tag">${tag}</div><div class="ach-name">${name}</div><div class="ach-desc">${desc}</div></div>`;
+            // Stagger reveal so multi-unlocks don't slam in at once
+            setTimeout(() => {
+                stack.appendChild(el);
+                if (G.Audio) G.Audio.play('coinPerk');
+                setTimeout(() => {
+                    el.classList.add('fade-out');
+                    setTimeout(() => el.remove(), 400);
+                }, 4200);
+            }, i * 600);
+        });
+    }
+    if (G.Events) G.Events.on('ACHIEVEMENTS_UNLOCKED', showAchievementToasts);
+
+    // v7.0 Phase 5.1: Profile / Stats panel
+    function _stat(label, value) {
+        return `<div class="profile-stat"><span class="profile-stat-label">${label}</span><span class="profile-stat-value">${value}</span></div>`;
+    }
+    function renderProfile() {
+        const container = document.getElementById('profile-content');
+        if (!container || !G.StatsTracker) return;
+        const s = G.StatsTracker.get();
+        const fmt = (n) => (n | 0).toLocaleString();
+        if (!s.totalRuns) {
+            container.innerHTML = `<div class="profile-empty">${d.t('PROFILE_NO_DATA') || 'No runs yet.'}</div>`;
+            return;
+        }
+        const lifetime = [
+            _stat(d.t('PROFILE_RUNS') || 'RUNS', fmt(s.totalRuns)),
+            _stat(d.t('PROFILE_KILLS') || 'KILLS', fmt(s.totalKills)),
+            _stat(d.t('PROFILE_BOSSES') || 'BOSSES', fmt(s.bossesDefeated)),
+            _stat(d.t('PROFILE_MINIBOSSES') || 'MINI-BOSSES', fmt(s.miniBossesDefeated)),
+            _stat(d.t('PROFILE_PLAYTIME') || 'PLAY TIME', G.StatsTracker.formatTime(s.totalPlayTime)),
+            _stat(d.t('PROFILE_TOTAL_SCORE') || 'TOTAL SCORE', fmt(s.totalScore))
+        ].join('');
+        const bests = [
+            _stat(d.t('PROFILE_HIGHEST_SCORE') || 'BEST SCORE', fmt(s.highestScoreRun)),
+            _stat(d.t('PROFILE_LONGEST_RUN') || 'LONGEST RUN', G.StatsTracker.formatTime(s.longestRunSec)),
+            _stat(d.t('PROFILE_BEST_COMBO') || 'BEST COMBO', (s.highestCombo || 0).toFixed(2) + 'x'),
+            _stat(d.t('PROFILE_BEST_STREAK') || 'BEST STREAK', fmt(s.bestStreakEver)),
+            _stat(d.t('PROFILE_HYPERS') || 'HYPERS', fmt(s.hyperActivations)),
+            _stat(d.t('PROFILE_GODCHAINS') || 'GODCHAINS', fmt(s.godchainActivations))
+        ].join('');
+        const modeRow = (key, m) => `<div class="profile-mode-row"><span class="profile-mode-name">${d.t(key) || key}</span><span>${fmt(m.runs)} runs · ${fmt(m.kills)} kills · ${fmt(m.bossesDefeated)} bosses</span></div>`;
+        const byMode = modeRow('PROFILE_MODE_STORY', s.byMode.story) + modeRow('PROFILE_MODE_ARCADE', s.byMode.arcade);
+
+        // Achievements section
+        let achHtml = '';
+        if (G.AchievementSystem) {
+            const defs = G.AchievementSystem.getDefinitions();
+            const unlockedCount = G.AchievementSystem.getUnlockedCount();
+            const total = G.AchievementSystem.getTotalCount();
+            const rows = defs.map(def => {
+                const on = G.AchievementSystem.isUnlocked(def.id);
+                const name = d.t('ACH_' + def.id + '_NAME') || def.id;
+                const desc = d.t('ACH_' + def.id + '_DESC') || '';
+                return `<div class="ach-row ${on ? 'ach-on' : 'ach-off'}"><span class="ach-row-icon">${on ? def.icon : '🔒'}</span><div class="ach-row-body"><div class="ach-row-name">${name}</div><div class="ach-row-desc">${desc}</div></div></div>`;
+            }).join('');
+            achHtml = `<div class="profile-section"><h3>${d.t('PROFILE_ACHIEVEMENTS') || 'ACHIEVEMENTS'} <span class="ach-counter">${unlockedCount}/${total}</span></h3>${rows}</div>`;
+        }
+
+        container.innerHTML =
+            `<div class="profile-section"><h3>${d.t('PROFILE_LIFETIME') || 'LIFETIME'}</h3><div class="profile-grid">${lifetime}</div></div>` +
+            `<div class="profile-section"><h3>${d.t('PROFILE_BESTS') || 'RECORDS'}</h3><div class="profile-grid">${bests}</div></div>` +
+            `<div class="profile-section"><h3>${d.t('PROFILE_BY_MODE') || 'BY MODE'}</h3>${byMode}</div>` +
+            achHtml;
+    }
+    window.toggleProfile = function () {
+        const panel = document.getElementById('profile-panel');
+        if (!panel) return;
+        const isVisible = panel.style.display === 'flex';
+        panel.style.display = isVisible ? 'none' : 'flex';
+        if (!isVisible) {
+            renderProfile();
+            const title = document.getElementById('profile-title');
+            const closeBtn = document.getElementById('btn-profile-close');
+            const resetBtn = document.getElementById('btn-profile-reset');
+            if (title) title.innerText = d.t('PROFILE_TITLE') || 'PILOT PROFILE';
+            if (closeBtn) closeBtn.innerText = d.t('CLOSE') || 'CLOSE';
+            if (resetBtn) resetBtn.innerText = d.t('PROFILE_RESET') || 'RESET STATS';
+            G.Audio.play('coinUI');
+        }
+    };
+    window.resetProfileStats = function () {
+        if (!G.StatsTracker) return;
+        const msg = d.t('PROFILE_RESET_CONFIRM') || 'Reset all stats?';
+        if (window.confirm(msg)) {
+            G.StatsTracker.reset();
+            if (G.AchievementSystem) G.AchievementSystem.reset();
+            renderProfile();
+        }
+    };
+
     window.toggleWhatsNew = function () {
         const panel = document.getElementById('whatsnew-panel');
         if (!panel) return;
@@ -880,9 +991,30 @@ window.Game = window.Game || {};
 
     // Ship launch animation - goes directly to game (skips hangar)
     let isLaunching = false;
-    window.launchShipAndStart = function () {
+    window.launchShipAndStart = async function () {
         if (isLaunching) return;
         isLaunching = true;
+
+        // v6.10.0: Daily Seed Run gating — block second attempt and seed RNG
+        if (G.DailyMode && G.DailyMode.isActive()) {
+            if (G.DailyMode.isLockedToday()) {
+                isLaunching = false;
+                if (G.MemeEngine) {
+                    G.MemeEngine.queueMeme('CRITICAL',
+                        `${d.t('DAILY_LOCKED') || 'Daily already played'} — ${G.DailyMode.formatCountdown()}`,
+                        '⏳');
+                }
+                return;
+            }
+            try {
+                await G.RNG.setDailySeed();
+            } catch (e) {
+                console.warn('[Daily] seed failed', e);
+                G.DailyMode.setActive(false);
+            }
+        } else if (G.RNG) {
+            G.RNG.clear();
+        }
 
         // v5.23: Prompt nickname once per session; skip allowed
         if (!G.hasNickname() && !window._nickPromptShown) {

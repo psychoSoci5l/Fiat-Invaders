@@ -191,6 +191,58 @@ class Enemy extends window.Game.Entity {
             }
         }
 
+        // v8 fall-with-scroll: scripted enemies drop with a Gradius-style entry pattern.
+        // Skips entry/grid/wave patterns; hit flash + sparks above still apply.
+        if (this._v8Fall) {
+            const cfg = window.Game.Balance && window.Game.Balance.V8_MODE && window.Game.Balance.V8_MODE.PATTERNS;
+            const gw = window.Game._gameWidth || 400;
+            const gh = window.Game._gameHeight || 800;
+            const pat = this.entryPattern || 'DIVE';
+
+            if (!cfg || !cfg.ENABLED || pat === 'DIVE') {
+                const accel = (cfg && cfg.DIVE && cfg.DIVE.ACCEL) || 0;
+                this.vy += accel * dt;
+                this.y += this.vy * dt;
+            } else if (pat === 'SINE') {
+                this._v8PatTimer = (this._v8PatTimer || 0) + dt;
+                this.y += this.vy * dt;
+                const baseX = (this._v8SpawnX !== undefined) ? this._v8SpawnX : this.x;
+                this.x = baseX + Math.sin(this._v8PatTimer * cfg.SINE.FREQ) * cfg.SINE.AMPLITUDE;
+                // clamp inside screen margins
+                const margin = 20;
+                if (this.x < margin) this.x = margin;
+                else if (this.x > gw - margin) this.x = gw - margin;
+            } else if (pat === 'HOVER') {
+                const targetY = gh * cfg.HOVER.Y_TARGET_RATIO;
+                if (this._v8PatPhase === undefined) this._v8PatPhase = 'APPROACH';
+                if (this._v8PatPhase === 'APPROACH') {
+                    this.y += this.vy * dt;
+                    if (this.y >= targetY) {
+                        this._v8PatPhase = 'DWELL';
+                        this._v8PatTimer = cfg.HOVER.DWELL;
+                    }
+                } else if (this._v8PatPhase === 'DWELL') {
+                    this._v8PatTimer -= dt;
+                    if (this._v8PatTimer <= 0) {
+                        this._v8PatPhase = 'LEAVE';
+                        this.vy = cfg.HOVER.EXIT_VY;
+                    }
+                } else { // LEAVE
+                    this.y += this.vy * dt;
+                }
+            } else if (pat === 'SWOOP') {
+                this._v8PatTimer = (this._v8PatTimer || 0) + dt;
+                this.y += this.vy * dt;
+                const baseX = (this._v8SpawnX !== undefined) ? this._v8SpawnX : this.x;
+                const dir = (this._v8SwoopDir !== undefined) ? this._v8SwoopDir : 1;
+                this.x = baseX + dir * Math.sin(this._v8PatTimer * cfg.SWOOP.CURVE_FREQ) * cfg.SWOOP.CURVE_AMP;
+                const m = cfg.SWOOP.SIDE_MARGIN || 30;
+                if (this.x < m) this.x = m;
+                else if (this.x > gw - m) this.x = gw - m;
+            }
+            return;
+        }
+
         // FORMATION ENTRY - Handle entry animation before normal movement
         if (this.isEntering) {
             // v5.24: Safety timeout — force-complete entry after 4s to prevent stuck state

@@ -35,6 +35,7 @@ window.Game.Debug = {
         AUDIO: false,    // Audio events
         STATE: false,    // Game state changes
         CONDUCTOR: false, // HarmonicConductor events
+        V8: false,       // v8 Gradius protocol (LevelScript, ScrollEngine, crush anchors)
     },
 
     // ========== EVENT TRACKING ==========
@@ -78,7 +79,7 @@ window.Game.Debug = {
     sessionLog: [],
     MAX_SESSION_LOG: 40,
     SESSION_LOG_KEY: 'fiat_debug_session_log',
-    SESSION_LOG_CATEGORIES: { STATE: 1, WAVE: 1, BOSS: 1, MINIBOSS: 1, QUALITY: 1 },
+    SESSION_LOG_CATEGORIES: { STATE: 1, WAVE: 1, BOSS: 1, MINIBOSS: 1, QUALITY: 1, V8: 1 },
 
     // Session start time
     sessionStart: Date.now(),
@@ -1286,6 +1287,68 @@ window.Game.Debug = {
             this.categories[cat] = false;
         });
         console.log('[DEBUG] All categories disabled');
+    },
+
+    // ========== V8 GRADIUS PROTOCOL ==========
+
+    /**
+     * Print current v8 state snapshot (ScrollEngine + LevelScript + enemies + boss).
+     * Use as quick sanity check: dbg.v8()
+     */
+    v8() {
+        const G = window.Game;
+        const se = G && G.ScrollEngine;
+        const ls = G && G.LevelScript;
+        const v8cfg = G && G.Balance && G.Balance.V8_MODE;
+        console.group('[V8 STATE]');
+        console.log('V8_MODE.ENABLED:', v8cfg ? v8cfg.ENABLED : '(no Balance)');
+        console.log('ScrollEngine:', se ? {
+            enabled: se.enabled,
+            halted: !!se._halted,
+            scrollY: se.camera && typeof se.camera.scrollY === 'number' ? se.camera.scrollY.toFixed(1) : null,
+            speed: typeof se.getSpeed === 'function' ? se.getSpeed().toFixed(1) : null,
+            speedMult: typeof se._speedMult === 'number' ? se._speedMult.toFixed(2) : null,
+            speedOverride: se._speedOverride
+        } : '(missing)');
+        console.log('LevelScript:', ls ? {
+            elapsed: typeof ls._elapsed === 'number' ? ls._elapsed.toFixed(1) : null,
+            bursts: `${ls._idx}/${(ls.SCRIPT && ls.SCRIPT.length) || 0}`,
+            bossSpawned: !!ls._bossSpawned,
+            hcPrimed: !!ls._hcPrimed,
+            anchorIdx: ls._anchorIdx,
+            levelEndTimer: ls._levelEndTimer
+        } : '(missing)');
+        // Live run metrics
+        if (ls && ls._stats) {
+            const s = ls._stats;
+            const avg = s.aliveSamples > 0 ? (s.aliveSum / s.aliveSamples) : 0;
+            const t = (ls._elapsed || 0);
+            const deadPct = t > 0 ? (s.deadTimeSec / t * 100) : 0;
+            const ttk = s.killed > 0 ? (t / s.killed) : 0;
+            console.log('Run metrics:', {
+                bursts: s.burstsFired,
+                spawned: s.spawned,
+                killed: s.killed,
+                alive: (G && G.enemies || []).length,
+                aliveAvg: avg.toFixed(2),
+                aliveMax: s.aliveMax,
+                deadTime: `${s.deadTimeSec.toFixed(1)}s (${deadPct.toFixed(1)}%)`,
+                avgTTK: `${ttk.toFixed(2)}s/kill`
+            });
+        } else {
+            console.log('Enemies alive:', (G && G.enemies || []).length);
+        }
+        console.log('Boss:', window.boss ? { phase: window.boss.phase, hp: window.boss.hp } : null);
+        console.groupEnd();
+    },
+
+    /**
+     * Toggle v8 category logging (spawns, anchors, halt/resume).
+     */
+    toggleV8() {
+        this.ENABLED = true;
+        this.categories.V8 = !this.categories.V8;
+        console.log('[V8 logs]', this.categories.V8 ? 'ON' : 'OFF');
     },
 
     // ========== STATUS & STATS ==========
@@ -2935,4 +2998,17 @@ window.Game.Debug = {
 window.dbg = window.Game.Debug;
 
 // Console helper message
-console.log('[DEBUG] DebugSystem loaded. Commands: dbg.stats(), dbg.showOverlay(), dbg.perf(), dbg.perfReport(), dbg.entityReport(), dbg.boss(type), dbg.debugBoss(), dbg.debugHUD(), dbg.hudStatus(), dbg.toggleHudMsg(key), dbg.maxWeapon(), dbg.weaponStatus(), dbg.godchain(), dbg.godchainStatus(), dbg.powerUpReport(), dbg.progressionReport(), dbg.contagionReport(), dbg.hitboxes(), dbg.formations(), dbg.arcade(), dbg.arcadeHelp(), dbg.completion(), dbg.waveReport(), dbg.elites(), dbg.behaviors(), dbg.streaming(), dbg.quality(), dbg.qualitySet(tier)');
+console.log('[DEBUG] DebugSystem loaded. Commands: dbg.stats(), dbg.showOverlay(), dbg.perf(), dbg.perfReport(), dbg.entityReport(), dbg.boss(type), dbg.debugBoss(), dbg.debugHUD(), dbg.hudStatus(), dbg.toggleHudMsg(key), dbg.maxWeapon(), dbg.weaponStatus(), dbg.godchain(), dbg.godchainStatus(), dbg.powerUpReport(), dbg.progressionReport(), dbg.contagionReport(), dbg.hitboxes(), dbg.formations(), dbg.arcade(), dbg.arcadeHelp(), dbg.completion(), dbg.waveReport(), dbg.elites(), dbg.behaviors(), dbg.streaming(), dbg.quality(), dbg.qualitySet(tier), dbg.v8(), dbg.toggleV8()');
+
+// v8: auto-enable V8 category + master debug flag when V8_MODE is ENABLED
+// Deferred to DOMContentLoaded because BalanceConfig.js loads AFTER DebugSystem.js
+window.addEventListener('DOMContentLoaded', () => {
+    try {
+        const _v8On = window.Game?.Balance?.V8_MODE?.ENABLED;
+        if (_v8On && window.Game?.Debug) {
+            window.Game.Debug.ENABLED = true;
+            window.Game.Debug.categories.V8 = true;
+            console.log('[V8] logs auto-enabled (V8_MODE.ENABLED=true). Use dbg.v8() for snapshot, dbg.toggleV8() to silence.');
+        }
+    } catch (e) { /* noop */ }
+});

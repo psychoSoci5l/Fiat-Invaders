@@ -93,7 +93,7 @@ window.Game = window.Game || {};
         const perks = [stacks.fire ? 'F' : '-', stacks.laser ? 'L' : '-', stacks.electric ? 'E' : '-'].join('');
         const nick = localStorage.getItem('fiat_nickname') || '-';
         const ctx = G._debugCtx || {};
-        return [
+        const rows = [
             { label: 'Version', val: G.VERSION || '?' },
             { label: 'Mode', val: isStory ? 'STORY' : 'ARCADE' },
             { label: 'Cycle', val: `${window.marketCycle ?? '?'}` },
@@ -105,6 +105,23 @@ window.Game = window.Game || {};
             { label: 'Perks', val: perks },
             { label: 'Nickname', val: nick }
         ];
+        const v8cfg = G.Balance && G.Balance.V8_MODE;
+        if (v8cfg && v8cfg.ENABLED) {
+            const se = G.ScrollEngine;
+            const ls = G.LevelScript;
+            const scrollY = se && se.camera ? se.camera.scrollY : 0;
+            const speed = se && se.getSpeed ? se.getSpeed() : 0;
+            const spawns = ls ? `${ls._idx}/${ls.SCRIPT ? ls.SCRIPT.length : 0}` : '-';
+            const elapsed = ls ? (ls._elapsed || 0).toFixed(1) : '-';
+            const bossFlag = ls && ls._bossSpawned ? 'YES' : 'NO';
+            rows.push({ label: 'V8 Mode', val: 'ENABLED', cls: 'good' });
+            rows.push({ label: 'V8 Scroll', val: `${scrollY.toFixed(1)} px` });
+            rows.push({ label: 'V8 Speed', val: `${speed.toFixed(0)} px/s` });
+            rows.push({ label: 'V8 Elapsed', val: `${elapsed}s` });
+            rows.push({ label: 'V8 Spawns', val: spawns });
+            rows.push({ label: 'V8 Boss', val: bossFlag });
+        }
+        return rows;
     }
 
     function _collectDebugSessionFromLog(prev) {

@@ -153,6 +153,7 @@ function safeGetJSON(key, fallback) {
 
 // HIGH SCORE — mode-specific persistence (v4.50)
 function highScoreKey() {
+    if (G.DailyMode && G.DailyMode.isActive()) return `fiat_highscore_${G.DailyMode.modeToken()}`;
     const isStory = G.CampaignState && G.CampaignState.isEnabled();
     return isStory ? 'fiat_highscore_story' : 'fiat_highscore_arcade';
 }
@@ -994,6 +995,16 @@ function init() {
 
     // Initialize Campaign State
     if (G.CampaignState) G.CampaignState.init();
+
+    // v7.0 Phase 5.1: Initialize StatsTracker + subscribe to hyper/godchain events
+    if (G.StatsTracker) {
+        G.StatsTracker.init();
+        if (G.Events) {
+            G.Events.on('HYPER_ACTIVATED', () => G.StatsTracker.recordHyper());
+            G.Events.on('GODCHAIN_ACTIVATED', () => G.StatsTracker.recordGodchain());
+        }
+    }
+    if (G.AchievementSystem) G.AchievementSystem.init();
 
     const startApp = () => {
         const splash = document.getElementById('splash-layer');
@@ -1845,14 +1856,29 @@ document.addEventListener('visibilitychange', function () {
         window.togglePause();
     }
 });
+// v6.10.0: Daily Seed Run gating — REPLAY/RESTART consumes the daily attempt.
+function _blockIfDailyConsumed() {
+    if (!G.DailyMode || !G.DailyMode.isActive() || !G.DailyMode.isLockedToday()) return false;
+    if (G.MemeEngine) {
+        const t = (G.t || ((k) => k));
+        G.MemeEngine.queueMeme('CRITICAL',
+            `${t('DAILY_LOCKED') || 'Daily already played'} — ${G.DailyMode.formatCountdown()}`,
+            '⏳');
+    }
+    if (typeof window.backToIntro === 'function') window.backToIntro();
+    return true;
+}
+
 window.restartRun = function () {
     setStyle('pause-screen', 'display', 'none');
+    if (_blockIfDailyConsumed()) return;
     audioSys.resetState(); // Reset audio state for new run
     startGame();
 };
 window.restartFromGameOver = function () {
     if (G.DebugOverlay) G.DebugOverlay.hide();
     setStyle('gameover-screen', 'display', 'none');
+    if (_blockIfDailyConsumed()) return;
     audioSys.resetState(); // Reset audio state for new run
     startGame();
 };
@@ -2111,6 +2137,8 @@ function triggerScoreStreakColor(streakLevel) {
 
 function startGame() {
     if (G.DebugOverlay) G.DebugOverlay.hide();
+    if (G.DailyMode && G.DailyMode.isActive()) G.DailyMode.markAttempt();
+    if (G.ScrollEngine) G.ScrollEngine.reset();
     audioSys.init();
     clearBossDeathTimeouts(); // v5.13.1: Cancel orphan boss death timeouts
 
@@ -2186,6 +2214,7 @@ function startGame() {
     updateGrazeUI(); // Reset grazing UI
 
     waveMgr.reset();
+    if (G.LevelScript) G.LevelScript.reset();
     gridDir = 1;
     // gridSpeed now computed dynamically via getGridSpeed()
 
@@ -2583,6 +2612,11 @@ function spawnBoss() {
         const intro = bossIntroPool[Math.floor(Math.random() * bossIntroPool.length)];
         G.MemeEngine.queueMeme('BOSS_SPAWN', intro.text, intro.speaker);
     }
+
+    // v8 S05: Stop the camera scroll — boss fight happens in a fixed arena.
+    if (Balance.V8_MODE && Balance.V8_MODE.ENABLED && G.ScrollEngine && G.ScrollEngine.halt) {
+        G.ScrollEngine.halt();
+    }
 }
 
 G._spawnBoss = spawnBoss; // v5.7: debug access
@@ -2725,7 +2759,13 @@ function update(dt) {
 
     // v2.22.1: Include boss warning state to prevent duplicate boss spawn actions
     const isBossActive = !!boss || bossWarningTimer > 0;
-    const waveAction = startCountdownActive ? null : waveMgr.update(dt, gameState, enemies.length, isBossActive);
+    let waveAction = startCountdownActive ? null : waveMgr.update(dt, gameState, enemies.length, isBossActive);
+    // v8: LevelScript drives spawns + boss trigger. waveMgr.update() returns null in V8 mode.
+    if (!startCountdownActive && gameState === 'PLAY' && !isBossActive &&
+        G.Balance.V8_MODE && G.Balance.V8_MODE.ENABLED && G.LevelScript) {
+        const v8Action = G.LevelScript.tick(dt);
+        if (v8Action) waveAction = v8Action;
+    }
 
     // Boss warning timer countdown
     if (bossWarningTimer > 0) {
@@ -2784,6 +2824,9 @@ function update(dt) {
 
         if (waveAction.action === 'SPAWN_BOSS') {
             startBossWarning(); // Start warning instead of immediate spawn
+        } else if (waveAction.action === 'LEVEL_END') {
+            // v8 S05: scripted level end after boss breathing window — victory path.
+            triggerGameOver();
         } else if (waveAction.action === 'START_WAVE') {
             setGameState('PLAY');
             triggerScreenFlash('WAVE_START'); // Brief white flash at wave start
@@ -3553,6 +3596,51 @@ function draw() {
     // Debug overlay (F3 toggle)
     if (debugMode) drawDebug(ctx);
 
+    // v8 S02: scroll telemetry HUD removed — parallax now speaks visually.
+    // Use dbg.v8() or triple-tap overlay for debug state.
+
+    // v8 S07: BOSS COUNTDOWN / CORRIDOR CRUSH / LEVEL-END indicator (top-center HUD)
+    if (G.Balance?.V8_MODE?.ENABLED && gameState === 'PLAY' && G.LevelScript) {
+        const ls = G.LevelScript;
+        const elapsed = ls._elapsed || 0;
+        const bossAt = G.Balance.V8_MODE.BOSS_AT_S || 170;
+        const bossAlive = !!window.boss;
+        const endTimer = ls._levelEndTimer;
+        let label = null, color = '#00f0ff', pulse = false;
+        if (endTimer >= 0) {
+            label = `VICTORY +${endTimer.toFixed(1)}s`;
+            color = '#ffaa00';
+        } else if (bossAlive) {
+            // boss has own HP bar, skip
+        } else if (elapsed >= 168 && elapsed < bossAt) {
+            label = 'BOSS INCOMING';
+            color = '#ff2d95';
+            pulse = true;
+        } else if (elapsed >= 150 && elapsed < 168) {
+            label = '⚠ CORRIDOR CRUSH ⚠';
+            color = '#ff2d95';
+            pulse = true;
+        } else if (elapsed < bossAt) {
+            const rem = Math.max(0, bossAt - elapsed);
+            label = `BOSS  T-${Math.ceil(rem)}s`;
+        }
+        if (label) {
+            const cw = ctx.canvas.width;
+            const y = 92;
+            ctx.save();
+            const alpha = pulse ? (0.75 + 0.25 * Math.sin(totalTime * 6)) : 0.9;
+            ctx.globalAlpha = alpha;
+            ctx.font = 'bold 14px "Press Start 2P", monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 12;
+            ctx.fillStyle = color;
+            ctx.fillText(label, cw / 2, y);
+            ctx.restore();
+        }
+    }
+
     // v4.1.1: Expose HUD state for debug overlay
     if (G.Debug && G.Debug.OVERLAY_ENABLED) {
         G._hudState = {
@@ -4166,6 +4254,10 @@ function loop(timestamp) {
 
     // v4.4: Reactive HUD - score streak colors + HYPER score
     updateReactiveHUD();
+    // v8 S01: advance world scroll (only during PLAY, only if opted in)
+    if (G.ScrollEngine && gameState === 'PLAY') {
+        G.ScrollEngine.update(realDt);
+    }
     // Sky update via SkyRenderer
     if (G.SkyRenderer) {
         const skyEffects = G.SkyRenderer.update(dt, { isBearMarket, gameState });
