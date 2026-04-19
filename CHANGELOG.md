@@ -1,5 +1,15 @@
 # Changelog
 
+## v7.1.0 — Meta-progression wiring + V8 polish - 2026-04-19
+
+Fix di un debito tecnico pre-esistente (precede v7.0): `StatsTracker` e `AchievementSystem` erano definiti ma mai chiamati dai callsite — gli achievement non si sbloccavano mai (tranne HYPER_RIDER / GODCHAIN_AWAKEN wired via EventBus) e il Pilot Profile mostrava sempre contatori a zero. Ora tutto il cumulative stats + achievement unlock flow funziona.
+
+- **fix(meta)**: `StatsTracker.recordBossDefeat(bossType)` ora chiamato in `GameplayCallbacks.onBossDeath` — i boss contano nel totale `bossesDefeated` e nella partizione `byMode.{story,arcade}.bossesDefeated`
+- **fix(meta)**: `StatsTracker.recordMiniBossDefeat()` ora chiamato in `MiniBossManager` al kill — conta mini-boss per achievement `MINIBOSS_PURGE`
+- **fix(meta)**: `StatsTracker.recordRunEnd({mode, score, kills, playTimeSec, bestStreak, bestCombo, cycle, level})` + `AchievementSystem.checkAll()` ora chiamati in `triggerGameOver` — aggiorna totali cumulativi e triggera toast achievement (toast UI era già wired in `IntroScreen`, ma `checkAll` non veniva mai invocato)
+- **chore(v8)**: rimosso auto-enable dei log `[V8]` al DOMContentLoaded. In v7.1.0 i log V8 sono silenziosi di default; `dbg.toggleV8()` per abilitarli. `dbg.v8()` snapshot on-demand resta disponibile
+- **regression**: nessuna. Il wiring è additivo; `V8_MODE.ENABLED=false` continua a riportare al comportamento wave-based v6.11
+
 ## v7.0.1 — V8 density pass - 2026-04-18
 
 Hotfix sul v7.0.0 GRADIUS PROTOCOL dopo playtest validato — gli enemy arrivavano uno alla volta, sensazione di gioco vuoto.

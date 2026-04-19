@@ -3002,13 +3002,4 @@ console.log('[DEBUG] DebugSystem loaded. Commands: dbg.stats(), dbg.showOverlay(
 
 // v8: auto-enable V8 category + master debug flag when V8_MODE is ENABLED
 // Deferred to DOMContentLoaded because BalanceConfig.js loads AFTER DebugSystem.js
-window.addEventListener('DOMContentLoaded', () => {
-    try {
-        const _v8On = window.Game?.Balance?.V8_MODE?.ENABLED;
-        if (_v8On && window.Game?.Debug) {
-            window.Game.Debug.ENABLED = true;
-            window.Game.Debug.categories.V8 = true;
-            console.log('[V8] logs auto-enabled (V8_MODE.ENABLED=true). Use dbg.v8() for snapshot, dbg.toggleV8() to silence.');
-        }
-    } catch (e) { /* noop */ }
-});
+// v7.1.0: V8 logs no longer auto-enable on load. Use dbg.toggleV8() to enable live logs.

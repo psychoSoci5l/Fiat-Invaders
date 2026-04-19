@@ -408,6 +408,7 @@ window.Game = window.Game || {};
                     const victoryMemes = { 'FEDERAL_RESERVE': "💥 INFLATION CANCELLED!", 'BCE': "💥 FRAGMENTATION COMPLETE!", 'BOJ': "💥 YEN LIBERATED!" };
                     G.MemeEngine.queueMeme('BOSS_DEFEATED', victoryMemes[defeatedBossType] || "CENTRAL BANK DESTROYED!", defeatedBossName);
                     G.Debug.trackBossDefeat(defeatedBossType, d.getLevel(), marketCycle);
+                    if (G.StatsTracker && G.StatsTracker.recordBossDefeat) G.StatsTracker.recordBossDefeat(defeatedBossType);
                     if (G.Debug) { G.Debug.trackBossFightEnd(defeatedBossType, marketCycle); G.Debug.trackCycleEnd(marketCycle, Math.floor(d.getScore())); }
                     const newCycle = marketCycle + 1;
                     d.setMarketCycle(newCycle);

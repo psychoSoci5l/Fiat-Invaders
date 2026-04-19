@@ -228,6 +228,22 @@ window.Game = window.Game || {};
 
         if (G.Debug) G.Debug.endAnalyticsRun(Math.floor(d.getScore()));
 
+        // Meta-progression: record run stats + check achievement unlocks
+        if (G.StatsTracker && G.StatsTracker.recordRunEnd) {
+            const isStoryRun = G.CampaignState && G.CampaignState.isEnabled();
+            G.StatsTracker.recordRunEnd({
+                mode: isStoryRun ? 'story' : 'arcade',
+                score: Math.floor(d.getScore()),
+                kills: d.getKillCount() | 0,
+                playTimeSec: Math.floor(d.getTotalTime() || 0),
+                bestStreak: d.getBestStreak() | 0,
+                bestCombo: (G.RunState && G.RunState.bestCombo) | 0,
+                cycle: d.getMarketCycle() | 0,
+                level: d.getLevel() | 0
+            });
+            if (G.AchievementSystem && G.AchievementSystem.checkAll) G.AchievementSystem.checkAll();
+        }
+
         const wasNewHighScore = d.getScore() > d.getHighScore();
         if (wasNewHighScore) {
             d.setHighScore(Math.floor(d.getScore()));

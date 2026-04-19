@@ -328,6 +328,7 @@
 
                 showVictory(deathName + ' ' + _deps.t('DESTROYED'));
                 G.MemeEngine.queueMeme('MINI_BOSS_DEFEATED', isBossInstance ? "CENTRAL BANK REKT!" : "FIAT IS DEAD!", deathName);
+                if (G.StatsTracker && G.StatsTracker.recordMiniBossDefeat) G.StatsTracker.recordMiniBossDefeat();
                 setShake(40);
                 G.Audio.play('explosion');
 
