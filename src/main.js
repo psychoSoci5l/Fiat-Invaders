@@ -900,7 +900,9 @@ function init() {
                 var bullet = G.Bullet.Pool.acquire(bd.x, bd.y, bd.vx, bd.vy, bd.color, bd.w || 8, bd.h || 8, false);
                 bullet.beatSynced = true;
                 bullet.shape = bd.shape || null;
-                bullet.ownerColor = bd.ownerColor || null; // v4.56: enemy color for core tint
+                // v4.56: enemy color for core tint. v7.2.2: forced null in V8 mode for legibility
+                // (red ¥ bullets blended with red ¥ enemies — pure white reads better on Gradius scroll).
+                bullet.ownerColor = (G.Balance?.V8_MODE?.ENABLED) ? null : (bd.ownerColor || null);
                 if (bd.isBomb) bullet.isBomb = true; // v5.32: Bomber bomb flag
                 enemyBullets.push(bullet);
             }

@@ -923,13 +923,16 @@ class Enemy extends window.Game.Entity {
             ctx.stroke();
         }
 
-        // Symbol with neon glow
+        // Symbol with neon glow + black outline for legibility against red fill
         ctx.shadowColor = this.color;
         ctx.shadowBlur = 6;
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 18px Arial';
+        ctx.font = 'bold 22px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#000';
+        ctx.strokeText(this.symbol, x, y);
+        ctx.fillStyle = '#fff';
         ctx.fillText(this.symbol, x, y);
         ctx.shadowBlur = 0;
     }

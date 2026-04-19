@@ -1,5 +1,14 @@
 # Changelog
 
+## v7.2.2 — V8 legibility pass - 2026-04-19
+
+Dopo il fix purge di v7.2.1 i nemici erano tecnicamente on-screen, ma troppo piccoli e confondibili con i proiettili. Leggibilità pass:
+
+- **tune(v8)**: `PATTERNS.DIVE.ACCEL` 35→10 px/s² — nemici restano visibili ~6-8s invece di attraversare lo schermo in ~3s, dando tempo per mirarli
+- **polish(art)**: simbolo valuta su coin enemies ora 22px bold con outline nero (era 18px bold senza outline) — si stacca dal fill rosso/colorato del body
+- **polish(art)**: in V8_MODE, `bullet.ownerColor` forzato a null — i proiettili enemy restano bianchi puri invece di essere tinti con il colore del nemico (prima i proiettili di ¥ rosso erano rossi e si confondevano con il nemico stesso)
+- **regression**: nessuna. `V8_MODE.ENABLED=false` preserva `ownerColor` tint come in v7.2.1. Symbol 22px interessa tutti i coin enemies ma migliora leggibilità anche in wave mode.
+
 ## v7.2.1 — Fix v8 enemies invisible (off-screen accumulation) - 2026-04-19
 
 Regression-hunting fix: nei run v8 gli enemy scritti (`_v8Fall`) cadevano oltre lo schermo con vy accelerata (DIVE.ACCEL=35 px/s²), ma **non venivano mai rimossi dall'array** — restavano `alive` a y>>gameHeight, invisibili ma ancora targettabili dall'`HarmonicConductor` che li faceva sparare. Effetto visibile: "arrivano i colpi ma non vedo i nemici".
