@@ -1,5 +1,12 @@
 # Changelog
 
+## v7.2.1 — Fix v8 enemies invisible (off-screen accumulation) - 2026-04-19
+
+Regression-hunting fix: nei run v8 gli enemy scritti (`_v8Fall`) cadevano oltre lo schermo con vy accelerata (DIVE.ACCEL=35 px/s²), ma **non venivano mai rimossi dall'array** — restavano `alive` a y>>gameHeight, invisibili ma ancora targettabili dall'`HarmonicConductor` che li faceva sparare. Effetto visibile: "arrivano i colpi ma non vedo i nemici".
+
+- **fix(v8)**: `LevelScript.tick()` ora fa purge degli enemy `_v8Fall` con `y > gameHeight + 120` ogni frame prima dell'aliveNow sampling. Pre-esistente anche in v7.0.1/v7.1.0/v7.2.0 — manifestato ora perché density burst accumula più enemy fuori schermo.
+- **regression**: nessuna. Purge limitato a `_v8Fall=true` (non tocca enemy wave-based), non cambia timing di spawn né anchor.
+
 ## v7.2.0 — LEVEL 2 (BCE) + multi-level scripted campaign - 2026-04-19
 
 Secondo livello giocabile. Dopo aver battuto LA FED, breathing 10s → schermata "LEVEL 1 COMPLETE" con CONTINUE → LEVEL 2 (BCE). Pressione baseline più alta: apre direttamente con MEDIUM tier, STRONG tier da t=26s, corridor crush a t=148s con peak 2.2× (vs 1.8× di level 1). Livello 2 dura ~170s come level 1, termina in victory gameover.

@@ -307,6 +307,19 @@ window.Game = window.Game || {};
             this._primeConductor();
 
             const arr = G.enemies || [];
+
+            // Purge v8 enemies that fell below the screen (otherwise they stay in
+            // the array invisibly firing — bullets appear but no enemies visible).
+            const gh = G._gameHeight || 849;
+            const cullY = gh + 120;
+            for (let i = arr.length - 1; i >= 0; i--) {
+                const e = arr[i];
+                if (!e) continue;
+                if (e._v8Fall && e.y > cullY) {
+                    arr.splice(i, 1);
+                }
+            }
+
             const aliveNow = arr.length;
             if (this._stats) {
                 this._stats.aliveSamples++;
