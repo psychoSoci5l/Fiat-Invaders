@@ -1,5 +1,14 @@
 # Changelog
 
+## v7.3.0 — LEVEL 3 (BOJ) — campaign finale - 2026-04-19
+
+Terzo e ultimo livello della campaign v8. Dopo aver battuto BCE → intermission → LEVEL 3 apre **direttamente con STRONG tier** ($元Ⓒ), zero warmup. Pressione baseline 20% sopra L2, triple-SWOOP sequences, corridor crush più lungo (26s) e veloce (peak 2.6× vs 2.2× L2 / 1.8× L1). Boss finale: BOJ (già in `G.BOSSES`). Completamento L3 → victory gameover → splash "CAMPAIGN COMPLETE" + stats cumulative.
+
+- **feat(v8)**: `LEVEL_3_SCRIPT` — 68 burst in 170s, currency mix STRONG+MEDIUM (nessun WEAK). Open a t=1s con wall `$元$`, HOVER da t=3.5s, SWOOP da t=9.5s
+- **feat(v8)**: `LEVEL_3_ANCHORS` — CRUSH_ENTER t=142 (peak 2.6×), CRUSH_EXIT t=168. 6s più lungo di L1/L2, 18% più veloce di L2
+- **feat(v8)**: entry `LEVELS[2]` con `BOSS_TYPE: 'BOJ'`, intermission "LEVEL 2 COMPLETE → CONTINUE" ora propaga a L3 automaticamente (nessuna modifica a `advanceToNextV8Level` / `hasNextLevel()`)
+- **regression**: nessuna. L1/L2 invariati. Campaign totale ora 3 livelli × 170s = 510s gameplay + 3 boss-fight (FED/BCE/BOJ)
+
 ## v7.2.2 — V8 legibility pass - 2026-04-19
 
 Dopo il fix purge di v7.2.1 i nemici erano tecnicamente on-screen, ma troppo piccoli e confondibili con i proiettili. Leggibilità pass:
