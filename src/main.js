@@ -1882,6 +1882,68 @@ window.restartFromGameOver = function () {
     audioSys.resetState(); // Reset audio state for new run
     startGame();
 };
+
+// v7.2.0: V8 inter-level intermission screen
+function showV8Intermission() {
+    if (!G.LevelScript) return;
+    const completedNum = G.LevelScript.currentLevelNum();
+    const nextIdx = completedNum; // 0-indexed next = current 1-indexed
+    const nextLevel = G.LevelScript.LEVELS[nextIdx];
+    const titleEl = document.getElementById('v8-int-title');
+    const subEl = document.getElementById('v8-int-subtitle');
+    const scoreEl = document.getElementById('v8-int-score');
+    const killsEl = document.getElementById('v8-int-kills');
+    const streakEl = document.getElementById('v8-int-streak');
+    const nextNameEl = document.getElementById('v8-int-nextname');
+    if (titleEl) titleEl.textContent = `LEVEL ${completedNum} COMPLETE`;
+    if (subEl) subEl.textContent = `${G.LevelScript.currentLevelName()} DOWN`;
+    if (scoreEl) scoreEl.textContent = Math.floor(score).toLocaleString();
+    if (killsEl) killsEl.textContent = killCount | 0;
+    if (streakEl) streakEl.textContent = bestStreak | 0;
+    if (nextNameEl && nextLevel) nextNameEl.textContent = nextLevel.name;
+    setStyle('v8-intermission-screen', 'display', 'flex');
+    setStyle('pause-btn', 'display', 'none');
+    if (ui.uiLayer) ui.uiLayer.style.display = 'none';
+    setGameState('PAUSE');
+}
+
+function advanceToNextV8Level() {
+    if (!G.LevelScript) return;
+    const nextIdx = G.LevelScript.currentLevelNum(); // 1-indexed current → 0-indexed next
+    if (nextIdx >= G.LevelScript.LEVELS.length) {
+        // Defensive: no more levels, fall through to gameover
+        setStyle('v8-intermission-screen', 'display', 'none');
+        triggerGameOver();
+        return;
+    }
+    setStyle('v8-intermission-screen', 'display', 'none');
+
+    // Clear any lingering entities (enemies array shared with G.enemies)
+    enemies.length = 0;
+    enemyBullets.forEach(b => G.Bullet.Pool.release(b));
+    enemyBullets.length = 0;
+
+    // Reset scroll (camera + mult + speedOverride) and load next level
+    if (G.ScrollEngine && G.ScrollEngine.reset) G.ScrollEngine.reset();
+    G.LevelScript.loadLevel(nextIdx);
+
+    // Show the gameplay UI again + resume
+    if (ui.uiLayer) ui.uiLayer.style.display = 'block';
+    setStyle('pause-btn', 'display', 'block');
+    setGameState('PLAY');
+}
+window.advanceToNextV8Level = advanceToNextV8Level;
+
+// v7.2.0: V8 intermission buttons
+document.addEventListener('DOMContentLoaded', () => {
+    const cont = document.getElementById('v8-int-continue');
+    if (cont) cont.addEventListener('click', advanceToNextV8Level);
+    const menu = document.getElementById('v8-int-menu');
+    if (menu) menu.addEventListener('click', () => {
+        setStyle('v8-intermission-screen', 'display', 'none');
+        if (window.backToIntro) window.backToIntro();
+    });
+});
 // v7.0: backToIntro, selectShip → G.IntroScreen
 
 window.toggleBearMode = function () {
@@ -2533,6 +2595,10 @@ function spawnBoss() {
     // v4.21: Unified boss rotation for both Story and Arcade (FED→BCE→BOJ cycle)
     const bossRotation = G.BOSS_ROTATION || ['FEDERAL_RESERVE', 'BCE', 'BOJ'];
     let bossType = bossRotation[(marketCycle - 1) % bossRotation.length];
+    // v7.2.0: in V8_MODE, LevelScript declares the boss per level — overrides cycle rotation
+    if (G.Balance?.V8_MODE?.ENABLED && G.LevelScript && G.LevelScript.BOSS_TYPE) {
+        bossType = G.LevelScript.BOSS_TYPE;
+    }
     const campaignState = G.CampaignState; // Still needed for NG+ multiplier
 
     const bossConfig = G.BOSSES[bossType] || G.BOSSES.FEDERAL_RESERVE;
@@ -2825,8 +2891,13 @@ function update(dt) {
         if (waveAction.action === 'SPAWN_BOSS') {
             startBossWarning(); // Start warning instead of immediate spawn
         } else if (waveAction.action === 'LEVEL_END') {
-            // v8 S05: scripted level end after boss breathing window — victory path.
-            triggerGameOver();
+            // v8 S05: scripted level end after boss breathing window.
+            // v7.2.0: if another level exists, show intermission; else victory.
+            if (G.LevelScript && G.LevelScript.hasNextLevel && G.LevelScript.hasNextLevel()) {
+                showV8Intermission();
+            } else {
+                triggerGameOver();
+            }
         } else if (waveAction.action === 'START_WAVE') {
             setGameState('PLAY');
             triggerScreenFlash('WAVE_START'); // Brief white flash at wave start
@@ -3603,26 +3674,29 @@ function draw() {
     if (G.Balance?.V8_MODE?.ENABLED && gameState === 'PLAY' && G.LevelScript) {
         const ls = G.LevelScript;
         const elapsed = ls._elapsed || 0;
-        const bossAt = G.Balance.V8_MODE.BOSS_AT_S || 170;
+        const bossAt = ls.BOSS_AT_S || 170;
+        const crushIn = ls.CRUSH_ENTER_S || 150;
+        const crushOut = ls.CRUSH_EXIT_S || 168;
         const bossAlive = !!window.boss;
         const endTimer = ls._levelEndTimer;
+        const lvlTag = `L${ls.currentLevelNum()}`;
         let label = null, color = '#00f0ff', pulse = false;
         if (endTimer >= 0) {
             label = `VICTORY +${endTimer.toFixed(1)}s`;
             color = '#ffaa00';
         } else if (bossAlive) {
             // boss has own HP bar, skip
-        } else if (elapsed >= 168 && elapsed < bossAt) {
-            label = 'BOSS INCOMING';
+        } else if (elapsed >= crushOut && elapsed < bossAt) {
+            label = `${lvlTag}  BOSS INCOMING`;
             color = '#ff2d95';
             pulse = true;
-        } else if (elapsed >= 150 && elapsed < 168) {
+        } else if (elapsed >= crushIn && elapsed < crushOut) {
             label = '⚠ CORRIDOR CRUSH ⚠';
             color = '#ff2d95';
             pulse = true;
         } else if (elapsed < bossAt) {
             const rem = Math.max(0, bossAt - elapsed);
-            label = `BOSS  T-${Math.ceil(rem)}s`;
+            label = `${lvlTag}  BOSS  T-${Math.ceil(rem)}s`;
         }
         if (label) {
             const cw = ctx.canvas.width;

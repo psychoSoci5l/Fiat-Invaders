@@ -827,7 +827,8 @@ body {
     z-index: 250; /* v4.21: Above all game elements (touchControls=200, ui-layer=120) */
 }
 
-#gameover-screen {
+#gameover-screen,
+#v8-intermission-screen {
     position: absolute;
     top: 0;
     left: 0;
@@ -844,6 +845,37 @@ body {
     padding-bottom: max(24px, var(--safe-bottom, 0px));
     box-sizing: border-box;
     gap: 0;
+}
+#v8-intermission-screen #v8-int-subtitle {
+    color: #00f0ff;
+    font-size: 14px;
+    letter-spacing: 3px;
+    margin: 8px 0 16px;
+}
+#v8-intermission-screen #v8-int-stats {
+    display: flex;
+    gap: 22px;
+    margin: 16px 0 12px;
+    color: #bb44ff;
+    font-size: 13px;
+    letter-spacing: 2px;
+}
+#v8-intermission-screen #v8-int-stats b { color: #ffaa00; margin-left: 6px; }
+#v8-intermission-screen #v8-int-nextlabel {
+    margin: 18px 0 24px;
+    color: #ff2d95;
+    font-size: 13px;
+    letter-spacing: 3px;
+    animation: v8-int-next-pulse 1.6s ease-in-out infinite;
+}
+#v8-intermission-screen #v8-int-nextlabel b {
+    color: #ffffff;
+    margin-left: 8px;
+    font-size: 16px;
+}
+@keyframes v8-int-next-pulse {
+    0%, 100% { opacity: 0.6; }
+    50%      { opacity: 1; }
 }
 
 /* === NEW START SCREEN === */

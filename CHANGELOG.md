@@ -1,5 +1,18 @@
 # Changelog
 
+## v7.2.0 — LEVEL 2 (BCE) + multi-level scripted campaign - 2026-04-19
+
+Secondo livello giocabile. Dopo aver battuto LA FED, breathing 10s → schermata "LEVEL 1 COMPLETE" con CONTINUE → LEVEL 2 (BCE). Pressione baseline più alta: apre direttamente con MEDIUM tier, STRONG tier da t=26s, corridor crush a t=148s con peak 2.2× (vs 1.8× di level 1). Livello 2 dura ~170s come level 1, termina in victory gameover.
+
+- **feat(v8)**: `LevelScript.LEVELS[]` — array multi-level con getters proxy (SCRIPT/ANCHORS/BOSS_AT_S/BOSS_TYPE/CRUSH_ENTER_S/CRUSH_EXIT_S) verso `LEVELS[_levelIdx]`. API: `loadLevel(idx)`, `hasNextLevel()`, `currentLevelNum()`, `currentLevelName()`
+- **feat(v8)**: LEVEL 2 spawn table scritta — 65 burst, durata 170s, currency mix heavy-C2/C3 (€£€→$元Ⓒ→€£ crush). Boss: BCE (già in `G.BOSSES`, nessun nuovo asset)
+- **feat(v8)**: `spawnBoss()` override — quando `V8_MODE.ENABLED`, boss type viene letto da `LevelScript.BOSS_TYPE` (per-level), non dal `marketCycle % bossRotation`
+- **feat(ui)**: `#v8-intermission-screen` DOM — schermata "LEVEL N COMPLETE / CONTINUE / MENU". Mostra score, kills, best streak, next boss name (pulsing magenta). Stile condiviso con gameover-screen (background OLED `#000000`, z-index 110)
+- **feat(main)**: `LEVEL_END` handler ora branchia — `hasNextLevel()` → `showV8Intermission()` (pause + DOM overlay); altrimenti `triggerGameOver()` come prima (campaign complete)
+- **feat(main)**: `advanceToNextV8Level()` wired sul bottone CONTINUE — cleara enemies+enemyBullets, `ScrollEngine.reset()` (camera scrollY→0, mult→1.0, no halt, no override), `LevelScript.loadLevel(nextIdx)`, `setGameState('PLAY')`
+- **feat(hud)**: T-MINUS HUD top-center ora include level tag (`L1 BOSS T-120s`, `L2 BOSS INCOMING`) e legge threshold corridor crush dal level corrente (anchor `CRUSH_ENTER_S` / `CRUSH_EXIT_S`) invece di 150/168 hardcoded
+- **regression**: nessuna. Livello 1 resta identico (tabella `LEVEL_1_SCRIPT` = ex `SCRIPT`, anchor invariati). `V8_MODE.ENABLED=false` continua a riportare al comportamento wave-based v6.11
+
 ## v7.1.0 — Meta-progression wiring + V8 polish - 2026-04-19
 
 Fix di un debito tecnico pre-esistente (precede v7.0): `StatsTracker` e `AchievementSystem` erano definiti ma mai chiamati dai callsite — gli achievement non si sbloccavano mai (tranne HYPER_RIDER / GODCHAIN_AWAKEN wired via EventBus) e il Pilot Profile mostrava sempre contatori a zero. Ora tutto il cumulative stats + achievement unlock flow funziona.
