@@ -14,7 +14,7 @@ When completing a feature or ending a session, **always update without being ask
 **Version Sync**: Constants.js and sw.js versions MUST match for PWA cache updates to work correctly.
 
 **Update only if the change requires it** (not every session):
-- **roadmap.md** - Mark completed tasks, add new phases
+- **ROADMAP.md** - Mark completed tasks, add new phases
 - **CLAUDE.md** - New systems/patterns added
 - **README.md** - Major features added (shown on GitHub homepage)
 
@@ -27,7 +27,7 @@ Only **project files** belong in git. Personal/dev files stay local, excluded by
 **ON git** (project):
 - Source code (`src/`, `index.html`, `style.css`, `sw.js`)
 - Assets (`icon-512.png`, `splashscreen.mp4`, `manifest.json`, `_headers`)
-- Docs (`README.md`, `CLAUDE.md`, `CHANGELOG.md`, `roadmap.md`, `PRIVACY.md`)
+- Docs (`README.md`, `CLAUDE.md`, `CHANGELOG.md`, `ROADMAP.md`, `ROADMAP_V6_ARCHIVE.md`, `ROADMAP_V7_ARCHIVE.md`, `PRIVACY.md`)
 - Tests (`tests/`)
 - `.gitignore`
 
@@ -104,12 +104,24 @@ All game objects extend `G.Entity` (base class with x, y, vx, vy, update, draw).
 
 Detailed tables, parameters, and implementation specifics → **SYSTEM_REFERENCE.md** (read on demand).
 
+### V8 Scroller (Gradius-style) — PRIMARY MODE (v7.0+)
+When `Balance.V8_MODE.ENABLED=true` (default on `main` since v7.5.0), the game runs as a vertical scroller with scripted burst spawning — **not** the WaveManager/formation system below. Level flow: 170s timeline → boss → intermission → next level.
+
+- **LevelScript** (`src/v8/LevelScript.js`) — burst-based spawn table with absolute timestamps, patterns (DIVE/SINE/HOVER/SWOOP), lanes as 0..1 fractions, phase-based categorization (OPENING/BUILDUP/ESCALATION/PEAK/CRUSH/BOSS). `LEVELS[]` array holds L1 FED / L2 BCE / L3 BOJ scripts. `scheduleLevelEnd(delay)` triggers `LEVEL_END` action → `showV8Intermission()` → `advanceToNextV8Level()`
+- **ScrollEngine** (`src/systems/ScrollEngine.js`) — camera scroll, speed multiplier, halt/resume/override API. Parallax NEAR layer. `reset()` on level advance (scrollY→0, mult→1.0)
+- **CRUSH anchors** — per-level speed ramps (`LEVEL_{1,2,3}_ANCHORS`): L1 1.8×, L2 2.2×, L3 2.6× at endgame
+- **Regional thematization (v7.5.0)** — each level uses a coherent currency roster: L1 USA (₽/C$/Ⓒ/$), L2 EU (₺/₣/£/€), L3 Asia (₹/₩/元/¥). `TIER_TARGETS` per-level normalizes hp/val independent of `FIAT_TYPES` base stats
+- **V8_RAMP fire budget** (`Balance.FIRE_BUDGET.V8_RAMP`) — `HarmonicConductor` fire budget scales with `_elapsed/BOSS_AT_S` (0.35 → 1.0 quadratic). Only active when `V8_MODE.ENABLED`
+- **Telemetry** — `dbg.v8()` reports escape rate, kills by pattern/phase/Y-bucket, level state
+- **Debug helpers** — `dbg.v8FastForwardToBoss()`, `dbg.v8KillBoss()`, `dbg.v8Continue()` for rapid boss-end flow testing
+- **Arcade mode legacy** — still uses WaveManager/formation system below. V8 is campaign-only at present
+
 ### Core Gameplay
 - **Difficulty & Rank** — `Balance.DIFFICULTY` / `Balance.RANK`. +8%/lvl, +20%/cycle, cap 85%, Bear Market 1.3×, dynamic rank ±1
 - **Weapon Evolution** — `Balance.WEAPON_EVOLUTION`. Linear 3-level system (Single→Dual→Triple MAX). Boss Evolution Core upgrades (cinematic deploy VFX). HYPER adds +2 temp levels. 3 specials (HOMING/PIERCE/MISSILE, 8s). 2 utilities (SHIELD 5s/SPEED 8s). Death: no weapon penalty, lose special
 - **GODCHAIN** — `Balance.GODCHAIN`. Activates when 3 elemental perks collected (10s timer, re-triggerable via further bullet cancels)
 - **Enemy System** — `Balance.ENEMY_BEHAVIOR`. 10 currencies, 3 tiers, 4 shapes. Fire budget: C1=25/C2=45/C3=70 bullets/sec. **Elite Variants** (`Balance.ELITE_VARIANTS`): 1 per cycle — C1 Armored, C2 Evader, C3 Reflector. MEDIUM+STRONG only, 10/15/20% chance. **Enemy Behaviors** (`Balance.ENEMY_BEHAVIORS`): Flanker (C1W3+), Bomber (C2W1+), Healer (C2W3+), Charger (C2W2+). Kill-switches per feature
-- **Wave System** — `Balance.WAVE_DEFINITIONS`. 15 waves (5x3 cycles), 16 formations. **Phase-based streaming** (`Balance.STREAMING`): each wave has 2-3 phases with own formation/count/currencies. Next phase triggers at <=35% alive (`PHASE_TRIGGER`). `MAX_CONCURRENT_ENEMIES: 22` hard cap. Per-phase escalation (+10% fire, +5% behavior). `prepareStreamingWave()`+`spawnNextPhase()` in WaveManager. Kill-switch: `STREAMING.ENABLED`. Arcade post-C3: cycles through C1-C3 definitions with formation remix
+- **Wave System (legacy / Arcade mode only)** — `Balance.WAVE_DEFINITIONS`. 15 waves (5x3 cycles), 16 formations. **Phase-based streaming** (`Balance.STREAMING`): each wave has 2-3 phases with own formation/count/currencies. Next phase triggers at <=35% alive (`PHASE_TRIGGER`). `MAX_CONCURRENT_ENEMIES: 22` hard cap. Per-phase escalation (+10% fire, +5% behavior). `prepareStreamingWave()`+`spawnNextPhase()` in WaveManager. Kill-switch: `STREAMING.ENABLED`. Arcade post-C3: cycles through C1-C3 definitions with formation remix
 - **Boss System** — `Balance.BOSS`. FED/BCE/BOJ, 3 phases each, HP formula in config, rotation `marketCycle % 3`
 - **Drop System** — `Balance.ADAPTIVE_DROPS`. Rates 3%/2.5%/1% by tier, pity 30 kills, adaptive suppression. 3 categories: SPECIAL/UTILITY/PERK. Adaptive Drop Balancer (struggle/domination detection). Guaranteed SPECIAL pre-boss (wave 4+)
 - **Collision** — `CollisionSystem.js`. 4 loops, callback pattern, init via `initCollisionSystem()`
