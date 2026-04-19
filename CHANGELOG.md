@@ -1,5 +1,27 @@
 # Changelog
 
+## v7.5.0 — V8 regional thematization - 2026-04-19
+
+### fix(v8): freeze dopo boss L1/L2 in campaign mode
+
+Boss death in v8 campaign con chapter da mostrare (es. "La Nascita di Bitcoin" tra L1 e L2) causava freeze su LV1: la callback `showStoryScreen` invocava `d.startIntermission` (v6 wave-based) invece di `advanceToNextV8Level`. Race concorrente: `scheduleLevelEnd(10)` firava `showV8Intermission` durante la story modal, ma la dismiss sovrascriveva col path v6.
+
+- **fix**: `GameplayCallbacks.js` — `scheduleLevelEnd(10)` rimosso dal boss-death immediato (riga ~394). Ora viene schedulato solo nel branch "no chapter" (delay 1s) così lo story modal non ha race con `showV8Intermission`
+- **fix**: callback `showStoryScreen` in v8 mode ora chiama `window.advanceToNextV8Level()` invece di `d.startIntermission(...)`. `restoreGameUI()` preservato
+- **regression**: non-v8 mode invariato (stesso path v6). Campaign completion (L3/BOJ) invariato (branch `campaignComplete` separato)
+
+
+
+Ogni livello v8 ora usa valute coerenti col boss regionale. Prima tutti i livelli mescolavano l'intero roster (¥₽₹€£₣₺$元Ⓒ ovunque); ora L1 è pura sfera USA, L2 pura EU, L3 pura Asia. Coerenza narrativa e visiva per il player.
+
+- **feat(v8)**: L1 FED → WEAK ₽ RUB + C$ CAD, MEDIUM Ⓒ USDC, STRONG $ USD
+- **feat(v8)**: L2 BCE → WEAK ₺ LIRA + ₣ FRANC, MEDIUM £ GBP, STRONG € EUR
+- **feat(v8)**: L3 BOJ → WEAK ₹ INR + ₩ KRW, MEDIUM 元 CNY, STRONG ¥ JPY
+- **feat**: 2 nuove valute in `FIAT_TYPES` — `C$` (CAD, rosso #e63946) e `₩` (KRW, blu #3366dd). Entrambe WEAK tier base stats
+- **feat(v8)**: `TIER_TARGETS` per-level in `LevelScript` — normalizza hp/val di ogni enemy alla classe tier regionale (WEAK 0.85 / MEDIUM 1.10 / STRONG 1.40). Così ¥ come L3 STRONG è duro come $ era L1 STRONG, indipendentemente dalle base stats di `FIAT_TYPES` (che restano invariate per arcade mode)
+- **tune(v8)**: L3 opening ora apre con MEDIUM 元 + WEAK ₹/₩ (vs STRONG da t=0). Più morbido l'ingresso, ma CRUSH 2.6× invariato — resta il livello più duro
+- **regression**: timing/lane/pattern dei 3 script preservati dalla spina v7.4.2. `V8_RAMP` fire budget (0.35→1.0 quad) invariato. Anchor CRUSH (L1 1.8×, L2 2.2×, L3 2.6×) invariati. Boss HP/timings invariati. Arcade mode non toccato (usa `FIAT_TYPES` base, non `TIER_TARGETS`)
+
 ## v7.4.2 — V8 fire budget ramp-up - 2026-04-19
 
 Il fix di v7.4.1 diradava gli spawn ma non toccava il **fire budget** del `HarmonicConductor`, che restava piatto dal secondo 0 (8 BPS L1 pieni da t=0). Risultato: 3 nemici a schermo sparavano come se fossero 15. Feedback playtester: "sin dall'inizio sono tutti aggressivi".

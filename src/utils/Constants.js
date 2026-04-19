@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v7.4.2 FIAT vs CRYPTO";
+window.Game.VERSION = "v7.5.0 FIAT vs CRYPTO";
 
 // Leaderboard API
 window.Game.LEADERBOARD_API = 'https://fiat-vs-crypto-leaderboard.psychosocial-01.workers.dev/api';
@@ -752,6 +752,8 @@ window.Game.FIAT_TYPES = [
     { s: '¥', name: 'YEN', c: '#ff3355', val: 20, hp: 0.8, fireMin: 4.5, fireMax: 6.5, aimSpread: 0.35, pattern: 'SINGLE', shape: 'coin' },
     { s: '₽', name: 'RUBLE', c: '#6699dd', val: 25, hp: 0.8, fireMin: 4.5, fireMax: 6.5, aimSpread: 0.30, pattern: 'SINGLE', shape: 'bill' },
     { s: '₹', name: 'RUPEE', c: '#ffaa00', val: 25, hp: 0.9, fireMin: 4.5, fireMax: 6.5, aimSpread: 0.28, pattern: 'SINGLE', shape: 'coin' },
+    { s: 'C$', name: 'CAD', c: '#e63946', val: 22, hp: 0.85, fireMin: 4.5, fireMax: 6.5, aimSpread: 0.32, pattern: 'SINGLE', shape: 'bill' },
+    { s: '₩', name: 'WON', c: '#3366dd', val: 25, hp: 0.9, fireMin: 4.5, fireMax: 6.5, aimSpread: 0.30, pattern: 'SINGLE', shape: 'coin' },
 
     // Tier 2 - Medium (rows 2-3) — v4.37: slower cooldowns
     { s: '€', name: 'EURO', c: '#2288ff', val: 40, hp: 1.0, fireMin: 3.2, fireMax: 5.0, aimSpread: 0.22, pattern: 'BURST', shape: 'bill' },

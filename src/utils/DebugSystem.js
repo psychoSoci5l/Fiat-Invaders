@@ -1358,6 +1358,56 @@ window.Game.Debug = {
         console.log('[V8 logs]', this.categories.V8 ? 'ON' : 'OFF');
     },
 
+    /**
+     * Fast-forward current v8 level timeline to just before the boss spawn.
+     * Use to skip past opening/buildup/peak when debugging boss + intermission.
+     */
+    v8FastForwardToBoss() {
+        const G = window.Game;
+        const ls = G && G.LevelScript;
+        if (!ls || !G.Balance?.V8_MODE?.ENABLED) {
+            console.warn('[DEBUG] v8 not active');
+            return;
+        }
+        const target = Math.max(0, (ls.BOSS_AT_S || 170) - 1);
+        ls._elapsed = target;
+        // Advance burst/anchor pointers past everything before target
+        while (ls._idx < ls.SCRIPT.length && ls.SCRIPT[ls._idx].at_s <= target) ls._idx++;
+        while (ls._anchorIdx < ls.ANCHORS.length && ls.ANCHORS[ls._anchorIdx].at_s <= target) ls._anchorIdx++;
+        console.log(`[DEBUG] v8 elapsed forced to ${target}s (boss @ ${ls.BOSS_AT_S}s). Boss spawns next tick.`);
+    },
+
+    /**
+     * Force-call advanceToNextV8Level() bypassing the DOM click handler.
+     * Use when the intermission screen is showing but CONTINUE button doesn't react.
+     */
+    v8Continue() {
+        if (typeof window.advanceToNextV8Level === 'function') {
+            window.advanceToNextV8Level();
+        } else {
+            console.warn('[DEBUG] advanceToNextV8Level() not available');
+        }
+    },
+
+    /**
+     * Kill the current boss instantly via the same callback path as a real kill.
+     * Triggers onBossDeath → scheduleLevelEnd(10) → LEVEL_END → intermission/victory.
+     */
+    v8KillBoss() {
+        const G = window.Game;
+        if (!window.boss) { console.warn('[DEBUG] No boss active'); return; }
+        const cs = G.CollisionSystem;
+        const cb = cs && cs._ctx && cs._ctx.callbacks;
+        if (!cb || typeof cb.onBossDeath !== 'function') {
+            console.warn('[DEBUG] CollisionSystem callbacks unavailable, forcing hp=0');
+            window.boss.hp = 0;
+            return;
+        }
+        window.boss.hp = 0;
+        cb.onBossDeath(window.boss);
+        console.log('[DEBUG] Boss killed via callback. Watch `dbg.v8()` for levelEndTimer countdown.');
+    },
+
     // ========== STATUS & STATS ==========
 
     /**

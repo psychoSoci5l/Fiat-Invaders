@@ -12,75 +12,88 @@ window.Game = window.Game || {};
  * v7.2.0: LEVELS[] array. Use loadLevel(idx) to switch. hasNextLevel() gates
  * between LEVEL_END → intermission vs LEVEL_END → gameover (campaign done).
  *
+ * v7.5.0: Regional thematic rosters per level. Each level uses currencies
+ * coherent with its boss region (L1 FED → USA-sphere, L2 BCE → EU, L3 BOJ →
+ * Asia). TIER_TARGETS normalize hp/val across levels so regional STRONG is
+ * always STRONG regardless of the underlying FIAT_TYPES base stats.
+ *
  * Active only when G.Balance.V8_MODE.ENABLED === true.
  */
 (function() {
     'use strict';
     const G = window.Game;
 
-    // LEVEL 1 — FED / ONBOARDING ACT. v7.4.1 re-tuned: first-time player rampa.
-    // Cursor shifted ~20s forward across the whole curve, OPENING extended to 50s,
-    // burst density reduced (2-3/burst vs 3-5), gap 5-6s. STRONG tier pushed from
-    // t=82 to t=92. PEAK/CRUSH unchanged — late-game intensity survives, early
-    // game finally breathes so the player can read perks, drops, special effects.
+    // v7.5.0: Tier-normalized hp/val. Applied per-level so that e.g. ¥ as L3
+    // STRONG plays as durable as $ did as L1 STRONG (their base FIAT_TYPES hp
+    // differ: ¥=0.8 vs $=1.3). Keeps regional theming without breaking curve.
+    const TIER_TARGETS = {
+        WEAK:   { hp: 0.85, val: 22 },
+        MEDIUM: { hp: 1.10, val: 50 },
+        STRONG: { hp: 1.40, val: 90 }
+    };
+
+    // LEVEL 1 — FED / ONBOARDING ACT. v7.5.0 regional rewrite:
+    // USA-sphere roster. WEAK: ₽ RUB + C$ CAD. MEDIUM: Ⓒ USDC. STRONG: $ USD.
+    // Timing/lanes/patterns preserved from v7.4.2 (validated spine).
+    const LEVEL_1_TIERS = { '₽': 'WEAK', 'C$': 'WEAK', 'Ⓒ': 'MEDIUM', '$': 'STRONG' };
     const LEVEL_1_SCRIPT = [
-        // 0-50s OPENING — WEAK only (¥₽₹), 2-3 per burst, gap 5-6s. Tutorial window.
-        { at_s: 2.0,  currencies: '¥',              lanes: [0.3, 0.7] },
-        { at_s: 7.5,  currencies: ['¥','₽','¥'],    lanes: [0.2, 0.5, 0.8] },
-        { at_s: 13.0, currencies: '₽',              lanes: [0.3, 0.7],        pattern: 'SINE' },
-        { at_s: 18.5, currencies: ['¥','₽','¥'],    lanes: [0.25, 0.5, 0.75] },
-        { at_s: 24.0, currencies: '₹',              lanes: [0.35, 0.65] },
-        { at_s: 29.0, currencies: ['₹','¥','₹'],    lanes: [0.2, 0.5, 0.8],   pattern: 'SINE' },
-        { at_s: 34.5, currencies: ['¥','₽','₹'],    lanes: [0.15, 0.5, 0.85] },
-        { at_s: 40.0, currencies: '₹',              lanes: [0.3, 0.5, 0.7] },
-        { at_s: 45.5, currencies: ['¥','₹','¥'],    lanes: [0.25, 0.5, 0.75], pattern: 'SINE' },
+        // 0-50s OPENING — WEAK only (₽/C$). Tutorial window.
+        { at_s: 2.0,  currencies: '₽',                  lanes: [0.3, 0.7] },
+        { at_s: 7.5,  currencies: ['₽','C$','₽'],       lanes: [0.2, 0.5, 0.8] },
+        { at_s: 13.0, currencies: 'C$',                 lanes: [0.3, 0.7],        pattern: 'SINE' },
+        { at_s: 18.5, currencies: ['₽','C$','₽'],       lanes: [0.25, 0.5, 0.75] },
+        { at_s: 24.0, currencies: 'C$',                 lanes: [0.35, 0.65] },
+        { at_s: 29.0, currencies: ['C$','₽','C$'],      lanes: [0.2, 0.5, 0.8],   pattern: 'SINE' },
+        { at_s: 34.5, currencies: ['₽','C$','₽'],       lanes: [0.15, 0.5, 0.85] },
+        { at_s: 40.0, currencies: 'C$',                 lanes: [0.3, 0.5, 0.7] },
+        { at_s: 45.5, currencies: ['₽','C$','₽'],       lanes: [0.25, 0.5, 0.75], pattern: 'SINE' },
 
-        // 50-90s BUILDUP — MEDIUM tier (€£₣₺) enters, 3-4 per burst, HOVER compare at end
-        { at_s: 51.0, currencies: ['€','£','€'],    lanes: [0.25, 0.5, 0.75] },
-        { at_s: 55.5, currencies: ['¥','₹','¥'],    lanes: [0.2, 0.5, 0.8],   pattern: 'SINE' },
-        { at_s: 60.0, currencies: ['£','€','£'],    lanes: [0.3, 0.5, 0.7],   pattern: 'SINE' },
-        { at_s: 64.5, currencies: ['¥','₽','¥','₽'],lanes: [0.15, 0.4, 0.6, 0.85] },
-        { at_s: 69.0, currencies: ['€','£','€'],    lanes: [0.25, 0.5, 0.75], pattern: 'SINE' },
-        { at_s: 73.5, currencies: ['₺','₣','₺'],    lanes: [0.3, 0.5, 0.7] },
-        { at_s: 78.0, currencies: ['€','£','€','£'],lanes: [0.2, 0.4, 0.6, 0.8], pattern: 'SINE' },
-        { at_s: 82.5, currencies: '£',              lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
-        { at_s: 87.0, currencies: ['₺','₣','₺','₣'],lanes: [0.15, 0.4, 0.6, 0.85] },
+        // 50-90s BUILDUP — Ⓒ USDC enters, WEAK fillers continue
+        { at_s: 51.0, currencies: ['Ⓒ','₽','Ⓒ'],       lanes: [0.25, 0.5, 0.75] },
+        { at_s: 55.5, currencies: ['₽','C$','₽'],       lanes: [0.2, 0.5, 0.8],   pattern: 'SINE' },
+        { at_s: 60.0, currencies: ['Ⓒ','C$','Ⓒ'],      lanes: [0.3, 0.5, 0.7],   pattern: 'SINE' },
+        { at_s: 64.5, currencies: ['₽','C$','₽','C$'],  lanes: [0.15, 0.4, 0.6, 0.85] },
+        { at_s: 69.0, currencies: ['Ⓒ','₽','Ⓒ'],       lanes: [0.25, 0.5, 0.75], pattern: 'SINE' },
+        { at_s: 73.5, currencies: ['Ⓒ','Ⓒ','Ⓒ'],      lanes: [0.3, 0.5, 0.7] },
+        { at_s: 78.0, currencies: ['Ⓒ','C$','Ⓒ','C$'], lanes: [0.2, 0.4, 0.6, 0.8], pattern: 'SINE' },
+        { at_s: 82.5, currencies: 'Ⓒ',                  lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
+        { at_s: 87.0, currencies: ['₽','Ⓒ','₽','Ⓒ'],   lanes: [0.15, 0.4, 0.6, 0.85] },
 
-        // 90-130s ESCALATION — STRONG tier arrives + SWOOP from sides (was t=82 → now t=92)
-        { at_s: 92.0, currencies: ['$','元','$'],   lanes: [0.25, 0.5, 0.75] },
-        { at_s: 95.5, currencies: ['Ⓒ','€','Ⓒ'],  lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
-        { at_s: 98.5, currencies: '$',              lanes: [0.15, 0.4, 0.6, 0.85] },
-        { at_s: 102.0, currencies: ['元','€','元','€'], lanes: [0.2, 0.4, 0.6, 0.8], pattern: 'SINE' },
-        { at_s: 105.5, currencies: '$',             lanes: [0.1, 0.9],        pattern: 'SWOOP' },
-        { at_s: 108.0, currencies: ['Ⓒ','$','Ⓒ','$'], lanes: [0.15, 0.4, 0.6, 0.85] },
-        { at_s: 112.0, currencies: ['€','£','€'],   lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
-        { at_s: 115.5, currencies: ['$','元','$','元','$'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9] },
-        { at_s: 119.0, currencies: 'Ⓒ',            lanes: [0.25, 0.45, 0.65, 0.85], pattern: 'SINE' },
-        { at_s: 122.0, currencies: '元',            lanes: [0.15, 0.85],      pattern: 'SWOOP' },
-        { at_s: 124.0, currencies: ['$','Ⓒ','$','Ⓒ'], lanes: [0.2, 0.4, 0.6, 0.8] },
-        { at_s: 127.5, currencies: ['€','£','€'],   lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
+        // 90-130s ESCALATION — STRONG tier arrives ($ USD) + SWOOP flanks
+        { at_s: 92.0, currencies: ['$','Ⓒ','$'],        lanes: [0.25, 0.5, 0.75] },
+        { at_s: 95.5, currencies: ['Ⓒ','$','Ⓒ'],       lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
+        { at_s: 98.5, currencies: '$',                  lanes: [0.15, 0.4, 0.6, 0.85] },
+        { at_s: 102.0, currencies: ['Ⓒ','$','Ⓒ','$'],  lanes: [0.2, 0.4, 0.6, 0.8], pattern: 'SINE' },
+        { at_s: 105.5, currencies: '$',                 lanes: [0.1, 0.9],        pattern: 'SWOOP' },
+        { at_s: 108.0, currencies: ['Ⓒ','$','Ⓒ','$'],  lanes: [0.15, 0.4, 0.6, 0.85] },
+        { at_s: 112.0, currencies: ['$','Ⓒ','$'],       lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
+        { at_s: 115.5, currencies: ['$','Ⓒ','$','Ⓒ','$'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9] },
+        { at_s: 119.0, currencies: 'Ⓒ',                 lanes: [0.25, 0.45, 0.65, 0.85], pattern: 'SINE' },
+        { at_s: 122.0, currencies: '$',                 lanes: [0.15, 0.85],      pattern: 'SWOOP' },
+        { at_s: 124.0, currencies: ['$','Ⓒ','$','Ⓒ'],  lanes: [0.2, 0.4, 0.6, 0.8] },
+        { at_s: 127.5, currencies: ['$','Ⓒ','$'],       lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
 
-        // 130-150s PEAK — max density wall, multi-pattern (unchanged)
-        { at_s: 131.0, currencies: '$',             lanes: [0.1, 0.9],        pattern: 'SWOOP' },
-        { at_s: 132.5, currencies: ['元','Ⓒ','元','Ⓒ','元'], lanes: [0.2, 0.35, 0.5, 0.65, 0.8] },
-        { at_s: 135.0, currencies: ['$','元','$'], lanes: [0.25, 0.5, 0.75], pattern: 'HOVER' },
-        { at_s: 137.0, currencies: 'Ⓒ',             lanes: [0.15, 0.35, 0.55, 0.75, 0.95], pattern: 'SINE' },
-        { at_s: 139.5, currencies: ['元','$'],     lanes: [0.1, 0.9],         pattern: 'SWOOP' },
-        { at_s: 141.0, currencies: ['$','元','Ⓒ','元','$'], lanes: [0.2, 0.35, 0.5, 0.65, 0.8] },
-        { at_s: 143.5, currencies: ['元','Ⓒ'],     lanes: [0.35, 0.65],       pattern: 'HOVER' },
-        { at_s: 145.5, currencies: '$',             lanes: [0.1, 0.3, 0.5, 0.7, 0.9], pattern: 'SINE' },
-        { at_s: 148.0, currencies: ['元','$'],     lanes: [0.15, 0.85],       pattern: 'SWOOP' },
+        // 130-150s PEAK — max density wall, multi-pattern
+        { at_s: 131.0, currencies: '$',                 lanes: [0.1, 0.9],        pattern: 'SWOOP' },
+        { at_s: 132.5, currencies: ['$','Ⓒ','$','Ⓒ','$'], lanes: [0.2, 0.35, 0.5, 0.65, 0.8] },
+        { at_s: 135.0, currencies: ['$','Ⓒ','$'],       lanes: [0.25, 0.5, 0.75], pattern: 'HOVER' },
+        { at_s: 137.0, currencies: 'Ⓒ',                 lanes: [0.15, 0.35, 0.55, 0.75, 0.95], pattern: 'SINE' },
+        { at_s: 139.5, currencies: ['Ⓒ','$'],           lanes: [0.1, 0.9],        pattern: 'SWOOP' },
+        { at_s: 141.0, currencies: ['$','Ⓒ','$','Ⓒ','$'], lanes: [0.2, 0.35, 0.5, 0.65, 0.8] },
+        { at_s: 143.5, currencies: ['$','Ⓒ'],           lanes: [0.35, 0.65],      pattern: 'HOVER' },
+        { at_s: 145.5, currencies: '$',                 lanes: [0.1, 0.3, 0.5, 0.7, 0.9], pattern: 'SINE' },
+        { at_s: 148.0, currencies: ['$','Ⓒ'],           lanes: [0.15, 0.85],      pattern: 'SWOOP' },
 
         // 150-168s CORRIDOR CRUSH SET-PIECE — wall relentless
-        { at_s: 150.5, currencies: ['$','元','Ⓒ','元','$'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85] },
-        { at_s: 152.5, currencies: ['$','元'],     lanes: [0.1, 0.9],         pattern: 'SWOOP' },
-        { at_s: 153.5, currencies: ['元','Ⓒ','元'],lanes: [0.25, 0.5, 0.75],  pattern: 'SINE' },
-        { at_s: 155.5, currencies: ['$','元','$','元','$','元'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
-        { at_s: 158.0, currencies: ['Ⓒ','元','Ⓒ'], lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
-        { at_s: 160.0, currencies: ['$','元','$'], lanes: [0.15, 0.85],       pattern: 'SWOOP' },
-        { at_s: 161.5, currencies: ['元','$','元','$','元'], lanes: [0.2, 0.35, 0.5, 0.65, 0.8], pattern: 'SINE' },
+        { at_s: 150.5, currencies: ['$','Ⓒ','$','Ⓒ','$'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85] },
+        { at_s: 152.5, currencies: ['$','Ⓒ'],           lanes: [0.1, 0.9],        pattern: 'SWOOP' },
+        { at_s: 153.5, currencies: ['$','Ⓒ','$'],       lanes: [0.25, 0.5, 0.75], pattern: 'SINE' },
+        { at_s: 155.5, currencies: ['$','Ⓒ','$','Ⓒ','$','Ⓒ'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
+        { at_s: 158.0, currencies: ['Ⓒ','$','Ⓒ'],      lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
+        { at_s: 160.0, currencies: ['$','Ⓒ','$'],       lanes: [0.15, 0.85],      pattern: 'SWOOP' },
+        { at_s: 161.5, currencies: ['Ⓒ','$','Ⓒ','$','Ⓒ'], lanes: [0.2, 0.35, 0.5, 0.65, 0.8], pattern: 'SINE' },
         { at_s: 164.0, currencies: ['$','Ⓒ','$','Ⓒ','$'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9] },
-        { at_s: 166.5, currencies: ['元','$'],     lanes: [0.1, 0.9],         pattern: 'SWOOP' }
+        { at_s: 166.5, currencies: ['$','Ⓒ'],           lanes: [0.1, 0.9],        pattern: 'SWOOP' }
     ];
 
     const LEVEL_1_ANCHORS = [
@@ -89,91 +102,91 @@ window.Game = window.Game || {};
         { at_s: 168, action: 'CRUSH_EXIT'  }
     ];
 
-    // LEVEL 2 — BCE / FRAGMENTATION ACT.
-    // Higher pressure baseline: starts at MEDIUM tier, STRONG mix earlier, crush is faster+longer.
-    // Player arrives with carry-over weapon level and perks; content is tuned for that.
+    // LEVEL 2 — BCE / FRAGMENTATION ACT. v7.5.0 regional:
+    // EU roster. WEAK: ₺ LIRA + ₣ FRANC. MEDIUM: £ GBP. STRONG: € EUR.
+    const LEVEL_2_TIERS = { '₺': 'WEAK', '₣': 'WEAK', '£': 'MEDIUM', '€': 'STRONG' };
     const LEVEL_2_SCRIPT = [
-        // 0-25s OPENING — skip weak warmup, go straight to MEDIUM/SINE mix
-        { at_s: 1.0,  currencies: ['€','£','€'],    lanes: [0.2, 0.5, 0.8] },
-        { at_s: 4.0,  currencies: ['£','€','£','€'], lanes: [0.15, 0.4, 0.6, 0.85], pattern: 'SINE' },
-        { at_s: 7.0,  currencies: ['₺','₣','₺'],    lanes: [0.25, 0.5, 0.75] },
-        { at_s: 10.0, currencies: ['€','£','€','£','€'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9], pattern: 'SINE' },
-        { at_s: 13.5, currencies: '€',              lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
-        { at_s: 16.5, currencies: ['£','₣','£','₣'],lanes: [0.15, 0.4, 0.6, 0.85] },
-        { at_s: 20.0, currencies: ['€','£'],        lanes: [0.1, 0.9],        pattern: 'SWOOP' },
-        { at_s: 22.5, currencies: ['£','€','£','€','£'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9], pattern: 'SINE' },
+        // 0-25s OPENING — WEAK/MEDIUM EU mix, no € yet
+        { at_s: 1.0,  currencies: ['₺','₣','₺'],        lanes: [0.2, 0.5, 0.8] },
+        { at_s: 4.0,  currencies: ['₣','₺','₣','₺'],    lanes: [0.15, 0.4, 0.6, 0.85], pattern: 'SINE' },
+        { at_s: 7.0,  currencies: ['£','₺','£'],        lanes: [0.25, 0.5, 0.75] },
+        { at_s: 10.0, currencies: ['₺','₣','₺','₣','₺'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9], pattern: 'SINE' },
+        { at_s: 13.5, currencies: '£',                  lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
+        { at_s: 16.5, currencies: ['₣','₺','₣','₺'],    lanes: [0.15, 0.4, 0.6, 0.85] },
+        { at_s: 20.0, currencies: ['£','₺'],            lanes: [0.1, 0.9],        pattern: 'SWOOP' },
+        { at_s: 22.5, currencies: ['₺','£','₺','£','₺'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9], pattern: 'SINE' },
 
-        // 25-60s BUILDUP — STRONG tier enters early, swoop pressure
-        { at_s: 26.0, currencies: ['$','元','$'],   lanes: [0.25, 0.5, 0.75] },
-        { at_s: 29.0, currencies: ['Ⓒ','$','Ⓒ'],  lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
-        { at_s: 32.0, currencies: ['€','£','€','£'],lanes: [0.15, 0.4, 0.6, 0.85], pattern: 'SINE' },
-        { at_s: 35.0, currencies: '$',              lanes: [0.1, 0.9],        pattern: 'SWOOP' },
-        { at_s: 36.5, currencies: ['$','元','$','元'], lanes: [0.2, 0.4, 0.6, 0.8] },
-        { at_s: 39.5, currencies: ['€','£','€'],    lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
-        { at_s: 42.0, currencies: ['$','元','$','元','$'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9], pattern: 'SINE' },
-        { at_s: 45.0, currencies: ['元','$'],       lanes: [0.1, 0.9],        pattern: 'SWOOP' },
-        { at_s: 47.0, currencies: ['Ⓒ','$','Ⓒ','$'], lanes: [0.15, 0.4, 0.6, 0.85] },
-        { at_s: 50.0, currencies: ['元','Ⓒ','元'], lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
-        { at_s: 52.5, currencies: ['$','元','$','元','$'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9] },
-        { at_s: 55.5, currencies: ['元','$'],       lanes: [0.15, 0.85],      pattern: 'SWOOP' },
-        { at_s: 57.5, currencies: 'Ⓒ',             lanes: [0.2, 0.4, 0.6, 0.8], pattern: 'SINE' },
+        // 25-60s BUILDUP — € EUR enters (STRONG), £ backbone, ₺/₣ fillers
+        { at_s: 26.0, currencies: ['€','£','€'],        lanes: [0.25, 0.5, 0.75] },
+        { at_s: 29.0, currencies: ['£','€','£'],        lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
+        { at_s: 32.0, currencies: ['£','₺','£','₺'],    lanes: [0.15, 0.4, 0.6, 0.85], pattern: 'SINE' },
+        { at_s: 35.0, currencies: '€',                  lanes: [0.1, 0.9],        pattern: 'SWOOP' },
+        { at_s: 36.5, currencies: ['€','£','€','£'],    lanes: [0.2, 0.4, 0.6, 0.8] },
+        { at_s: 39.5, currencies: ['£','₣','£'],        lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
+        { at_s: 42.0, currencies: ['€','£','€','£','€'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9], pattern: 'SINE' },
+        { at_s: 45.0, currencies: ['£','€'],            lanes: [0.1, 0.9],        pattern: 'SWOOP' },
+        { at_s: 47.0, currencies: ['€','£','€','£'],    lanes: [0.15, 0.4, 0.6, 0.85] },
+        { at_s: 50.0, currencies: ['£','€','£'],        lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
+        { at_s: 52.5, currencies: ['€','£','€','£','€'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9] },
+        { at_s: 55.5, currencies: ['£','€'],            lanes: [0.15, 0.85],      pattern: 'SWOOP' },
+        { at_s: 57.5, currencies: '£',                  lanes: [0.2, 0.4, 0.6, 0.8], pattern: 'SINE' },
 
-        // 60-100s ESCALATION — relentless C2/C3 walls, overlapping bursts
-        { at_s: 60.5, currencies: ['$','元','Ⓒ','元','$'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85] },
-        { at_s: 62.5, currencies: ['元','$'],       lanes: [0.1, 0.9],        pattern: 'SWOOP' },
-        { at_s: 64.0, currencies: ['Ⓒ','元','Ⓒ'], lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
-        { at_s: 66.5, currencies: ['$','元','$','元','$','元'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
-        { at_s: 69.0, currencies: ['元','Ⓒ','元','Ⓒ'], lanes: [0.2, 0.4, 0.6, 0.8], pattern: 'SINE' },
-        { at_s: 71.5, currencies: ['$','元'],       lanes: [0.1, 0.9],        pattern: 'SWOOP' },
-        { at_s: 73.0, currencies: ['$','Ⓒ','$','Ⓒ','$'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85] },
-        { at_s: 75.5, currencies: ['元','$','元'], lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
-        { at_s: 78.0, currencies: ['$','元','Ⓒ','元','$'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9], pattern: 'SINE' },
-        { at_s: 80.5, currencies: ['元','$','元','$'], lanes: [0.1, 0.35, 0.65, 0.9], pattern: 'SWOOP' },
-        { at_s: 82.5, currencies: ['Ⓒ','$','Ⓒ','$','Ⓒ'], lanes: [0.2, 0.35, 0.5, 0.65, 0.8] },
-        { at_s: 85.0, currencies: ['元','Ⓒ'],     lanes: [0.35, 0.65],      pattern: 'HOVER' },
-        { at_s: 87.0, currencies: '$',              lanes: [0.1, 0.3, 0.5, 0.7, 0.9], pattern: 'SINE' },
-        { at_s: 90.0, currencies: ['$','元'],       lanes: [0.1, 0.9],        pattern: 'SWOOP' },
-        { at_s: 91.5, currencies: ['元','Ⓒ','元','Ⓒ','元'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85] },
-        { at_s: 94.0, currencies: ['$','元','$'],  lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
-        { at_s: 96.5, currencies: ['Ⓒ','元','Ⓒ','元'], lanes: [0.2, 0.4, 0.6, 0.8], pattern: 'SINE' },
-        { at_s: 99.0, currencies: ['元','$'],       lanes: [0.1, 0.9],        pattern: 'SWOOP' },
+        // 60-100s ESCALATION — € dominant, £ fillers, no WEAK anymore
+        { at_s: 60.5, currencies: ['€','£','€','£','€'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85] },
+        { at_s: 62.5, currencies: ['£','€'],            lanes: [0.1, 0.9],        pattern: 'SWOOP' },
+        { at_s: 64.0, currencies: ['€','£','€'],        lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
+        { at_s: 66.5, currencies: ['€','£','€','£','€','£'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
+        { at_s: 69.0, currencies: ['£','€','£','€'],    lanes: [0.2, 0.4, 0.6, 0.8], pattern: 'SINE' },
+        { at_s: 71.5, currencies: ['€','£'],            lanes: [0.1, 0.9],        pattern: 'SWOOP' },
+        { at_s: 73.0, currencies: ['€','£','€','£','€'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85] },
+        { at_s: 75.5, currencies: ['£','€','£'],        lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
+        { at_s: 78.0, currencies: ['€','£','€','£','€'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9], pattern: 'SINE' },
+        { at_s: 80.5, currencies: ['£','€','£','€'],    lanes: [0.1, 0.35, 0.65, 0.9], pattern: 'SWOOP' },
+        { at_s: 82.5, currencies: ['€','£','€','£','€'], lanes: [0.2, 0.35, 0.5, 0.65, 0.8] },
+        { at_s: 85.0, currencies: ['£','€'],            lanes: [0.35, 0.65],      pattern: 'HOVER' },
+        { at_s: 87.0, currencies: '€',                  lanes: [0.1, 0.3, 0.5, 0.7, 0.9], pattern: 'SINE' },
+        { at_s: 90.0, currencies: ['€','£'],            lanes: [0.1, 0.9],        pattern: 'SWOOP' },
+        { at_s: 91.5, currencies: ['£','€','£','€','£'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85] },
+        { at_s: 94.0, currencies: ['€','£','€'],        lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
+        { at_s: 96.5, currencies: ['£','€','£','€'],    lanes: [0.2, 0.4, 0.6, 0.8], pattern: 'SINE' },
+        { at_s: 99.0, currencies: ['£','€'],            lanes: [0.1, 0.9],        pattern: 'SWOOP' },
 
-        // 100-148s PEAK — sustained pressure, 2 swoops overlap, wide walls
-        { at_s: 100.5, currencies: ['$','元','Ⓒ','元','$','Ⓒ'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
-        { at_s: 103.0, currencies: ['元','Ⓒ','元'], lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
-        { at_s: 105.5, currencies: ['$','元','$','元','$'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9], pattern: 'SINE' },
-        { at_s: 108.0, currencies: ['$','元'],      lanes: [0.1, 0.9],        pattern: 'SWOOP' },
-        { at_s: 109.0, currencies: ['元','$'],      lanes: [0.2, 0.8],        pattern: 'SWOOP' },
-        { at_s: 111.0, currencies: ['Ⓒ','$','Ⓒ','$','Ⓒ'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85] },
-        { at_s: 113.5, currencies: ['元','Ⓒ'],     lanes: [0.35, 0.65],      pattern: 'HOVER' },
-        { at_s: 116.0, currencies: ['$','元','Ⓒ','元','$'], lanes: [0.2, 0.35, 0.5, 0.65, 0.8], pattern: 'SINE' },
-        { at_s: 118.5, currencies: ['元','$'],      lanes: [0.1, 0.9],        pattern: 'SWOOP' },
-        { at_s: 120.0, currencies: ['$','元','$','元','$','元'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
-        { at_s: 122.5, currencies: ['Ⓒ','元','Ⓒ'], lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
-        { at_s: 125.0, currencies: ['$','元','$','元','$'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9], pattern: 'SINE' },
-        { at_s: 127.5, currencies: ['元','$'],      lanes: [0.15, 0.85],      pattern: 'SWOOP' },
-        { at_s: 129.0, currencies: ['$','Ⓒ','$','Ⓒ','$'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9] },
-        { at_s: 131.5, currencies: ['元','Ⓒ','元'], lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
-        { at_s: 133.5, currencies: ['$','元','$','元','$'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9], pattern: 'SINE' },
-        { at_s: 136.0, currencies: ['$','元'],      lanes: [0.1, 0.9],        pattern: 'SWOOP' },
-        { at_s: 137.5, currencies: ['Ⓒ','$','Ⓒ','$','Ⓒ','$'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
-        { at_s: 140.0, currencies: ['元','Ⓒ','元'], lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
-        { at_s: 142.5, currencies: ['$','元','$','元','$'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9] },
-        { at_s: 145.0, currencies: ['元','$','元','$'], lanes: [0.1, 0.35, 0.65, 0.9], pattern: 'SWOOP' },
-        { at_s: 147.0, currencies: ['$','Ⓒ','$'],  lanes: [0.25, 0.5, 0.75], pattern: 'HOVER' },
+        // 100-148s PEAK — sustained €/£ pressure, dual swoops
+        { at_s: 100.5, currencies: ['€','£','€','£','€','£'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
+        { at_s: 103.0, currencies: ['£','€','£'],       lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
+        { at_s: 105.5, currencies: ['€','£','€','£','€'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9], pattern: 'SINE' },
+        { at_s: 108.0, currencies: ['€','£'],           lanes: [0.1, 0.9],        pattern: 'SWOOP' },
+        { at_s: 109.0, currencies: ['£','€'],           lanes: [0.2, 0.8],        pattern: 'SWOOP' },
+        { at_s: 111.0, currencies: ['€','£','€','£','€'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85] },
+        { at_s: 113.5, currencies: ['£','€'],           lanes: [0.35, 0.65],      pattern: 'HOVER' },
+        { at_s: 116.0, currencies: ['€','£','€','£','€'], lanes: [0.2, 0.35, 0.5, 0.65, 0.8], pattern: 'SINE' },
+        { at_s: 118.5, currencies: ['£','€'],           lanes: [0.1, 0.9],        pattern: 'SWOOP' },
+        { at_s: 120.0, currencies: ['€','£','€','£','€','£'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
+        { at_s: 122.5, currencies: ['£','€','£'],       lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
+        { at_s: 125.0, currencies: ['€','£','€','£','€'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9], pattern: 'SINE' },
+        { at_s: 127.5, currencies: ['£','€'],           lanes: [0.15, 0.85],      pattern: 'SWOOP' },
+        { at_s: 129.0, currencies: ['€','£','€','£','€'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9] },
+        { at_s: 131.5, currencies: ['£','€','£'],       lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
+        { at_s: 133.5, currencies: ['€','£','€','£','€'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9], pattern: 'SINE' },
+        { at_s: 136.0, currencies: ['€','£'],           lanes: [0.1, 0.9],        pattern: 'SWOOP' },
+        { at_s: 137.5, currencies: ['€','£','€','£','€','£'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
+        { at_s: 140.0, currencies: ['£','€','£'],       lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
+        { at_s: 142.5, currencies: ['€','£','€','£','€'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9] },
+        { at_s: 145.0, currencies: ['£','€','£','€'],   lanes: [0.1, 0.35, 0.65, 0.9], pattern: 'SWOOP' },
+        { at_s: 147.0, currencies: ['€','£','€'],       lanes: [0.25, 0.5, 0.75], pattern: 'HOVER' },
 
-        // 148-168s CORRIDOR CRUSH — harder than level 1 (peak earlier, peak speed 2.2)
-        { at_s: 148.5, currencies: ['$','元','Ⓒ','元','$','Ⓒ'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
-        { at_s: 150.0, currencies: ['元','$'],      lanes: [0.1, 0.9],        pattern: 'SWOOP' },
-        { at_s: 151.0, currencies: ['$','元','$','元','$'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85], pattern: 'SINE' },
-        { at_s: 153.0, currencies: ['Ⓒ','元','Ⓒ','元'], lanes: [0.2, 0.4, 0.6, 0.8] },
-        { at_s: 155.0, currencies: ['$','元','$'],  lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
-        { at_s: 157.0, currencies: ['$','元'],      lanes: [0.1, 0.9],        pattern: 'SWOOP' },
-        { at_s: 158.5, currencies: ['元','$','元','$','元','$'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
-        { at_s: 160.5, currencies: ['Ⓒ','元','Ⓒ'], lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
-        { at_s: 162.5, currencies: ['$','元','$','元','$'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85], pattern: 'SINE' },
-        { at_s: 164.5, currencies: ['元','$','元','$'], lanes: [0.1, 0.35, 0.65, 0.9], pattern: 'SWOOP' },
-        { at_s: 166.5, currencies: ['Ⓒ','$','Ⓒ','$','Ⓒ'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9] }
+        // 148-168s CORRIDOR CRUSH — peak speed 2.2
+        { at_s: 148.5, currencies: ['€','£','€','£','€','£'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
+        { at_s: 150.0, currencies: ['£','€'],           lanes: [0.1, 0.9],        pattern: 'SWOOP' },
+        { at_s: 151.0, currencies: ['€','£','€','£','€'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85], pattern: 'SINE' },
+        { at_s: 153.0, currencies: ['£','€','£','€'],   lanes: [0.2, 0.4, 0.6, 0.8] },
+        { at_s: 155.0, currencies: ['€','£','€'],       lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
+        { at_s: 157.0, currencies: ['€','£'],           lanes: [0.1, 0.9],        pattern: 'SWOOP' },
+        { at_s: 158.5, currencies: ['£','€','£','€','£','€'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
+        { at_s: 160.5, currencies: ['£','€','£'],       lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
+        { at_s: 162.5, currencies: ['€','£','€','£','€'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85], pattern: 'SINE' },
+        { at_s: 164.5, currencies: ['£','€','£','€'],   lanes: [0.1, 0.35, 0.65, 0.9], pattern: 'SWOOP' },
+        { at_s: 166.5, currencies: ['£','€','£','€','£'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9] }
     ];
 
     const LEVEL_2_ANCHORS = [
@@ -182,96 +195,97 @@ window.Game = window.Game || {};
         { at_s: 168, action: 'CRUSH_EXIT'  }
     ];
 
-    // LEVEL 3 — BOJ / ASIAN CRISIS ACT (campaign finale).
-    // Opens directly with STRONG tier + HOVER/SWOOP mix. No WEAK warmup. Crush starts
-    // at t=142s with peak speed 2.6× (vs 2.2× L2, 1.8× L1). Tuned for player arriving
-    // with evolved weapon + multiple perks.
+    // LEVEL 3 — BOJ / ASIAN CRISIS ACT. v7.5.0 regional:
+    // Asia roster. WEAK: ₹ INR + ₩ KRW. MEDIUM: 元 CNY. STRONG: ¥ JPY.
+    // Opens MEDIUM+WEAK (not STRONG) for a softer entry than pre-v7.5, but
+    // ramp & CRUSH 2.6× remain the hardest in campaign.
+    const LEVEL_3_TIERS = { '₹': 'WEAK', '₩': 'WEAK', '元': 'MEDIUM', '¥': 'STRONG' };
     const LEVEL_3_SCRIPT = [
-        // 0-25s OPENING — STRONG tier from t=0, MEDIUM fillers. No mercy.
-        { at_s: 1.0,  currencies: ['$','元','$'],   lanes: [0.2, 0.5, 0.8] },
-        { at_s: 3.5,  currencies: ['Ⓒ','$','Ⓒ'],  lanes: [0.3, 0.5, 0.7],    pattern: 'HOVER' },
-        { at_s: 6.5,  currencies: ['元','$','元','$'], lanes: [0.15, 0.4, 0.6, 0.85], pattern: 'SINE' },
-        { at_s: 9.5,  currencies: ['$','元'],       lanes: [0.1, 0.9],         pattern: 'SWOOP' },
-        { at_s: 11.5, currencies: ['Ⓒ','$','Ⓒ','$','Ⓒ'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85] },
-        { at_s: 14.5, currencies: ['元','Ⓒ','元'], lanes: [0.3, 0.5, 0.7],    pattern: 'HOVER' },
-        { at_s: 17.5, currencies: ['$','元','$','元','$'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9], pattern: 'SINE' },
-        { at_s: 20.5, currencies: ['元','$'],       lanes: [0.15, 0.85],       pattern: 'SWOOP' },
-        { at_s: 22.5, currencies: ['$','Ⓒ','$','Ⓒ'], lanes: [0.2, 0.4, 0.6, 0.8] },
+        // 0-25s OPENING — MEDIUM 元 with WEAK ₹/₩ fillers, no ¥ yet
+        { at_s: 1.0,  currencies: ['元','₹','元'],       lanes: [0.2, 0.5, 0.8] },
+        { at_s: 3.5,  currencies: ['元','₩','元'],       lanes: [0.3, 0.5, 0.7],    pattern: 'HOVER' },
+        { at_s: 6.5,  currencies: ['元','₹','元','₩'],   lanes: [0.15, 0.4, 0.6, 0.85], pattern: 'SINE' },
+        { at_s: 9.5,  currencies: ['元','₹'],            lanes: [0.1, 0.9],         pattern: 'SWOOP' },
+        { at_s: 11.5, currencies: ['元','₹','元','₩','元'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85] },
+        { at_s: 14.5, currencies: ['元','₩','元'],       lanes: [0.3, 0.5, 0.7],    pattern: 'HOVER' },
+        { at_s: 17.5, currencies: ['元','₹','元','₹','元'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9], pattern: 'SINE' },
+        { at_s: 20.5, currencies: ['元','₩'],            lanes: [0.15, 0.85],       pattern: 'SWOOP' },
+        { at_s: 22.5, currencies: ['元','₹','元','₩'],   lanes: [0.2, 0.4, 0.6, 0.8] },
 
-        // 25-60s BUILDUP — dual SWOOP passes start, HOVER walls
-        { at_s: 25.5, currencies: ['元','Ⓒ','元'], lanes: [0.3, 0.5, 0.7],    pattern: 'HOVER' },
-        { at_s: 28.0, currencies: ['$','元','$','元','$','元'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
-        { at_s: 30.5, currencies: ['$','元'],       lanes: [0.1, 0.9],         pattern: 'SWOOP' },
-        { at_s: 31.5, currencies: ['元','$'],       lanes: [0.2, 0.8],         pattern: 'SWOOP' },
-        { at_s: 33.5, currencies: ['Ⓒ','$','Ⓒ','$','Ⓒ'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85], pattern: 'SINE' },
-        { at_s: 36.0, currencies: ['元','Ⓒ'],     lanes: [0.35, 0.65],       pattern: 'HOVER' },
-        { at_s: 38.5, currencies: ['$','元','Ⓒ','元','$'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85] },
-        { at_s: 41.0, currencies: ['元','$'],       lanes: [0.1, 0.9],         pattern: 'SWOOP' },
-        { at_s: 42.5, currencies: ['$','元','$','元','$'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9], pattern: 'SINE' },
-        { at_s: 45.0, currencies: ['Ⓒ','$','Ⓒ','$','Ⓒ','$'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
-        { at_s: 48.0, currencies: ['元','Ⓒ','元'], lanes: [0.3, 0.5, 0.7],    pattern: 'HOVER' },
-        { at_s: 50.5, currencies: ['$','元'],       lanes: [0.1, 0.9],         pattern: 'SWOOP' },
-        { at_s: 51.5, currencies: ['元','$'],       lanes: [0.2, 0.8],         pattern: 'SWOOP' },
-        { at_s: 53.5, currencies: ['$','元','$','元','$'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85], pattern: 'SINE' },
-        { at_s: 56.5, currencies: ['Ⓒ','元','Ⓒ','元'], lanes: [0.2, 0.4, 0.6, 0.8] },
-        { at_s: 59.0, currencies: ['元','$','元'], lanes: [0.3, 0.5, 0.7],    pattern: 'HOVER' },
+        // 25-60s BUILDUP — ¥ YEN enters (STRONG), 元 backbone, ₹/₩ fade
+        { at_s: 25.5, currencies: ['元','¥','元'],       lanes: [0.3, 0.5, 0.7],    pattern: 'HOVER' },
+        { at_s: 28.0, currencies: ['¥','元','¥','元','¥','元'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
+        { at_s: 30.5, currencies: ['¥','元'],            lanes: [0.1, 0.9],         pattern: 'SWOOP' },
+        { at_s: 31.5, currencies: ['元','¥'],            lanes: [0.2, 0.8],         pattern: 'SWOOP' },
+        { at_s: 33.5, currencies: ['元','¥','元','¥','元'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85], pattern: 'SINE' },
+        { at_s: 36.0, currencies: ['¥','元'],            lanes: [0.35, 0.65],       pattern: 'HOVER' },
+        { at_s: 38.5, currencies: ['¥','元','¥','元','¥'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85] },
+        { at_s: 41.0, currencies: ['元','¥'],            lanes: [0.1, 0.9],         pattern: 'SWOOP' },
+        { at_s: 42.5, currencies: ['¥','元','¥','元','¥'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9], pattern: 'SINE' },
+        { at_s: 45.0, currencies: ['元','¥','元','¥','元','¥'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
+        { at_s: 48.0, currencies: ['¥','元','¥'],        lanes: [0.3, 0.5, 0.7],    pattern: 'HOVER' },
+        { at_s: 50.5, currencies: ['¥','元'],            lanes: [0.1, 0.9],         pattern: 'SWOOP' },
+        { at_s: 51.5, currencies: ['元','¥'],            lanes: [0.2, 0.8],         pattern: 'SWOOP' },
+        { at_s: 53.5, currencies: ['¥','元','¥','元','¥'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85], pattern: 'SINE' },
+        { at_s: 56.5, currencies: ['元','¥','元','¥'],   lanes: [0.2, 0.4, 0.6, 0.8] },
+        { at_s: 59.0, currencies: ['元','¥','元'],       lanes: [0.3, 0.5, 0.7],    pattern: 'HOVER' },
 
-        // 60-100s ESCALATION — 6-wide walls routine, triple SWOOP sequences
-        { at_s: 61.5, currencies: ['$','元','Ⓒ','元','$','Ⓒ'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
-        { at_s: 64.0, currencies: ['元','$'],       lanes: [0.1, 0.9],         pattern: 'SWOOP' },
-        { at_s: 65.0, currencies: ['$','元'],       lanes: [0.2, 0.8],         pattern: 'SWOOP' },
-        { at_s: 66.0, currencies: ['元','$'],       lanes: [0.35, 0.65],       pattern: 'SWOOP' },
-        { at_s: 68.0, currencies: ['Ⓒ','$','Ⓒ','$','Ⓒ'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85] },
-        { at_s: 70.5, currencies: ['元','Ⓒ'],     lanes: [0.35, 0.65],       pattern: 'HOVER' },
-        { at_s: 73.0, currencies: ['$','元','$','元','$','元'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9], pattern: 'SINE' },
-        { at_s: 75.5, currencies: ['$','Ⓒ','$','Ⓒ','$'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85] },
-        { at_s: 78.0, currencies: ['元','$','元'], lanes: [0.3, 0.5, 0.7],    pattern: 'HOVER' },
-        { at_s: 80.5, currencies: ['$','元'],       lanes: [0.1, 0.9],         pattern: 'SWOOP' },
-        { at_s: 82.0, currencies: ['Ⓒ','$','Ⓒ','$','Ⓒ','$'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9], pattern: 'SINE' },
-        { at_s: 84.5, currencies: ['元','Ⓒ','元','Ⓒ'], lanes: [0.2, 0.4, 0.6, 0.8] },
-        { at_s: 87.0, currencies: ['$','元','$'],  lanes: [0.25, 0.5, 0.75], pattern: 'HOVER' },
-        { at_s: 89.5, currencies: ['元','$','元','$'], lanes: [0.1, 0.35, 0.65, 0.9], pattern: 'SWOOP' },
-        { at_s: 91.5, currencies: ['Ⓒ','元','Ⓒ','元','Ⓒ'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85] },
-        { at_s: 94.0, currencies: ['$','元','$','元','$'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9], pattern: 'SINE' },
-        { at_s: 96.5, currencies: ['元','$'],       lanes: [0.1, 0.9],         pattern: 'SWOOP' },
-        { at_s: 98.0, currencies: ['$','元','$','元','$','元'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
+        // 60-100s ESCALATION — ¥ dominant, 元 fillers, triple SWOOP sequences
+        { at_s: 61.5, currencies: ['¥','元','¥','元','¥','元'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
+        { at_s: 64.0, currencies: ['元','¥'],            lanes: [0.1, 0.9],         pattern: 'SWOOP' },
+        { at_s: 65.0, currencies: ['¥','元'],            lanes: [0.2, 0.8],         pattern: 'SWOOP' },
+        { at_s: 66.0, currencies: ['元','¥'],            lanes: [0.35, 0.65],       pattern: 'SWOOP' },
+        { at_s: 68.0, currencies: ['¥','元','¥','元','¥'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85] },
+        { at_s: 70.5, currencies: ['元','¥'],            lanes: [0.35, 0.65],       pattern: 'HOVER' },
+        { at_s: 73.0, currencies: ['¥','元','¥','元','¥','元'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9], pattern: 'SINE' },
+        { at_s: 75.5, currencies: ['¥','元','¥','元','¥'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85] },
+        { at_s: 78.0, currencies: ['元','¥','元'],       lanes: [0.3, 0.5, 0.7],    pattern: 'HOVER' },
+        { at_s: 80.5, currencies: ['¥','元'],            lanes: [0.1, 0.9],         pattern: 'SWOOP' },
+        { at_s: 82.0, currencies: ['¥','元','¥','元','¥','元'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9], pattern: 'SINE' },
+        { at_s: 84.5, currencies: ['元','¥','元','¥'],   lanes: [0.2, 0.4, 0.6, 0.8] },
+        { at_s: 87.0, currencies: ['¥','元','¥'],        lanes: [0.25, 0.5, 0.75], pattern: 'HOVER' },
+        { at_s: 89.5, currencies: ['元','¥','元','¥'],   lanes: [0.1, 0.35, 0.65, 0.9], pattern: 'SWOOP' },
+        { at_s: 91.5, currencies: ['¥','元','¥','元','¥'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85] },
+        { at_s: 94.0, currencies: ['¥','元','¥','元','¥'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9], pattern: 'SINE' },
+        { at_s: 96.5, currencies: ['元','¥'],            lanes: [0.1, 0.9],         pattern: 'SWOOP' },
+        { at_s: 98.0, currencies: ['¥','元','¥','元','¥','元'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
 
-        // 100-142s PEAK — relentless walls, overlapping SWOOP from both sides
-        { at_s: 100.5, currencies: ['Ⓒ','$','Ⓒ','$','Ⓒ'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85], pattern: 'SINE' },
-        { at_s: 103.0, currencies: ['元','Ⓒ','元'], lanes: [0.3, 0.5, 0.7],    pattern: 'HOVER' },
-        { at_s: 105.5, currencies: ['$','元'],      lanes: [0.1, 0.9],         pattern: 'SWOOP' },
-        { at_s: 106.5, currencies: ['元','$'],      lanes: [0.2, 0.8],         pattern: 'SWOOP' },
-        { at_s: 108.0, currencies: ['$','元','Ⓒ','元','$','Ⓒ'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
-        { at_s: 110.5, currencies: ['元','Ⓒ','元','Ⓒ'], lanes: [0.2, 0.4, 0.6, 0.8], pattern: 'SINE' },
-        { at_s: 113.0, currencies: ['$','元','$'],  lanes: [0.3, 0.5, 0.7],    pattern: 'HOVER' },
-        { at_s: 115.5, currencies: ['元','$','元','$'], lanes: [0.1, 0.35, 0.65, 0.9], pattern: 'SWOOP' },
-        { at_s: 117.5, currencies: ['Ⓒ','$','Ⓒ','$','Ⓒ','$'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
-        { at_s: 120.0, currencies: ['元','Ⓒ'],     lanes: [0.35, 0.65],       pattern: 'HOVER' },
-        { at_s: 122.5, currencies: ['$','元','Ⓒ','元','$'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85], pattern: 'SINE' },
-        { at_s: 125.0, currencies: ['$','元'],      lanes: [0.1, 0.9],         pattern: 'SWOOP' },
-        { at_s: 126.0, currencies: ['元','$'],      lanes: [0.2, 0.8],         pattern: 'SWOOP' },
-        { at_s: 127.5, currencies: ['Ⓒ','元','Ⓒ','元','Ⓒ'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9] },
-        { at_s: 130.0, currencies: ['$','元','$'],  lanes: [0.3, 0.5, 0.7],    pattern: 'HOVER' },
-        { at_s: 132.5, currencies: ['元','Ⓒ','元','Ⓒ','元'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85], pattern: 'SINE' },
-        { at_s: 135.0, currencies: ['$','元','$','元','$','元'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
-        { at_s: 137.5, currencies: ['元','$','元','$'], lanes: [0.1, 0.35, 0.65, 0.9], pattern: 'SWOOP' },
-        { at_s: 139.5, currencies: ['Ⓒ','$','Ⓒ'],  lanes: [0.3, 0.5, 0.7],    pattern: 'HOVER' },
+        // 100-142s PEAK — relentless ¥ walls, overlapping SWOOP from both sides
+        { at_s: 100.5, currencies: ['¥','元','¥','元','¥'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85], pattern: 'SINE' },
+        { at_s: 103.0, currencies: ['元','¥','元'],      lanes: [0.3, 0.5, 0.7],    pattern: 'HOVER' },
+        { at_s: 105.5, currencies: ['¥','元'],           lanes: [0.1, 0.9],         pattern: 'SWOOP' },
+        { at_s: 106.5, currencies: ['元','¥'],           lanes: [0.2, 0.8],         pattern: 'SWOOP' },
+        { at_s: 108.0, currencies: ['¥','元','¥','元','¥','元'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
+        { at_s: 110.5, currencies: ['元','¥','元','¥'],  lanes: [0.2, 0.4, 0.6, 0.8], pattern: 'SINE' },
+        { at_s: 113.0, currencies: ['¥','元','¥'],       lanes: [0.3, 0.5, 0.7],    pattern: 'HOVER' },
+        { at_s: 115.5, currencies: ['元','¥','元','¥'],  lanes: [0.1, 0.35, 0.65, 0.9], pattern: 'SWOOP' },
+        { at_s: 117.5, currencies: ['¥','元','¥','元','¥','元'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
+        { at_s: 120.0, currencies: ['元','¥'],           lanes: [0.35, 0.65],       pattern: 'HOVER' },
+        { at_s: 122.5, currencies: ['¥','元','¥','元','¥'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85], pattern: 'SINE' },
+        { at_s: 125.0, currencies: ['¥','元'],           lanes: [0.1, 0.9],         pattern: 'SWOOP' },
+        { at_s: 126.0, currencies: ['元','¥'],           lanes: [0.2, 0.8],         pattern: 'SWOOP' },
+        { at_s: 127.5, currencies: ['元','¥','元','¥','元'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9] },
+        { at_s: 130.0, currencies: ['¥','元','¥'],       lanes: [0.3, 0.5, 0.7],    pattern: 'HOVER' },
+        { at_s: 132.5, currencies: ['元','¥','元','¥','元'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85], pattern: 'SINE' },
+        { at_s: 135.0, currencies: ['¥','元','¥','元','¥','元'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
+        { at_s: 137.5, currencies: ['元','¥','元','¥'],  lanes: [0.1, 0.35, 0.65, 0.9], pattern: 'SWOOP' },
+        { at_s: 139.5, currencies: ['元','¥','元'],      lanes: [0.3, 0.5, 0.7],    pattern: 'HOVER' },
 
-        // 142-168s CORRIDOR CRUSH — hardest in campaign (peak 2.6×, 26s of pressure)
-        { at_s: 142.5, currencies: ['$','元','Ⓒ','元','$','Ⓒ'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
-        { at_s: 144.0, currencies: ['元','$'],      lanes: [0.1, 0.9],         pattern: 'SWOOP' },
-        { at_s: 145.0, currencies: ['$','元','$','元','$'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85], pattern: 'SINE' },
-        { at_s: 147.0, currencies: ['$','元'],      lanes: [0.25, 0.75],       pattern: 'SWOOP' },
-        { at_s: 148.5, currencies: ['Ⓒ','元','Ⓒ','元','Ⓒ'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9] },
-        { at_s: 150.5, currencies: ['$','元','$'],  lanes: [0.3, 0.5, 0.7],    pattern: 'HOVER' },
-        { at_s: 152.5, currencies: ['元','$'],      lanes: [0.1, 0.9],         pattern: 'SWOOP' },
-        { at_s: 153.5, currencies: ['$','元'],      lanes: [0.2, 0.8],         pattern: 'SWOOP' },
-        { at_s: 155.0, currencies: ['$','元','$','元','$','元'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
-        { at_s: 157.5, currencies: ['Ⓒ','元','Ⓒ'], lanes: [0.3, 0.5, 0.7],    pattern: 'HOVER' },
-        { at_s: 159.5, currencies: ['$','元','Ⓒ','元','$'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85], pattern: 'SINE' },
-        { at_s: 162.0, currencies: ['元','$','元','$'], lanes: [0.1, 0.35, 0.65, 0.9], pattern: 'SWOOP' },
-        { at_s: 164.5, currencies: ['Ⓒ','$','Ⓒ','$','Ⓒ'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9] },
-        { at_s: 166.5, currencies: ['元','$'],      lanes: [0.1, 0.9],         pattern: 'SWOOP' }
+        // 142-168s CORRIDOR CRUSH — hardest in campaign (peak 2.6×, 26s)
+        { at_s: 142.5, currencies: ['¥','元','¥','元','¥','元'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
+        { at_s: 144.0, currencies: ['元','¥'],           lanes: [0.1, 0.9],         pattern: 'SWOOP' },
+        { at_s: 145.0, currencies: ['¥','元','¥','元','¥'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85], pattern: 'SINE' },
+        { at_s: 147.0, currencies: ['¥','元'],           lanes: [0.25, 0.75],       pattern: 'SWOOP' },
+        { at_s: 148.5, currencies: ['元','¥','元','¥','元'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9] },
+        { at_s: 150.5, currencies: ['¥','元','¥'],       lanes: [0.3, 0.5, 0.7],    pattern: 'HOVER' },
+        { at_s: 152.5, currencies: ['元','¥'],           lanes: [0.1, 0.9],         pattern: 'SWOOP' },
+        { at_s: 153.5, currencies: ['¥','元'],           lanes: [0.2, 0.8],         pattern: 'SWOOP' },
+        { at_s: 155.0, currencies: ['¥','元','¥','元','¥','元'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
+        { at_s: 157.5, currencies: ['元','¥','元'],      lanes: [0.3, 0.5, 0.7],    pattern: 'HOVER' },
+        { at_s: 159.5, currencies: ['¥','元','¥','元','¥'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85], pattern: 'SINE' },
+        { at_s: 162.0, currencies: ['元','¥','元','¥'],  lanes: [0.1, 0.35, 0.65, 0.9], pattern: 'SWOOP' },
+        { at_s: 164.5, currencies: ['元','¥','元','¥','元'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9] },
+        { at_s: 166.5, currencies: ['元','¥'],           lanes: [0.1, 0.9],         pattern: 'SWOOP' }
     ];
 
     const LEVEL_3_ANCHORS = [
@@ -289,7 +303,8 @@ window.Game = window.Game || {};
             CRUSH_ENTER_S: 150,
             CRUSH_EXIT_S: 168,
             SCRIPT: LEVEL_1_SCRIPT,
-            ANCHORS: LEVEL_1_ANCHORS
+            ANCHORS: LEVEL_1_ANCHORS,
+            TIER_BY_SYMBOL: LEVEL_1_TIERS
         },
         {
             id: 2,
@@ -299,7 +314,8 @@ window.Game = window.Game || {};
             CRUSH_ENTER_S: 148,
             CRUSH_EXIT_S: 168,
             SCRIPT: LEVEL_2_SCRIPT,
-            ANCHORS: LEVEL_2_ANCHORS
+            ANCHORS: LEVEL_2_ANCHORS,
+            TIER_BY_SYMBOL: LEVEL_2_TIERS
         },
         {
             id: 3,
@@ -309,12 +325,14 @@ window.Game = window.Game || {};
             CRUSH_ENTER_S: 142,
             CRUSH_EXIT_S: 168,
             SCRIPT: LEVEL_3_SCRIPT,
-            ANCHORS: LEVEL_3_ANCHORS
+            ANCHORS: LEVEL_3_ANCHORS,
+            TIER_BY_SYMBOL: LEVEL_3_TIERS
         }
     ];
 
     G.LevelScript = {
         LEVELS,
+        TIER_TARGETS,
 
         _levelIdx: 0,
         _idx: 0,
@@ -555,8 +573,19 @@ window.Game = window.Game || {};
             const cycle = window.marketCycle || 1;
             const diff = Balance.calculateDifficulty(level, cycle);
             const scaledHP = Balance.calculateEnemyHP(diff, cycle);
+
+            // v7.5.0: regional tier normalization. Each level assigns each
+            // currency a regional tier (WEAK/MEDIUM/STRONG); we override hp+val
+            // with the tier target so e.g. ¥ as L3 STRONG plays as durable as
+            // $ did as L1 STRONG, independent of the FIAT_TYPES base stats.
+            const tiers = LEVELS[this._levelIdx] && LEVELS[this._levelIdx].TIER_BY_SYMBOL;
+            const tier = tiers && tiers[currencySymbol];
+            const target = tier && TIER_TARGETS[tier];
+            const baseHp  = target ? target.hp  : currencyType.hp;
+            const baseVal = target ? target.val : currencyType.val;
             const scaledType = Object.assign({}, currencyType, {
-                hp: currencyType.hp * scaledHP
+                hp: baseHp * scaledHP,
+                val: baseVal
             });
 
             const enemy = new G.Enemy(spawnX, spawnY, scaledType);

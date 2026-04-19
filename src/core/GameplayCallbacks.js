@@ -388,10 +388,12 @@ window.Game = window.Game || {};
                     window.enemyBullets = ebArr;
                     d.setBossJustDefeated(true);
 
-                    // v8 S05: resume scroll at reduced "breathing" speed, then schedule level end.
-                    if (Balance.V8_MODE && Balance.V8_MODE.ENABLED) {
+                    // v8 S05: resume scroll at reduced "breathing" speed.
+                    // NOTE: scheduleLevelEnd is deferred until after celebration/chapter flow
+                    // to avoid racing with showStoryScreen modal (see line ~548).
+                    const _v8Enabled = !!(Balance.V8_MODE && Balance.V8_MODE.ENABLED);
+                    if (_v8Enabled) {
                         if (G.ScrollEngine && G.ScrollEngine.resume) G.ScrollEngine.resume(40);
-                        if (G.LevelScript && G.LevelScript.scheduleLevelEnd) G.LevelScript.scheduleLevelEnd(10);
                     }
 
                     if (d.player && d.player.hyperActive) d.player.deactivateHyper();
@@ -546,7 +548,16 @@ window.Game = window.Game || {};
                                 d.showCampaignVictory();
                             }
                         } else if (shouldShowChapter) {
-                            d.showStoryScreen(chapterId, () => { d.restoreGameUI(); d.startIntermission(d.t('CYCLE') + ' ' + newCycle + ' ' + d.t('BEGINS')); });
+                            d.showStoryScreen(chapterId, () => {
+                                d.restoreGameUI();
+                                if (_v8Enabled && typeof window.advanceToNextV8Level === 'function') {
+                                    window.advanceToNextV8Level();
+                                } else {
+                                    d.startIntermission(d.t('CYCLE') + ' ' + newCycle + ' ' + d.t('BEGINS'));
+                                }
+                            });
+                        } else if (_v8Enabled && G.LevelScript && G.LevelScript.scheduleLevelEnd) {
+                            G.LevelScript.scheduleLevelEnd(1);
                         } else {
                             d.startIntermission(d.t('CYCLE') + ' ' + newCycle + ' ' + d.t('BEGINS'));
                         }
