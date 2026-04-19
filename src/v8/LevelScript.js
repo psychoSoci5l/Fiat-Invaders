@@ -347,23 +347,56 @@ window.Game = window.Game || {};
         reset() {
             this._levelIdx = 0;
             this._resetLevelState();
-            this._stats = {
-                startedAt: 0,
-                burstsFired: 0,
-                spawned: 0,
-                killed: 0,
-                aliveSamples: 0,
-                aliveSum: 0,
-                aliveMax: 0,
-                deadTimeSec: 0
-            };
+            this._stats = this._freshStats();
             if (G.Events && typeof G.Events.on === 'function') {
                 if (this._killHook && typeof G.Events.off === 'function') {
                     G.Events.off('enemy_killed', this._killHook);
                 }
-                this._killHook = () => { if (this._stats) this._stats.killed++; };
+                // v7.4.0: richer kill hook — track pattern, y-at-death, aliveAtKill for tuning report
+                this._killHook = (payload) => {
+                    const s = this._stats;
+                    if (!s) return;
+                    s.killed++;
+                    const pat = (payload && payload.pattern) || 'DIVE';
+                    s.killsByPattern[pat] = (s.killsByPattern[pat] || 0) + 1;
+                    // phase bucket: OPENING(0-30) BUILDUP(30-60) ESCALATION(60-100) PEAK(100-CRUSH_ENTER) CRUSH(CRUSH_ENTER-168) BOSS(168+)
+                    const t = this._elapsed;
+                    const crushIn = this.CRUSH_ENTER_S || 150;
+                    let phase = 'OPENING';
+                    if (t >= 168) phase = 'BOSS';
+                    else if (t >= crushIn) phase = 'CRUSH';
+                    else if (t >= 100) phase = 'PEAK';
+                    else if (t >= 60) phase = 'ESCALATION';
+                    else if (t >= 30) phase = 'BUILDUP';
+                    s.killsByPhase[phase] = (s.killsByPhase[phase] || 0) + 1;
+                    if (payload && typeof payload.y === 'number') {
+                        const gh = G._gameHeight || 849;
+                        const yRatio = payload.y / gh;
+                        // bucket killed y-position: TOP(0-0.33) MID(0.33-0.66) LOW(0.66-1.0)
+                        const bucket = yRatio < 0.33 ? 'TOP' : (yRatio < 0.66 ? 'MID' : 'LOW');
+                        s.killsByYBucket[bucket] = (s.killsByYBucket[bucket] || 0) + 1;
+                    }
+                };
                 G.Events.on('enemy_killed', this._killHook);
             }
+        },
+
+        _freshStats() {
+            return {
+                startedAt: 0,
+                burstsFired: 0,
+                spawned: 0,
+                killed: 0,
+                escapedOffScreen: 0,      // v7.4.0: enemies purged by off-screen cull (never killed)
+                aliveSamples: 0,
+                aliveSum: 0,
+                aliveMax: 0,
+                deadTimeSec: 0,
+                killsByPattern: {},       // { DIVE: n, SINE: n, HOVER: n, SWOOP: n }
+                killsByPhase: {},         // { OPENING/BUILDUP/ESCALATION/PEAK/CRUSH/BOSS: n }
+                killsByYBucket: {},       // { TOP/MID/LOW: n } — where on screen kills land
+                levelStart: null          // set on loadLevel to mark per-level boundary if needed
+            };
         },
 
         _resetLevelState() {
@@ -425,6 +458,7 @@ window.Game = window.Game || {};
                 if (!e) continue;
                 if (e._v8Fall && e.y > cullY) {
                     arr.splice(i, 1);
+                    if (this._stats) this._stats.escapedOffScreen++;
                 }
             }
 

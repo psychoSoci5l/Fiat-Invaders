@@ -268,7 +268,7 @@ window.Game = window.Game || {};
                     if (G.Debug) G.Debug.trackKillStreak(d.getStreak());
                     d.updateKillCounter();
                     d.checkStreakMeme();
-                    d.emitEvent('enemy_killed', { score: killScore, x: e.x, y: e.y });
+                    d.emitEvent('enemy_killed', { score: killScore, x: e.x, y: e.y, pattern: e.entryPattern || null, symbol: e.symbol || null, v8Fall: !!e._v8Fall });
 
                     // Proximity Kill Meter
                     const dist = Math.abs(e.y - d.player.y);

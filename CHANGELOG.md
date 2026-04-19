@@ -1,5 +1,15 @@
 # Changelog
 
+## v7.4.0 — V8 tuning telemetry + campaign victory routing - 2026-04-19
+
+Strumentazione per un tuning pass su metriche reali invece di debug cycle da 10 minuti l'uno. `dbg.v8()` ora riporta ripartizione kill per pattern/fase/zona schermo e escape rate (nemici ciad fuori vista senza essere colpiti). Inoltre: completamento L3 ora entra nel flow `showCampaignVictory()` esistente (v6 "all banks defeated") invece di plain gameover.
+
+- **feat(debug)**: `LevelScript._stats` esteso — `escapedOffScreen`, `killsByPattern` (DIVE/SINE/HOVER/SWOOP), `killsByPhase` (OPENING/BUILDUP/ESCALATION/PEAK/CRUSH/BOSS), `killsByYBucket` (TOP/MID/LOW). Increment hook `enemy_killed` usa il payload arricchito
+- **feat(debug)**: `enemy_killed` payload ora include `pattern` (`e.entryPattern`), `symbol`, `v8Fall` — consumabile da altri sistemi per analytics future
+- **feat(debug)**: `dbg.v8()` output esteso — livello attivo, escape rate %, kills by pattern/phase/y-bucket. Lettura on-demand, zero overhead quando non chiamato
+- **fix(v8)**: `LEVEL_END` senza next level → `showCampaignVictory()` invece di `triggerGameOver()`. Riusa il celebration flow v6 "all banks defeated" (stats cumulative, splash). Fallback a gameover se la funzione non esiste
+- **regression**: nessuna. Increment stats è O(1), payload event aggiunge 3 campi facoltativi, routing victory preserva il path gameover se `showCampaignVictory` non è definito
+
 ## v7.3.0 — LEVEL 3 (BOJ) — campaign finale - 2026-04-19
 
 Terzo e ultimo livello della campaign v8. Dopo aver battuto BCE → intermission → LEVEL 3 apre **direttamente con STRONG tier** ($元Ⓒ), zero warmup. Pressione baseline 20% sopra L2, triple-SWOOP sequences, corridor crush più lungo (26s) e veloce (peak 2.6× vs 2.2× L2 / 1.8× L1). Boss finale: BOJ (già in `G.BOSSES`). Completamento L3 → victory gameover → splash "CAMPAIGN COMPLETE" + stats cumulative.

@@ -2895,10 +2895,17 @@ function update(dt) {
         } else if (waveAction.action === 'LEVEL_END') {
             // v8 S05: scripted level end after boss breathing window.
             // v7.2.0: if another level exists, show intermission; else victory.
+            // v7.4.0: campaign completion (no next level) now routes to
+            // showCampaignVictory() instead of plain gameover so we reuse the
+            // existing v6 "all banks defeated" celebration flow.
             if (G.LevelScript && G.LevelScript.hasNextLevel && G.LevelScript.hasNextLevel()) {
                 showV8Intermission();
             } else {
-                triggerGameOver();
+                if (typeof showCampaignVictory === 'function') {
+                    showCampaignVictory();
+                } else {
+                    triggerGameOver();
+                }
             }
         } else if (waveAction.action === 'START_WAVE') {
             setGameState('PLAY');

@@ -1325,16 +1325,23 @@ window.Game.Debug = {
             const t = (ls._elapsed || 0);
             const deadPct = t > 0 ? (s.deadTimeSec / t * 100) : 0;
             const ttk = s.killed > 0 ? (t / s.killed) : 0;
+            const escaped = s.escapedOffScreen || 0;
+            const escapeRate = s.spawned > 0 ? (escaped / s.spawned * 100) : 0;
             console.log('Run metrics:', {
+                level: ls.currentLevelNum ? `${ls.currentLevelNum()} (${ls.currentLevelName()})` : '?',
                 bursts: s.burstsFired,
                 spawned: s.spawned,
                 killed: s.killed,
+                escaped: `${escaped} (${escapeRate.toFixed(1)}%)`,
                 alive: (G && G.enemies || []).length,
                 aliveAvg: avg.toFixed(2),
                 aliveMax: s.aliveMax,
                 deadTime: `${s.deadTimeSec.toFixed(1)}s (${deadPct.toFixed(1)}%)`,
                 avgTTK: `${ttk.toFixed(2)}s/kill`
             });
+            console.log('Kills by pattern:', s.killsByPattern);
+            console.log('Kills by phase:', s.killsByPhase);
+            console.log('Kills by Y-bucket:', s.killsByYBucket);
         } else {
             console.log('Enemies alive:', (G && G.enemies || []).length);
         }
