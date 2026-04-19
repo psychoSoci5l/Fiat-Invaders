@@ -2425,6 +2425,15 @@
             ELEMENTAL_AGGRESSION: {
                 ENABLED: true,
                 SCALE: [0.10, 0.15, 0.20]  // +% fire rate for perkLevel 1/2/3+
+            },
+            // v7.4.2: V8 per-level ramp — fire budget scales with LevelScript elapsed/BOSS_AT_S.
+            // Fixes "aggressivi dal primo secondo": OPENING fires at 35% of configured BPS,
+            // curve eases toward 100% at boss approach. Only active when V8_MODE.ENABLED.
+            V8_RAMP: {
+                ENABLED: true,
+                START: 0.35,       // multiplier at elapsed=0
+                END: 1.0,          // multiplier at elapsed>=BOSS_AT_S
+                CURVE: 'quad'      // 'lin' or 'quad' (quad = slow start, fast end)
             }
         },
 

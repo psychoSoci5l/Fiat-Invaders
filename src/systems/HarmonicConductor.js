@@ -261,6 +261,21 @@ window.Game.HarmonicConductor = {
             max *= 1 + (aggCfg.SCALE[lvl - 1] || 0);
         }
 
+        // v7.4.2: V8 per-level ramp — scale BPS with progress through the level.
+        // Opening breathes, boss approach feels heavy. Only in v8 mode.
+        const v8cfg = window.Game.Balance?.V8_MODE;
+        const rampCfg = cfg.V8_RAMP;
+        const ls = window.Game.LevelScript;
+        if (v8cfg?.ENABLED && rampCfg?.ENABLED && ls && typeof ls._elapsed === 'number') {
+            const bossAt = ls.BOSS_AT_S || 170;
+            const t = Math.max(0, Math.min(1, ls._elapsed / bossAt));
+            const curved = rampCfg.CURVE === 'quad' ? t * t : t;
+            const start = rampCfg.START != null ? rampCfg.START : 0.35;
+            const end = rampCfg.END != null ? rampCfg.END : 1.0;
+            const rampMul = start + (end - start) * curved;
+            max *= rampMul;
+        }
+
         this._fireBudget.maxPerSecond = Math.round(max);
     },
 

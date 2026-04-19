@@ -1,5 +1,14 @@
 # Changelog
 
+## v7.4.2 — V8 fire budget ramp-up - 2026-04-19
+
+Il fix di v7.4.1 diradava gli spawn ma non toccava il **fire budget** del `HarmonicConductor`, che restava piatto dal secondo 0 (8 BPS L1 pieni da t=0). Risultato: 3 nemici a schermo sparavano come se fossero 15. Feedback playtester: "sin dall'inizio sono tutti aggressivi".
+
+- **tune(v8)**: `FIRE_BUDGET.V8_RAMP` — moltiplicatore scalato su `LevelScript._elapsed / BOSS_AT_S`. Start 0.35, end 1.0, curva quadratica (slow start, fast end). Attivo solo quando `V8_MODE.ENABLED`
+- **effect**: OPENING (0-50s) fuoco ~35-40% del budget configurato. BUILDUP 50-90s ~45-60%. ESCALATION 90-130s ~60-80%. PEAK/CRUSH 130-168s ~80-100%. Boss a 170s → 100%
+- **impl**: applicato in `HarmonicConductor._recalcFireBudgetMax` dopo tutti gli altri modifier (cycle/bear/panic/rank/perks). Kill-switch `V8_RAMP.ENABLED=false` disattiva. Non tocca non-v8 mode
+- **regression**: nessuna. Il budget è comunque capped a 1.5× `maxPerSecond`, quindi il deficit iniziale non esplode in surge al boss. Non tocca bullet patterns né spawn timing
+
 ## v7.4.1 — L1 onboarding rampa - 2026-04-19
 
 Dopo 3 run sotto i 3 minuti con metriche telemetria v7.4.0 (escape 12%, morte in PEAK prima di CRUSH), emerge che L1 non fa onboarding: MEDIUM entra a t=30s, STRONG a t=82s — il player ha pochissimo tempo per capire perks/drops/specials prima che la difficoltà salga. L1 ora è rampa lenta, L2/L3 invariati (sono tarati su player esperto).
