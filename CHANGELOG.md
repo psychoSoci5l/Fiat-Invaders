@@ -1,5 +1,15 @@
 # Changelog
 
+## v7.4.1 — L1 onboarding rampa - 2026-04-19
+
+Dopo 3 run sotto i 3 minuti con metriche telemetria v7.4.0 (escape 12%, morte in PEAK prima di CRUSH), emerge che L1 non fa onboarding: MEDIUM entra a t=30s, STRONG a t=82s — il player ha pochissimo tempo per capire perks/drops/specials prima che la difficoltà salga. L1 ora è rampa lenta, L2/L3 invariati (sono tarati su player esperto).
+
+- **tune(v8)**: `LEVEL_1_SCRIPT` ri-scritto. OPENING esteso a 0-50s (vs 0-30s), solo WEAK tier (¥₽₹), 2-3 nemici/burst (vs 3-5), gap 5-6s (vs 3-4s) — 9 burst in 50s
+- **tune(v8)**: BUILDUP 50-90s: MEDIUM entra qui (vs t=30), 3-4/burst. HOVER compare a t=82.5 (vs t=65)
+- **tune(v8)**: ESCALATION 90-130s: STRONG tier entra a t=92 (vs t=82), SWOOP a t=105.5 (vs t=93.5). 12 burst
+- **tune(v8)**: PEAK (130-150s) e CRUSH (150-168s) invariati — la late-game intensity resta. Boss a t=170 invariato
+- **regression**: L2/L3 invariati. `LEVEL_1_ANCHORS` invariati (CRUSH_ENTER t=150 speed 1.8). Total burst L1: da 59 a 30 (metà, con density inferiore)
+
 ## v7.4.0 — V8 tuning telemetry + campaign victory routing - 2026-04-19
 
 Strumentazione per un tuning pass su metriche reali invece di debug cycle da 10 minuti l'uno. `dbg.v8()` ora riporta ripartizione kill per pattern/fase/zona schermo e escape rate (nemici ciad fuori vista senza essere colpiti). Inoltre: completamento L3 ora entra nel flow `showCampaignVictory()` esistente (v6 "all banks defeated") invece di plain gameover.
