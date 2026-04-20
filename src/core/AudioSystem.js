@@ -175,6 +175,22 @@ class AudioSystem {
         this.intensity = Math.min(100, Math.max(0, level));
     }
 
+    // v7.10.1: external BPM multiplier for gradual tempo ramp (phase-driven)
+    setBpmMult(mult) {
+        this._bpmMult = Math.max(0.5, Math.min(1.5, mult || 1.0));
+    }
+
+    // v7.10.1: external transpose (semitone-accurate pitch shift applied to all music)
+    setTransposeMult(mult) {
+        this._transposeMult = Math.max(0.5, Math.min(2.0, mult || 1.0));
+    }
+
+    // v7.10.1: HYPER/GODCHAIN reactive pitch boost on arp bus (temporary detune up)
+    setArpDetune(cents) {
+        // Store for _getMusicPitchMult — applied only to arp voices
+        this._arpDetuneCents = Math.max(-1200, Math.min(1200, cents || 0));
+    }
+
     // Set near-death state for heartbeat
     setNearDeath(isNearDeath) {
         this.isNearDeath = isNearDeath;
@@ -1570,6 +1586,28 @@ class AudioSystem {
         this._stopPad();
     }
 
+    // v7.10: pause music without resetting structure/note index (resumes mid-loop)
+    pauseMusic() {
+        if (!this.isPlaying) return;
+        this.isPlaying = false;
+        if (this.timerID) { clearTimeout(this.timerID); this.timerID = null; }
+        this._stopPad();
+        this._pausedState = true;
+    }
+
+    resumeMusic() {
+        if (!this.ctx || this.isPlaying) return;
+        if (this.ctx.state === 'suspended') {
+            this.unlockWebAudio();
+            this.ctx.resume().catch(e => console.warn('[AudioSystem] resume failed:', e));
+        }
+        this.isPlaying = true;
+        // Restart timing from now so we don't burst catch-up
+        this.noteTime = this.ctx.currentTime + 0.05;
+        this._pausedState = false;
+        this.schedule();
+    }
+
     // ===== MUSIC SYSTEM v2 (v4.34) =====
 
     // Get current song data from MusicData
@@ -1612,23 +1650,32 @@ class AudioSystem {
             bpm *= MD.BEAR_MARKET.tempoMult;
         }
 
-        // Intensity speed-up at high intensity
-        if (this.intensity >= 80) {
-            bpm *= 1.1;
-        }
+        // v7.10.1: gradual tempo ramp via external bpmMult (set by main.js from V8 phase).
+        // Legacy ≥85 bump removed — now smoothly derived.
+        if (this._bpmMult) bpm *= this._bpmMult;
 
         // Convert BPM to seconds per 16th note (4 beats per bar, 4 16ths per beat)
         // 16 entries = 1 bar = 4 beats → each entry = 1/4 beat
         return 60 / (bpm * 4);
     }
 
-    // Get pitch shift multiplier for bear market
+    // Get pitch shift multiplier for bear market + external transpose (v7.10.1).
+    // Kept method name for compatibility with existing call sites.
     _getBearPitchMult() {
+        let mult = 1.0;
         const MD = window.Game.MusicData;
         if (MD && MD.BEAR_MARKET && window.isBearMarket) {
-            return Math.pow(2, MD.BEAR_MARKET.pitchShift / 12);
+            mult *= Math.pow(2, MD.BEAR_MARKET.pitchShift / 12);
         }
-        return 1.0;
+        if (this._transposeMult) mult *= this._transposeMult;
+        return mult;
+    }
+
+    // v7.10.1: arp-specific pitch mult includes HYPER detune on top of base
+    _getArpPitchMult() {
+        let mult = this._getBearPitchMult();
+        if (this._arpDetuneCents) mult *= Math.pow(2, this._arpDetuneCents / 1200);
+        return mult;
     }
 
     schedule() {
@@ -1665,23 +1712,23 @@ class AudioSystem {
                         this.playBassFromData(this.noteTime, section.bass[beat]);
                     }
 
-                    // Arp (intensity >= 30)
-                    if (this.intensity >= 30 && section.arp && section.arp[beat]) {
+                    // Arp (intensity >= 20 — harp is the Kondo essence, in early)
+                    if (this.intensity >= 20 && section.arp && section.arp[beat]) {
                         this.playArpFromData(this.noteTime, section.arp[beat]);
                     }
 
-                    // Drums (intensity >= 50)
-                    if (this.intensity >= 50 && section.drums && section.drums[beat]) {
+                    // Drums (intensity >= 65 — combat layer)
+                    if (this.intensity >= 65 && section.drums && section.drums[beat]) {
                         this.playDrumsFromData(this.noteTime, section.drums[beat]);
                     }
 
-                    // Melody (intensity >= 60)
-                    if (this.intensity >= 60 && section.melody && section.melody[beat]) {
+                    // Melody (intensity >= 50 — lyrical ambient)
+                    if (this.intensity >= 50 && section.melody && section.melody[beat]) {
                         this.playMelodyFromData(this.noteTime, section.melody[beat]);
                     }
 
-                    // Pad (intensity >= 40, on section start)
-                    if (this.intensity >= 40 && beat === 0 && section.pad) {
+                    // Pad (intensity >= 10 — the halo, in almost always)
+                    if (this.intensity >= 10 && beat === 0 && section.pad) {
                         this.playPadFromData(this.noteTime, section.pad);
                     }
                 }
@@ -1744,7 +1791,8 @@ class AudioSystem {
         osc.connect(gain);
         gain.connect(output);
 
-        let freq = noteData.f * this._getBearPitchMult();
+        // v7.10.1: arp uses combined transpose + HYPER detune
+        let freq = noteData.f * this._getArpPitchMult();
         osc.frequency.value = freq;
         osc.type = 'square';
 

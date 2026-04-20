@@ -1,18 +1,23 @@
 /**
- * MusicData.js — Musical phrases for all levels, boss, and bear market
+ * MusicData.js — Kondo-inspired musical data (v7.10.0)
  *
- * Loaded BEFORE AudioSystem.js. Defines structured musical data
- * that the schedule() loop reads beat-by-beat.
+ * Harmonic grammar: extended jazz voicings (maj9/m9/13/7alt), ii-V-I-VI
+ * progressions, linear stepwise bass, harp-style arp cascades. Impressionist
+ * color over game loops. Tempo relaxed (80-110 BPM) for gameplay, boss phases
+ * escalate. Each section = 1 bar (16 sixteenth-note slots).
  *
- * Each entry in bass/melody/arp:
- *   { f: freq Hz, d: duration in beats, v: velocity 0-1, w: waveform override }
- *   null = rest/silence
+ * Intensity layering (see AudioSystem.schedule):
+ *   bass      >= 0   (always — anchor)
+ *   pad       >= 10  (halo)
+ *   arp       >= 20  (the harp — Kondo essence)
+ *   melody    >= 50  (lyrical ambient layer)
+ *   drums     >= 65  (combat)
+ *   tempo×1.1 >= 85  (crush/boss)
  *
- * Each entry in drums:
- *   { k: kick 0/1, s: snare 0/1, h: hihat 0/1 (0.5=open), c: crash 0/1 }
- *   null = rest
- *
- * Pad: { freqs: [Hz...], v: volume, w: waveform } — sustained chord
+ * Entry formats:
+ *   bass/melody/arp : { f: Hz, d: 16ths, v: 0-1, w?: waveform } | null
+ *   drums           : { k, s, h, c } 0|1 flags | null
+ *   pad             : { freqs: [Hz...], v: 0-1, w: waveform }
  */
 
 window.Game = window.Game || {};
@@ -22,734 +27,387 @@ window.Game = window.Game || {};
 
     const G = window.Game;
 
-    // Helper: generate note frequency from MIDI note number
-    // A4 = 69 = 440Hz
-    function midiToFreq(note) {
-        return 440 * Math.pow(2, (note - 69) / 12);
+    // Note frequencies (12-TET, A4=440)
+    const N = {
+        C2: 65.41, Db2: 69.30, D2: 73.42, Eb2: 77.78, E2: 82.41, F2: 87.31,
+        Gb2: 92.50, G2: 98.00, Ab2: 103.83, A2: 110.00, Bb2: 116.54, B2: 123.47,
+        C3: 130.81, Db3: 138.59, D3: 146.83, Eb3: 155.56, E3: 164.81, F3: 174.61,
+        Gb3: 185.00, G3: 196.00, Ab3: 207.65, A3: 220.00, Bb3: 233.08, B3: 246.94,
+        C4: 261.63, Db4: 277.18, D4: 293.66, Eb4: 311.13, E4: 329.63, F4: 349.23,
+        Gb4: 369.99, G4: 392.00, Ab4: 415.30, A4: 440.00, Bb4: 466.16, B4: 493.88,
+        C5: 523.25, Db5: 554.37, D5: 587.33, Eb5: 622.25, E5: 659.25, F5: 698.46,
+        Gb5: 739.99, G5: 783.99, Ab5: 830.61, A5: 880.00, Bb5: 932.33, B5: 987.77,
+        C6: 1046.50, Db6: 1108.73, D6: 1174.66, Eb6: 1244.51, F6: 1396.91
+    };
+
+    // Helper: quickly build a 16-slot array from terse pairs [slotIndex, noteObj]
+    // slots not listed are null (rest). `base` is the default waveform for the line.
+    function fill16(pairs) {
+        const arr = new Array(16).fill(null);
+        for (const [i, obj] of pairs) arr[i] = obj;
+        return arr;
     }
 
-    // Common note frequencies for readability
-    const N = {
-        // Octave 2
-        C2: 65.41, D2: 73.42, Eb2: 77.78, E2: 82.41, F2: 87.31, G2: 98.00, Ab2: 103.83, A2: 110, Bb2: 116.54,
-        // Octave 3
-        C3: 130.81, D3: 146.83, Eb3: 155.56, E3: 164.81, F3: 174.61, Gb3: 185.00, G3: 196.00, Ab3: 207.65, A3: 220, Bb3: 233.08, B3: 246.94,
-        // Octave 4
-        C4: 261.63, D4: 293.66, Eb4: 311.13, E4: 329.63, F4: 349.23, Gb4: 369.99, G4: 392.00, Ab4: 415.30, A4: 440, Bb4: 466.16, B4: 493.88,
-        // Octave 5
-        C5: 523.25, D5: 587.33, Eb5: 622.25, E5: 659.25, F5: 698.46, G5: 783.99, Ab5: 830.61, A5: 880, Bb5: 932.33,
-        // Octave 6
-        C6: 1046.50
-    };
+    // Bass: sustained tonic on beat 1, walking pickup on beat 3.5.
+    function bassBar(root, pickup, vWave) {
+        const w = vWave || 'triangle';
+        return fill16([
+            [0, {f:root, d:2, v:0.75, w}],
+            [8, {f:root, d:1, v:0.55, w}],
+            [14, {f:pickup, d:0.5, v:0.5, w}]
+        ]);
+    }
+
+    // Harp arpeggio: 16 sixteenth-notes ascending then descending through the
+    // chord voicing. `tones` is a list of frequencies low→high (5-6 notes).
+    function harpBar(tones, vel) {
+        // Build a 16-note serpentine: up through tones, peak, back down.
+        const v = vel || 0.35;
+        const seq = [];
+        // ascending
+        for (let i = 0; i < tones.length; i++) seq.push(tones[i]);
+        // peak extra + descending (skip last to avoid repeat)
+        for (let i = tones.length - 2; i >= 1; i--) seq.push(tones[i]);
+        // pad to 16 with wrap
+        while (seq.length < 16) seq.push(tones[seq.length % tones.length]);
+        return seq.slice(0, 16).map((f, i) => ({
+            f, d: 0.25, v: v * (0.85 + 0.15 * Math.sin(i * 0.6)), w: 'triangle'
+        }));
+    }
+
+    // Pad voicing (sustained extended chord)
+    function padOf(freqs, v, w) {
+        return { freqs, v: v || 0.07, w: w || 'sine' };
+    }
+
+    // Sparse melody: single sustained note on beats 1 and 3 (Kondo-like "oohs").
+    function melodyBar(note1, note2, vel) {
+        const v = vel || 0.42;
+        const arr = new Array(16).fill(null);
+        if (note1) arr[0] = {f: note1, d: 3, v, w: 'sine'};
+        if (note2) arr[8] = {f: note2, d: 3, v: v * 0.85, w: 'sine'};
+        return arr;
+    }
+
+    // Minimal drum pattern: light kick+hat, calm. "Combat" patterns in FILL.
+    function drumsCalm() {
+        return fill16([
+            [0, {k:1, h:1}],
+            [4, {h:1}],
+            [8, {k:1, h:0.5}],
+            [12, {h:1}]
+        ]);
+    }
+
+    // Combat drums: proper backbeat
+    function drumsCombat() {
+        return fill16([
+            [0, {k:1, h:1}],
+            [2, {h:1}],
+            [4, {s:1, h:1}],
+            [6, {h:1}],
+            [8, {k:1, h:1}],
+            [10, {h:1}],
+            [12, {s:1, h:1}],
+            [14, {h:1}]
+        ]);
+    }
+
+    // Crush drums: double-kick, crash on 1
+    function drumsCrush(withCrash) {
+        return fill16([
+            [0, withCrash ? {k:1, h:1, c:1} : {k:1, h:1}],
+            [2, {h:1}],
+            [4, {s:1, h:1}],
+            [6, {k:1, h:1}],
+            [8, {k:1, h:1}],
+            [10, {s:1, h:1}],
+            [12, {s:1, h:1, k:1}],
+            [14, {h:1, k:1}]
+        ]);
+    }
 
     G.MusicData = {
 
         // =====================================================================
-        // LEVEL SONGS
+        // LEVEL SONGS — each = ii-V-I-VI loop, 4 bars (A/B/C/D)
         // =====================================================================
         SONGS: {
 
             // -----------------------------------------------------------------
-            // Level 1 — "Digital Dawn" (C minor, 140 BPM feel)
-            // Synth-pop energetico, il "tema del gioco"
+            // L1 — "Fountain of Fiat" (Ab major, 90 BPM)
+            // Direct Great Fairy homage. Bbm9 → Eb13 → Abmaj9 → F7b9
+            // Region: USA — bright, hopeful, impressionist
             // -----------------------------------------------------------------
             1: {
-                name: 'Digital Dawn',
-                key: 'Cm',
-                bpm: 140,
+                name: 'Fountain of Fiat',
+                key: 'Abmaj',
+                bpm: 90,
                 sections: {
+                    // Bar A — Bbm9 (ii): Bb Db F Ab C
                     A: {
-                        bass: [
-                            {f:N.C3,d:0.5,v:0.8}, null, {f:N.G3,d:0.25,v:0.6}, {f:N.C3,d:0.5,v:0.7},
-                            {f:N.Eb3,d:0.5,v:0.8}, null, {f:N.Bb3,d:0.25,v:0.6}, {f:N.Eb3,d:0.5,v:0.7},
-                            {f:N.F3,d:0.5,v:0.8}, null, {f:N.C3,d:0.25,v:0.6}, {f:N.F3,d:0.5,v:0.7},
-                            {f:N.G3,d:0.5,v:0.8}, null, {f:N.D3,d:0.25,v:0.6}, {f:N.G3,d:0.5,v:0.7}
-                        ],
-                        melody: [
-                            {f:N.C5,d:1,v:0.5,w:'square'}, null, {f:N.Eb5,d:0.5,v:0.45}, {f:N.G5,d:0.5,v:0.5},
-                            {f:N.F5,d:1,v:0.45}, null, {f:N.Eb5,d:0.5,v:0.4}, {f:N.D5,d:0.5,v:0.45},
-                            {f:N.C5,d:1,v:0.5}, null, {f:N.Bb4,d:0.5,v:0.4}, {f:N.C5,d:0.5,v:0.45},
-                            {f:N.Eb5,d:1,v:0.5}, null, {f:N.D5,d:0.5,v:0.4}, null
-                        ],
-                        arp: [
-                            {f:N.C4,d:0.25,v:0.4}, {f:N.Eb4,d:0.25,v:0.35}, {f:N.G4,d:0.25,v:0.4}, {f:N.C5,d:0.25,v:0.35},
-                            {f:N.Eb4,d:0.25,v:0.4}, {f:N.G4,d:0.25,v:0.35}, {f:N.Bb4,d:0.25,v:0.4}, {f:N.Eb5,d:0.25,v:0.35},
-                            {f:N.F4,d:0.25,v:0.4}, {f:N.Ab4,d:0.25,v:0.35}, {f:N.C5,d:0.25,v:0.4}, {f:N.F5,d:0.25,v:0.35},
-                            {f:N.G4,d:0.25,v:0.4}, {f:N.Bb4,d:0.25,v:0.35}, {f:N.D5,d:0.25,v:0.4}, {f:N.G5,d:0.25,v:0.35}
-                        ],
-                        drums: [
-                            {k:1,h:1}, {h:1}, {h:1}, {h:1},
-                            {k:0,s:1,h:1}, {h:1}, {h:1}, {h:1},
-                            {k:1,h:1}, {h:1}, {k:1,h:1}, {h:1},
-                            {k:0,s:1,h:1}, {h:1}, {h:1}, {h:0.5}
-                        ],
-                        pad: {freqs:[N.C4, N.Eb4, N.G4], v:0.08, w:'triangle'}
+                        bass: bassBar(N.Bb2, N.F2),
+                        arp: harpBar([N.Bb3, N.Db4, N.F4, N.Ab4, N.C5, N.F5]),
+                        melody: melodyBar(N.Ab5, N.F5),
+                        drums: drumsCalm(),
+                        pad: padOf([N.Db4, N.F4, N.Ab4, N.C5], 0.07, 'sine')
                     },
+                    // Bar B — Eb13 (V): Eb G Bb Db C (13th)
                     B: {
-                        bass: [
-                            {f:N.Ab2,d:0.5,v:0.8}, null, {f:N.Eb3,d:0.25,v:0.6}, {f:N.Ab2,d:0.5,v:0.7},
-                            {f:N.Bb2,d:0.5,v:0.8}, null, {f:N.F3,d:0.25,v:0.6}, {f:N.Bb2,d:0.5,v:0.7},
-                            {f:N.C3,d:0.5,v:0.8}, null, {f:N.G3,d:0.25,v:0.6}, {f:N.C3,d:0.5,v:0.7},
-                            {f:N.G2,d:0.5,v:0.8}, null, {f:N.D3,d:0.25,v:0.6}, {f:N.G3,d:0.5,v:0.7}
-                        ],
-                        melody: [
-                            {f:N.Eb5,d:1,v:0.5,w:'square'}, null, {f:N.F5,d:0.5,v:0.45}, {f:N.G5,d:0.5,v:0.5},
-                            {f:N.Bb5,d:1.5,v:0.5}, null, null, {f:N.Ab5,d:0.5,v:0.4},
-                            {f:N.G5,d:1,v:0.5}, null, {f:N.F5,d:0.5,v:0.45}, {f:N.Eb5,d:0.5,v:0.45},
-                            {f:N.D5,d:1,v:0.45}, null, {f:N.C5,d:1,v:0.5}, null
-                        ],
-                        arp: [
-                            {f:N.Ab4,d:0.25,v:0.4}, {f:N.C5,d:0.25,v:0.35}, {f:N.Eb5,d:0.25,v:0.4}, {f:N.Ab4,d:0.25,v:0.35},
-                            {f:N.Bb4,d:0.25,v:0.4}, {f:N.D5,d:0.25,v:0.35}, {f:N.F5,d:0.25,v:0.4}, {f:N.Bb4,d:0.25,v:0.35},
-                            {f:N.C5,d:0.25,v:0.4}, {f:N.Eb5,d:0.25,v:0.35}, {f:N.G5,d:0.25,v:0.4}, {f:N.C5,d:0.25,v:0.35},
-                            {f:N.G4,d:0.25,v:0.4}, {f:N.Bb4,d:0.25,v:0.35}, {f:N.D5,d:0.25,v:0.4}, {f:N.G4,d:0.25,v:0.35}
-                        ],
-                        drums: [
-                            {k:1,h:1}, {h:1}, {h:1}, {h:1},
-                            {k:0,s:1,h:1}, {h:1}, {k:1,h:1}, {h:1},
-                            {k:1,h:1}, {h:1}, {h:1}, {h:0.5},
-                            {k:0,s:1,h:1}, {h:1}, {h:1,s:1}, {h:1}
-                        ],
-                        pad: {freqs:[N.Ab4, N.C5, N.Eb5], v:0.07, w:'triangle'}
+                        bass: bassBar(N.Eb2, N.Bb2),
+                        arp: harpBar([N.Eb3, N.G3, N.Bb3, N.Db4, N.F4, N.C5]),
+                        melody: melodyBar(N.G5, N.Bb5),
+                        drums: drumsCalm(),
+                        pad: padOf([N.G3, N.Bb3, N.Db4, N.C5], 0.07, 'sine')
                     },
-                    FILL: {
-                        bass: [
-                            {f:N.C3,d:0.5,v:0.8}, {f:N.C3,d:0.25,v:0.6}, {f:N.Eb3,d:0.25,v:0.7}, {f:N.G3,d:0.5,v:0.8},
-                            {f:N.F3,d:0.5,v:0.7}, {f:N.Eb3,d:0.25,v:0.6}, {f:N.D3,d:0.25,v:0.7}, {f:N.C3,d:0.5,v:0.8},
-                            {f:N.G2,d:0.5,v:0.8}, {f:N.Bb2,d:0.25,v:0.6}, {f:N.C3,d:0.25,v:0.7}, {f:N.D3,d:0.5,v:0.8},
-                            {f:N.Eb3,d:0.5,v:0.7}, {f:N.F3,d:0.5,v:0.8}, {f:N.G3,d:0.5,v:0.9}, {f:N.G3,d:0.5,v:1.0}
-                        ],
-                        melody: [
-                            null, null, null, null,
-                            null, null, null, null,
-                            null, null, null, null,
-                            {f:N.G5,d:0.25,v:0.5}, {f:N.Ab5,d:0.25,v:0.5}, {f:N.Bb5,d:0.25,v:0.55}, {f:N.C6,d:0.5,v:0.6}
-                        ],
-                        arp: [
-                            {f:N.C5,d:0.25,v:0.4}, {f:N.Eb5,d:0.25,v:0.4}, {f:N.G5,d:0.25,v:0.4}, {f:N.C5,d:0.25,v:0.4},
-                            {f:N.Eb5,d:0.25,v:0.4}, {f:N.G5,d:0.25,v:0.4}, {f:N.C5,d:0.25,v:0.4}, {f:N.Eb5,d:0.25,v:0.4},
-                            {f:N.G4,d:0.25,v:0.4}, {f:N.Bb4,d:0.25,v:0.4}, {f:N.D5,d:0.25,v:0.4}, {f:N.G4,d:0.25,v:0.4},
-                            {f:N.Bb4,d:0.25,v:0.4}, {f:N.D5,d:0.25,v:0.45}, {f:N.G5,d:0.25,v:0.5}, {f:N.Bb5,d:0.25,v:0.5}
-                        ],
-                        drums: [
-                            {k:1,c:1}, {h:1}, {s:1,h:1}, {h:1},
-                            {k:1,h:1}, {s:1}, {k:1,s:1}, {h:1},
-                            {s:1}, {s:1}, {s:1,h:1}, {s:1},
-                            {k:1,s:1}, {s:1}, {s:1,k:1}, {k:1,s:1,c:1}
-                        ],
-                        pad: {freqs:[N.C4, N.Eb4, N.G4], v:0.1, w:'triangle'}
+                    // Bar C — Abmaj9 (I): Ab C Eb G Bb — the resolution
+                    C: {
+                        bass: bassBar(N.Ab2, N.Eb3),
+                        arp: harpBar([N.Ab3, N.C4, N.Eb4, N.G4, N.Bb4, N.Eb5]),
+                        melody: melodyBar(N.C5, N.G5),
+                        drums: drumsCalm(),
+                        pad: padOf([N.C4, N.Eb4, N.G4, N.Bb4], 0.08, 'sine')
+                    },
+                    // Bar D — F7b9 (VI7alt): F A Eb Gb — tritone pull back to Bbm9
+                    D: {
+                        bass: bassBar(N.F2, N.Bb2),
+                        arp: harpBar([N.F3, N.A3, N.Eb4, N.Gb4, N.A4, N.Eb5]),
+                        melody: melodyBar(N.A4, N.Eb5),
+                        drums: drumsCalm(),
+                        pad: padOf([N.A3, N.Eb4, N.Gb4], 0.07, 'sine')
                     }
                 },
-                structure: ['A','A','B','A','A','B','A','FILL']
+                structure: ['A','B','C','D','A','C','B','D']
             },
 
             // -----------------------------------------------------------------
-            // Level 2 — "Deep Liquidity" (D minor, 130 BPM feel)
-            // Deeper, groovy, funky
+            // L2 — "Liquidity Dream" (D dorian, 95 BPM)
+            // Em9 → A13 → Dm11 → Bm7b5 (modal, floating)
+            // Region: EU — lush, gently melancholic
             // -----------------------------------------------------------------
             2: {
-                name: 'Deep Liquidity',
-                key: 'Dm',
-                bpm: 130,
+                name: 'Liquidity Dream',
+                key: 'Ddor',
+                bpm: 95,
                 sections: {
+                    // Em9 (ii of D): E G B D Gb
                     A: {
-                        bass: [
-                            {f:N.D2,d:0.5,v:0.8}, null, {f:N.A2,d:0.25,v:0.6}, {f:N.D3,d:0.25,v:0.7},
-                            {f:N.F2,d:0.5,v:0.7}, null, {f:N.E2,d:0.25,v:0.6}, {f:N.D2,d:0.5,v:0.8},
-                            {f:N.G2,d:0.5,v:0.8}, null, {f:N.A2,d:0.25,v:0.6}, {f:N.Bb2,d:0.25,v:0.7},
-                            {f:N.A2,d:0.5,v:0.8}, null, {f:N.G2,d:0.25,v:0.6}, {f:N.A2,d:0.5,v:0.7}
-                        ],
-                        melody: [
-                            {f:N.D5,d:1,v:0.45}, null, {f:N.A4,d:0.5,v:0.4}, {f:N.C5,d:0.5,v:0.45},
-                            {f:N.F5,d:1.5,v:0.5}, null, null, {f:N.E5,d:0.5,v:0.4},
-                            {f:N.D5,d:0.5,v:0.45}, {f:N.C5,d:0.5,v:0.4}, {f:N.Bb4,d:0.5,v:0.4}, {f:N.A4,d:0.5,v:0.45},
-                            {f:N.G4,d:1,v:0.4}, null, {f:N.A4,d:0.5,v:0.45}, null
-                        ],
-                        arp: [
-                            {f:N.D4,d:0.25,v:0.35}, {f:N.F4,d:0.25,v:0.3}, {f:N.A4,d:0.25,v:0.35},
-                            {f:N.D4,d:0.25,v:0.3}, {f:N.F4,d:0.25,v:0.35}, {f:N.A4,d:0.25,v:0.3},
-                            null, null,
-                            {f:N.G4,d:0.25,v:0.35}, {f:N.Bb4,d:0.25,v:0.3}, {f:N.D5,d:0.25,v:0.35},
-                            {f:N.G4,d:0.25,v:0.3}, {f:N.Bb4,d:0.25,v:0.35}, {f:N.D5,d:0.25,v:0.3},
-                            null, null
-                        ],
-                        drums: [
-                            {k:1,h:1}, {h:0.5}, {h:1}, {h:0.5},
-                            {s:1,h:1}, {h:1}, {h:0.5}, {h:1},
-                            {k:1,h:1}, {h:0.5}, {k:1,h:1}, {h:0.5},
-                            {s:1,h:1}, {h:1}, {h:0.5}, {s:1}
-                        ],
-                        pad: {freqs:[N.D4, N.F4, N.A4, N.C5], v:0.07, w:'triangle'}
+                        bass: bassBar(N.E2, N.B2),
+                        arp: harpBar([N.E3, N.G3, N.B3, N.D4, N.Gb4, N.B4]),
+                        melody: melodyBar(N.G5, N.D5),
+                        drums: drumsCalm(),
+                        pad: padOf([N.G3, N.B3, N.D4, N.Gb4], 0.07, 'sine')
                     },
+                    // A13 (V): A Db E G Gb (13th)
                     B: {
-                        bass: [
-                            {f:N.Bb2,d:0.5,v:0.8}, null, {f:N.F3,d:0.25,v:0.6}, {f:N.Bb2,d:0.5,v:0.7},
-                            {f:N.C3,d:0.5,v:0.8}, null, {f:N.G3,d:0.25,v:0.6}, {f:N.C3,d:0.5,v:0.7},
-                            {f:N.D3,d:0.5,v:0.8}, null, {f:N.A2,d:0.25,v:0.6}, {f:N.D3,d:0.25,v:0.7},
-                            {f:N.A2,d:0.5,v:0.8}, null, {f:N.E3,d:0.25,v:0.6}, {f:N.A2,d:0.5,v:0.7}
-                        ],
-                        melody: [
-                            {f:N.Bb4,d:0.5,v:0.45}, {f:N.D5,d:0.5,v:0.5}, {f:N.F5,d:1,v:0.5}, null,
-                            {f:N.E5,d:0.5,v:0.45}, {f:N.C5,d:0.5,v:0.45}, {f:N.D5,d:1,v:0.5}, null,
-                            {f:N.A4,d:0.5,v:0.45}, {f:N.C5,d:0.5,v:0.45}, {f:N.D5,d:0.5,v:0.5}, {f:N.F5,d:0.5,v:0.5},
-                            {f:N.E5,d:1.5,v:0.5}, null, null, null
-                        ],
-                        arp: [
-                            {f:N.Bb4,d:0.25,v:0.35}, {f:N.D5,d:0.25,v:0.3}, {f:N.F5,d:0.25,v:0.35},
-                            {f:N.Bb4,d:0.25,v:0.3}, {f:N.D5,d:0.25,v:0.35}, {f:N.F5,d:0.25,v:0.3},
-                            null, null,
-                            {f:N.A4,d:0.25,v:0.35}, {f:N.C5,d:0.25,v:0.3}, {f:N.E5,d:0.25,v:0.35},
-                            {f:N.A4,d:0.25,v:0.3}, {f:N.C5,d:0.25,v:0.35}, {f:N.E5,d:0.25,v:0.3},
-                            null, null
-                        ],
-                        drums: [
-                            {k:1,h:1}, {h:0.5}, {h:1}, {h:1},
-                            {s:1,h:1}, {h:0.5}, {h:1}, {h:0.5},
-                            {k:1,h:1}, {h:1}, {h:0.5}, {k:1,h:1},
-                            {s:1,h:1}, {h:0.5}, {h:1,s:1}, {h:1}
-                        ],
-                        pad: {freqs:[N.Bb4, N.D5, N.F5], v:0.06, w:'triangle'}
+                        bass: bassBar(N.A2, N.E3),
+                        arp: harpBar([N.A3, N.Db4, N.E4, N.G4, N.B4, N.Gb5]),
+                        melody: melodyBar(N.E5, N.A5),
+                        drums: drumsCalm(),
+                        pad: padOf([N.Db4, N.E4, N.G4, N.Gb5], 0.07, 'sine')
                     },
-                    FILL: {
-                        bass: [
-                            {f:N.D3,d:0.5,v:0.8}, {f:N.E3,d:0.25,v:0.6}, {f:N.F3,d:0.25,v:0.7}, {f:N.G3,d:0.5,v:0.8},
-                            {f:N.A3,d:0.5,v:0.8}, {f:N.G3,d:0.25,v:0.6}, {f:N.F3,d:0.25,v:0.7}, {f:N.E3,d:0.5,v:0.8},
-                            {f:N.D3,d:0.5,v:0.8}, {f:N.C3,d:0.25,v:0.6}, {f:N.D3,d:0.25,v:0.7}, {f:N.E3,d:0.5,v:0.8},
-                            {f:N.F3,d:0.5,v:0.7}, {f:N.G3,d:0.5,v:0.8}, {f:N.A3,d:0.5,v:0.9}, {f:N.A3,d:0.5,v:1.0}
-                        ],
-                        melody: [
-                            null, null, null, null, null, null, null, null,
-                            null, null, null, null,
-                            {f:N.A5,d:0.25,v:0.5}, {f:N.Bb5,d:0.25,v:0.5}, {f:N.C6,d:0.25,v:0.55}, {f:N.D5,d:0.5,v:0.6}
-                        ],
-                        arp: [
-                            {f:N.D5,d:0.25,v:0.4}, {f:N.F5,d:0.25,v:0.4}, {f:N.A5,d:0.25,v:0.4}, {f:N.D5,d:0.25,v:0.4},
-                            {f:N.F5,d:0.25,v:0.4}, {f:N.A5,d:0.25,v:0.4}, {f:N.D5,d:0.25,v:0.4}, {f:N.F5,d:0.25,v:0.4},
-                            {f:N.A4,d:0.25,v:0.4}, {f:N.C5,d:0.25,v:0.4}, {f:N.E5,d:0.25,v:0.4}, {f:N.A4,d:0.25,v:0.4},
-                            {f:N.C5,d:0.25,v:0.4}, {f:N.E5,d:0.25,v:0.45}, {f:N.A5,d:0.25,v:0.5}, {f:N.C6,d:0.25,v:0.5}
-                        ],
-                        drums: [
-                            {k:1,c:1}, {h:1}, {s:1,h:1}, {h:1},
-                            {k:1,h:1}, {s:1}, {k:1,s:1}, {h:1},
-                            {s:1}, {s:1}, {s:1,h:1}, {s:1},
-                            {k:1,s:1}, {s:1}, {s:1,k:1}, {k:1,s:1,c:1}
-                        ],
-                        pad: {freqs:[N.D4, N.F4, N.A4], v:0.09, w:'triangle'}
+                    // Dm11 (i): D F A C E G — modal home
+                    C: {
+                        bass: bassBar(N.D2, N.A2),
+                        arp: harpBar([N.D3, N.F3, N.A3, N.C4, N.E4, N.G4]),
+                        melody: melodyBar(N.F5, N.A5),
+                        drums: drumsCalm(),
+                        pad: padOf([N.F3, N.A3, N.C4, N.E4], 0.08, 'sine')
+                    },
+                    // Bm7b5 (vi-half-dim): B D F A — pulls back to E
+                    D: {
+                        bass: bassBar(N.B2, N.E3),
+                        arp: harpBar([N.B3, N.D4, N.F4, N.A4, N.D5, N.F5]),
+                        melody: melodyBar(N.D5, N.F5),
+                        drums: drumsCalm(),
+                        pad: padOf([N.D4, N.F4, N.A4], 0.07, 'sine')
                     }
                 },
-                structure: ['A','A','B','A','A','B','A','FILL']
+                structure: ['A','B','C','D','A','C','B','D']
             },
 
             // -----------------------------------------------------------------
-            // Level 3 — "Dark Protocol" (A minor, 150 BPM feel)
-            // Aggressive, dark, breakbeat
+            // L3 — "Eastern Protocol" (F major / pentatonic color, 100 BPM)
+            // Gm9 → C13sus → Fmaj9 → D7alt (ii-V-I with sus-13 suspension)
+            // Region: Asia — pentatonic melodies floating over jazz harmony
             // -----------------------------------------------------------------
             3: {
-                name: 'Dark Protocol',
-                key: 'Am',
-                bpm: 150,
+                name: 'Eastern Protocol',
+                key: 'Fmaj',
+                bpm: 100,
                 sections: {
+                    // Gm9 (ii): G Bb D F A
                     A: {
-                        bass: [
-                            {f:N.A2,d:0.25,v:0.9}, null, {f:N.A2,d:0.25,v:0.7}, {f:N.C3,d:0.25,v:0.8},
-                            null, {f:N.A2,d:0.25,v:0.8}, null, {f:N.E3,d:0.25,v:0.7},
-                            {f:N.F2,d:0.25,v:0.9}, null, {f:N.F2,d:0.25,v:0.7}, {f:N.Ab2,d:0.25,v:0.8},
-                            null, {f:N.E2,d:0.25,v:0.8}, null, {f:N.G2,d:0.25,v:0.9}
-                        ],
-                        melody: [
-                            {f:N.A5,d:0.25,v:0.5,w:'square'}, {f:N.C6,d:0.25,v:0.45}, null, {f:N.A5,d:0.25,v:0.5},
-                            {f:N.G5,d:0.25,v:0.45}, null, {f:N.E5,d:0.5,v:0.5}, null,
-                            {f:N.F5,d:0.25,v:0.5}, {f:N.Ab5,d:0.25,v:0.45}, null, {f:N.F5,d:0.25,v:0.5},
-                            {f:N.E5,d:0.25,v:0.45}, null, {f:N.D5,d:0.25,v:0.4}, {f:N.E5,d:0.25,v:0.5}
-                        ],
-                        arp: [
-                            {f:N.A4,d:0.25,v:0.4}, {f:N.C5,d:0.25,v:0.35}, {f:N.E5,d:0.25,v:0.4}, null,
-                            {f:N.A4,d:0.25,v:0.35}, null, {f:N.C5,d:0.25,v:0.4}, {f:N.E5,d:0.25,v:0.35},
-                            {f:N.F4,d:0.25,v:0.4}, {f:N.Ab4,d:0.25,v:0.35}, {f:N.C5,d:0.25,v:0.4}, null,
-                            {f:N.E4,d:0.25,v:0.35}, null, {f:N.G4,d:0.25,v:0.4}, {f:N.B4,d:0.25,v:0.35}
-                        ],
-                        drums: [
-                            {k:1,h:1}, {h:1}, {s:1}, {h:1},
-                            {k:1,h:1}, {h:1}, {k:1,s:1,h:1}, {h:1},
-                            {h:1}, {k:1,h:1}, {s:1,h:1}, {h:1},
-                            {k:1,h:1}, {s:1}, {h:1,k:1}, {s:1,h:1}
-                        ],
-                        pad: {freqs:[N.A3, N.C4, N.E4], v:0.06, w:'sawtooth'}
+                        bass: bassBar(N.G2, N.D3),
+                        arp: harpBar([N.G3, N.Bb3, N.D4, N.F4, N.A4, N.D5]),
+                        melody: melodyBar(N.F5, N.A5),  // pentatonic C-D-F-G-Bb
+                        drums: drumsCalm(),
+                        pad: padOf([N.Bb3, N.D4, N.F4, N.A4], 0.07, 'sine')
                     },
+                    // C13sus (V): C F Bb E A (suspended with 13)
                     B: {
-                        bass: [
-                            {f:N.E2,d:0.25,v:0.9}, null, {f:N.E2,d:0.25,v:0.7}, {f:N.G2,d:0.25,v:0.8},
-                            null, {f:N.E2,d:0.25,v:0.8}, null, {f:N.B2,d:0.25,v:0.7},
-                            {f:N.A2,d:0.25,v:0.9}, null, {f:N.C3,d:0.25,v:0.7}, null,
-                            {f:N.A2,d:0.25,v:0.9}, {f:N.G2,d:0.25,v:0.8}, {f:N.F2,d:0.25,v:0.8}, {f:N.E2,d:0.25,v:0.9}
-                        ],
-                        melody: [
-                            {f:N.E5,d:0.5,v:0.5,w:'square'}, {f:N.G5,d:0.25,v:0.5}, null, {f:N.A5,d:0.25,v:0.5},
-                            {f:N.B4,d:0.5,v:0.45}, null, {f:N.C5,d:0.25,v:0.45}, {f:N.D5,d:0.25,v:0.5},
-                            {f:N.E5,d:0.25,v:0.5}, {f:N.C5,d:0.25,v:0.45}, {f:N.A4,d:0.5,v:0.45}, null,
-                            {f:N.A4,d:0.25,v:0.45}, {f:N.G4,d:0.25,v:0.4}, {f:N.E4,d:0.5,v:0.45}, null
-                        ],
-                        arp: [
-                            {f:N.E4,d:0.25,v:0.4}, null, {f:N.G4,d:0.25,v:0.35}, {f:N.B4,d:0.25,v:0.4},
-                            null, {f:N.E5,d:0.25,v:0.35}, null, {f:N.B4,d:0.25,v:0.4},
-                            {f:N.A4,d:0.25,v:0.4}, null, {f:N.C5,d:0.25,v:0.35}, {f:N.E5,d:0.25,v:0.4},
-                            null, {f:N.A4,d:0.25,v:0.35}, null, {f:N.E5,d:0.25,v:0.4}
-                        ],
-                        drums: [
-                            {k:1,h:1}, {h:1}, {s:1,h:1}, {h:1},
-                            {h:1}, {k:1,s:1,h:1}, {h:1}, {k:1,h:1},
-                            {s:1,h:1}, {h:1}, {k:1,h:1}, {s:1},
-                            {k:1,s:1}, {h:1}, {s:1,k:1}, {s:1,h:1}
-                        ],
-                        pad: {freqs:[N.E3, N.G3, N.B3], v:0.06, w:'sawtooth'}
+                        bass: bassBar(N.C3, N.G3),
+                        arp: harpBar([N.C4, N.F4, N.Bb4, N.D5, N.E5, N.A5]),
+                        melody: melodyBar(N.G5, N.C6),
+                        drums: drumsCalm(),
+                        pad: padOf([N.F4, N.Bb4, N.E5, N.A5], 0.07, 'sine')
                     },
-                    FILL: {
-                        bass: [
-                            {f:N.A2,d:0.25,v:0.9}, {f:N.A2,d:0.25,v:0.7}, {f:N.C3,d:0.25,v:0.8}, {f:N.E3,d:0.25,v:0.9},
-                            {f:N.F3,d:0.25,v:0.8}, {f:N.E3,d:0.25,v:0.7}, {f:N.C3,d:0.25,v:0.8}, {f:N.A2,d:0.25,v:0.9},
-                            {f:N.E2,d:0.25,v:0.9}, {f:N.G2,d:0.25,v:0.8}, {f:N.A2,d:0.25,v:0.9}, {f:N.B2,d:0.25,v:0.8},
-                            {f:N.C3,d:0.25,v:0.8}, {f:N.D3,d:0.25,v:0.9}, {f:N.E3,d:0.25,v:0.9}, {f:N.E3,d:0.25,v:1.0}
-                        ],
-                        melody: [
-                            null, null, null, null, null, null, null, null,
-                            null, null, null, null,
-                            {f:N.E5,d:0.25,v:0.5}, {f:N.F5,d:0.25,v:0.5}, {f:N.G5,d:0.25,v:0.55}, {f:N.A5,d:0.5,v:0.6}
-                        ],
-                        arp: [
-                            {f:N.A4,d:0.25,v:0.45}, {f:N.C5,d:0.25,v:0.45}, {f:N.E5,d:0.25,v:0.45}, {f:N.A4,d:0.25,v:0.45},
-                            {f:N.C5,d:0.25,v:0.45}, {f:N.E5,d:0.25,v:0.45}, {f:N.A4,d:0.25,v:0.45}, {f:N.C5,d:0.25,v:0.45},
-                            {f:N.E4,d:0.25,v:0.45}, {f:N.G4,d:0.25,v:0.45}, {f:N.B4,d:0.25,v:0.45}, {f:N.E4,d:0.25,v:0.45},
-                            {f:N.G4,d:0.25,v:0.45}, {f:N.B4,d:0.25,v:0.5}, {f:N.E5,d:0.25,v:0.5}, {f:N.A5,d:0.25,v:0.5}
-                        ],
-                        drums: [
-                            {k:1,c:1}, {s:1}, {k:1,s:1}, {s:1},
-                            {k:1,s:1}, {s:1}, {k:1,s:1,h:1}, {s:1},
-                            {s:1,k:1}, {s:1}, {s:1,k:1}, {s:1},
-                            {k:1,s:1}, {s:1,k:1}, {s:1,k:1}, {k:1,s:1,c:1}
-                        ],
-                        pad: {freqs:[N.A3, N.C4, N.E4], v:0.08, w:'sawtooth'}
+                    // Fmaj9 (I): F A C E G
+                    C: {
+                        bass: bassBar(N.F2, N.C3),
+                        arp: harpBar([N.F3, N.A3, N.C4, N.E4, N.G4, N.C5]),
+                        melody: melodyBar(N.A5, N.F5),
+                        drums: drumsCalm(),
+                        pad: padOf([N.A3, N.C4, N.E4, N.G4], 0.08, 'sine')
+                    },
+                    // D7alt (VI): D Gb C Eb (b9, altered) — tritone sub back to Gm
+                    D: {
+                        bass: bassBar(N.D2, N.G2),
+                        arp: harpBar([N.D3, N.Gb3, N.C4, N.Eb4, N.Gb4, N.C5]),
+                        melody: melodyBar(N.Eb5, N.C5),
+                        drums: drumsCalm(),
+                        pad: padOf([N.Gb3, N.C4, N.Eb4], 0.07, 'sine')
                     }
                 },
-                structure: ['A','A','B','A','A','B','A','FILL']
+                structure: ['A','B','C','D','A','C','B','D']
             },
 
-            // -----------------------------------------------------------------
-            // Level 4 — "Crypto Winter" (Eb minor, 120 BPM feel)
-            // Atmospheric, tense, industrial
-            // -----------------------------------------------------------------
-            4: {
-                name: 'Crypto Winter',
-                key: 'Ebm',
-                bpm: 120,
-                sections: {
-                    A: {
-                        bass: [
-                            {f:N.Eb2,d:1,v:0.8}, null, null, null,
-                            {f:N.Eb2,d:0.5,v:0.6}, null, {f:N.Gb3,d:0.5,v:0.5}, null,
-                            {f:N.Ab2,d:1,v:0.8}, null, null, null,
-                            {f:N.Ab2,d:0.5,v:0.6}, null, {f:N.Bb2,d:0.5,v:0.7}, null
-                        ],
-                        melody: [
-                            {f:N.Eb5,d:2,v:0.4,w:'triangle'}, null, null, null,
-                            null, null, null, null,
-                            {f:N.Gb4,d:2,v:0.35,w:'triangle'}, null, null, null,
-                            null, null, {f:N.Ab4,d:1,v:0.4,w:'triangle'}, null
-                        ],
-                        arp: [
-                            {f:N.Eb4,d:0.25,v:0.3}, null, null, {f:N.Gb4,d:0.25,v:0.25},
-                            null, null, {f:N.Bb4,d:0.25,v:0.3}, null,
-                            {f:N.Ab4,d:0.25,v:0.3}, null, null, {f:N.Eb4,d:0.25,v:0.25},
-                            null, null, {f:N.Gb4,d:0.25,v:0.3}, null
-                        ],
-                        drums: [
-                            {k:1}, null, null, {h:1},
-                            null, null, {s:1}, null,
-                            {k:1}, null, {h:1}, null,
-                            null, {s:1}, null, {h:0.5}
-                        ],
-                        pad: {freqs:[N.Eb3, N.Gb3, N.Bb3], v:0.1, w:'sawtooth'}
-                    },
-                    B: {
-                        bass: [
-                            {f:N.Bb2,d:1,v:0.8}, null, null, null,
-                            {f:N.Bb2,d:0.5,v:0.6}, null, {f:N.Ab2,d:0.5,v:0.5}, null,
-                            {f:N.Gb2,d:1,v:0.8}, null, null, null,
-                            {f:N.Eb2,d:0.5,v:0.7}, null, {f:N.Bb2,d:0.5,v:0.8}, null
-                        ],
-                        melody: [
-                            {f:N.Bb5,d:2,v:0.4,w:'triangle'}, null, null, null,
-                            null, null, {f:N.Ab5,d:1,v:0.35,w:'triangle'}, null,
-                            {f:N.Gb4,d:1.5,v:0.4,w:'triangle'}, null, null, {f:N.Eb4,d:1,v:0.35,w:'triangle'},
-                            null, null, null, null
-                        ],
-                        arp: [
-                            {f:N.Bb4,d:0.25,v:0.3}, null, null, {f:N.Ab4,d:0.25,v:0.25},
-                            null, {f:N.Gb4,d:0.25,v:0.3}, null, null,
-                            {f:N.Gb4,d:0.25,v:0.3}, null, {f:N.Eb4,d:0.25,v:0.25}, null,
-                            null, {f:N.Bb4,d:0.25,v:0.3}, null, null
-                        ],
-                        drums: [
-                            {k:1}, null, {h:0.5}, null,
-                            null, {s:1}, null, {h:1},
-                            {k:1}, null, null, {s:1},
-                            null, {h:1}, {k:1}, null
-                        ],
-                        pad: {freqs:[N.Bb3, N.Eb4, N.Gb4], v:0.1, w:'sawtooth'}
-                    },
-                    FILL: {
-                        bass: [
-                            {f:N.Eb2,d:0.5,v:0.9}, {f:N.Gb2,d:0.5,v:0.8}, {f:N.Ab2,d:0.5,v:0.8}, {f:N.Bb2,d:0.5,v:0.9},
-                            {f:N.Eb3,d:0.5,v:0.8}, {f:N.Bb2,d:0.5,v:0.7}, {f:N.Ab2,d:0.5,v:0.8}, {f:N.Gb2,d:0.5,v:0.8},
-                            {f:N.Eb2,d:0.5,v:0.9}, {f:N.Eb2,d:0.5,v:0.7}, {f:N.Gb2,d:0.5,v:0.8}, {f:N.Ab2,d:0.5,v:0.8},
-                            {f:N.Bb2,d:0.5,v:0.8}, {f:N.Bb2,d:0.5,v:0.9}, {f:N.Eb3,d:0.5,v:0.9}, {f:N.Eb3,d:0.5,v:1.0}
-                        ],
-                        melody: [
-                            null, null, null, null, null, null, null, null,
-                            null, null, null, null,
-                            {f:N.Eb5,d:0.5,v:0.4}, null, {f:N.Gb5,d:0.5,v:0.45}, {f:N.Bb5,d:0.5,v:0.5}
-                        ],
-                        arp: [
-                            {f:N.Eb4,d:0.25,v:0.35}, {f:N.Gb4,d:0.25,v:0.35}, {f:N.Bb4,d:0.25,v:0.35}, {f:N.Eb4,d:0.25,v:0.35},
-                            {f:N.Gb4,d:0.25,v:0.35}, {f:N.Bb4,d:0.25,v:0.35}, {f:N.Eb4,d:0.25,v:0.35}, {f:N.Gb4,d:0.25,v:0.35},
-                            {f:N.Bb4,d:0.25,v:0.35}, {f:N.Eb5,d:0.25,v:0.35}, {f:N.Gb4,d:0.25,v:0.35}, {f:N.Bb4,d:0.25,v:0.35},
-                            {f:N.Eb5,d:0.25,v:0.4}, {f:N.Gb4,d:0.25,v:0.4}, {f:N.Bb4,d:0.25,v:0.45}, {f:N.Eb5,d:0.25,v:0.5}
-                        ],
-                        drums: [
-                            {k:1,c:1}, null, {s:1}, null,
-                            {k:1}, {s:1}, {k:1,s:1}, null,
-                            {s:1}, {s:1,k:1}, {s:1}, {s:1},
-                            {k:1,s:1}, {s:1}, {s:1,k:1}, {k:1,s:1,c:1}
-                        ],
-                        pad: {freqs:[N.Eb3, N.Gb3, N.Bb3], v:0.12, w:'sawtooth'}
-                    }
-                },
-                structure: ['A','A','B','A','A','B','A','FILL']
-            },
-
-            // -----------------------------------------------------------------
-            // Level 5 — "Final Hash" (G minor, 160 BPM feel)
-            // Epic, triumphant, fast
-            // -----------------------------------------------------------------
-            5: {
-                name: 'Final Hash',
-                key: 'Gm',
-                bpm: 160,
-                sections: {
-                    A: {
-                        bass: [
-                            {f:N.G2,d:0.5,v:0.9}, null, {f:N.D3,d:0.25,v:0.7}, {f:N.G3,d:0.25,v:0.8},
-                            {f:N.Bb2,d:0.5,v:0.8}, null, {f:N.F3,d:0.25,v:0.7}, {f:N.Bb2,d:0.5,v:0.8},
-                            {f:N.C3,d:0.5,v:0.8}, null, {f:N.G3,d:0.25,v:0.7}, {f:N.C3,d:0.5,v:0.8},
-                            {f:N.D3,d:0.5,v:0.9}, null, {f:N.A3,d:0.25,v:0.7}, {f:N.D3,d:0.5,v:0.9}
-                        ],
-                        melody: [
-                            {f:N.G5,d:0.5,v:0.55,w:'square'}, {f:N.Bb5,d:0.5,v:0.5}, {f:N.D5,d:0.5,v:0.5}, {f:N.G5,d:0.5,v:0.55},
-                            {f:N.F5,d:1,v:0.5}, null, {f:N.D5,d:0.5,v:0.45}, {f:N.Bb4,d:0.5,v:0.5},
-                            {f:N.C5,d:0.5,v:0.5}, {f:N.Eb5,d:0.5,v:0.5}, {f:N.G5,d:1,v:0.55}, null,
-                            {f:N.A5,d:0.5,v:0.55}, {f:N.G5,d:0.5,v:0.5}, {f:N.F5,d:0.5,v:0.5}, {f:N.D5,d:0.5,v:0.55}
-                        ],
-                        arp: [
-                            {f:N.G4,d:0.25,v:0.4}, {f:N.Bb4,d:0.25,v:0.35}, {f:N.D5,d:0.25,v:0.4}, {f:N.G5,d:0.25,v:0.35},
-                            {f:N.Bb4,d:0.25,v:0.4}, {f:N.D5,d:0.25,v:0.35}, {f:N.F5,d:0.25,v:0.4}, {f:N.Bb5,d:0.25,v:0.35},
-                            {f:N.C5,d:0.25,v:0.4}, {f:N.Eb5,d:0.25,v:0.35}, {f:N.G5,d:0.25,v:0.4}, {f:N.C6,d:0.25,v:0.35},
-                            {f:N.D5,d:0.25,v:0.4}, {f:N.F5,d:0.25,v:0.35}, {f:N.A5,d:0.25,v:0.4}, {f:N.D5,d:0.25,v:0.35}
-                        ],
-                        drums: [
-                            {k:1,h:1}, {h:1}, {s:1,h:1}, {h:1},
-                            {k:1,h:1}, {h:1}, {s:1,h:1}, {k:1,h:1},
-                            {k:1,h:1}, {h:1}, {s:1,h:1}, {h:1},
-                            {k:1,h:1}, {s:1,h:1}, {k:1,h:1}, {s:1,h:1,c:1}
-                        ],
-                        pad: {freqs:[N.G4, N.Bb4, N.D5], v:0.08, w:'triangle'}
-                    },
-                    B: {
-                        bass: [
-                            {f:N.Eb3,d:0.5,v:0.8}, null, {f:N.Bb3,d:0.25,v:0.7}, {f:N.Eb3,d:0.5,v:0.8},
-                            {f:N.F3,d:0.5,v:0.8}, null, {f:N.C3,d:0.25,v:0.7}, {f:N.F3,d:0.5,v:0.8},
-                            {f:N.G2,d:0.5,v:0.9}, null, {f:N.D3,d:0.25,v:0.7}, {f:N.G3,d:0.25,v:0.8},
-                            {f:N.D3,d:0.5,v:0.9}, null, {f:N.G3,d:0.25,v:0.8}, {f:N.D3,d:0.5,v:0.9}
-                        ],
-                        melody: [
-                            {f:N.Eb5,d:0.5,v:0.5,w:'square'}, {f:N.G5,d:0.5,v:0.55}, {f:N.Bb5,d:1,v:0.55}, null,
-                            {f:N.A5,d:0.5,v:0.5}, {f:N.F5,d:0.5,v:0.5}, {f:N.D5,d:1,v:0.55}, null,
-                            {f:N.G5,d:0.5,v:0.55}, {f:N.F5,d:0.5,v:0.5}, {f:N.Eb5,d:0.5,v:0.5}, {f:N.D5,d:0.5,v:0.55},
-                            {f:N.D5,d:1,v:0.5}, null, {f:N.G5,d:0.5,v:0.55}, {f:N.A5,d:0.5,v:0.55}
-                        ],
-                        arp: [
-                            {f:N.Eb5,d:0.25,v:0.4}, {f:N.G5,d:0.25,v:0.35}, {f:N.Bb5,d:0.25,v:0.4}, {f:N.Eb5,d:0.25,v:0.35},
-                            {f:N.F5,d:0.25,v:0.4}, {f:N.A5,d:0.25,v:0.35}, {f:N.C6,d:0.25,v:0.4}, {f:N.F5,d:0.25,v:0.35},
-                            {f:N.G4,d:0.25,v:0.4}, {f:N.Bb4,d:0.25,v:0.35}, {f:N.D5,d:0.25,v:0.4}, {f:N.G5,d:0.25,v:0.35},
-                            {f:N.D5,d:0.25,v:0.4}, {f:N.F5,d:0.25,v:0.35}, {f:N.A5,d:0.25,v:0.4}, {f:N.D5,d:0.25,v:0.35}
-                        ],
-                        drums: [
-                            {k:1,h:1}, {h:1}, {s:1,h:1}, {h:1},
-                            {k:1,h:1}, {s:1,h:1}, {k:1,h:1}, {s:1,h:1},
-                            {k:1,h:1}, {h:1}, {s:1,h:1}, {k:1,h:1},
-                            {s:1,h:1}, {k:1,h:1}, {s:1,h:1}, {k:1,s:1,c:1}
-                        ],
-                        pad: {freqs:[N.Eb4, N.G4, N.Bb4], v:0.08, w:'triangle'}
-                    },
-                    FILL: {
-                        bass: [
-                            {f:N.G2,d:0.5,v:0.9}, {f:N.Bb2,d:0.25,v:0.8}, {f:N.C3,d:0.25,v:0.8}, {f:N.D3,d:0.5,v:0.9},
-                            {f:N.Eb3,d:0.5,v:0.8}, {f:N.D3,d:0.25,v:0.7}, {f:N.C3,d:0.25,v:0.8}, {f:N.Bb2,d:0.5,v:0.8},
-                            {f:N.G2,d:0.5,v:0.9}, {f:N.A2,d:0.25,v:0.8}, {f:N.Bb2,d:0.25,v:0.8}, {f:N.C3,d:0.5,v:0.9},
-                            {f:N.D3,d:0.5,v:0.9}, {f:N.Eb3,d:0.5,v:0.9}, {f:N.F3,d:0.5,v:1.0}, {f:N.G3,d:0.5,v:1.0}
-                        ],
-                        melody: [
-                            null, null, null, null, null, null, null, null,
-                            {f:N.D5,d:0.25,v:0.5}, {f:N.Eb5,d:0.25,v:0.5}, {f:N.F5,d:0.25,v:0.55}, {f:N.G5,d:0.25,v:0.55},
-                            {f:N.A5,d:0.25,v:0.55}, {f:N.Bb5,d:0.25,v:0.55}, {f:N.C6,d:0.5,v:0.6}, null
-                        ],
-                        arp: [
-                            {f:N.G5,d:0.25,v:0.45}, {f:N.Bb5,d:0.25,v:0.45}, {f:N.D5,d:0.25,v:0.45}, {f:N.G5,d:0.25,v:0.45},
-                            {f:N.Bb5,d:0.25,v:0.45}, {f:N.D5,d:0.25,v:0.45}, {f:N.G5,d:0.25,v:0.45}, {f:N.Bb5,d:0.25,v:0.45},
-                            {f:N.D5,d:0.25,v:0.45}, {f:N.F5,d:0.25,v:0.45}, {f:N.A5,d:0.25,v:0.45}, {f:N.D5,d:0.25,v:0.45},
-                            {f:N.G5,d:0.25,v:0.5}, {f:N.Bb5,d:0.25,v:0.5}, {f:N.D5,d:0.25,v:0.5}, {f:N.G5,d:0.25,v:0.55}
-                        ],
-                        drums: [
-                            {k:1,c:1}, {h:1}, {s:1,h:1}, {k:1,h:1},
-                            {s:1,k:1}, {h:1}, {k:1,s:1,h:1}, {h:1},
-                            {s:1,k:1}, {s:1}, {s:1,k:1}, {s:1},
-                            {k:1,s:1}, {s:1,k:1}, {s:1,k:1}, {k:1,s:1,c:1}
-                        ],
-                        pad: {freqs:[N.G3, N.D4, N.G4], v:0.1, w:'triangle'}
-                    }
-                },
-                structure: ['A','A','B','A','A','B','A','FILL']
-            }
+            // L4 aliases L2 (arcade post-C3 cycling)
+            // L5 aliases L3
         },
 
         // =====================================================================
-        // BOSS THEME — "Central Authority"
-        // 3 phases with increasing intensity
+        // BOSS — "Central Authority"
+        // Minor-mode jazz with tritone substitutions. Three phases escalate
+        // density, not aesthetic. Same Kondo harmonic DNA.
         // =====================================================================
         BOSS: {
+            // Phase 1 — C minor, stately. Cm9 → F13 → Bbmaj9 → Abmaj7#11
             phase1: {
-                name: 'Central Authority - Phase 1',
+                name: 'Central Authority - I',
+                bpm: 85,
+                sections: {
+                    A: {
+                        bass: bassBar(N.C2, N.G2),
+                        arp: harpBar([N.C3, N.Eb3, N.G3, N.Bb3, N.D4, N.G4]),
+                        melody: melodyBar(N.Eb5, N.G5),
+                        drums: drumsCalm(),
+                        pad: padOf([N.Eb3, N.G3, N.Bb3, N.D4], 0.1, 'sawtooth')
+                    },
+                    B: {
+                        bass: bassBar(N.F2, N.C3),
+                        arp: harpBar([N.F3, N.A3, N.C4, N.Eb4, N.G4, N.D5]),
+                        melody: melodyBar(N.A4, N.D5),
+                        drums: drumsCalm(),
+                        pad: padOf([N.A3, N.C4, N.Eb4, N.D5], 0.1, 'sawtooth')
+                    },
+                    C: {
+                        bass: bassBar(N.Bb2, N.F3),
+                        arp: harpBar([N.Bb3, N.D4, N.F4, N.A4, N.C5, N.F5]),
+                        melody: melodyBar(N.D5, N.F5),
+                        drums: drumsCalm(),
+                        pad: padOf([N.D4, N.F4, N.A4, N.C5], 0.09, 'sawtooth')
+                    },
+                    D: {
+                        bass: bassBar(N.Ab2, N.Eb3),
+                        arp: harpBar([N.Ab3, N.C4, N.Eb4, N.G4, N.D5, N.G5]),
+                        melody: melodyBar(N.C5, N.G5),
+                        drums: drumsCalm(),
+                        pad: padOf([N.C4, N.Eb4, N.G4, N.D5], 0.1, 'sawtooth')
+                    }
+                },
+                structure: ['A','B','C','D','A','C','B','D']
+            },
+
+            // Phase 2 — F# minor (tritone from C), combat tempo
+            phase2: {
+                name: 'Central Authority - II',
+                bpm: 110,
+                sections: {
+                    A: {
+                        bass: bassBar(N.Gb2, N.Db3),
+                        arp: harpBar([N.Gb3, N.A3, N.Db4, N.E4, N.Ab4, N.Db5]),
+                        melody: melodyBar(N.A4, N.Db5),
+                        drums: drumsCombat(),
+                        pad: padOf([N.A3, N.Db4, N.E4, N.Ab4], 0.1, 'sawtooth')
+                    },
+                    B: {
+                        bass: bassBar(N.B2, N.Gb3),
+                        arp: harpBar([N.B3, N.D4, N.Gb4, N.A4, N.Db5, N.Gb5]),
+                        melody: melodyBar(N.D5, N.Gb5),
+                        drums: drumsCombat(),
+                        pad: padOf([N.D4, N.Gb4, N.A4, N.Db5], 0.1, 'sawtooth')
+                    },
+                    C: {
+                        bass: bassBar(N.E2, N.B2),
+                        arp: harpBar([N.E3, N.G3, N.B3, N.D4, N.Gb4, N.B4]),
+                        melody: melodyBar(N.G5, N.B4),
+                        drums: drumsCombat(),
+                        pad: padOf([N.G3, N.B3, N.D4, N.Gb4], 0.1, 'sawtooth')
+                    },
+                    D: {
+                        bass: bassBar(N.D2, N.A2),
+                        arp: harpBar([N.D3, N.F3, N.A3, N.C4, N.E4, N.A4]),
+                        melody: melodyBar(N.F5, N.A4),
+                        drums: drumsCombat(),
+                        pad: padOf([N.F3, N.A3, N.C4, N.E4], 0.1, 'sawtooth')
+                    }
+                },
+                structure: ['A','B','C','D','A','C','B','D']
+            },
+
+            // Phase 3 — C minor blitz, crush tempo + double kicks
+            phase3: {
+                name: 'Central Authority - III',
                 bpm: 130,
                 sections: {
                     A: {
-                        bass: [
-                            {f:N.C2,d:1,v:0.9}, null, null, null,
-                            {f:N.C2,d:0.5,v:0.7}, null, {f:N.Eb2,d:0.5,v:0.6}, null,
-                            {f:N.C2,d:1,v:0.9}, null, null, null,
-                            {f:N.G2,d:0.5,v:0.7}, null, {f:N.C2,d:0.5,v:0.8}, null
-                        ],
-                        melody: [
-                            null, null, null, null,
-                            null, null, null, null,
-                            null, null, null, null,
-                            null, null, null, null
-                        ],
-                        arp: [
-                            {f:N.C4,d:0.25,v:0.3}, null, null, {f:N.Eb4,d:0.25,v:0.25},
-                            null, {f:N.G4,d:0.25,v:0.3}, null, null,
-                            {f:N.Eb4,d:0.25,v:0.3}, null, null, {f:N.C4,d:0.25,v:0.25},
-                            null, {f:N.G3,d:0.25,v:0.3}, null, null
-                        ],
-                        drums: [
-                            {k:1}, null, null, {h:0.5},
-                            null, null, {k:1}, null,
-                            {s:1}, null, {h:1}, null,
-                            {k:1}, null, null, null
-                        ],
-                        pad: {freqs:[N.C3, N.Eb3, N.G3], v:0.12, w:'sawtooth'}
+                        bass: bassBar(N.C2, N.G2),
+                        arp: harpBar([N.C3, N.Eb3, N.G3, N.Bb3, N.D4, N.G4], 0.45),
+                        melody: melodyBar(N.Eb5, N.Bb5, 0.5),
+                        drums: drumsCrush(true),
+                        pad: padOf([N.Eb3, N.G3, N.Bb3, N.D4], 0.12, 'sawtooth')
                     },
                     B: {
-                        bass: [
-                            {f:N.Ab2,d:1,v:0.9}, null, null, null,
-                            {f:N.Ab2,d:0.5,v:0.7}, null, {f:N.Bb2,d:0.5,v:0.6}, null,
-                            {f:N.C2,d:1,v:0.9}, null, null, null,
-                            {f:N.G2,d:0.5,v:0.8}, null, {f:N.Eb2,d:0.5,v:0.7}, null
-                        ],
-                        melody: [
-                            null, null, null, null,
-                            null, null, null, null,
-                            null, null, null, null,
-                            null, null, null, null
-                        ],
-                        arp: [
-                            {f:N.Ab4,d:0.25,v:0.3}, null, null, {f:N.C5,d:0.25,v:0.25},
-                            null, {f:N.Eb5,d:0.25,v:0.3}, null, null,
-                            {f:N.C4,d:0.25,v:0.3}, null, null, {f:N.G4,d:0.25,v:0.25},
-                            null, {f:N.Eb4,d:0.25,v:0.3}, null, null
-                        ],
-                        drums: [
-                            {k:1}, null, {h:0.5}, null,
-                            null, {s:1}, null, {h:1},
-                            {k:1}, null, null, null,
-                            {s:1}, null, {k:1}, null
-                        ],
-                        pad: {freqs:[N.Ab3, N.C4, N.Eb4], v:0.12, w:'sawtooth'}
-                    }
-                },
-                structure: ['A','B','A','B']
-            },
-
-            phase2: {
-                name: 'Central Authority - Phase 2',
-                bpm: 145,
-                sections: {
-                    A: {
-                        bass: [
-                            {f:N.C2,d:0.5,v:0.9}, null, {f:N.C3,d:0.25,v:0.7}, {f:N.C2,d:0.5,v:0.8},
-                            {f:N.Eb2,d:0.5,v:0.8}, null, {f:N.G2,d:0.25,v:0.7}, {f:N.Eb2,d:0.5,v:0.8},
-                            {f:N.Ab2,d:0.5,v:0.8}, null, {f:N.Eb3,d:0.25,v:0.7}, {f:N.Ab2,d:0.5,v:0.8},
-                            {f:N.G2,d:0.5,v:0.9}, null, {f:N.D3,d:0.25,v:0.7}, {f:N.G2,d:0.5,v:0.9}
-                        ],
-                        melody: [
-                            {f:N.C5,d:0.5,v:0.5,w:'square'}, {f:N.Eb5,d:0.25,v:0.45}, null, {f:N.G5,d:0.5,v:0.5},
-                            null, {f:N.F5,d:0.25,v:0.45}, {f:N.Eb5,d:0.5,v:0.5}, null,
-                            {f:N.Ab5,d:0.5,v:0.5}, null, {f:N.G5,d:0.25,v:0.45}, {f:N.F5,d:0.5,v:0.5},
-                            {f:N.Eb5,d:0.5,v:0.45}, null, {f:N.D5,d:0.5,v:0.5}, null
-                        ],
-                        arp: [
-                            {f:N.C4,d:0.25,v:0.4}, {f:N.Eb4,d:0.25,v:0.35}, {f:N.G4,d:0.25,v:0.4}, {f:N.C5,d:0.25,v:0.35},
-                            {f:N.Eb4,d:0.25,v:0.4}, {f:N.G4,d:0.25,v:0.35}, {f:N.Bb4,d:0.25,v:0.4}, {f:N.Eb5,d:0.25,v:0.35},
-                            {f:N.Ab4,d:0.25,v:0.4}, {f:N.C5,d:0.25,v:0.35}, {f:N.Eb5,d:0.25,v:0.4}, {f:N.Ab4,d:0.25,v:0.35},
-                            {f:N.G4,d:0.25,v:0.4}, {f:N.Bb4,d:0.25,v:0.35}, {f:N.D5,d:0.25,v:0.4}, {f:N.G4,d:0.25,v:0.35}
-                        ],
-                        drums: [
-                            {k:1,h:1}, {h:1}, {s:1,h:1}, {h:1},
-                            {k:1,h:1}, {h:1}, {s:1,h:1}, {k:1,h:1},
-                            {k:1,h:1}, {h:1}, {s:1,h:1}, {h:1},
-                            {k:1,h:1}, {s:1,h:1}, {k:1,h:1}, {s:1,h:1}
-                        ],
-                        pad: {freqs:[N.C3, N.Eb3, N.G3], v:0.1, w:'sawtooth'}
-                    },
-                    B: {
-                        bass: [
-                            {f:N.F2,d:0.5,v:0.9}, null, {f:N.C3,d:0.25,v:0.7}, {f:N.F2,d:0.5,v:0.8},
-                            {f:N.Ab2,d:0.5,v:0.8}, null, {f:N.Eb3,d:0.25,v:0.7}, {f:N.Ab2,d:0.5,v:0.8},
-                            {f:N.C2,d:0.5,v:0.9}, null, {f:N.G2,d:0.25,v:0.7}, {f:N.C3,d:0.25,v:0.8},
-                            {f:N.G2,d:0.5,v:0.9}, {f:N.F2,d:0.25,v:0.8}, {f:N.Eb2,d:0.25,v:0.8}, {f:N.D2,d:0.5,v:0.9}
-                        ],
-                        melody: [
-                            {f:N.F5,d:0.5,v:0.5,w:'square'}, {f:N.Ab5,d:0.25,v:0.5}, null, {f:N.C6,d:0.5,v:0.55},
-                            null, {f:N.Bb5,d:0.25,v:0.45}, {f:N.Ab5,d:0.5,v:0.5}, null,
-                            {f:N.G5,d:0.5,v:0.5}, {f:N.F5,d:0.25,v:0.45}, {f:N.Eb5,d:0.5,v:0.5}, null,
-                            {f:N.D5,d:0.5,v:0.5}, null, {f:N.C5,d:0.5,v:0.5}, null
-                        ],
-                        arp: [
-                            {f:N.F4,d:0.25,v:0.4}, {f:N.Ab4,d:0.25,v:0.35}, {f:N.C5,d:0.25,v:0.4}, {f:N.F5,d:0.25,v:0.35},
-                            {f:N.Ab4,d:0.25,v:0.4}, {f:N.C5,d:0.25,v:0.35}, {f:N.Eb5,d:0.25,v:0.4}, {f:N.Ab5,d:0.25,v:0.35},
-                            {f:N.C4,d:0.25,v:0.4}, {f:N.Eb4,d:0.25,v:0.35}, {f:N.G4,d:0.25,v:0.4}, {f:N.C5,d:0.25,v:0.35},
-                            {f:N.G4,d:0.25,v:0.4}, {f:N.Bb4,d:0.25,v:0.35}, {f:N.D5,d:0.25,v:0.4}, {f:N.G4,d:0.25,v:0.35}
-                        ],
-                        drums: [
-                            {k:1,h:1}, {h:1}, {s:1,h:1}, {h:1},
-                            {k:1,h:1}, {s:1,h:1}, {k:1,h:1}, {s:1,h:1},
-                            {k:1,h:1}, {h:1}, {s:1,h:1}, {k:1,h:1},
-                            {s:1,k:1}, {h:1}, {s:1,k:1}, {s:1,k:1,c:1}
-                        ],
-                        pad: {freqs:[N.F3, N.Ab3, N.C4], v:0.1, w:'sawtooth'}
-                    }
-                },
-                structure: ['A','B','A','B']
-            },
-
-            phase3: {
-                name: 'Central Authority - Phase 3',
-                bpm: 165,
-                sections: {
-                    A: {
-                        bass: [
-                            {f:N.C2,d:0.25,v:1.0}, {f:N.C2,d:0.25,v:0.8}, {f:N.Eb2,d:0.25,v:0.9}, {f:N.G2,d:0.25,v:0.9},
-                            {f:N.Ab2,d:0.25,v:0.9}, {f:N.G2,d:0.25,v:0.8}, {f:N.Eb2,d:0.25,v:0.9}, {f:N.C2,d:0.25,v:1.0},
-                            {f:N.Bb2,d:0.25,v:0.9}, {f:N.Ab2,d:0.25,v:0.8}, {f:N.G2,d:0.25,v:0.9}, {f:N.F2,d:0.25,v:0.9},
-                            {f:N.Eb2,d:0.25,v:0.9}, {f:N.D2,d:0.25,v:0.9}, {f:N.C2,d:0.25,v:1.0}, {f:N.G2,d:0.25,v:1.0}
-                        ],
-                        melody: [
-                            {f:N.C5,d:0.25,v:0.55,w:'square'}, {f:N.Eb5,d:0.25,v:0.5}, {f:N.G5,d:0.25,v:0.55}, {f:N.C6,d:0.25,v:0.55},
-                            {f:N.Bb5,d:0.25,v:0.5}, {f:N.Ab5,d:0.25,v:0.5}, {f:N.G5,d:0.25,v:0.55}, {f:N.F5,d:0.25,v:0.5},
-                            {f:N.Eb5,d:0.25,v:0.55}, {f:N.F5,d:0.25,v:0.5}, {f:N.G5,d:0.5,v:0.55}, null,
-                            {f:N.Ab5,d:0.25,v:0.5}, {f:N.G5,d:0.25,v:0.5}, {f:N.F5,d:0.25,v:0.55}, {f:N.Eb5,d:0.25,v:0.55}
-                        ],
-                        arp: [
-                            {f:N.C5,d:0.25,v:0.45}, {f:N.Eb5,d:0.25,v:0.4}, {f:N.G5,d:0.25,v:0.45}, {f:N.C5,d:0.25,v:0.4},
-                            {f:N.Eb5,d:0.25,v:0.45}, {f:N.G5,d:0.25,v:0.4}, {f:N.C5,d:0.25,v:0.45}, {f:N.Eb5,d:0.25,v:0.4},
-                            {f:N.Ab4,d:0.25,v:0.45}, {f:N.C5,d:0.25,v:0.4}, {f:N.Eb5,d:0.25,v:0.45}, {f:N.Ab4,d:0.25,v:0.4},
-                            {f:N.G4,d:0.25,v:0.45}, {f:N.Bb4,d:0.25,v:0.4}, {f:N.D5,d:0.25,v:0.45}, {f:N.G5,d:0.25,v:0.4}
-                        ],
-                        drums: [
-                            {k:1,h:1}, {h:1}, {s:1,h:1}, {k:1,h:1},
-                            {s:1,h:1}, {k:1,h:1}, {s:1,h:1}, {k:1,h:1},
-                            {k:1,s:1,h:1}, {h:1}, {s:1,k:1,h:1}, {h:1},
-                            {k:1,h:1}, {s:1,h:1}, {k:1,s:1,h:1}, {k:1,s:1,c:1}
-                        ],
-                        pad: {freqs:[N.C3, N.Eb3, N.G3, N.Bb3], v:0.12, w:'sawtooth'}
-                    },
-                    B: {
-                        bass: [
-                            {f:N.Ab2,d:0.25,v:1.0}, {f:N.Ab2,d:0.25,v:0.8}, {f:N.Bb2,d:0.25,v:0.9}, {f:N.C3,d:0.25,v:0.9},
-                            {f:N.Eb3,d:0.25,v:0.9}, {f:N.C3,d:0.25,v:0.8}, {f:N.Bb2,d:0.25,v:0.9}, {f:N.Ab2,d:0.25,v:1.0},
-                            {f:N.G2,d:0.25,v:1.0}, {f:N.G2,d:0.25,v:0.8}, {f:N.Ab2,d:0.25,v:0.9}, {f:N.Bb2,d:0.25,v:0.9},
-                            {f:N.C3,d:0.25,v:0.9}, {f:N.D3,d:0.25,v:0.9}, {f:N.Eb3,d:0.25,v:1.0}, {f:N.G3,d:0.25,v:1.0}
-                        ],
-                        melody: [
-                            {f:N.Ab5,d:0.25,v:0.55,w:'square'}, {f:N.C6,d:0.25,v:0.55}, {f:N.Ab5,d:0.25,v:0.5}, {f:N.G5,d:0.25,v:0.55},
-                            {f:N.F5,d:0.25,v:0.5}, {f:N.Eb5,d:0.25,v:0.55}, {f:N.D5,d:0.25,v:0.5}, {f:N.C5,d:0.25,v:0.55},
-                            {f:N.G5,d:0.5,v:0.55}, null, {f:N.Ab5,d:0.25,v:0.5}, {f:N.Bb5,d:0.25,v:0.55},
-                            {f:N.C6,d:0.5,v:0.6}, null, {f:N.G5,d:0.25,v:0.55}, {f:N.C6,d:0.25,v:0.6}
-                        ],
-                        arp: [
-                            {f:N.Ab4,d:0.25,v:0.45}, {f:N.C5,d:0.25,v:0.4}, {f:N.Eb5,d:0.25,v:0.45}, {f:N.Ab4,d:0.25,v:0.4},
-                            {f:N.C5,d:0.25,v:0.45}, {f:N.Eb5,d:0.25,v:0.4}, {f:N.Ab4,d:0.25,v:0.45}, {f:N.C5,d:0.25,v:0.4},
-                            {f:N.G4,d:0.25,v:0.45}, {f:N.Bb4,d:0.25,v:0.4}, {f:N.D5,d:0.25,v:0.45}, {f:N.G4,d:0.25,v:0.4},
-                            {f:N.Bb4,d:0.25,v:0.45}, {f:N.D5,d:0.25,v:0.4}, {f:N.G5,d:0.25,v:0.45}, {f:N.Bb5,d:0.25,v:0.4}
-                        ],
-                        drums: [
-                            {k:1,h:1}, {s:1,h:1}, {k:1,h:1}, {s:1,h:1},
-                            {k:1,s:1,h:1}, {h:1}, {k:1,s:1,h:1}, {h:1},
-                            {k:1,h:1}, {s:1,h:1}, {k:1,s:1,h:1}, {s:1,h:1},
-                            {k:1,s:1}, {s:1,k:1}, {k:1,s:1,h:1}, {k:1,s:1,c:1}
-                        ],
-                        pad: {freqs:[N.Ab3, N.C4, N.Eb4, N.G4], v:0.12, w:'sawtooth'}
+                        bass: bassBar(N.Ab2, N.Eb3),
+                        arp: harpBar([N.Ab3, N.C4, N.Eb4, N.G4, N.C5, N.Eb5], 0.45),
+                        melody: melodyBar(N.C5, N.Eb5, 0.5),
+                        drums: drumsCrush(false),
+                        pad: padOf([N.C4, N.Eb4, N.G4, N.C5], 0.12, 'sawtooth')
                     },
                     C: {
-                        bass: [
-                            {f:N.C2,d:0.25,v:1.0}, {f:N.Eb2,d:0.25,v:0.9}, {f:N.G2,d:0.25,v:0.9}, {f:N.C3,d:0.25,v:1.0},
-                            {f:N.Eb3,d:0.25,v:0.9}, {f:N.C3,d:0.25,v:0.9}, {f:N.G2,d:0.25,v:1.0}, {f:N.Eb2,d:0.25,v:0.9},
-                            {f:N.G2,d:0.25,v:1.0}, {f:N.Bb2,d:0.25,v:0.9}, {f:N.D3,d:0.25,v:0.9}, {f:N.G3,d:0.25,v:1.0},
-                            {f:N.D3,d:0.25,v:0.9}, {f:N.Bb2,d:0.25,v:0.9}, {f:N.G2,d:0.25,v:1.0}, {f:N.G2,d:0.25,v:1.0}
-                        ],
-                        melody: [
-                            {f:N.C6,d:0.25,v:0.6,w:'sawtooth'}, {f:N.G5,d:0.25,v:0.55}, {f:N.Eb5,d:0.25,v:0.55}, {f:N.C5,d:0.25,v:0.55},
-                            {f:N.Eb5,d:0.25,v:0.55}, {f:N.G5,d:0.25,v:0.55}, {f:N.C6,d:0.5,v:0.6}, null,
-                            {f:N.Bb5,d:0.25,v:0.55}, {f:N.G5,d:0.25,v:0.55}, {f:N.D5,d:0.25,v:0.5}, {f:N.G5,d:0.25,v:0.55},
-                            {f:N.Bb5,d:0.25,v:0.55}, {f:N.D5,d:0.25,v:0.55}, {f:N.G5,d:0.5,v:0.6}, null
-                        ],
-                        arp: [
-                            {f:N.C5,d:0.25,v:0.5}, {f:N.Eb5,d:0.25,v:0.45}, {f:N.G5,d:0.25,v:0.5}, {f:N.C6,d:0.25,v:0.45},
-                            {f:N.G5,d:0.25,v:0.5}, {f:N.Eb5,d:0.25,v:0.45}, {f:N.C5,d:0.25,v:0.5}, {f:N.G4,d:0.25,v:0.45},
-                            {f:N.G4,d:0.25,v:0.5}, {f:N.Bb4,d:0.25,v:0.45}, {f:N.D5,d:0.25,v:0.5}, {f:N.G5,d:0.25,v:0.45},
-                            {f:N.D5,d:0.25,v:0.5}, {f:N.Bb4,d:0.25,v:0.45}, {f:N.G4,d:0.25,v:0.5}, {f:N.D4,d:0.25,v:0.45}
-                        ],
-                        drums: [
-                            {k:1,s:1,h:1}, {k:1,h:1}, {s:1,k:1,h:1}, {k:1,h:1},
-                            {s:1,k:1,h:1}, {k:1,h:1}, {s:1,k:1,h:1}, {k:1,s:1,h:1},
-                            {k:1,s:1,h:1}, {s:1,h:1}, {k:1,s:1,h:1}, {s:1,h:1},
-                            {k:1,s:1,h:1}, {k:1,s:1}, {k:1,s:1,h:1}, {k:1,s:1,c:1}
-                        ],
-                        pad: {freqs:[N.C3, N.Eb3, N.G3, N.Bb3, N.D4], v:0.14, w:'sawtooth'}
+                        bass: bassBar(N.F2, N.C3),
+                        arp: harpBar([N.F3, N.Ab3, N.C4, N.Eb4, N.G4, N.C5], 0.45),
+                        melody: melodyBar(N.Ab5, N.C6, 0.5),
+                        drums: drumsCrush(false),
+                        pad: padOf([N.Ab3, N.C4, N.Eb4, N.G4], 0.12, 'sawtooth')
+                    },
+                    D: {
+                        bass: bassBar(N.G2, N.D3),
+                        arp: harpBar([N.G3, N.B3, N.D4, N.F4, N.A4, N.D5], 0.45),
+                        melody: melodyBar(N.B4, N.D5, 0.5),
+                        drums: drumsCrush(true),
+                        pad: padOf([N.B3, N.D4, N.F4, N.A4], 0.12, 'sawtooth')
                     }
                 },
-                structure: ['A','B','C','A']
+                structure: ['A','B','C','D','A','C','B','D']
             }
         },
 
         // =====================================================================
-        // BEAR MARKET MODIFIER
-        // Applied on top of any song when Bear Market is active
+        // BEAR MARKET MODIFIER — applied live on top of any song
         // =====================================================================
         BEAR_MARKET: {
-            pitchShift: -1,          // Semitones down (applied as freq multiplier)
-            tempoMult: 1.1,          // 10% faster
-            distortion: true,        // Enable WaveShaper
-            filterCutoff: 800,       // Low-pass Hz (darker sound)
-            volumeBoost: 1.1         // Slightly louder
+            pitchShift: -2,          // semitones down (darker)
+            tempoMult: 1.05,         // slightly faster
+            distortion: true,
+            filterCutoff: 900,
+            volumeBoost: 1.0
         }
     };
+
+    // L4/L5 alias L2/L3 for arcade mode post-C3 cycling
+    G.MusicData.SONGS[4] = G.MusicData.SONGS[2];
+    G.MusicData.SONGS[5] = G.MusicData.SONGS[3];
 
 })();

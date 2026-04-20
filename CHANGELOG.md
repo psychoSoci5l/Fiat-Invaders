@@ -1,5 +1,41 @@
 # Changelog
 
+## v7.10.1 — Reactive music: phase ramp + HYPER/GODCHAIN + music-ON default - 2026-04-21
+
+### feat(audio): la musica diventa parte del gioco
+
+Dopo il primo ascolto della v7.10.0, feedback utente: la grammatica Kondo è azzeccata ma il loop 4-bar da solo diventa ripetitivo prima del boss. Serve dinamica temporale, risposta agli eventi di gameplay (HYPER, GODCHAIN) e variety armonica nel livello. Questa release lo risolve senza toccare le voicings (la firma estetica va protetta).
+
+- **feat(audiosystem)**: tre nuove API esterne in `AudioSystem` — `setBpmMult(mult)` per ramp tempo graduale (sostituisce il salto a gradino `≥85` rimosso), `setTransposeMult(mult)` per modulazione di tono globale (semitone-accurata via `2^(n/12)`), `setArpDetune(cents)` per detuning istantaneo dell'arp-bus (reactive HYPER/GODCHAIN). Tutte con clamp di sicurezza.
+- **feat(audiosystem)**: `_getBearPitchMult()` ora include `_transposeMult` oltre al bear-market pitchShift (un unico chokepoint per il pitch della musica). Nuovo `_getArpPitchMult()` somma anche `_arpDetuneCents` — usato solo da `playArpFromData()`, così il detuning lascia bass/melody/pad intatti e colora solo l'arpa (il timbro più espressivo).
+- **feat(intensity)**: `main.js` intensity calculation riscritta per essere phase-aware. Base 30 (solo arp+pad, Kondo intro), ramp a step basato su `G.LevelScript._elapsed / BOSS_AT_S`: OPENING 0-15% = 0, BUILDUP 15-40% = +15, ESCALATION 40-65% = +30, PEAK 65-85% = +42, CRUSH 85-100% = +55. Formula a tratti interpolati linearmente, niente salti. `bpmMult` ramp da 0.92× a 1.10× sulla stessa progressione.
+- **feat(modulation)**: key change a metà livello — quando `progress > 0.5`, `setTransposeMult(2^(2/12))` applica modulazione +2 semitoni (whole tone up). Dispositivo classico, zero dati aggiuntivi, percepito come "nuova sezione". Boss override: torna a 1.0 (il boss ha la propria tonalità e non deve essere trasposto).
+- **feat(reactive)**: HYPER → `intensity +18`, `bpmMult ×1.04`, `arpDetune +500 cents` (arpa sale di una quarta, color spike). GODCHAIN → `intensity +12`, `arpDetune +300 cents` (terza minore, colore mistico). Effetti cumulabili (HYPERGOD = +30 intensity + arpa +800 cents ≈ ottava meno un tono).
+- **feat(structure)**: structure di tutti i 3 livelli estesa da 4 a 8 bar — `['A','B','C','D','A','C','B','D']`. Seconda metà ha rotazione C↔B, cambia senza richiedere dati nuovi. Combinata con la modulazione +2 semitoni al midpoint, da un ciclo di 10s si passa a ~21s di materiale percettivamente unico prima del primo riascolto.
+- **feat(default)**: musica **ON di default** (`main.js` line 872). Prima caricava `musicPref === null ? true : ...` per proteggersi dalla vecchia soundtrack, ora inverte a `false`. Utenti che l'avevano esplicitamente mutata restano mutati (localStorage preservato).
+- **tune(tempo)**: rimossa la legacy `bpm *= 1.1` a `intensity≥85` in `getCurrentTempo`. Sostituita con `bpm *= _bpmMult` guidato da main.js. La crescita ora è smooth e leggibile.
+- **kept**: grammatica armonica (voicings maj9/m9/13/7alt) invariata. Boss 3-phase BPM (85/110/130) invariati. Tutte le altre API AudioSystem invariate. Bear market modifier si combina correttamente con transpose.
+
+## v7.10.0 — Kondo soundtrack rewrite + pause-stops-music - 2026-04-20
+
+### feat(audio): nuova grammatica armonica (Great Fairy's Fountain) + pause stop
+
+La colonna sonora precedente (synth-pop in minore, drum martellante continuo) stressava invece di accompagnare, al punto che music era muted di default. Il riferimento estetico richiesto è il tema della Great Fairy's Fountain di Koji Kondo: voicings jazz estesi (maj9/m9/13/7alt), progressioni ii-V-I-VI, basso lineare, arpeggi d'arpa cascanti, impressionismo. Il motore procedurale esistente ha già tutto l'occorrente (5 sub-bus bass/arp/melody/drums/pad, reverb convoluzionale, stereo, LFO) — mancavano solo i dati musicali giusti. Riscrittura completa di `MusicData.js` più due piccole API a contorno.
+
+- **feat(musicdata)**: `src/audio/MusicData.js` interamente ricostruito. 3 temi tematizzati per regione V8:
+  - **L1 "Fountain of Fiat"** (Ab maggiore, 90 BPM) — USA. Omaggio diretto: Bbm9 → Eb13 → Abmaj9 → F7b9.
+  - **L2 "Liquidity Dream"** (D dorico, 95 BPM) — EU. Em9 → A13 → Dm11 → Bm7♭5, modal floating.
+  - **L3 "Eastern Protocol"** (F maggiore + colore pentatonico, 100 BPM) — Asia. Gm9 → C13sus → Fmaj9 → D7alt.
+  - Ogni brano = loop 4 bar (A/B/C/D, una sezione per accordo), 16 sixteenth-note slots per track.
+  - L4/L5 alias L2/L3 (coprono il cycling arcade post-C3).
+- **feat(musicdata)**: helper compositivi riusabili — `bassBar(root, pickup)` (voice-leading lineare, non più pulse martellante), `harpBar(tones)` (cascata ascendente-discendente 16th su estensioni d'accordo, envelope dinamico), `melodyBar(n1, n2)` (note lunghe sostenute beat 1/3, sparse "oohs"), `padOf(freqs)` (voicing esteso sostenuto), `drumsCalm/Combat/Crush`. Evita 500 righe di dati hard-coded.
+- **feat(boss)**: 3 fasi con stessa grammatica Kondo ma in minore + tritonisustituzioni. Fase 1 Cm9 (85 BPM stately), Fase 2 F#m (110 BPM, tritono da C, combat drums), Fase 3 crush Cm (130 BPM, double-kick). Nessun cambio di estetica tra fasi — solo densità.
+- **feat(audiosystem)**: nuove API `pauseMusic()` / `resumeMusic()` in `AudioSystem.js` — differiscono da `stopMusic()` perché NON resettano `noteIndex`/`structureIndex`. Pausa ferma scheduler + pad, resume riparte dal punto esatto del loop con timing fresco (evita burst catch-up).
+- **feat(pause)**: `window.togglePause` in `main.js` ora chiama `G.Audio.pauseMusic()` su PLAY/WARMUP/INTERMISSION → PAUSE e `G.Audio.resumeMusic()` su ritorno (solo se non mutata). Risolve il difetto segnalato: la musica continuava imperterrita a menu di pausa aperto.
+- **tune(intensity-thresholds)**: soglie bus in `AudioSystem.schedule` riviste per la nuova grammatica. Era `arp>=30, drums>=50, melody>=60, pad>=40`, ora `arp>=20` (l'arpa è l'essenza Kondo, deve essere in presto), `pad>=10` (halo quasi sempre), `melody>=50`, `drums>=65` (combat layer), speedup a `>=85` (crush/boss). Garantisce texture bass+arp+pad presente anche in CALM assoluto.
+- **tune(intensity-formula)**: formula intensity in `main.js` riscritta per mappare correttamente il pacing V8. Base 35 (arp sempre in), +0..40 da `ScrollEngine._speedMult` (1.0→2.4+ crush), +25 per boss, +10 per ultima vita, cap 100. Rimosso weighting su enemyBullets/enemies.length che saturava istantaneamente in V8.
+- **kept**: music muted di default invariato (`fiat_music_muted` flipperà al prossimo giro se il test va bene). BEAR_MARKET modifier e stereo/reverb/LFO invariati. `setIntensity(level)` API preservata.
+
 ## v7.9.5 — Gravity Gate + Currency Rain - 2026-04-20
 
 ### feat(enemies): hover-stop + flip upright, proiettili-valuta

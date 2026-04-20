@@ -869,7 +869,8 @@ function init() {
 
     // Sync initial state from localStorage (music OFF by default, SFX ON by default)
     const musicPref = localStorage.getItem('fiat_music_muted');
-    const musicMuted = musicPref === null ? true : musicPref === '1';
+    // v7.10.1: music ON by default (new Kondo soundtrack replaces the old aggressive one)
+    const musicMuted = musicPref === null ? false : musicPref === '1';
     const sfxMuted = localStorage.getItem('fiat_sfx_muted') === '1';
     audioSys.applyMuteStates(musicMuted, sfxMuted);
     updateMusicUI(musicMuted);
@@ -1880,12 +1881,16 @@ window.togglePause = function () {
     if (gameState === 'PLAY' || gameState === 'WARMUP' || gameState === 'INTERMISSION') {
         window._pausedFromState = gameState; // v7.0: remember exact state for correct resume
         setGameState('PAUSE'); setStyle('pause-screen', 'display', 'flex'); setStyle('pause-btn', 'display', 'none');
+        // v7.10: stop music on pause (silence, not low-volume ghost loop)
+        if (G.Audio && G.Audio.pauseMusic) G.Audio.pauseMusic();
     }
     else if (gameState === 'PAUSE') {
         const resumeTo = window._pausedFromState || 'PLAY';
         setGameState(resumeTo);
         window._pausedFromState = null;
         setStyle('pause-screen', 'display', 'none'); setStyle('pause-btn', 'display', 'block');
+        // v7.10: resume music mid-loop (only if not muted)
+        if (G.Audio && G.Audio.resumeMusic && !G.Audio.musicMuted) G.Audio.resumeMusic();
     }
 };
 
@@ -3090,14 +3095,58 @@ function update(dt) {
             updateMiniBoss(dt);
         }
 
-        // Dynamic music intensity calculation
-        let intensity = 0;
-        intensity += enemyBullets.length * 2;        // +2 per enemy bullet on screen
-        intensity += (100 - grazeMeter);             // Less graze = more tension
-        intensity += boss ? 30 : 0;                  // Boss present
-        intensity += lives === 1 ? 20 : 0;           // Last life (1-hit = 1-life system)
-        intensity += enemies.length;                 // More enemies = more intense
+        // v7.10.1: Dynamic music — phase-aware intensity + BPM ramp + modulation + reactive events.
+        // Three inputs converge: V8 progress (time-based), gameplay state (boss/HYPER/GODCHAIN),
+        // and scroll mult (CRUSH anchors). Result: music evolves across a 170s level instead of
+        // looping the same 10s loop 16 times.
+        let intensity = 30; // OPENING baseline — arp + pad only (Kondo fairy intro)
+        let bpmMult = 0.92; // start a touch under nominal
+        let transpose = 1.0;
+
+        // V8 progress → phase intensity + BPM ramp + mid-level key change
+        if (G.LevelScript && G.LevelScript.BOSS_AT_S > 0) {
+            const progress = Math.min(1, G.LevelScript._elapsed / G.LevelScript.BOSS_AT_S);
+            // Smooth ramp: OPENING(0-0.15)=+0, BUILDUP(0.15-0.4)=+15, ESCALATION(0.4-0.65)=+30,
+            // PEAK(0.65-0.85)=+42, CRUSH(0.85-1)=+55
+            const phaseRamp =
+                progress < 0.15 ? 0 :
+                progress < 0.40 ? (progress - 0.15) / 0.25 * 15 :
+                progress < 0.65 ? 15 + (progress - 0.40) / 0.25 * 15 :
+                progress < 0.85 ? 30 + (progress - 0.65) / 0.20 * 12 :
+                                  42 + (progress - 0.85) / 0.15 * 13;
+            intensity += phaseRamp;
+            bpmMult = 0.92 + progress * 0.18; // 0.92 → 1.10 across the level
+            // Key modulation: up a whole tone at midpoint (structure "gear shift")
+            if (progress > 0.5) transpose = Math.pow(2, 2 / 12); // +2 semitones
+        }
+
+        // Scroll mult (CRUSH anchors) adds on top — ramps hard in L3 late game
+        const scrollMult = (G.ScrollEngine && typeof G.ScrollEngine._speedMult === 'number')
+            ? G.ScrollEngine._speedMult : 1.0;
+        intensity += Math.min(15, Math.max(0, (scrollMult - 1.0) * 10));
+
+        // Boss → everything on, tempo bump
+        if (boss) { intensity += 20; bpmMult = Math.max(bpmMult, 1.08); transpose = 1.0; /* boss owns key */ }
+        if (lives === 1) intensity += 8;
+
+        // HYPER: big energy push — drums full, tempo bump, arp up a fourth
+        // GODCHAIN: mystical color — arp detuned up a minor third, pad swells
+        let arpDetune = 0;
+        if (player && player.hyperActive) {
+            intensity += 18;
+            bpmMult *= 1.04;
+            arpDetune += 500; // +5 semitones (~perfect fourth)
+        }
+        if (player && player._godchainActive) {
+            intensity += 12;
+            arpDetune += 300; // +3 semitones
+        }
+
+        intensity = Math.min(100, intensity);
         audioSys.setIntensity(intensity);
+        if (audioSys.setBpmMult) audioSys.setBpmMult(bpmMult);
+        if (audioSys.setTransposeMult) audioSys.setTransposeMult(transpose);
+        if (audioSys.setArpDetune) audioSys.setArpDetune(arpDetune);
 
         // Near-death heartbeat (last life in 1-hit = 1-life system)
         if (lives === 1) {
