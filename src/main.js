@@ -393,6 +393,10 @@ let bossWarningType = null;   // Boss type to spawn after warning
 let startCountdownTimer = 0;
 let startCountdownGoTimer = 0;
 let startCountdownActive = false;
+// v7.11: cinematic ship entry before countdown
+const SHIP_ENTRY_DURATION = 1.1;
+let shipEntryActive = false;
+let shipEntryTimer = 0;
 
 let miniBoss = null; // Special boss spawned from kill counter
 
@@ -1975,10 +1979,10 @@ function advanceToNextV8Level() {
     if (G.ScrollEngine && G.ScrollEngine.reset) G.ScrollEngine.reset();
     G.LevelScript.loadLevel(nextIdx);
 
-    // Show the gameplay UI again + resume
+    // Show the gameplay UI again + resume, with cinematic ship entry + 3-2-1
     if (ui.uiLayer) ui.uiLayer.style.display = 'block';
     setStyle('pause-btn', 'display', 'block');
-    setGameState('PLAY');
+    _startPlayCountdown();
 }
 window.advanceToNextV8Level = advanceToNextV8Level;
 
@@ -2155,7 +2159,12 @@ function showStoryScreen(storyId, onComplete) {
     if (ui.touchControls) ui.touchControls.style.display = 'none';
     setStyle('control-zone-hint', 'display', 'none');
 
+    // Swap music to intermission theme
+    if (audioSys && audioSys.setIntermissionMode) audioSys.setIntermissionMode(true);
+
     G.StoryScreen.show(storyId, () => {
+        // Restore combat music before handing control back
+        if (audioSys && audioSys.setIntermissionMode) audioSys.setIntermissionMode(false);
         // Let onComplete handle state transition and UI — don't force PLAY or show controls here
         if (onComplete) onComplete();
     });
@@ -2369,6 +2378,7 @@ function startGame() {
     bossWarningTimer = 0; // Reset boss warning
     bossWarningType = null;
     startCountdownTimer = 0; startCountdownGoTimer = 0; startCountdownActive = false; // v5.27
+    shipEntryActive = false; shipEntryTimer = 0; // v7.11 cinematic entry
 
     // Reset visual effects
     shake = 0;
@@ -2473,12 +2483,21 @@ window.endWarmup = function() {
     showShipIntroMeme();
 };
 
-// v5.27: Activate start countdown — game loop runs but waves/firing blocked
+// v5.27 / v7.11: Cinematic entry — ship flies in from below, then 3→2→1 countdown.
+// shipEntry runs first (waves/firing/input blocked); when it completes, the
+// classic countdown takes over.
 function _startPlayCountdown() {
     setGameState('PLAY');
-    startCountdownTimer = Balance.TIMING.START_COUNTDOWN ?? 3.0;
+    startCountdownTimer = 0;
     startCountdownGoTimer = 0;
-    startCountdownActive = true;
+    startCountdownActive = false;
+
+    if (player) {
+        player.x = gameWidth / 2;
+        player.y = gameHeight + 80; // start below the bottom edge
+    }
+    shipEntryActive = true;
+    shipEntryTimer = SHIP_ENTRY_DURATION;
 }
 
 function highlightShip(idx) {
@@ -2849,6 +2868,22 @@ function update(dt) {
     // Hide legacy ticker if present
     if (ui.memeTicker) ui.memeTicker.style.display = 'none';
 
+    // v7.11: Cinematic ship entry — decrement timer here, position override happens
+    // after player.update() below so flight dynamics can't drag the ship around.
+    if (shipEntryActive) {
+        shipEntryTimer -= dt;
+        if (shipEntryTimer <= 0) {
+            shipEntryActive = false;
+            if (player) {
+                player.x = gameWidth / 2;
+                player.y = (player.gameHeight || gameHeight) - Balance.PLAYER.RESET_Y_OFFSET;
+            }
+            startCountdownTimer = Balance.TIMING.START_COUNTDOWN ?? 3.0;
+            startCountdownGoTimer = 0;
+            startCountdownActive = true;
+        }
+    }
+
     // v5.27: Countdown timer decrement
     if (startCountdownActive) {
         if (startCountdownTimer > 0) {
@@ -2873,9 +2908,9 @@ function update(dt) {
 
     // v2.22.1: Include boss warning state to prevent duplicate boss spawn actions
     const isBossActive = !!boss || bossWarningTimer > 0;
-    let waveAction = startCountdownActive ? null : waveMgr.update(dt, gameState, enemies.length, isBossActive);
+    let waveAction = (startCountdownActive || shipEntryActive) ? null : waveMgr.update(dt, gameState, enemies.length, isBossActive);
     // v8: LevelScript drives spawns + boss trigger. waveMgr.update() returns null in V8 mode.
-    if (!startCountdownActive && gameState === 'PLAY' && !isBossActive &&
+    if (!startCountdownActive && !shipEntryActive && gameState === 'PLAY' && !isBossActive &&
         G.Balance.V8_MODE && G.Balance.V8_MODE.ENABLED && G.LevelScript) {
         const v8Action = G.LevelScript.tick(dt);
         if (v8Action) waveAction = v8Action;
@@ -3029,14 +3064,24 @@ function update(dt) {
         // Block firing: warmup, enemy entrance, boss warning/entrance, mini-boss entrance, countdown
         const enemiesEntering = !inWarmup && (
             startCountdownActive ||
+            shipEntryActive ||
             (G.HarmonicConductor && G.HarmonicConductor.areEnemiesEntering()) ||
             bossWarningTimer > 0 ||
             (boss && boss.isEntering) ||
             (miniBoss && miniBoss.isEntering)
         );
-        // Freeze HYPER timer during non-combat states (warmup, boss warning, countdown)
-        player.hyperFrozen = gameState !== 'PLAY' || bossWarningTimer > 0 || startCountdownActive;
+        // Freeze HYPER timer during non-combat states (warmup, boss warning, countdown, entry)
+        player.hyperFrozen = gameState !== 'PLAY' || bossWarningTimer > 0 || startCountdownActive || shipEntryActive;
         const newBullets = player.update(dt, inWarmup || enemiesEntering);
+        // Cinematic ship entry: override position after player.update so input can't fight it
+        if (shipEntryActive) {
+            const raw = 1 - Math.max(0, shipEntryTimer / SHIP_ENTRY_DURATION);
+            const eased = 1 - Math.pow(1 - raw, 3);
+            const fromY = gameHeight + 80;
+            const toY = (player.gameHeight || gameHeight) - Balance.PLAYER.RESET_Y_OFFSET;
+            player.x = gameWidth / 2;
+            player.y = fromY + (toY - fromY) * eased;
+        }
         if (!inWarmup && newBullets && newBullets.length > 0) {
             bullets.push(...newBullets);
             createMuzzleFlashParticles(player.x, player.y - 25, player.stats.color, {

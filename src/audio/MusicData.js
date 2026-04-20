@@ -395,6 +395,52 @@ window.Game = window.Game || {};
         },
 
         // =====================================================================
+        // INTERMISSION — "Reflection" (Am9 → Fmaj9 → Cmaj9 → G6, 68 BPM)
+        // Contemplative ambient for story screens. Drumless, melody-less.
+        // Only bass + pad + soft arp at any intensity (arp gated internally).
+        // =====================================================================
+        INTERMISSION: {
+            name: 'Reflection',
+            key: 'Am',
+            bpm: 68,
+            sections: {
+                // Am9 (i): A C E G B
+                A: {
+                    bass: bassBar(N.A2, N.E3),
+                    arp: harpBar([N.A3, N.C4, N.E4, N.G4, N.B4, N.E5], 0.22),
+                    melody: melodyBar(null, null),
+                    drums: null,
+                    pad: padOf([N.C4, N.E4, N.G4, N.B4], 0.11, 'sine')
+                },
+                // Fmaj9 (VI): F A C E G
+                B: {
+                    bass: bassBar(N.F2, N.C3),
+                    arp: harpBar([N.F3, N.A3, N.C4, N.E4, N.G4, N.C5], 0.22),
+                    melody: melodyBar(null, null),
+                    drums: null,
+                    pad: padOf([N.A3, N.C4, N.E4, N.G4], 0.11, 'sine')
+                },
+                // Cmaj9 (III): C E G B D — bittersweet lift
+                C: {
+                    bass: bassBar(N.C3, N.G2),
+                    arp: harpBar([N.C4, N.E4, N.G4, N.B4, N.D5, N.G5], 0.22),
+                    melody: melodyBar(null, null),
+                    drums: null,
+                    pad: padOf([N.E4, N.G4, N.B4, N.D5], 0.11, 'sine')
+                },
+                // G6 (VII): G B D E — pulls back to Am
+                D: {
+                    bass: bassBar(N.G2, N.D3),
+                    arp: harpBar([N.G3, N.B3, N.D4, N.E4, N.G4, N.D5], 0.22),
+                    melody: melodyBar(null, null),
+                    drums: null,
+                    pad: padOf([N.B3, N.D4, N.E4, N.G4], 0.11, 'sine')
+                }
+            },
+            structure: ['A','B','C','D','A','B','C','D']
+        },
+
+        // =====================================================================
         // BEAR MARKET MODIFIER — applied live on top of any song
         // =====================================================================
         BEAR_MARKET: {

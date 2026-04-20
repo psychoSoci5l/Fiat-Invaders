@@ -39,6 +39,10 @@ class AudioSystem {
         // Level-based music themes (1-5, loops after)
         this.currentLevel = 1;
 
+        // Intermission mode: overrides currentLevel with INTERMISSION track
+        this.intermissionActive = false;
+        this._intermissionPrevIntensity = 30;
+
         // v4.34: Music system v2 — section/structure tracking
         this.sectionBeat = 0;
         this.structureIndex = 0;
@@ -257,6 +261,46 @@ class AudioSystem {
             this.currentLevel = newLevel;
             this.structureIndex = 0;
             this.sectionBeat = 0;
+        }
+    }
+
+    // Swap music to INTERMISSION theme (story screens). Crossfades like setLevel.
+    // Clamps intensity to 25 so only bass+pad+arp play (no drums, no melody).
+    setIntermissionMode(on, instant = false) {
+        const target = !!on;
+        if (target === this.intermissionActive) return;
+
+        const doSwap = () => {
+            this.intermissionActive = target;
+            this.structureIndex = 0;
+            this.sectionBeat = 0;
+            this._stopPad();
+            if (target) {
+                this._intermissionPrevIntensity = this.intensity;
+                this.intensity = 25;
+            } else {
+                this.intensity = this._intermissionPrevIntensity || 30;
+            }
+        };
+
+        if (instant || !this.ctx || this.ctx.state !== 'running') {
+            doSwap();
+            return;
+        }
+
+        const fadeTime = 0.8;
+        const t = this.ctx.currentTime;
+        const gainNode = this.musicGain || this.masterGain;
+
+        if (gainNode) {
+            const currentVol = gainNode.gain.value;
+            gainNode.gain.setValueAtTime(currentVol, t);
+            gainNode.gain.linearRampToValueAtTime(0.05, t + fadeTime);
+            setTimeout(doSwap, fadeTime * 500);
+            gainNode.gain.setValueAtTime(0.05, t + fadeTime);
+            gainNode.gain.linearRampToValueAtTime(currentVol, t + fadeTime * 2);
+        } else {
+            doSwap();
         }
     }
 
@@ -1614,6 +1658,11 @@ class AudioSystem {
     getCurrentSong() {
         const MD = window.Game.MusicData;
         if (!MD) return null;
+
+        // Intermission override wins (story screens)
+        if (this.intermissionActive && MD.INTERMISSION) {
+            return MD.INTERMISSION;
+        }
 
         // Boss phase overrides level song
         if (this.bossPhase > 0) {

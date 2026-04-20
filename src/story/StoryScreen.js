@@ -3,13 +3,11 @@
  *
  * Canvas-based story screens with:
  * - Fade in/out transitions
- * - Typewriter text effect
- * - Per-paragraph fade-in animation
- * - Gradient background with vignette
- * - Animated star background with glow
- * - Keyword highlighting (gold/amber)
- * - Tap/click to continue
- * - Multi-paragraph support
+ * - Cinematic bottom-to-top auto-scroll (Star Wars-style crawl, no tilt)
+ * - Edge fade masks for premium cinema feel
+ * - Keyword highlighting (violet/magenta)
+ * - Tap to speed up (3x), tap again at rest to continue
+ * - Multi-paragraph support with last-paragraph italic + glow
  */
 (function() {
     'use strict';
@@ -17,23 +15,24 @@
     const G = window.Game = window.Game || {};
 
     const CONFIG = {
-        TYPEWRITER_SPEED: 35,
         FADE_DURATION: 0.8,
-        PARAGRAPH_DELAY: 0.5,
-        PARA_FADE_SPEED: 2.0,
+        SCROLL_SPEED: 38,            // px/s
+        SCROLL_SPEED_FAST: 114,      // 3x on tap
+        REST_RATIO: 0.60,            // last line settles at ~60% height
+        EDGE_FADE_PX: 80,            // top/bottom cinematic fade
         STAR_COUNT: 80,
         HINT_BLINK_SPEED: 1.5,
         FONT_SIZE_PERIOD: 18,
         FONT_SIZE_TITLE: 26,
-        FONT_SIZE_TEXT: 15,
+        FONT_SIZE_TEXT: 17,
         FONT_SIZE_HINT: 12,
-        LINE_HEIGHT: 1.5,
-        PARAGRAPH_GAP: 0.5,
+        LINE_HEIGHT: 1.55,
+        PARAGRAPH_GAP: 0.7,
         MAX_WIDTH_RATIO: 0.88,
         PADDING_TOP: 55,
         COLOR_PERIOD: '#bb44ff',
         COLOR_TITLE: '#FFFFFF',
-        COLOR_TEXT: '#CCCCCC',
+        COLOR_TEXT: '#F5F5F5',
         COLOR_HINT: '#888888',
         COLOR_HIGHLIGHT: '#bb44ff',
         COLOR_HIGHLIGHT_NUM: '#cc66ff',
@@ -42,10 +41,17 @@
         BG_GRADIENT_BOTTOM: '#030308',
         VIGNETTE_STRENGTH: 0.35,
         STAR_GLOW_ALPHA: 0.12,
-        SEPARATOR_WIDTH: 60
+        SEPARATOR_WIDTH: 60,
+        FONT_PERIOD: "bold 18px monospace",
+        FONT_TITLE: "bold 26px monospace",
+        FONT_BODY: "17px 'Inter', 'Helvetica Neue', system-ui, -apple-system, sans-serif",
+        FONT_BODY_LAST: "italic 17px 'Inter', 'Helvetica Neue', system-ui, -apple-system, sans-serif",
+        FONT_HINT: "12px monospace",
+        GLOW_LAST_COLOR: '#bb44ff',
+        GLOW_LAST_BLUR: 4
     };
 
-    // Keywords highlighted in gold (case-insensitive, word-boundary)
+    // Keywords highlighted in violet (case-insensitive, word-boundary)
     const HIGHLIGHT_KEYWORDS = [
         'bitcoin', 'fiat', 'satoshi nakamoto', 'nixon',
         'peer-to-peer', 'honest money', 'denaro onesto',
@@ -64,18 +70,16 @@
 
     let fadeAlpha = 0;
     let fadeDir = 0;
-    let typewriterIndex = 0;
-    let currentParagraphIndex = 0;
-    let displayedText = [];
-    let currentTypingText = '';
-    let typewriterTimer = 0;
-    let readyForInput = false;
     let hintBlinkTimer = 0;
     let exitRequested = false;
+    let readyForInput = false;
 
-    // Per-paragraph fade
-    let paraAlphas = [];
-    let typingParaAlpha = 0;
+    // Scroll state
+    let scrollY = 0;              // current offset applied to layout lines (decreases over time)
+    let scrollRestY = 0;          // target offset where scrolling halts
+    let scrollSpeed = CONFIG.SCROLL_SPEED;
+    let layoutLines = null;       // pre-measured array of renderable lines
+    let layoutBuiltForWidth = 0;  // invalidate layout on resize
 
     let stars = [];
     let canvasWidth = 0;
@@ -114,7 +118,6 @@
         const ranges = [];
         const lowerLine = line.toLowerCase();
 
-        // Keyword matches
         for (const kw of HIGHLIGHT_KEYWORDS) {
             let idx = lowerLine.indexOf(kw);
             while (idx !== -1) {
@@ -127,14 +130,12 @@
             }
         }
 
-        // Percentages (e.g. 3000%)
         const pctRe = /\d[\d,.]*%/g;
         let m;
         while ((m = pctRe.exec(line)) !== null) {
             ranges.push({ start: m.index, end: m.index + m[0].length, color: CONFIG.COLOR_HIGHLIGHT_NUM });
         }
 
-        // Years (1900-2099)
         const yearRe = /\b(19|20)\d{2}\b/g;
         while ((m = yearRe.exec(line)) !== null) {
             ranges.push({ start: m.index, end: m.index + m[0].length, color: CONFIG.COLOR_HIGHLIGHT_NUM });
@@ -144,7 +145,6 @@
             return [{ text: line, color: CONFIG.COLOR_TEXT }];
         }
 
-        // Sort and build non-overlapping segments
         ranges.sort((a, b) => a.start - b.start);
         const segments = [];
         let pos = 0;
@@ -201,6 +201,91 @@
         }
     }
 
+    // --- Layout builder (pre-measures all lines once) ---
+
+    function buildLayout(ctx, width) {
+        const lines = [];
+        const maxWidth = width * CONFIG.MAX_WIDTH_RATIO;
+        let relY = 0;
+
+        // Period
+        const period = currentStory.period || '';
+        const periodSuffix = getLocalizedText(currentStory.periodSuffix);
+        const periodText = periodSuffix ? period + periodSuffix : period;
+        if (periodText) {
+            lines.push({
+                kind: 'period',
+                text: periodText,
+                font: CONFIG.FONT_PERIOD,
+                color: CONFIG.COLOR_PERIOD,
+                relY: relY
+            });
+            relY += CONFIG.FONT_SIZE_PERIOD * 1.8;
+        }
+
+        // Title
+        const title = getLocalizedText(currentStory.title);
+        if (title) {
+            lines.push({
+                kind: 'title',
+                text: title,
+                font: CONFIG.FONT_TITLE,
+                color: CONFIG.COLOR_TITLE,
+                relY: relY
+            });
+            relY += CONFIG.FONT_SIZE_TITLE * 1.3;
+
+            // Separator
+            lines.push({
+                kind: 'separator',
+                relY: relY
+            });
+            relY += CONFIG.FONT_SIZE_TITLE * 0.5;
+        }
+
+        // Paragraphs
+        const paragraphs = getParagraphs();
+        const totalParas = paragraphs.length;
+        const bodyLineHeight = CONFIG.FONT_SIZE_TEXT * CONFIG.LINE_HEIGHT;
+
+        for (let i = 0; i < totalParas; i++) {
+            const isLast = (i === totalParas - 1);
+            const font = isLast ? CONFIG.FONT_BODY_LAST : CONFIG.FONT_BODY;
+            ctx.font = font;
+            const wrapped = getWrappedLines(ctx, paragraphs[i], maxWidth);
+
+            for (const wl of wrapped) {
+                const segs = getHighlightSegments(wl);
+                if (isLast) {
+                    for (const s of segs) {
+                        if (s.color === CONFIG.COLOR_TEXT) s.color = '#FFFFFF';
+                    }
+                }
+                lines.push({
+                    kind: 'body',
+                    font: font,
+                    segments: segs,
+                    relY: relY,
+                    isLast: isLast
+                });
+                relY += bodyLineHeight;
+            }
+
+            relY += bodyLineHeight * CONFIG.PARAGRAPH_GAP;
+        }
+
+        layoutLines = lines;
+        layoutBuiltForWidth = width;
+
+        // Start with entire block below the screen bottom.
+        // Scroll by decreasing scrollY so the text rises.
+        scrollY = canvasHeight;
+
+        // Resting: last line's absolute y sits at REST_RATIO * height.
+        const lastRelY = lines.length ? lines[lines.length - 1].relY : 0;
+        scrollRestY = canvasHeight * CONFIG.REST_RATIO - lastRelY;
+    }
+
     // --- Public API ---
 
     function show(storyId, onComplete) {
@@ -218,16 +303,15 @@
 
         fadeAlpha = 0;
         fadeDir = 1;
-        typewriterIndex = 0;
-        currentParagraphIndex = 0;
-        displayedText = [];
-        currentTypingText = '';
-        typewriterTimer = 0;
-        readyForInput = false;
         hintBlinkTimer = 0;
         exitRequested = false;
-        paraAlphas = [];
-        typingParaAlpha = 0;
+        readyForInput = false;
+
+        scrollY = canvasHeight;
+        scrollRestY = 0;
+        scrollSpeed = CONFIG.SCROLL_SPEED;
+        layoutLines = null;
+        layoutBuiltForWidth = 0;
 
         if (G.StoryBackgrounds && G.StoryBackgrounds.isEnabled()) {
             G.StoryBackgrounds.init(storyId, canvasWidth, canvasHeight);
@@ -262,16 +346,12 @@
     function handleTap() {
         if (!isActive || fadeDir !== 0) return;
 
-        if (!readyForInput) {
-            const paragraphs = getParagraphs();
-            if (currentParagraphIndex < paragraphs.length) {
-                currentTypingText = paragraphs[currentParagraphIndex];
-                typewriterIndex = currentTypingText.length;
-            }
+        if (readyForInput) {
+            hide();
             return;
         }
 
-        hide();
+        scrollSpeed = CONFIG.SCROLL_SPEED_FAST;
     }
 
     function update(dt) {
@@ -295,45 +375,12 @@
             }
         }
 
-        if (fadeDir !== 0) return;
-
-        // Typewriter
-        const paragraphs = getParagraphs();
-        if (currentParagraphIndex < paragraphs.length) {
-            // Fade in current paragraph
-            if (typingParaAlpha < 1) {
-                typingParaAlpha = Math.min(1, typingParaAlpha + dt * CONFIG.PARA_FADE_SPEED);
-            }
-
-            typewriterTimer += dt * 1000;
-
-            while (typewriterTimer >= CONFIG.TYPEWRITER_SPEED &&
-                   typewriterIndex < paragraphs[currentParagraphIndex].length) {
-                typewriterTimer -= CONFIG.TYPEWRITER_SPEED;
-                typewriterIndex++;
-                currentTypingText = paragraphs[currentParagraphIndex].substring(0, typewriterIndex);
-            }
-
-            if (typewriterIndex >= paragraphs[currentParagraphIndex].length) {
-                displayedText.push(paragraphs[currentParagraphIndex]);
-                paraAlphas.push(typingParaAlpha);
-                currentParagraphIndex++;
-                typewriterIndex = 0;
-                currentTypingText = '';
-                typingParaAlpha = 0;
-
-                if (currentParagraphIndex < paragraphs.length) {
-                    typewriterTimer = -CONFIG.PARAGRAPH_DELAY * 1000;
-                }
-            }
-        } else {
-            readyForInput = true;
-        }
-
-        // Animate completed paragraph alphas
-        for (let i = 0; i < paraAlphas.length; i++) {
-            if (paraAlphas[i] < 1) {
-                paraAlphas[i] = Math.min(1, paraAlphas[i] + dt * CONFIG.PARA_FADE_SPEED);
+        // Scroll (runs during fade-in too for smooth entry)
+        if (layoutLines && !readyForInput) {
+            scrollY -= scrollSpeed * dt;
+            if (scrollY <= scrollRestY) {
+                scrollY = scrollRestY;
+                readyForInput = true;
             }
         }
 
@@ -359,6 +406,11 @@
         canvasWidth = width;
         canvasHeight = height;
         const CU = G.ColorUtils;
+
+        // Lazy layout (needs ctx for measureText)
+        if (!layoutLines || layoutBuiltForWidth !== width) {
+            buildLayout(ctx, width);
+        }
 
         ctx.save();
 
@@ -407,100 +459,77 @@
             }
         }
 
-        // --- Text ---
-        const maxWidth = width * CONFIG.MAX_WIDTH_RATIO;
+        // --- Text crawl ---
         const centerX = width / 2;
         const safeTop = (window.safeAreaInsets && window.safeAreaInsets.top) || 0;
-        let y = CONFIG.PADDING_TOP + safeTop;
+        const topPadding = CONFIG.PADDING_TOP + safeTop;
+        const bodyLineHeight = CONFIG.FONT_SIZE_TEXT * CONFIG.LINE_HEIGHT;
 
-        // Period (year)
-        const period = currentStory.period || '';
-        const periodSuffix = getLocalizedText(currentStory.periodSuffix);
-        const periodText = periodSuffix ? period + periodSuffix : period;
+        ctx.textBaseline = 'alphabetic';
 
-        if (periodText) {
-            ctx.font = 'bold ' + CONFIG.FONT_SIZE_PERIOD + 'px monospace';
-            ctx.fillStyle = CONFIG.COLOR_PERIOD;
-            ctx.textAlign = 'center';
-            ctx.fillText(periodText, centerX, y);
-            y += CONFIG.FONT_SIZE_PERIOD * 1.8;
-        }
+        for (let i = 0; i < layoutLines.length; i++) {
+            const line = layoutLines[i];
+            const y = line.relY + scrollY + topPadding;
 
-        // Title
-        const title = getLocalizedText(currentStory.title);
-        if (title) {
-            ctx.font = 'bold ' + CONFIG.FONT_SIZE_TITLE + 'px monospace';
-            ctx.fillStyle = CONFIG.COLOR_TITLE;
-            ctx.textAlign = 'center';
-            ctx.fillText(title, centerX, y, maxWidth);
-            y += CONFIG.FONT_SIZE_TITLE * 1.3;
+            // Off-screen cull
+            if (y < -bodyLineHeight || y > height + bodyLineHeight) continue;
 
-            // Subtle gold separator
-            ctx.save();
-            ctx.globalAlpha = fadeAlpha * 0.35;
-            ctx.strokeStyle = CONFIG.COLOR_PERIOD;
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(centerX - CONFIG.SEPARATOR_WIDTH, y);
-            ctx.lineTo(centerX + CONFIG.SEPARATOR_WIDTH, y);
-            ctx.stroke();
-            ctx.restore();
-            ctx.globalAlpha = fadeAlpha;
-
-            y += CONFIG.FONT_SIZE_TITLE * 0.5;
-        }
-
-        // Completed paragraphs
-        const totalParas = getParagraphs().length;
-        const lineHeight = CONFIG.FONT_SIZE_TEXT * CONFIG.LINE_HEIGHT;
-
-        for (let i = 0; i < displayedText.length; i++) {
-            const pAlpha = paraAlphas[i] !== undefined ? paraAlphas[i] : 1;
-            ctx.globalAlpha = fadeAlpha * pAlpha;
-
-            // Last paragraph: italic + brighter
-            const isLast = (i === totalParas - 1);
-            ctx.font = (isLast ? 'italic ' : '') + CONFIG.FONT_SIZE_TEXT + 'px monospace';
-
-            const lines = getWrappedLines(ctx, displayedText[i], maxWidth);
-            for (const line of lines) {
-                const segs = getHighlightSegments(line);
-                if (isLast) {
-                    for (const s of segs) {
-                        if (s.color === CONFIG.COLOR_TEXT) s.color = '#FFFFFF';
-                    }
+            if (line.kind === 'period') {
+                ctx.font = line.font;
+                ctx.fillStyle = line.color;
+                ctx.textAlign = 'center';
+                ctx.fillText(line.text, centerX, y);
+            } else if (line.kind === 'title') {
+                ctx.font = line.font;
+                ctx.fillStyle = line.color;
+                ctx.textAlign = 'center';
+                ctx.fillText(line.text, centerX, y, width * CONFIG.MAX_WIDTH_RATIO);
+            } else if (line.kind === 'separator') {
+                ctx.save();
+                ctx.globalAlpha = fadeAlpha * 0.35;
+                ctx.strokeStyle = CONFIG.COLOR_PERIOD;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(centerX - CONFIG.SEPARATOR_WIDTH, y);
+                ctx.lineTo(centerX + CONFIG.SEPARATOR_WIDTH, y);
+                ctx.stroke();
+                ctx.restore();
+            } else if (line.kind === 'body') {
+                ctx.font = line.font;
+                if (line.isLast) {
+                    ctx.save();
+                    ctx.shadowColor = CONFIG.GLOW_LAST_COLOR;
+                    ctx.shadowBlur = CONFIG.GLOW_LAST_BLUR;
+                    drawSegmentedLine(ctx, line.segments, centerX, y);
+                    ctx.restore();
+                } else {
+                    drawSegmentedLine(ctx, line.segments, centerX, y);
                 }
-                drawSegmentedLine(ctx, segs, centerX, y);
-                y += lineHeight;
-            }
-            y += lineHeight * CONFIG.PARAGRAPH_GAP;
-        }
-
-        // Currently typing paragraph
-        if (currentTypingText) {
-            ctx.globalAlpha = fadeAlpha * typingParaAlpha;
-
-            const isLastTyping = (currentParagraphIndex === totalParas - 1);
-            ctx.font = (isLastTyping ? 'italic ' : '') + CONFIG.FONT_SIZE_TEXT + 'px monospace';
-
-            const lines = getWrappedLines(ctx, currentTypingText + '_', maxWidth);
-            for (const line of lines) {
-                const segs = getHighlightSegments(line);
-                if (isLastTyping) {
-                    for (const s of segs) {
-                        if (s.color === CONFIG.COLOR_TEXT) s.color = '#FFFFFF';
-                    }
-                }
-                drawSegmentedLine(ctx, segs, centerX, y);
-                y += lineHeight;
             }
         }
 
-        // Hint
+        // --- Edge fade masks (cinematic top/bottom dissolve) ---
+        const fadePx = CONFIG.EDGE_FADE_PX;
+        const bgTop = CONFIG.BG_GRADIENT_TOP;
+        const bgBot = CONFIG.BG_GRADIENT_BOTTOM;
+
+        const topGrad = ctx.createLinearGradient(0, 0, 0, fadePx);
+        topGrad.addColorStop(0, bgTop);
+        topGrad.addColorStop(1, 'rgba(13,13,31,0)');
+        ctx.fillStyle = topGrad;
+        ctx.fillRect(0, 0, width, fadePx);
+
+        const botGrad = ctx.createLinearGradient(0, height - fadePx, 0, height);
+        botGrad.addColorStop(0, 'rgba(3,3,8,0)');
+        botGrad.addColorStop(1, bgBot);
+        ctx.fillStyle = botGrad;
+        ctx.fillRect(0, height - fadePx, width, fadePx);
+
+        // --- Hint ---
         if (readyForInput) {
             const hintAlpha = 0.5 + 0.5 * Math.sin(hintBlinkTimer);
             ctx.globalAlpha = fadeAlpha * hintAlpha;
-            ctx.font = CONFIG.FONT_SIZE_HINT + 'px monospace';
+            ctx.font = CONFIG.FONT_HINT;
             ctx.fillStyle = CONFIG.COLOR_HINT;
             ctx.textAlign = 'center';
 
@@ -517,12 +546,14 @@
 
     function setLanguage(lang) {
         currentLang = lang;
+        layoutLines = null; // force rebuild with new locale
     }
 
     function setDimensions(width, height) {
         canvasWidth = width;
         canvasHeight = height;
         if (isActive) {
+            layoutLines = null; // rebuild layout at next draw
             if (G.StoryBackgrounds && G.StoryBackgrounds.isEnabled()) {
                 G.StoryBackgrounds.resize(width, height);
             } else {

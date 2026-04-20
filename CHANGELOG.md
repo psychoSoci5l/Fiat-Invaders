@@ -1,5 +1,36 @@
 # Changelog
 
+## v7.11.0 — Premium story crawl + intermission music + cinematic ship entry - 2026-04-21
+
+### feat(story): le intermission narrative diventano cinematiche
+
+Le 3 schermate narrative (PROLOGUE + 3 capitoli) sono il cuore educativo del gioco, ma la presentazione precedente le sabotava: testo sbiadito (`#CCCCCC` su alpha progressiva), effetto typewriter lettera-per-lettera con cursor `_`, font `monospace 15px` — look "terminale retrò" economico che contraddiceva il tono premium richiesto. Questa release riprogetta la resa senza toccare i testi (che sono già corretti).
+
+- **feat(storyscreen)**: typewriter completamente sostituito da **crawl cinematografico bottom→top**. Il blocco testo (period + titolo + separator + paragrafi) viene misurato e disposto una volta in `buildLayout()`, poi scorre verticalmente a `SCROLL_SPEED: 38 px/s` (3× su tap). Lo scroll si ferma quando l'ultimo paragrafo raggiunge `REST_RATIO: 0.60` dell'altezza → hint `[ TOCCA PER CONTINUARE ]` blinka.
+- **feat(storyscreen)**: tipografia riprogettata. Body font switcha da `monospace 15px #CCCCCC` a `17px 'Inter', 'Helvetica Neue', system-ui, sans-serif` con color `#F5F5F5` full-opacity. Title/period monospace mantenuti (brand). Paragrafo finale in italic + `shadowBlur: 4 #bb44ff` per enfasi emotiva.
+- **feat(storyscreen)**: **edge fade masks** — due gradienti lineari da `BG_GRADIENT_TOP/BOTTOM` a trasparente (80px top + 80px bottom) dissolvono le righe che entrano/escono dal campo visivo. Look cinematografico "above/below the fold" senza spigoli visibili.
+- **feat(storyscreen)**: keyword highlight logic invariata (`Bitcoin`, `Nixon`, `3000%`, anni 19xx/20xx) — resta il motore educativo. `StoryBackgrounds` (monete dorate cadenti, hex rain, network pulse, lightning) invariati, continuano ad animare sotto il crawl.
+- **kept**: API pubblica `show/hide/handleTap/update/draw` invariata, `showStoryScreen()` in main.js non tocca. Fade in/out schermata (0.8s) invariato. Layout rebuild automatico su resize/language switch.
+
+### feat(audio): musica dedicata per le intermission
+
+Durante le story screen suonava la stessa soundtrack del livello in corso — stridente contro il tono riflessivo del testo. La v7.10.1 ha introdotto una grammatica musicale reattiva, ora sfruttata per dare all'intermission la sua identità sonora.
+
+- **feat(musicdata)**: nuovo brano **"Reflection"** (A minor, 68 BPM) in `G.MusicData.INTERMISSION`. Progressione Am9 → Fmaj9 → Cmaj9 → G6 — loop contemplativo con sesta minore (il G6 su tonalità minore crea il bittersweet pull). **Drumless** (tutti i `drums: null`), **melody-less** (tutti `melodyBar(null,null)`) → solo bass + pad + arp soffuso. Struttura 8-bar `['A','B','C','D','A','B','C','D']`.
+- **feat(audiosystem)**: nuovo metodo `setIntermissionMode(on, instant)`. Crossfade 0.8s (stesso pattern di `setLevel()`), reset `structureIndex`/`sectionBeat`/`_stopPad()`, salva e ripristina l'intensity corrente (durante intermission clampa a 25 → solo bass+pad+arp suonano, sopra soglia drums/melody 65/50).
+- **feat(audiosystem)**: `getCurrentSong()` ora priorizza `INTERMISSION` se `intermissionActive`, poi `BOSS[phase]` se bossPhase>0, poi `SONGS[currentLevel]`. Override pulito, nessun impatto sui path normali.
+- **feat(main)**: `showStoryScreen()` chiama `setIntermissionMode(true)` all'apertura, `(false)` nella callback prima di `onComplete` — ogni apertura/chiusura di story triggera crossfade audio coerente.
+
+### feat(gameplay): entrata cinematografica della navicella + 3-2-1
+
+Il gameplay partiva "a freddo": ship istantaneamente in posizione, countdown 3-2-1 già esistente ma senza contesto visivo. Mancava l'anticipazione teatrale che una schermata narrativa reclama prima del combat.
+
+- **feat(main)**: nuova fase **ship entry** prima del countdown classico. `SHIP_ENTRY_DURATION = 1.1s`, nuove globali `shipEntryActive/shipEntryTimer`. `_startPlayCountdown()` riscritta: posiziona la ship a `gameHeight + 80` (sotto schermo), attiva `shipEntryActive`, NON avvia il 3-2-1.
+- **feat(main)**: game loop lerp la ship con **ease-out cubic** da sotto schermo alla posizione di combattimento (`gameHeight - RESET_Y_OFFSET`), override `player.x/y` DOPO `player.update()` per impedire a flight dynamics/input di disturbare. Quando `shipEntryTimer <= 0` → fine entry → parte il 3-2-1 classico.
+- **feat(main)**: gate estesi — `waveAction`, `enemiesEntering`, `player.hyperFrozen` considerano `shipEntryActive || startCountdownActive`. Spawn/fire/HYPER tutti bloccati durante l'entry.
+- **feat(main)**: `advanceToNextV8Level()` ora chiama `_startPlayCountdown()` invece di `setGameState('PLAY')` — ogni livello post-intermission parte cinematografico (ship-in + 3-2-1), non solo il primo.
+- **kept**: `_startPlayCountdown()` resta il singolo chokepoint per l'avvio gameplay — 4 call site (startGame, retry, endWarmup, advanceToNextV8Level) triggerano tutti la stessa sequenza cinematica.
+
 ## v7.10.1 — Reactive music: phase ramp + HYPER/GODCHAIN + music-ON default - 2026-04-21
 
 ### feat(audio): la musica diventa parte del gioco
