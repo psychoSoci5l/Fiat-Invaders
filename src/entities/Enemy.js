@@ -95,6 +95,28 @@ class Enemy extends window.Game.Entity {
         this._colorLight40 = CU.lighten(this.color, 0.4);
         this._colorLight50 = CU.lighten(this.color, 0.5);
         this._colorBright = CU.lighten(this.color, 0.25); // v4.56: neon outline color
+
+        // v7.9 Agents of the System — tier derivation from scoreVal (authoritative via typeConf)
+        this._tier = this.scoreVal < 35 ? 'WEAK' : (this.scoreVal < 70 ? 'MEDIUM' : 'STRONG');
+        // Per-enemy walk offset so walk cycles desync across the swarm
+        this._walkOffset = Math.random() * 1000;
+
+        // v7.9.5 Gravity Gate — random Y target for hover-stop + flip upright.
+        // State machine: 'IDLE' → 'DWELL' (vy=0, upright) → 'LEAVING' (vy=EXIT_VY, flipped back).
+        // v7.9.5b: only HOVER_CHANCE fraction of enemies hover-stop; rest descend through as before.
+        const hg = window.Game.Balance?.HOVER_GATE;
+        if (hg) {
+            const gh = window.Game._gameHeight || 800;
+            this._hoverY = gh * (hg.Y_MIN + Math.random() * (hg.Y_MAX - hg.Y_MIN));
+            this._hoverEnabled = Math.random() < (hg.HOVER_CHANCE ?? 1.0);
+        } else {
+            this._hoverY = 9999; // Never trigger if config missing
+            this._hoverEnabled = false;
+        }
+        this._hoverState = 'IDLE';      // IDLE | DWELL | LEAVING
+        this._hoverTimer = 0;           // DWELL countdown
+        this._uprightFlip = false;      // Render flag consumed by drawAgent + _drawChestMark
+        this._fireSuppressed = false;   // v7.9.5b: true during DWELL grace window — skipped by HarmonicConductor
     }
 
     // Note: attemptFire() removed in v2.13.0 - all firing now handled by HarmonicConductor
@@ -133,7 +155,8 @@ class Enemy extends window.Game.Entity {
             w: size.w,
             h: size.h,
             shape: this.shape,  // Pass enemy shape for visual differentiation
-            ownerColor: this.color  // v4.56: Tint bullet core with enemy color
+            ownerColor: this.color,  // v4.56: Tint bullet core with enemy color
+            symbol: this.symbol  // v7.9.5: Currency glyph — bullet renders as this symbol
         };
     }
 
@@ -199,15 +222,57 @@ class Enemy extends window.Game.Entity {
             const gh = window.Game._gameHeight || 800;
             const pat = this.entryPattern || 'DIVE';
 
+            // v7.9.5 Gravity Gate — active for DIVE/SINE/SWOOP (not HOVER, which has its own dwell).
+            // When enemy crosses its hover Y, enter DWELL: flip upright + halt vy, dwell timer begins.
+            // After timer expires, enter LEAVING: flip back + vy = EXIT_VY (negative, upward).
+            // v7.9.5b: HOVER_CHANCE gate + DWELL_FIRE_GRACE (no-fire window at DWELL start).
+            const hgCfg = window.Game.Balance?.HOVER_GATE;
+            const hoverGateActive = hgCfg?.ENABLED && pat !== 'HOVER' && this._hoverEnabled;
+            if (hoverGateActive) {
+                if (this._hoverState === 'IDLE' && this.y >= this._hoverY) {
+                    this._hoverState = 'DWELL';
+                    this._hoverTimer = hgCfg.DWELL_DURATION;
+                    this._uprightFlip = true;
+                    this.vy = 0;
+                    // Start fire grace — enemy "settles" for a moment before opening fire
+                    const grace = hgCfg.DWELL_FIRE_GRACE ?? 0;
+                    if (grace > 0) {
+                        this._fireSuppressed = true;
+                        this._fireGraceTimer = grace;
+                    }
+                } else if (this._hoverState === 'DWELL') {
+                    this._hoverTimer -= dt;
+                    if (this._fireSuppressed) {
+                        this._fireGraceTimer -= dt;
+                        if (this._fireGraceTimer <= 0) this._fireSuppressed = false;
+                    }
+                    if (this._hoverTimer <= 0) {
+                        this._hoverState = 'LEAVING';
+                        this._uprightFlip = false;
+                        this._fireSuppressed = false;
+                        this.vy = hgCfg.EXIT_VY;
+                    }
+                }
+            }
+
+            if (this._hoverState === 'DWELL') {
+                // Hold position — no x/y movement. Keep vy=0 so fire budget still works.
+                return;
+            }
+
             if (!cfg || !cfg.ENABLED || pat === 'DIVE') {
                 const accel = (cfg && cfg.DIVE && cfg.DIVE.ACCEL) || 0;
-                this.vy += accel * dt;
+                // v7.9.5: suppress accel during LEAVING so exit speed stays constant upward
+                if (this._hoverState !== 'LEAVING') this.vy += accel * dt;
                 this.y += this.vy * dt;
             } else if (pat === 'SINE') {
                 this._v8PatTimer = (this._v8PatTimer || 0) + dt;
                 this.y += this.vy * dt;
                 const baseX = (this._v8SpawnX !== undefined) ? this._v8SpawnX : this.x;
-                this.x = baseX + Math.sin(this._v8PatTimer * cfg.SINE.FREQ) * cfg.SINE.AMPLITUDE;
+                // v7.9.5: freeze sine X oscillation during LEAVING (straight-line exit)
+                if (this._hoverState !== 'LEAVING') {
+                    this.x = baseX + Math.sin(this._v8PatTimer * cfg.SINE.FREQ) * cfg.SINE.AMPLITUDE;
+                }
                 // clamp inside screen margins
                 const margin = 20;
                 if (this.x < margin) this.x = margin;
@@ -233,9 +298,12 @@ class Enemy extends window.Game.Entity {
             } else if (pat === 'SWOOP') {
                 this._v8PatTimer = (this._v8PatTimer || 0) + dt;
                 this.y += this.vy * dt;
-                const baseX = (this._v8SpawnX !== undefined) ? this._v8SpawnX : this.x;
-                const dir = (this._v8SwoopDir !== undefined) ? this._v8SwoopDir : 1;
-                this.x = baseX + dir * Math.sin(this._v8PatTimer * cfg.SWOOP.CURVE_FREQ) * cfg.SWOOP.CURVE_AMP;
+                // v7.9.5: freeze SWOOP X oscillation during LEAVING (straight-line exit)
+                if (this._hoverState !== 'LEAVING') {
+                    const baseX = (this._v8SpawnX !== undefined) ? this._v8SpawnX : this.x;
+                    const dir = (this._v8SwoopDir !== undefined) ? this._v8SwoopDir : 1;
+                    this.x = baseX + dir * Math.sin(this._v8PatTimer * cfg.SWOOP.CURVE_FREQ) * cfg.SWOOP.CURVE_AMP;
+                }
                 const m = cfg.SWOOP.SIDE_MARGIN || 30;
                 if (this.x < m) this.x = m;
                 else if (this.x > gw - m) this.x = gw - m;
@@ -644,19 +712,11 @@ class Enemy extends window.Game.Entity {
         ctx.strokeStyle = this._colorBright;
         ctx.lineWidth = this._outlineWidth;
 
-        // Draw based on shape type
+        // v7.9 Agents of the System — regional humanoid instead of shape + glyph
         if (this.isMinion) {
             this.drawMinion(ctx, x, y);
-        } else if (this.shape === 'coin') {
-            this.drawCoin(ctx, x, y);
-        } else if (this.shape === 'bill') {
-            this.drawBill(ctx, x, y);
-        } else if (this.shape === 'bar') {
-            this.drawBar(ctx, x, y);
-        } else if (this.shape === 'card') {
-            this.drawCard(ctx, x, y);
         } else {
-            this.drawCoin(ctx, x, y); // fallback
+            this.drawAgent(ctx, x, y);
         }
 
         // v4.58: Draw fracture lines on damaged enemies
@@ -872,240 +932,1023 @@ class Enemy extends window.Game.Entity {
         ctx.fill();
     }
 
-    drawCoin(ctx, x, y) {
-        const r = 23;
+    // ================================================================
+    // v7.9 AGENTS OF THE SYSTEM — procedural humanoid enemies
+    // ================================================================
+    // Each enemy is a person in service of the FIAT regime. Regional
+    // family (USA/EU/ASIA) determines archetype; tier modulates scale
+    // and accessories. Currency symbol = chest mark (brand, not label).
+    // All sub-draws use coordinates local to the enemy center.
+    //
+    //   drawAgent        — dispatch by Game.CURRENCY_REGION[symbol]
+    //   _drawOligarch    — USA: top hat + dark suit + tie (+ cigar STRONG)
+    //   _drawBureaucrat  — EU:  bowler + briefcase + monocle
+    //   _drawRonin       — ASIA: kabuto + menpo + mechanical armor
+    //   _drawChestMark   — currency symbol as emblem (tie/monocle/mon)
+    //
+    // Bounding: approx ±24 per axis at base scale. Hitbox unchanged.
+    // ================================================================
 
-        // v4.56: Dark body fill
-        ctx.fillStyle = this._bodyFill;
-        ctx.beginPath();
-        ctx.arc(x, y, r, 0, Math.PI * 2);
-        ctx.fill();
+    drawAgent(ctx, x, y) {
+        const agentCfg = window.Game.Balance?.ENEMY_AGENT;
+        // Kill-switch — if disabled, fall back to minion silhouette so the game still renders
+        if (agentCfg && agentCfg.ENABLED === false) {
+            this.drawMinion(ctx, x, y);
+            return;
+        }
+        const region = (window.Game.CURRENCY_REGION || {})[this.symbol] || 'USA';
+        const tier = this._tier || 'MEDIUM';
+        const tierScales = agentCfg?.TIER_SCALE;
+        const scale = tierScales?.[tier] ?? (tier === 'WEAK' ? 0.90 : (tier === 'STRONG' ? 1.12 : 1.0));
 
-        // Inner ring (darker center)
-        ctx.fillStyle = this._colorDark50;
-        ctx.beginPath();
-        ctx.arc(x, y, r * 0.65, 0, Math.PI * 2);
-        ctx.fill();
+        const now = performance.now();
+        // Thruster flicker 80ms (replaces walk cycle — pilots no longer walk, vehicles fly)
+        const thrusterPhase = (Math.floor((now + this._walkOffset) / 80)) & 1;
+        // Pilot hover bob (subtle breathing motion inside cockpit)
+        const bobY = Math.sin((now + this._walkOffset) * 0.004) * 0.8;
 
-        // Neon outline
-        ctx.strokeStyle = this._colorBright;
-        ctx.lineWidth = this._outlineWidth;
-        ctx.beginPath();
-        ctx.arc(x, y, r, 0, Math.PI * 2);
-        ctx.stroke();
+        ctx.save();
+        ctx.translate(x, y);
+        if (scale !== 1) ctx.scale(scale, scale);
+        // FLIP Y — enemies descend head-first from space, thrusters on top push them toward player.
+        // v7.9.5: when _uprightFlip is true (hover-gate DWELL), skip the flip → agent stands upright
+        // with thrusters BELOW, suspending them against gravity.
+        if (!this._uprightFlip) ctx.scale(1, -1);
 
-        // Inner ring neon stroke
-        ctx.strokeStyle = this._colorDark30;
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.arc(x, y, r * 0.65, 0, Math.PI * 2);
-        ctx.stroke();
-
-        // Rim highlight (top arc, lighter)
-        ctx.strokeStyle = this._colorLight50;
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.arc(x, y, r - 2, -Math.PI * 0.6, Math.PI * 0.1);
-        ctx.stroke();
-
-        // Edge notches
-        ctx.strokeStyle = this._colorBright;
-        ctx.lineWidth = 1.5;
-        for (let i = 0; i < 6; i++) {
-            const angle = (Math.PI * 2 / 6) * i;
-            const x1 = x + Math.cos(angle) * (r - 3);
-            const y1 = y + Math.sin(angle) * (r - 3);
-            const x2 = x + Math.cos(angle) * r;
-            const y2 = y + Math.sin(angle) * r;
-            ctx.beginPath();
-            ctx.moveTo(x1, y1);
-            ctx.lineTo(x2, y2);
-            ctx.stroke();
+        // Vehicle draws first (behind pilot bust)
+        if (region === 'EU') {
+            this._drawVehicleEU(ctx, tier, thrusterPhase);
+        } else if (region === 'ASIA') {
+            this._drawVehicleASIA(ctx, tier, thrusterPhase);
+        } else {
+            this._drawVehicleUSA(ctx, tier, thrusterPhase);
         }
 
-        // Symbol with neon glow + black outline for legibility against red fill
-        ctx.shadowColor = this.color;
-        ctx.shadowBlur = 6;
-        ctx.font = 'bold 22px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = '#000';
-        ctx.strokeText(this.symbol, x, y);
-        ctx.fillStyle = '#fff';
-        ctx.fillText(this.symbol, x, y);
-        ctx.shadowBlur = 0;
+        // Pilot bust (with subtle hover bob)
+        ctx.save();
+        ctx.translate(0, bobY);
+        if (region === 'EU') {
+            this._drawBureaucrat(ctx, tier);
+        } else if (region === 'ASIA') {
+            this._drawRonin(ctx, tier);
+        } else {
+            this._drawOligarch(ctx, tier);
+        }
+        this._drawChestMark(ctx, region, tier);
+        ctx.restore();
+
+        ctx.restore();
     }
 
-    drawBill(ctx, x, y) {
-        const w = 44, h = 25;
+    // ---------- USA: Oligarch (pilot bust) ----------
+    // Base tycoon silhouette — hat + accessory dispatched via CURRENCY_VARIANT (v7.9.4).
+    _drawOligarch(ctx, tier) {
+        const variant = this._variant();
+        const pal = this._paletteFor(variant.palette, 'USA');
+        const shirt     = '#d9d0b8';
+        const tieCol    = pal.tie       || '#8f1e1e';
+        const tieDark   = pal.tieDark   || '#5a1010';
+        const skin      = '#b8876a';
+        const skinShade = '#8a5a3f';
+        const outline   = '#050505';
 
-        // v4.56: Dark body fill
-        ctx.fillStyle = this._bodyFill;
-        ctx.fillRect(x - w/2, y - h/2, w, h);
-
-        // Neon outline
-        ctx.strokeStyle = this._colorBright;
-        ctx.lineWidth = this._outlineWidth;
-        ctx.strokeRect(x - w/2, y - h/2, w, h);
-
-        // Inner border (neon subtle)
-        ctx.strokeStyle = this._colorDark30;
-        ctx.lineWidth = 1;
-        ctx.strokeRect(x - w/2 + 4, y - h/2 + 4, w - 8, h - 8);
-
-        // Circuit-like decorative lines (top & bottom)
-        ctx.strokeStyle = this._colorBright;
-        ctx.lineWidth = 1;
-        ctx.globalAlpha = 0.5;
+        // Torso (jacket — bust cropped at cockpit line y=+6)
+        ctx.fillStyle = pal.suit;
+        ctx.strokeStyle = outline;
+        ctx.lineWidth = 1.2;
         ctx.beginPath();
-        ctx.moveTo(x - w/2 + 3, y - h/2 + 3);
-        ctx.lineTo(x - w/2 + 12, y - h/2 + 3);
-        ctx.moveTo(x + w/2 - 12, y - h/2 + 3);
-        ctx.lineTo(x + w/2 - 3, y - h/2 + 3);
-        ctx.moveTo(x - w/2 + 3, y + h/2 - 3);
-        ctx.lineTo(x - w/2 + 12, y + h/2 - 3);
-        ctx.moveTo(x + w/2 - 12, y + h/2 - 3);
-        ctx.lineTo(x + w/2 - 3, y + h/2 - 3);
-        ctx.stroke();
+        ctx.moveTo(-12, 0); ctx.lineTo(12, 0);
+        ctx.lineTo(10, 7); ctx.lineTo(-10, 7);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+
+        // Lapels
+        ctx.fillStyle = pal.suitDark;
+        ctx.beginPath();
+        ctx.moveTo(-12, 0); ctx.lineTo(-3, 0); ctx.lineTo(-5, 6); ctx.closePath();
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(12, 0); ctx.lineTo(3, 0); ctx.lineTo(5, 6); ctx.closePath();
+        ctx.fill();
+
+        // Shirt V
+        ctx.fillStyle = shirt;
+        ctx.beginPath();
+        ctx.moveTo(-3, 0); ctx.lineTo(3, 0); ctx.lineTo(0, 6);
+        ctx.closePath(); ctx.fill();
+
+        // Tie
+        ctx.fillStyle = tieCol;
+        ctx.strokeStyle = tieDark;
+        ctx.lineWidth = 0.6;
+        ctx.beginPath();
+        ctx.moveTo(-2, 0); ctx.lineTo(2, 0);
+        ctx.lineTo(2.4, 6); ctx.lineTo(-2.4, 6);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+
+        // Neck
+        ctx.fillStyle = skinShade;
+        ctx.fillRect(-3, -3, 6, 4);
+
+        // Head
+        ctx.fillStyle = skin;
+        ctx.strokeStyle = outline;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.ellipse(0, -9, 7.5, 8, 0, 0, Math.PI * 2);
+        ctx.fill(); ctx.stroke();
+
+        // Jaw shadow
+        ctx.globalAlpha = 0.3;
+        ctx.fillStyle = skinShade;
+        ctx.beginPath();
+        ctx.ellipse(0, -5, 6, 2.2, 0, 0, Math.PI * 2);
+        ctx.fill();
         ctx.globalAlpha = 1;
 
-        // Rim highlight (top edge)
-        ctx.strokeStyle = this._colorLight50;
-        ctx.lineWidth = 1.5;
+        // Eyes — cold dots
+        ctx.fillStyle = outline;
         ctx.beginPath();
-        ctx.moveTo(x - w/2 + 3, y - h/2);
-        ctx.lineTo(x + w/2 - 3, y - h/2);
+        ctx.arc(-2.8, -9, 1.1, 0, Math.PI * 2);
+        ctx.arc( 2.8, -9, 1.1, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Mouth — flat line
+        ctx.strokeStyle = outline;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(-2.2, -5); ctx.lineTo(2.2, -5);
         ctx.stroke();
 
-        // Symbol with neon glow
-        ctx.shadowColor = this.color;
-        ctx.shadowBlur = 6;
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 17px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(this.symbol, x, y);
-        ctx.shadowBlur = 0;
+        // Accessory (cigar / kerchief / cane / monocle) — STRONG always, MEDIUM gets non-cigar, WEAK bare
+        if (tier === 'STRONG' || (tier === 'MEDIUM' && variant.acc !== 'cigar')) {
+            this._drawAccessory(ctx, variant.acc, pal);
+        }
+
+        // Hat dispatch
+        this._drawHat(ctx, variant.hat, pal);
     }
 
-    drawBar(ctx, x, y) {
-        // v4.56: Dark body fill (trapezoid)
-        ctx.fillStyle = this._bodyFill;
+    // ---------- EU: Bureaucrat (pilot bust) ----------
+    // Base office-worker silhouette — hat + accessory dispatched via CURRENCY_VARIANT (v7.9.4).
+    _drawBureaucrat(ctx, tier) {
+        const variant = this._variant();
+        const pal = this._paletteFor(variant.palette, 'EU');
+        const shirt     = '#d9d0b8';
+        const tieCol    = pal.tie     || '#1f3a5f';
+        const skin      = '#c0a080';
+        const skinShade = '#8a6848';
+        const outline   = '#050505';
+        const pinCol    = '#c9a227';
+
+        // Narrower torso (bust cropped at cockpit y=+6)
+        ctx.fillStyle = pal.suit;
+        ctx.strokeStyle = outline;
+        ctx.lineWidth = 1.2;
         ctx.beginPath();
-        ctx.moveTo(x - 24, y + 12);
-        ctx.lineTo(x - 17, y - 12);
-        ctx.lineTo(x + 17, y - 12);
-        ctx.lineTo(x + 24, y + 12);
-        ctx.closePath();
+        ctx.moveTo(-9, -1); ctx.lineTo(9, -1);
+        ctx.lineTo(7, 6); ctx.lineTo(-7, 6);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+
+        // Shirt strip
+        ctx.fillStyle = shirt;
+        ctx.fillRect(-3, -1, 6, 6);
+
+        // Thin tie
+        ctx.fillStyle = tieCol;
+        ctx.strokeStyle = pal.suitDark;
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(-1.5, -1); ctx.lineTo(1.5, -1);
+        ctx.lineTo(1.7, 6); ctx.lineTo(-1.7, 6);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+
+        // Lapel pin
+        ctx.fillStyle = pinCol;
+        ctx.beginPath();
+        ctx.arc(-4.5, 2, 1.2, 0, Math.PI * 2);
         ctx.fill();
 
-        // Neon outline
-        ctx.strokeStyle = this._colorBright;
-        ctx.lineWidth = this._outlineWidth;
-        ctx.stroke();
+        // Neck
+        ctx.fillStyle = skinShade;
+        ctx.fillRect(-2.5, -3, 5, 3);
 
-        // Top face (lighter neon tint)
-        ctx.fillStyle = this._colorDark30;
+        // Head
+        ctx.fillStyle = skin;
+        ctx.strokeStyle = outline;
+        ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(x - 17, y - 12);
-        ctx.lineTo(x - 12, y - 18);
-        ctx.lineTo(x + 12, y - 18);
-        ctx.lineTo(x + 17, y - 12);
-        ctx.closePath();
+        ctx.ellipse(0, -9, 7, 7.5, 0, 0, Math.PI * 2);
+        ctx.fill(); ctx.stroke();
+
+        // Eyes (right one smaller — monocle space for £/€)
+        ctx.fillStyle = outline;
+        ctx.beginPath();
+        ctx.arc(-2.6, -9, 1.0, 0, Math.PI * 2);
+        ctx.arc( 2.6, -9, 0.8, 0, Math.PI * 2);
         ctx.fill();
-        ctx.strokeStyle = this._colorBright;
-        ctx.lineWidth = 2;
+
+        // Moustache
+        ctx.fillRect(-2.5, -6, 5, 1);
+
+        // Mouth — pressed line
+        ctx.strokeStyle = outline;
+        ctx.lineWidth = 0.9;
+        ctx.beginPath();
+        ctx.moveTo(-1.8, -4); ctx.lineTo(1.8, -4);
         ctx.stroke();
 
-        // Shine line (neon color instead of white)
-        ctx.strokeStyle = this._colorLight50;
-        ctx.lineWidth = 2;
+        // Accessory — STRONG always, MEDIUM always (EU is more "proper" — always carries something)
+        if (tier !== 'WEAK') {
+            this._drawAccessory(ctx, variant.acc, pal);
+        }
+
+        // Hat dispatch
+        this._drawHat(ctx, variant.hat, pal);
+    }
+
+    // ---------- ASIA: Ronin (pilot bust, mechanical samurai) ----------
+    // Base kabuto + armor — helmet + accessory dispatched via CURRENCY_VARIANT (v7.9.4).
+    _drawRonin(ctx, tier) {
+        const variant = this._variant();
+        const pal = this._paletteFor(variant.palette, 'ASIA');
+        const armor     = pal.suit;
+        const armorDark = pal.suitDark;
+        const armorEdge = pal.trim || '#c9a227';
+        const jointCol  = '#a52234';
+        const jointDark = '#5a1218';
+        const skin      = '#b8906e';
+        const outline   = '#050505';
+
+        // Armor plate torso (cropped at y=+7)
+        ctx.fillStyle = armor;
+        ctx.strokeStyle = outline;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(-12, -1); ctx.lineTo(12, -1);
+        ctx.lineTo(13, 3); ctx.lineTo(11, 7);
+        ctx.lineTo(-11, 7); ctx.lineTo(-13, 3);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+
+        // Gold trim top edge
+        ctx.strokeStyle = armorEdge;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(-12, -1); ctx.lineTo(12, -1);
+        ctx.stroke();
+
+        // Central seam
+        ctx.strokeStyle = armorDark;
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.moveTo(0, 0); ctx.lineTo(0, 7);
+        ctx.stroke();
+
+        // Shoulder pauldrons
+        ctx.fillStyle = armorDark;
+        ctx.strokeStyle = outline;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(-15, -1); ctx.lineTo(-10, -3);
+        ctx.lineTo(-9, 3); ctx.lineTo(-14, 4);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(15, -1); ctx.lineTo(10, -3);
+        ctx.lineTo(9, 3); ctx.lineTo(14, 4);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+
+        // Red lacquer joint dots
+        ctx.fillStyle = jointCol;
+        ctx.strokeStyle = jointDark;
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.arc(-14, 1, 1.6, 0, Math.PI * 2);
+        ctx.arc( 14, 1, 1.6, 0, Math.PI * 2);
+        ctx.fill(); ctx.stroke();
+
+        // Neck
+        ctx.fillStyle = skin;
+        ctx.fillRect(-2.5, -3, 5, 3);
+
+        // Head
+        ctx.fillStyle = skin;
+        ctx.strokeStyle = outline;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.ellipse(0, -9, 6.5, 7, 0, 0, Math.PI * 2);
+        ctx.fill(); ctx.stroke();
+
+        // Menpo (face guard)
+        ctx.fillStyle = armorDark;
+        ctx.strokeStyle = outline;
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.moveTo(-6, -7); ctx.lineTo(6, -7);
+        ctx.lineTo(5, -2); ctx.lineTo(-5, -2);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.strokeStyle = armorEdge;
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(-5, -4.5); ctx.lineTo(5, -4.5);
+        ctx.stroke();
+
+        // Red glowing eye slits (only visible bit of face)
+        ctx.fillStyle = jointCol;
+        ctx.fillRect(-4, -10, 2.5, 1.2);
+        ctx.fillRect(1.5, -10, 2.5, 1.2);
+
+        // Accessory — STRONG always, MEDIUM sometimes (saber/tanto/fan/scroll visible in hand-space)
+        if (tier !== 'WEAK') {
+            this._drawAccessory(ctx, variant.acc, pal);
+        }
+
+        // Hat (kabuto) dispatch
+        this._drawHat(ctx, variant.hat, pal, tier);
+    }
+
+    // ================================================================
+    // v7.9.4 — PRIMITIVE VOCABULARY
+    // Hat / accessory / palette primitives consumed by pilot archetypes.
+    // All coords relative to head at (0,-9), torso at (0,0..+6). Flip Y applied globally.
+    // ================================================================
+
+    _variant() {
+        return (window.Game.CURRENCY_VARIANT || {})[this.symbol] || { hat: 'tophat', acc: 'cigar', palette: 'forest' };
+    }
+
+    // Palette lookup: returns { suit, suitDark, tie?, tieDark?, trim? } for a named palette.
+    // Region param used as fallback if palette name unknown.
+    _paletteFor(name, region) {
+        const palettes = {
+            // USA
+            forest:     { suit: '#1a3d2a', suitDark: '#0a1a10', tie: '#8f1e1e', tieDark: '#5a1010' },
+            burgundy:   { suit: '#5a1a22', suitDark: '#2d0a11', tie: '#2a2f3a', tieDark: '#11141a' },
+            tan:        { suit: '#7a5a3a', suitDark: '#3a2a18', tie: '#1f2a3a', tieDark: '#0e1420' },
+            steelblue:  { suit: '#2a3a5a', suitDark: '#121a2e', tie: '#5a2a2a', tieDark: '#2a1010' },
+            // EU
+            charcoal:   { suit: '#3e4350', suitDark: '#252932', tie: '#1f3a5f' },
+            navy:       { suit: '#1e2a52', suitDark: '#0a1024', tie: '#8f1e1e' },
+            wine:       { suit: '#4a1a2e', suitDark: '#220a18', tie: '#c9a227' },
+            olive:      { suit: '#4a4a22', suitDark: '#22220a', tie: '#c9a227' },
+            // ASIA
+            nightBlack: { suit: '#1a1a24', suitDark: '#0a0a10', trim: '#c9a227' },
+            deepRed:    { suit: '#3a1218', suitDark: '#180609', trim: '#c9a227' },
+            saffron:    { suit: '#a55a1a', suitDark: '#4a2508', trim: '#f2e7b8' },
+            imperial:   { suit: '#2a1a4a', suitDark: '#120a22', trim: '#c9a227' }
+        };
+        const fallback = region === 'USA'  ? palettes.forest
+                       : region === 'EU'   ? palettes.charcoal
+                       : region === 'ASIA' ? palettes.nightBlack
+                       : palettes.forest;
+        return palettes[name] || fallback;
+    }
+
+    // ------- HAT PRIMITIVES -------
+    // All hats sit on top of the head (centered at 0, -9). Coloring uses pal + this.color accent band.
+    _drawHat(ctx, name, pal, tier) {
+        const outline = '#050505';
+        const band = this.color;
+        const black = '#0a0a0a';
+        switch (name) {
+            case 'tophat': {
+                // Tall cylinder with colored band (USA $)
+                ctx.fillStyle = black; ctx.strokeStyle = outline; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.ellipse(0, -16, 11.5, 2.2, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+                ctx.fillRect(-6.5, -24, 13, 9); ctx.strokeRect(-6.5, -24, 13, 9);
+                ctx.fillStyle = band; ctx.fillRect(-6.5, -18, 13, 1.8);
+                ctx.strokeStyle = outline; ctx.lineWidth = 0.4; ctx.strokeRect(-6.5, -18, 13, 1.8);
+                break;
+            }
+            case 'stetson': {
+                // Cowboy hat — curled brim + high crown (C$)
+                ctx.fillStyle = '#4a2a12'; ctx.strokeStyle = outline; ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(-13, -15); ctx.quadraticCurveTo(-11, -17, -7, -17);
+                ctx.lineTo(7, -17); ctx.quadraticCurveTo(11, -17, 13, -15);
+                ctx.quadraticCurveTo(10, -14, 0, -14); ctx.quadraticCurveTo(-10, -14, -13, -15);
+                ctx.closePath(); ctx.fill(); ctx.stroke();
+                // Crown
+                ctx.beginPath();
+                ctx.moveTo(-6, -17); ctx.lineTo(-5, -23); ctx.quadraticCurveTo(0, -25, 5, -23);
+                ctx.lineTo(6, -17); ctx.closePath(); ctx.fill(); ctx.stroke();
+                // Band
+                ctx.fillStyle = band; ctx.fillRect(-5.5, -18, 11, 1.4);
+                break;
+            }
+            case 'cowboy': {
+                // Wider flat brim Ⓒ (cad stand-in) — lighter tone
+                ctx.fillStyle = '#6a4a22'; ctx.strokeStyle = outline; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.ellipse(0, -15.5, 13.5, 1.8, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(-5, -17); ctx.lineTo(-4, -22); ctx.quadraticCurveTo(0, -24, 4, -22);
+                ctx.lineTo(5, -17); ctx.closePath(); ctx.fill(); ctx.stroke();
+                ctx.fillStyle = band; ctx.fillRect(-4.5, -18, 9, 1.2);
+                break;
+            }
+            case 'ushanka': {
+                // Russian fur hat ₽ — flaps + star on front
+                ctx.fillStyle = '#3a2820'; ctx.strokeStyle = outline; ctx.lineWidth = 1;
+                // Main dome
+                ctx.beginPath(); ctx.ellipse(0, -16, 9, 6, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+                // Side flaps
+                ctx.beginPath();
+                ctx.moveTo(-9, -15); ctx.lineTo(-11, -12); ctx.lineTo(-8, -11);
+                ctx.moveTo( 9, -15); ctx.lineTo( 11, -12); ctx.lineTo( 8, -11);
+                ctx.fill(); ctx.stroke();
+                // Fur texture (lighter tufts)
+                ctx.fillStyle = '#6a5040';
+                for (let i = -7; i <= 7; i += 3) {
+                    ctx.beginPath(); ctx.arc(i, -20, 1.4, 0, Math.PI * 2); ctx.fill();
+                }
+                // Red star emblem
+                ctx.fillStyle = band;
+                ctx.beginPath();
+                ctx.arc(0, -16, 1.8, 0, Math.PI * 2);
+                ctx.fill();
+                break;
+            }
+            case 'bowler': {
+                // EU bowler hat (€ default)
+                ctx.fillStyle = black; ctx.strokeStyle = outline; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.ellipse(0, -15.5, 9.5, 1.8, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+                ctx.beginPath(); ctx.arc(0, -16, 6.8, Math.PI, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
+                ctx.fillStyle = band; ctx.fillRect(-6.5, -16.5, 13, 1.4);
+                break;
+            }
+            case 'topBrit': {
+                // British top hat £ — shorter + more rounded than tophat
+                ctx.fillStyle = black; ctx.strokeStyle = outline; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.ellipse(0, -15.5, 10.5, 2, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+                ctx.fillRect(-5.5, -22, 11, 7); ctx.strokeRect(-5.5, -22, 11, 7);
+                ctx.fillStyle = band; ctx.fillRect(-5.5, -17.5, 11, 1.6);
+                break;
+            }
+            case 'beret': {
+                // French beret ₣ — round slanted disk with stem
+                ctx.fillStyle = pal.suit === '#4a1a2e' ? '#7a2a3e' : '#3a1a22';
+                ctx.strokeStyle = outline; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.ellipse(0, -15.5, 9, 2.5, -0.15, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+                // Slanted top bulk
+                ctx.beginPath();
+                ctx.moveTo(-8, -15.5); ctx.quadraticCurveTo(-5, -19, 4, -20);
+                ctx.quadraticCurveTo(8, -19, 8, -15.5);
+                ctx.closePath(); ctx.fill(); ctx.stroke();
+                // Stem nub
+                ctx.fillStyle = band;
+                ctx.beginPath(); ctx.arc(4.5, -20, 0.9, 0, Math.PI * 2); ctx.fill();
+                break;
+            }
+            case 'fez': {
+                // Turkish fez ₺ — red truncated cone with tassel
+                ctx.fillStyle = '#a52234'; ctx.strokeStyle = outline; ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(-6, -15); ctx.lineTo(-5, -23); ctx.lineTo(5, -23); ctx.lineTo(6, -15);
+                ctx.closePath(); ctx.fill(); ctx.stroke();
+                // Top disc
+                ctx.beginPath(); ctx.ellipse(0, -23, 5, 1.2, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+                // Tassel
+                ctx.strokeStyle = band; ctx.lineWidth = 1.4; ctx.lineCap = 'round';
+                ctx.beginPath(); ctx.moveTo(3, -23); ctx.lineTo(6, -19); ctx.stroke();
+                ctx.lineCap = 'butt';
+                break;
+            }
+            case 'kabutoStd': {
+                // Standard kabuto ¥ — helmet + horns (was original ASIA default)
+                this._kabutoBase(ctx, pal, band, outline, false);
+                if (tier === 'STRONG') this._kabutoCrest(ctx, pal, outline);
+                break;
+            }
+            case 'kabutoWide': {
+                // Wider kabuto ₩ — flatter brim, stout horns
+                this._kabutoBase(ctx, pal, band, outline, true);
+                if (tier === 'STRONG') this._kabutoCrest(ctx, pal, outline);
+                break;
+            }
+            case 'kabutoDragon': {
+                // Dragon crest kabuto 元 — always gets crest (chinese imperial vibe)
+                this._kabutoBase(ctx, pal, band, outline, false);
+                // Dragon scales (3 bumps on crown)
+                ctx.fillStyle = pal.trim || '#c9a227'; ctx.strokeStyle = outline; ctx.lineWidth = 0.4;
+                for (const dx of [-3, 0, 3]) {
+                    ctx.beginPath(); ctx.arc(dx, -22, 1, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+                }
+                break;
+            }
+            case 'turban': {
+                // Indian turban ₹ — wrapped layers + central gem
+                ctx.fillStyle = pal.suit || '#a55a1a'; ctx.strokeStyle = outline; ctx.lineWidth = 1;
+                // Base wrap
+                ctx.beginPath(); ctx.ellipse(0, -15, 9, 3, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+                // Mid wrap
+                ctx.beginPath(); ctx.ellipse(0, -18, 8.5, 3, 0.2, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+                // Top wrap
+                ctx.beginPath(); ctx.ellipse(0, -21, 7, 2.5, -0.15, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+                // Central gem (red)
+                ctx.fillStyle = '#a52234'; ctx.strokeStyle = pal.trim || '#f2e7b8'; ctx.lineWidth = 0.6;
+                ctx.beginPath(); ctx.arc(0, -18, 1.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+                // Accent feather
+                ctx.strokeStyle = band; ctx.lineWidth = 1.4; ctx.lineCap = 'round';
+                ctx.beginPath(); ctx.moveTo(0, -21); ctx.quadraticCurveTo(4, -26, 6, -28); ctx.stroke();
+                ctx.lineCap = 'butt';
+                break;
+            }
+            default: {
+                // Fallback tophat
+                this._drawHat(ctx, 'tophat', pal, tier);
+            }
+        }
+    }
+
+    _kabutoBase(ctx, pal, band, outline, wide) {
+        const w = wide ? 11 : 9;
+        const brimW = wide ? 20 : 18;
+        const brimX = wide ? -10 : -9;
+        // Helmet body
+        ctx.fillStyle = pal.suit; ctx.strokeStyle = outline; ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(-w, -12); ctx.lineTo(-w + 1, -18);
+        ctx.lineTo(0, -21); ctx.lineTo(w - 1, -18); ctx.lineTo(w, -12);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+        // Gold brim
+        ctx.fillStyle = pal.trim || '#c9a227';
+        ctx.fillRect(brimX, -13, brimW, 1.5);
+        ctx.strokeStyle = outline; ctx.lineWidth = 0.4;
+        ctx.strokeRect(brimX, -13, brimW, 1.5);
+        // Horns (kuwagata, accent-tinted)
+        ctx.strokeStyle = band; ctx.lineWidth = 2.6; ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(-6, -18); ctx.quadraticCurveTo(-12, -22, -9, -27);
+        ctx.moveTo( 6, -18); ctx.quadraticCurveTo( 12, -22,  9, -27);
+        ctx.stroke();
+        ctx.strokeStyle = outline; ctx.lineWidth = 0.7;
+        ctx.beginPath();
+        ctx.moveTo(-6, -18); ctx.quadraticCurveTo(-12, -22, -9, -27);
+        ctx.moveTo( 6, -18); ctx.quadraticCurveTo( 12, -22,  9, -27);
+        ctx.stroke();
+        ctx.lineCap = 'butt';
+    }
+
+    _kabutoCrest(ctx, pal, outline) {
+        // Gold kuwagata vertical crest (STRONG tier)
+        ctx.fillStyle = pal.trim || '#c9a227'; ctx.strokeStyle = outline; ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(0, -21); ctx.lineTo(-2, -26);
+        ctx.lineTo(0, -29); ctx.lineTo(2, -26);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+    }
+
+    // ------- ACCESSORY PRIMITIVES -------
+    // Coords relative to head+torso. Accessories occupy mouth area, shoulder, or side pocket.
+    _drawAccessory(ctx, name, pal) {
+        const outline = '#050505';
+        switch (name) {
+            case 'cigar': {
+                // Brown tube + orange ember + smoke puff
+                ctx.fillStyle = '#3d2815'; ctx.fillRect(2.2, -5.8, 7, 1.8);
+                ctx.strokeStyle = '#1a0f05'; ctx.lineWidth = 0.5; ctx.strokeRect(2.2, -5.8, 7, 1.8);
+                ctx.fillStyle = '#ff7a2e';
+                ctx.beginPath(); ctx.arc(9.5, -4.9, 1.2, 0, Math.PI * 2); ctx.fill();
+                ctx.globalAlpha = 0.22; ctx.fillStyle = '#cccccc';
+                ctx.beginPath(); ctx.arc(11, -7.5, 2, 0, Math.PI * 2); ctx.fill();
+                ctx.globalAlpha = 1;
+                break;
+            }
+            case 'kerchief': {
+                // Red bandana around neck (Canadian cowboy)
+                ctx.fillStyle = '#a52234'; ctx.strokeStyle = '#5a1218'; ctx.lineWidth = 0.5;
+                ctx.beginPath();
+                ctx.moveTo(-5, -2); ctx.lineTo(5, -2);
+                ctx.lineTo(6, 1); ctx.lineTo(0, 3); ctx.lineTo(-6, 1);
+                ctx.closePath(); ctx.fill(); ctx.stroke();
+                // Knot dot
+                ctx.fillStyle = '#7a1520';
+                ctx.beginPath(); ctx.arc(0, 0, 0.9, 0, Math.PI * 2); ctx.fill();
+                break;
+            }
+            case 'cane': {
+                // Diagonal dark cane with gold knob (in corner of frame)
+                ctx.strokeStyle = '#3a2a18'; ctx.lineWidth = 1.6; ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.moveTo(10, -2); ctx.lineTo(14, 6);
+                ctx.stroke();
+                // Gold knob
+                ctx.fillStyle = '#c9a227';
+                ctx.beginPath(); ctx.arc(10, -2, 1.5, 0, Math.PI * 2); ctx.fill();
+                ctx.lineCap = 'butt';
+                break;
+            }
+            case 'monocle': {
+                // Gold ring over right eye + short chain (also used by Oligarch ₽)
+                ctx.strokeStyle = '#c9a227'; ctx.lineWidth = 0.9;
+                ctx.beginPath(); ctx.arc(2.8, -9, 2.4, 0, Math.PI * 2); ctx.stroke();
+                ctx.lineWidth = 0.4;
+                ctx.beginPath();
+                ctx.moveTo(5.2, -8.5); ctx.quadraticCurveTo(6.5, -4, 4, -1); ctx.stroke();
+                break;
+            }
+            case 'pipe': {
+                // Brown pipe in mouth + small smoke curl
+                ctx.fillStyle = '#3a2010'; ctx.strokeStyle = outline; ctx.lineWidth = 0.5;
+                // Bowl
+                ctx.beginPath();
+                ctx.moveTo(4, -5); ctx.lineTo(4, -7.5); ctx.lineTo(7, -7.5); ctx.lineTo(7.5, -4.5);
+                ctx.closePath(); ctx.fill(); ctx.stroke();
+                // Stem
+                ctx.fillRect(1.5, -5.4, 3, 1.2);
+                // Smoke
+                ctx.globalAlpha = 0.25; ctx.fillStyle = '#bbbbbb';
+                ctx.beginPath(); ctx.arc(6, -10, 1.8, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(8, -12, 1.2, 0, Math.PI * 2); ctx.fill();
+                ctx.globalAlpha = 1;
+                break;
+            }
+            case 'newspaper': {
+                // Folded paper under arm (rectangle with lines)
+                ctx.fillStyle = '#e8ddc0'; ctx.strokeStyle = outline; ctx.lineWidth = 0.5;
+                ctx.fillRect(-13, 2, 5, 4); ctx.strokeRect(-13, 2, 5, 4);
+                ctx.strokeStyle = '#4a4030'; ctx.lineWidth = 0.3;
+                ctx.beginPath();
+                ctx.moveTo(-12.5, 3.2); ctx.lineTo(-8.5, 3.2);
+                ctx.moveTo(-12.5, 4.2); ctx.lineTo(-8.5, 4.2);
+                ctx.moveTo(-12.5, 5.2); ctx.lineTo(-8.5, 5.2);
+                ctx.stroke();
+                break;
+            }
+            case 'baguette': {
+                // Diagonal bread loaf crossing the shoulder
+                ctx.fillStyle = '#c9954a'; ctx.strokeStyle = '#6a4a20'; ctx.lineWidth = 0.6;
+                ctx.save();
+                ctx.translate(7, -1); ctx.rotate(-0.5);
+                ctx.fillRect(-7, -1.4, 14, 2.8);
+                ctx.strokeRect(-7, -1.4, 14, 2.8);
+                // Scoring lines
+                ctx.strokeStyle = '#8a6030'; ctx.lineWidth = 0.4;
+                for (const lx of [-4, -1, 2, 5]) {
+                    ctx.beginPath(); ctx.moveTo(lx, -1); ctx.lineTo(lx + 0.8, 1); ctx.stroke();
+                }
+                ctx.restore();
+                break;
+            }
+            case 'worrybeads': {
+                // Tesbih — chain of small beads hanging from hand
+                ctx.fillStyle = '#c9a227'; ctx.strokeStyle = outline; ctx.lineWidth = 0.3;
+                for (let i = 0; i < 5; i++) {
+                    const by = 1 + i * 1.3;
+                    ctx.beginPath(); ctx.arc(11, by, 0.9, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+                }
+                // Connecting line
+                ctx.strokeStyle = '#8a6a18'; ctx.lineWidth = 0.4;
+                ctx.beginPath(); ctx.moveTo(11, 0.5); ctx.lineTo(11, 7.5); ctx.stroke();
+                break;
+            }
+            case 'tanto': {
+                // Short dagger on hip (vertical)
+                ctx.fillStyle = '#8a8a98'; ctx.strokeStyle = outline; ctx.lineWidth = 0.5;
+                ctx.beginPath();
+                ctx.moveTo(10, -3); ctx.lineTo(12, -3); ctx.lineTo(12, 3); ctx.lineTo(11, 4); ctx.lineTo(10, 3);
+                ctx.closePath(); ctx.fill(); ctx.stroke();
+                // Hilt wrap
+                ctx.fillStyle = '#1a1a24'; ctx.fillRect(9.5, -5, 3, 2);
+                // Gold tsuba
+                ctx.fillStyle = pal.trim || '#c9a227';
+                ctx.fillRect(9, -3.3, 4, 0.7);
+                break;
+            }
+            case 'fan': {
+                // War fan (gunbai) — half-disc
+                ctx.fillStyle = '#f2e7b8'; ctx.strokeStyle = outline; ctx.lineWidth = 0.6;
+                ctx.beginPath();
+                ctx.arc(12, 1, 4, Math.PI * 0.3, Math.PI * 1.3, false);
+                ctx.lineTo(11, 4);
+                ctx.closePath(); ctx.fill(); ctx.stroke();
+                // Red center emblem
+                ctx.fillStyle = '#a52234';
+                ctx.beginPath(); ctx.arc(12.5, 1, 1.2, 0, Math.PI * 2); ctx.fill();
+                // Handle
+                ctx.strokeStyle = '#3a2010'; ctx.lineWidth = 1.2;
+                ctx.beginPath(); ctx.moveTo(11, 4); ctx.lineTo(11.5, 7); ctx.stroke();
+                break;
+            }
+            case 'saber': {
+                // Curved tulwar blade across torso
+                ctx.strokeStyle = '#c0c0cc'; ctx.lineWidth = 1.6; ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.moveTo(-11, 5); ctx.quadraticCurveTo(0, -2, 12, 3);
+                ctx.stroke();
+                // Gold hilt
+                ctx.fillStyle = pal.trim || '#c9a227';
+                ctx.beginPath(); ctx.arc(-11, 5, 1.4, 0, Math.PI * 2); ctx.fill();
+                ctx.lineCap = 'butt';
+                break;
+            }
+            case 'scroll': {
+                // Rolled scroll with red seal (chinese bureaucracy 元)
+                ctx.fillStyle = '#e8ddc0'; ctx.strokeStyle = outline; ctx.lineWidth = 0.5;
+                // Roll body
+                ctx.fillRect(-13, 1, 5, 3.5);
+                ctx.strokeRect(-13, 1, 5, 3.5);
+                // End caps (gold)
+                ctx.fillStyle = pal.trim || '#c9a227';
+                ctx.fillRect(-13.5, 0.5, 0.8, 4.5);
+                ctx.fillRect(-8.2, 0.5, 0.8, 4.5);
+                // Red seal dot
+                ctx.fillStyle = '#a52234';
+                ctx.beginPath(); ctx.arc(-10.5, 2.7, 0.9, 0, Math.PI * 2); ctx.fill();
+                break;
+            }
+        }
+    }
+
+    // ---------- Chest Mark: currency symbol as emblem ----------
+    // v7.9.3: tier-scaled size + STRONG-only gold glow for instant threat recognition.
+    _drawChestMark(ctx, region, tier) {
+        const sym = this.symbol || '';
+        if (!sym) return;
+
+        const isStrong = tier === 'STRONG';
+        // Tier size multiplier: WEAK 0.85 / MEDIUM 1.0 / STRONG 1.35 (STRONG glyph dominates the chest)
+        const sizeMul = tier === 'WEAK' ? 0.85 : (isStrong ? 1.35 : 1.0);
+        // v7.9.5: counter-flip only when global Y is flipped. When upright (hover-gate DWELL),
+        // text is already oriented correctly — no counter-flip needed.
+        const cfy = this._uprightFlip ? 1 : -1;
+
+        if (region === 'EU') {
+            const ringR = 3.2 * sizeMul;
+            const fontPx = (5 * sizeMul).toFixed(2);
+            // Monocle ring
+            ctx.strokeStyle = '#c9a227';
+            ctx.lineWidth = isStrong ? 1.2 : 0.9;
+            ctx.beginPath();
+            ctx.arc(2.6, -9, ringR, 0, Math.PI * 2);
+            ctx.stroke();
+            // Chain to collar
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            ctx.moveTo(5.5, -8.5);
+            ctx.quadraticCurveTo(7, -4, 4, 0);
+            ctx.stroke();
+            // Symbol (counter-flip so glyph reads upright despite global Y-flip)
+            ctx.save();
+            ctx.translate(2.6, -9);
+            ctx.scale(1, cfy);
+            ctx.font = `bold ${fontPx}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            if (isStrong) {
+                ctx.shadowColor = '#c9a227';
+                ctx.shadowBlur = 4;
+            }
+            ctx.fillStyle = '#c9a227';
+            ctx.fillText(sym, 0, 0);
+            ctx.restore();
+            return;
+        }
+
+        if (region === 'ASIA') {
+            const discR = 3.8 * sizeMul;
+            const fontPx = (6.5 * sizeMul).toFixed(2);
+            // Mon — gold disc on breastplate
+            ctx.fillStyle = '#c9a227';
+            ctx.strokeStyle = '#050505';
+            ctx.lineWidth = isStrong ? 1.1 : 0.8;
+            ctx.beginPath();
+            ctx.arc(0, 2.5, discR, 0, Math.PI * 2);
+            ctx.fill(); ctx.stroke();
+            // STRONG: gold halo around the mon
+            if (isStrong) {
+                ctx.strokeStyle = '#c9a227';
+                ctx.globalAlpha = 0.45;
+                ctx.lineWidth = 1.2;
+                ctx.beginPath();
+                ctx.arc(0, 2.5, discR + 1.6, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+            }
+            // Counter-flip text
+            ctx.save();
+            ctx.translate(0, 2.5);
+            ctx.scale(1, cfy);
+            ctx.font = `bold ${fontPx}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#050505';
+            ctx.fillText(sym, 0, 0);
+            ctx.restore();
+            return;
+        }
+
+        // USA: pale-gold glyph stamped on the red tie
+        const fontPx = (7 * sizeMul).toFixed(2);
+        ctx.save();
+        ctx.translate(0, 3.5);
+        ctx.scale(1, cfy);
+        ctx.font = `bold ${fontPx}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.lineWidth = isStrong ? 2.2 : 1.6;
+        ctx.strokeStyle = '#050505';
+        ctx.strokeText(sym, 0, 0);
+        if (isStrong) {
+            ctx.shadowColor = '#f2e7b8';
+            ctx.shadowBlur = 5;
+        }
+        ctx.fillStyle = '#f2e7b8';
+        ctx.fillText(sym, 0, 0);
+        ctx.restore();
+    }
+
+    // ================================================================
+    // REGIONAL VEHICLES — contextualize pilots as airborne in space
+    // Each vehicle draws BEFORE the pilot bust so the pilot sits inside.
+    // thrusterPhase: 0/1 toggle from drawAgent for flame flicker.
+    // Vehicle vertical footprint: approx y ∈ [+4 .. +22]. Hitbox unchanged.
+    // ================================================================
+
+    // USA — Stealth Wedge: delta-wing silhouette + twin orange thrusters.
+    _drawVehicleUSA(ctx, tier, thrusterPhase) {
+        const hull     = '#1a1d24';
+        const hullDark = '#0a0c12';
+        const accent   = this.color;
+        const outline  = '#050505';
+
+        // Delta wing (trapezoidal, wider than pilot, wraps under torso)
+        ctx.fillStyle = hull;
+        ctx.strokeStyle = outline;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(-19, 8);
+        ctx.lineTo(19, 8);
+        ctx.lineTo(14, 20);
+        ctx.lineTo(-14, 20);
+        ctx.closePath();
+        ctx.fill(); ctx.stroke();
+
+        // Accent stripe (currency color) across the leading edge
+        ctx.fillStyle = accent;
+        ctx.globalAlpha = 0.75;
+        ctx.fillRect(-19, 7.2, 38, 1.4);
+        ctx.globalAlpha = 1;
+
+        // Cockpit frame (where pilot torso meets hull)
+        ctx.fillStyle = hullDark;
+        ctx.fillRect(-10, 6.5, 20, 2);
+
+        // Side panel lines (F-117 vibe)
+        ctx.strokeStyle = hullDark;
+        ctx.lineWidth = 0.6;
+        ctx.beginPath();
+        ctx.moveTo(-14, 12); ctx.lineTo(-6, 20);
+        ctx.moveTo( 14, 12); ctx.lineTo( 6, 20);
+        ctx.stroke();
+
+        // Twin thrusters (orange flicker)
+        const flameLen = thrusterPhase ? 6 : 4;
+        const flameAlpha = thrusterPhase ? 0.95 : 0.75;
+        // Nozzle housings
+        ctx.fillStyle = hullDark;
+        ctx.fillRect(-13, 19, 6, 3);
+        ctx.fillRect(  7, 19, 6, 3);
+        // Flames (additive-ish warm gradient via stacked rects)
+        ctx.globalAlpha = flameAlpha;
+        ctx.fillStyle = '#ff7a2e';
+        ctx.fillRect(-12, 22, 4, flameLen);
+        ctx.fillRect(  8, 22, 4, flameLen);
+        ctx.fillStyle = '#ffd24a';
+        ctx.fillRect(-11.5, 22, 3, flameLen - 2);
+        ctx.fillRect(  8.5, 22, 3, flameLen - 2);
+        ctx.globalAlpha = 1;
+    }
+
+    // EU — Diplomatic Shuttle: navy oval fuselage + portholes + tail fin + central flame.
+    _drawVehicleEU(ctx, tier, thrusterPhase) {
+        const hull     = '#1a2a52';
+        const hullDark = '#0a1428';
+        const trim     = '#c9a227';
+        const accent   = this.color;
+        const outline  = '#050505';
+
+        // Fuselage (oval)
+        ctx.fillStyle = hull;
+        ctx.strokeStyle = outline;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.ellipse(0, 13, 17, 8, 0, 0, Math.PI * 2);
+        ctx.fill(); ctx.stroke();
+
+        // Belly accent stripe (currency color)
+        ctx.fillStyle = accent;
         ctx.globalAlpha = 0.7;
-        ctx.beginPath();
-        ctx.moveTo(x - 10, y - 16);
-        ctx.lineTo(x + 10, y - 16);
-        ctx.stroke();
+        ctx.fillRect(-14, 16, 28, 1.4);
         ctx.globalAlpha = 1;
 
-        // Symbol with neon glow (white, not black)
-        ctx.shadowColor = this.color;
-        ctx.shadowBlur = 6;
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 17px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(this.symbol, x, y + 1);
-        ctx.shadowBlur = 0;
+        // Cockpit frame band
+        ctx.fillStyle = hullDark;
+        ctx.fillRect(-10, 6.5, 20, 2);
+
+        // Portholes (3 circular windows along the belly)
+        ctx.fillStyle = '#4a7cc9';
+        ctx.strokeStyle = trim;
+        ctx.lineWidth = 0.5;
+        for (const px of [-9, 0, 9]) {
+            ctx.beginPath();
+            ctx.arc(px, 13, 1.6, 0, Math.PI * 2);
+            ctx.fill(); ctx.stroke();
+        }
+
+        // Tail fin (gold, dorsal)
+        ctx.fillStyle = trim;
+        ctx.strokeStyle = outline;
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(-2, 6); ctx.lineTo(2, 6);
+        ctx.lineTo(1, 10); ctx.lineTo(-1, 10);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+
+        // Central blue-white flame
+        const flameLen = thrusterPhase ? 7 : 5;
+        const flameAlpha = thrusterPhase ? 0.95 : 0.8;
+        ctx.fillStyle = hullDark;
+        ctx.fillRect(-3, 20, 6, 2);
+        ctx.globalAlpha = flameAlpha;
+        ctx.fillStyle = '#5ab8ff';
+        ctx.fillRect(-2.5, 21.5, 5, flameLen);
+        ctx.fillStyle = '#e6f3ff';
+        ctx.fillRect(-1.5, 21.5, 3, flameLen - 2);
+        ctx.globalAlpha = 1;
     }
 
-    drawCard(ctx, x, y) {
-        const w = 40, h = 27;
+    // ASIA — Mech Quad-Drone: central cockpit + 4 red lacquer rotors in X.
+    _drawVehicleASIA(ctx, tier, thrusterPhase) {
+        const hull     = '#1a1a24';
+        const hullDark = '#0a0a10';
+        const trim     = '#c9a227';
+        const rotorCol = '#a52234';
+        const rotorDark = '#5a1218';
+        const accent   = this.color;
+        const outline  = '#050505';
 
-        // v4.56: Dark body fill (rounded rect)
-        ctx.fillStyle = this._bodyFill;
-        this.roundRect(ctx, x - w/2, y - h/2, w, h, 5);
+        // X-arm struts (behind rotors)
+        ctx.strokeStyle = hullDark;
+        ctx.lineWidth = 2.6;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(-15, 18); ctx.lineTo(-3, 9);
+        ctx.moveTo( 15, 18); ctx.lineTo( 3, 9);
+        ctx.moveTo(-15, 22); ctx.lineTo(-3, 13);
+        ctx.moveTo( 15, 22); ctx.lineTo( 3, 13);
+        ctx.stroke();
+        ctx.lineCap = 'butt';
+
+        // Central cockpit pod (circular)
+        ctx.fillStyle = hull;
+        ctx.strokeStyle = outline;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.arc(0, 13, 9, 0, Math.PI * 2);
+        ctx.fill(); ctx.stroke();
+
+        // Gold trim ring
+        ctx.strokeStyle = trim;
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.arc(0, 13, 9, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Cockpit frame where pilot torso meets pod
+        ctx.fillStyle = hullDark;
+        ctx.fillRect(-10, 6.5, 20, 2);
+
+        // Central red eye (sensor)
+        ctx.fillStyle = rotorCol;
+        ctx.beginPath();
+        ctx.arc(0, 15, 1.8, 0, Math.PI * 2);
         ctx.fill();
 
-        // Neon outline
-        ctx.strokeStyle = this._colorBright;
-        ctx.lineWidth = this._outlineWidth;
-        this.roundRect(ctx, x - w/2, y - h/2, w, h, 5);
-        ctx.stroke();
+        // 4 rotors at arm tips (red lacquer disks, motion blur via alpha toggle)
+        const rotorAlpha = thrusterPhase ? 0.55 : 0.9;
+        const rotorPositions = [[-15, 18], [15, 18], [-15, 22], [15, 22]];
+        for (const [rx, ry] of rotorPositions) {
+            // Hub
+            ctx.fillStyle = hullDark;
+            ctx.beginPath();
+            ctx.arc(rx, ry, 1.2, 0, Math.PI * 2);
+            ctx.fill();
+            // Blurred blades (ellipse, alpha flicker)
+            ctx.globalAlpha = rotorAlpha;
+            ctx.fillStyle = rotorCol;
+            ctx.beginPath();
+            ctx.ellipse(rx, ry, 4, 1.2, thrusterPhase ? 0 : Math.PI / 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = rotorDark;
+            ctx.lineWidth = 0.4;
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+        }
 
-        // Chip (gold stays)
-        ctx.fillStyle = '#ffcc00';
-        ctx.fillRect(x - w/2 + 5, y - 6, 11, 11);
-        ctx.strokeStyle = '#cc9900';
-        ctx.lineWidth = 1.5;
-        ctx.strokeRect(x - w/2 + 5, y - 6, 11, 11);
-        ctx.strokeStyle = '#ddaa00';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(x - w/2 + 7, y - 3);
-        ctx.lineTo(x - w/2 + 14, y - 3);
-        ctx.moveTo(x - w/2 + 7, y + 2);
-        ctx.lineTo(x - w/2 + 14, y + 2);
-        ctx.stroke();
-
-        // Circuit traces (replace magnetic stripe)
-        ctx.strokeStyle = this._colorBright;
-        ctx.lineWidth = 1;
-        ctx.globalAlpha = 0.4;
-        ctx.beginPath();
-        ctx.moveTo(x - w/2 + 3, y + h/2 - 5);
-        ctx.lineTo(x - w/2 + 10, y + h/2 - 5);
-        ctx.lineTo(x - w/2 + 13, y + h/2 - 3);
-        ctx.lineTo(x + w/2 - 3, y + h/2 - 3);
-        ctx.stroke();
-        ctx.globalAlpha = 1;
-
-        // Rim highlight (top edge)
-        ctx.strokeStyle = this._colorLight50;
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(x - w/2 + 6, y - h/2);
-        ctx.lineTo(x + w/2 - 6, y - h/2);
-        ctx.stroke();
-
-        // Holographic shimmer (subtle pulse)
-        const shimmer = Math.sin(Date.now() * 0.004 + x * 0.1) * 0.08 + 0.08;
-        ctx.fillStyle = this._colorBright;
-        ctx.globalAlpha = shimmer;
-        this.roundRect(ctx, x - w/2 + 2, y - h/2 + 2, w - 4, h - 4, 3);
-        ctx.fill();
-        ctx.globalAlpha = 1;
-
-        // Symbol with neon glow
-        ctx.shadowColor = this.color;
-        ctx.shadowBlur = 6;
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 14px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(this.symbol, x + 6, y - 2);
-        ctx.shadowBlur = 0;
+        // Currency accent dot on forehead of pod
+        ctx.fillStyle = accent;
+        ctx.fillRect(-1, 8.5, 2, 1.2);
     }
+
 
     drawMinion(ctx, x, y) {
         // Boss minions: slightly smaller than regular enemies

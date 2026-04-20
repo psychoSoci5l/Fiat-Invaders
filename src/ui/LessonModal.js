@@ -61,12 +61,16 @@ window.Game = window.Game || {};
         bodyEl.textContent  = t(def.i18n + '_BODY');
         okBtn.textContent   = t('LESSON_OK');
 
-        // Pause game (skip if already paused — e.g. after a boss intermission edge-case)
+        // Pause game (skip if already paused — e.g. after a boss intermission edge-case).
+        // v7.8.1 fix: main.js is loaded as <script type="module"> so top-level function
+        // declarations do NOT become window.* properties. Use G._setGameState (explicitly
+        // exposed in main.js) with window.setGameState as a defensive fallback.
+        const setState = (G && G._setGameState) || (typeof window.setGameState === 'function' ? window.setGameState : null);
         const curState = (G.GameState && G.GameState.current) || (window.gameState);
         if (curState && curState !== 'PAUSE') {
             _resumeState = curState;
             window._pausedFromState = curState;
-            if (typeof window.setGameState === 'function') window.setGameState('PAUSE');
+            if (setState) setState('PAUSE');
         } else {
             _resumeState = window._pausedFromState || 'PLAY';
         }
@@ -93,12 +97,13 @@ window.Game = window.Game || {};
             overlay.style.display = 'none';
         }
 
-        // Resume previous state
+        // Resume previous state (module-loaded main.js: use G._setGameState, not window.setGameState)
         const resumeTo = _resumeState || 'PLAY';
         _resumeState = null;
         window._pausedFromState = null;
-        if (typeof window.setGameState === 'function') {
-            try { window.setGameState(resumeTo); } catch { window.setGameState('PLAY'); }
+        const setState = (G && G._setGameState) || (typeof window.setGameState === 'function' ? window.setGameState : null);
+        if (setState) {
+            try { setState(resumeTo); } catch { setState('PLAY'); }
         }
 
         // Process queue (next tick so resume settles first)

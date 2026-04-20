@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v7.7.0 FIAT vs CRYPTO";
+window.Game.VERSION = "v7.9.5 FIAT vs CRYPTO";
 
 // Leaderboard API
 window.Game.LEADERBOARD_API = 'https://fiat-vs-crypto-leaderboard.psychosocial-01.workers.dev/api';
@@ -812,6 +812,51 @@ window.Game.FIAT_TYPES = [
     { s: '元', name: 'YUAN', c: '#ff2244', val: 90, hp: 1.4, fireMin: 1.6, fireMax: 2.5, aimSpread: 0.12, pattern: 'BURST', shape: 'bar' },
     { s: 'Ⓒ', name: 'CBDC', c: '#aa33ff', val: 100, hp: 1.5, fireMin: 1.4, fireMax: 2.2, aimSpread: 0.10, pattern: 'DOUBLE', shape: 'card' }
 ];
+
+// v7.8 Soldi Vivi — currency symbol → regional emblem lookup
+// Matches V8 level thematization: L1 USA, L2 EU, L3 Asia.
+window.Game.CURRENCY_REGION = {
+    // L1 USA bloc
+    '$':  'USA',
+    'C$': 'USA',
+    'Ⓒ':  'USA',
+    '₽':  'USA',
+    // L2 EU bloc
+    '€':  'EU',
+    '£':  'EU',
+    '₣':  'EU',
+    '₺':  'EU',
+    // L3 Asia bloc
+    '¥':  'ASIA',
+    '₩':  'ASIA',
+    '₹':  'ASIA',
+    '元': 'ASIA'
+};
+
+// v7.9.4 — Per-currency pilot variant: recombines 3 axes (hat / accessory / palette)
+// on top of the regional archetype (Oligarch / Bureaucrat / Ronin).
+// Hat primitives:   tophat, stetson, cowboy, ushanka, bowler, topBrit, beret, fez,
+//                   kabutoStd, kabutoWide, turban, kabutoDragon
+// Accessory prims:  cigar, kerchief, cane, monocle, pipe, newspaper, baguette,
+//                   worrybeads, tanto, fan, saber, scroll
+// Palettes: {suit, suitDark, trim} — override regional defaults.
+window.Game.CURRENCY_VARIANT = {
+    // --- L1 USA ---
+    '$':  { hat: 'tophat',       acc: 'cigar',      palette: 'forest'     },
+    'C$': { hat: 'stetson',      acc: 'kerchief',   palette: 'burgundy'   },
+    'Ⓒ':  { hat: 'cowboy',       acc: 'cane',       palette: 'tan'        },
+    '₽':  { hat: 'ushanka',      acc: 'monocle',    palette: 'steelblue'  },
+    // --- L2 EU ---
+    '€':  { hat: 'bowler',       acc: 'pipe',       palette: 'charcoal'   },
+    '£':  { hat: 'topBrit',      acc: 'newspaper',  palette: 'navy'       },
+    '₣':  { hat: 'beret',        acc: 'baguette',   palette: 'wine'       },
+    '₺':  { hat: 'fez',          acc: 'worrybeads', palette: 'olive'      },
+    // --- L3 ASIA ---
+    '¥':  { hat: 'kabutoStd',    acc: 'tanto',      palette: 'nightBlack' },
+    '₩':  { hat: 'kabutoWide',   acc: 'fan',        palette: 'deepRed'    },
+    '₹':  { hat: 'turban',       acc: 'saber',      palette: 'saffron'    },
+    '元': { hat: 'kabutoDragon', acc: 'scroll',     palette: 'imperial'   }
+};
 
 // Boss minion type - spawned during boss fights
 window.Game.MINION_TYPE = {

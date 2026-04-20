@@ -1,5 +1,132 @@
 # Changelog
 
+## v7.9.5 — Gravity Gate + Currency Rain - 2026-04-20
+
+### feat(enemies): hover-stop + flip upright, proiettili-valuta
+
+Due buchi narrativi restavano dopo v7.9.4: i nemici scendevano *senza sosta* (nessun momento "sospesi contro gravità") e i loro proiettili erano forme geometriche anonime (un € e un $ sparavano lo stesso dischetto bianco). Questa release li chiude entrambi con feature additive e kill-switch indipendenti.
+
+- **feat(hover-gate)**: nuovo stato `HOVER_GATE` in `Balance` (`ENABLED`, `Y_MIN: 0.25`, `Y_MAX: 0.45`, `DWELL_DURATION: 10`, `EXIT_VY: -180`). In `Enemy` constructor viene scelto un `_hoverY` random per-nemico tra 25%-45% altezza schermo. Quando il nemico lo raggiunge entra in `DWELL`: `vy=0`, `_uprightFlip=true`. `drawAgent` legge il flag e *non* applica `scale(1,-1)` — il nemico si raddrizza, i thruster passano sotto, la scena comunica "sospeso contro gravità". Dopo 10s va in `LEAVING` (`vy=EXIT_VY`, flip originale ripristinato, straight-line verso l'alto).
+- **feat(hover-gate)**: gate attivo solo su pattern `DIVE`/`SINE`/`SWOOP` — il pattern `HOVER` ha già il proprio dwell gestito da `V8_MODE.PATTERNS.HOVER`, non interferiamo. Durante `LEAVING` le oscillazioni sinusoidali di SINE/SWOOP sono congelate per uscita pulita.
+- **feat(currency-bullets)**: nuovo blocco `BULLET_SYMBOL` in `Balance` (`ENABLED`, `GLOW`, `SPIN: false`, `SIZE_MUL`, `CACHE_MAX: 64`). `Enemy.buildBullet` propaga `symbol: this.symbol`; `HarmonicConductor` lo aggiunge ai bullet data; `main.js` lo setta su `bullet.symbol` dopo `Pool.acquire`.
+- **feat(currency-bullets)**: `Bullet.drawEnemyBullet` controlla prima `this.symbol` — se presente e feature attiva, chiama la nuova `drawSymbolBullet(ctx, cfg)` che risolve una entry nella cache statica `Bullet._symbolCache` (Map LRU-ish, max `CACHE_MAX` entries). Cache miss → `Bullet._buildSymbolCacheEntry(symbol, bucket, cfg)` disegna su `OffscreenCanvas` (28/36/44px per bucket S/M/L) glow radiale additivo + glifo bold con outline scuro + fill `#fff3c4`. Ogni draw = 1 blit `drawImage` con `globalCompositeOperation='lighter'` + pulse 12Hz.
+- **feat(currency-bullets)**: proiettili di boss/mini-boss non portano `symbol` (null) → fallback automatico alla resa shape-based esistente (coin/bill/bar/card/bolt). Zero regressione.
+- **tune(bullet-hell)**: primo pass visivo mostrava troppi proiettili contemporanei durante DWELL — tutti i nemici si fermavano a fare fuoco insieme per 10s. Calibrazione: `HOVER_CHANCE: 0.55` (solo 55% si ferma, il resto continua la discesa normale), `DWELL_DURATION: 10→6s`, nuovo `DWELL_FIRE_GRACE: 1.5s` (nei primi 1.5s di DWELL il nemico non spara, "si sta assestando"). `HarmonicConductor` row-fire e single `fireEnemy` leggono `enemy._fireSuppressed` e saltano nemici in grace. Il flusso torna respirabile senza perdere la firma visiva "sospeso contro gravità".
+- **kept**: hitbox invariato, `V8_MODE.PATTERNS.HOVER` originale intatto, shape-based bullet rendering preservato come fallback, tutte le feature riattivabili a runtime via `Balance.HOVER_GATE.ENABLED = false` / `Balance.BULLET_SYMBOL.ENABLED = false`.
+
+## v7.9.4 — 12 per-currency species (primitive vocabulary) - 2026-04-20
+
+### feat(enemies): ogni valuta ha ora la propria specie pilota
+
+Prima di v7.9.4 i 12 simboli valuta producevano 3 silhouette (Oligarch/Bureaucrat/Ronin) differenziate solo dal glifo sul petto e dal colore accent. A schermo: 4 nemici L1 USA sembravano 4 fotocopie. Fix: **vocabolario di primitive** (hat × accessory × palette) ricombinato per-currency.
+
+- **new**: `Game.CURRENCY_VARIANT` in `Constants.js` — 12 entries mappano symbol → `{hat, acc, palette}`. Ogni valuta ha combinazione unica di 3 assi.
+- **new**: 12 hat primitives in `Enemy.js._drawHat()`:
+  - **USA**: tophat ($), stetson (C$), cowboy (Ⓒ), ushanka (₽)
+  - **EU**: bowler (€), topBrit (£), beret (₣), fez (₺)
+  - **ASIA**: kabutoStd (¥), kabutoWide (₩), turban (₹), kabutoDragon (元)
+- **new**: 12 accessory primitives in `Enemy.js._drawAccessory()`:
+  - **USA**: cigar ($), kerchief (C$), cane (Ⓒ), monocle (₽)
+  - **EU**: pipe (€), newspaper (£), baguette (₣), worrybeads (₺)
+  - **ASIA**: tanto (¥), fan (₩), saber (₹), scroll (元)
+- **new**: 12 palette entries (`forest/burgundy/tan/steelblue` USA, `charcoal/navy/wine/olive` EU, `nightBlack/deepRed/saffron/imperial` ASIA) — ogni valuta ha colore abito/armatura coerente col contesto culturale.
+- **new**: `_paletteFor(name, region)` lookup con fallback regionale; `_variant()` wrapper che legge `CURRENCY_VARIANT` col fallback.
+- **change**: tier-gating accessori — WEAK bare, MEDIUM+STRONG carry (EU sempre carry, USA MEDIUM no-cigar).
+- **refactor**: `_drawOligarch/Bureaucrat/Ronin` diventano scheletri base (torso + testa + occhi + bocca) con dispatch finale a `_drawAccessory(variant.acc)` e `_drawHat(variant.hat)`. Meno duplicazione, estendibile.
+- **new**: `_kabutoBase/Crest` helpers per condividere geometria tra kabutoStd/Wide/Dragon (wide usa brim 20px vs standard 18px).
+- **kept**: flip Y globale, chest mark STRONG glow, tier scale aggressivo (0.82/1.0/1.22), kill-switch `ENEMY_AGENT.ENABLED`.
+
+## v7.9.3 — Tier spread + readable currency marks - 2026-04-20
+
+### polish(enemies): tier gradation più netta, simboli valuta leggibili
+
+Tre tier 0.90/1.00/1.12 era troppo sottile: WEAK e STRONG si confondevano. Chest marks (USA glifo cravatta, EU monocolo, ASIA mon) erano graficamente corretti ma troppo piccoli per leggere la valuta a colpo d'occhio durante il gioco.
+
+- **tune**: `ENEMY_AGENT.TIER_SCALE` — WEAK 0.90→0.82, STRONG 1.12→1.22. Gradazione percepibile: WEAK chiaramente piccolo, STRONG evidente come mini-boss.
+- **change**: chest marks con size multiplier per tier (WEAK 0.85× / MEDIUM 1.0× / STRONG 1.35×). USA font 6→7, EU monocolo ring 3→3.2px e font 4→5, ASIA disc 3.6→3.8 e font 5.5→6.5 — baseline più leggibile.
+- **new**: STRONG-only **gold glow** sui chest mark (shadowBlur su USA/EU, halo pulsante su ASIA mon). Il simbolo dominante brillante telegrafa la minaccia prima del tag di tier.
+
+## v7.9.2 — Flip Y: thrusters up, enemies descend head-first - 2026-04-20
+
+### fix(enemies): i propulsori spingevano nella direzione sbagliata
+
+In v7.9.1 i veicoli avevano i thruster in basso e le fiamme uscivano verso il giocatore — fisicamente assurdo (spinta verso il basso = moto verso l'alto, ma i nemici scendono). Fix: `drawAgent` applica `ctx.scale(1, -1)` all'intero assembly. Il nemico ora arriva a testa in giù dallo spazio, thruster in cima con fiamme verso il player retrovia = spinta corretta verso il basso.
+
+- **change**: `drawAgent` aggiunge `ctx.scale(1, -1)` dopo scale tier. Vehicle + pilot + chest mark tutti flippati su Y.
+- **change**: `_drawChestMark` contro-flippa localmente il testo (USA glifo cravatta, EU monocolo, ASIA mon) con `translate + scale(1,-1)` attorno al `fillText`, così i simboli valuta restano leggibili dritti nonostante l'inversione globale.
+- **kept**: nessuna modifica a vehicle/pilot geometry, hitbox, gameplay. Stile Galaga/Gradius dove i nemici discendono orientati verso il player.
+
+## v7.9.1 — Agents in vehicles (spacefaring coherence) - 2026-04-20
+
+### feat(enemies): gli agenti ora volano dentro un mezzo, non camminano nel vuoto
+
+v7.9.0 ha introdotto umanoidi a figura intera, ma in una scena spaziale (ship player diretta verso lo spazio profondo) vederli *camminare* con gambe e scarpe rompeva l'immersione. Fix: ogni agente ora è **busto pilota dentro un veicolo regionale**. Il veicolo c'è, il pathos del carattere resta, la fisica narrativa torna in piedi.
+
+- **new**: `_drawVehicleUSA` — **Stealth Wedge** ala delta nera (stile F-117/drone corporate), accento colore valuta sul bordo d'attacco, twin thrusters arancio con flicker 80ms.
+- **new**: `_drawVehicleEU` — **Diplomatic Shuttle** fusoliera ovale blu navy, 3 oblò con trim dorato, pinna di coda dorata, fiamma centrale blu-bianca, striscia valuta sulla pancia.
+- **new**: `_drawVehicleASIA` — **Mech Quad-Drone** cockpit pod centrale con trim oro, 4 bracci a X con rotori in lacca rossa (motion blur via alpha/rotation flicker), occhio rosso sensore centrale.
+- **change**: `drawAgent()` sostituisce walk cycle 150ms con thruster pulse 80ms + hover bob sinusoidale sottile sul pilota (0.8px, vita nella cabina). Il veicolo si disegna prima del pilota così il busto "siede" nella cabina.
+- **change**: `_drawOligarch/_drawBureaucrat/_drawRonin` croppati a **busto pilota** — rimosse gambe, scarpe, hakama, valigetta, braccio. Torso termina a y=+6/+7 (linea cockpit). Tutti i tratti identitari (cilindro, bombetta+monocolo, kabuto+menpo) restano visibili sopra la cabina.
+- **change**: chest marks riposizionati per busto cropped: USA glifo cravatta y=+8→+3.5 (font 8→6px), ASIA mon y=+5→+2.5 (raggio 4.5→3.6px), EU catena monocolo accorciata.
+- **kept**: kill-switch `Balance.ENEMY_AGENT.ENABLED`, TIER_SCALE, `Game.CURRENCY_REGION`, `this.shape` per bullet differentiation, hitbox 58×58 invariato.
+
+## v7.9.0 — Agents of the System (enemy restyle, full replace) - 2026-04-20
+
+### feat(enemies): via le shape geometriche, dentro gli agenti del regime FIAT
+
+v7.8.x (Soldi Vivi) era un vicolo cieco: decorava coin/bill/bar/card (shape geometriche piatte con glifo stampato) con occhi/zanne/aura/badge, ma il body restava un simbolo, non una creatura. Feedback utente: "Space Invaders del '78 caratterizzava meglio, cosa cazzo sbagli?". Full replace, non iterazione: ogni nemico è ora un umanoide procedurale vettoriale, servitore del regime FIAT, riconoscibile per regione. Stesso linguaggio visivo dei boss (FED piramide, BCE ruota-stelle, BOJ torii) e della ship player.
+
+- **new**: `drawAgent()` in `Enemy.js` sostituisce `drawCoin/drawBill/drawBar/drawCard`. Dispatch per regione via `Game.CURRENCY_REGION[symbol]`:
+  - **USA Oligarch** ($/C$/Ⓒ/₽) — cilindro nero con nastro colorato, abito verde-dollaro, cravatta rossa, occhi freddi. STRONG tier: sigaro con brace arancione e fumo.
+  - **EU Bureaucrat** (€/£/₣/₺) — bombetta tonda, abito grigio ministeriale, valigetta 24-ore che dondola con il passo, baffetti a spazzola, monocolo dorato sull'occhio destro.
+  - **ASIA Ronin** (¥/₩/₹/元) — kabuto con corna curve (kuwagata) tinte col colore valuta, menpo sul volto, fessure rosse negli occhi, armatura nera con trim oro, giunti rossi meccatronici. STRONG tier: cresta kuwagata centrale dorata.
+- **new**: walk cycle 2-frame a 150ms, desync per-enemy via `_walkOffset`. Gambe alternate ±1px, valigetta EU bobba, 0 allocazioni per-frame.
+- **new**: **Chest mark** — il simbolo valuta diventa emblema, non etichetta: stampato in oro sulla cravatta (USA), dentro il monocolo con catena alla bottoniera (EU), come *mon* (stemma clan) su disco dorato al petto (ASIA).
+- **new**: tier scale 0.90/1.00/1.12 per WEAK/MEDIUM/STRONG — gradazione di minaccia tramite stazza, non decorazioni.
+- **new**: palette regionale fissa + accent color valuta sul cappello (USA/EU) o sulle corna (ASIA) → USA/EU/ASIA riconoscibili a colpo d'occhio, valuta specifica tramite simbolo.
+- **remove**: `_drawFace`, `_drawDeformOverlay`, `_drawRegionalBadge`, `drawCoin/Bill/Bar/Card` da `Enemy.js` (-540 righe). Intero blocco `ENEMY_FACE` da `BalanceConfig.js` sostituito da `ENEMY_AGENT` compatto (kill-switch + TIER_SCALE + WALK_CYCLE_MS).
+- **kept**: `this.shape` rimane sul nemico perché pilota la variante visiva dei bullet nemici in `Bullet.js` (`drawCoinBullet` etc.). Solo il rendering del corpo cambia.
+- **kept**: damage cracks, elemental tint, elite overlays (ARMORED sheen, EVADER trail, REFLECTOR shield, HEALER aura, CHARGER windup, BOMBER fuse, FLANKER chevron) e behaviors continuano a funzionare sovrapposti all'agente.
+- **compat**: kill-switch `Balance.ENEMY_AGENT.ENABLED = false` → fallback a `drawMinion` silhouette. Zero breaking change al gameplay, balance, fire budget, hitbox (58×58 invariato).
+
+## v7.8.2 — Soldi Vivi calibration: STRONG-only faces, readable at mobile scale - 2026-04-20
+
+### feat(enemies): le facce erano illeggibili → ora solo i STRONG sono "vivi", ma davvero
+
+Il primo shot di v7.8.0 spalmava occhi 2.6-3.4px su tutti e tre i tier → a 30px reali su mobile sembravano artifact, non creature. Calibrazione: concentrare il pathos sui STRONG così il tier jump diventa un vero segnale di minaccia, non una gradazione sottile.
+
+- **change**: WEAK/MEDIUM non hanno più occhi. WEAK resta pulito (numero che cade), MEDIUM mantiene la crease diagonale. Solo STRONG ha la faccia. Gate via `Balance.ENEMY_FACE.EYES.STRONG_ONLY: true` (riversibile).
+- **change**: occhi STRONG ingranditi — bulb 3.4→5.5, pupilla 1.5→2.6, tracking 1.2→2.2. Ora sono chiaramente visibili anche su schermo mobile.
+- **new**: `BULB_OUTLINE` scuro 1px attorno alla sclera → occhi contrastati sul body color, leggibili anche su nemici chiari.
+- **new**: highlight bianco wet/alive nell'angolo superiore sinistro dell'iride → dà vita cartoon senza costo di rendering.
+- **change**: zanne STRONG 2.5→4.0 px, posizionate più in basso sotto il body, 2 paia separate invece di 2 triangoli sovrapposti.
+- **change**: spunzoni STRONG 4→5, lunghezza 6→7 per silhouette break più marcata.
+- **change**: bill/bar scalano gli occhi a 85% per rispettare il body più schiacciato.
+- **kept**: MEDIUM crease, STRONG aura pulsante, regional badge (USA/EU/ASIA) restano su tutti i tier — l'identità regionale vale anche per il fodder.
+- **compat**: kill-switch invariati. Per tornare a v7.8.0 (facce su tutti): `G.Balance.ENEMY_FACE.EYES.STRONG_ONLY = false` in console.
+
+## v7.8.1 — Fix lesson modal non pausa (module scope gotcha) - 2026-04-20
+
+### fix(pause): le lesson modal aprivano la card ma il gioco continuava — venivi ucciso mentre leggevi
+
+Il fix v7.7.0 dichiarava "gioco in pausa quando lesson modal appare", ma il bug non era mai stato risolto: il modal si apriva e **lo stato restava PLAY**, nemici sparavano e il player moriva durante la lettura. Root cause: `index.html` carica `src/main.js` come `<script type="module">`, e in ES module le function declarations top-level NON diventano proprietà di `window`. `LessonModal.js` faceva `typeof window.setGameState === 'function'` → `false` → skip silenzioso della transition PAUSE.
+
+- **fix**: `src/ui/LessonModal.js` — `show()` e `hide()` ora usano `G._setGameState` (esposto esplicitamente in main.js L58) con `window.setGameState` come fallback difensivo. Il gioco ora pausa davvero quando un modal si apre e riprende sul click OK.
+
+## v7.8.0 — Soldi Vivi (enemy restyling) - 2026-04-20
+
+### feat(enemies): nemici ora sono "denaro vivo ostile", non più rettangoli colorati
+
+Le shape geometriche (coin/bill/bar/card) funzionavano meccanicamente ma mancavano di pathos. v7.8.0 stratifica 3 layer procedurali additivi sopra il rendering esistente — zero asset PNG, zero pipeline, tutto canvas. Kill-switch granulari per ogni layer.
+
+- **new**: `Enemy._drawFace(ctx, x, y)` — occhi sclera+pupilla con blink desincronizzato, tracking verso player, espressioni per tier (WEAK scared/vorace con pupilla grande, MEDIUM squint orizzontale, STRONG slit pupil verticale predatore + zanne), look "stunned" durante `hitFlash`.
+- **new**: `Enemy._drawDeformOverlay(ctx, x, y)` — gradazione di minaccia visiva. MEDIUM: crease diagonale scura (angolo deterministico da `_spikeSeed`). STRONG: crease + aura pulsante radial gradient 1Hz + 4 spunzoni triangolari esterni con jitter seeded. Overlay puramente additivo → hitbox invariata.
+- **new**: `Enemy._drawRegionalBadge(ctx, x, y)` — emblema 12×7 top-left che accenta la regione della valuta. USA (bandiera a strisce+canton blu) / EU (campo blu + 3 stelle dorate) / ASIA (white field + sun disc rosso).
+- **new**: `Balance.ENEMY_FACE` blocco completo — `ENABLED` master + sub-kill-switch per `EYES`, `DEFORM.MEDIUM_CREASE`, `DEFORM.STRONG_SPIKES`, `DEFORM.STRONG_AURA`, `REGIONAL_BADGE`. Ogni layer disattivabile senza toccare codice.
+- **new**: `Constants.CURRENCY_REGION` — lookup 12 valute → {USA, EU, ASIA}, coerente con la thematization V8 dei livelli L1/L2/L3.
+- **perf**: zero allocazioni per-frame — `_spikeSeed` e `_facePhase` deterministici nel constructor, riuso `_colorBright`/`_colorDark50` già cached, uso di `ColorUtils.withAlpha` per i gradient.
+- **compat**: il sistema si sovrappone ai layer esistenti (tint elementale, damage cracks, elite overlays ARMORED/EVADER/REFLECTOR, behavior glows CHARGER/HEALER/BOMBER) senza conflitti. Face e badge entrano dopo il tint, i crack restano visibili anche su STRONG deformato.
+
 ## v7.7.0 — Lesson modals + tutorial refresh - 2026-04-20
 
 ### feat(onboarding): lesson modals first-encounter (rimpiazza gli hint v7.6.0)

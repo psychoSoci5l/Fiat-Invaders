@@ -924,6 +924,7 @@ function init() {
                 var bullet = G.Bullet.Pool.acquire(bd.x, bd.y, bd.vx, bd.vy, bd.color, bd.w || 8, bd.h || 8, false);
                 bullet.beatSynced = true;
                 bullet.shape = bd.shape || null;
+                bullet.symbol = bd.symbol || null; // v7.9.5: currency glyph for symbol-bullet renderer
                 // v4.56: enemy color for core tint. v7.2.2: forced null in V8 mode for legibility
                 // (red ¥ bullets blended with red ¥ enemies — pure white reads better on Gradius scroll).
                 bullet.ownerColor = (G.Balance?.V8_MODE?.ENABLED) ? null : (bd.ownerColor || null);

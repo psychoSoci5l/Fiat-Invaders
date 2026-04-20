@@ -14,6 +14,7 @@ class Bullet extends window.Game.Entity {
         this.age = 0; // Animation timer
         this.grazed = false; // Graze tracking
         this.shape = null; // Enemy shape for visual differentiation (coin/bill/bar/card)
+        this.symbol = null; // v7.9.5: Currency glyph — when set, bullet renders as this symbol
         this.isBossBullet = false; // v5.10.3: Boss bullet tag for collision radius
 
         // === WEAPON EVOLUTION v3.0 properties ===
@@ -52,6 +53,7 @@ class Bullet extends window.Game.Entity {
         this.homing = false; // Homing missile tracking
         this.homingSpeed = 0; // Turn rate for homing
         this.shape = null; // Enemy shape for visual differentiation
+        this.symbol = null; // v7.9.5: Currency glyph — when set, bullet renders as this symbol
         this.ownerColor = null; // v4.56: Enemy color for bullet core tint
         this.isBossBullet = false; // v5.10.3: Boss bullet tag for collision radius
 
@@ -1216,9 +1218,16 @@ class Bullet extends window.Game.Entity {
 
     // ═══════════════════════════════════════════════════════════════════
     // ENEMY BULLET DISPATCHER
-    // Routes to shape-specific method or default energy bolt
+    // v7.9.5: if bullet has a currency symbol and BULLET_SYMBOL is enabled,
+    // render the glyph directly (full replace). Falls back to shape-based rendering
+    // when symbol is absent (boss / mini-boss bullets) or feature is disabled.
     // ═══════════════════════════════════════════════════════════════════
     drawEnemyBullet(ctx) {
+        const bsCfg = window.Game.Balance?.BULLET_SYMBOL;
+        if (this.symbol && bsCfg?.ENABLED) {
+            this.drawSymbolBullet(ctx, bsCfg);
+            return;
+        }
         switch (this.shape) {
             case 'coin':
                 this.drawCoinBullet(ctx);
@@ -1235,6 +1244,47 @@ class Bullet extends window.Game.Entity {
             default:
                 this.drawEnemyBolt(ctx);
         }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // v7.9.5 CURRENCY-SYMBOL BULLET
+    // Renders the bullet as the shooter's currency glyph (€, $, ¥, ...).
+    // Uses an offscreen canvas cache keyed by symbol+sizeBucket for performance.
+    // Each cache entry = pre-rendered glyph + additive glow on a 32×32 canvas.
+    // ═══════════════════════════════════════════════════════════════════
+    drawSymbolBullet(ctx, cfg) {
+        const r = (this.width || 5) * 1.8;
+        const sizeMul = cfg.SIZE_MUL || 1.0;
+        // Bucket radii into 3 size classes so cache stays small (<=36 entries)
+        const bucket = r < 8 ? 'S' : (r < 11 ? 'M' : 'L');
+        const key = this.symbol + '|' + bucket;
+
+        const cache = Bullet._symbolCache;
+        let entry = cache.get(key);
+        if (!entry) {
+            entry = Bullet._buildSymbolCacheEntry(this.symbol, bucket, cfg);
+            // LRU-ish eviction: drop the oldest entry if over limit
+            if (cache.size >= (cfg.CACHE_MAX || 64)) {
+                const firstKey = cache.keys().next().value;
+                if (firstKey !== undefined) cache.delete(firstKey);
+            }
+            cache.set(key, entry);
+        }
+
+        const pulse = Math.sin(this.age * 12) * 0.08 + 1;
+        const drawSize = entry.canvasSize * sizeMul * pulse;
+        const half = drawSize / 2;
+
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        if (cfg.SPIN) {
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.age * 2);
+            ctx.drawImage(entry.canvas, -half, -half, drawSize, drawSize);
+        } else {
+            ctx.drawImage(entry.canvas, this.x - half, this.y - half, drawSize, drawSize);
+        }
+        ctx.restore();
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -1775,6 +1825,51 @@ Bullet._WHITE_90 = 'rgba(255,255,255,0.90)';
 // v4.17: Hostile tint for enemy bullets (dark ring instead of white, reduces collectible look)
 Bullet._HOSTILE_RING = 'rgba(80,20,20,0.35)';
 Bullet._HOSTILE_CONTOUR = 'rgba(60,15,15,0.60)';
+
+// v7.9.5 Currency-symbol bullet cache (Map for LRU-ish eviction)
+Bullet._symbolCache = new Map();
+
+// Build a pre-rendered offscreen canvas for a given symbol + size bucket.
+// bucket: 'S' (small C1) | 'M' (medium C2) | 'L' (large C3)
+// Returns { canvas, canvasSize } — canvasSize is the px diameter used when drawing.
+Bullet._buildSymbolCacheEntry = function(symbol, bucket, cfg) {
+    // Bucket → pixel size. Larger bucket → bigger canvas + font so high-res
+    // enemies (STRONG tier) show crisp glyphs without aliasing.
+    const pxBySize = { S: 28, M: 36, L: 44 };
+    const fontBySize = { S: 18, M: 24, L: 30 };
+    const canvasSize = pxBySize[bucket] || 32;
+    const fontSize = fontBySize[bucket] || 20;
+
+    const canvas = (typeof OffscreenCanvas !== 'undefined')
+        ? new OffscreenCanvas(canvasSize, canvasSize)
+        : (() => { const c = document.createElement('canvas'); c.width = canvasSize; c.height = canvasSize; return c; })();
+    const c = canvas.getContext('2d');
+
+    const cx = canvasSize / 2;
+    const cy = canvasSize / 2;
+
+    // Additive radial glow (optional) — contrast booster on dark backgrounds.
+    if (cfg.GLOW !== false) {
+        const grad = c.createRadialGradient(cx, cy, 0, cx, cy, canvasSize * 0.48);
+        grad.addColorStop(0.0, 'rgba(255,220,120,0.55)');
+        grad.addColorStop(0.5, 'rgba(255,180,80,0.22)');
+        grad.addColorStop(1.0, 'rgba(255,140,40,0.0)');
+        c.fillStyle = grad;
+        c.fillRect(0, 0, canvasSize, canvasSize);
+    }
+
+    // Glyph — dark outline + bright fill for maximum legibility over glow/background.
+    c.font = `900 ${fontSize}px Arial, sans-serif`;
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.lineWidth = Math.max(2, fontSize * 0.14);
+    c.strokeStyle = '#1a0a05';
+    c.strokeText(symbol, cx, cy);
+    c.fillStyle = '#fff3c4';   // pale warm gold — matches menace palette
+    c.fillText(symbol, cx, cy);
+
+    return { canvas, canvasSize };
+};
 
 // Attach to namespace
 window.Game.Bullet = Bullet;

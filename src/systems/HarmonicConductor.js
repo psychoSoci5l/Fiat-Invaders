@@ -847,6 +847,9 @@ window.Game.HarmonicConductor = {
                         var re = rowEnemies[j];
                         if (!re || !re.active) continue;
 
+                        // v7.9.5b: skip enemies currently in DWELL fire-grace (assestamento window)
+                        if (re._fireSuppressed) continue;
+
                         // Corridor skip: enemy within corridor band
                         if (Math.abs(re.x - corridorX) < corridorWidth / 2) continue;
 
@@ -861,11 +864,11 @@ window.Game.HarmonicConductor = {
                             // Two bullets at symmetric offsets from band angle
                             var off = 0.08;
                             var a1 = baseAngle - off, a2 = baseAngle + off;
-                            rowBullets.push({ x: bx, y: by, vx: Math.cos(a1) * effSpd, vy: Math.sin(a1) * effSpd, color: '#ffffff', w: sz.w, h: sz.h, shape: re.shape, ownerColor: re.color });
-                            rowBullets.push({ x: bx, y: by, vx: Math.cos(a2) * effSpd, vy: Math.sin(a2) * effSpd, color: '#ffffff', w: sz.w, h: sz.h, shape: re.shape, ownerColor: re.color });
+                            rowBullets.push({ x: bx, y: by, vx: Math.cos(a1) * effSpd, vy: Math.sin(a1) * effSpd, color: '#ffffff', w: sz.w, h: sz.h, shape: re.shape, ownerColor: re.color, symbol: re.symbol });
+                            rowBullets.push({ x: bx, y: by, vx: Math.cos(a2) * effSpd, vy: Math.sin(a2) * effSpd, color: '#ffffff', w: sz.w, h: sz.h, shape: re.shape, ownerColor: re.color, symbol: re.symbol });
                         } else {
                             // SINGLE: uniform band direction
-                            rowBullets.push({ x: bx, y: by, vx: bandVx, vy: bandVy, color: '#ffffff', w: sz.w, h: sz.h, shape: re.shape, ownerColor: re.color });
+                            rowBullets.push({ x: bx, y: by, vx: bandVx, vy: bandVy, color: '#ffffff', w: sz.w, h: sz.h, shape: re.shape, ownerColor: re.color, symbol: re.symbol });
                         }
                     }
                     if (rowBullets.length > 0) {
@@ -928,6 +931,8 @@ window.Game.HarmonicConductor = {
     fireEnemy(enemy, pattern, spread) {
         if (!enemy || !enemy.active) return;
         if (!this.player) return;
+        // v7.9.5b: skip enemies currently in DWELL fire-grace (assestamento window)
+        if (enemy._fireSuppressed) return;
 
         const bulletSpeed = 150 + (this.difficultyParams.complexity * 15);
         let bulletData = null;
