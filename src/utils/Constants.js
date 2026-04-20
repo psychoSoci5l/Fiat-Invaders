@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v7.5.0 FIAT vs CRYPTO";
+window.Game.VERSION = "v7.7.0 FIAT vs CRYPTO";
 
 // Leaderboard API
 window.Game.LEADERBOARD_API = 'https://fiat-vs-crypto-leaderboard.psychosocial-01.workers.dev/api';
@@ -137,11 +137,11 @@ window.Game.TEXTS = {
         PWA_INSTALL_BTN: "INSTALL",
         // Tutorial (v5.27 arcade tone)
         TUT_TITLE: "GET READY!",
-        TUT_STEP_MISSION: "Inflation incoming: face fiat currencies from around the world, survive 5 waves of minions to reach the bosses \u2014 the central banks \u2014 and eliminate the problem at its source!",
-        TUT_STEP_CONTROLS_PC: "Hold Left Click \u2014 Move & Fire\nRelease to stop",
-        TUT_STEP_CONTROLS_MOBILE: "Drag your ship using the lower part of the screen to move without blocking your view",
-        TUT_STEP_SHIELD_PC: "When the cyan wings light up, use the shield to escape tough situations \u2014 gain invincibility and proximity damage!\nRight Click to activate",
-        TUT_STEP_SHIELD_MOBILE: "When the cyan wings light up, use the shield to escape tough situations \u2014 gain invincibility and proximity damage!\nTap your ship",
+        TUT_STEP_MISSION: "Inflation is eating your money. Blast waves of fiat currencies, take down the central bank bosses, and stop the bleed at the source.",
+        TUT_STEP_CONTROLS_PC: "Hold Left Click to move and fire.\nRelease to stop.",
+        TUT_STEP_CONTROLS_MOBILE: "Drag on the lower half of the screen to fly. Your thumb never blocks the action.",
+        TUT_STEP_SHIELD_PC: "When the cyan wingtips light up, your shield is ready.\nRight Click for a short burst: invincibility + contact damage.",
+        TUT_STEP_SHIELD_MOBILE: "When the cyan wingtips light up, your shield is ready.\nTap the ship for a short burst: invincibility + contact damage.",
         TUT_NEXT: "NEXT",
         // Manual v2 condensed (v4.12.0)
         MAN_SCORING: "SCORING",
@@ -165,6 +165,29 @@ window.Game.TEXTS = {
         MAN_TIP_SHIELD: "\uD83D\uDEE1\uFE0F SHIELD \u2014 10s cooldown. Your only defense against hits!",
         MAN_TIP_BOSS: "\u26A1 BOSSES \u2014 3 phases each. Every 40 hits drops a power-up",
         MAN_TIP_BEAR: "\uD83D\uDC3B BEAR MARKET \u2014 Hard mode in Settings. Double points!",
+        // v7.7.0 — First-encounter lesson modals (shown once per device, resettable)
+        LESSON_FIRE_TITLE: "FIRE",
+        LESSON_FIRE_BODY: "Your bullets explode on impact. +30% splash damage \u2014 great against tight groups. Collect more elements to chain GODCHAIN.",
+        LESSON_LASER_TITLE: "LASER",
+        LESSON_LASER_BODY: "Faster bullets that pierce one extra enemy. Best for precision and line-ups.",
+        LESSON_ELECTRIC_TITLE: "ELECTRIC",
+        LESSON_ELECTRIC_BODY: "Your shots chain to 1-2 nearby enemies (20%). Shines against swarms.",
+        LESSON_GODCHAIN_TITLE: "GODCHAIN",
+        LESSON_GODCHAIN_BODY: "All three elements active for 10 seconds. Keep cancelling enemy bullets to extend the timer.",
+        LESSON_DIP_TITLE: "DIP METER",
+        LESSON_DIP_BODY: "Kill enemies up close to fill the DIP bar. When full, tap HYPER to unleash a devastating salvo.",
+        LESSON_HYPER_TITLE: "HYPER",
+        LESSON_HYPER_BODY: "Boosted fire for a few seconds, plus bonus weapon levels. Chain kills while it lasts for maximum score.",
+        LESSON_SPECIAL_TITLE: "SPECIAL WEAPON",
+        LESSON_SPECIAL_BODY: "Temporary weapon mod (8s): homing shots, piercing, or missiles. Lost on death \u2014 spend it well.",
+        LESSON_UTILITY_TITLE: "UTILITY",
+        LESSON_UTILITY_BODY: "Shield (5s of immunity) or Speed Boost (8s). Small edge, often saves runs.",
+        LESSON_OK: "OK",
+        TUT_STEP_HYPER_TITLE: "HYPER",
+        TUT_STEP_HYPER_BODY: "Kill enemies up close to fill the DIP bar. When it's full, tap the HYPER button (bottom centre) to unleash a devastating salvo.",
+        TUT_SKIP: "SKIP",
+        RESET_TUTORIAL: "Reset tutorial",
+        RESET_TUTORIAL_DONE: "Tutorial reset \u2014 lessons will show again next run",
         // Intro Redesign v4.8
         MODE_STORY: "STORY",
         MODE_ARCADE: "ARCADE",
@@ -424,11 +447,11 @@ window.Game.TEXTS = {
         PWA_INSTALL_BTN: "INSTALLA",
         // Tutorial (v5.27 arcade tone)
         TUT_TITLE: "PREPARATI!",
-        TUT_STEP_MISSION: "Inflazione in arrivo: affronta le valute fiat di tutto il mondo, supera 5 ondate di comprimari per affrontare i boss, le banche centrali, per eliminare il problema alla fonte!",
-        TUT_STEP_CONTROLS_PC: "Tieni premuto Click Sinistro \u2014 Muovi e Spara\nRilascia per fermarti",
-        TUT_STEP_CONTROLS_MOBILE: "Trascina la nave usando la zona bassa dello schermo per muoverti senza nascondere la visuale di gioco",
-        TUT_STEP_SHIELD_PC: "Quando si accendono le ali cyan usa lo scudo per uscire dalle situazioni di difficolt\u00e0 acquistando invincibilit\u00e0 e danno di prossimit\u00e0!\nClick Destro per attivare",
-        TUT_STEP_SHIELD_MOBILE: "Quando si accendono le ali cyan usa lo scudo per uscire dalle situazioni di difficolt\u00e0 acquistando invincibilit\u00e0 e danno di prossimit\u00e0!\nTocca la nave",
+        TUT_STEP_MISSION: "L'inflazione ti sta divorando i risparmi. Abbatti ondate di valute fiat, sconfiggi i boss delle banche centrali e ferma l'emorragia alla fonte.",
+        TUT_STEP_CONTROLS_PC: "Tieni premuto il tasto sinistro per muoverti e sparare.\nRilascia per fermarti.",
+        TUT_STEP_CONTROLS_MOBILE: "Trascina nella met\u00e0 bassa dello schermo per volare. Il pollice non copre mai l'azione.",
+        TUT_STEP_SHIELD_PC: "Quando le punte delle ali diventano cyan, lo scudo \u00e8 pronto.\nTasto destro: invincibilit\u00e0 breve + danno a contatto.",
+        TUT_STEP_SHIELD_MOBILE: "Quando le punte delle ali diventano cyan, lo scudo \u00e8 pronto.\nTocca la nave per un'invincibilit\u00e0 breve con danno a contatto.",
         TUT_NEXT: "AVANTI",
         // Manual v2 condensed (v4.12.0)
         MAN_SCORING: "PUNTEGGIO",
@@ -452,6 +475,29 @@ window.Game.TEXTS = {
         MAN_TIP_SHIELD: "\uD83D\uDEE1\uFE0F SCUDO \u2014 Cooldown 10s. Unica difesa contro i colpi!",
         MAN_TIP_BOSS: "\u26A1 BOSS \u2014 3 fasi ciascuno. Ogni 40 colpi rilascia un power-up",
         MAN_TIP_BEAR: "\uD83D\uDC3B BEAR MARKET \u2014 Hard mode nelle Impostazioni. Punti doppi!",
+        // v7.7.0 — Lesson modal first-encounter (mostrate una volta per dispositivo, resettabili)
+        LESSON_FIRE_TITLE: "FUOCO",
+        LESSON_FIRE_BODY: "I tuoi proiettili esplodono al contatto. +30% danno in area \u2014 ottimo contro gruppi stretti. Raccogli altri elementi per attivare GODCHAIN.",
+        LESSON_LASER_TITLE: "LASER",
+        LESSON_LASER_BODY: "Proiettili pi\u00F9 veloci che perforano un nemico extra. Precisione e penetrazione.",
+        LESSON_ELECTRIC_TITLE: "ELETTRICO",
+        LESSON_ELECTRIC_BODY: "I tuoi colpi rimbalzano su 1-2 nemici vicini (20%). Brilla contro gli sciami.",
+        LESSON_GODCHAIN_TITLE: "GODCHAIN",
+        LESSON_GODCHAIN_BODY: "Tutti i tre elementi attivi per 10 secondi. Continua ad annullare i proiettili nemici per prolungarlo.",
+        LESSON_DIP_TITLE: "METER DIP",
+        LESSON_DIP_BODY: "Uccidi nemici da vicino per riempire la barra DIP. Quando \u00E8 piena, tocca HYPER per scatenare una salva devastante.",
+        LESSON_HYPER_TITLE: "HYPER",
+        LESSON_HYPER_BODY: "Fuoco potenziato per alcuni secondi, pi\u00F9 livelli arma bonus. Concatena uccisioni per il massimo punteggio.",
+        LESSON_SPECIAL_TITLE: "ARMA SPECIALE",
+        LESSON_SPECIAL_BODY: "Arma temporanea (8s): colpi a ricerca, perforanti o missili. Si perde con la morte \u2014 usala bene.",
+        LESSON_UTILITY_TITLE: "UTILITY",
+        LESSON_UTILITY_BODY: "Scudo (5s di immunit\u00E0) o Velocit\u00E0 (8s). Piccolo vantaggio, spesso salva la run.",
+        LESSON_OK: "OK",
+        TUT_STEP_HYPER_TITLE: "HYPER",
+        TUT_STEP_HYPER_BODY: "Uccidi i nemici ravvicinati per riempire la barra DIP. Quando \u00e8 piena, tocca il pulsante HYPER (in basso al centro) per scatenare una salva devastante.",
+        TUT_SKIP: "SALTA",
+        RESET_TUTORIAL: "Resetta tutorial",
+        RESET_TUTORIAL_DONE: "Tutorial resettato \u2014 le lezioni riappariranno nelle prossime partite",
         // Intro Redesign v4.8
         MODE_STORY: "STORIA",
         MODE_ARCADE: "ARCADE",

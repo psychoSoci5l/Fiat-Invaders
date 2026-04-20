@@ -346,11 +346,22 @@
 
     </div><!-- /game-container -->
 
+    <!-- LESSON MODAL (v7.7.0 first-encounter lessons) - Outside game-container for proper stacking -->
+    <div id="lesson-modal" style="display: none;">
+        <div class="lesson-card">
+            <div class="lesson-icon" id="lesson-icon">&#x1F525;</div>
+            <h2 class="lesson-title" id="lesson-title">LESSON</h2>
+            <p class="lesson-body" id="lesson-body">Body text.</p>
+            <button class="btn btn-primary btn-block" id="lesson-ok" data-i18n="LESSON_OK">OK</button>
+        </div>
+    </div>
+
     <!-- TUTORIAL OVERLAY (v5.12 progressive steps) - Outside game-container for proper stacking above curtain -->
     <div id="tutorial-overlay" style="display: none;">
         <div class="tutorial-container tutorial-unified">
+            <button class="btn btn-secondary btn-sm tut-skip-btn" id="tut-skip-btn" data-i18n="TUT_SKIP">SKIP</button>
             <h2 class="tutorial-title" data-i18n="TUT_TITLE">MISSION BRIEFING</h2>
-            <div class="tut-dots"><span class="tut-dot active"></span><span class="tut-dot"></span><span class="tut-dot"></span></div>
+            <div class="tut-dots"><span class="tut-dot active"></span><span class="tut-dot"></span><span class="tut-dot"></span><span class="tut-dot"></span></div>
             <!-- Step 0: Mission -->
             <div class="tut-step tut-step--active" id="tut-step-0">
                 <div class="tut-card tut-card--obj">
@@ -386,6 +397,13 @@ Press S or &#x2193; to activate</p>
                         <p class="tutorial-text" data-i18n="TUT_STEP_SHIELD_MOBILE">Fins glow cyan = Shield ready!
 Tap your ship to activate</p>
                     </div>
+                </div>
+            </div>
+            <!-- Step 3: Hyper -->
+            <div class="tut-step" id="tut-step-3">
+                <div class="tut-card tut-card--obj">
+                    <span class="tut-icon">&#x26A1;</span>
+                    <p class="tutorial-text" data-i18n="TUT_STEP_HYPER_BODY">Bottom of screen: tap the HYPER button when the DIP bar is full to unleash a devastating salvo.</p>
                 </div>
             </div>
             <div class="tutorial-actions">
@@ -488,6 +506,7 @@ Tap your ship to activate</p>
                 <button class="btn btn-primary btn-sm" onclick="toggleCreditsPanel()" id="set-credits-btn">CREDITS</button>
                 <button class="btn btn-primary btn-sm" onclick="togglePrivacyPanel()" id="set-privacy-btn">Privacy</button>
             </div>
+            <button class="btn btn-secondary btn-sm btn-block" onclick="resetTutorial()" id="set-reset-tutorial-btn" data-i18n="RESET_TUTORIAL" style="margin-top:8px;">Resetta tutorial</button>
 
             <button class="btn btn-primary" id="btn-settings-close" onclick="toggleSettings()">CHIUDI</button>
         </div>
@@ -741,6 +760,8 @@ Tap your ship to activate</p>
     <script src="src/systems/CollisionSystem.js"></script>
     <script src="src/systems/DropSystem.js"></script>
     <script src="src/systems/MemeEngine.js"></script>
+    <script src="src/systems/HintTracker.js"></script>
+    <script src="src/ui/LessonModal.js"></script>
     <script src="src/core/EventBus.js"></script>
     <script src="src/core/GameStateMachine.js"></script>
     <script src="src/systems/HarmonicSequences.js"></script>

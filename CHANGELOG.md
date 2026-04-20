@@ -1,5 +1,99 @@
 # Changelog
 
+## v7.7.0 — Lesson modals + tutorial refresh - 2026-04-20
+
+### feat(onboarding): lesson modals first-encounter (rimpiazza gli hint v7.6.0)
+
+Il pattern v7.6.0 (hint via status strip durante l'azione) si è rivelato inefficace: testo troppo piccolo, durata troppo breve, durante combattimento il player non riusciva a leggere. Sostituito con modali grandi che **mettono il gioco in pausa**, mostrano titolo+icona+spiegazione specifica per meccanica, dismiss su tap OK. Una volta per device, gate via `HintTracker` (riusato).
+
+- **new**: `src/ui/LessonModal.js` — IIFE con `show(key)` / `hide()` / `isVisible()` + queue per pickup multipli ravvicinati. Pausa via `setGameState('PAUSE')` con `_pausedFromState` per resume corretto, suppressione in WARMUP.
+- **new**: `#lesson-modal` DOM (sibling di `#game-container`, z-index 9700, backdrop blur).
+- **new**: 8 lezioni (FIRE / LASER / ELECTRIC / GODCHAIN / DIP / HYPER / SPECIAL / UTILITY) con stringhe specifiche EN+IT in `src/utils/Constants.js`.
+- **change**: `src/main.js` — i 6 `HintTracker.trigger(...)` di v7.6.0 sostituiti con `LessonModal.show(...)`. Per FIRE/LASER/ELECTRIC l'evento `powerup_pickup` ora porta `elemType` nel payload, distinto al pickup site (riga ~4475).
+- **change**: 6 chiavi i18n `HINT_*` rimosse, 17 chiavi `LESSON_*` aggiunte (titolo+corpo×8 + OK).
+
+### feat(tutorial): step HYPER, font più grandi, bottone SKIP
+
+Il tutorial WARMUP ora copre 4 step (mission, controlli, scudo, **HYPER**), testi più leggibili e SKIP visibile in alto a destra per chi non lo vuole.
+
+- **change**: `index.html` — `<div class="tut-step" id="tut-step-3">` per HYPER, 4° dot, bottone `#tut-skip-btn` (`.btn-secondary.btn-sm`).
+- **change**: `style.css` — `.tut-card .tutorial-text` 18→20px, `.tutorial-title` 22→26px, `.tut-card` `min-height: 140px` (era 110), nuovo `.tut-skip-btn` posizionato top-right.
+- **change**: `src/main.js` — `tutorialStep` max 2→3, `handleTutorialButton` aggiornato, handler SKIP collegato a `completeTutorial()`.
+- **i18n**: `TUT_STEP_HYPER_TITLE/BODY` + `TUT_SKIP` EN/IT.
+
+### fix(state): "Compra il dip" ancora bloccato dopo v7.5.1
+
+La fix v7.5.1 faceva `forceSet('INTRO')` prima di `startGame()`, ma la transition table blocca comunque `INTRO → PLAY` (solo HANGAR/WARMUP/STORY_SCREEN sono successori validi di INTRO). Console dopo game over mostrava `[GameState] BLOCKED invalid transition: INTRO → PLAY` e il restart restava fermo.
+
+- **fix**: `src/main.js` — `restartRun` / `restartFromGameOver` ora usano `forceSet('HANGAR')` (unico stato che permette direttamente PLAY/WARMUP).
+
+### fix(pause): death sequence non rispettava la pausa (lesson modal rubava vite)
+
+Il `deathTimer` (slow-mo prima dell'`executeDeath`) decrementava su `realDt` nel `loop()` **indipendentemente** da `gameState`. Se il player raccoglieva un powerup sull'ultimo frame di un colpo letale, il lesson modal apriva la pausa ma la death completava comunque — perdita di vita "durante" la pausa.
+
+- **fix**: `src/main.js` — `deathTimer` ora è gated su `gameState !== 'PAUSE'`. Vale anche per la pausa manuale (prima avresti perso una vita mettendo pause durante lo slow-mo di morte).
+
+### polish(tutorial): testi riscritti
+
+I testi italiani del tutorial WARMUP erano macchinosi ("supera 5 ondate di comprimari", "acquistando invincibilità e danno di prossimità"). Riscritti in italiano naturale e accorciati. Stesso trattamento per la versione EN.
+
+- **change**: `src/utils/Constants.js` — `TUT_STEP_MISSION`, `TUT_STEP_CONTROLS_PC/MOBILE`, `TUT_STEP_SHIELD_PC/MOBILE`, `TUT_STEP_HYPER_BODY` EN+IT.
+
+### Non incluso (esplicitamente fuori scope)
+
+- Sandbox WARMUP interattiva con enemy scriptati: rischio regressione su V8 onboarding stabilizzato in v7.4.1, guadagno marginale rispetto alle lesson modals. Riconsiderare dopo feedback player esterni.
+
+---
+
+## v7.6.0 — Onboarding: hint system contestuale + reset tutorial - 2026-04-20
+
+### feat(onboarding): hint lifetime per le 4 meccaniche chiave
+
+Dopo il tutorial iniziale (3 step DOM) il gioco non insegnava nulla: perk elementali, DIP meter/HYPER, GODCHAIN, drop SPECIAL/UTILITY restavano opachi fino al manuale in Settings. Nuovo sistema di hint contestuali che appaiono **una sola volta per device** la prima volta che il player incontra ciascuna meccanica, poi tacciono per sempre.
+
+- **new**: `src/systems/HintTracker.js` — gate lifetime su `localStorage` (`fiat_hint_*`). API: `trigger(key, showFn, delayMs)`, `isShown`, `markShown`, `reset`. Suppressione automatica durante WARMUP (il tutorial ha le sue prompt).
+- **new**: 6 hint agganciati a trigger reali:
+  - `first_perk` — primo perk elementale raccolto
+  - `first_godchain` — primo GODCHAIN attivato
+  - `dip_half` — DIP meter a 50%
+  - `first_hyper` — primo HYPER attivato
+  - `first_special` — primo drop SPECIAL raccolto
+  - `first_utility` — primo drop UTILITY raccolto
+- **display**: `MemeEngine.showStatus` / `queueMeme` riusati (zero UI nuova). Durante PLAY i memi non-CRITICAL sono già soppressi, gli hint passano via status strip.
+- **i18n**: `HINT_*` in EN/IT (`src/utils/Constants.js`).
+
+### feat(settings): reset tutorial & hint
+
+Bottone "Resetta tutorial" nel pannello Settings (intro + pausa). Cancella tutti i flag `fiat_hint_*` + `fiat_tutorial_{story,arcade}_seen` e conferma con meme. Rende il lifetime-gate reversibile senza pulire cache manualmente.
+
+- **new**: `window.resetTutorial()` in `src/main.js`.
+- **new**: bottone `#set-reset-tutorial-btn` in `index.html` (settings-modal).
+- **i18n**: `RESET_TUTORIAL`, `RESET_TUTORIAL_DONE`.
+
+### fix(tutorial): NEXT salta tra step per altezze card disuguali
+
+Le 3 `.tut-card` (mission/controlli/scudo) hanno testo di lunghezza diversa → altezze diverse → il bottone NEXT si spostava visivamente tra uno step e l'altro.
+
+- **fix**: `style.css` — `min-height: 110px` + `box-sizing: border-box` su `.tut-card`. NEXT resta fermo.
+
+---
+
+## v7.5.1 — Fix leaderboard CORS + restart freeze - 2026-04-20
+
+### fix(leaderboard): CORS blocca entrambi i domini in produzione
+
+Il gioco è servito sia da `fiat-invaders.pages.dev` (Cloudflare Pages) sia da `fiat-invaders.games.psychosoci5l.com` (custom domain). Il worker leaderboard rispondeva con `Access-Control-Allow-Origin` di un solo origin (default o singola env var), quindi una delle due viste era bloccata da CORS: classifica non caricava e submit score falliva.
+
+- **fix**: `workers/leaderboard-worker.js` — `DEFAULT_ORIGIN` singolo sostituito con `DEFAULT_ORIGINS[]` che include entrambi i domini di produzione. `ALLOWED_ORIGIN` env var ora accetta lista comma-separated per aggiungere origin extra (staging, preview deploy).
+- **deploy**: richiede `npx wrangler deploy` del worker per attivarsi.
+
+### fix(state): "Compra il dip" si blocca dopo game over
+
+`restartFromGameOver()` / `restartRun()` chiamavano `startGame()` → `_startPlayCountdown()` → `setGameState('PLAY')`. Ma la transition table permette solo `GAMEOVER → INTRO` e `PAUSE → PLAY|INTRO|…`: da GAMEOVER il salto diretto a PLAY veniva silenziosamente bloccato da `GameStateMachine.transition()`. Il countdown partiva visivamente ma `G.GameState` restava `GAMEOVER`, quindi ogni sistema che gate-a su `GameState.is('PLAY')` rimaneva inattivo (nessun fire, nessuno spawn).
+
+- **fix**: `src/main.js` — entrambi i wrapper di restart ora fanno `G.GameState.forceSet('INTRO')` prima di `startGame()`, così le transizioni successive (INTRO → WARMUP/PLAY) sono valide.
+- **console error**: scompare `[GameState] BLOCKED invalid transition: GAMEOVER → PLAY`.
+
 ## v7.5.0 — V8 regional thematization - 2026-04-19
 
 ### fix(v8): freeze dopo boss L1/L2 in campaign mode

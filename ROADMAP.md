@@ -1,6 +1,6 @@
 # Roadmap: FIAT vs CRYPTO
 
-> **Versione corrente**: v7.5.0 (2026-04-19)
+> **Versione corrente**: v7.7.0 (2026-04-20)
 > **Branch attivo**: `main`
 > **Modalità primaria**: v8 scroller Gradius-style (`V8_MODE.ENABLED=true`)
 > **Modalità legacy**: Arcade rogue Space-Invaders (WaveManager)
@@ -24,6 +24,8 @@ Da Space Invaders (formazioni statiche + WaveManager) a shmup verticale Gradius-
 - **v7.4.1** — L1 onboarding rampa (OPENING 0-50s solo WEAK, 59→30 burst)
 - **v7.4.2** — `V8_RAMP` fire budget scalato su `_elapsed/BOSS_AT_S` (0.35 → 1.0 quadratico)
 - **v7.5.0** — **regional thematization** (L1 USA, L2 EU, L3 Asia) + `TIER_TARGETS` normalization + fix freeze post-boss con chapter
+- **v7.6.0** — onboarding hint contestuali (status strip, lifetime gate via `HintTracker`) + reset tutorial in Settings — *pattern abbandonato in v7.7.0*
+- **v7.7.0** — **lesson modals** che mettono in pausa al primo incontro con ogni meccanica (FIRE/LASER/ELECTRIC/GODCHAIN/DIP/HYPER/SPECIAL/UTILITY) + tutorial WARMUP rinfrescato (4 step incl. HYPER, SKIP, font più grandi) + fix `deathTimer` durante PAUSE + fix `restartRun` (HANGAR vs INTRO)
 
 ### Altri sistemi maturi (v6 era, ancora in uso)
 Combat core (weapon evo, GODCHAIN, elemental perks, proximity kill), rendering cyberpunk, HUD/status, audio richness v6.7, tilt/mouse input, PWA full-bleed, debug overlay v2, leaderboard anti-spam, OLED pure black UI.

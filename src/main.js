@@ -890,6 +890,30 @@ function init() {
         events.on('GODCHAIN_DEACTIVATED', () => {
             // v5.26: Combat HUD Bar handles deactivation via _updateCombatHUD()
         });
+        // v7.7.0: First-encounter lesson modals (replaces v7.6.0 status-strip hints)
+        // Game pauses when a lesson modal opens. Each lesson shows once per device.
+        // GODCHAIN_ACTIVATED fires AFTER the perk pickup that triggered it; the small
+        // delay lets the perk lesson queue first so GODCHAIN comes second.
+        events.on('GODCHAIN_ACTIVATED', () => {
+            if (G.LessonModal) setTimeout(() => G.LessonModal.show('lesson_godchain'), 400);
+        });
+        events.on('HYPER_ACTIVATED', () => {
+            if (G.LessonModal) G.LessonModal.show('lesson_hyper');
+        });
+        events.on('powerup_pickup', (data) => {
+            if (!G.LessonModal || !data) return;
+            if (data.category === 'perk') {
+                const key = data.elemType === 'LASER'    ? 'lesson_laser'
+                          : data.elemType === 'ELECTRIC' ? 'lesson_electric'
+                          : data.elemType === 'FIRE'     ? 'lesson_fire'
+                          : null;
+                if (key) G.LessonModal.show(key);
+            } else if (data.category === 'special') {
+                G.LessonModal.show('lesson_special');
+            } else if (data.category === 'utility') {
+                G.LessonModal.show('lesson_utility');
+            }
+        });
         // Harmonic Conductor bullet spawning
         events.on('harmonic_bullets', (data) => {
             if (!data || !data.bullets) return;
@@ -1559,6 +1583,15 @@ function updateUIText() {
 }
 
 window.toggleLang = function () { currentLang = (currentLang === 'EN') ? 'IT' : 'EN'; G._currentLang = currentLang; localStorage.setItem('fiat_lang', currentLang); updateUIText(); };
+// v7.6.0 — Reset tutorial + lifetime hints (Settings button)
+window.resetTutorial = function () {
+    if (G.HintTracker) G.HintTracker.reset();
+    try {
+        localStorage.removeItem('fiat_tutorial_story_seen');
+        localStorage.removeItem('fiat_tutorial_arcade_seen');
+    } catch {}
+    if (G.MemeEngine) G.MemeEngine.queueMeme('NORMAL', t('RESET_TUTORIAL_DONE'), '\u21BB');
+};
 window.toggleSettings = function () { setStyle('settings-modal', 'display', (document.getElementById('settings-modal').style.display === 'flex') ? 'none' : 'flex'); updateUIText(); };
 window.toggleCreditsPanel = function () {
     const panel = document.getElementById('credits-panel');
@@ -1764,9 +1797,9 @@ function showTutorialOverlay() {
         const key = el.getAttribute('data-i18n');
         if (T[key]) el.textContent = T[key];
     });
-    // Reset to step 0
+    // Reset to step 0 — v7.7.0: 4 steps now (mission/controls/shield/hyper)
     tutorialStep = 0;
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 4; i++) {
         const step = document.getElementById('tut-step-' + i);
         if (step) {
             step.className = 'tut-step' + (i === 0 ? ' tut-step--active' : '');
@@ -1780,6 +1813,9 @@ function showTutorialOverlay() {
         btn.textContent = T.TUT_NEXT || 'NEXT';
         btn.onclick = handleTutorialButton;
     }
+    // v7.7.0: SKIP button → jumps straight to completeTutorial
+    const skipBtn = document.getElementById('tut-skip-btn');
+    if (skipBtn) skipBtn.onclick = completeTutorial;
     overlay.style.display = 'flex';
     tutorialCallback = endWarmup;
 }
@@ -1804,8 +1840,8 @@ function advanceTutorial() {
         curStep.className = 'tut-step';
         nextStep.className = 'tut-step tut-step--active';
         updateTutDots(tutorialStep);
-        // Last step → change button to GO!
-        if (tutorialStep === 2) {
+        // Last step (HYPER, idx 3) → change button to GO!
+        if (tutorialStep === 3) {
             const T = G.TEXTS[G._currentLang || 'EN'] || G.TEXTS.EN;
             const btn = document.getElementById('tut-go-btn');
             if (btn) btn.textContent = T.GO || 'GO!';
@@ -1814,7 +1850,7 @@ function advanceTutorial() {
 }
 
 function handleTutorialButton() {
-    if (tutorialStep < 2) {
+    if (tutorialStep < 3) {
         advanceTutorial();
     } else {
         completeTutorial();
@@ -1875,6 +1911,8 @@ window.restartRun = function () {
     setStyle('pause-screen', 'display', 'none');
     if (_blockIfDailyConsumed()) return;
     audioSys.resetState(); // Reset audio state for new run
+    // v7.7.0: forceSet HANGAR (not INTRO) — INTRO → PLAY is blocked, HANGAR → PLAY is valid.
+    if (G.GameState) G.GameState.forceSet('HANGAR');
     startGame();
 };
 window.restartFromGameOver = function () {
@@ -1882,6 +1920,8 @@ window.restartFromGameOver = function () {
     setStyle('gameover-screen', 'display', 'none');
     if (_blockIfDailyConsumed()) return;
     audioSys.resetState(); // Reset audio state for new run
+    // v7.7.0: forceSet HANGAR — only state that directly allows PLAY/WARMUP.
+    if (G.GameState) G.GameState.forceSet('HANGAR');
     startGame();
 };
 
@@ -4240,7 +4280,12 @@ window.Game.addProximityMeter = function(gain) {
     // v4.61: Skip accumulation during HYPER
     if (player && player.isHyperActive && player.isHyperActive()) return;
     lastGrazeTime = totalTime;
+    const _prevMeter = grazeMeter;
     grazeMeter = Math.min(100, grazeMeter + gain);
+    // v7.7.0: Lesson modal — explain DIP meter the first time it crosses 50%
+    if (_prevMeter < 50 && grazeMeter >= 50 && G.LessonModal) {
+        G.LessonModal.show('lesson_dip');
+    }
     const Balance = window.Game.Balance;
     if (grazeMeter >= Balance.HYPER.METER_THRESHOLD && player && player.hyperCooldown <= 0) {
         if (Balance.HYPER.AUTO_ACTIVATE && player.canActivateHyper && player.canActivateHyper(grazeMeter)) {
@@ -4286,7 +4331,10 @@ function loop(timestamp) {
     }
 
     // Death Sequence (uses real time, not slowed time)
-    if (deathTimer > 0) {
+    // v7.7.1: freeze the death countdown during PAUSE (incl. lesson modals) so a
+    // pickup taken on the last frame of a lethal hit cannot "steal a life" while
+    // the player is reading a lesson.
+    if (deathTimer > 0 && gameState !== 'PAUSE') {
         deathTimer -= realDt;
         if (deathTimer <= 0) {
             deathTimer = 0;
@@ -4460,7 +4508,7 @@ function updatePowerUps(dt) {
                         G.Debug.trackPowerUpCollected(p.type, p.isPityDrop || false);
                     }
                     powerUps.splice(i, 1);
-                    emitEvent('powerup_pickup', { type: p.type, category: 'perk' });
+                    emitEvent('powerup_pickup', { type: p.type, category: 'perk', elemType: elemType });
                     continue;
                 }
 

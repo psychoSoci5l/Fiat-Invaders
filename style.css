@@ -5106,10 +5106,29 @@ body.is-touch p.mobile-only { display: block; }
     align-items: center;
     gap: 14px;
     text-align: left;
-    padding: 18px 20px;
+    padding: 20px 22px;
     border-radius: 12px;
     border-left: 3px solid transparent;
     background: rgba(255, 255, 255, 0.04);
+    min-height: 140px;
+    box-sizing: border-box;
+}
+
+.tut-card .tutorial-text {
+    font-size: 18px;
+    line-height: 1.55;
+}
+
+@media (min-width: 768px) {
+    .tut-card .tutorial-text { font-size: 20px; }
+}
+
+/* SKIP button (top-right of tutorial overlay) */
+.tut-skip-btn {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    z-index: 1;
 }
 
 .tut-icon {
@@ -5169,12 +5188,90 @@ body.is-touch p.mobile-only { display: block; }
 
 .tutorial-title {
     color: #bb44ff;
-    font-size: 18px;
+    font-size: 22px;
     font-weight: 900;
     letter-spacing: 5px;
     margin: 0 0 6px 0;
     text-shadow: 0 0 15px rgba(187, 68, 255, 0.5);
     text-transform: uppercase;
+}
+
+@media (min-width: 768px) {
+    .tutorial-title { font-size: 26px; }
+}
+
+/* ============================================================
+   LESSON MODAL — v7.7.0 first-encounter teaching modal
+   ============================================================ */
+#lesson-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 9700;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.78);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.lesson-card {
+    width: 100%;
+    max-width: 380px;
+    background: #000;
+    border: 2px solid #bb44ff;
+    border-radius: 16px;
+    box-shadow: 0 0 30px rgba(187, 68, 255, 0.45);
+    padding: 28px 24px 22px 24px;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.lesson-icon {
+    font-size: 64px;
+    line-height: 1;
+    margin-bottom: 12px;
+    filter: drop-shadow(0 0 10px rgba(187, 68, 255, 0.6));
+}
+
+.lesson-title {
+    color: #bb44ff;
+    font-size: 26px;
+    font-weight: 900;
+    letter-spacing: 4px;
+    margin: 0 0 14px 0;
+    text-transform: uppercase;
+    text-shadow: 0 0 14px rgba(187, 68, 255, 0.6);
+}
+
+.lesson-body {
+    color: #e8e8e8;
+    font-size: 17px;
+    line-height: 1.55;
+    margin: 0 0 22px 0;
+    text-align: left;
+}
+
+@media (min-width: 768px) {
+    .lesson-card { max-width: 440px; padding: 32px 28px 24px 28px; }
+    .lesson-title { font-size: 30px; }
+    .lesson-body { font-size: 19px; }
+    .lesson-icon { font-size: 76px; }
+}
+
+#lesson-modal.lesson-modal-enter .lesson-card {
+    animation: lessonCardIn 0.32s cubic-bezier(0.22, 1.2, 0.36, 1) both;
+}
+
+@keyframes lessonCardIn {
+    from { opacity: 0; transform: scale(0.88); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #lesson-modal.lesson-modal-enter .lesson-card { animation: none; }
 }
 
 .tutorial-text {

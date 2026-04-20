@@ -13,6 +13,11 @@ _ps_meta/
 _generate_icons.html
 _remotion/
 
+# === Local scratch / dev-only dirs ===
+production/
+proto/
+workers/.wrangler/
+
 # === Windows artifacts ===
 nul
 Thumbs.db

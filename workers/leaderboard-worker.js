@@ -24,13 +24,18 @@ const TIMESTAMP_WINDOW = 300000;  // 5 minutes max clock drift
 const NONCE_TTL = 600;            // 10 minutes — nonce expiry in KV
 const MIN_PLAY_TIME_MS = 15000;   // minimum 15s of gameplay for a valid score
 
-// Production domain — fallback if env var not set
-const DEFAULT_ORIGIN = 'https://fiat-invaders.games.psychosoci5l.com';
+// Production domains — both canonical and Cloudflare Pages mirror.
+// env.ALLOWED_ORIGIN (comma-separated) can add/override at deploy time.
+const DEFAULT_ORIGINS = [
+  'https://fiat-invaders.games.psychosoci5l.com',
+  'https://fiat-invaders.pages.dev'
+];
 
 function getAllowedOrigins(env) {
-  const origins = [DEFAULT_ORIGIN];
-  if (env.ALLOWED_ORIGIN && env.ALLOWED_ORIGIN !== DEFAULT_ORIGIN) {
-    origins.push(env.ALLOWED_ORIGIN);
+  const origins = DEFAULT_ORIGINS.slice();
+  if (env.ALLOWED_ORIGIN) {
+    const extra = env.ALLOWED_ORIGIN.split(',').map(s => s.trim()).filter(Boolean);
+    for (const o of extra) if (!origins.includes(o)) origins.push(o);
   }
   return origins;
 }
