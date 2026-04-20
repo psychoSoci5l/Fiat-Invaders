@@ -1,5 +1,24 @@
 # Changelog
 
+## v7.11.1 — Fix: Arcade mode finally uses WaveManager (no more looped FED boss + freeze) - 2026-04-21
+
+### fix(arcade): V8 mode era campaign-only sulla carta ma globale nel codice
+
+La modalità Arcade stava entrando nel path V8 scroller anche quando non doveva. Sintomi segnalati in-game: dopo 4 minuti il boss FED era apparso 3 volte (niente mini-boss, niente rotazione FED→BCE→BOJ) e dopo aver finalmente ucciso il boss "vero" la schermata si bloccava — navicella visibile, countdown ok, ma nessun nemico in arrivo.
+
+Causa: `Balance.V8_MODE.ENABLED = true` è un flag globale, e 5 gate nel codice lo leggevano senza chiedersi se la run fosse Arcade o Story. Risultato: in Arcade, `WaveManager.update()` usciva subito con `return null` (niente wave, niente mini-boss), `LevelScript.tick()` ripeteva in loop lo script del Livello 1 (boss FED ogni 170s), e al boss defeat la callback saltava il ramo `startIntermission` + modifier-choice perché `_v8Enabled` era true → freeze.
+
+Fix: tutti e 5 i gate ora includono `&& !ArcadeModifiers.isArcadeMode()`.
+
+- **fix(WaveManager)**: il return-null che mette il manager dormiente in V8 ora si attiva solo fuori da Arcade — Arcade torna a girare sul sistema wave + phase streaming + elite + behaviors come pre-V8.
+- **fix(LevelScript tick in main.js)**: il tick che legge bursts/pattern/boss scheduling non gira più in Arcade.
+- **fix(boss rotation in spawnBoss)**: l'override `LevelScript.BOSS_TYPE` che forza FED→BCE→BOJ per livello è campaign-only. In Arcade ritorna attiva la rotazione basata su `marketCycle` (FED ciclo 1, BCE ciclo 2, BOJ ciclo 3, poi ripete).
+- **fix(boss defeat flow in GameplayCallbacks)**: `_v8Enabled` è calcolato come `V8_MODE.ENABLED && !isArcade`. Questo riabilita il ramo `startIntermission(...) + ModifierChoiceScreen.show(picks)` che era stato saltato, risolvendo il freeze post-boss.
+- **fix(HarmonicConductor V8_RAMP)**: il fire-budget ramp quadratico (0.35× → 1.0× su `elapsed/BOSS_AT_S`) è campaign-only. In Arcade, senza `LevelScript.tick()`, `ls._elapsed` sarebbe sempre 0 e il ramp avrebbe nerfato il fuoco nemico al 35% permanente — ora non parte neanche.
+- **fix(bullet ownerColor in main.js)**: la regola V8 di nullificare `ownerColor` per leggibilità (proiettili bianchi invece che tinti) era estesa anche ad Arcade. Ora Arcade mantiene i proiettili tinti per valuta, V8 campagna continua col bianco.
+
+Nessuna modifica al balance Arcade o alla logica V8 campagna — puro gating.
+
 ## v7.11.0 — Premium story crawl + intermission music + cinematic ship entry - 2026-04-21
 
 ### feat(story): le intermission narrative diventano cinematiche

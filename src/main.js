@@ -932,7 +932,9 @@ function init() {
                 bullet.symbol = bd.symbol || null; // v7.9.5: currency glyph for symbol-bullet renderer
                 // v4.56: enemy color for core tint. v7.2.2: forced null in V8 mode for legibility
                 // (red ¥ bullets blended with red ¥ enemies — pure white reads better on Gradius scroll).
-                bullet.ownerColor = (G.Balance?.V8_MODE?.ENABLED) ? null : (bd.ownerColor || null);
+                // v7.11.1: V8 legibility rule (null ownerColor) is campaign-only; Arcade keeps colored bullets.
+                const _isArcadeBul = G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode();
+                bullet.ownerColor = (G.Balance?.V8_MODE?.ENABLED && !_isArcadeBul) ? null : (bd.ownerColor || null);
                 if (bd.isBomb) bullet.isBomb = true; // v5.32: Bomber bomb flag
                 enemyBullets.push(bullet);
             }
@@ -2663,7 +2665,9 @@ function spawnBoss() {
     const bossRotation = G.BOSS_ROTATION || ['FEDERAL_RESERVE', 'BCE', 'BOJ'];
     let bossType = bossRotation[(marketCycle - 1) % bossRotation.length];
     // v7.2.0: in V8_MODE, LevelScript declares the boss per level — overrides cycle rotation
-    if (G.Balance?.V8_MODE?.ENABLED && G.LevelScript && G.LevelScript.BOSS_TYPE) {
+    // v7.11.1: V8 is campaign-only — Arcade keeps the FED→BCE→BOJ cycle rotation.
+    const _isArcadeBossOverride = G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode();
+    if (G.Balance?.V8_MODE?.ENABLED && !_isArcadeBossOverride && G.LevelScript && G.LevelScript.BOSS_TYPE) {
         bossType = G.LevelScript.BOSS_TYPE;
     }
     const campaignState = G.CampaignState; // Still needed for NG+ multiplier
@@ -2910,8 +2914,10 @@ function update(dt) {
     const isBossActive = !!boss || bossWarningTimer > 0;
     let waveAction = (startCountdownActive || shipEntryActive) ? null : waveMgr.update(dt, gameState, enemies.length, isBossActive);
     // v8: LevelScript drives spawns + boss trigger. waveMgr.update() returns null in V8 mode.
+    // v7.11.1: V8 is campaign-only — skip LevelScript tick in Arcade.
+    const _isArcadeV8Tick = G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode();
     if (!startCountdownActive && !shipEntryActive && gameState === 'PLAY' && !isBossActive &&
-        G.Balance.V8_MODE && G.Balance.V8_MODE.ENABLED && G.LevelScript) {
+        G.Balance.V8_MODE && G.Balance.V8_MODE.ENABLED && !_isArcadeV8Tick && G.LevelScript) {
         const v8Action = G.LevelScript.tick(dt);
         if (v8Action) waveAction = v8Action;
     }

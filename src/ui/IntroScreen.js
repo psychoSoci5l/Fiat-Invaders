@@ -592,6 +592,94 @@ window.Game = window.Game || {};
     // What's New panel (v4.50, i18n v5.18)
     const WHATS_NEW = [
         {
+            version: 'v7.11', date: '2026-04-21',
+            title: { EN: 'Premium Story Crawl + Cinematic Entry', IT: 'Crawl Narrativo Premium + Entrata Cinematica' },
+            items: {
+                EN: [
+                    'Story intermissions redesigned — crisp sans-serif body, cinematic bottom-to-top scroll, edge fade masks',
+                    'Dedicated intermission theme "Reflection" — Am9 → Fmaj9 → Cmaj9 → G6, contemplative, drumless',
+                    'Cinematic ship entry — ship flies in from below into formation before the 3-2-1 countdown',
+                    'Every level transition gets the full cinematic start, not just the first launch'
+                ],
+                IT: [
+                    'Intermission narrative ridisegnate — testo sans-serif nitido, scorrimento cinematico dal basso, dissolvenze ai bordi',
+                    'Tema musicale dedicato "Reflection" — Am9 → Fmaj9 → Cmaj9 → G6, contemplativo, senza drum',
+                    'Entrata nave cinematica — la navicella entra da sotto e si posiziona in formazione prima del 3-2-1',
+                    'Ogni cambio livello parte con la sequenza cinematica, non solo il primo lancio'
+                ]
+            }
+        },
+        {
+            version: 'v7.10', date: '2026-04-20',
+            title: { EN: 'Kondo Soundtrack + Reactive Music', IT: 'Colonna Sonora Kondo + Musica Reattiva' },
+            items: {
+                EN: [
+                    'Soundtrack rewritten in Koji Kondo harmonic grammar — maj9/m9/13/7alt voicings, ii-V-I-VI progressions',
+                    'Reactive music — intensity ramps with boss phases, HYPER and GODCHAIN boost the mix',
+                    'Pause now stops music (no more phantom track playing in background)',
+                    'Music ON by default on first launch'
+                ],
+                IT: [
+                    'Colonna sonora riscritta in grammatica armonica Kondo — voicing maj9/m9/13/7alt, progressioni ii-V-I-VI',
+                    'Musica reattiva — intensità cresce con le fasi del boss, HYPER e GODCHAIN spingono il mix',
+                    'Pausa ora ferma la musica (niente più traccia fantasma di sottofondo)',
+                    'Musica ON di default al primo avvio'
+                ]
+            }
+        },
+        {
+            version: 'v7.9', date: '2026-04-20',
+            title: { EN: 'Agents of the System — Enemy Restyle', IT: 'Agents of the System — Restyle Nemici' },
+            items: {
+                EN: [
+                    'Enemies fully restyled — procedural pilot + vehicle (no sprites), 12 per-currency species',
+                    '3 regional vehicles — USA Stealth Wedge, EU Diplomatic Shuttle, Asia Mech Quad-Drone',
+                    'Gravity Gate — enemies hover-stop mid-screen, flip upright suspended against gravity, then leave',
+                    'Currency Rain — enemy bullets render as the shooter\'s currency glyph (€ fires €, $ fires $)'
+                ],
+                IT: [
+                    'Nemici completamente ridisegnati — pilota + veicolo procedurali (niente sprite), 12 specie per valuta',
+                    '3 veicoli regionali — USA Stealth Wedge, EU Diplomatic Shuttle, Asia Mech Quad-Drone',
+                    'Gravity Gate — i nemici si fermano sospesi a metà schermo, si capovolgono contro gravità, poi ripartono',
+                    'Pioggia di Valute — i proiettili nemici hanno il glifo della valuta di chi spara (€ spara €, $ spara $)'
+                ]
+            }
+        },
+        {
+            version: 'v7.7', date: '2026-04-20',
+            title: { EN: 'Lesson Modals + Tutorial Refresh', IT: 'Lezioni + Tutorial Rinnovato' },
+            items: {
+                EN: [
+                    'Educational lesson modals — contextual onboarding for the game\'s core concepts',
+                    'Tutorial refreshed — clearer copy, mode-aware (Story vs Arcade)',
+                    'Fixes on pause/restart — no more stuck states on quick retry'
+                ],
+                IT: [
+                    'Modali didattici contestuali — onboarding sui concetti chiave del gioco',
+                    'Tutorial rinnovato — testi più chiari, differenziato per modalità (Story vs Arcade)',
+                    'Fix pausa/restart — niente più stati bloccati al retry rapido'
+                ]
+            }
+        },
+        {
+            version: 'v7.5', date: '2026-04-19',
+            title: { EN: 'V8 Scroller + Regional Thematization', IT: 'V8 Scroller + Tematizzazione Regionale' },
+            items: {
+                EN: [
+                    'Campaign now runs as vertical scroller (Gradius-style) with 170s per-level timeline + boss',
+                    'Regional currency rosters — L1 USA ($/C$/Ⓒ/₽), L2 EU (€/£/₣/₺), L3 Asia (¥/元/₩/₹)',
+                    'LEVEL 3 (BOJ) — campaign finale with Asia roster',
+                    'Fire budget ramps quadratically toward boss time — opening is breathable, endgame is crushing'
+                ],
+                IT: [
+                    'La campagna è ora uno scroller verticale (stile Gradius) con timeline di 170s per livello + boss',
+                    'Roster valute regionali — L1 USA ($/C$/Ⓒ/₽), L2 UE (€/£/₣/₺), L3 Asia (¥/元/₩/₹)',
+                    'LIVELLO 3 (BOJ) — finale campagna con roster asiatico',
+                    'Fire budget sale quadratico verso il boss — apertura respirabile, endgame schiacciante'
+                ]
+            }
+        },
+        {
             version: 'v6.9', date: '2026-04-14',
             title: { EN: '"Major Release" — Architecture + Balance', IT: '"Major Release" — Architettura + Bilanciamento' },
             items: {

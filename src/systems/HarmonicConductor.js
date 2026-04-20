@@ -266,7 +266,9 @@ window.Game.HarmonicConductor = {
         const v8cfg = window.Game.Balance?.V8_MODE;
         const rampCfg = cfg.V8_RAMP;
         const ls = window.Game.LevelScript;
-        if (v8cfg?.ENABLED && rampCfg?.ENABLED && ls && typeof ls._elapsed === 'number') {
+        // v7.11.1: V8 ramp is campaign-only. In Arcade the fire budget stays at its base rate.
+        const _isArcadeRamp = window.Game.ArcadeModifiers && window.Game.ArcadeModifiers.isArcadeMode();
+        if (v8cfg?.ENABLED && !_isArcadeRamp && rampCfg?.ENABLED && ls && typeof ls._elapsed === 'number') {
             const bossAt = ls.BOSS_AT_S || 170;
             const t = Math.max(0, Math.min(1, ls._elapsed / bossAt));
             const curved = rampCfg.CURVE === 'quad' ? t * t : t;

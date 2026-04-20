@@ -45,7 +45,9 @@ window.Game.WaveManager = {
         const G = window.Game;
 
         // v8: LevelScript drives spawns. WaveManager stays dormant.
-        if (G.Balance && G.Balance.V8_MODE && G.Balance.V8_MODE.ENABLED) {
+        // v7.11.1: V8 is campaign-only — Arcade always uses WaveManager path.
+        const _isArcadeWM_v8 = G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode();
+        if (G.Balance && G.Balance.V8_MODE && G.Balance.V8_MODE.ENABLED && !_isArcadeWM_v8) {
             return null;
         }
 

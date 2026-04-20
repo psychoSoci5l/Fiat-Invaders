@@ -391,7 +391,9 @@ window.Game = window.Game || {};
                     // v8 S05: resume scroll at reduced "breathing" speed.
                     // NOTE: scheduleLevelEnd is deferred until after celebration/chapter flow
                     // to avoid racing with showStoryScreen modal (see line ~548).
-                    const _v8Enabled = !!(Balance.V8_MODE && Balance.V8_MODE.ENABLED);
+                    // v7.11.1: V8 is campaign-only — Arcade follows the WaveManager + modifier-choice path.
+                    const _v8ArcadeCheck = G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode();
+                    const _v8Enabled = !!(Balance.V8_MODE && Balance.V8_MODE.ENABLED) && !_v8ArcadeCheck;
                     if (_v8Enabled) {
                         if (G.ScrollEngine && G.ScrollEngine.resume) G.ScrollEngine.resume(40);
                     }
