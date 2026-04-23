@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v7.12.10 FIAT vs CRYPTO";
+window.Game.VERSION = "v7.12.11 FIAT vs CRYPTO";
 
 // Leaderboard API
 window.Game.LEADERBOARD_API = 'https://fiat-vs-crypto-leaderboard.psychosocial-01.workers.dev/api';
@@ -898,10 +898,7 @@ window.Game.BOSSES = {
         darkColor: '#004422',
         symbol: '$',
         country: '🇺🇸',
-        personality: 'arrogant',
-        baseHp: 2000,
-        hpPerLevel: 150,
-        hpPerCycle: 250
+        personality: 'arrogant'
     },
     BCE: {
         name: 'BCE',
@@ -911,10 +908,7 @@ window.Game.BOSSES = {
         darkColor: '#001a4d',
         symbol: '€',
         country: '🇪🇺',
-        personality: 'bureaucratic',
-        baseHp: 2000,
-        hpPerLevel: 150,
-        hpPerCycle: 250
+        personality: 'bureaucratic'
     },
     BOJ: {
         name: 'BOJ',
@@ -924,10 +918,7 @@ window.Game.BOSSES = {
         darkColor: '#6b0019',
         symbol: '¥',
         country: '🇯🇵',
-        personality: 'zen',
-        baseHp: 2000,
-        hpPerLevel: 150,
-        hpPerCycle: 250
+        personality: 'zen'
     }
 };
 

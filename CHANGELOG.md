@@ -1,5 +1,35 @@
 # Changelog
 
+## v7.12.11 — Tech-debt cleanup: dead config + JACKPOT consistency - 2026-04-23
+
+Chiusura low-rischio dei debts emersi dai reverse-doc v7.12.9–10. Solo deletion + 1 fix di coerenza. Nessun impatto balance, zero playtest richiesto.
+
+### Deletion (zero-caller confermato via grep)
+
+- **`Balance.PROXIMITY_KILL.HYPER_KILL_EXTENSION: 0`** rimosso da [BalanceConfig.js:1279](src/config/BalanceConfig.js#L1279). Era disabled dal v4.60 (HYPER fixed duration), mai letto.
+- **`Balance.WAVE_DEFINITIONS.CURRENCY_THEMES`** (10 bloc: ASIAN_BLOC, EURO_BLOC, EMERGING, DOLLAR_ALLIES, BRICS, DIGITAL_THREAT, WEAK_ONLY, MEDIUM_ONLY, STRONG_ONLY, ALL_MIX) rimosso da [BalanceConfig.js:1476](src/config/BalanceConfig.js#L1476). Solo palette documentale, mai chiamato dalle wave defs (che referenziano simboli direttamente).
+- **`Constants.BOSSES[*].baseHp/hpPerLevel/hpPerCycle`** rimossi dai 3 boss (FED/BCE/BOJ) in [Constants.js:892](src/utils/Constants.js#L892). La scaling path usa `Balance.BOSS.HP.*` ([main.js:2697](src/main.js#L2697)). Le variabili locali `baseHp/hpPerLevel/hpPerCycle` in MiniBossManager/main/LevelScript sono omonime ma distinte (non leggevano `BOSSES[*]`).
+
+### Fix coerenza — JACKPOT modifier
+
+- **`onBossHit` ora applica `arcadeBonuses.grazeGainMult`** ([GameplayCallbacks.js:345](src/core/GameplayCallbacks.js#L345)). Era l'unico gain path che ignorava il modifier mentre `onEnemyKilled` (riga 281) e `addProximityMeter` (main.js:4396) lo applicavano. JACKPOT ora coerente su tutte e 3 le path DIP (kill / boss hit / phase transition via addProximityMeter). Il CHANGELOG v7.12.6 dichiarava il fix completo ma il path boss-hit era stato mancato.
+
+### Verifica runtime
+
+Preview reload eseguito, confermato:
+- `Balance.PROXIMITY_KILL.HYPER_KILL_EXTENSION` → `undefined`
+- `Balance.WAVE_DEFINITIONS.CURRENCY_THEMES` → `undefined`
+- `Game.BOSSES.FEDERAL_RESERVE.baseHp` → `undefined`
+- `Game.BOSSES.FEDERAL_RESERVE.name` / `symbol` / etc. → integri
+- Zero errori console
+
+### Debts residui (da sprint futuro)
+
+- **Consolidamento 3 formule power-score** (APC 0.50/0.30/0.20 vs ADAPTIVE_DROPS 0.65/0.35 vs Balancer 0.50/0.25/0.25) — richiede design decision + playtest.
+- **Rename `grazeMeter` → `proximityMeter`** repo-wide — cosmetic, da fare incrementalmente.
+- **Non-streaming `startWave` branch** in WaveManager — da valutare se eliminare (safety fallback?).
+- **Legacy formations** (V_SHAPE/COLUMNS/SINE_WAVE) e **currency-symbol formations** (BTC_SYMBOL/…) irraggiungibili salvo post-C3 40% remix — da decidere se usare più spesso o rimuovere.
+
 ## v7.12.10 — Boss+Proximity + Wave legacy GDD reverse-doc (2×M) - 2026-04-23
 
 Chiusura dell'infrastruttura GDD reverse-documented per FvC: con i due GDD di questa patch la copertura dei sistemi core è **completa**.

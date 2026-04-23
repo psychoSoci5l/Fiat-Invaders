@@ -342,8 +342,11 @@ window.Game = window.Game || {};
                     d.setScore(d.getScore() + hitScore);
                     d.updateScore(d.getScore(), hitScore);
                     // Proximity Kill Meter: boss hits give small meter gain
-                    const bossGain = Balance.PROXIMITY_KILL.BOSS_HIT_GAIN;
+                    const _isArcadeBoss = G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode();
+                    let bossGain = Balance.PROXIMITY_KILL.BOSS_HIT_GAIN;
                     if (bossGain > 0 && !(d.player.isHyperActive && d.player.isHyperActive())) {
+                        // v7.12.11: Arcade JACKPOT modifier halves boss-hit gain (was inconsistent vs onEnemyKilled/addProximityMeter)
+                        if (_isArcadeBoss) bossGain *= (G.RunState.arcadeBonuses?.grazeGainMult ?? 1);
                         d.setLastGrazeTime(d.getTotalTime());
                         d.setGrazeMeter(Math.min(100, d.getGrazeMeter() + bossGain));
                         d.updateGrazeUI();

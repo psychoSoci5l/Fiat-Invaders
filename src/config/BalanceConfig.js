@@ -1276,7 +1276,6 @@
             METER_GAIN_MIN: 1,     // Meter gain at max distance
             BOSS_PHASE_GAIN: 15,   // Gain per boss phase completed
             BOSS_HIT_GAIN: 0.15,   // v4.40: 0.4→0.15, gradual meter build during boss (prevents sudden HYPER)
-            HYPER_KILL_EXTENSION: 0, // v4.60: disabled (was 0.4, HYPER is now fixed duration)
         },
 
         // --- BULLET CONFIG v4.22 (Centralized bullet parameters) ---
@@ -1472,20 +1471,6 @@
         // 15 unique waves (5 per cycle × 3 cycles)
         // Each wave has: formation, enemy counts, currency themes
         WAVE_DEFINITIONS: {
-            // Currency theme groups for thematic waves
-            CURRENCY_THEMES: {
-                ASIAN_BLOC: ['¥', '元', '₹'],      // Yen, Yuan, Rupee
-                EURO_BLOC: ['€', '£', '₣'],        // Euro, Pound, Franc
-                EMERGING: ['₽', '₹', '₺'],         // Ruble, Rupee, Lira
-                DOLLAR_ALLIES: ['$', '€', '£'],    // Dollar + Western
-                BRICS: ['₽', '₹', '元'],           // BRICS nations
-                DIGITAL_THREAT: ['Ⓒ', '$', '元'],  // CBDCs + majors
-                WEAK_ONLY: ['¥', '₽', '₹'],
-                MEDIUM_ONLY: ['€', '£', '₣', '₺'],
-                STRONG_ONLY: ['$', '元', 'Ⓒ'],
-                ALL_MIX: ['¥', '₽', '₹', '€', '£', '₣', '₺', '$', '元', 'Ⓒ']
-            },
-
             // v4.6.1: Cycle-based enemy count multiplier (player is stronger in later cycles)
             // v4.18: +20% C1, +10% C2, +5% C3 — slow down early cycles, more targets to clear
             CYCLE_COUNT_MULT: [1.0, 1.25, 1.45],  // v4.40: C2 1.375→1.25, C3 1.575→1.45 — reduce enemy count inflation
