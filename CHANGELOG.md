@@ -1,5 +1,25 @@
 # Changelog
 
+## v7.12.9 — Drop System + APC GDD reverse-doc (M) - 2026-04-23
+
+Reverse-documentato Drop System + Adaptive Drop Balancer + Adaptive Power Calibration in un GDD scope M: [design/gdd/drop-system-apc.md](design/gdd/drop-system-apc.md). Orchestrazione single-agent sonnet. Verdict APPROVED + 8 reco documentate.
+
+### Fix docs (drift CLAUDE.md vs codice)
+
+- **Tier terminology**: STRONG/MEDIUM/WEAK (doc diceva SMALL/MEDIUM/STRONG).
+- **Pity cycle-scaled** documentato: `PITY_BASE:30 - (cycle-1)×2` con floor 15 (C1=30/C2=28/C3=26). Prima "pity 30 kills" era monco.
+- **UPGRADE eliminato dai drop nemici** (v5.11) — prima non menzionato in CLAUDE.md.
+- **Struggle/domination thresholds** esposti (40s/55s force, 1.5 kills/s, ceiling 0.40, floor 0.60).
+- **Post-death 60s grace, Arcade ×0.85, guaranteed SPECIAL wave 4+, APC C2+ only, HP 0.85-1.35×** — tutti aggiunti.
+- **APC power-score formula** esposta: `0.50×weapon + 0.30×perks + 0.20×special`.
+
+### Risk flag (non fix, da GDD sezione E)
+
+- **3 formule power-score coesistenti** (APC 0.50/0.30/0.20 | ADAPTIVE_DROPS 0.65/0.35 | Balancer 0.50/0.25/0.25) — nessuna single source of truth.
+- **Dead config**: `DROPS.PITY_TIMER_KILLS:45` (sostituito da DROP_SCALING), `CATEGORY_WEIGHTS.UPGRADE:1.5` (unreachable post-v5.11).
+- **Anti-cluster 6s hardcoded** in DropSystem.js:562 (dovrebbe stare in config).
+- **APC non calibra C1** — intentional, worth playtest note.
+
 ## v7.12.8 — Weapon+Elementals+GODCHAIN GDD reverse-doc (XL) - 2026-04-23
 
 Reverse-documentato in un unico GDD XL il Combat Progression Core: Weapon Evolution + Elemental Perks + GODCHAIN + Specials + Utilities + HYPER + HYPERGOD ([design/gdd/weapon-elementals-godchain.md](design/gdd/weapon-elementals-godchain.md), ~90 citazioni file:line). Orchestrazione via 3 Explore agent sonnet in parallelo. Verdict APPROVED + 7 reco documentate.
