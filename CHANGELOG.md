@@ -1,5 +1,22 @@
 # Changelog
 
+## v7.12.12 — Fix: Arcade launch blocked (INTRO → PLAY) - 2026-04-23
+
+### fix(state): Arcade launch con tutorial già visto restava fermo
+
+Al tap LAUNCH da intro, in Arcade con `fiat_tutorial_arcade_seen` in localStorage, `startGame()` saltava il ramo WARMUP (line 2357) e chiamava direttamente `_startPlayCountdown()` → `setGameState('PLAY')` da stato `INTRO`. La transition table blocca `INTRO → PLAY` (solo HANGAR/SETTINGS/WARMUP/STORY_SCREEN). Console: `[GameState] BLOCKED invalid transition: INTRO → PLAY`. Countdown partiva visivamente ma il gameplay restava gatato su `GameState.is('PLAY')` → nessun fire, nessuno spawn.
+
+Stessa classe di bug di v7.5.2 (restart da game over) ma sul path di initial launch. Restart era fixato con `forceSet('HANGAR')` nei wrapper di restart; questo path non era coperto.
+
+- **fix**: `src/main.js:2501` — `_startPlayCountdown()` ora fa `G.GameState.forceSet('HANGAR')` se lo stato corrente è `INTRO` prima di chiamare `setGameState('PLAY')`. HANGAR è l'unico predecessore legale di PLAY (non richiede WARMUP).
+- **non cambia**: path campaign (via STORY_SCREEN → PLAY, già valido), path restart (via `forceSet('HANGAR')` dai wrapper, già fixato v7.5.2), path first-play (via WARMUP → PLAY, già valido).
+
+### Verifica runtime
+
+Preview reload v7.12.12. Test state machine: `INTRO → forceSet('HANGAR') → transition('PLAY')` ritorna `true`. Zero errori console.
+
+---
+
 ## v7.12.11 — Tech-debt cleanup: dead config + JACKPOT consistency - 2026-04-23
 
 Chiusura low-rischio dei debts emersi dai reverse-doc v7.12.9–10. Solo deletion + 1 fix di coerenza. Nessun impatto balance, zero playtest richiesto.

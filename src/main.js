@@ -2499,6 +2499,13 @@ window.endWarmup = function() {
 // shipEntry runs first (waves/firing/input blocked); when it completes, the
 // classic countdown takes over.
 function _startPlayCountdown() {
+    // v7.12.12: coming from INTRO (Arcade launch, tutorial already seen) the
+    // direct INTRO → PLAY is blocked by the state machine. HANGAR is the only
+    // predecessor that legally transitions to PLAY without WARMUP. Mirror the
+    // restart-flow fix (v7.5.2) here for the initial launch.
+    if (G.GameState && G.GameState.is('INTRO')) {
+        G.GameState.forceSet('HANGAR');
+    }
     setGameState('PLAY');
     startCountdownTimer = 0;
     startCountdownGoTimer = 0;
