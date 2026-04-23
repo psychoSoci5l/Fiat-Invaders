@@ -1,5 +1,21 @@
 # Changelog
 
+## v7.12.2 — Tutorial SKIP button safe-area + final audit - 2026-04-23
+
+Test post-v7.12.1: tutto OK tranne il bottone SKIP del tutorial che restava nella zona Dynamic Island. Il bottone è `position: absolute` dentro `#tutorial-overlay`: in CSS questo lo posiziona rispetto al **padding box** dell'overlay, ignorando il `padding-top` safe-area aggiunto in v7.12.1 (padding non spinge giù gli abs-positioned figli).
+
+- **fix(tut-skip-btn)**: `top: 14px` → `top: calc(14px + max(env(safe-area-inset-top, 0px), var(--di-safe-top, 0px)))`. Su iPhone 14 Pro Max PWA il bottone ora sta a ~73px dal top, ben cliccabile.
+
+### Audit pattern simili (nessun altro caso)
+
+Ho cercato tutte le occorrenze `position: absolute` con `top: Npx` hardcoded e tutti i `ctx.fillText(…, y)` con y piccolo:
+- Elementi `position: absolute` top-anchored: solo `.tut-skip-btn` aveva il problema. Altri (`#hud-top-bar`, `.hud-score-compact`, `#message-strip`, `#pause-btn`) già usano `var(--safe-top)`.
+- Pulsanti close di modali (`.manual-close`, `.pwa-banner-close`, `.lb-close-btn`) sono tutti in **flex-flow** con margin, quindi il `padding-top` del contenitore li spinge giù correttamente.
+- Canvas `fillText` top-anchored: solo boss countdown + arcade combo avevano Y hardcoded, già fixati in v7.12.1.
+- Elementi bottom-anchored (joystick, pause-btn, graze-meter, control-toast, ecc): tutti già usano `var(--safe-bottom)` dal fix v6.5.3.
+
+Nessun altro punto necessita intervento su iPhone 14/15 Pro Max in PWA standalone.
+
 ## v7.12.1 — PWA deep safe-area fix: UI no longer invades Dynamic Island - 2026-04-23
 
 Follow-up a v7.12.0 dopo test su iPhone 14 Pro Max in PWA installata. Il fix precedente aveva risolto il calcolo di `safeTop` e `--di-safe-top`, ma diversi elementi di UI (canvas HUD e modali DOM) non propagavano il valore ai loro punti di disegno. Principio applicato: lo sfondo/parallax del canvas può estendersi full-bleed sotto la Dynamic Island per dare profondità, ma **nessun testo/UI deve essere disegnato nei primi 59px top** su iPhone con notch/DI.

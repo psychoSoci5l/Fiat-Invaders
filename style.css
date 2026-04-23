@@ -5134,10 +5134,13 @@ body.is-touch p.mobile-only { display: block; }
     .tut-card .tutorial-text { font-size: 20px; }
 }
 
-/* SKIP button (top-right of tutorial overlay) */
+/* SKIP button (top-right of tutorial overlay).
+   v7.12.2: abs-positioned inside #tutorial-overlay ignores the overlay's
+   padding-top, so we must include the safe-area inset directly in `top`
+   to keep it clear of the Dynamic Island. */
 .tut-skip-btn {
     position: absolute;
-    top: 14px;
+    top: calc(14px + max(env(safe-area-inset-top, 0px), var(--di-safe-top, 0px)));
     right: 14px;
     z-index: 1;
 }

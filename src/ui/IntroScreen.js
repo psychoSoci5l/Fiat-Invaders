@@ -592,6 +592,20 @@ window.Game = window.Game || {};
     // What's New panel (v4.50, i18n v5.18)
     const WHATS_NEW = [
         {
+            version: 'v7.12.2', date: '2026-04-23',
+            title: { EN: 'Tutorial SKIP button clears Dynamic Island', IT: 'Pulsante SKIP del tutorial liberato dalla Dynamic Island' },
+            items: {
+                EN: [
+                    'Tutorial SKIP button was absolute-positioned with top:14px, ignoring the overlay padding — now adds safe-area-inset-top directly so it sits below the notch',
+                    'Full audit of all absolute-positioned buttons and canvas text: no other elements were landing in the safe-area zone'
+                ],
+                IT: [
+                    'Il bottone SKIP del tutorial era absolute con top:14px, ignorava il padding dell\'overlay — ora include safe-area-inset-top e sta sotto il notch',
+                    'Audit completo di tutti i bottoni absolute e testo canvas: nessun altro elemento finiva nella safe-area zone'
+                ]
+            }
+        },
+        {
             version: 'v7.12.1', date: '2026-04-23',
             title: { EN: 'PWA Deep Safe-Area Fix: UI respects Dynamic Island', IT: 'Fix profondo safe-area PWA: la UI rispetta la Dynamic Island' },
             items: {
