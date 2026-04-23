@@ -1,5 +1,36 @@
 # Changelog
 
+## v7.12.10 — Boss+Proximity + Wave legacy GDD reverse-doc (2×M) - 2026-04-23
+
+Chiusura dell'infrastruttura GDD reverse-documented per FvC: con i due GDD di questa patch la copertura dei sistemi core è **completa**.
+
+### Documenti aggiunti
+
+- [design/gdd/boss-proximity.md](design/gdd/boss-proximity.md) — Boss System (FED/BCE/BOJ, 3 fasi, rotation `marketCycle%3` con override V8) + Proximity Kill Meter (DIP). Cita config per HP formula, PHASE_THRESHOLDS `[0.66, 0.20]`, PHASE_SPEEDS/FIRE_RATES per boss+fase, BOJ_INTERVENTION telegraph-based, PROXIMITY_KILL gain formulas (enemy kill distance-scaled 1-7, boss hit flat 0.15, phase transition +15). Include feature-matrix con kill-switch e analytics hooks.
+- [design/gdd/wave-legacy-arcade.md](design/gdd/wave-legacy-arcade.md) — Wave System phase-streaming Arcade-only post-v7.5. Cita STREAMING.PHASE_TRIGGER (25%/3s/18 concurrent cap), 15 wave definitions (5×3 cicli) con temi narrativi, 20 formation generators, post-C3 loop con 40% formation remix, count-scaling pipeline (Bear/Cycle/Arcade/Rank stacking), entry animation paths.
+- Systems-index aggiornato con i due Approved.
+- Review log dedicati per entrambi.
+
+### Risk flag emersi (candidate tech-debt futuro)
+
+**Boss+Proximity:**
+- Naming drift `grazeMeter` → il sistema è proximity dal v4.40, rename pending.
+- Dead fields `Constants.BOSSES[*].baseHp/hpPerLevel/hpPerCycle` (scaling legge `Balance.BOSS.HP.*`).
+- `HYPER_KILL_EXTENSION: 0` dead config key.
+- `onBossHit` non applica Arcade JACKPOT modifier mentre `onEnemyKilled` sì — verificare intent.
+- P3 "skippabile" da HYPER+GODCHAIN burst (design-intent, non bug).
+
+**Wave legacy:**
+- Non-streaming `startWave` branch dead (tutto usa `prepareStreamingWave` da v6.2).
+- `CURRENCY_THEMES` unused a runtime (solo palette doc).
+- Legacy formations V_SHAPE/COLUMNS/SINE_WAVE non referenziate in wave defs.
+- Currency-symbol formations (BTC_SYMBOL/…) solo reachable via post-C3 40% remix — mai nelle 15 wave base.
+- `MAX_PER_PHASE: 14` clampa silently wave defs con count ≥15.
+
+### Status
+
+Infrastruttura GDD **completa per FvC v7.12.10**: 7 GDD approvati coprono V8 scroller, Arcade, Enemy Agents, Weapon+Elementals+GODCHAIN, Drop+APC, Boss+Proximity, Wave legacy. Prossimi reverse-doc solo per sistemi nuovi o consolidamento dei debts.
+
 ## v7.12.9 — Drop System + APC GDD reverse-doc (M) - 2026-04-23
 
 Reverse-documentato Drop System + Adaptive Drop Balancer + Adaptive Power Calibration in un GDD scope M: [design/gdd/drop-system-apc.md](design/gdd/drop-system-apc.md). Orchestrazione single-agent sonnet. Verdict APPROVED + 8 reco documentate.
