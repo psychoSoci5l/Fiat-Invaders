@@ -851,6 +851,8 @@ window.Game.HarmonicConductor = {
 
                         // v7.9.5b: skip enemies currently in DWELL fire-grace (assestamento window)
                         if (re._fireSuppressed) continue;
+                        // v7.12: don't let offscreen-top enemies fire — prevents "bullets from nowhere"
+                        if (re._fireSuppressedByEntry) continue;
 
                         // Corridor skip: enemy within corridor band
                         if (Math.abs(re.x - corridorX) < corridorWidth / 2) continue;
@@ -935,6 +937,8 @@ window.Game.HarmonicConductor = {
         if (!this.player) return;
         // v7.9.5b: skip enemies currently in DWELL fire-grace (assestamento window)
         if (enemy._fireSuppressed) return;
+        // v7.12: don't fire while still offscreen above (enemy not yet visible to player)
+        if (enemy._fireSuppressedByEntry) return;
 
         const bulletSpeed = 150 + (this.difficultyParams.complexity * 15);
         let bulletData = null;

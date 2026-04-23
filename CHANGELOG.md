@@ -1,5 +1,18 @@
 # Changelog
 
+## v7.12.0 — Polish sweep: PWA notch, HUD level, audio resume, cinematic enemy entry, boss bullets, L1 pathos, leaderboard - 2026-04-23
+
+Sprint di fix ai 7 problemi emersi nel playtest di v7.11.1. Tutti interventi chirurgici, nessun refactor.
+
+- **fix(pwa-ios)**: in PWA installata su iOS, `--di-safe-top` restava a 0 quando `env(safe-area-inset-top)` tornava 0 → intro/gameover/version-tag finivano dietro la Dynamic Island. Ora usa lo stesso fallback (59px) del ramo HUD, e il calcolo PWA non over-alloca più a `vpTop` via `screen.height - innerHeight` (bug che dava ~88px su iPhone 14/15 Pro Max invece del corretto ~59px).
+- **fix(hud)**: `advanceToNextV8Level()` non propagava il nuovo livello a `runState.level` / `window.currentLevel` / `#lvlVal`, lasciando l'indicatore bloccato su "LV 1" per tutta la run. Ora sincronizza + chiama `updateLevelUI()`.
+- **fix(audio)**: al resume post-pausa la musica non tornava più. Causa doppia: (a) `togglePause` saltava `resumeMusic()` quando `musicMuted` era true, (b) `resumeMusic()` invocava `ctx.resume()` in modo non-atteso e `schedule()` partiva mentre il context era ancora suspended. Ora sempre-resume (il mute decide solo il gain, non lo stato del loop) + scheduler parte solo dopo `ctx.resume().then()`.
+- **feat(v8)**: entrata nemici cinematografica. `V8_MODE.SPAWN_Y_OFFSET` -80→-40, nuovo `V8_MODE.ENTRY_BURST` (VY 260, UNTIL_Y 40) applicato a DIVE/SINE/SWOOP/HOVER. I nemici ora "piombano in scena" dalla cima invece di scendere lentamente invisibili. Aggiunto gate nel `HarmonicConductor` e in `fireEnemy`: nessuno spara finché è sopra lo schermo — basta con i "proiettili dal nulla".
+- **feat(bullets)**: proiettili boss con resa distinta (`drawBossBullet`). Corona a 6-punte rotante, doppio halo radiale, core bianco con anello tinto, pulsazione veloce+lenta. Colorazione presa da `bullet.color` (verde FED, blu/rosso BCE/BOJ). Proiettili minion con simbolo valuta restano invariati.
+- **feat(audio/music)**: rework completo della musica di gioco. Ogni livello (L1/L2/L3) ora ha **3 varianti melodiche per battuta** — `melody` (opening, sparso), `melodyCombat` (60+ intensity, frasi articolate su triangle wave), `melodyCrush` (80+ intensity, linee discendenti driving su square wave con passaggi cromatici). AudioSystem sceglie la variante in base all'intensità live → la musica **evolve** con lo scontro invece di loopare statica. BPM alzati (L1 90→102, L2 95→104, L3 100→108). Nuovo pattern `drumsL1Drive` (kick 1/3, snare 2/4, hat 8th) sostituisce `drumsCalm` in tutti e 3 i livelli. Baseline intensity OPENING 30→50 + soglie drum/melody abbassate (65→45, 50→35) → batteria + melodia presenti dalla prima battuta.
+- **feat(bullets)**: anche i proiettili dei nemici normali hanno trattamento visivo arricchito. `drawSymbolBullet` ora disegna trail tapered lungo il vettore di moto, halo radiale pulsante tinto con `ownerColor` (colore del nemico-shooter), e pulsazione core più accentuata (±12%). I glyph cache-ati restano, ma il live rendering aggiunge la parte dinamica.
+- **fix(leaderboard)**: client loggava `catch { /* offline */ }` silenzioso rendendo impossibile diagnosticare. Ora `console.warn` con status HTTP + origin + url, salva `_lastError`, e mostra la causa inline nel messaggio di errore UI. Worker CORS reso permissivo: se l'Origin non è nella allowlist riflette comunque l'Origin ricevuto (GETs sono read-only pubbliche, POST resta HMAC+nonce protetto) + header `Vary: Origin`. **Worker ridistribuito** (version id `ff3d9719-d892-43e3-a63f-6f72ed44f173`).
+
 ## v7.11.1 — Fix: Arcade mode finally uses WaveManager (no more looped FED boss + freeze) - 2026-04-21
 
 ### fix(arcade): V8 mode era campaign-only sulla carta ma globale nel codice

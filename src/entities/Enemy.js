@@ -222,6 +222,16 @@ class Enemy extends window.Game.Entity {
             const gh = window.Game._gameHeight || 800;
             const pat = this.entryPattern || 'DIVE';
 
+            // v7.12: cinematic entry — burst speed while offscreen/near top, then revert.
+            // Also suppress firing while still above the visible area.
+            if (this._entryBurst) {
+                if (this.y >= (this._entryBurstUntilY ?? 40)) {
+                    this.vy = this._entryBurstNormalVy ?? this.vy;
+                    this._entryBurst = false;
+                }
+            }
+            this._fireSuppressedByEntry = (this.y + this.h * 0.5) < 0;
+
             // v7.9.5 Gravity Gate — active for DIVE/SINE/SWOOP (not HOVER, which has its own dwell).
             // When enemy crosses its hover Y, enter DWELL: flip upright + halt vy, dwell timer begins.
             // After timer expires, enter LEAVING: flip back + vy = EXIT_VY (negative, upward).

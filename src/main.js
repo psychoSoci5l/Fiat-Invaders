@@ -1371,9 +1371,11 @@ function resize() {
     let vpTop = 0, vpBot = 0;
 
     if (window.isPWA && _isIOS) {
-        // Always position container in safe zone — env() or heuristic
-        vpTop = envTop || Math.max(0, screen.height - innerHeight);
-        vpBot = envBot || 0;
+        // v7.12: Trust env() first; only fall back to hard-coded notch defaults if it's 0.
+        // Avoids previous bug where `screen.height - innerHeight` over-allocated to vpTop
+        // on iPhone 14/15 Pro Max (yielded ~88 instead of the true ~59 safe inset).
+        vpTop = envTop;
+        vpBot = envBot;
         if (vpTop < 20 && screen.height >= 812) vpTop = 59;
         if (vpBot < 10 && screen.height >= 812) vpBot = 34;
 
@@ -1386,12 +1388,12 @@ function resize() {
         safeBottom = vpBot;
     }
 
-    // Dynamic Island heuristic for iOS Safari browser (not PWA).
-    // env(safe-area-inset-top) returns 0 in Safari, but viewport-fit=cover
-    // extends content behind status bar. Only affects static screens (intro,
-    // gameover) via --di-safe-top; gameplay HUD uses --safe-top (unchanged).
-    // Self-deactivating: if future Safari returns correct env(), safeTop > 10 skips this.
-    const diSafeTop = (_isIOS && !window.isPWA && safeTop < 10 && screen.height >= 852) ? 59 : safeTop;
+    // v7.12: --di-safe-top (static screens: intro, gameover, version-tag) now uses the
+    // resolved safeTop in PWA too. Previously `!window.isPWA` clause left this at 0
+    // whenever env() was 0 in standalone mode, causing content to render behind the
+    // Dynamic Island. Self-deactivating: if future Safari returns correct env(), safeTop > 10
+    // bypasses the 59 fallback automatically.
+    const diSafeTop = (_isIOS && safeTop < 10 && screen.height >= 812) ? 59 : safeTop;
     document.documentElement.style.setProperty('--di-safe-top', diSafeTop + 'px');
 
     // CSS vars: container-level (for elements inside game-container)
@@ -1895,8 +1897,9 @@ window.togglePause = function () {
         setGameState(resumeTo);
         window._pausedFromState = null;
         setStyle('pause-screen', 'display', 'none'); setStyle('pause-btn', 'display', 'block');
-        // v7.10: resume music mid-loop (only if not muted)
-        if (G.Audio && G.Audio.resumeMusic && !G.Audio.musicMuted) G.Audio.resumeMusic();
+        // v7.12: always resume the music loop; musicMuted only controls gain, not loop state.
+        // Fixes regression where toggling mute during pause left playback dead on resume.
+        if (G.Audio && G.Audio.resumeMusic) G.Audio.resumeMusic();
     }
 };
 
@@ -1980,6 +1983,13 @@ function advanceToNextV8Level() {
     // Reset scroll (camera + mult + speedOverride) and load next level
     if (G.ScrollEngine && G.ScrollEngine.reset) G.ScrollEngine.reset();
     G.LevelScript.loadLevel(nextIdx);
+
+    // v7.12: sync HUD level indicator with the new V8 level
+    const newLvl = G.LevelScript.currentLevelNum();
+    level = newLvl;
+    runState.level = newLvl;
+    window.currentLevel = newLvl;
+    updateLevelUI();
 
     // Show the gameplay UI again + resume, with cinematic ship entry + 3-2-1
     if (ui.uiLayer) ui.uiLayer.style.display = 'block';
@@ -3150,7 +3160,7 @@ function update(dt) {
         // Three inputs converge: V8 progress (time-based), gameplay state (boss/HYPER/GODCHAIN),
         // and scroll mult (CRUSH anchors). Result: music evolves across a 170s level instead of
         // looping the same 10s loop 16 times.
-        let intensity = 30; // OPENING baseline — arp + pad only (Kondo fairy intro)
+        let intensity = 50; // v7.12: raised 30→50 so drums+melody ride from bar 1 (pathos)
         let bpmMult = 0.92; // start a touch under nominal
         let transpose = 1.0;
 

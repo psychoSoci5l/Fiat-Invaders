@@ -1224,6 +1224,11 @@ class Bullet extends window.Game.Entity {
     // ═══════════════════════════════════════════════════════════════════
     drawEnemyBullet(ctx) {
         const bsCfg = window.Game.Balance?.BULLET_SYMBOL;
+        // v7.12: boss bullets get a distinct menacing treatment (halo + crown + spin)
+        if (this.isBossBullet) {
+            this.drawBossBullet(ctx);
+            return;
+        }
         if (this.symbol && bsCfg?.ENABLED) {
             this.drawSymbolBullet(ctx, bsCfg);
             return;
@@ -1271,12 +1276,58 @@ class Bullet extends window.Game.Entity {
             cache.set(key, entry);
         }
 
-        const pulse = Math.sin(this.age * 12) * 0.08 + 1;
+        // v7.12: richer live rendering — motion trail + pulsing hostile halo + tier tint.
+        // Previously glyph+glow only; enemies looked too tame against the dark sky.
+        const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy) || 1;
+        const dirX = this.vx / speed;
+        const dirY = this.vy / speed;
+        const trailLen = Math.min(24, speed * 0.10);
+        const pulse = 1 + Math.sin(this.age * 14) * 0.12;
         const drawSize = entry.canvasSize * sizeMul * pulse;
         const half = drawSize / 2;
 
+        // Tier hint from ownerColor (falls back to warm gold)
+        const CU = window.Game.ColorUtils;
+        const ownerCol = this.ownerColor || '#ffb040';
+        const pc = CU && CU.parseColor ? CU.parseColor(ownerCol) : { r: 255, g: 176, b: 64 };
+
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
+
+        // Motion trail — tapered backwards along travel vector
+        if (trailLen > 4) {
+            const tailLen = trailLen + half * 0.6;
+            const grad = ctx.createLinearGradient(
+                this.x, this.y,
+                this.x - dirX * tailLen, this.y - dirY * tailLen
+            );
+            const alpha = (cfg.TRAIL_ALPHA ?? 0.42);
+            grad.addColorStop(0, CU ? CU.rgba(pc.r, pc.g, pc.b, alpha) : `rgba(${pc.r},${pc.g},${pc.b},${alpha})`);
+            grad.addColorStop(1, CU ? CU.rgba(pc.r, pc.g, pc.b, 0) : `rgba(${pc.r},${pc.g},${pc.b},0)`);
+            ctx.fillStyle = grad;
+            const perpX = -dirY;
+            const perpY = dirX;
+            const halfW = half * 0.55;
+            ctx.beginPath();
+            ctx.moveTo(this.x + perpX * halfW, this.y + perpY * halfW);
+            ctx.lineTo(this.x - dirX * tailLen, this.y - dirY * tailLen);
+            ctx.lineTo(this.x - perpX * halfW, this.y - perpY * halfW);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // Outer hostile halo — radial, tier-tinted
+        const haloR = half * 1.8 * pulse;
+        const haloGrad = ctx.createRadialGradient(this.x, this.y, half * 0.3, this.x, this.y, haloR);
+        haloGrad.addColorStop(0, CU ? CU.rgba(pc.r, pc.g, pc.b, 0.45) : `rgba(${pc.r},${pc.g},${pc.b},0.45)`);
+        haloGrad.addColorStop(0.55, CU ? CU.rgba(pc.r, pc.g, pc.b, 0.14) : `rgba(${pc.r},${pc.g},${pc.b},0.14)`);
+        haloGrad.addColorStop(1, CU ? CU.rgba(pc.r, pc.g, pc.b, 0) : `rgba(${pc.r},${pc.g},${pc.b},0)`);
+        ctx.fillStyle = haloGrad;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, haloR, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Glyph core (cached offscreen canvas)
         if (cfg.SPIN) {
             ctx.translate(this.x, this.y);
             ctx.rotate(this.age * 2);
@@ -1284,6 +1335,69 @@ class Bullet extends window.Game.Entity {
         } else {
             ctx.drawImage(entry.canvas, this.x - half, this.y - half, drawSize, drawSize);
         }
+        ctx.restore();
+    }
+
+    // v7.12: Boss bullet renderer — richer, more menacing projectile for boss fights.
+    // Double-pulse outer halo, spiked corona, spinning inner core, elemental tint from bullet.color.
+    drawBossBullet(ctx) {
+        const CU = window.Game.ColorUtils;
+        const r = Math.max(6, (this.width || 8) * 1.4);
+        const color = this.color || '#ff3366';
+        const c = CU && CU.parseColor ? CU.parseColor(color) : { r: 255, g: 64, b: 96 };
+
+        // Pulse: fast breath + slow swell
+        const fast = Math.sin(this.age * 18) * 0.18;
+        const slow = Math.sin(this.age * 5) * 0.08;
+        const pulse = 1 + fast + slow;
+
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+
+        // Outer halo — soft radial, 3× radius
+        const gradOuter = ctx.createRadialGradient(this.x, this.y, r * 0.2, this.x, this.y, r * 3.2 * pulse);
+        gradOuter.addColorStop(0, CU ? CU.rgba(c.r, c.g, c.b, 0.55) : `rgba(${c.r},${c.g},${c.b},0.55)`);
+        gradOuter.addColorStop(0.5, CU ? CU.rgba(c.r, c.g, c.b, 0.18) : `rgba(${c.r},${c.g},${c.b},0.18)`);
+        gradOuter.addColorStop(1, CU ? CU.rgba(c.r, c.g, c.b, 0) : `rgba(${c.r},${c.g},${c.b},0)`);
+        ctx.fillStyle = gradOuter;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, r * 3.2 * pulse, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Mid glow
+        const gradMid = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, r * 1.6);
+        gradMid.addColorStop(0, CU ? CU.rgba(255, 255, 255, 0.85) : 'rgba(255,255,255,0.85)');
+        gradMid.addColorStop(0.4, CU ? CU.rgba(c.r, c.g, c.b, 0.7) : `rgba(${c.r},${c.g},${c.b},0.7)`);
+        gradMid.addColorStop(1, CU ? CU.rgba(c.r, c.g, c.b, 0) : `rgba(${c.r},${c.g},${c.b},0)`);
+        ctx.fillStyle = gradMid;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, r * 1.6, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Spiked corona — rotating 6-point star at r*1.2
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.age * 3.5);
+        ctx.strokeStyle = CU ? CU.rgba(c.r, c.g, c.b, 0.9) : `rgba(${c.r},${c.g},${c.b},0.9)`;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        const spikeLen = r * 1.25 * pulse;
+        for (let i = 0; i < 6; i++) {
+            const a = (i / 6) * Math.PI * 2;
+            ctx.moveTo(Math.cos(a) * r * 0.55, Math.sin(a) * r * 0.55);
+            ctx.lineTo(Math.cos(a) * spikeLen, Math.sin(a) * spikeLen);
+        }
+        ctx.stroke();
+
+        // Inner core — solid white disc with tinted ring
+        ctx.rotate(-this.age * 3.5);
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
         ctx.restore();
     }
 

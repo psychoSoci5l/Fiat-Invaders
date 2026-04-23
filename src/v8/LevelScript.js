@@ -597,13 +597,25 @@ window.Game = window.Game || {};
             enemy._v8PatTimer = 0;
             enemy.fireTimer = 0.8 + Math.random() * 1.2;
 
+            // Normal pattern vy, stored as target so we can revert after entry burst
+            let normalVy;
             if (pat === 'HOVER' && patCfg.HOVER) {
-                enemy.vy = patCfg.HOVER.APPROACH_VY || 60;
+                normalVy = patCfg.HOVER.APPROACH_VY || 60;
             } else if (pat === 'SWOOP' && patCfg.SWOOP) {
-                enemy.vy = patCfg.SWOOP.APPROACH_VY || 50;
+                normalVy = patCfg.SWOOP.APPROACH_VY || 50;
                 enemy._v8SwoopDir = swoopDir;
             } else {
-                enemy.vy = defaultVy;
+                normalVy = defaultVy;
+            }
+            enemy.vy = normalVy;
+
+            // v7.12: apply cinematic entry burst until enemy reaches UNTIL_Y
+            const burstCfg = Balance.V8_MODE.ENTRY_BURST;
+            if (burstCfg && burstCfg.ENABLED && burstCfg.PATTERNS && burstCfg.PATTERNS.indexOf(pat) >= 0) {
+                enemy.vy = burstCfg.VY;
+                enemy._entryBurst = true;
+                enemy._entryBurstUntilY = burstCfg.UNTIL_Y;
+                enemy._entryBurstNormalVy = normalVy;
             }
 
             const arr = G.enemies;

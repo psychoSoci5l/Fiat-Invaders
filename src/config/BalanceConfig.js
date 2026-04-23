@@ -24,7 +24,16 @@
             LEVEL_DURATION_S: 180,      // Total level length (boss fight excluded)
             BOSS_AT_S: 170,             // Seconds into level before boss trigger
             DEFAULT_ENEMY_VY: 40,       // px/s — fall-with-scroll speed for scripted enemies
-            SPAWN_Y_OFFSET: -80,        // Spawn Y (above screen) for scripted enemies
+            SPAWN_Y_OFFSET: -40,        // v7.12: was -80; halves invisible travel distance before entry
+
+            // v7.12: Cinematic entry — while y < ENTRY_BURST_UNTIL_Y, enemies fall fast
+            // so they become visible before firing. Prevents "bullets from nowhere" problem.
+            ENTRY_BURST: {
+                ENABLED: true,
+                VY: 260,                    // burst downward speed (px/s)
+                UNTIL_Y: 40,                // once y >= this, revert to pattern vy
+                PATTERNS: ['DIVE', 'SINE', 'SWOOP', 'HOVER']
+            },
 
             // --- S3: entry patterns (Gradius-style movement) ---
             PATTERNS: {

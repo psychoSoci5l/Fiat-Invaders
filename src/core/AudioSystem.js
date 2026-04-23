@@ -1641,15 +1641,24 @@ class AudioSystem {
 
     resumeMusic() {
         if (!this.ctx || this.isPlaying) return;
+        // v7.12: await ctx.resume before scheduling, otherwise notes get dropped
+        // because scheduler fires while the context is still suspended.
+        const finish = () => {
+            if (this.isPlaying) return;
+            this.isPlaying = true;
+            this.noteTime = this.ctx.currentTime + 0.05;
+            this._pausedState = false;
+            this.schedule();
+        };
         if (this.ctx.state === 'suspended') {
             this.unlockWebAudio();
-            this.ctx.resume().catch(e => console.warn('[AudioSystem] resume failed:', e));
+            this.ctx.resume().then(finish).catch(e => {
+                console.warn('[AudioSystem] resume failed:', e);
+                finish(); // still try — schedule() will be no-op if ctx stays broken
+            });
+        } else {
+            finish();
         }
-        this.isPlaying = true;
-        // Restart timing from now so we don't burst catch-up
-        this.noteTime = this.ctx.currentTime + 0.05;
-        this._pausedState = false;
-        this.schedule();
     }
 
     // ===== MUSIC SYSTEM v2 (v4.34) =====
@@ -1766,14 +1775,23 @@ class AudioSystem {
                         this.playArpFromData(this.noteTime, section.arp[beat]);
                     }
 
-                    // Drums (intensity >= 65 — combat layer)
-                    if (this.intensity >= 65 && section.drums && section.drums[beat]) {
+                    // Drums (v7.12: gate 65→45 — rhythm from bar 1 for pathos)
+                    if (this.intensity >= 45 && section.drums && section.drums[beat]) {
                         this.playDrumsFromData(this.noteTime, section.drums[beat]);
                     }
 
-                    // Melody (intensity >= 50 — lyrical ambient)
-                    if (this.intensity >= 50 && section.melody && section.melody[beat]) {
-                        this.playMelodyFromData(this.noteTime, section.melody[beat]);
+                    // Melody (v7.12: phase-aware — pick variant by intensity).
+                    // ≥80 → melodyCrush (driving descents), ≥60 → melodyCombat
+                    // (phrased engagement), else melody (sparse opening call).
+                    // Gate 50→35 so the line enters earlier than pre-v7.12.
+                    if (this.intensity >= 35) {
+                        const melLine =
+                            (this.intensity >= 80 && section.melodyCrush)  ? section.melodyCrush :
+                            (this.intensity >= 60 && section.melodyCombat) ? section.melodyCombat :
+                            section.melody;
+                        if (melLine && melLine[beat]) {
+                            this.playMelodyFromData(this.noteTime, melLine[beat]);
+                        }
                     }
 
                     // Pad (intensity >= 10 — the halo, in almost always)

@@ -592,6 +592,30 @@ window.Game = window.Game || {};
     // What's New panel (v4.50, i18n v5.18)
     const WHATS_NEW = [
         {
+            version: 'v7.12', date: '2026-04-23',
+            title: { EN: 'Polish Sweep: HUD, Audio, Enemies, Boss Bullets, L1 Pathos', IT: 'Rifiniture: HUD, Audio, Nemici, Proiettili Boss, Pathos L1' },
+            items: {
+                EN: [
+                    'PWA iOS: Dynamic Island respected on intro / game over / version tag — no more content behind the notch',
+                    'HUD: level indicator finally updates when you advance from L1 → L2 → L3',
+                    'Audio: music resumes correctly after pause (even if you toggled mute during the pause screen)',
+                    'Enemies enter the screen cinematically from the top — no more "bullets from nowhere" while the shooter is still offscreen',
+                    'All enemy bullets get motion trails + tier-tinted halos; boss bullets gain a rotating 6-point corona with pulsating white core',
+                    'Soundtrack reworked with 3 melody variants per bar — opening / combat / crush — music evolves with the fight across L1/L2/L3',
+                    'Leaderboard: richer error messages + permissive CORS (worker redeployed)'
+                ],
+                IT: [
+                    'PWA iOS: Dynamic Island rispettato su intro / gameover / version tag — niente più contenuti nascosti dietro il notch',
+                    'HUD: l\'indicatore del livello finalmente si aggiorna quando avanzi da L1 → L2 → L3',
+                    'Audio: la musica riparte correttamente dopo la pausa (anche se hai mutato durante la pausa)',
+                    'Nemici entrano in scena in modo cinematografico dall\'alto — basta "proiettili dal nulla" mentre il nemico è ancora fuori schermo',
+                    'Tutti i proiettili dei nemici hanno scia + halo tinto per tier; i proiettili boss aggiungono corona a 6 punte rotante e core bianco pulsante',
+                    'Colonna sonora riprogettata con 3 varianti melodiche per battuta — opening / combat / crush — la musica evolve con lo scontro su L1/L2/L3',
+                    'Classifica: messaggi di errore più chiari + CORS permissivo (worker ridistribuito)'
+                ]
+            }
+        },
+        {
             version: 'v7.11', date: '2026-04-21',
             title: { EN: 'Premium Story Crawl + Cinematic Entry', IT: 'Crawl Narrativo Premium + Entrata Cinematica' },
             items: {

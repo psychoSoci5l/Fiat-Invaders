@@ -123,15 +123,27 @@ window.Game = window.Game || {};
         async fetchScores(mode) {
             mode = mode || this._getMode();
             if (this._cache && Date.now() - this._cacheTime < 30000) return this._cache;
+            const url = `${G.LEADERBOARD_API}/lb?mode=${mode}`;
             try {
-                const res = await fetch(`${G.LEADERBOARD_API}/lb?mode=${mode}`);
+                const res = await fetch(url);
+                if (!res.ok) {
+                    console.warn('[Leaderboard] fetchScores HTTP', res.status, 'origin=' + location.origin, 'url=' + url);
+                    this._lastError = `HTTP ${res.status}`;
+                    return null;
+                }
                 const data = await res.json();
                 if (data.ok) {
                     this._cache = data.scores;
                     this._cacheTime = Date.now();
+                    this._lastError = null;
                     return data.scores;
                 }
-            } catch { /* offline */ }
+                console.warn('[Leaderboard] fetchScores data.ok=false', data);
+                this._lastError = 'server rejected';
+            } catch (e) {
+                console.warn('[Leaderboard] fetchScores failed:', e && e.message, 'origin=' + location.origin);
+                this._lastError = 'network';
+            }
             return null;
         },
 
@@ -209,7 +221,11 @@ window.Game = window.Game || {};
             const scores = await this.fetchScores();
             if (loading) loading.style.display = 'none';
             if (!scores) {
-                if (empty) { empty.textContent = t('LB_ERROR'); empty.style.display = 'block'; }
+                if (empty) {
+                    const err = this._lastError ? ` (${this._lastError})` : '';
+                    empty.textContent = t('LB_ERROR') + err;
+                    empty.style.display = 'block';
+                }
                 return;
             }
             if (scores.length === 0) {

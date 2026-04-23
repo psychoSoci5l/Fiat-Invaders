@@ -298,9 +298,18 @@ window.Game = window.Game || {};
         const isStoryMode = G.CampaignState && G.CampaignState.isEnabled();
         if (isStoryMode) {
             const shipKey = (G.IntroScreen ? G.IntroScreen.getSelectedShipKey() : 'BTC');
+            // v7.12: V8 campaign keeps WaveManager dormant (wave stays 1), which makes
+            // the worker's score-ceiling check (12000*wave*cycle*1.5) reject legit runs.
+            // Map the reached V8 level to cycle, set wave=5 (the "full cycle" max) so the
+            // ceiling tracks with campaign progression: L1→90k, L2→180k, L3→270k.
+            const v8Active = !!(G.Balance && G.Balance.V8_MODE && G.Balance.V8_MODE.ENABLED);
+            const reachedLvl = (G.LevelScript && G.LevelScript.currentLevelNum)
+                ? G.LevelScript.currentLevelNum() : (window.currentLevel || 1);
+            const submitWave  = v8Active ? 5 : (G.WaveManager.wave || 1);
+            const submitCycle = v8Active ? Math.max(1, reachedLvl) : d.getMarketCycle();
             const _doRank = () => G.Leaderboard.renderGameoverRank(
-                Math.floor(d.getScore()), d.getKillCount(), d.getMarketCycle(),
-                G.WaveManager.wave, shipKey, !!window.isBearMarket
+                Math.floor(d.getScore()), d.getKillCount(), submitCycle,
+                submitWave, shipKey, !!window.isBearMarket
             );
             if (G.hasNickname()) {
                 _doRank();

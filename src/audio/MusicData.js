@@ -89,6 +89,19 @@ window.Game = window.Game || {};
         return arr;
     }
 
+    // v7.12: Phrase-based melody. pairs: [slot, {f, d, v?}, ...]. Lets us write
+    // real melodic lines with rhythm and contour instead of 2-note sustained oohs.
+    function melodyPhrase(pairs, baseVel, wave) {
+        const arr = new Array(16).fill(null);
+        const v = baseVel || 0.40;
+        const w = wave || 'sine';
+        for (const [slot, note] of pairs) {
+            if (slot < 0 || slot > 15) continue;
+            arr[slot] = { f: note.f, d: note.d || 1, v: note.v || v, w: note.w || w };
+        }
+        return arr;
+    }
+
     // Minimal drum pattern: light kick+hat, calm. "Combat" patterns in FILL.
     function drumsCalm() {
         return fill16([
@@ -96,6 +109,22 @@ window.Game = window.Game || {};
             [4, {h:1}],
             [8, {k:1, h:0.5}],
             [12, {h:1}]
+        ]);
+    }
+
+    // v7.12: L1 driving pattern — proper backbeat (kick 1/3, snare 2/4, hat 8ths).
+    // Not as full as drumsCombat (no fills), but establishes rhythm from the very
+    // first bar so the opening has pathos instead of being ambient-relaxed.
+    function drumsL1Drive() {
+        return fill16([
+            [0, {k:1, h:1}],
+            [2, {h:0.7}],
+            [4, {s:1, h:1}],
+            [6, {h:0.7}],
+            [8, {k:1, h:1}],
+            [10, {h:0.7}],
+            [12, {s:1, h:1}],
+            [14, {h:0.7}]
         ]);
     }
 
@@ -135,45 +164,136 @@ window.Game = window.Game || {};
         SONGS: {
 
             // -----------------------------------------------------------------
-            // L1 — "Fountain of Fiat" (Ab major, 90 BPM)
-            // Direct Great Fairy homage. Bbm9 → Eb13 → Abmaj9 → F7b9
-            // Region: USA — bright, hopeful, impressionist
+            // L1 — "Fountain of Fiat" (Ab major, 102 BPM) — v7.12 pathos rewrite.
+            // Three melody variants per bar: `melody` (opening, <60 intensity,
+            // sparse call), `melodyCombat` (60-80, phrased engagement), `melodyCrush`
+            // (80+, driving descending lines). AudioSystem picks by intensity so
+            // the music actually evolves with the fight instead of looping static.
+            // Harmony: Bbm9 → Eb13 → Abmaj9 → F7b9 (ii-V-I-VI with tritone pull).
             // -----------------------------------------------------------------
             1: {
                 name: 'Fountain of Fiat',
                 key: 'Abmaj',
-                bpm: 90,
+                bpm: 102,
                 sections: {
-                    // Bar A — Bbm9 (ii): Bb Db F Ab C
+                    // Bar A — Bbm9 (ii): Bb Db F Ab C — tension setup
                     A: {
                         bass: bassBar(N.Bb2, N.F2),
                         arp: harpBar([N.Bb3, N.Db4, N.F4, N.Ab4, N.C5, N.F5]),
-                        melody: melodyBar(N.Ab5, N.F5),
-                        drums: drumsCalm(),
+                        // Opening: two-note call, leaves space for arp harp
+                        melody: melodyPhrase([
+                            [0, {f: N.Ab5, d: 3, v: 0.34}],
+                            [8, {f: N.F5, d: 3, v: 0.30}]
+                        ]),
+                        // Combat: 5-note answering phrase, triangle for bite
+                        melodyCombat: melodyPhrase([
+                            [0,  {f: N.F5,  d: 1.5, v: 0.42}],
+                            [2,  {f: N.Ab5, d: 1.5, v: 0.44}],
+                            [4,  {f: N.C6,  d: 2,   v: 0.48}],
+                            [8,  {f: N.Bb5, d: 1.5, v: 0.42}],
+                            [10, {f: N.Ab5, d: 1.5, v: 0.40}],
+                            [12, {f: N.F5,  d: 2,   v: 0.44}]
+                        ], 0.42, 'triangle'),
+                        // Crush: driving descending run, square for aggression
+                        melodyCrush: melodyPhrase([
+                            [0,  {f: N.C6,  d: 1, v: 0.55}],
+                            [2,  {f: N.Bb5, d: 1, v: 0.50}],
+                            [4,  {f: N.Ab5, d: 1, v: 0.50}],
+                            [6,  {f: N.F5,  d: 1, v: 0.48}],
+                            [8,  {f: N.Eb5, d: 1, v: 0.50}],
+                            [10, {f: N.Db5, d: 1, v: 0.48}],
+                            [12, {f: N.C5,  d: 1, v: 0.48}],
+                            [14, {f: N.F5,  d: 1.5, v: 0.52}]
+                        ], 0.50, 'square'),
+                        drums: drumsL1Drive(),
                         pad: padOf([N.Db4, N.F4, N.Ab4, N.C5], 0.07, 'sine')
                     },
-                    // Bar B — Eb13 (V): Eb G Bb Db C (13th)
+                    // Bar B — Eb13 (V): Eb G Bb Db C — dominant push
                     B: {
                         bass: bassBar(N.Eb2, N.Bb2),
                         arp: harpBar([N.Eb3, N.G3, N.Bb3, N.Db4, N.F4, N.C5]),
-                        melody: melodyBar(N.G5, N.Bb5),
-                        drums: drumsCalm(),
+                        melody: melodyPhrase([
+                            [0, {f: N.G5,  d: 3, v: 0.34}],
+                            [8, {f: N.Bb5, d: 3, v: 0.32}]
+                        ]),
+                        melodyCombat: melodyPhrase([
+                            [0,  {f: N.G5,  d: 1.5, v: 0.44}],
+                            [2,  {f: N.Bb5, d: 1.5, v: 0.44}],
+                            [4,  {f: N.Db6, d: 2,   v: 0.50}],
+                            [8,  {f: N.C6,  d: 1.5, v: 0.44}],
+                            [10, {f: N.Bb5, d: 1.5, v: 0.40}],
+                            [12, {f: N.G5,  d: 2,   v: 0.42}]
+                        ], 0.42, 'triangle'),
+                        melodyCrush: melodyPhrase([
+                            [0,  {f: N.Db6, d: 1, v: 0.55}],
+                            [2,  {f: N.C6,  d: 1, v: 0.52}],
+                            [4,  {f: N.Bb5, d: 1, v: 0.50}],
+                            [6,  {f: N.G5,  d: 1, v: 0.48}],
+                            [8,  {f: N.F5,  d: 1, v: 0.50}],
+                            [10, {f: N.Eb5, d: 1, v: 0.50}],
+                            [12, {f: N.Db5, d: 1, v: 0.48}],
+                            [14, {f: N.G5,  d: 1.5, v: 0.54}]
+                        ], 0.50, 'square'),
+                        drums: drumsL1Drive(),
                         pad: padOf([N.G3, N.Bb3, N.Db4, N.C5], 0.07, 'sine')
                     },
-                    // Bar C — Abmaj9 (I): Ab C Eb G Bb — the resolution
+                    // Bar C — Abmaj9 (I): Ab C Eb G Bb — resolution, lift
                     C: {
                         bass: bassBar(N.Ab2, N.Eb3),
                         arp: harpBar([N.Ab3, N.C4, N.Eb4, N.G4, N.Bb4, N.Eb5]),
-                        melody: melodyBar(N.C5, N.G5),
-                        drums: drumsCalm(),
+                        melody: melodyPhrase([
+                            [0, {f: N.C5, d: 3, v: 0.36}],
+                            [8, {f: N.G5, d: 3, v: 0.34}]
+                        ]),
+                        melodyCombat: melodyPhrase([
+                            [0,  {f: N.Ab5, d: 1.5, v: 0.44}],
+                            [2,  {f: N.C6,  d: 1.5, v: 0.46}],
+                            [4,  {f: N.Eb6, d: 2,   v: 0.52}],
+                            [8,  {f: N.C6,  d: 1.5, v: 0.44}],
+                            [10, {f: N.Bb5, d: 1.5, v: 0.40}],
+                            [12, {f: N.Ab5, d: 2,   v: 0.44}]
+                        ], 0.44, 'triangle'),
+                        melodyCrush: melodyPhrase([
+                            [0,  {f: N.Eb6, d: 1, v: 0.56}],
+                            [2,  {f: N.C6,  d: 1, v: 0.52}],
+                            [4,  {f: N.Bb5, d: 1, v: 0.50}],
+                            [6,  {f: N.Ab5, d: 1, v: 0.50}],
+                            [8,  {f: N.G5,  d: 1, v: 0.52}],
+                            [10, {f: N.Eb5, d: 1, v: 0.50}],
+                            [12, {f: N.C5,  d: 1, v: 0.48}],
+                            [14, {f: N.Ab5, d: 1.5, v: 0.56}]
+                        ], 0.52, 'square'),
+                        drums: drumsL1Drive(),
                         pad: padOf([N.C4, N.Eb4, N.G4, N.Bb4], 0.08, 'sine')
                     },
-                    // Bar D — F7b9 (VI7alt): F A Eb Gb — tritone pull back to Bbm9
+                    // Bar D — F7b9 (VI7alt): F A Eb Gb — tritone pull back to ii
                     D: {
                         bass: bassBar(N.F2, N.Bb2),
                         arp: harpBar([N.F3, N.A3, N.Eb4, N.Gb4, N.A4, N.Eb5]),
-                        melody: melodyBar(N.A4, N.Eb5),
-                        drums: drumsCalm(),
+                        melody: melodyPhrase([
+                            [0, {f: N.A4,  d: 3, v: 0.34}],
+                            [8, {f: N.Eb5, d: 3, v: 0.32}]
+                        ]),
+                        melodyCombat: melodyPhrase([
+                            [0,  {f: N.A4,  d: 1.5, v: 0.42}],
+                            [2,  {f: N.Gb5, d: 1.5, v: 0.44}],
+                            [4,  {f: N.A5,  d: 2,   v: 0.48}],
+                            [8,  {f: N.Gb5, d: 1.5, v: 0.42}],
+                            [10, {f: N.Eb5, d: 1.5, v: 0.40}],
+                            [12, {f: N.A4,  d: 2,   v: 0.44}]
+                        ], 0.42, 'triangle'),
+                        melodyCrush: melodyPhrase([
+                            // Tension: chromatic descent into the next bar's Bbm9
+                            [0,  {f: N.A5,  d: 1, v: 0.54}],
+                            [2,  {f: N.Gb5, d: 1, v: 0.52}],
+                            [4,  {f: N.F5,  d: 1, v: 0.50}],
+                            [6,  {f: N.Eb5, d: 1, v: 0.50}],
+                            [8,  {f: N.Db5, d: 1, v: 0.50}],
+                            [10, {f: N.C5,  d: 1, v: 0.48}],
+                            [12, {f: N.Bb4, d: 1, v: 0.46}],
+                            [14, {f: N.A4,  d: 1.5, v: 0.50}]
+                        ], 0.50, 'square'),
+                        drums: drumsL1Drive(),
                         pad: padOf([N.A3, N.Eb4, N.Gb4], 0.07, 'sine')
                     }
                 },
@@ -181,45 +301,130 @@ window.Game = window.Game || {};
             },
 
             // -----------------------------------------------------------------
-            // L2 — "Liquidity Dream" (D dorian, 95 BPM)
-            // Em9 → A13 → Dm11 → Bm7b5 (modal, floating)
-            // Region: EU — lush, gently melancholic
+            // L2 — "Liquidity Dream" (D dorian, 104 BPM) — v7.12 phase-aware.
+            // Em9 → A13 → Dm11 → Bm7b5 (modal). Melancholic EU. Three melody
+            // variants per bar: opening (sparse), combat (D dorian phrasing),
+            // crush (driving descents with chromatic passing tones).
             // -----------------------------------------------------------------
             2: {
                 name: 'Liquidity Dream',
                 key: 'Ddor',
-                bpm: 95,
+                bpm: 104,
                 sections: {
                     // Em9 (ii of D): E G B D Gb
                     A: {
                         bass: bassBar(N.E2, N.B2),
                         arp: harpBar([N.E3, N.G3, N.B3, N.D4, N.Gb4, N.B4]),
-                        melody: melodyBar(N.G5, N.D5),
-                        drums: drumsCalm(),
+                        melody: melodyPhrase([
+                            [0, {f: N.G5, d: 3, v: 0.34}],
+                            [8, {f: N.D5, d: 3, v: 0.30}]
+                        ]),
+                        melodyCombat: melodyPhrase([
+                            [0,  {f: N.D5,  d: 1.5, v: 0.42}],
+                            [2,  {f: N.G5,  d: 1.5, v: 0.44}],
+                            [4,  {f: N.B5,  d: 2,   v: 0.48}],
+                            [8,  {f: N.A5,  d: 1.5, v: 0.42}],
+                            [10, {f: N.G5,  d: 1.5, v: 0.40}],
+                            [12, {f: N.E5,  d: 2,   v: 0.44}]
+                        ], 0.42, 'triangle'),
+                        melodyCrush: melodyPhrase([
+                            [0,  {f: N.B5,  d: 1, v: 0.54}],
+                            [2,  {f: N.A5,  d: 1, v: 0.52}],
+                            [4,  {f: N.G5,  d: 1, v: 0.50}],
+                            [6,  {f: N.Gb5, d: 1, v: 0.48}],
+                            [8,  {f: N.E5,  d: 1, v: 0.50}],
+                            [10, {f: N.D5,  d: 1, v: 0.48}],
+                            [12, {f: N.B4,  d: 1, v: 0.46}],
+                            [14, {f: N.E5,  d: 1.5, v: 0.52}]
+                        ], 0.50, 'square'),
+                        drums: drumsL1Drive(),
                         pad: padOf([N.G3, N.B3, N.D4, N.Gb4], 0.07, 'sine')
                     },
                     // A13 (V): A Db E G Gb (13th)
                     B: {
                         bass: bassBar(N.A2, N.E3),
                         arp: harpBar([N.A3, N.Db4, N.E4, N.G4, N.B4, N.Gb5]),
-                        melody: melodyBar(N.E5, N.A5),
-                        drums: drumsCalm(),
+                        melody: melodyPhrase([
+                            [0, {f: N.E5, d: 3, v: 0.34}],
+                            [8, {f: N.A5, d: 3, v: 0.32}]
+                        ]),
+                        melodyCombat: melodyPhrase([
+                            [0,  {f: N.E5,  d: 1.5, v: 0.44}],
+                            [2,  {f: N.G5,  d: 1.5, v: 0.44}],
+                            [4,  {f: N.B5,  d: 2,   v: 0.50}],
+                            [8,  {f: N.Gb5, d: 1.5, v: 0.42}],
+                            [10, {f: N.E5,  d: 1.5, v: 0.40}],
+                            [12, {f: N.Db5, d: 2,   v: 0.44}]
+                        ], 0.44, 'triangle'),
+                        melodyCrush: melodyPhrase([
+                            [0,  {f: N.Db6, d: 1, v: 0.56}],
+                            [2,  {f: N.B5,  d: 1, v: 0.52}],
+                            [4,  {f: N.A5,  d: 1, v: 0.50}],
+                            [6,  {f: N.G5,  d: 1, v: 0.48}],
+                            [8,  {f: N.Gb5, d: 1, v: 0.50}],
+                            [10, {f: N.E5,  d: 1, v: 0.48}],
+                            [12, {f: N.Db5, d: 1, v: 0.46}],
+                            [14, {f: N.A4,  d: 1.5, v: 0.52}]
+                        ], 0.50, 'square'),
+                        drums: drumsL1Drive(),
                         pad: padOf([N.Db4, N.E4, N.G4, N.Gb5], 0.07, 'sine')
                     },
                     // Dm11 (i): D F A C E G — modal home
                     C: {
                         bass: bassBar(N.D2, N.A2),
                         arp: harpBar([N.D3, N.F3, N.A3, N.C4, N.E4, N.G4]),
-                        melody: melodyBar(N.F5, N.A5),
-                        drums: drumsCalm(),
+                        melody: melodyPhrase([
+                            [0, {f: N.F5, d: 3, v: 0.36}],
+                            [8, {f: N.A5, d: 3, v: 0.32}]
+                        ]),
+                        melodyCombat: melodyPhrase([
+                            [0,  {f: N.A5,  d: 1.5, v: 0.46}],
+                            [2,  {f: N.C6,  d: 1.5, v: 0.46}],
+                            [4,  {f: N.E6,  d: 2,   v: 0.52}],
+                            [8,  {f: N.C6,  d: 1.5, v: 0.44}],
+                            [10, {f: N.A5,  d: 1.5, v: 0.40}],
+                            [12, {f: N.F5,  d: 2,   v: 0.46}]
+                        ], 0.44, 'triangle'),
+                        melodyCrush: melodyPhrase([
+                            [0,  {f: N.E6,  d: 1, v: 0.56}],
+                            [2,  {f: N.D6,  d: 1, v: 0.52}],
+                            [4,  {f: N.C6,  d: 1, v: 0.50}],
+                            [6,  {f: N.A5,  d: 1, v: 0.50}],
+                            [8,  {f: N.G5,  d: 1, v: 0.52}],
+                            [10, {f: N.F5,  d: 1, v: 0.50}],
+                            [12, {f: N.E5,  d: 1, v: 0.48}],
+                            [14, {f: N.D5,  d: 1.5, v: 0.54}]
+                        ], 0.52, 'square'),
+                        drums: drumsL1Drive(),
                         pad: padOf([N.F3, N.A3, N.C4, N.E4], 0.08, 'sine')
                     },
                     // Bm7b5 (vi-half-dim): B D F A — pulls back to E
                     D: {
                         bass: bassBar(N.B2, N.E3),
                         arp: harpBar([N.B3, N.D4, N.F4, N.A4, N.D5, N.F5]),
-                        melody: melodyBar(N.D5, N.F5),
-                        drums: drumsCalm(),
+                        melody: melodyPhrase([
+                            [0, {f: N.D5, d: 3, v: 0.34}],
+                            [8, {f: N.F5, d: 3, v: 0.32}]
+                        ]),
+                        melodyCombat: melodyPhrase([
+                            [0,  {f: N.D5,  d: 1.5, v: 0.42}],
+                            [2,  {f: N.F5,  d: 1.5, v: 0.44}],
+                            [4,  {f: N.A5,  d: 2,   v: 0.48}],
+                            [8,  {f: N.F5,  d: 1.5, v: 0.42}],
+                            [10, {f: N.D5,  d: 1.5, v: 0.40}],
+                            [12, {f: N.B4,  d: 2,   v: 0.42}]
+                        ], 0.42, 'triangle'),
+                        melodyCrush: melodyPhrase([
+                            [0,  {f: N.A5,  d: 1, v: 0.54}],
+                            [2,  {f: N.F5,  d: 1, v: 0.52}],
+                            [4,  {f: N.E5,  d: 1, v: 0.50}],
+                            [6,  {f: N.D5,  d: 1, v: 0.50}],
+                            [8,  {f: N.C5,  d: 1, v: 0.50}],
+                            [10, {f: N.B4,  d: 1, v: 0.48}],
+                            [12, {f: N.A4,  d: 1, v: 0.46}],
+                            [14, {f: N.E5,  d: 1.5, v: 0.52}]
+                        ], 0.50, 'square'),
+                        drums: drumsL1Drive(),
                         pad: padOf([N.D4, N.F4, N.A4], 0.07, 'sine')
                     }
                 },
@@ -227,45 +432,131 @@ window.Game = window.Game || {};
             },
 
             // -----------------------------------------------------------------
-            // L3 — "Eastern Protocol" (F major / pentatonic color, 100 BPM)
-            // Gm9 → C13sus → Fmaj9 → D7alt (ii-V-I with sus-13 suspension)
-            // Region: Asia — pentatonic melodies floating over jazz harmony
+            // L3 — "Eastern Protocol" (Fmaj pentatonic, 108 BPM) — v7.12.
+            // Gm9 → C13sus → Fmaj9 → D7alt. Pentatonic over jazz harmony.
+            // Combat variant: pentatonic runs (F pentatonic: F G A C D).
+            // Crush variant: minor pentatonic descents with altered tension.
             // -----------------------------------------------------------------
             3: {
                 name: 'Eastern Protocol',
                 key: 'Fmaj',
-                bpm: 100,
+                bpm: 108,
                 sections: {
                     // Gm9 (ii): G Bb D F A
                     A: {
                         bass: bassBar(N.G2, N.D3),
                         arp: harpBar([N.G3, N.Bb3, N.D4, N.F4, N.A4, N.D5]),
-                        melody: melodyBar(N.F5, N.A5),  // pentatonic C-D-F-G-Bb
-                        drums: drumsCalm(),
+                        melody: melodyPhrase([
+                            [0, {f: N.F5, d: 3, v: 0.36}],
+                            [8, {f: N.A5, d: 3, v: 0.32}]
+                        ]),
+                        melodyCombat: melodyPhrase([
+                            [0,  {f: N.D5,  d: 1.5, v: 0.44}],
+                            [2,  {f: N.F5,  d: 1.5, v: 0.44}],
+                            [4,  {f: N.A5,  d: 2,   v: 0.50}],
+                            [8,  {f: N.C6,  d: 1.5, v: 0.46}],
+                            [10, {f: N.A5,  d: 1.5, v: 0.40}],
+                            [12, {f: N.F5,  d: 2,   v: 0.44}]
+                        ], 0.44, 'triangle'),
+                        melodyCrush: melodyPhrase([
+                            [0,  {f: N.D6,  d: 1, v: 0.56}],
+                            [2,  {f: N.C6,  d: 1, v: 0.52}],
+                            [4,  {f: N.Bb5, d: 1, v: 0.50}],
+                            [6,  {f: N.A5,  d: 1, v: 0.50}],
+                            [8,  {f: N.G5,  d: 1, v: 0.52}],
+                            [10, {f: N.F5,  d: 1, v: 0.50}],
+                            [12, {f: N.D5,  d: 1, v: 0.48}],
+                            [14, {f: N.C5,  d: 1.5, v: 0.52}]
+                        ], 0.52, 'square'),
+                        drums: drumsL1Drive(),
                         pad: padOf([N.Bb3, N.D4, N.F4, N.A4], 0.07, 'sine')
                     },
                     // C13sus (V): C F Bb E A (suspended with 13)
                     B: {
                         bass: bassBar(N.C3, N.G3),
                         arp: harpBar([N.C4, N.F4, N.Bb4, N.D5, N.E5, N.A5]),
-                        melody: melodyBar(N.G5, N.C6),
-                        drums: drumsCalm(),
+                        melody: melodyPhrase([
+                            [0, {f: N.G5, d: 3, v: 0.36}],
+                            [8, {f: N.C6, d: 3, v: 0.32}]
+                        ]),
+                        melodyCombat: melodyPhrase([
+                            [0,  {f: N.G5,  d: 1.5, v: 0.44}],
+                            [2,  {f: N.Bb5, d: 1.5, v: 0.46}],
+                            [4,  {f: N.C6,  d: 2,   v: 0.50}],
+                            [8,  {f: N.E5,  d: 1.5, v: 0.44}],
+                            [10, {f: N.F5,  d: 1.5, v: 0.42}],
+                            [12, {f: N.A5,  d: 2,   v: 0.46}]
+                        ], 0.44, 'triangle'),
+                        melodyCrush: melodyPhrase([
+                            [0,  {f: N.E6,  d: 1, v: 0.56}],
+                            [2,  {f: N.D6,  d: 1, v: 0.52}],
+                            [4,  {f: N.C6,  d: 1, v: 0.52}],
+                            [6,  {f: N.Bb5, d: 1, v: 0.50}],
+                            [8,  {f: N.A5,  d: 1, v: 0.50}],
+                            [10, {f: N.G5,  d: 1, v: 0.50}],
+                            [12, {f: N.E5,  d: 1, v: 0.48}],
+                            [14, {f: N.C5,  d: 1.5, v: 0.52}]
+                        ], 0.52, 'square'),
+                        drums: drumsL1Drive(),
                         pad: padOf([N.F4, N.Bb4, N.E5, N.A5], 0.07, 'sine')
                     },
                     // Fmaj9 (I): F A C E G
                     C: {
                         bass: bassBar(N.F2, N.C3),
                         arp: harpBar([N.F3, N.A3, N.C4, N.E4, N.G4, N.C5]),
-                        melody: melodyBar(N.A5, N.F5),
-                        drums: drumsCalm(),
+                        melody: melodyPhrase([
+                            [0, {f: N.A5, d: 3, v: 0.38}],
+                            [8, {f: N.F5, d: 3, v: 0.34}]
+                        ]),
+                        melodyCombat: melodyPhrase([
+                            [0,  {f: N.F5,  d: 1.5, v: 0.46}],
+                            [2,  {f: N.A5,  d: 1.5, v: 0.46}],
+                            [4,  {f: N.C6,  d: 2,   v: 0.52}],
+                            [8,  {f: N.E6,  d: 1.5, v: 0.48}],
+                            [10, {f: N.C6,  d: 1.5, v: 0.44}],
+                            [12, {f: N.A5,  d: 2,   v: 0.46}]
+                        ], 0.46, 'triangle'),
+                        melodyCrush: melodyPhrase([
+                            [0,  {f: N.F6,  d: 1, v: 0.58}],
+                            [2,  {f: N.E6,  d: 1, v: 0.54}],
+                            [4,  {f: N.D6,  d: 1, v: 0.52}],
+                            [6,  {f: N.C6,  d: 1, v: 0.52}],
+                            [8,  {f: N.A5,  d: 1, v: 0.52}],
+                            [10, {f: N.G5,  d: 1, v: 0.50}],
+                            [12, {f: N.F5,  d: 1, v: 0.50}],
+                            [14, {f: N.C5,  d: 1.5, v: 0.54}]
+                        ], 0.54, 'square'),
+                        drums: drumsL1Drive(),
                         pad: padOf([N.A3, N.C4, N.E4, N.G4], 0.08, 'sine')
                     },
                     // D7alt (VI): D Gb C Eb (b9, altered) — tritone sub back to Gm
                     D: {
                         bass: bassBar(N.D2, N.G2),
                         arp: harpBar([N.D3, N.Gb3, N.C4, N.Eb4, N.Gb4, N.C5]),
-                        melody: melodyBar(N.Eb5, N.C5),
-                        drums: drumsCalm(),
+                        melody: melodyPhrase([
+                            [0, {f: N.Eb5, d: 3, v: 0.36}],
+                            [8, {f: N.C5,  d: 3, v: 0.32}]
+                        ]),
+                        melodyCombat: melodyPhrase([
+                            [0,  {f: N.Eb5, d: 1.5, v: 0.44}],
+                            [2,  {f: N.Gb5, d: 1.5, v: 0.46}],
+                            [4,  {f: N.A5,  d: 2,   v: 0.48}],
+                            [8,  {f: N.Gb5, d: 1.5, v: 0.44}],
+                            [10, {f: N.Eb5, d: 1.5, v: 0.40}],
+                            [12, {f: N.Db5, d: 2,   v: 0.44}]
+                        ], 0.44, 'triangle'),
+                        melodyCrush: melodyPhrase([
+                            // Altered tension descent into Gm9 resolution
+                            [0,  {f: N.A5,  d: 1, v: 0.56}],
+                            [2,  {f: N.Gb5, d: 1, v: 0.54}],
+                            [4,  {f: N.F5,  d: 1, v: 0.52}],
+                            [6,  {f: N.Eb5, d: 1, v: 0.50}],
+                            [8,  {f: N.Db5, d: 1, v: 0.52}],
+                            [10, {f: N.C5,  d: 1, v: 0.50}],
+                            [12, {f: N.B4,  d: 1, v: 0.48}],
+                            [14, {f: N.A4,  d: 1.5, v: 0.52}]
+                        ], 0.52, 'square'),
+                        drums: drumsL1Drive(),
                         pad: padOf([N.Gb3, N.C4, N.Eb4], 0.07, 'sine')
                     }
                 },

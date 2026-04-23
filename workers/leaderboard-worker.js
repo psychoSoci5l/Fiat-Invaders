@@ -43,11 +43,18 @@ function getAllowedOrigins(env) {
 function corsHeaders(request, env) {
   const origin = request.headers.get('Origin') || '';
   const allowed = getAllowedOrigins(env);
-  const matchedOrigin = allowed.includes(origin) ? origin : allowed[0];
+  // v7.12: if the caller's Origin matches our allowlist, echo it back exactly.
+  // Otherwise, reflect whatever they sent so the browser at least gets a
+  // usable Access-Control-Allow-Origin header. Public read-only GETs don't
+  // leak anything — and this prevents silent CORS failures from subdomain
+  // variants (www, staging mirrors, installed-PWA with stale origin, etc).
+  // POST /score is still HMAC/nonce-protected on the server side.
+  const matchedOrigin = allowed.includes(origin) ? origin : (origin || allowed[0]);
   return {
     'Access-Control-Allow-Origin': matchedOrigin,
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
+    'Vary': 'Origin',
     'Content-Type': 'application/json'
   };
 }
