@@ -1,6 +1,6 @@
 # Roadmap: FIAT vs CRYPTO
 
-> **Versione corrente**: v7.12.3 (2026-04-23)
+> **Versione corrente**: v7.12.4 (2026-04-23)
 > **Branch attivo**: `main`
 > **Modalità primaria**: v8 scroller Gradius-style (`V8_MODE.ENABLED=true`)
 > **Modalità legacy**: Arcade rogue Space-Invaders (WaveManager)
@@ -29,6 +29,7 @@ Da Space Invaders (formazioni statiche + WaveManager) a shmup verticale Gradius-
 - **v7.8.0–v7.11.1** — polish sweep (safe-area PWA, audio richness, cinematic enemy entry, leaderboard, story crawl, arcade fix waveManager/minibosses/boss rotation)
 - **v7.12.0–v7.12.2** — PWA deep safe-area fix (Dynamic Island), tutorial SKIP button audit
 - **v7.12.3** — **balance-check V8 pacing**: curva inter-livello HP (L1 1.40 / L2 1.55 / L3 1.75 STRONG), `V8_RAMP` 0.35→0.50 start + quad→lin (OPENING non più muto, no spike 90-120s), L3 CRUSH densificato (14→19 burst), `V8_RAMP.LEVEL_MULT [1.0, 1.1, 1.25]` (fuoco scala anche per livello, non solo per ciclo)
+- **v7.12.4** — **UX review pass** (reverse-documented HUD/intro/modifier-choice/game-over in `design/ux/`): gradient categoriale modifier-choice ripristinato (`--cat-color-rgb` mai settato), keyboard + ARIA sul modifier-choice (no più hard-lock desktop senza pointer), submit leaderboard anche in Arcade (era chiuso in `if (isStoryMode)`), pulizia dead CSS
 
 ### Altri sistemi maturi (v6 era, ancora in uso)
 Combat core (weapon evo, GODCHAIN, elemental perks, proximity kill), rendering cyberpunk, HUD/status, audio richness v6.7, tilt/mouse input, PWA full-bleed, debug overlay v2, leaderboard anti-spam, OLED pure black UI.

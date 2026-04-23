@@ -8,6 +8,16 @@
 
     let _onComplete = null;
     let _isVisible = false;
+    let _cards = [];
+
+    // Hex (#rrggbb or #rgb) → "r, g, b" string for CSS var consumption
+    function hexToRgbStr(hex) {
+        if (!hex || hex[0] !== '#') return '255, 255, 255';
+        let h = hex.slice(1);
+        if (h.length === 3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+        const n = parseInt(h, 16);
+        return ((n >> 16) & 255) + ', ' + ((n >> 8) & 255) + ', ' + (n & 255);
+    }
 
     function show(cardCount, onComplete) {
         const rs = G.RunState;
@@ -19,6 +29,7 @@
 
         _onComplete = onComplete;
         _isVisible = true;
+        _cards = [];
 
         const overlay = document.getElementById('modifier-overlay');
         const container = document.getElementById('modifier-cards');
@@ -42,6 +53,7 @@
 
             const catColor = G.ArcadeModifiers.getCategoryColor(mod.category);
             card.style.setProperty('--cat-color', catColor);
+            card.style.setProperty('--cat-color-rgb', hexToRgbStr(catColor));
 
             const stacks = rs.arcadeModifiers.filter(id => id === mod.id).length;
             const stackLabel = stacks > 0 ? ` <span class="mod-stack">x${stacks + 1}</span>` : '';
@@ -52,18 +64,69 @@
                 '<div class="mod-desc">' + (mod.desc[lang] || mod.desc.EN) + '</div>' +
                 '<div class="mod-category" style="color:' + catColor + '">' + mod.category + '</div>';
 
+            // Accessibility: keyboard + screen reader
+            card.setAttribute('role', 'button');
+            card.setAttribute('tabindex', '0');
+            const descText = (mod.desc[lang] || mod.desc.EN || '').replace(/<[^>]+>/g, '');
+            card.setAttribute('aria-label',
+                (i + 1) + '. ' + mod.name + ' — ' + mod.category + '. ' + descText
+            );
+
             card.addEventListener('click', function () {
                 selectCard(card, container, mod.id);
             });
 
             container.appendChild(card);
+            _cards.push({ el: card, modId: mod.id });
         });
 
         overlay.style.display = 'flex';
-        overlay.classList.add('mod-overlay-enter');
+
+        // Focus first card for keyboard nav
+        if (_cards[0]) {
+            try { _cards[0].el.focus({ preventScroll: true }); } catch(e) {}
+        }
+
+        document.addEventListener('keydown', _onKeyDown);
 
         // Play SFX
         if (G.Audio) G.Audio.play('coinUI');
+    }
+
+    function _onKeyDown(e) {
+        if (!_isVisible) return;
+        // Digits 1-3 select card by index
+        if (e.key >= '1' && e.key <= '9') {
+            const idx = parseInt(e.key, 10) - 1;
+            if (_cards[idx]) {
+                e.preventDefault();
+                const container = document.getElementById('modifier-cards');
+                selectCard(_cards[idx].el, container, _cards[idx].modId);
+            }
+            return;
+        }
+        // Enter / Space on focused card
+        if (e.key === 'Enter' || e.key === ' ') {
+            const focused = document.activeElement;
+            const hit = _cards.find(c => c.el === focused);
+            if (hit) {
+                e.preventDefault();
+                const container = document.getElementById('modifier-cards');
+                selectCard(hit.el, container, hit.modId);
+            }
+            return;
+        }
+        // Arrow keys move focus between cards
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+            e.preventDefault();
+            const focused = document.activeElement;
+            let idx = _cards.findIndex(c => c.el === focused);
+            if (idx < 0) idx = 0;
+            else idx = (e.key === 'ArrowRight')
+                ? (idx + 1) % _cards.length
+                : (idx - 1 + _cards.length) % _cards.length;
+            try { _cards[idx].el.focus({ preventScroll: true }); } catch(err) {}
+        }
     }
 
     function selectCard(selectedEl, container, modId) {
@@ -91,11 +154,10 @@
 
     function hide() {
         _isVisible = false;
+        _cards = [];
+        document.removeEventListener('keydown', _onKeyDown);
         const overlay = document.getElementById('modifier-overlay');
-        if (overlay) {
-            overlay.classList.remove('mod-overlay-enter');
-            overlay.style.display = 'none';
-        }
+        if (overlay) overlay.style.display = 'none';
     }
 
     function isVisible() {

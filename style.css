@@ -3507,16 +3507,6 @@ body.bear-mode .neon-title {
     z-index: 1;
 }
 
-#graze-count {
-    position: absolute;
-    right: 8px;
-    font-size: 10px;
-    font-weight: 700;
-    color: #ffff00;
-    text-shadow: 0 0 5px rgba(255, 255, 0, 0.8), 1px 1px 0 #000;
-    z-index: 1;
-}
-
 #graze-meter.pulse {
     animation: grazePulse 0.3s ease-out;
 }

@@ -294,10 +294,12 @@ window.Game = window.Game || {};
         if (ui.uiLayer) ui.uiLayer.style.display = 'none';
         audioSys.play('explosion');
 
-        // v5.23: Leaderboard submit
+        // Leaderboard submit — both Story and Arcade modes (Leaderboard._getMode
+        // already distinguishes them and writes to the right board)
         const isStoryMode = G.CampaignState && G.CampaignState.isEnabled();
+        const shipKey = (G.IntroScreen ? G.IntroScreen.getSelectedShipKey() : 'BTC');
+        let submitWave, submitCycle;
         if (isStoryMode) {
-            const shipKey = (G.IntroScreen ? G.IntroScreen.getSelectedShipKey() : 'BTC');
             // v7.12: V8 campaign keeps WaveManager dormant (wave stays 1), which makes
             // the worker's score-ceiling check (12000*wave*cycle*1.5) reject legit runs.
             // Map the reached V8 level to cycle, set wave=5 (the "full cycle" max) so the
@@ -305,18 +307,22 @@ window.Game = window.Game || {};
             const v8Active = !!(G.Balance && G.Balance.V8_MODE && G.Balance.V8_MODE.ENABLED);
             const reachedLvl = (G.LevelScript && G.LevelScript.currentLevelNum)
                 ? G.LevelScript.currentLevelNum() : (window.currentLevel || 1);
-            const submitWave  = v8Active ? 5 : (G.WaveManager.wave || 1);
-            const submitCycle = v8Active ? Math.max(1, reachedLvl) : d.getMarketCycle();
-            const _doRank = () => G.Leaderboard.renderGameoverRank(
-                Math.floor(d.getScore()), d.getKillCount(), submitCycle,
-                submitWave, shipKey, !!window.isBearMarket
-            );
-            if (G.hasNickname()) {
-                _doRank();
-            } else if (wasNewHighScore) {
-                G.showNicknamePrompt((entered) => { if (entered) _doRank(); },
-                    { title: d.t('NICK_RECORD_TITLE'), hideSkip: false });
-            }
+            submitWave  = v8Active ? 5 : (G.WaveManager.wave || 1);
+            submitCycle = v8Active ? Math.max(1, reachedLvl) : d.getMarketCycle();
+        } else {
+            // Arcade: real wave/cycle values track natural difficulty progression
+            submitWave  = G.WaveManager.wave || 1;
+            submitCycle = d.getMarketCycle();
+        }
+        const _doRank = () => G.Leaderboard.renderGameoverRank(
+            Math.floor(d.getScore()), d.getKillCount(), submitCycle,
+            submitWave, shipKey, !!window.isBearMarket
+        );
+        if (G.hasNickname()) {
+            _doRank();
+        } else if (wasNewHighScore) {
+            G.showNicknamePrompt((entered) => { if (entered) _doRank(); },
+                { title: d.t('NICK_RECORD_TITLE'), hideSkip: false });
         }
     }
 

@@ -1,5 +1,23 @@
 # Changelog
 
+## v7.12.4 — UX review fixes: modifier a11y + arcade leaderboard - 2026-04-23
+
+Passata `/ux-review` su 4 schermate reverse-documentate (HUD, intro, modifier-choice, game-over). Fix sui bug concreti emersi, non sul completamento formale degli spec.
+
+### Fix
+
+- **Modifier Choice — gradient categoriale ripristinato**: `--cat-color-rgb` non veniva mai settato, il gradient `::before` cadeva sempre sul fallback viola indipendentemente da OFFENSE/DEFENSE/WILD. Aggiunto helper `hexToRgbStr()` in [ModifierChoiceScreen.js](src/ui/ModifierChoiceScreen.js) e set della CSS var insieme a `--cat-color`.
+- **Modifier Choice — keyboard & screen reader**: modale era hard-lock per utenti desktop senza puntatore (no key listener, cards `<div>` senza ARIA). Ora: `role="button"` + `tabindex="0"` + `aria-label` (indice + nome + categoria + descrizione), focus auto sulla prima card, tasti **1/2/3** selezionano, **Enter/Space** attivano la focused, **Arrow Left/Right** navigano. Listener `keydown` registrato solo mentre il modale è visibile.
+- **Arcade leaderboard submit**: `renderGameoverRank` era chiuso in `if (isStoryMode)` in [GameCompletion.js](src/ui/GameCompletion.js), quindi i punteggi Arcade non arrivavano mai al worker. L'infrastruttura client (`_getMode() === 'arcade'`, key `fiat_highscore_arcade`) era già completa. Ora submit attivo in entrambe le modalità con wave/cycle reali in Arcade.
+- **Pulizia dead code**: rimossa regola CSS `#graze-count` in [style.css](style.css) (mai referenziata in JS/HTML), rimosso add/remove della classe `mod-overlay-enter` (senza regola CSS corrispondente).
+
+### Non fix (verificati ma non bug)
+
+- `fiat_completion_seen`: letto correttamente in [GameplayCallbacks.js:540/547](src/core/GameplayCallbacks.js) — il gate sul cinematic esiste, reverse-doc era impreciso.
+- `status-pierce/missile/upgrade`: regole CSS presenti alle righe 2913/2922/2954 di [style.css](style.css) — non dead code.
+
+---
+
 ## v7.12.3 — V8 Pacing: curva inter-livello + fire ramp lineare - 2026-04-23
 
 Balance-check ha rilevato due problemi di ritmo in modalità V8:
