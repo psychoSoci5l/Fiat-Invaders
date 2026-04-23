@@ -2480,9 +2480,13 @@
             // curve eases toward 100% at boss approach. Only active when V8_MODE.ENABLED.
             V8_RAMP: {
                 ENABLED: true,
-                START: 0.35,       // multiplier at elapsed=0
+                START: 0.50,       // v7.12.3: 0.35→0.50. OPENING non più muto a C1 (4 BPS base).
                 END: 1.0,          // multiplier at elapsed>=BOSS_AT_S
-                CURVE: 'quad'      // 'lin' or 'quad' (quad = slow start, fast end)
+                CURVE: 'lin',      // v7.12.3: quad→lin. Curva leggibile, no spike 90-120s.
+                // v7.12.3: moltiplicatore per livello applicato DOPO la ramp.
+                // L1 onboarding, L2 +10%, L3 +25%. Rende il fuoco dei livelli
+                // avanzati più pesante indipendentemente dal ciclo (prima: C1@L3 = C1@L1).
+                LEVEL_MULT: [1.0, 1.10, 1.25]
             }
         },
 

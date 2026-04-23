@@ -1,5 +1,24 @@
 # Changelog
 
+## v7.12.3 — V8 Pacing: curva inter-livello + fire ramp lineare - 2026-04-23
+
+Balance-check ha rilevato due problemi di ritmo in modalità V8:
+
+1. **Curva inter-livello piatta**: `TIER_TARGETS` era uniforme (STRONG=1.40 HP su L1=L2=L3). L3 risultava duro solo per velocità scroll, i nemici morivano come a L1 malgrado il player power-up.
+2. **Fire ramp quadratico asimmetrico**: `START:0.35 + CURVE:'quad'` rendeva OPENING praticamente muto e ESCALATION troppo ripida (0.48 a 60s, 0.82 a 120s — spike improvviso).
+
+### Fix
+
+- **TIER_TARGETS_BY_LEVEL** in [LevelScript.js](src/v8/LevelScript.js): HP cresce +10%/+25% tra L1→L2→L3. STRONG: 1.40 / 1.55 / 1.75. Val: 90 / 100 / 108. La difficoltà inter-livello ora è percepibile anche a C1.
+- **V8_RAMP**: `START: 0.35→0.50`, `CURVE: 'quad'→'lin'`. OPENING parte a 4 BPS (C1) invece di 2.8 — minaccia leggibile. Salita lineare fino a 1.0× al boss: niente più plateau+spike.
+
+Kill-switch: `V8_RAMP.ENABLED=false` disabilita tutto il ramp.
+
+### Seconda passata (P1+P2)
+
+- **L3 CRUSH densificato**: +5 burst intermedi tra 142–168s. Prima 14 burst / 0.54 en-burst/s (anti-climax), ora 19 / 0.73 en-burst/s. Il climax di L3 finalmente batte in densità PEAK, non solo in velocità.
+- **`V8_RAMP.LEVEL_MULT`**: nuovo moltiplicatore per livello applicato dopo la ramp → `[1.0, 1.10, 1.25]`. Ora L3 BOJ spara 25% più intensamente di L1 FED a parità di ciclo. Prima il livello non incideva sul fire budget (solo il ciclo).
+
 ## v7.12.2 — Tutorial SKIP button safe-area + final audit - 2026-04-23
 
 Test post-v7.12.1: tutto OK tranne il bottone SKIP del tutorial che restava nella zona Dynamic Island. Il bottone è `position: absolute` dentro `#tutorial-overlay`: in CSS questo lo posiziona rispetto al **padding box** dell'overlay, ignorando il `padding-top` safe-area aggiunto in v7.12.1 (padding non spinge giù gli abs-positioned figli).

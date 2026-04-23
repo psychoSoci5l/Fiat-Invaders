@@ -276,6 +276,12 @@ window.Game.HarmonicConductor = {
             const end = rampCfg.END != null ? rampCfg.END : 1.0;
             const rampMul = start + (end - start) * curved;
             max *= rampMul;
+            // v7.12.3: moltiplicatore per livello (L1=1.0, L2=1.1, L3=1.25).
+            const levelMults = rampCfg.LEVEL_MULT;
+            if (Array.isArray(levelMults) && typeof ls._levelIdx === 'number') {
+                const lm = levelMults[ls._levelIdx];
+                if (typeof lm === 'number') max *= lm;
+            }
         }
 
         this._fireBudget.maxPerSecond = Math.round(max);

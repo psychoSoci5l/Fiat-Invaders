@@ -26,11 +26,28 @@ window.Game = window.Game || {};
     // v7.5.0: Tier-normalized hp/val. Applied per-level so that e.g. ¥ as L3
     // STRONG plays as durable as $ did as L1 STRONG (their base FIAT_TYPES hp
     // differ: ¥=0.8 vs $=1.3). Keeps regional theming without breaking curve.
-    const TIER_TARGETS = {
-        WEAK:   { hp: 0.85, val: 22 },
-        MEDIUM: { hp: 1.10, val: 50 },
-        STRONG: { hp: 1.40, val: 90 }
-    };
+    // v7.12.3: per-level tier targets. HP cresce tra livelli (L1→L2→L3) per
+    // una vera curva inter-livello. Prima era uniforme (1.40/1.40/1.40 STRONG):
+    // L3 risultava duro solo per velocità scroll. Ora L3 STRONG = 1.75 vs L1 1.40.
+    const TIER_TARGETS_BY_LEVEL = [
+        { // L1 FED (onboarding)
+            WEAK:   { hp: 0.85, val: 22 },
+            MEDIUM: { hp: 1.10, val: 50 },
+            STRONG: { hp: 1.40, val: 90 }
+        },
+        { // L2 BCE (+10% hp, +10% val)
+            WEAK:   { hp: 0.95, val: 24 },
+            MEDIUM: { hp: 1.25, val: 55 },
+            STRONG: { hp: 1.55, val: 100 }
+        },
+        { // L3 BOJ (+25% hp, +20% val vs L1)
+            WEAK:   { hp: 1.05, val: 26 },
+            MEDIUM: { hp: 1.40, val: 60 },
+            STRONG: { hp: 1.75, val: 108 }
+        }
+    ];
+    // Fallback/back-compat export: L1 values.
+    const TIER_TARGETS = TIER_TARGETS_BY_LEVEL[0];
 
     // LEVEL 1 — FED / ONBOARDING ACT. v7.5.0 regional rewrite:
     // USA-sphere roster. WEAK: ₽ RUB + C$ CAD. MEDIUM: Ⓒ USDC. STRONG: $ USD.
@@ -272,18 +289,25 @@ window.Game = window.Game || {};
         { at_s: 139.5, currencies: ['元','¥','元'],      lanes: [0.3, 0.5, 0.7],    pattern: 'HOVER' },
 
         // 142-168s CORRIDOR CRUSH — hardest in campaign (peak 2.6×, 26s)
+        // v7.12.3: +5 burst (14→19) per riempire il CRUSH climax (prima 0.54/s,
+        // ora 0.73/s). L3 finale era anti-climactico: veloce ma poco denso.
         { at_s: 142.5, currencies: ['¥','元','¥','元','¥','元'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
         { at_s: 144.0, currencies: ['元','¥'],           lanes: [0.1, 0.9],         pattern: 'SWOOP' },
         { at_s: 145.0, currencies: ['¥','元','¥','元','¥'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85], pattern: 'SINE' },
+        { at_s: 146.5, currencies: ['¥','元','¥','元'],  lanes: [0.2, 0.4, 0.6, 0.8] },           // v7.12.3 +
         { at_s: 147.0, currencies: ['¥','元'],           lanes: [0.25, 0.75],       pattern: 'SWOOP' },
         { at_s: 148.5, currencies: ['元','¥','元','¥','元'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9] },
+        { at_s: 149.5, currencies: ['¥','元','¥'],       lanes: [0.2, 0.5, 0.8],    pattern: 'HOVER' }, // v7.12.3 +
         { at_s: 150.5, currencies: ['¥','元','¥'],       lanes: [0.3, 0.5, 0.7],    pattern: 'HOVER' },
         { at_s: 152.5, currencies: ['元','¥'],           lanes: [0.1, 0.9],         pattern: 'SWOOP' },
         { at_s: 153.5, currencies: ['¥','元'],           lanes: [0.2, 0.8],         pattern: 'SWOOP' },
+        { at_s: 154.0, currencies: ['¥','元','¥','元','¥','元'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9], pattern: 'SINE' }, // v7.12.3 +
         { at_s: 155.0, currencies: ['¥','元','¥','元','¥','元'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
         { at_s: 157.5, currencies: ['元','¥','元'],      lanes: [0.3, 0.5, 0.7],    pattern: 'HOVER' },
         { at_s: 159.5, currencies: ['¥','元','¥','元','¥'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85], pattern: 'SINE' },
+        { at_s: 161.0, currencies: ['¥','元','¥','元'],  lanes: [0.15, 0.4, 0.6, 0.85], pattern: 'SWOOP' }, // v7.12.3 +
         { at_s: 162.0, currencies: ['元','¥','元','¥'],  lanes: [0.1, 0.35, 0.65, 0.9], pattern: 'SWOOP' },
+        { at_s: 163.5, currencies: ['¥','元','¥','元','¥'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85] },        // v7.12.3 +
         { at_s: 164.5, currencies: ['元','¥','元','¥','元'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9] },
         { at_s: 166.5, currencies: ['元','¥'],           lanes: [0.1, 0.9],         pattern: 'SWOOP' }
     ];
@@ -580,7 +604,9 @@ window.Game = window.Game || {};
             // $ did as L1 STRONG, independent of the FIAT_TYPES base stats.
             const tiers = LEVELS[this._levelIdx] && LEVELS[this._levelIdx].TIER_BY_SYMBOL;
             const tier = tiers && tiers[currencySymbol];
-            const target = tier && TIER_TARGETS[tier];
+            // v7.12.3: per-level tier targets (L1/L2/L3 con HP crescente).
+            const targets = TIER_TARGETS_BY_LEVEL[this._levelIdx] || TIER_TARGETS_BY_LEVEL[0];
+            const target = tier && targets[tier];
             const baseHp  = target ? target.hp  : currencyType.hp;
             const baseVal = target ? target.val : currencyType.val;
             const scaledType = Object.assign({}, currencyType, {
