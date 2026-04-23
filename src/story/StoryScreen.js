@@ -29,7 +29,7 @@
         LINE_HEIGHT: 1.55,
         PARAGRAPH_GAP: 0.7,
         MAX_WIDTH_RATIO: 0.88,
-        PADDING_TOP: 55,
+        PADDING_TOP: 70,
         COLOR_PERIOD: '#bb44ff',
         COLOR_TITLE: '#FFFFFF',
         COLOR_TEXT: '#F5F5F5',
@@ -461,7 +461,10 @@
 
         // --- Text crawl ---
         const centerX = width / 2;
-        const safeTop = (window.safeAreaInsets && window.safeAreaInsets.top) || 0;
+        // v7.12.1: prefer G._safeTop (always current from resize()) over window.safeAreaInsets
+        // which can lag on first paint. Keeps the story title below Dynamic Island.
+        const G_ = window.Game;
+        const safeTop = (G_ && G_._safeTop) || (window.safeAreaInsets && window.safeAreaInsets.top) || 0;
         const topPadding = CONFIG.PADDING_TOP + safeTop;
         const bodyLineHeight = CONFIG.FONT_SIZE_TEXT * CONFIG.LINE_HEIGHT;
 

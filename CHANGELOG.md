@@ -1,5 +1,18 @@
 # Changelog
 
+## v7.12.1 — PWA deep safe-area fix: UI no longer invades Dynamic Island - 2026-04-23
+
+Follow-up a v7.12.0 dopo test su iPhone 14 Pro Max in PWA installata. Il fix precedente aveva risolto il calcolo di `safeTop` e `--di-safe-top`, ma diversi elementi di UI (canvas HUD e modali DOM) non propagavano il valore ai loro punti di disegno. Principio applicato: lo sfondo/parallax del canvas può estendersi full-bleed sotto la Dynamic Island per dare profondità, ma **nessun testo/UI deve essere disegnato nei primi 59px top** su iPhone con notch/DI.
+
+- **fix(canvas-hud)**: il boss countdown "L1 BOSS T-Xs" (main.js:3863) e il combo HUD Arcade (main.js:3428) avevano Y hardcoded (92 e 32). Ora entrambi partono da `(G._safeTop || 0) + margin` → scendono sotto la DI su iPhone 14 PM.
+- **fix(hud-score-compact)**: `.hud-score-compact` era `position: absolute` senza `top`, il che faceva rendere il punteggio "big number" a y=0 del container. Ora `top: calc(var(--safe-top, 0px) + 8px)`.
+- **fix(story-screen)**: `StoryScreen.js` leggeva `window.safeAreaInsets.top` che al primo paint può essere 0. Ora usa `G._safeTop` come prima fonte (sempre aggiornato da `resize()`), con fallback su `safeAreaInsets`. `CONFIG.PADDING_TOP` alzato 55→70 per un margine di respiro extra sotto il notch.
+- **fix(tutorial-modal, lesson-modal)**: `#tutorial-overlay` e `#lesson-modal` non avevano `padding-top: env(safe-area-inset-top)`. In PWA iOS il border neon del modale viola colpiva la status bar nativa. Ora entrambi hanno padding top/bottom che rispetta `env(safe-area-inset-top/bottom)` e `--di-safe-top`/`--safe-bottom`.
+- **fix(centered-overlays)**: stesso trattamento applicato a `#whatsnew-panel`, `#leaderboard-panel`, `#pause-screen` individualmente.
+- **fix(remaining-overlays)**: regola centralizzata a fine CSS che copre `#settings-modal`, `#perk-modal`, `#manual-modal`, `#modifier-overlay`, `#nickname-overlay`, `#feedback-overlay`, `#debug-overlay`, `#profile-panel`, `#credits-panel`, `#privacy-panel`, `#hangar-screen` — tutti i restanti modali full-screen ora hanno padding top/bottom safe-area-aware (con `!important` per superare eventuali override di cascade).
+
+Principio unificato: **canvas** → `y = (G._safeTop || 0) + margin`; **DOM** dentro `#game-container` → `var(--safe-top)`; **overlay modali esterni** → `var(--di-safe-top)` con fallback `env(safe-area-inset-top)`. Nessuna nuova var CSS, nessun helper nuovo.
+
 ## v7.12.0 — Polish sweep: PWA notch, HUD level, audio resume, cinematic enemy entry, boss bullets, L1 pathos, leaderboard - 2026-04-23
 
 Sprint di fix ai 7 problemi emersi nel playtest di v7.11.1. Tutti interventi chirurgici, nessun refactor.

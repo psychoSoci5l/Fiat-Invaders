@@ -3423,9 +3423,9 @@ function drawArcadeComboHUD(ctx) {
     else if (displayCombo >= colors.WHITE) color = '#ffcc00';
     else color = '#ffffff';
 
-    // Position: right side, below score
+    // Position: right side, below score (v7.12.1: respect iOS safe-area top)
     const x = gameWidth - 12;
-    const y = 32;
+    const y = (G._safeTop || 0) + 12;
 
     // Pulse effect
     const pulse = combo > 0 ? 1 + Math.sin(totalTime * 10) * 0.04 * Math.min(combo / 20, 1) : 1;
@@ -3860,7 +3860,8 @@ function draw() {
         }
         if (label) {
             const cw = ctx.canvas.width;
-            const y = 92;
+            // v7.12.1: respect iOS notch/Dynamic Island — push label below safe-area
+            const y = (G._safeTop || 0) + 52;
             ctx.save();
             const alpha = pulse ? (0.75 + 0.25 * Math.sin(totalTime * 6)) : 0.9;
             ctx.globalAlpha = alpha;

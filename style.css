@@ -479,9 +479,10 @@ body {
         -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
 }
 
-/* Score: centered, reduced size */
+/* Score: centered, reduced size. v7.12.1: top offset to clear Dynamic Island */
 .hud-score-compact {
     position: absolute;
+    top: calc(var(--safe-top, 0px) + 8px);
     left: 50%;
     transform: translateX(-50%);
     text-align: center;
@@ -2621,6 +2622,10 @@ body {
     justify-content: center;
     align-items: center;
     gap: 14px;
+    /* v7.12.1: respect iOS notch / Dynamic Island */
+    padding-top: max(env(safe-area-inset-top), var(--di-safe-top, 0px));
+    padding-bottom: max(env(safe-area-inset-bottom), var(--safe-bottom, 0px));
+    box-sizing: border-box;
 }
 
 #pause-screen h1 {
@@ -3605,7 +3610,9 @@ body.bear-mode .neon-title {
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 20px;
+    /* v7.12.1: respect iOS notch / Dynamic Island / home indicator */
+    padding: max(env(safe-area-inset-top), var(--di-safe-top, 20px)) 20px
+             max(env(safe-area-inset-bottom), var(--safe-bottom, 20px)) 20px;
     box-sizing: border-box;
     touch-action: pan-y;
 }
@@ -5017,6 +5024,10 @@ body.is-touch p.mobile-only { display: block; }
     display: flex;
     justify-content: center;
     align-items: center;
+    /* v7.12.1: respect iOS notch / Dynamic Island — modal stays in safe zone */
+    padding-top: max(env(safe-area-inset-top), var(--di-safe-top, 0px));
+    padding-bottom: max(env(safe-area-inset-bottom), var(--safe-bottom, 0px));
+    box-sizing: border-box;
     animation: tutorialFadeIn 0.3s ease-out;
 }
 
@@ -5213,7 +5224,9 @@ body.is-touch p.mobile-only { display: block; }
     background: rgba(0, 0, 0, 0.78);
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
-    padding: 20px;
+    /* v7.12.1: respect iOS notch / Dynamic Island on top, home indicator on bottom */
+    padding: max(env(safe-area-inset-top), var(--di-safe-top, 20px)) 20px
+             max(env(safe-area-inset-bottom), var(--safe-bottom, 20px)) 20px;
     box-sizing: border-box;
 }
 
@@ -5779,7 +5792,9 @@ body.is-touch p.mobile-only { display: block; }
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 20px;
+    /* v7.12.1: respect iOS notch / Dynamic Island / home indicator */
+    padding: max(env(safe-area-inset-top), var(--di-safe-top, 20px)) 20px
+             max(env(safe-area-inset-bottom), var(--safe-bottom, 20px)) 20px;
     box-sizing: border-box;
     touch-action: pan-y;
 }
@@ -6211,5 +6226,29 @@ body.is-touch p.mobile-only { display: block; }
         border-radius: 0;
         border: none;
     }
+}
+
+/* ============================================================
+   v7.12.1 — Centralised iOS safe-area guard for all remaining
+   full-screen overlays that weren't already patched individually.
+   Prevents modal content from invading the Dynamic Island /
+   notch / home-indicator zones on iPhone 14/15 Pro (Max).
+   Each selector still keeps its own align/padding-x rules; we
+   only set the top/bottom safe-area minima via padding.
+   ============================================================ */
+#settings-modal,
+#perk-modal,
+#manual-modal,
+#modifier-overlay,
+#nickname-overlay,
+#feedback-overlay,
+#debug-overlay,
+#profile-panel,
+#credits-panel,
+#privacy-panel,
+#hangar-screen {
+    padding-top: max(env(safe-area-inset-top), var(--di-safe-top, 0px)) !important;
+    padding-bottom: max(env(safe-area-inset-bottom), var(--safe-bottom, 0px)) !important;
+    box-sizing: border-box;
 }
 

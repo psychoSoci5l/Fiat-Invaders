@@ -592,6 +592,26 @@ window.Game = window.Game || {};
     // What's New panel (v4.50, i18n v5.18)
     const WHATS_NEW = [
         {
+            version: 'v7.12.1', date: '2026-04-23',
+            title: { EN: 'PWA Deep Safe-Area Fix: UI respects Dynamic Island', IT: 'Fix profondo safe-area PWA: la UI rispetta la Dynamic Island' },
+            items: {
+                EN: [
+                    'Canvas HUD (boss countdown, Arcade combo) now pushed below the Dynamic Island on iPhone 14/15 Pro Max',
+                    'Score "big number" moved below the safe-area top — no more overlap with the notch',
+                    'Story screen title waits until the real safeTop is available — no more "1971" clipping under the status bar',
+                    'Tutorial / Lesson / What\'s New / Leaderboard / Settings and all remaining modals now have safe-area padding — borders no longer collide with status bar icons',
+                    'Background / parallax preserved full-bleed — the Dynamic Island zone is used for depth, not UI'
+                ],
+                IT: [
+                    'HUD canvas (countdown boss, combo Arcade) ora spostato sotto la Dynamic Island su iPhone 14/15 Pro Max',
+                    'Punteggio "big number" abbassato sotto la safe-area — niente più sovrapposizione con il notch',
+                    'Titolo story screen attende il vero safeTop — niente più "1971" tagliato sotto la status bar',
+                    'Tutorial / Lesson / What\'s New / Classifica / Impostazioni e tutti i modali residui ora hanno padding safe-area — i bordi non collidono più con le icone della status bar',
+                    'Sfondo / parallax full-bleed preservati — la zona della Dynamic Island è usata per la profondità, non per la UI'
+                ]
+            }
+        },
+        {
             version: 'v7.12', date: '2026-04-23',
             title: { EN: 'Polish Sweep: HUD, Audio, Enemies, Boss Bullets, L1 Pathos', IT: 'Rifiniture: HUD, Audio, Nemici, Proiettili Boss, Pathos L1' },
             items: {
