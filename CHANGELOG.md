@@ -1,5 +1,37 @@
 # Changelog
 
+## v7.12.14 — Fix: intro flow SPLASH→MODE→SELECTION completato - 2026-04-23
+
+### fix(intro): tab modalità visibili in SELECTION + testo descrittivo visibile prima del tap
+
+Completamento del rework avviato in v7.12.13. `_doEnterSelection()` nascondeva il mode-selector solo via `.hidden` class (opacity:0 + position:absolute) ma NON via `display:none` inline. Siccome `_revealModes()` aveva rimosso il `display:none`, i tab restavano nel flow DOM e si vedevano sovrapposti all'indicatore "ARCADE MODE" nella schermata di selezione nave. Stesso problema per il testo descrittivo (mode-explanation), visibile anche prima del primo tap.
+
+- **fix**: `_doEnterSelection()` ora aggiunge anche `style.display='none'` e rimuove `mode-revealed` class
+- **fix**: mode-explanation nascosta all'init e nei reset; rivelata solo in `_revealModes()` insieme ai tab
+
+### Flusso finale verificato (screenshot)
+1. SPLASH: solo titolo + "TOCCA PER INIZIARE", nessun tab, nessun testo modalità
+2. Tap → tab STORY/ARCADE/DAILY appaiono con animazione + descrizione modalità
+3. Tap su modalità → SELECTION pulita (no tab), "X MODE" indicator, ship carousel, LANCIA
+
+---
+
+## v7.12.13 — Fix: SPLASH → SELECTION skippato (double-tap / key repeat) - 2026-04-23
+
+### fix(intro): tap su TAP TO START avviava il gioco direttamente
+
+`handlePrimaryAction()` in `IntroScreen.js` non settava `_introActionCooldown` dopo aver chiamato `enterSelectionState()`. Se l'utente faceva doppio-tap rapido sul bottone primario o teneva Enter/Space (key repeat desktop), la prima chiamata transitava correttamente SPLASH → SELECTION ma la seconda chiamata immediata — trovando già `introState === 'SELECTION'` e cooldown = 0 — chiamava `launchShipAndStart()` saltando la schermata di selezione navetta.
+
+Il commento alla riga 164 riconosceva il problema ("Cooldown prevents rapid-fire state transitions (key repeat)") ma la protezione era applicata solo nel branch `TitleAnimator.skip()`, non nel branch `enterSelectionState()`.
+
+- **fix**: `src/ui/IntroScreen.js` — aggiunto `_introActionCooldown = 0.4` dopo `enterSelectionState()`, stesso pattern già usato nel branch TitleAnimator (riga 170).
+
+### Verifica
+
+Preview: click singolo su TOCCA PER INIZIARE → SELECTION con ship carousel e LANCIA. Secondo click rapido bloccato dal cooldown. Flusso completo SPLASH → SELECTION → LANCIA funziona correttamente.
+
+---
+
 ## v7.12.12 — Fix: Arcade launch blocked (INTRO → PLAY) - 2026-04-23
 
 ### fix(state): Arcade launch con tutorial già visto restava fermo

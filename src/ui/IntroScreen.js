@@ -46,6 +46,20 @@ window.Game = window.Game || {};
 
     // --- v4.35: Title animation helpers ---
     let _introActionCooldown = 0;
+    let _modesRevealed = false; // v7.12.13: mode tabs hidden until first tap
+
+    function _revealModes() {
+        _modesRevealed = true;
+        const modeSelector = document.getElementById('mode-selector');
+        if (modeSelector) {
+            modeSelector.style.display = '';
+            modeSelector.classList.add('mode-revealed');
+        }
+        const modeExpl = document.getElementById('mode-explanation');
+        if (modeExpl) { modeExpl.classList.remove('hidden'); modeExpl.style.display = ''; }
+        const btn = document.getElementById('btn-primary-action');
+        if (btn) btn.style.display = 'none';
+    }
 
     function _cleanupAnimClasses() {
         const els = [
@@ -80,7 +94,7 @@ window.Game = window.Game || {};
         const introVersion = document.querySelector('.intro-version');
         const modeExpl = document.getElementById('mode-explanation');
         if (title) title.classList.add('hidden');
-        if (modeSelector) modeSelector.classList.add('hidden');
+        if (modeSelector) { modeSelector.classList.add('hidden'); modeSelector.style.display = 'none'; modeSelector.classList.remove('mode-revealed'); }
         if (introVersion) introVersion.style.display = 'none';
         if (modeExpl) modeExpl.classList.add('hidden');
         // Hide PWA install banner when entering selection
@@ -122,6 +136,7 @@ window.Game = window.Game || {};
     window.goBackToModeSelect = function() {
         if (introState === 'SPLASH') return;
         introState = 'SPLASH';
+        _modesRevealed = false;
         G.Audio.play('coinUI');
         // v4.35: Restore title animator in loop state (no replay)
         if (G.TitleAnimator && !G.TitleAnimator.isActive()) {
@@ -150,9 +165,9 @@ window.Game = window.Game || {};
         const modeExpl = document.getElementById('mode-explanation');
         const shipArea = document.querySelector('.ship-area');
         if (title) title.classList.remove('hidden');
-        if (modeSelector) modeSelector.classList.remove('hidden');
+        if (modeSelector) { modeSelector.classList.remove('hidden', 'mode-revealed'); modeSelector.style.display = 'none'; }
         if (introVersion) introVersion.style.display = 'block';
-        if (modeExpl) modeExpl.classList.remove('hidden');
+        if (modeExpl) { modeExpl.classList.add('hidden'); modeExpl.style.display = 'none'; }
         if (shipArea) shipArea.classList.add('hidden');
 
         // Update primary action button to TAP TO START state
@@ -170,7 +185,11 @@ window.Game = window.Game || {};
                 _introActionCooldown = 0.4;
                 return;
             }
-            enterSelectionState();
+            // v7.12.13: First tap reveals mode tabs; mode tap then goes to SELECTION
+            if (!_modesRevealed) {
+                _revealModes();
+                _introActionCooldown = 0.4;
+            }
         } else {
             launchShipAndStart();
         }
@@ -180,6 +199,7 @@ window.Game = window.Game || {};
     function updatePrimaryButton(state) {
         const btn = document.getElementById('btn-primary-action');
         if (!btn) return;
+        btn.style.display = ''; // ensure visible on any explicit state set
 
         if (state === 'SELECTION') {
             btn.classList.add('launch-state');
@@ -296,6 +316,12 @@ window.Game = window.Game || {};
         d.updateTiltUI();
 
         G.Audio.play('coinUI');
+
+        // v7.12.13: After mode choice, proceed directly to ship selection
+        if (_modesRevealed && introState === 'SPLASH') {
+            _introActionCooldown = 0.4;
+            enterSelectionState();
+        }
     }
 
     function updateCampaignProgressUI() {
@@ -1503,6 +1529,7 @@ window.Game = window.Game || {};
 
             d.setGameState('INTRO');
             introState = 'SPLASH';
+            _modesRevealed = false;
             if (G.WeatherController) G.WeatherController.setIntroMode();
 
             // Reset to splash state (unified intro v4.8.1)
@@ -1522,7 +1549,8 @@ window.Game = window.Game || {};
                 title.style.transform = '';
             }
             if (modeSelector) {
-                modeSelector.classList.remove('hidden');
+                modeSelector.classList.remove('hidden', 'mode-revealed');
+                modeSelector.style.display = 'none';
                 modeSelector.style.opacity = '';
                 modeSelector.style.transform = '';
             }
@@ -1530,7 +1558,7 @@ window.Game = window.Game || {};
             // Reset mode explanation and ship area (hidden by enterSelectionState)
             const modeExpl = document.getElementById('mode-explanation');
             const shipArea = document.querySelector('.ship-area');
-            if (modeExpl) modeExpl.classList.remove('hidden');
+            if (modeExpl) { modeExpl.classList.add('hidden'); modeExpl.style.display = 'none'; }
             if (shipArea) shipArea.classList.add('hidden');
 
             // Reset primary button to TAP TO START state
@@ -1589,6 +1617,11 @@ window.Game = window.Game || {};
         init: function(deps) {
             d = deps;
             initSplashShip();
+            // v7.12.13: mode selector + explanation hidden until first tap on TAP TO START
+            const modeSelector = document.getElementById('mode-selector');
+            if (modeSelector) modeSelector.style.display = 'none';
+            const modeExpl = document.getElementById('mode-explanation');
+            if (modeExpl) { modeExpl.classList.add('hidden'); modeExpl.style.display = 'none'; }
         },
         SHIP_KEYS: SHIP_KEYS,
         SHIP_DISPLAY: SHIP_DISPLAY,

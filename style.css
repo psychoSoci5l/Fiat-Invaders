@@ -236,67 +236,87 @@
 /* CTA — Title action with pulse + shine */
 .btn-cta {
     width: 100%;
-    padding: 18px 30px;
-    font-size: clamp(18px, 5vw, 24px);
-    letter-spacing: 5px;
-    border-radius: 12px;
-    /* Default: TAP TO START ghost style */
-    background: linear-gradient(180deg, rgba(187, 68, 255, 0.15), rgba(187, 68, 255, 0.05));
-    border: 3px solid var(--neon-violet);
+    padding: 17px 30px;
+    font-size: clamp(16px, 4.5vw, 20px);
+    letter-spacing: 4px;
+    border-radius: 8px;
+    /* TAP TO START — dark panel with violet top accent */
+    background: linear-gradient(180deg, rgba(187,68,255,0.12) 0%, rgba(187,68,255,0.03) 100%);
+    border: 1px solid rgba(187,68,255,0.35);
+    border-top: 3px solid var(--neon-violet);
     color: var(--neon-violet);
-    text-shadow: 0 0 15px rgba(187, 68, 255, 0.6), 0 2px 4px rgba(0, 0, 0, 0.5);
-    box-shadow: 0 0 20px rgba(187, 68, 255, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 4px 0 rgba(0, 0, 0, 0.3);
+    text-shadow: 0 0 12px rgba(187,68,255,0.55);
+    box-shadow: 0 0 22px rgba(187,68,255,0.22), inset 0 1px 0 rgba(187,68,255,0.25);
     animation: tapPulse 2.5s ease-in-out infinite;
     overflow: hidden;
 }
 
+/* Inner top highlight */
 .btn-cta::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    top: 0; left: 10%; right: 10%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(187,68,255,0.55), transparent);
+    animation: none;
+}
+
+/* Shimmer sweep */
+.btn-cta::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
     animation: tapShine 3s ease-in-out infinite;
     will-change: transform;
 }
 
 .btn-cta:hover {
-    background: linear-gradient(180deg, rgba(187, 68, 255, 0.3), rgba(187, 68, 255, 0.15));
-    transform: translateY(-3px);
-    box-shadow: 0 0 40px rgba(187, 68, 255, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 8px 0 rgba(0, 0, 0, 0.3);
+    background: linear-gradient(180deg, rgba(187,68,255,0.22) 0%, rgba(187,68,255,0.08) 100%);
+    border-color: rgba(187,68,255,0.55);
+    border-top-color: var(--neon-violet);
+    transform: translateY(-2px);
+    box-shadow: 0 0 35px rgba(187,68,255,0.4), inset 0 1px 0 rgba(187,68,255,0.3);
 }
 
 .btn-cta:active {
-    transform: translateY(2px);
-    box-shadow: 0 0 20px rgba(187, 68, 255, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 2px 0 rgba(0, 0, 0, 0.3);
+    transform: translateY(1px);
+    box-shadow: 0 0 15px rgba(187,68,255,0.25);
 }
 
 /* CTA LAUNCH state — solid violet */
 .btn-cta.launch-state {
-    background: linear-gradient(180deg, #cc55ff, #9933dd);
-    border: 3px solid #bb44ff;
+    background: linear-gradient(180deg, #cc55ff 0%, #7722bb 100%);
+    border: 1px solid #bb44ff;
+    border-top: 3px solid #ee88ff;
     color: #fff;
-    text-shadow: 0 0 8px rgba(187, 68, 255, 0.5);
-    box-shadow: 0 0 25px rgba(187, 68, 255, 0.5), 0 4px 0 rgba(0, 0, 0, 0.3);
+    text-shadow: 0 0 10px rgba(255,255,255,0.4);
+    box-shadow: 0 0 28px rgba(187,68,255,0.55), inset 0 1px 0 rgba(255,255,255,0.2);
     animation: none;
 }
 
-.btn-cta.launch-state::before {
-    animation: none;
-    display: none;
-}
+.btn-cta.launch-state::before { background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent); }
+.btn-cta.launch-state::after { animation: none; display: none; }
 
 .btn-cta.launch-state:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 0 40px rgba(187, 68, 255, 0.7), 0 8px 0 rgba(0, 0, 0, 0.3);
-    background: linear-gradient(180deg, #dd66ff, #cc55ff);
+    transform: translateY(-2px);
+    box-shadow: 0 0 45px rgba(187,68,255,0.7), inset 0 1px 0 rgba(255,255,255,0.25);
+    background: linear-gradient(180deg, #dd77ff 0%, #9933ee 100%);
 }
 
 .btn-cta.launch-state:active {
-    transform: translateY(3px);
-    box-shadow: 0 0 15px rgba(187, 68, 255, 0.4);
+    transform: translateY(2px);
+    box-shadow: 0 0 15px rgba(187,68,255,0.4);
+}
+
+/* Mode selector reveal animation (v7.12.13) */
+.mode-selector.mode-revealed {
+    animation: modeSlideDown 0.32s ease-out forwards;
+}
+@keyframes modeSlideDown {
+    from { opacity: 0; transform: translateY(-14px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
 /* PWA install banner button */
@@ -1525,36 +1545,101 @@ body {
 
 .mode-pills {
     display: flex;
-    gap: 20px;
+    gap: 10px;
     justify-content: center;
+    padding: 0 16px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
-/* Reuse existing mode-pill style but ensure it works here */
+/* Mode selector: premium game panel buttons */
 .mode-selector .mode-pill {
-    background: transparent;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    color: rgba(255, 255, 255, 0.75);
-    padding: 14px 28px;
-    font-size: clamp(15px, 4vw, 17px);
-    font-weight: 700;
+    position: relative;
+    background: linear-gradient(160deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-left: 3px solid rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.42);
+    padding: 13px 22px 13px 18px;
+    font-size: clamp(12px, 3.2vw, 14px);
+    font-weight: 800;
     letter-spacing: 3px;
-    border-radius: 25px;
+    border-radius: 8px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.22s ease;
     font-family: inherit;
+    overflow: hidden;
+    flex: 1;
+    min-width: 0;
+    text-align: center;
 }
 
+/* Inner top highlight edge */
+.mode-selector .mode-pill::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+    transition: opacity 0.22s;
+}
+
+/* Per-mode left accent (inactive, muted) */
+#mode-pill-story  { border-left-color: rgba(0, 240, 255, 0.30); }
+#mode-pill-arcade { border-left-color: rgba(255, 45, 149, 0.30); }
+#mode-pill-daily  { border-left-color: rgba(255, 170, 0, 0.30); }
+
+/* Hover */
 .mode-selector .mode-pill:hover {
-    border-color: rgba(255, 255, 255, 0.5);
-    color: rgba(255, 255, 255, 0.7);
-    background: rgba(255, 255, 255, 0.05);
+    background: linear-gradient(160deg, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0.03) 100%);
+    border-color: rgba(255,255,255,0.22);
+    color: rgba(255,255,255,0.62);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+}
+#mode-pill-story:hover  { border-left-color: rgba(0, 240, 255, 0.55); }
+#mode-pill-arcade:hover { border-left-color: rgba(255, 45, 149, 0.55); }
+#mode-pill-daily:hover  { border-left-color: rgba(255, 170, 0, 0.55); }
+
+/* Active: STORY — cyan */
+#mode-pill-story.active {
+    background: linear-gradient(160deg, rgba(0,240,255,0.13) 0%, rgba(0,240,255,0.03) 100%);
+    border: 1px solid rgba(0,240,255,0.32);
+    border-left: 3px solid #00f0ff;
+    color: #00f0ff;
+    box-shadow: 0 0 22px rgba(0,240,255,0.32), 0 0 55px rgba(0,240,255,0.10), inset 0 1px 0 rgba(0,240,255,0.18);
+    text-shadow: 0 0 10px rgba(0,240,255,0.75);
+    transform: none;
+}
+#mode-pill-story.active::before {
+    background: linear-gradient(90deg, transparent, rgba(0,240,255,0.45), transparent);
 }
 
-.mode-selector .mode-pill.active {
-    border-color: var(--neon-violet);
-    color: var(--neon-violet);
-    background: rgba(187, 68, 255, 0.15);
-    box-shadow: 0 0 15px rgba(187, 68, 255, 0.3);
+/* Active: ARCADE — magenta */
+#mode-pill-arcade.active {
+    background: linear-gradient(160deg, rgba(255,45,149,0.13) 0%, rgba(255,45,149,0.03) 100%);
+    border: 1px solid rgba(255,45,149,0.32);
+    border-left: 3px solid #ff2d95;
+    color: #ff2d95;
+    box-shadow: 0 0 22px rgba(255,45,149,0.32), 0 0 55px rgba(255,45,149,0.10), inset 0 1px 0 rgba(255,45,149,0.18);
+    text-shadow: 0 0 10px rgba(255,45,149,0.75);
+    transform: none;
+}
+#mode-pill-arcade.active::before {
+    background: linear-gradient(90deg, transparent, rgba(255,45,149,0.45), transparent);
+}
+
+/* Active: DAILY — gold */
+#mode-pill-daily.active {
+    background: linear-gradient(160deg, rgba(255,170,0,0.13) 0%, rgba(255,170,0,0.03) 100%);
+    border: 1px solid rgba(255,170,0,0.32);
+    border-left: 3px solid #ffaa00;
+    color: #ffaa00;
+    box-shadow: 0 0 22px rgba(255,170,0,0.32), 0 0 55px rgba(255,170,0,0.10), inset 0 1px 0 rgba(255,170,0,0.18);
+    text-shadow: 0 0 10px rgba(255,170,0,0.75);
+    transform: none;
+}
+#mode-pill-daily.active::before {
+    background: linear-gradient(90deg, transparent, rgba(255,170,0,0.45), transparent);
 }
 
 /* .mode-pill-wip and .wip-tag removed — Arcade enabled (v5.8.0) */
@@ -1734,9 +1819,10 @@ body {
 /* Responsive adjustments for small screens */
 @media (max-width: 375px) {
     .mode-selector .mode-pill {
-        padding: 8px 18px;
-        font-size: 12px;
+        padding: 10px 14px 10px 11px;
+        font-size: 11px;
         letter-spacing: 2px;
+        min-width: 0;
     }
     .primary-action-container {
         width: calc(100% - 40px);
