@@ -601,7 +601,6 @@
                 ENABLED: true,
                 HP_MULT: 2.0,
                 SCORE_MULT: 2.0,
-                SPEED_MULT: 0.8,
                 SHEEN_COLOR: '#c0c8d0',
                 SHEEN_ALPHA: 0.25,
                 ICON_SIZE: 8
@@ -676,7 +675,6 @@
         // This block exists only as a kill-switch + tunable walk cycle speed.
         ENEMY_AGENT: {
             ENABLED: true,               // Master kill-switch (fallback to drawMinion silhouette if disabled)
-            WALK_CYCLE_MS: 150,          // Legacy (kept for compat; no longer used post-v7.9.1)
             TIER_SCALE: {
                 WEAK:   0.82,            // v7.9.3: aggressive spread — WEAK clearly small
                 MEDIUM: 1.00,
@@ -694,8 +692,7 @@
             Y_MAX: 0.45,                 // Max Y target as fraction of game height
             DWELL_DURATION: 6.0,         // Seconds to hold upright before leaving (v7.9.5b: 10→6)
             DWELL_FIRE_GRACE: 1.5,       // Seconds at DWELL start with no fire (assestamento)
-            EXIT_VY: -180,               // Px/s upward velocity when departing
-            EASE_IN_MS: 400              // Soft-stop ease window (vy lerp to 0)
+            EXIT_VY: -180                // Px/s upward velocity when departing
         },
 
         // v7.9.5 Currency-Symbol Bullets — enemy bullets ARE the shooter's currency glyph.
@@ -706,7 +703,8 @@
             GLOW: true,                  // Additive radial glow behind glyph for contrast on dark bg
             SPIN: false,                 // Rotate glyph (default off for readability)
             SIZE_MUL: 1.0,               // Global size multiplier (tune for mobile if too small)
-            CACHE_MAX: 64                // Max offscreen canvas entries (~12 symbols × size buckets)
+            CACHE_MAX: 64,               // Max offscreen canvas entries (~12 symbols × size buckets)
+            TRAIL_ALPHA: 0.42            // v7.12.7: exposed trail alpha (was inline ?? fallback in Bullet.js)
         },
 
         // --- STREAMING ENEMY FLOW v5.33 (Phase-Based) ---
@@ -2921,14 +2919,13 @@
             // Modifier system
             MODIFIERS: {
                 POST_BOSS_PICKS: 3,             // Cards shown after boss defeat
-                POST_MINIBOSS_PICKS: 2,         // Cards shown after mini-boss defeat
-                MAX_MODIFIERS: 20               // Safety cap
+                POST_MINIBOSS_PICKS: 2          // Cards shown after mini-boss defeat
             },
 
             // Modifier tuning values (v5.13.1: extracted from inline)
             MODIFIER_TUNING: {
                 VOLATILE_ROUNDS: { AOE_RADIUS: 30, DMG_MULT: 0.5, HIT_FLASH: 0.1 },
-                CHAIN_LIGHTNING: { RANGE: 100, DMG_MULT: 0.3, HIT_FLASH: 0.15 }
+                CHAIN_LIGHTNING: { RANGE: 100, DMG_MULT: 0.3, HIT_FLASH: 0.15, CHANCE: 0.30 }
             }
         }
     };

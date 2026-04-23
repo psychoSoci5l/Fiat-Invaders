@@ -4391,6 +4391,10 @@ window.Game.adjustLives = function(delta) {
 window.Game.addProximityMeter = function(gain) {
     // v4.61: Skip accumulation during HYPER
     if (player && player.isHyperActive && player.isHyperActive()) return;
+    // v7.12.6: Arcade JACKPOT modifier halves boss-hit meter gain too
+    if (G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode()) {
+        gain *= (G.RunState.arcadeBonuses?.grazeGainMult ?? 1);
+    }
     lastGrazeTime = totalTime;
     const _prevMeter = grazeMeter;
     grazeMeter = Math.min(100, grazeMeter + gain);

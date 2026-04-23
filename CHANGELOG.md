@@ -1,5 +1,62 @@
 # Changelog
 
+## v7.12.8 — Weapon+Elementals+GODCHAIN GDD reverse-doc (XL) - 2026-04-23
+
+Reverse-documentato in un unico GDD XL il Combat Progression Core: Weapon Evolution + Elemental Perks + GODCHAIN + Specials + Utilities + HYPER + HYPERGOD ([design/gdd/weapon-elementals-godchain.md](design/gdd/weapon-elementals-godchain.md), ~90 citazioni file:line). Orchestrazione via 3 Explore agent sonnet in parallelo. Verdict APPROVED + 7 reco documentate.
+
+### Fix docs (drift CLAUDE.md vs codice)
+
+- **SPECIAL_DURATION**: 10s (doc diceva 8s) — allineato in [CLAUDE.md](CLAUDE.md).
+- **Fire splash**: 55% dmg / 55px radius (doc diceva 30%).
+- **Laser**: +37.5% move speed / +1 pierce HP (doc diceva +25%).
+- **Laser beam**: 75px per-bullet, 3-layer rendering (doc diceva 110px + consolidation multi-cannon errata — ogni cannone fa beam indipendente).
+- **Electric chain**: deterministic su ogni kill, 100px / 2 targets / 44% dmg (doc diceva "20% chance to 1-2 nearby").
+- **GODCHAIN cooldown**: 10s post-expiry documentato (pickups durante cooldown silently dropped).
+- **GODCHAIN re-trigger**: via PERK pickup (4th+), non via bullet cancel direct.
+- **HYPERGOD**: 5× score mult / 12× total cap documentato.
+
+### Risk flag (non fix, da GDD sezione E)
+
+- `WE.DEATH_PENALTY ?? 1` fallback a -1 se config sparisce.
+- `GODCHAIN pending` dropped silently durante cooldown.
+- `CONTAGION.DAMAGE_DECAY 0.38` rende depth-2 quasi solo VFX (~14% damage al 2° step).
+
+## v7.12.7 — Enemy Agents GDD reverse-doc + config/doc cleanup - 2026-04-23
+
+Reverse-documentato in un unico GDD i 4 subsystem coupled dal v7.9 (Procedural Agents + Gravity Gate + Currency-Symbol Bullets + Elite Variants/Behaviors): [design/gdd/enemy-agents.md](design/gdd/enemy-agents.md) — 883 righe, 15 formule, 24 AC. Verdict APPROVED + 3 reco risolte.
+
+### Fix config
+
+- **Rimossa `ELITE_VARIANTS.ARMORED.SPEED_MULT: 0.8`** in [BalanceConfig.js:604](src/config/BalanceConfig.js) — dichiarata ma mai applicata a runtime (WaveManager consuma solo HP_MULT e SCORE_MULT). CLAUDE.md aggiornato di conseguenza: Armored = HP×2 + SCORE×2 (no speed reduction). Se in futuro si vuole il feature "corazzato = lento" va propagato esplicitamente nel grid-speed legacy e nei V8 patterns.
+- **Rimossa `ENEMY_AGENT.WALK_CYCLE_MS: 150`** — legacy v7.9.1, zero consumer in `src/`.
+- **`BULLET_SYMBOL.TRAIL_ALPHA: 0.42`** esposto in config. Prima era inline fallback `?? 0.42` in [Bullet.js:1304](src/entities/Bullet.js); la chiave non esisteva nel blocco config, il fallback era sempre usato.
+
+### Fix docs
+
+- CLAUDE.md: "Bomber (C2W1+)" → "Bomber (C2W2+)" — coerente con `MIN_WAVE.BOMBER = 7` in config.
+- CLAUDE.md: "1 per cycle" elite → "one elite type per cycle (not a numeric cap)" — chiarificazione, non c'è counter di wave.
+
+## v7.12.6 — Arcade GDD reverse-doc + JACKPOT/CHAIN_LIGHTNING fixes - 2026-04-23
+
+Reverse-documented Arcade Rogue Protocol in [design/gdd/arcade-rogue-protocol.md](design/gdd/arcade-rogue-protocol.md) (24 acceptance criteria, 9 formule, 15 modifier tabulati). Verdict review APPROVED + 2 reco code/config drift risolte. Index aggiornato, [reviews/arcade-rogue-protocol-review-log.md](design/gdd/reviews/arcade-rogue-protocol-review-log.md) creato.
+
+### Fix balance
+
+- **JACKPOT modifier — malus ora effettivo**: `bonuses.grazeGainMult × 0.50` era settato in [ArcadeModifiers.js:100](src/systems/ArcadeModifiers.js#L100) ma nessun gain path lo leggeva. Aggiunto consumo in [GameplayCallbacks.js:278](src/core/GameplayCallbacks.js#L278) (proximity kill meter) e [main.js:4391](src/main.js#L4391) (`addProximityMeter` per boss hits). JACKPOT torna a essere un trade-off reale (+pity dimezzato / -DIP gain dimezzato) invece che pure upside.
+- **CHAIN_LIGHTNING — 30% chance ripristinato**: il chain partiva su ogni kill (100%) invece del 30% documentato. Aggiunto `Math.random() < CHANCE` guard in [GameplayCallbacks.js:235](src/core/GameplayCallbacks.js#L235), nuova chiave `Balance.ARCADE.MODIFIER_TUNING.CHAIN_LIGHTNING.CHANCE = 0.30` per tunabilità.
+
+### Fix dead config
+
+- Rimosso `ARCADE.MODIFIERS.MAX_MODIFIERS: 20` — mai applicato a runtime, pool di 15 modifier rende irrealizzabile il cap.
+
+## v7.12.5 — V8 GDD reverse-doc + dead config cleanup - 2026-04-23
+
+Reverse-documented il sistema V8 Scroller in [design/gdd/v8-scroller.md](design/gdd/v8-scroller.md) (8/8 sezioni: Overview, Player Fantasy, Detailed Rules, Formulas, Edge Cases, Dependencies, Tuning Knobs, Acceptance Criteria — tutto sourced a file:line). Verdict review: APPROVED + 3 recommended cleanups + 4 nice-to-haves. Index/log inizializzati: [design/gdd/systems-index.md](design/gdd/systems-index.md), [design/gdd/reviews/v8-scroller-review-log.md](design/gdd/reviews/v8-scroller-review-log.md).
+
+### Fix
+
+- **Dead config cleanup**: rimossa chiave `HOVER_GATE.EASE_IN_MS = 400` in [BalanceConfig.js](src/config/BalanceConfig.js) — dichiarata "soft-stop ease window (vy lerp to 0)" ma zero consumer in `src/`. Enemy.js azzera `vy` istantaneamente al DWELL entry e il "snap-stop" è parte intenzionale del feel "the enemy stares you down". Drift emerso dalla reverse-doc del V8.
+
 ## v7.12.4 — UX review fixes: modifier a11y + arcade leaderboard - 2026-04-23
 
 Passata `/ux-review` su 4 schermate reverse-documentate (HUD, intro, modifier-choice, game-over). Fix sui bug concreti emersi, non sul completamento formale degli spec.

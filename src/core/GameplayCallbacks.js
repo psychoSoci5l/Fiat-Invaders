@@ -231,8 +231,9 @@ window.Game = window.Game || {};
                         }
                     }
 
-                    // Arcade: Chain Lightning — kill chains to 1 nearby enemy
-                    if (_isArcade && G.RunState.arcadeBonuses.chainLightning && enemies.length > 0) {
+                    // Arcade: Chain Lightning — kill chains to 1 nearby enemy (v7.12.6: 30% chance per CLAUDE.md)
+                    if (_isArcade && G.RunState.arcadeBonuses.chainLightning && enemies.length > 0
+                        && Math.random() < (Balance.ARCADE?.MODIFIER_TUNING?.CHAIN_LIGHTNING?.CHANCE ?? 0.30)) {
                         const cl = Balance.ARCADE?.MODIFIER_TUNING?.CHAIN_LIGHTNING;
                         const clRange = cl?.RANGE ?? 100;
                         let closest = null, closestDist = clRange * clRange;
@@ -275,7 +276,9 @@ window.Game = window.Game || {};
                     const proxCfg = Balance.PROXIMITY_KILL;
                     if (dist < proxCfg.MAX_DISTANCE && !(d.player.isHyperActive && d.player.isHyperActive())) {
                         const t2 = 1 - Math.max(0, (dist - proxCfg.CLOSE_DISTANCE)) / (proxCfg.MAX_DISTANCE - proxCfg.CLOSE_DISTANCE);
-                        const gain = proxCfg.METER_GAIN_MIN + t2 * (proxCfg.METER_GAIN_MAX - proxCfg.METER_GAIN_MIN);
+                        let gain = proxCfg.METER_GAIN_MIN + t2 * (proxCfg.METER_GAIN_MAX - proxCfg.METER_GAIN_MIN);
+                        // v7.12.6: Arcade JACKPOT modifier halves meter gain (malus side of pity×0.50 bonus)
+                        if (_isArcade) gain *= (G.RunState.arcadeBonuses.grazeGainMult ?? 1);
                         d.setLastGrazeTime(d.getTotalTime());
                         d.setGrazeMeter(Math.min(100, d.getGrazeMeter() + gain));
                         if (d.getGrazeMeter() >= Balance.HYPER.METER_THRESHOLD && d.player.hyperCooldown <= 0) {
