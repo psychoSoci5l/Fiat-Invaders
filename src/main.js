@@ -2451,6 +2451,7 @@ function startGame() {
         createExplosion,
         canSpawnEnemyBullet,
         getFiatDeathMeme,
+        bossDeathTimeout,
         t
     });
 

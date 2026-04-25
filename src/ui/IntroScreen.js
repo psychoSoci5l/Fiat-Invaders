@@ -1500,6 +1500,14 @@ window.Game = window.Game || {};
             // Hide dialogue overlay (story mode leaves it with pointer-events)
             const dialogueContainer = document.getElementById('dialogue-container');
             if (dialogueContainer) dialogueContainer.classList.remove('visible');
+            // Hide modifier overlay, lesson modal, intermission if active
+            if (G.ModifierChoiceScreen) G.ModifierChoiceScreen.hide();
+            const _moCleanup = document.getElementById('modifier-overlay');
+            if (_moCleanup) _moCleanup.style.display = 'none';
+            const _lessonModal = document.getElementById('lesson-modal');
+            if (_lessonModal) _lessonModal.style.display = 'none';
+            const _v8Inter = document.getElementById('v8-intermission-screen');
+            if (_v8Inter) _v8Inter.style.display = 'none';
             // Hide campaign victory screen if exists
             const victoryScreen = document.getElementById('campaign-victory-screen');
             if (victoryScreen) victoryScreen.style.display = 'none';

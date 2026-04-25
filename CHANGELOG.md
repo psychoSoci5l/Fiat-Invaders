@@ -1,5 +1,21 @@
 # Changelog
 
+## v7.12.15 — Fix: overlay touch + cleanup critico - 2026-04-25
+
+### fix(input): InputSystem non intercetta più tocchi su modifier-overlay e hangar-screen
+`handleTouch` aggiunto `#modifier-overlay` e `#hangar-screen` alla exclusion list — le card CHOOSE YOUR PROTOCOL e le ship card nell'hangar erano non tappabili su touch.
+
+### fix(gameover): triggerGameOver nasconde modifier-overlay prima di mostrare game over
+Se il giocatore moriva con la modifier screen aperta, l'overlay (z-index 9800) restava sopra la gameover screen bloccando UI e bottoni.
+
+### fix(miniboss): timer modifier post-miniboss usa bossDeathTimeout invece di setTimeout
+Il timer da 800ms non era cancellabile da `clearBossDeathTimeouts()` — poteva far apparire la modifier overlay sopra l'intro se il giocatore tornava al menu durante l'attesa.
+
+### fix(intro): backToIntro pulisce modifier-overlay, lesson-modal e v8-intermission-screen
+Tre overlay mancanti dalla sequenza di cleanup — potevano restare visibili sopra l'intro al rientro da una partita.
+
+---
+
 ## v7.12.14 — Fix: intro flow SPLASH→MODE→SELECTION completato - 2026-04-23
 
 ### fix(intro): tab modalità visibili in SELECTION + testo descrittivo visibile prima del tap

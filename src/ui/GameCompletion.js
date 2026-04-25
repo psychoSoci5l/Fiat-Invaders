@@ -226,6 +226,11 @@ window.Game = window.Game || {};
     function triggerGameOver() {
         const audioSys = G.Audio;
 
+        // Hide modifier overlay if it was open when the player died
+        if (G.ModifierChoiceScreen) G.ModifierChoiceScreen.hide();
+        const _mo = document.getElementById('modifier-overlay');
+        if (_mo) _mo.style.display = 'none';
+
         if (G.Debug) G.Debug.endAnalyticsRun(Math.floor(d.getScore()));
 
         // Meta-progression: record run stats + check achievement unlocks

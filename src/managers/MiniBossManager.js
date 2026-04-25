@@ -347,7 +347,8 @@
                 // Arcade: mini-boss defeat → modifier choice (2-card)
                 if (G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode() && G.ModifierChoiceScreen) {
                     const picks = (G.Balance.ARCADE && G.Balance.ARCADE.MODIFIERS && G.Balance.ARCADE.MODIFIERS.POST_MINIBOSS_PICKS) || 2;
-                    setTimeout(() => {
+                    const _bdt = _deps.bossDeathTimeout || setTimeout;
+                    _bdt(() => {
                         G.ModifierChoiceScreen.show(picks, () => {
                             const rs = G.RunState;
                             const extraL = rs.arcadeBonuses.extraLives;
