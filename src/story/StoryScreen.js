@@ -500,11 +500,14 @@
             } else if (line.kind === 'body') {
                 ctx.font = line.font;
                 if (line.isLast) {
+                    // v7.13.0: additive glow via layered alpha (no shadowBlur)
                     ctx.save();
-                    ctx.shadowColor = CONFIG.GLOW_LAST_COLOR;
-                    ctx.shadowBlur = CONFIG.GLOW_LAST_BLUR;
+                    ctx.globalAlpha = 0.15;
+                    drawSegmentedLine(ctx, line.segments, centerX, y);
+                    ctx.globalAlpha = 0.4;
                     drawSegmentedLine(ctx, line.segments, centerX, y);
                     ctx.restore();
+                    drawSegmentedLine(ctx, line.segments, centerX, y);
                 } else {
                     drawSegmentedLine(ctx, line.segments, centerX, y);
                 }

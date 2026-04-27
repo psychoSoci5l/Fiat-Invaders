@@ -88,8 +88,9 @@
                 return;
             }
 
-            this._timer += dt;
             const cfg = G.Balance.TITLE_ANIM;
+            const speed = cfg.SPEED || 1.0;
+            this._timer += dt * speed;
             const TL = cfg.TIMELINE;
 
             // Timeline events

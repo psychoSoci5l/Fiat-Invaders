@@ -1,20 +1,135 @@
 # Changelog
 
-## v7.12.15 — Fix: overlay touch + cleanup critico - 2026-04-25
+## v7.17.0 — Phase sky system + Parallax planets (Deep Space) - 2026-04-27
 
-### fix(input): InputSystem non intercetta più tocchi su modifier-overlay e hangar-screen
-`handleTouch` aggiunto `#modifier-overlay` e `#hangar-screen` alla exclusion list — le card CHOOSE YOUR PROTOCOL e le ship card nell'hangar erano non tappabili su touch.
+### feat(sky): phase transition system (Earth→Atmosphere→Deep Space)
+- `PhaseTransitionController.js` — nuovo modulo: crossfade 8-12s tra fasi visive, per-layer blend curves
+- `SkyRenderer.js` — phase-aware rendering: stelle visibilità/colore per fase, nuvole silhouette P3
+- `WeatherController.js` — phase-aware: colori/opacità fase per fog, drizzle, snow, distant lightning
+- `BalanceConfig.js` — phase configs per gradienti, stelle, nuvole, colline, streak, simboli
+- `main.js` — phase transition collegata a cambio livello campagna (L1→P1, L2→P2, L3→P3)
+- `index.html` — caricamento PhaseTransitionController.js
 
-### fix(gameover): triggerGameOver nasconde modifier-overlay prima di mostrare game over
-Se il giocatore moriva con la modifier screen aperta, l'overlay (z-index 9800) restava sopra la gameover screen bloccando UI e bottoni.
+### feat(sky): parallax planets in Phase 3 (Deep Space)
+- 3 corpi celesti con gradienti atmosferici, bande superficiali, anelli (40% chance) e lune (33% chance)
+- Drift verticale lentissimo (3-8 px/s) con wrap-around
+- Config pianeti in BalanceConfig.SKY.PLANETS
 
-### fix(miniboss): timer modifier post-miniboss usa bossDeathTimeout invece di setTimeout
-Il timer da 800ms non era cancellabile da `clearBossDeathTimeouts()` — poteva far apparire la modifier overlay sopra l'intro se il giocatore tornava al menu durante l'attesa.
+### fix(sky): P3 cloud count 0 (no clouds in space)
+### fix(sky): duplicati pause/resume rimossi da PhaseTransitionController
 
-### fix(intro): backToIntro pulisce modifier-overlay, lesson-modal e v8-intermission-screen
-Tre overlay mancanti dalla sequenza di cleanup — potevano restare visibili sopra l'intro al rientro da una partita.
+## v7.16.0 — Production readiness: UX fix + Gamepad + Accessibilità - 2026-04-27
 
----
+### feat(input): gamepad d-pad support per ship carousel e menu
+- `src/core/InputSystem.js` — polling Gamepad API (10Hz) per d-pad left/right su navigazione navi
+- Mapping: d-pad/left-stick → ArrowLeft/ArrowRight, Start/A → Enter
+
+### feat(input): HYPER key (H) sempre attiva anche con AUTO_ACTIVATE
+- `src/main.js` — rimossa guard `!AUTO_ACTIVATE` dal binding KeyH, keyboard parity con touch
+
+### feat(accessibility): aria-label su bottoni icona + HUD
+- `index.html` — aria-label su Settings, Leaderboard, What's New
+- `index.html` — aria-live="polite" su lives e score HUD
+- `style.css` — indicatore "!" non-color per lives danger state
+
+### feat(ux): ship selection persistita tra sessioni
+- `src/ui/IntroScreen.js` — localStorage save/load di `fiat_selected_ship`
+
+### feat(accessibility): prefers-reduced-motion esteso
+- `src/ui/IntroScreen.js` — hover-bob e flame flicker disabilitati quando `prefers-reduced-motion: reduce`
+- Transizioni intro saltano `setTimeout` delay
+
+### fix(v8): SWOOP amplitude ridotta 140→100px
+- `src/config/BalanceConfig.js` — previene oscillazione fuori schermo
+
+### fix(v8): HOVER LEAVE off-screen cull
+- `src/entities/Enemy.js` — `markedForDeletion` quando y+h < -200
+- `src/main.js` — cleanup loop per markedForDeletion enemies
+
+### fix(ui): graze label font-size 10px → 12px (WCAG)
+- `style.css` — `#graze-label` font-size minimo legibilità
+
+### docs: LUT deceleration 180→40 commentata
+- `src/systems/ScrollEngine.js` — documentata decelerazione boss arena
+
+## v7.15.0 — HYPER/GODCHAIN catarsi + Audio stratificato - 2026-04-27
+
+### feat(audio): suoni hit nemico stratificati per tier + hitBoss + missileExplosion
+- `AudioSystem` — nuovo `hitEnemy` tier-based (WEAK: square, MEDIUM: saw+noise, STRONG: square+sub)
+- stratificazione elementale: fire rumble, laser triangle ring, electric square zap
+- nuovo `hitBoss`: sub 120Hz + square 300Hz + noise highpass
+- nuovo `missileExplosion`: pre-delay hiss → boom sub + noise blast + metallic ring + riverbero
+- `GameplayCallbacks.onEnemyHit()`: passa tier e tipo elementale all'audio
+- `BulletSystem.handleMissileExplosion()`: usa `missileExplosion` invece di `explosion`
+
+### feat(hyper): effetti visivi catartici + audio layer continuo
+- `Player.activateHyper()`: burst 25 particelle radiali oro/bianco, avvia `Audio.startHyperLayer()`
+- `Player.deactivateHyper()`: 16 particelle ad anello (shockwave), ferma `Audio.stopHyperLayer()`
+- `Player.fireEvolution()`: 4 trail particelle dorate per proiettile in HYPER
+- `Player.draw()`: additive blending per fire trail, HYPER+GODCHAIN = tongueCount 7, sparkle extra
+- `Player.fire()`: passa `{ hyperBoost: true }` all'audio quando in HYPER
+- `AudioSystem.startHyperLayer()`: drone sine 75-85Hz + shimmer triangle 2-3kHz + LFO 3.5Hz
+- `AudioSystem._sfxShoot(opts)`: hyperBoost aggiunge sawtooth layer extra, freq più alte, durata maggiore
+- `EffectsRenderer.drawHyperOverlay()`: gradiente radiale dorato pulsante + 4 energy ribbons fluttuanti
+
+### feat(godchain): effetti visivi intensificati + audio layer compounding
+- `Player.update()`: burst 30 particelle fuoco su attivazione GODCHAIN, avvia `Audio.startGodchainLayer()`
+- `Player.update()`: ferma `Audio.stopGodchainLayer()` su deactivation
+- `Player.draw()`: HYPERGOD sparkle, fire trail 1.5x più lungo in HYPER+GODCHAIN
+- `BalanceConfig`: GODCHAIN.FIRE_TRAIL.LENGTH 20→26
+- `AudioSystem.startGodchainLayer()`: square 140-160Hz + sub 55Hz, amplifica HYPER layer 1.6x
+- `EffectsRenderer.drawGodchainVignette()`: gradiente radiale rosso/arancio + 4 ribbons veloci + border glow
+
+### fix(sw): service worker version bump for cache refresh
+- SW_VERSION: 7.13.1 → 7.15.0
+- CACHE_NAME aggiornato per forzare download nuovi file
+
+## v7.13.1 — Refactor: EnemyAgentRenderer extraction - 2026-04-26
+
+### refactor(enemy): rendering agenti estratto in EnemyAgentRenderer.js
+
+~1100 linee di rendering procedurale (agenti, piloti, veicoli, cappelli, accessori,
+glow) estratte da `Enemy.js` in `src/entities/EnemyAgentRenderer.js`.
+
+- **EnemyAgentRenderer.js**: Nuovo modulo IIFE con metodi statici che prendono
+  `(ctx, enemy, ...)` invece di `this`. Contiene drawAgent, piloti regionali
+  (Oligarch/Bureaucrat/Ronin), veicoli (USA/EU/ASIA), cappelli, accessori, chest mark, drawGlow.
+- **Enemy.js**: Ridotto da ~2100 a ~1040 linee. draw() e drawGlow() delegano al renderer.
+  drawAgent() ritorna false se kill-switch attivo → fallback a drawMinion.
+- **Fix**: d.getSentinel non funzionava perché resize() era chiamato prima di UIManager.init()
+- **Fix**: Smoke test version check allineato a v7.13
+- **Fix**: Smoke test AudioContext gestisce browser headless
+
+## v7.13.1 — Refactor: TutorialManager extraction - 2026-04-26
+
+### refactor(tutorial): estratto da main.js in modulo separato
+
+Il sistema tutorial (warmup, overlay, step progression) è stato estratto
+da `main.js` in `src/ui/TutorialManager.js`.
+
+- **TutorialManager.js**: Nuovo modulo IIFE con dep injection (pattern UIManager)
+- Rimosse 6 funzioni e 3 variabili di stato da main.js (~130 linee in meno)
+- `window.completeTutorial` e `window.resetTutorial` mantenuti per backward compat
+- BootManager e DrawRegistrar: valutati, non estratti per rapporto costo/beneficio sfavorevole
+
+## v7.13.0 — Refactor: DrawPipeline rendering modulare - 2026-04-26
+
+### refactor(draw pipeline): rendering estratto da main.js in pipeline a layer
+
+Il vecchio `draw()` monolitico in `main.js` è stato sostituito da un'architettura
+a layer con 32 livelli di rendering separati, culling automatico e pass glow
+ottimizzati.
+
+- **DrawPipeline.js**: Pipeline centralizzata con registrazione layer, priority sorting,
+  composite ops per layer (es. `lighter` per glow), e separazione inside/outside shake transform
+- **CullingHelper.js**: Utility AABB per skip entity fuori schermo con margini configurabili
+- **OffscreenCanvas.js**: Cache off-screen riutilizzabile per render statici (sky, sfondi)
+- **GlowManager.js**: Pass glow batch con 'lighter' composite, directional shake,
+  e decay profile frame-rate independent
+- **initDrawPipeline()**: 32 layer registrati (BACKGROUND→DEBUG_PERF),
+  ogni entità/sistema si disegna nel proprio layer con culling granulare
+- **buildFrameContext()**: Context object passato ad ogni frame invece di closure su variabili globali
+- Rimosso il toggle `_usePipeline` — il pipeline è ora l'unico percorso di rendering
 
 ## v7.12.14 — Fix: intro flow SPLASH→MODE→SELECTION completato - 2026-04-23
 

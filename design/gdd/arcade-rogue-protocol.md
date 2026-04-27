@@ -7,19 +7,19 @@
 
 ---
 
-## A. Overview
+## Overview
 
 Arcade Rogue Protocol is the roguelike alternative to the V8 campaign in *FIAT vs CRYPTO*. It activates whenever `G.CampaignState.isEnabled()` returns `false` (i.e., the player launches in Arcade mode from the intro screen), which causes `G.ArcadeModifiers.isArcadeMode()` to return `true`. In Arcade mode the V8 LevelScript is fully dormant — `WaveManager.update()` takes over spawning, cycling through 15 pre-defined waves (5 waves × 3 cycles) at higher enemy density and lower enemy HP than Story mode. The core roguelike layer adds three interlocking systems: a **combo multiplier** (kills in rapid succession compound a score bonus that resets on timeout or death), **enhanced mini-bosses** (lower thresholds, shorter cooldown, up to 3 per wave), and **accumulating modifier cards** (chosen from a DOM modal after every boss or mini-boss defeat, stacking indefinitely across the run up to a cap of 20). Post-cycle-3 the game scales infinitely by cycling through C1–C3 wave definitions with remixed formations and accelerated difficulty. Persistent high scores (best cycle, level, kill count) are tracked in localStorage and displayed on the game-over screen.
 
 ---
 
-## B. Player Fantasy
+## Player Fantasy
 
 The player should feel like a one-person trading floor that keeps printing higher and higher numbers. Every kill chain rewards momentum — the combo counter climbs, the score multiplier spikes, the HUD pulses. Modifier cards are the pivotal beat-breath of the loop: two or three seconds of agency between boss explosions to select a permanent power that tilts the next cycle in a chosen direction (faster fire vs. tankier defense vs. degenerate WILD). By cycle 4 the screen is busier than Story mode, the formations are random, and the player's accumulated modifier stack is the only thing keeping them alive. The fantasy is "one more cycle" — just like a roguelite, each run ends in death but teaches exactly which modifiers synergize.
 
 ---
 
-## C. Detailed Rules
+## Detailed Rules
 
 ### C.1 Activation gating
 
@@ -177,7 +177,7 @@ Elite variant chances use `ELITE_VARIANTS.CHANCE.ARCADE` array (vs. `CHANCE.STOR
 
 ---
 
-## D. Formulas
+## Formulas
 
 ### D.1 Combo multiplier
 
@@ -308,7 +308,7 @@ Source: `src/main.js:2848-2855`; `src/systems/ArcadeModifiers.js:50`
 
 ---
 
-## E. Edge Cases
+## Edge Cases
 
 ### E.1 Death mid-modifier-pick
 
@@ -358,7 +358,7 @@ Source: `src/core/GameplayCallbacks.js:524-535`
 
 ---
 
-## F. Dependencies
+## Dependencies
 
 | System | File | Interaction |
 |---|---|---|
@@ -379,7 +379,7 @@ Source: `src/core/GameplayCallbacks.js:524-535`
 
 ---
 
-## G. Tuning Knobs
+## Tuning Knobs
 
 All keys under `G.Balance.ARCADE` (`src/config/BalanceConfig.js:2882-2932`) unless noted.
 
@@ -495,7 +495,7 @@ Source: `src/systems/ArcadeModifiers.js:111-115`
 
 ---
 
-## H. Acceptance Criteria
+## Acceptance Criteria
 
 Each criterion is independently testable.
 

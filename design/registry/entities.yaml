@@ -1,0 +1,441 @@
+# Entity Registry — FIAT vs CRYPTO v7.12.14
+#
+# Auto-generated from GDD reverse-documentation.
+# Source GDD is the authoritative owner of each entry.
+# referenced_by lists other GDDs that mention this entry.
+
+entities:
+  # ---- Player ----
+  - name: PlayerShip
+    source_gdd: v8-scroller.md
+    attributes:
+      bounding_box: [55, 55]
+      weapon_levels: [1, 2, 3]
+      ship_types: [BTC_Striker, ETH_Heavy, SOL_Speedster]
+    referenced_by:
+      - weapon-elementals-godchain.md
+      - drop-system-apc.md
+      - boss-proximity.md
+
+  # ---- Enemies ----
+  - name: EnemyAgent
+    source_gdd: enemy-agents.md
+    attributes:
+      bounding_box: [58, 58]
+      scale_range: [0.90, 1.12]
+      regions: [USA, EU, ASIA]
+      tiers: [WEAK, MEDIUM, STRONG]
+    referenced_by:
+      - v8-scroller.md
+      - wave-legacy-arcade.md
+      - arcade-rogue-protocol.md
+      - drop-system-apc.md
+
+  - name: EnemyMinion
+    source_gdd: enemy-agents.md
+    attributes:
+      bounding_box: [44, 44]
+      shape: coin
+    referenced_by:
+      - boss-proximity.md
+
+  - name: CurrencyEnemy
+    source_gdd: enemy-agents.md
+    attributes:
+      count: 12
+      currencies: [$, €, £, ¥, ₽, ₹, C$, ₩, ₣, ₺, 元, Ⓒ]
+      regions: [USA, EU, ASIA]
+    referenced_by:
+      - wave-legacy-arcade.md
+      - drop-system-apc.md
+
+  - name: Boss_FED
+    source_gdd: boss-proximity.md
+    attributes:
+      bounding_box: [160, 140]
+      phases: [P1, P2, P3]
+      colors: [green, orange, red]
+      hp_formula: "Balance.BOSS.HP.*"
+    referenced_by:
+      - v8-scroller.md
+
+  - name: Boss_BCE
+    source_gdd: boss-proximity.md
+    attributes:
+      bounding_box: [160, 140]
+      phases: [P1, P2, P3]
+      colors: [blue, blue_gold, fractured_blue]
+    referenced_by:
+      - v8-scroller.md
+
+  - name: Boss_BOJ
+    source_gdd: boss-proximity.md
+    attributes:
+      bounding_box: [160, 140]
+      phases: [P1, P2, P3]
+      colors: [red, red_white, incandescent]
+    referenced_by:
+      - v8-scroller.md
+
+  - name: MiniBoss
+    source_gdd: arcade-rogue-protocol.md
+    attributes:
+      trigger: currency_boss_map
+      arcade_hp_mult: "Balance.MINI_BOSS.ARCADE_HP_SCALE"
+      perk_scale: "Balance.BOSS.HP.PERK_SCALE"
+    referenced_by:
+      - boss-proximity.md
+
+  - name: EliteVariant
+    source_gdd: enemy-agents.md
+    attributes:
+      types: [ARMORED, EVADER, REFLECTOR]
+      tier_requirement: [MEDIUM, STRONG]
+      cycle_assignment: per_cycle
+    referenced_by:
+      - arcade-rogue-protocol.md
+      - wave-legacy-arcade.md
+
+  # ---- Boss (abstract) ----
+  - name: Boss
+    source_gdd: boss-proximity.md
+    attributes:
+      bounding_box: [160, 140]
+      hp_base: "Balance.BOSS.HP.BASE"
+      hp_per_cycle: "Balance.BOSS.HP.PER_CYCLE"
+      rotation: [FEDERAL_RESERVE, BCE, BOJ]
+      phases: [P1, P2, P3]
+    referenced_by:
+      - v8-scroller.md
+
+items:
+  - name: PowerUp_Upgrade
+    source_gdd: drop-system-apc.md
+    attributes:
+      type: weapon_upgrade
+      rarity_chance: tier_dependent
+      shape: shaded_sphere_up_arrow
+
+  - name: PowerUp_Homing
+    source_gdd: drop-system-apc.md
+    attributes:
+      type: special
+      duration: 10
+      shape: shaded_sphere_crosshair
+    referenced_by:
+      - weapon-elementals-godchain.md
+
+  - name: PowerUp_Pierce
+    source_gdd: drop-system-apc.md
+    attributes:
+      type: special
+      duration: 10
+      shape: shaded_sphere_up_arrow_cross
+
+  - name: PowerUp_Missile
+    source_gdd: drop-system-apc.md
+    attributes:
+      type: special
+      duration: 10
+      shape: shaded_sphere_explosive_star
+
+  - name: PowerUp_Shield
+    source_gdd: drop-system-apc.md
+    attributes:
+      type: utility
+      duration: 5.0
+      shape: shaded_sphere_shield
+    referenced_by:
+      - weapon-elementals-godchain.md
+
+  - name: PowerUp_Speed
+    source_gdd: drop-system-apc.md
+    attributes:
+      type: utility
+      shape: shaded_sphere_lightning
+    referenced_by:
+      - weapon-elementals-godchain.md
+
+  - name: EvolutionCore
+    source_gdd: weapon-elementals-godchain.md
+    attributes:
+      source: boss_drop
+      deploy_duration: 0.35
+      invuln_frames: 0.5
+    referenced_by:
+      - boss-proximity.md
+      - drop-system-apc.md
+
+  - name: Perk_Fire
+    source_gdd: weapon-elementals-godchain.md
+    attributes:
+      element: FIRE
+      on_kill: explosion
+      color: orange
+
+  - name: Perk_Laser
+    source_gdd: weapon-elementals-godchain.md
+    attributes:
+      element: LASER
+      on_kill: beam
+      color: cyan
+
+  - name: Perk_Electric
+    source_gdd: weapon-elementals-godchain.md
+    attributes:
+      element: ELECTRIC
+      on_kill: chain
+      color: yellow_white
+
+  - name: ModifierCard
+    source_gdd: arcade-rogue-protocol.md
+    attributes:
+      categories: [weapon, defense, economy, enemy]
+      max_stack: 3
+      selection_count: 3
+
+formulas:
+  - name: EnemyHP
+    source_gdd: v8-scroller.md
+    variables: [difficulty, cycle, wave, tier, hpMult (APC)]
+    output_range: [10, 500]
+    referenced_by:
+      - wave-legacy-arcade.md
+      - arcade-rogue-protocol.md
+
+  - name: EnemyScoreValue
+    source_gdd: v8-scroller.md
+    variables: [cycle, wave, tier, combo_mult]
+    output_range: [10, 5000]
+
+  - name: FireBudget
+    source_gdd: v8-scroller.md
+    variables: [cycle, wave, time_in_level]
+    output_range: [0, 40]
+    unit: bullets_per_second
+
+  - name: ScrollSpeed
+    source_gdd: v8-scroller.md
+    variables: [cycle, wave, crush_active]
+    output_range: [60, 180]
+    unit: px_per_s
+
+  - name: BossHP
+    source_gdd: boss-proximity.md
+    variables: [baseHp, cycle, level, phase]
+    output_range: [500, 10000]
+    referenced_by:
+      - arcade-rogue-protocol.md
+
+  - name: DIPGain_BossHit
+    source_gdd: boss-proximity.md
+    variables: [hit_dip]
+    output_range: [0, 15]
+    unit: dip_points
+
+  - name: DIPGain_EnemyKill
+    source_gdd: boss-proximity.md
+    variables: [proximity_at_kill]
+    output_range: [0, 5]
+    unit: dip_points
+
+  - name: DIPGain_PhaseTransition
+    source_gdd: boss-proximity.md
+    value: 15
+    unit: dip_points
+
+  - name: ComboMultiplier
+    source_gdd: arcade-rogue-protocol.md
+    variables: [combo_count, timer_remaining]
+    output_range: [1.0, 10.0]
+
+  - name: KillScore_Arcade
+    source_gdd: arcade-rogue-protocol.md
+    variables: [base_score, combo_mult, modifier_mult]
+    output_range: [10, 50000]
+
+  - name: EnemyHP_Arcade
+    source_gdd: arcade-rogue-protocol.md
+    variables: [base_hp, cycle, arcade_hp_mult, perk_scale]
+    output_range: [10, 500]
+
+  - name: EnemyCount_Arcade
+    source_gdd: arcade-rogue-protocol.md
+    variables: [base_count, cycle, arcade_count_mult]
+    output_range: [3, 14]
+
+  - name: AgentTierScale
+    source_gdd: enemy-agents.md
+    variables: [_tier]
+    output_range: [0.90, 1.12]
+    unit: scale_multiplier
+
+  - name: GravityGate_HoverY
+    source_gdd: enemy-agents.md
+    variables: [spawn_y, cycle]
+    output_range: [0, 300]
+    unit: px
+
+  - name: PhaseTrigger
+    source_gdd: wave-legacy-arcade.md
+    variables: [phase_original_count, phase_timer, total_alive]
+    output_range: [3, 4]
+    unit: threshold_alive_count
+    referenced_by:
+      - arcade-rogue-protocol.md
+
+  - name: CountScaling
+    source_gdd: wave-legacy-arcade.md
+    variables: [base_count, bear_mult, cycle_mult, arcade_mult, rank_mult]
+    output_range: [1, 14]
+
+  - name: EntryAnimationStagger
+    source_gdd: wave-legacy-arcade.md
+    value: 0.04
+    unit: s_per_enemy
+
+constants:
+  - name: MAX_CONCURRENT_ENEMIES
+    source_gdd: wave-legacy-arcade.md
+    value: 18
+    unit: count
+    referenced_by:
+      - arcade-rogue-protocol.md
+
+  - name: MAX_PER_PHASE
+    source_gdd: wave-legacy-arcade.md
+    value: 14
+    unit: count
+
+  - name: WAVES_PER_CYCLE
+    source_gdd: wave-legacy-arcade.md
+    value: 5
+    unit: count
+
+  - name: V8_SPAWN_Y_OFFSET
+    source_gdd: v8-scroller.md
+    value: -40
+    unit: px
+
+  - name: V8_BOSS_AT_S
+    source_gdd: v8-scroller.md
+    value: 170
+    unit: seconds
+
+  - name: V8_CRUSH_SPEED_MULT
+    source_gdd: v8-scroller.md
+    value: [1.8, 2.2, 2.6]
+    unit: multiplier_per_level
+    # was: 1.50 before 2026-04-27 (single value; CRUSH multiplier is per-level)
+
+  - name: SPECIAL_DURATION
+    source_gdd: weapon-elementals-godchain.md
+    value: 10
+    unit: seconds
+
+  - name: SHIELD_DURATION
+    source_gdd: weapon-elementals-godchain.md
+    value: 5.0
+    unit: seconds
+
+  - name: GODCHAIN_DURATION
+    source_gdd: weapon-elementals-godchain.md
+    value: 10
+    unit: seconds
+
+  - name: HYPERGOD_TOTAL_MULT_CAP
+    source_gdd: arcade-rogue-protocol.md
+    value: 50
+    unit: multiplier
+
+  - name: GLOBAL_BULLET_CAP
+    source_gdd: wave-legacy-arcade.md
+    value: 150
+    unit: count
+    referenced_by:
+      - enemy-agents.md
+
+  - name: DIP_MAX
+    source_gdd: boss-proximity.md
+    value: 100
+    unit: dip_points
+
+  - name: DIP_BOSS_HIT
+    source_gdd: boss-proximity.md
+    value: 0.15
+    unit: dip_points_per_hit
+
+  - name: DIP_PHASE_TRANSITION
+    source_gdd: boss-proximity.md
+    value: 15
+    unit: dip_points
+
+  - name: INTERMISSION_DURATION_ARCADE
+    source_gdd: arcade-rogue-protocol.md
+    value: 2.0
+    unit: seconds
+
+  - name: POST_C3_DIFF_PER_CYCLE
+    source_gdd: arcade-rogue-protocol.md
+    value: 0.20
+    unit: multiplier
+
+  - name: POST_C3_FORMATION_REMIX
+    source_gdd: arcade-rogue-protocol.md
+    value: 0.40
+    unit: chance
+
+  - name: ARCADE_ENEMY_COUNT_MULT
+    source_gdd: arcade-rogue-protocol.md
+    value: 1.15
+    unit: multiplier
+
+  - name: ARCADE_ENEMY_HP_MULT
+    source_gdd: arcade-rogue-protocol.md
+    value: 0.85
+    unit: multiplier
+
+  - name: BEAR_COUNT_MULT
+    source_gdd: wave-legacy-arcade.md
+    value: 1.25
+    unit: multiplier
+
+  - name: CYCLE_COUNT_MULT
+    source_gdd: wave-legacy-arcade.md
+    value: [1.0, 1.25, 1.45]
+    unit: multiplier_per_cycle
+
+  - name: PHASE_TRIGGER_THRESHOLD
+    source_gdd: wave-legacy-arcade.md
+    value: 0.25
+    unit: ratio
+
+  - name: PHASE_TRIGGER_MIN_DURATION
+    source_gdd: wave-legacy-arcade.md
+    value: 3.0
+    unit: seconds
+
+  - name: ENTRY_SPEED
+    source_gdd: wave-legacy-arcade.md
+    value: 600
+    unit: px_per_s
+
+  - name: ENEMY_AGENT_ENABLED
+    source_gdd: enemy-agents.md
+    value: true
+    type: kill_switch
+
+  - name: ADAPTIVE_DROPS_ENABLED
+    source_gdd: drop-system-apc.md
+    value: true
+    type: kill_switch
+
+  - name: V8_MODE_ENABLED
+    source_gdd: v8-scroller.md
+    value: true
+    type: feature_flag
+
+  - name: ELEMENTAL_CONTAGION_ENABLED
+    source_gdd: weapon-elementals-godchain.md
+    value: true
+    type: kill_switch

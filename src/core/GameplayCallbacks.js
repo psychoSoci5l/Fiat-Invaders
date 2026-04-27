@@ -73,6 +73,12 @@ window.Game = window.Game || {};
                     d.setStreak(0);
                     d.setKillStreak(0);
                     d.setKillStreakMult(1.0);
+                    // EventBus: standard events
+                    if (d.player.hp <= 0) {
+                        if (G.Events) G.Events.emit('player:died', { score: d.getScore(), level: d.getLevel() });
+                    } else {
+                        if (G.Events) G.Events.emit('player:damaged', { hp: d.player.hp, maxHp: d.player.maxHp });
+                    }
                 },
                 // HYPER mode instant death
                 onPlayerHyperDeath(eb, ebIdx, ebArr) {
@@ -127,7 +133,11 @@ window.Game = window.Game || {};
                 },
                 // Enemy hit (but not killed)
                 onEnemyHit(e, bullet, shouldDie) {
-                    audioSys.play('hitEnemy');
+                    let _hitTier = 'WEAK';
+                    if (Balance.isStrongTier && Balance.isStrongTier(e.symbol)) _hitTier = 'STRONG';
+                    else if (Balance.isMediumTier && Balance.isMediumTier(e.symbol)) _hitTier = 'MEDIUM';
+                    const _hitElemType = bullet._elemFire ? 'fire' : bullet._elemLaser ? 'laser' : bullet._elemElectric ? 'electric' : null;
+                    audioSys.play('hitEnemy', { tier: _hitTier, elemType: _hitElemType });
                     const sparkColor = bullet.color || d.player.stats?.color || '#fff';
                     _sparkOpts.weaponLevel = d.player.weaponLevel ?? 1;
                     _sparkOpts.isKill = shouldDie;
@@ -157,9 +167,9 @@ window.Game = window.Game || {};
                         const ks = d.getKillStreak() + 1;
                         d.setKillStreak(ks);
                         d.setKillStreakMult(Math.min(Balance.SCORE.STREAK_MULT_MAX, 1 + ks * Balance.SCORE.STREAK_MULT_PER_KILL));
-                        if (ks === 10) { d.applyHitStop('STREAK_10', false); d.triggerScreenFlash('STREAK_10'); d.triggerScoreStreakColor(10); }
-                        else if (ks === 25) { d.applyHitStop('STREAK_25', false); d.triggerScreenFlash('STREAK_25'); d.triggerScoreStreakColor(25); }
-                        else if (ks === 50) { d.applyHitStop('STREAK_50', false); d.triggerScreenFlash('STREAK_50'); d.triggerScoreStreakColor(50); }
+                        if (ks === 10) { d.applyHitStop('STREAK_10', false); d.triggerScreenFlash('STREAK_10'); d.triggerScoreStreakColor(10); audioSys.play('hitEnemy'); }
+                        else if (ks === 25) { d.applyHitStop('STREAK_25', false); d.triggerScreenFlash('STREAK_25'); d.triggerScoreStreakColor(25); audioSys.play('waveComplete'); }
+                        else if (ks === 50) { d.applyHitStop('STREAK_50', false); d.triggerScreenFlash('STREAK_50'); d.triggerScoreStreakColor(50); audioSys.play('coinJackpot'); }
                     } else {
                         d.setKillStreak(1);
                         d.setKillStreakMult(1.0);
@@ -269,7 +279,8 @@ window.Game = window.Game || {};
                     if (G.Debug) G.Debug.trackKillStreak(d.getStreak());
                     d.updateKillCounter();
                     d.checkStreakMeme();
-                    d.emitEvent('enemy_killed', { score: killScore, x: e.x, y: e.y, pattern: e.entryPattern || null, symbol: e.symbol || null, v8Fall: !!e._v8Fall });
+                    d.emitEvent('enemy:killed', { score: killScore, x: e.x, y: e.y, pattern: e.entryPattern || null, symbol: e.symbol || null, v8Fall: !!e._v8Fall });
+                    if (G.Events) G.Events.emit('entity:died', { type: 'enemy', symbol: e.symbol, tier: _killTier, score: killScore, x: e.x, y: e.y, v8Fall: !!e._v8Fall });
 
                     // Proximity Kill Meter
                     const dist = Math.abs(e.y - d.player.y);
@@ -337,7 +348,7 @@ window.Game = window.Game || {};
                 },
                 // Boss hit by player bullet
                 onBossHit(bullet, dmg, boss, bIdx, bArr) {
-                    audioSys.play('hitEnemy');
+                    audioSys.play('hitBoss');
                     const hitScore = Math.floor(dmg * 2);
                     d.setScore(d.getScore() + hitScore);
                     d.updateScore(d.getScore(), hitScore);
@@ -386,7 +397,7 @@ window.Game = window.Game || {};
                     d.setShake(Balance.EFFECTS.SHAKE.BOSS_DEFEAT || 80);
                     audioSys.play('explosion');
                     audioSys.setBossPhase(0);
-                    if (G.Events) G.Events.emit('weather:boss_defeat');
+                    if (G.Events) G.Events.emit('weather:boss-defeat');
                     if (G.WeatherController) G.WeatherController.setLevel(d.getLevel(), d.getIsBearMarket(), false);
                     const ebArr = d.getEnemyBullets();
                     ebArr.forEach(b => G.Bullet.Pool.release(b));
@@ -609,7 +620,7 @@ window.Game = window.Game || {};
                         shape: 'coin', ownerColor: enemy.color,
                         isReflected: true
                     };
-                    if (G.Events) G.Events.emit('harmonic_bullets', { bullets: [newBullet] });
+                    if (G.Events) G.Events.emit('system:harmonic-bullets', { bullets: [newBullet] });
                     if (audioSys) audioSys.play('grazeNearMiss');
                     d.createBulletSpark(enemy.x, enemy.y, '#ff44ff', { isCancel: true });
                 },

@@ -226,10 +226,10 @@ window.Game = window.Game || {};
     function triggerGameOver() {
         const audioSys = G.Audio;
 
-        // Hide modifier overlay if it was open when the player died
+        // Hide any open modifier overlay (z-index 9800 would block gameover screen)
         if (G.ModifierChoiceScreen) G.ModifierChoiceScreen.hide();
-        const _mo = document.getElementById('modifier-overlay');
-        if (_mo) _mo.style.display = 'none';
+        const mo = document.getElementById('modifier-overlay');
+        if (mo) mo.style.display = 'none';
 
         if (G.Debug) G.Debug.endAnalyticsRun(Math.floor(d.getScore()));
 
@@ -260,6 +260,12 @@ window.Game = window.Game || {};
         window._gamePlayDuration = d.getTotalTime();
         d.setGameState('GAMEOVER');
         d.setStyle('gameover-screen', 'display', 'flex');
+        const goScreen = document.getElementById('gameover-screen');
+        if (goScreen) {
+            goScreen.classList.remove('anim-screen-in');
+            void goScreen.offsetHeight;
+            goScreen.classList.add('anim-screen-in');
+        }
         d.setUI('finalScore', Math.floor(d.getScore()));
         const ui = d.getUI();
         if (ui.gameoverMeme) ui.gameoverMeme.innerText = d.getRandomMeme();

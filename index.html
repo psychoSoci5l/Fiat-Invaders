@@ -8,8 +8,10 @@
 
     <!-- PWA / App Mode -->
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#000000">
+    <link rel="icon" type="image/svg+xml" href="icon-512.svg">
 
     <title>FIAT vs CRYPTO</title>
 
@@ -38,6 +40,7 @@
     <!-- Splash Video (fullscreen, outside container) -->
     <div id="splash-layer">
         <video id="intro-video" src="splashscreen.mp4" playsinline autoplay muted></video>
+        <button id="splash-skip-btn" class="skip-btn" onclick="window.skipSplashVideo()">SKIP &gt;&gt;</button>
     </div>
 
     <!-- Completion Video (plays once on first campaign victory) -->
@@ -52,11 +55,11 @@
         <div id="ui-layer">
         <!-- TOP BAR v4.4: Compact single-row HUD -->
         <div class="hud-top-bar">
-            <div class="hud-lives">
-                <span class="hud-heart">&#9829;</span><span id="livesText">3</span>
+            <div class="hud-lives" aria-live="polite" aria-label="Lives remaining">
+                <span class="hud-heart" aria-hidden="true">&#9829;</span><span id="livesText">3</span>
             </div>
 
-            <div class="hud-score-compact">
+            <div class="hud-score-compact" aria-live="polite" aria-label="Current score">
                 <span id="scoreVal" class="hud-score-value">0</span>
             </div>
 
@@ -167,13 +170,13 @@
 
         <!-- BOTTOM ICONS (v5.22: 3 icons — Settings, Leaderboard, What's New) -->
         <div class="intro-icons">
-            <button class="btn btn-icon" onclick="toggleSettings()" id="intro-settings">
+            <button class="btn btn-icon" onclick="toggleSettings()" id="intro-settings" aria-label="Settings">
                 <svg viewBox="0 0 24 24" class="icon-svg"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
             </button>
-            <button class="btn btn-icon" onclick="Game.Leaderboard.toggle()" id="intro-leaderboard">
+            <button class="btn btn-icon" onclick="Game.Leaderboard.toggle()" id="intro-leaderboard" aria-label="Leaderboard">
                 <svg viewBox="0 0 24 24" class="icon-svg"><path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94.63 1.5 1.98 2.63 3.61 2.96V19H7v2h10v-2h-4v-3.1c1.63-.33 2.98-1.46 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z"/></svg>
             </button>
-            <button class="btn btn-icon" onclick="toggleWhatsNew()" id="intro-whatsnew">
+            <button class="btn btn-icon" onclick="toggleWhatsNew()" id="intro-whatsnew" aria-label="What's New">
                 <svg viewBox="0 0 24 24" class="icon-svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
             </button>
             <button class="btn btn-icon" onclick="toggleProfile()" id="intro-profile" aria-label="Profile">
@@ -182,6 +185,9 @@
         </div>
 
         <div class="intro-version" id="version-tag"></div>
+
+        <!-- Skip button during title animation (hidden by default) -->
+        <button id="title-skip-btn" class="skip-btn skip-btn--title" onclick="skipTitleAnim()" style="display:none;">SKIP</button>
     </div>
 
     <!-- HANGAR SCREEN — v4.55: locked to BTC, ETH/SOL hidden -->
@@ -777,12 +783,19 @@ Tap your ship to activate</p>
     <script src="src/systems/ScrollEngine.js"></script>
     <script src="src/systems/SkyRenderer.js"></script>
     <script src="src/systems/WeatherController.js"></script>
+    <script src="src/systems/PhaseTransitionController.js"></script>
+    <!-- v7.13.0: Rendering Pipeline -->
+    <script src="src/systems/CullingHelper.js"></script>
+    <script src="src/systems/OffscreenCanvas.js"></script>
+    <script src="src/systems/GlowManager.js"></script>
+    <script src="src/systems/DrawPipeline.js"></script>
     <script src="src/systems/TransitionManager.js"></script>
     <script src="src/systems/TitleAnimator.js"></script>
     <script src="src/systems/MessageSystem.js"></script>
     <script src="src/entities/Entity.js"></script>
     <script src="src/entities/Bullet.js"></script>
     <script src="src/entities/Player.js"></script>
+    <script src="src/entities/EnemyAgentRenderer.js"></script>
     <script src="src/entities/Enemy.js"></script>
     <script src="src/entities/Boss.js"></script>
     <script src="src/entities/PowerUp.js"></script>
@@ -817,7 +830,10 @@ Tap your ship to activate</p>
     <script src="src/ui/DebugOverlay.js"></script>
     <script src="src/ui/IntroScreen.js"></script>
     <script src="src/ui/GameCompletion.js"></script>
+    <script src="src/ui/UIManager.js"></script>
+    <script src="src/ui/TutorialManager.js"></script>
     <script src="src/core/GameplayCallbacks.js"></script>
+    <script src="src/managers/ScoreManager.js"></script>
     <script type="module" src="src/main.js"></script>
     <script>
         if ('serviceWorker' in navigator) {

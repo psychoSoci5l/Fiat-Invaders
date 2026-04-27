@@ -148,10 +148,11 @@ window.Game.CampaignState = {
 
         // Emit event
         if (window.Game.Events) {
-            window.Game.Events.emit('campaign:boss_defeated', {
+            window.Game.Events.emit('campaign:boss-defeated', {
                 bossType: bossType,
                 progress: progress
             });
+            window.Game.Events.emit('boss:defeated', { bossType, cycle: window.marketCycle || 1 });
         }
 
         return progress.complete;

@@ -7,19 +7,19 @@
 
 ---
 
-## A. Overview
+## Overview
 
 The V8 Scroller is the primary campaign mode of *FIAT vs CRYPTO* (active when `Balance.V8_MODE.ENABLED = true`, default since v7.5.0). It replaces the legacy WaveManager formation system with a Gradius-style vertical scrolling shooter: enemies spawn from the top of the screen on scripted absolute timestamps, fly through the arena in one of four movement patterns (DIVE, SINE, HOVER, SWOOP), and the player must survive a 170-second timeline before a regional central-bank boss appears. The campaign consists of three levels (L1 FED / L2 BCE / L3 BOJ), each themed around a distinct regional currency roster, with HP targets, scroll speed, and fire density escalating between levels. Completing a level triggers a DOM intermission screen; completing all three levels triggers campaign victory. Arcade mode continues to use the legacy WaveManager and is deliberately excluded from V8 logic.
 
 ---
 
-## B. Player Fantasy
+## Player Fantasy
 
-The player should feel like a lone fighter jet punching through a relentless wall of enemy currencies — the visual language and pacing borrow from *Gradius* and *R-Type*: enemies descend in formations, some peel off into elegant sine waves or swoop flanks, and occasionally one "lands" in a hover-stop — flipping upright, defying gravity, and staring the player down before floating away. The final 20–26 seconds of each level are a CORRIDOR CRUSH set-piece: the scroll slams to a higher speed multiplier, screen shake hits, audio pitch drops, and enemy density peaks — a visceral "almost there" moment before the boss siren sounds. The player should feel constant forward momentum, with the scroll speed itself communicating threat level, culminating in a boss fight in a halted arena. Between levels the intermission screen is a breath and a tease for the next regional act.
+The player should feel like a lone fighter jet punching through a relentless wall of enemy currencies — the visual language and pacing borrow from *Gradius* and *R-Type*: enemies descend in formations, some peel off into elegant sine waves or swoop flanks, and occasionally one "lands" in a hover-stop — defying gravity and staring the player down before floating away. The final 20–26 seconds of each level are a CORRIDOR CRUSH set-piece: the scroll slams to a higher speed multiplier, screen shake hits, audio pitch drops, and enemy density peaks — a visceral "almost there" moment before the boss siren sounds. The player should feel constant forward momentum, with the scroll speed itself communicating threat level, culminating in a boss fight in a halted arena. Between levels the intermission screen is a breath and a tease for the next regional act.
 
 ---
 
-## C. Detailed Rules
+## Detailed Rules
 
 ### C.1 Activation gating
 
@@ -82,7 +82,7 @@ All movement is executed in `Enemy.update()` when `_v8Fall === true`.
 - FREQ = 2.0, AMPLITUDE = 70 px
 - Clamped to [20, gameWidth-20].
 
-**HOVER** (scripted pattern, distinct from Gravity Gate):
+**HOVER** (scripted pattern):
 - APPROACH phase: descends at `APPROACH_VY = 60 px/s` until `y >= gameHeight × Y_TARGET_RATIO (0.28)`.
 - DWELL phase: holds position for `DWELL = 2.5 s`, then transitions to LEAVE.
 - LEAVE phase: flies upward at `EXIT_VY = -180 px/s`.
@@ -101,22 +101,6 @@ When an enemy first spawns (y = -40), it immediately falls at `ENTRY_BURST.VY = 
 - Applies to all four patterns: `PATTERNS: ['DIVE', 'SINE', 'SWOOP', 'HOVER']`.
 - While y < 0 (enemy center above screen top), `_fireSuppressedByEntry = true` — HarmonicConductor skips it.
   - Source: `src/config/BalanceConfig.js:31-36`; `src/entities/Enemy.js:227-233`
-
-### C.7 Gravity Gate (v7.9.5)
-
-An independent overlay on top of the scripted patterns. Active for **DIVE, SINE, SWOOP** only (the `HOVER` pattern has its own scripted dwell and is explicitly excluded).
-
-State machine per enemy: `IDLE → DWELL → LEAVING`
-
-- On construction, each enemy rolls `random() < HOVER_CHANCE (0.55)` to set `_hoverEnabled`. Enemies that fail this roll descend through unaffected.
-  - Source: `src/entities/Enemy.js:111`; `src/config/BalanceConfig.js:692`
-- A random `_hoverY` is assigned: `gameHeight × (Y_MIN + random() × (Y_MAX - Y_MIN))` = 25%–45% of screen.
-- When the enabled enemy crosses `_hoverY`: enters DWELL, `vy = 0`, flips upright visually (`_uprightFlip = true`), `_hoverTimer = DWELL_DURATION (6.0 s)`.
-- **Fire grace window**: `_fireSuppressed = true` for the first `DWELL_FIRE_GRACE (1.5 s)`. Enemy is skipped by HarmonicConductor's `fireEnemy()` and SALVO's row-fire during this window.
-- After DWELL_DURATION: enters LEAVING, `vy = EXIT_VY (-180 px/s)`, `_uprightFlip = false`, fire suppression cleared.
-- During DWELL: enemy position is frozen (early return in update loop).
-
-Source: `src/entities/Enemy.js:104-271`; `src/config/BalanceConfig.js:690-699`; `src/systems/HarmonicConductor.js:858-859, 944-946`.
 
 ### C.8 Off-edge culling
 
@@ -214,7 +198,7 @@ During PLAY with V8 active, a top-center HUD indicator is drawn showing time-to-
 
 ---
 
-## D. Formulas
+## Formulas
 
 ### D.1 Enemy HP (per spawned unit)
 
@@ -361,24 +345,23 @@ Source: `src/systems/ScrollEngine.js:66-79, 119-126`.
 
 ```
 _hoverY (scripted HOVER) = gameHeight × 0.28
-_hoverY (Gravity Gate)   = gameHeight × (0.25 + random() × 0.20)
 ```
 
-Source: `src/config/BalanceConfig.js:43, 693-694`; `src/entities/Enemy.js:110, 291`.
+Source: `src/config/BalanceConfig.js:43`; `src/entities/Enemy.js:291`.
 
 ### D.8 SWOOP X trajectory
 
 ```
 swoopDir = lane < 0.5 ? +1 : -1
 spawnX   = lane < 0.5 ? SIDE_MARGIN (30) : gameWidth - SIDE_MARGIN (30)
-x(t)     = spawnX + swoopDir × sin(patTimer × 1.3) × 140
+x(t)     = spawnX + swoopDir × sin(patTimer × 1.3) × CURVE_AMP  (140 px — see Gap #5)
 ```
 
 Source: `src/config/BalanceConfig.js:44`; `src/entities/Enemy.js:314-315`.
 
 ---
 
-## E. Edge Cases
+## Edge Cases
 
 ### E.1 Boss death mid-CRUSH script
 
@@ -418,13 +401,9 @@ Defensive guard in `advanceToNextV8Level()`: `if (nextIdx >= LEVELS.length) { tr
 
 `HarmonicConductor.reset()` increments `generation`. Pending `setTimeout` callbacks capture `gen` at creation and bail if changed. Prevents ghost fire commands from a previous level surviving `loadLevel()`.
 
-### E.10 Gravity Gate during entry burst
-
-`_fireSuppressedByEntry` (y < 0) and `_fireSuppressed` (DWELL grace) checked independently. Orthogonal — no conflict.
-
 ---
 
-## F. Dependencies
+## Dependencies
 
 | System | File | Interaction |
 |---|---|---|
@@ -433,7 +412,7 @@ Defensive guard in `advanceToNextV8Level()`: `if (nextIdx >= LEVELS.length) { tr
 | LevelScript | `src/v8/LevelScript.js` | Central orchestrator; public API: `tick`, `loadLevel`, `scheduleLevelEnd`, `hasNextLevel`, `currentLevelNum`, `currentLevelName`, `reset` |
 | main.js | `src/main.js` | Calls `tick(dt)` each frame; renders intermission DOM; wires advance; overrides boss type |
 | GameplayCallbacks | `src/core/GameplayCallbacks.js` | `onBossDeath()` post-boss flow (resume → celebration → schedule level end) |
-| Enemy | `src/entities/Enemy.js` | Reads `V8_MODE.PATTERNS` & `HOVER_GATE`; exposes `_v8Fall`, `_uprightFlip`, `_fireSuppressed*`, `entryPattern` |
+| Enemy | `src/entities/Enemy.js` | Reads `V8_MODE.PATTERNS`; exposes `_v8Fall`, `_entryPattern`, `_fireSuppressedByEntry` |
 | ArcadeModifiers | `src/managers/ArcadeModifiers.js` | `isArcadeMode()` checked at every V8 branch — campaign only |
 | CollisionSystem | `src/systems/CollisionSystem.js` | Fires `onBossDeath(boss)` when HP ≤ 0 |
 | EventBus | `G.Events` | `'enemy_killed'` hook for telemetry (pattern, phase, Y-bucket) |
@@ -445,7 +424,7 @@ Defensive guard in `advanceToNextV8Level()`: `if (nextIdx >= LEVELS.length) { tr
 
 ---
 
-## G. Tuning Knobs
+## Tuning Knobs
 
 All keys live in `G.Balance` (= `src/config/BalanceConfig.js`) **unless noted as in `LevelScript.js`**.
 
@@ -471,7 +450,7 @@ All keys live in `G.Balance` (= `src/config/BalanceConfig.js`) **unless noted as
 | `V8_MODE.PATTERNS.HOVER.APPROACH_VY` | `60 px/s` | Scripted HOVER descent. |
 | `V8_MODE.PATTERNS.SWOOP.APPROACH_VY` | `50 px/s` | SWOOP descent. |
 | `V8_MODE.PATTERNS.SWOOP.CURVE_FREQ` | `1.3 rad/s` | SWOOP lateral freq. |
-| `V8_MODE.PATTERNS.SWOOP.CURVE_AMP` | `140 px` | SWOOP lateral amplitude. |
+| `V8_MODE.PATTERNS.SWOOP.CURVE_AMP` | `TBD — 140 px` | SWOOP lateral amplitude. **Design review 2026-04-27: 140 px exceeds screen bounds; 80 px recommended.** |
 | `V8_MODE.PATTERNS.SWOOP.SIDE_MARGIN` | `30 px` | SWOOP edge spawn distance. |
 
 ### G.2 TIER_TARGETS_BY_LEVEL — *in LevelScript.js, NOT BalanceConfig*
@@ -507,24 +486,11 @@ Source: `src/v8/LevelScript.js:32-48`. **To tune: edit LevelScript.js directly.*
 | `V8_RAMP.CURVE` | `'lin'` | `'lin'` or `'quad'`. v7.12.3: was 'quad'. |
 | `V8_RAMP.LEVEL_MULT` | `[1.0, 1.10, 1.25]` | Per-level multiplier. |
 
-### G.5 HOVER_GATE (BalanceConfig.js:690-699)
-
-| Key | Value |
-|---|---|
-| `HOVER_GATE.ENABLED` | `true` |
-| `HOVER_GATE.HOVER_CHANCE` | `0.55` |
-| `HOVER_GATE.Y_MIN` | `0.25` |
-| `HOVER_GATE.Y_MAX` | `0.45` |
-| `HOVER_GATE.DWELL_DURATION` | `6.0 s` (v7.9.5b: was 10) |
-| `HOVER_GATE.DWELL_FIRE_GRACE` | `1.5 s` |
-| `HOVER_GATE.EXIT_VY` | `-180 px/s` |
-| ~~`HOVER_GATE.EASE_IN_MS`~~ | *removed v7.12.5 — dead config, snap-stop is intentional* |
-
-### G.6 CRUSH anchor values — *in LevelScript.js*
+### G.5 CRUSH anchor values — *in LevelScript.js*
 
 To tune: edit `LEVEL_1_ANCHORS`, `LEVEL_2_ANCHORS`, `LEVEL_3_ANCHORS` in `src/v8/LevelScript.js:116-119, 209-213, 315-319`.
 
-### G.7 Enemy HP curve params (BalanceConfig.js:50-60, 551-554)
+### G.6 Enemy HP curve params (BalanceConfig.js:50-60, 551-554)
 
 | Key | Value |
 |---|---|
@@ -536,7 +502,7 @@ To tune: edit `LEVEL_1_ANCHORS`, `LEVEL_2_ANCHORS`, `LEVEL_3_ANCHORS` in `src/v8
 | `ENEMY_HP.SCALE` | `40` |
 | `ENEMY_HP.CYCLE_MULT` | `[1.0, 1.8, 2.8]` |
 
-### G.8 Timing constants (BalanceConfig.js:818, 1044)
+### G.7 Timing constants (BalanceConfig.js:818, 1044)
 
 | Key | Value |
 |---|---|
@@ -545,7 +511,7 @@ To tune: edit `LEVEL_1_ANCHORS`, `LEVEL_2_ANCHORS`, `LEVEL_3_ANCHORS` in `src/v8
 
 ---
 
-## H. Acceptance Criteria
+## Acceptance Criteria
 
 Each criterion is independently testable.
 
@@ -594,37 +560,22 @@ Each criterion is independently testable.
 **Test:** L3 STRONG `¥`. Its hp should be `1.75 × scaledHP`, not `0.8 × scaledHP` (base).
 **Pass:** `enemy.hp === floor(tierTarget.hp × scaledHP)` for the correct level index.
 
-### H.10 Gravity Gate: HOVER_CHANCE is 55%
-
-**Test:** Sample `_hoverEnabled` on 100 freshly spawned enemies.
-**Pass:** ~55 ±10 enemies have `_hoverEnabled === true`.
-
-### H.11 Gravity Gate fire grace: no bullets for 1.5 s after DWELL
-
-**Test:** Counter on `fireEnemy()` filtered to a DWELL enemy.
-**Pass:** Zero calls during first 1.5 s of DWELL ±0.1 s; calls resume after.
-
-### H.12 HOVER_GATE disabled is a clean kill-switch
-
-**Test:** Set `Balance.HOVER_GATE.ENABLED = false`. Spawn 20 DIVE enemies.
-**Pass:** No enemy enters DWELL state.
-
-### H.13 Campaign completion routes to victory
+### H.10 Campaign completion routes to victory
 
 **Test:** Kill BOJ on L3.
 **Pass:** `showCampaignVictory()` (or `showGameCompletion()` first run) — no intermission.
 
-### H.14 Boss type per level matches script declaration
+### H.11 Boss type per level matches script declaration
 
 **Test:** L2 boss spawn.
 **Pass:** `window.boss.bossType === 'BCE'`.
 
-### H.15 ScrollEngine DT clamp prevents tab-switch runaway
+### H.12 ScrollEngine DT clamp prevents tab-switch runaway
 
 **Test:** Switch tabs 5 s, return. Single-frame `scrollY` jump bounded by `180 × 0.050 × 2.6 = 23.4 px`.
 **Pass:** No frame jumps `scrollY` by > 25 px.
 
-### H.16 Level 3 CRUSH density matches v7.12.3 target
+### H.13 Level 3 CRUSH density matches v7.12.3 target
 
 **Test:** Count burst entries in `LEVEL_3_SCRIPT` between t=142 s and t=168 s (26 s CRUSH window).
 **Pass:** Exactly 19 bursts (≈0.73 bursts/s).
@@ -633,12 +584,24 @@ Each criterion is independently testable.
 
 ## Documented Gaps (informational — flagged for review)
 
-1. ~~**`HOVER_GATE.EASE_IN_MS = 400`** declared in BalanceConfig but Enemy.js sets `vy = 0` instantly on DWELL entry.~~ **Resolved v7.12.5**: dead key removed; snap-stop confirmed as intentional feel.
+1. ~~**`HOVER_GATE.EASE_IN_MS = 400`**~~ **Resolved v7.12.5**: dead key removed; snap-stop confirmed as intentional feel.
 
-2. **ScrollEngine LUT is L1-only.** `ScrollEngine.DEFAULT_LUT` is the FED profile, hardcoded; no `setProfile()` called between levels. L2/L3 use the same LUT. May be intentional (CRUSH multiplier carries the variation) but undocumented.
+2. **ScrollEngine LUT is L1-only.** `ScrollEngine.DEFAULT_LUT` is the FED profile, hardcoded; no `setProfile()` called between levels. L2/L3 use the same LUT. Consider per-level scroll profiles (see Recommended Improvements below).
 
 3. **`scheduleLevelEnd` delay asymmetry.** Story-screen path skips the 1 s timer; non-story path uses it. Intermission appears ~1 s later in non-story path. Not commented in code.
 
 4. **Off-screen cull `cullY = gameHeight + 120`** is a magic number with no config key.
 
-*End of GDD — V8 Scroller v7.12.4*
+5. **SWOOP amplitude exceeds screen bounds.** `CURVE_AMP` (140 px) + `SIDE_MARGIN` spawn (30 px from edge) causes the sine oscillation to clamp at `[30, gameWidth-30]` for ~2.4 s per half-cycle, destroying the sweeping arc. ~~Recommended fix: reduce `CURVE_AMP` to ~80 px.~~ *(Design review 2026-04-27: flagged for fix.)*
+
+6. **No top-side enemy cull.** Enemies in scripted HOVER LEAVE state (vy = -180 px/s) fly upward and accumulate indefinitely in the enemies array. There is no culling for `y < -200`. ~~Recommended fix: add top-side cull in LevelScript tick.~~ *(Design review 2026-04-27: flagged for fix.)*
+
+7. **LUT deceleration inverts apparent enemy motion.** At scrollY ≈ 14500–15500 the LUT drops from 180 to 40 px/s over ~10 s. Enemy apparent vertical velocity inverts from ≈ -140 px/s (rising on screen) to ≈ 0 px/s (hovering in place). This affects all four movement patterns and is undocumented. *(Design review 2026-04-27: flagged for review.)*
+
+## Recommended Improvements (non-blocking)
+
+1. **Per-level scroll profiles.** The same `DEFAULT_LUT` is used for all 3 levels. Per-level breakpoints with different scroll personalities (L1 steady, L2 erratic, L3 relentless) would give each region distinct pacing. (See Gap #2.)
+
+2. **CRUSH-specific enemy variant or behavior.** CRUSH is numerically intense (speed multiplier + fire budget ramp) but uses the same enemy patterns as PEAK. A CRUSH-exclusive variant (e.g., gold-plated currency enemies with unique bullet patterns) would make the set-piece feel qualitatively distinct.
+
+*End of GDD — V8 Scroller v7.12.4 — revised 2026-04-27*

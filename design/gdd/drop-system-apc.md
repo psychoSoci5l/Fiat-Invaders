@@ -7,7 +7,7 @@
 
 ---
 
-## A. Overview
+## Overview
 
 The Drop System governs **what, when, and how often** enemies drop pickups. It is layered: a base per-tier probability roll, a pity floor that guarantees pickups after N kills without drops, a category selector (SPECIAL / UTILITY / PERK — never UPGRADE from enemies since v5.11), an Adaptive Drop Balancer that detects **struggle** (no drops for too long while weak) and **domination** (killing too fast while strong) and biases the system accordingly, and a cycle-based Adaptive Power Calibration (APC) that re-tunes enemy HP and pity cadence based on the player's loadout strength at boss defeats.
 
@@ -17,7 +17,7 @@ The net effect: drops should feel generous-when-struggling, rare-when-dominant, 
 
 ---
 
-## B. Player Fantasy
+## Player Fantasy
 
 Drops should feel **earned but not grindy**. The player should never go long enough without a pickup to feel punished (struggle boost kicks in at 40s without a drop), but should also not feel like the game is "feeding them" when they're already ahead (domination cuts drop chance to 25% and doubles pity timer). Pre-boss waves should reliably provide a Special for the fight (guaranteed SPECIAL from wave 4+). After death the game grants a 60-second grace window with lowered thresholds — a soft rebound.
 
@@ -25,7 +25,7 @@ APC should be invisible moment-to-moment. A dominant player on cycle 2 suddenly 
 
 ---
 
-## C. Detailed Rules
+## Detailed Rules
 
 ### C.1 Enemy tier classification
 
@@ -167,7 +167,7 @@ Two sections [DebugSystem.js:1010–1033](src/utils/DebugSystem.js:1010):
 
 ---
 
-## D. Balance & Tuning Reference
+## Balance & Tuning Reference
 
 | Knob | Value | Location | What it does |
 |---|---|---|---|
@@ -194,7 +194,7 @@ Two sections [DebugSystem.js:1010–1033](src/utils/DebugSystem.js:1010):
 
 ---
 
-## E. Kill-switches & Risks
+## Kill-switches & Risks
 
 ### Kill-switches
 
@@ -222,7 +222,7 @@ Two sections [DebugSystem.js:1010–1033](src/utils/DebugSystem.js:1010):
 
 ---
 
-## F. Open Design Questions
+## Open Design Questions
 
 - **Should APC consider HYPER meter state?** Currently APC is blind to proximity-kill meter fill. A player approaching HYPER but not yet active reads as "weak" to APC. Debatable — HYPER is a one-shot burst, not persistent power.
 - **Balancer `CYCLE_REDUCTION: 5`.** Struggle thresholds shorten each cycle (C3 = 30s/45s) — but so does pity, and so does enemy HP (APC). Is the compounding generosity intentional or over-correction?
@@ -232,7 +232,36 @@ Two sections [DebugSystem.js:1010–1033](src/utils/DebugSystem.js:1010):
 
 ---
 
-## G. Related Systems
+## Edge Cases
+
+1. **Pity drop during boss entrance.** If the pity threshold is reached during a boss entrance sequence, the forced drop is queued and fires after the entrance animation completes — it does not interrupt the boss arrival.
+2. **Struggle and domination simultaneously.** Both detectors can be "armed" simultaneously if kill rate is high (>1.5 k/s) and time-since-drop is long (>40s). The struggle detector wins priority — the system favours generosity over suppression.
+3. **Drop during scroll transition (V8 level end).** When the V8 level completes (boss death → intermission), drops on screen persist through the transition. New drops are suppressed during the intermission screen. Any drops that land during the scroll-stop animation are rendered at the scroll-stop position.
+4. **APC on first cycle (C1).** APC never fires on C1 — `cyclePower.score` is 0, so the HP mult is 1.0 and pity adj is 0. Intentional: no baseline to compare against.
+5. **HYPER/GODCHAIN suppression edge case.** If a drop is midway through its fall animation when GODCHAIN activates, the drop is NOT retroactively suppressed — it continues falling and can be collected. Only NEW drops are suppressed for the duration.
+
+## Dependencies
+
+- **Weapon Evolution + Elementals + GODCHAIN GDD** — defines PERK, SPECIAL, UTILITY drop types consumed by this system. GODCHAIN suppression flag affects drop enable/disable.
+- **Enemy Agents GDD** — tier classification (STRONG/MEDIUM/WEAK by currency symbol) feeds `getDropChance()`.
+- **V8 Scroller GDD** — wave-4+ guaranteed SPECIAL mechanic triggers based on V8 level progression.
+- **Arcade Rogue Protocol GDD** — `ARCADE_MULT` scaling modifies drop thresholds in Arcade mode.
+
+## Acceptance Criteria
+
+1. **Drop rates per tier match config:** STRONG 3.0%, MEDIUM 2.5%, WEAK 1.0% (verify over 1000+ samples).
+2. **Pity timer guarantees a drop within `PITY_BASE` kills (C1) or fewer (C2+, reduced by `PITY_REDUCTION`).**
+3. **Struggle detection triggers at 40s without a drop:** applies chance boost (×3.0) and force drop at 55s.
+4. **Domination detection triggers at >1.5 kills/s:** reduces drop chance to 25% and doubles pity timer.
+5. **No two drops within 6 seconds of each other** (anti-cluster guard, non-pity path).
+6. **Guaranteed SPECIAL drop from wave 4+** (pre-boss) in V8 campaign.
+7. **Post-death grace window of 60s** with lowered thresholds.
+8. **APC adjusts enemy HP between 0.85× and 1.35×** (C2+ only).
+9. **Arcade mode applies `ARCADE_MULT: 0.85`** threshold scaling.
+
+---
+
+## Related Systems
 
 - **Weapon Evolution + Elementals + GODCHAIN GDD** — defines the pickups (SPECIAL / UTILITY / PERK) that this system drops and consumes.
 - **Arcade Rogue Protocol GDD** — uses `ARCADE_MULT` threshold scaling; mini-boss modifier rewards bypass this system entirely.

@@ -945,6 +945,8 @@ window.Game.HarmonicConductor = {
         if (enemy._fireSuppressed) return;
         // v7.12: don't fire while still offscreen above (enemy not yet visible to player)
         if (enemy._fireSuppressedByEntry) return;
+        // v7.14: Electrically stunned enemies cannot fire
+        if (enemy._stunTimer > 0) return;
 
         const bulletSpeed = 150 + (this.difficultyParams.complexity * 15);
         let bulletData = null;
@@ -989,7 +991,7 @@ window.Game.HarmonicConductor = {
     // Spawn bullets via event
     spawnBullets(bullets) {
         if (window.Game.Events) {
-            window.Game.Events.emit('harmonic_bullets', { bullets: bullets });
+            window.Game.Events.emit('system:harmonic-bullets', { bullets: bullets });
         }
     },
 

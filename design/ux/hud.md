@@ -4,7 +4,7 @@ Author: reverse-document + ux-designer
 Last Updated: 2026-04-23
 Template: HUD Design
 Platform Target: Mobile (PWA primary), Desktop browser secondary
-Accessibility Tier: Undefined — no formal audit on file; observations noted per element
+Accessibility Tier: Basic — color + shape encoding for differentiation; minimum 4.5:1 contrast; screen shake within 8px amplitude
 ---
 
 # HUD Design — FIAT vs CRYPTO

@@ -35,6 +35,9 @@ window.Game = window.Game || {};
         const title = document.getElementById('nickname-title');
         if (!overlay || !input || !btn) { callback(false); return; }
         overlay.style.display = 'flex';
+        overlay.classList.remove('anim-modal-in');
+        void overlay.offsetHeight;
+        overlay.classList.add('anim-modal-in');
         if (title) title.textContent = opts.title || t('NICK_TITLE');
         input.placeholder = t('NICK_PLACEHOLDER');
         btn.textContent = t('NICK_CONFIRM');

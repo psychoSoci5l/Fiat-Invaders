@@ -30,11 +30,24 @@
     <script src="../src/utils/MathUtils.js"></script>
     <script src="../src/config/BalanceConfig.js"></script>
     <script src="../src/core/GameStateMachine.js"></script>
+    <script src="../src/core/EventBus.js"></script>
     <script src="../src/core/ObjectPool.js"></script>
     <script src="../src/utils/RunState.js"></script>
+    <script src="../src/utils/Upgrades.js"></script>
     <script src="../src/systems/CollisionSystem.js"></script>
     <script src="../src/systems/SpatialGrid.js"></script>
+    <script src="../src/systems/ArcadeModifiers.js"></script>
     <script src="../src/systems/DropSystem.js"></script>
+    <!-- v7.13.0: Rendering Pipeline modules -->
+    <script src="../src/systems/CullingHelper.js"></script>
+    <script src="../src/systems/OffscreenCanvas.js"></script>
+    <script src="../src/systems/GlowManager.js"></script>
+    <script src="../src/systems/DrawPipeline.js"></script>
+
+    <!-- Entity modules for Boss tests -->
+    <script src="../src/entities/Entity.js"></script>
+    <script src="../src/entities/Boss.js"></script>
+    <script src="../src/managers/PerkManager.js"></script>
     <script src="../src/managers/WaveManager.js"></script>
 
     <!-- Test files -->
@@ -45,6 +58,10 @@
     <script src="test-drops.js"></script>
     <script src="test-waves.js"></script>
     <script src="test-score.js"></script>
+    <script src="test-eventbus.js"></script>
+    <script src="test-arcade.js"></script>
+    <script src="test-boss.js"></script>
+    <script src="test-perks.js"></script>
 
     <script>
         // Run all registered suites

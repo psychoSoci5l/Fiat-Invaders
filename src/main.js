@@ -62,16 +62,14 @@ if (G.GameState) {
 }
 let userLang = navigator.language || navigator.userLanguage;
 let currentLang = userLang.startsWith('it') ? 'IT' : 'EN';
+
+// v7.13.0: Rendering via DrawPipeline (see initDrawPipeline)
 G._currentLang = currentLang; // v4.11.0: Expose for StoryScreen localization
 let isBearMarket = false; // 🐻
 window.isBearMarket = isBearMarket; // Expose globally for WaveManager
 G._gameWidth = gameWidth; // v4.0.1: Expose for Bullet horizontal bounds check
 
-// PWA: Intercept install prompt for Android/Chrome
-window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    window._deferredInstallPrompt = e;
-});
+// PWA install prompt handled by UIManager.js
 
 // Game Entities
 let player;
@@ -151,34 +149,9 @@ function safeGetJSON(key, fallback) {
     catch { return fallback; }
 }
 
-// HIGH SCORE — mode-specific persistence (v4.50)
-function highScoreKey() {
-    if (G.DailyMode && G.DailyMode.isActive()) return `fiat_highscore_${G.DailyMode.modeToken()}`;
-    const isStory = G.CampaignState && G.CampaignState.isEnabled();
-    return isStory ? 'fiat_highscore_story' : 'fiat_highscore_arcade';
-}
-function loadHighScoreForMode() {
-    return parseInt(localStorage.getItem(highScoreKey())) || 0;
-}
-let highScore = loadHighScoreForMode(); // PERSISTENCE
-
-// ARCADE RECORDS — persistent progression tracking (v4.50)
-function loadArcadeRecords() {
-    try { return JSON.parse(localStorage.getItem('fiat_arcade_records')) || { bestCycle: 0, bestLevel: 0, bestKills: 0 }; }
-    catch { return { bestCycle: 0, bestLevel: 0, bestKills: 0 }; }
-}
-function saveArcadeRecords(records) {
-    safeSetItem('fiat_arcade_records', JSON.stringify(records));
-}
-function checkArcadeRecords() {
-    const records = loadArcadeRecords();
-    let newBest = false;
-    if (marketCycle > records.bestCycle) { records.bestCycle = marketCycle; newBest = true; }
-    if (level > records.bestLevel) { records.bestLevel = level; newBest = true; }
-    if (killCount > records.bestKills) { records.bestKills = killCount; newBest = true; }
-    if (newBest) saveArcadeRecords(records);
-    return { newBest, records };
-}
+// HIGH SCORE, ARCADE RECORDS, WEAPON PROGRESSION
+// Extracted to src/managers/ScoreManager.js
+let highScore = G.ScoreManager ? G.ScoreManager.loadHighScoreForMode() : 0;
 // Note: High score UI update happens in updateModeIndicator() when intro screen is shown
 
 // v7.0: Nickname, DeviceID, Nonce, Pending Score, Leaderboard API
@@ -191,25 +164,7 @@ const flushPendingScore = G.flushPendingScore;
 const savePendingScore = G.savePendingScore;
 
 // v7.0: Leaderboard system extracted to src/managers/LeaderboardClient.js
-// G.Leaderboard is now defined there
 
-// WEAPON PROGRESSION - Persisted in localStorage
-const BASE_WEAPONS = ['WIDE', 'NARROW', 'FIRE']; // Always unlocked
-const ADVANCED_WEAPONS = ['SPREAD', 'HOMING']; // Unlock per cycle
-const WEAPON_UNLOCK_CYCLE = { SPREAD: 2, HOMING: 3 }; // Cycle required
-let maxCycleReached = parseInt(localStorage.getItem('fiat_maxcycle')) || 1;
-
-function getUnlockedWeapons() {
-    const unlocked = [...BASE_WEAPONS];
-    for (const [weapon, cycle] of Object.entries(WEAPON_UNLOCK_CYCLE)) {
-        if (maxCycleReached >= cycle) {
-            unlocked.push(weapon);
-        }
-    }
-    return unlocked;
-}
-
-// v4.47: Build player state snapshot for adaptive drop system
 // Pre-allocated to avoid per-call GC allocations
 const _playerState = {
     weaponLevel: 1,
@@ -338,25 +293,11 @@ function initCollisionSystem() {
         showCampaignVictory: showCampaignVictory,
         restoreGameUI: restoreGameUI,
         buildPlayerState: buildPlayerState,
-        getUnlockedWeapons: getUnlockedWeapons,
+        getUnlockedWeapons: function () { return G.ScoreManager ? G.ScoreManager.getUnlockedWeapons() : ['WIDE', 'NARROW', 'FIRE']; },
         bossDeathTimeout: bossDeathTimeout,
         clearBossDeathTimeouts: clearBossDeathTimeouts,
         shouldShowStory: shouldShowStory,
     });
-}
-
-function checkWeaponUnlocks(cycle) {
-    if (cycle > maxCycleReached) {
-        maxCycleReached = cycle;
-        safeSetItem('fiat_maxcycle', maxCycleReached);
-        // Check for new unlocks
-        for (const [weapon, reqCycle] of Object.entries(WEAPON_UNLOCK_CYCLE)) {
-            if (reqCycle === cycle) {
-                showGameInfo(t('WEAPON_UNLOCK') + ' ' + weapon + '!');
-                if (G.Audio) G.Audio.play('levelUp');
-            }
-        }
-    }
 }
 
 let boss = null;
@@ -365,7 +306,7 @@ let shake = 0, gridDir = 1, gridSpeed = 25, intermissionTimer = 0;
 // Screen transition moved to TransitionManager.js
 let currentShipIdx = 0;
 let lastWavePattern = 'RECT';
-let warmupShown = false; // v4.37: warmup phase shown once (persisted via localStorage)
+// warmupShown moved to TutorialManager
 let perkChoiceActive = false;
 let intermissionMeme = ""; // Meme shown during countdown
 let lastCountdownNumber = 0; // Track countdown to trigger audio once per number
@@ -413,12 +354,8 @@ let bulletCancelStreak, bulletCancelTimer, perkCooldown;
 let fiatKillCounter, lastMiniBossSpawnTime, miniBossThisWave;
 let waveStartTime, _frameKills, _hyperAmbientTimer, marketCycle;
 
-// v5.14: Score Pulse Tier system — HUD-reactive feedback replaces floating text
-var _scorePulseTierClasses = ['score-normal', 'score-big', 'score-massive', 'score-legendary'];
-var _scorePulseAccumulator = 0;
-var _scorePulseAccTimer = 0;
+// Score pulse state moved to ScoreManager.js
 
-// Sync local aliases FROM RunState (call after runState.reset())
 function syncFromRunState() {
     score = runState.score;
     level = runState.level;
@@ -450,14 +387,8 @@ function syncFromRunState() {
     window.marketCycle = marketCycle;
     window.currentLevel = level;
     window.fiatKillCounter = fiatKillCounter;
-    // v5.14: Reset score pulse state
-    _scorePulseAccumulator = 0;
-    _scorePulseAccTimer = 0;
-    const scoreEl = document.getElementById('scoreVal');
-    if (scoreEl) {
-        scoreEl.classList.remove('score-new-record', 'score-record-break');
-        for (let i = 0; i < _scorePulseTierClasses.length; i++) scoreEl.classList.remove(_scorePulseTierClasses[i]);
-    }
+    // v5.14: Reset score pulse state (delegated to ScoreManager)
+    if (G.ScoreManager) G.ScoreManager.resetPulseState();
 }
 
 // Initial sync
@@ -500,242 +431,43 @@ function canSpawnEnemyBullet() {
     return enemyBullets.length < cap;
 }
 
-// v5.14: Score Pulse Tier system (moved above syncFromRunState call)
-
-function _getScoreTier(gain) {
-    const tiers = Balance.JUICE?.SCORE_PULSE_TIERS;
-    if (!tiers) return 'MICRO';
-    if (gain >= (tiers.LEGENDARY?.threshold ?? 5000)) return 'LEGENDARY';
-    if (gain >= (tiers.MASSIVE?.threshold ?? 2000)) return 'MASSIVE';
-    if (gain >= (tiers.BIG?.threshold ?? 500)) return 'BIG';
-    if (gain >= (tiers.NORMAL?.threshold ?? 100)) return 'NORMAL';
-    return 'MICRO';
-}
-
-var _tierOrder = ['MICRO', 'NORMAL', 'BIG', 'MASSIVE', 'LEGENDARY'];
-
+// Score functions extracted to ScoreManager.js
 function updateScore(newScore, scoreGain) {
-    const oldScore = score;
-    score = newScore;
-    window.score = score;
-    const el = document.getElementById('scoreVal');
-    if (!el) return;
-    el.textContent = Math.floor(score);
-
-    // Determine tier from gain
-    if (scoreGain > 0) {
-        let tier = _getScoreTier(scoreGain);
-        let tierIdx = _tierOrder.indexOf(tier);
-
-        // Accumulator: rapid gains bump tier up
-        const tiers = Balance.JUICE?.SCORE_PULSE_TIERS;
-        const decayTime = tiers?.ACCUMULATOR_DECAY ?? 0.4;
-        const maxBump = tiers?.ACCUMULATOR_MAX_BUMP ?? 2;
-        if (_scorePulseAccTimer > 0 && tierIdx > 0) {
-            _scorePulseAccumulator = Math.min(_scorePulseAccumulator + 1, maxBump);
-            tierIdx = Math.min(tierIdx + _scorePulseAccumulator, _tierOrder.length - 1);
-            tier = _tierOrder[tierIdx];
-        } else {
-            _scorePulseAccumulator = 0;
-        }
-        _scorePulseAccTimer = decayTime;
-
-        // Apply CSS class for NORMAL+
-        if (tierIdx >= 1) {
-            const className = _scorePulseTierClasses[tierIdx - 1];
-            for (let i = 0; i < _scorePulseTierClasses.length; i++) {
-                el.classList.remove(_scorePulseTierClasses[i]);
-            }
-            void el.offsetWidth; // Force reflow
-            el.classList.add(className);
-
-            // BIG+: HUD particle burst
-            if (tierIdx >= 2 && G.ParticleSystem?.createScoreHudBurst) {
-                G.ParticleSystem.createScoreHudBurst(tier);
-            }
-
-            // LEGENDARY: screen glow
-            if (tierIdx >= 4) {
-                triggerScorePulse();
-            }
-        }
-    } else {
-        // No gain (direct set) — just update text, no animation
-    }
-
-    // v5.14: New high score detection
-    if (score > highScore && oldScore <= highScore && highScore > 0) {
-        // One-shot record break animation
-        for (let i = 0; i < _scorePulseTierClasses.length; i++) {
-            el.classList.remove(_scorePulseTierClasses[i]);
-        }
-        el.classList.remove('score-record-break');
-        void el.offsetWidth;
-        el.classList.add('score-record-break');
-        // Persistent magenta glow
-        el.classList.add('score-new-record');
-        // Particle burst + screen glow
-        if (G.ParticleSystem?.createScoreHudBurst) G.ParticleSystem.createScoreHudBurst('LEGENDARY');
-        triggerScorePulse();
-        // HUD message
-        showGameInfo("NEW HIGH SCORE!");
-        if (audioSys) audioSys.play('weaponDeploy');
-    }
-
-    // Score pulse on milestone crossing (Ikeda juice)
-    const threshold = Balance.JUICE?.SCORE_PULSE?.THRESHOLD || 10000;
-    const currentMilestone = Math.floor(score / threshold);
-    const previousMilestone = Math.floor(oldScore / threshold);
-    if (currentMilestone > previousMilestone && currentMilestone > lastScoreMilestone) {
-        lastScoreMilestone = currentMilestone;
-        triggerScorePulse();
-    }
+    if (G.ScoreManager) G.ScoreManager.updateScore(newScore, scoreGain);
 }
-
-// Trigger score pulse effect (delegates to EffectsRenderer)
 function triggerScorePulse() {
     if (G.EffectsRenderer) G.EffectsRenderer.triggerScorePulse();
 }
-// DOM cache to avoid getElementById in hot path
+function pushScoreTicker(text) {
+    if (G.ScoreManager) G.ScoreManager.pushScoreTicker(text);
+}
+function updateKillCounter() {
+    if (G.ScoreManager) G.ScoreManager.updateKillCounter();
+}
+function checkStreakMeme() {
+    if (G.ScoreManager) G.ScoreManager.checkStreakMeme();
+}
+function checkWeaponUnlocks(cycle) {
+    if (G.ScoreManager) G.ScoreManager.checkWeaponUnlocks(cycle);
+}
+function triggerScoreStreakColor(streakLevel) {
+    if (G.ScoreManager) G.ScoreManager.triggerScoreStreakColor(streakLevel);
+}
+// POWERUP_MEMES moved to MemeEngine.js (duplicate removed)
+
+// Meme functions delegate to MemeEngine singleton
+function getRandomMeme() { return G.MemeEngine ? G.MemeEngine.getRandomMeme() : ''; }
+function getFiatDeathMeme() { return G.MemeEngine ? G.MemeEngine.getEnemyDeathMeme() : ''; }
+function getPowellMeme() { return G.MemeEngine ? G.MemeEngine.getPowellMeme() : ''; }
+function getBossMeme(bossType) { return G.MemeEngine ? G.MemeEngine.getBossMeme(bossType) : ''; }
+
+// DOM cache helper functions
 var _domCache = {};
 function _cachedEl(id) { return _domCache[id] || (_domCache[id] = document.getElementById(id) || ui[id]); }
 function setStyle(id, prop, val) { var el = _cachedEl(id); if (el) el.style[prop] = val; }
 function setUI(id, val) { var el = _cachedEl(id); if (el) el.innerText = val; }
 function emitEvent(name, payload) { if (events && events.emit) events.emit(name, payload); }
 function _countActive(arr) { var c = 0; for (var i = 0, len = arr.length; i < len; i++) { if (arr[i] && arr[i].life > 0) c++; } return c; }
-
-// Shield button radial indicator update (v5.7: button hidden, tap-on-ship replaces it)
-var _shieldBtn = null, _shieldProgress = null, _shieldCached = false;
-function updateShieldButton(player) {
-    return; // v5.7: Shield button removed — cooldown shown via diegetic ring on ship
-    if (!_shieldCached) { _shieldBtn = document.getElementById('t-shield'); _shieldCached = true; }
-    var btn = _shieldBtn;
-    if (!btn) return;
-
-    var progressCircle = _shieldProgress || (_shieldProgress = btn.querySelector('.shield-radial-progress'));
-    const COOLDOWN_MAX = 10.0;
-    const CIRCUMFERENCE = 188.5; // 2 * PI * 30
-
-    btn.classList.remove('ready', 'active', 'cooldown');
-
-    if (player.shieldActive) {
-        btn.classList.add('active');
-        if (progressCircle) progressCircle.style.strokeDashoffset = '0';
-    } else if (player.shieldCooldown > 0) {
-        btn.classList.add('cooldown');
-        const progress = 1 - (player.shieldCooldown / COOLDOWN_MAX);
-        const offset = CIRCUMFERENCE * (1 - progress);
-        if (progressCircle) progressCircle.style.strokeDashoffset = String(offset);
-    } else {
-        btn.classList.add('ready');
-        if (progressCircle) progressCircle.style.strokeDashoffset = '0';
-    }
-}
-
-// v4.0.4: HYPER button state update (mirrors shield button pattern)
-var _hyperBtn = null, _hyperProgress = null, _hyperCached = false;
-function updateHyperButton(player, grazeMeter) {
-    if (!_hyperCached) { _hyperBtn = document.getElementById('t-hyper'); _hyperCached = true; }
-    var btn = _hyperBtn;
-    if (!btn) return;
-
-    // v4.21: Hide HYPER button when auto-activate is enabled (no manual input needed)
-    if (Balance.HYPER.AUTO_ACTIVATE) {
-        btn.classList.remove('visible');
-        return;
-    }
-
-    // Show only on touch devices (legacy manual mode)
-    if ('ontouchstart' in window && gameState === 'PLAY') {
-        btn.classList.add('visible');
-    } else {
-        btn.classList.remove('visible');
-        return;
-    }
-
-    var progressCircle = _hyperProgress || (_hyperProgress = btn.querySelector('.hyper-radial-progress'));
-    const CIRCUMFERENCE = 188.5;
-    const threshold = Balance.HYPER?.METER_THRESHOLD || 100;
-
-    btn.classList.remove('ready', 'active');
-
-    if (player.isHyperActive && player.isHyperActive()) {
-        btn.classList.add('active');
-        if (progressCircle) progressCircle.style.strokeDashoffset = '0';
-    } else if (player.canActivateHyper && player.canActivateHyper(grazeMeter)) {
-        btn.classList.add('ready');
-        if (progressCircle) progressCircle.style.strokeDashoffset = '0';
-    } else {
-        // Show meter fill progress
-        const progress = Math.min(1, grazeMeter / threshold);
-        const offset = CIRCUMFERENCE * (1 - progress);
-        if (progressCircle) progressCircle.style.strokeDashoffset = String(offset);
-    }
-}
-
-// Meme functions delegate to MemeEngine singleton
-function getRandomMeme() { return G.MemeEngine.getRandomMeme(); }
-function getFiatDeathMeme() { return G.MemeEngine.getEnemyDeathMeme(); }
-function getPowellMeme() { return G.MemeEngine.getPowellMeme(); }
-function getBossMeme(bossType) { return G.MemeEngine.getBossMeme(bossType); }
-
-function pushScoreTicker(text) {
-    if (!ui.scoreTicker) return;
-    const span = document.createElement('span');
-    span.className = 'tick';
-    span.textContent = text;
-    ui.scoreTicker.appendChild(span);
-    setTimeout(() => {
-        if (span.parentNode) span.parentNode.removeChild(span);
-    }, 1200);
-}
-
-function updateKillCounter() {
-    const el = document.getElementById('killNum');
-    if (!el) return;
-    el.textContent = killCount;
-    el.classList.add('pulse');
-    setTimeout(() => el.classList.remove('pulse'), 100);
-}
-
-// Streak milestones - only impactful moments (10, 25, 50)
-const STREAK_MEMES = [
-    { at: 10, text: "🐋 WHALE ALERT!" },
-    { at: 25, text: "💎 DIAMOND HANDS!" },
-    { at: 50, text: "👑 SATOSHI REBORN!" }
-];
-
-function checkStreakMeme() {
-    // Only major streak milestones - no random memes
-    const meme = STREAK_MEMES.find(m => m.at === streak);
-    if (meme) {
-        G.MemeEngine.queueMeme('STREAK', meme.text, 'STREAK');
-    }
-}
-
-// PowerUp memes - crypto-themed feedback
-const POWERUP_MEMES = {
-    // Legacy weapon types
-    WIDE: "🔱 SPREAD THE FUD",
-    NARROW: "🎯 LASER EYES",
-    FIRE: "🔥 BURN THE FIAT",
-    RAPID: "🚀 TO THE MOON",
-
-    // WEAPON EVOLUTION v4.47 types
-    UPGRADE: "⬆️ LEVEL UP!",
-    HOMING: "🎯 HEAT SEEKING",
-    PIERCE: "🔥 PENETRATING",
-    MISSILE: "🚀 WARHEAD ARMED",
-    SHIELD: "🛡️ HODL MODE",
-    PERK: "✦ ELEMENT UNLOCKED",
-    SPEED: "💨 ZOOM OUT"
-};
-
-// ============================================
-// MESSAGE SYSTEM - Visual Categories
-// ============================================
-
-// Message system moved to MessageSystem.js
 
 // Message functions - delegate to MessageSystem
 function showMemeFun(text, duration = 1500) {
@@ -884,28 +616,38 @@ function init() {
         ui.perkSkip.addEventListener('click', () => closePerkChoice());
     }
     if (events && events.on) {
-        events.on('intermission_start', () => closePerkChoice());
-        events.on('enemy_killed', () => {
+        events.on('game:intermission-start', () => closePerkChoice());
+        events.on('enemy:killed', (data) => {
+            // v7.13.0: Subtle kill feedback — micro shake + flash
+            if (G.EffectsRenderer && !isBearMarket) {
+                // v7.13.0: Tier-dependent shake (stronger enemies shake more)
+                const symbol = data && data.symbol;
+                const isStrong = symbol && G.Balance && G.Balance.isStrongTier && G.Balance.isStrongTier(symbol);
+                const isMedium = symbol && G.Balance && G.Balance.isMediumTier && G.Balance.isMediumTier(symbol);
+                const shakeIntensity = isStrong ? 5 : isMedium ? 3 : 2;
+                G.EffectsRenderer.applyShake(shakeIntensity);
+                G.EffectsRenderer.triggerScreenFlash('ENEMY_KILL');
+            }
         });
         // v4.6: GODCHAIN events
-        events.on('GODCHAIN_ACTIVATED', () => {
+        events.on('player:godchain-activated', () => {
             // v5.26: GODCHAIN now displayed in Combat HUD Bar (MessageSystem), keep screen flash
             if (G.triggerScreenFlash) G.triggerScreenFlash('HYPER_ACTIVATE');
         });
-        events.on('GODCHAIN_DEACTIVATED', () => {
+        events.on('player:godchain-deactivated', () => {
             // v5.26: Combat HUD Bar handles deactivation via _updateCombatHUD()
         });
         // v7.7.0: First-encounter lesson modals (replaces v7.6.0 status-strip hints)
         // Game pauses when a lesson modal opens. Each lesson shows once per device.
         // GODCHAIN_ACTIVATED fires AFTER the perk pickup that triggered it; the small
         // delay lets the perk lesson queue first so GODCHAIN comes second.
-        events.on('GODCHAIN_ACTIVATED', () => {
+        events.on('player:godchain-activated', () => {
             if (G.LessonModal) setTimeout(() => G.LessonModal.show('lesson_godchain'), 400);
         });
-        events.on('HYPER_ACTIVATED', () => {
+        events.on('player:hyper-activated', () => {
             if (G.LessonModal) G.LessonModal.show('lesson_hyper');
         });
-        events.on('powerup_pickup', (data) => {
+        events.on('player:powerup-pickup', (data) => {
             if (!G.LessonModal || !data) return;
             if (data.category === 'perk') {
                 const key = data.elemType === 'LASER'    ? 'lesson_laser'
@@ -920,7 +662,7 @@ function init() {
             }
         });
         // Harmonic Conductor bullet spawning
-        events.on('harmonic_bullets', (data) => {
+        events.on('system:harmonic-bullets', (data) => {
             if (!data || !data.bullets) return;
             var bds = data.bullets;
             for (var i = 0, len = bds.length; i < len; i++) {
@@ -940,7 +682,7 @@ function init() {
             }
         });
         // v5.32: Bomber drop — spawn slow bomb bullet
-        events.on('bomber_drop', (data) => {
+        events.on('enemy:bomber-drop', (data) => {
             if (!canSpawnEnemyBullet()) return;
             const bd = {
                 x: data.x, y: data.y,
@@ -971,8 +713,7 @@ function init() {
         });
     }
 
-    resize();
-    // v5.31: Throttle resize during gameplay to prevent layout thrashing
+        // v5.31: Throttle resize during gameplay to prevent layout thrashing
     let _resizeThrottle = null;
     window.addEventListener('resize', () => {
         if (G.GameState && (G.GameState.is('PLAY') || G.GameState.is('PAUSE'))) {
@@ -997,6 +738,68 @@ function init() {
     if (G.QualityManager) G.QualityManager.init();
 
     inputSys.init();
+
+    // v7.14: Initialize ScoreManager
+    if (G.ScoreManager) {
+        G.ScoreManager.init({
+            getScore: function () { return score; },
+            setScore: function (v) { score = v; window.score = v; if (G.RunState) G.RunState.score = v; },
+            getHighScore: function () { return highScore; },
+            setHighScore: function (v) { highScore = v; },
+            getKillCount: function () { return killCount; },
+            getLevel: function () { return level; },
+            getMarketCycle: function () { return marketCycle; },
+            getStreak: function () { return streak; },
+            getLastScoreMilestone: function () { return lastScoreMilestone; },
+            setLastScoreMilestone: function (v) { lastScoreMilestone = v; },
+            getReactiveStreakClass: function () { return _reactiveStreakClass; },
+            setReactiveStreakClass: function (v) { _reactiveStreakClass = v; },
+            setReactiveStreakTimer: function (v) { _reactiveStreakTimer = v; },
+            t: t,
+            safeSetItem: safeSetItem
+        });
+    }
+
+    // v7.14: Initialize UIManager
+    if (G.UIManager) {
+        G.UIManager.init({
+            getCurrentLang: function () { return currentLang; },
+            setCurrentLang: function (v) { currentLang = v; },
+            getGameState: function () { return gameState; },
+            setGameState: function (s) { setGameState(s); },
+            getPausedFromState: function () { return window._pausedFromState; },
+            setPausedFromState: function (s) { window._pausedFromState = s; },
+            getPlayer: function () { return player; },
+            getContainer: function () { return gameContainer; },
+            getCanvas: function () { return canvas; },
+            getSentinel: function () { return saSentinel; },
+            getUI: function () { return ui; },
+            getJoystick: function () { return G.Input && G.Input.touch; },
+            getLives: function () { return lives; },
+            getLevel: function () { return level; },
+            getIsBearMarket: function () { return isBearMarket; },
+            setIsBearMarket: function (v) { isBearMarket = v; window.isBearMarket = v; },
+            setGameWidth: function (v) { gameWidth = v; },
+            setGameHeight: function (v) { gameHeight = v; },
+            restartGame: function () { startGame(); },
+            showToast: function (msg) { showGameInfo(msg); },
+            getRandomMeme: function () { return getRandomMeme(); },
+            t: t
+        });
+    }
+
+    resize(); // First resize AFTER UIManager.init() so d.getSentinel is available
+
+    // v7.14: Initialize TutorialManager
+    if (G.TutorialManager) {
+        G.TutorialManager.init({
+            setGameState: setGameState,
+            onTutorialComplete: function () {
+                _startPlayCountdown();
+                showShipIntroMeme();
+            }
+        });
+    }
 
     // v6.8: Restore TILT mode if saved — verify permission, fallback
     if (localStorage.getItem('fiat_tilt_on') === '1' && inputSys.tilt.available) {
@@ -1034,8 +837,8 @@ function init() {
     if (G.StatsTracker) {
         G.StatsTracker.init();
         if (G.Events) {
-            G.Events.on('HYPER_ACTIVATED', () => G.StatsTracker.recordHyper());
-            G.Events.on('GODCHAIN_ACTIVATED', () => G.StatsTracker.recordGodchain());
+            G.Events.on('player:hyper-activated', () => G.StatsTracker.recordHyper());
+            G.Events.on('player:godchain-activated', () => G.StatsTracker.recordGodchain());
         }
     }
     if (G.AchievementSystem) G.AchievementSystem.init();
@@ -1051,6 +854,12 @@ function init() {
         setTimeout(() => {
             if (splash) splash.remove();
             setStyle('intro-screen', 'display', 'flex');
+            const introScreen = document.getElementById('intro-screen');
+            if (introScreen) {
+                introScreen.classList.remove('anim-fade-in');
+                void introScreen.offsetHeight;
+                introScreen.classList.add('anim-fade-in');
+            }
 
             // Init unified intro v4.8 - show splash elements, hide selection elements
             const title = document.getElementById('intro-title');
@@ -1216,7 +1025,10 @@ function init() {
     const splash = document.getElementById('splash-layer');
     if (vid && splash) {
         vid.play().then(() => { vid.onended = startApp; }).catch(() => { });
-        setTimeout(startApp, 4000); splash.addEventListener('click', startApp); splash.addEventListener('touchstart', startApp);
+        setTimeout(startApp, 3000);
+        splash.addEventListener('click', startApp);
+        splash.addEventListener('touchstart', startApp);
+        window.skipSplashVideo = startApp;
     } else {
         // No video - go directly to intro with splash state
         if (splash) splash.style.display = 'none';
@@ -1274,6 +1086,22 @@ function init() {
         }
     }
 
+    // P7: Keyboard skip — Space/Enter skips splash video or title animation
+    document.addEventListener('keydown', function _skipOnKey(e) {
+        if (e.code === 'Space' || e.code === 'Enter') {
+            const splashLayer = document.getElementById('splash-layer');
+            if (splashLayer && splashLayer.style.opacity !== '0' && splashLayer.style.display !== 'none') {
+                e.preventDefault();
+                if (window.skipSplashVideo) window.skipSplashVideo();
+                return;
+            }
+            if (G.TitleAnimator && G.TitleAnimator.isAnimating()) {
+                e.preventDefault();
+                if (window.skipTitleAnim) window.skipTitleAnim();
+            }
+        }
+    });
+
     // High score is displayed via updateModeIndicator() in updateUIText()
 
     // Story screen touch/click handling
@@ -1308,8 +1136,8 @@ function init() {
         shouldShowStory: shouldShowStory,
         clearBossDeathTimeouts: clearBossDeathTimeouts,
         closePerkChoice: closePerkChoice,
-        loadHighScoreForMode: loadHighScoreForMode,
-        loadArcadeRecords: loadArcadeRecords,
+        loadHighScoreForMode: function () { return G.ScoreManager ? G.ScoreManager.loadHighScoreForMode() : 0; },
+        loadArcadeRecords: function () { return G.ScoreManager ? G.ScoreManager.loadArcadeRecords() : { bestCycle: 0, bestLevel: 0, bestKills: 0 }; },
         updateUIText: updateUIText,
         updateTiltUI: updateTiltUI,
         showControlToast: showControlToast,
@@ -1334,126 +1162,26 @@ function init() {
         setGameState: setGameState,
         emitEvent: emitEvent,
         safeSetItem: safeSetItem,
-        highScoreKey: highScoreKey,
+        highScoreKey: function () { return G.ScoreManager ? G.ScoreManager.highScoreKey() : 'fiat_highscore_arcade'; },
         startGame: startGame,
-        checkArcadeRecords: checkArcadeRecords,
+        checkArcadeRecords: function () { return G.ScoreManager ? G.ScoreManager.checkArcadeRecords() : { newBest: false, records: null }; },
         getRandomMeme: getRandomMeme,
     });
+
+    // v7.13.0: Initialize rendering pipeline
+    G.DrawPipeline.init(ctx);
+    initDrawPipeline();
 
     requestAnimationFrame(loop);
 }
 
-// Detect if running as installed PWA (standalone mode)
-function isPWAStandalone() {
-    // iOS Safari standalone mode
-    if (window.navigator.standalone === true) return true;
-    // Android/Desktop PWA
-    if (window.matchMedia('(display-mode: standalone)').matches) return true;
-    if (window.matchMedia('(display-mode: fullscreen)').matches) return true;
-    return false;
-}
-
 // Safe area detection: env() sentinel first, heuristic fallback for iOS PWA
+// PWA detection moved to UIManager.js
 window.safeAreaInsets = { top: 0, bottom: 0, left: 0, right: 0 };
-window.isPWA = isPWAStandalone();
-const _isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-               (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+window.isPWA = G.UIManager ? G.UIManager.isPWAStandalone() : false;
 
 function resize() {
-    // 1. Read env() from persistent sentinel
-    const cs = getComputedStyle(saSentinel);
-    const envTop = parseFloat(cs.paddingTop) || 0;
-    const envBot = parseFloat(cs.paddingBottom) || 0;
-    let safeTop = envTop;
-    let safeBottom = envBot;
-
-    // Viewport-level insets (for modals outside game-container)
-    let vpTop = 0, vpBot = 0;
-
-    if (window.isPWA && _isIOS) {
-        // v7.12: Trust env() first; only fall back to hard-coded notch defaults if it's 0.
-        // Avoids previous bug where `screen.height - innerHeight` over-allocated to vpTop
-        // on iPhone 14/15 Pro Max (yielded ~88 instead of the true ~59 safe inset).
-        vpTop = envTop;
-        vpBot = envBot;
-        if (vpTop < 20 && screen.height >= 812) vpTop = 59;
-        if (vpBot < 10 && screen.height >= 812) vpBot = 34;
-
-        // Full-bleed: canvas renders behind notch & home indicator
-        gameContainer.style.top = '0px';
-        gameContainer.style.bottom = '0px';
-
-        // Children handle safe offsets via --safe-top / --safe-bottom
-        safeTop = vpTop;
-        safeBottom = vpBot;
-    }
-
-    // v7.12: --di-safe-top (static screens: intro, gameover, version-tag) now uses the
-    // resolved safeTop in PWA too. Previously `!window.isPWA` clause left this at 0
-    // whenever env() was 0 in standalone mode, causing content to render behind the
-    // Dynamic Island. Self-deactivating: if future Safari returns correct env(), safeTop > 10
-    // bypasses the 59 fallback automatically.
-    const diSafeTop = (_isIOS && safeTop < 10 && screen.height >= 812) ? 59 : safeTop;
-    document.documentElement.style.setProperty('--di-safe-top', diSafeTop + 'px');
-
-    // CSS vars: container-level (for elements inside game-container)
-    document.documentElement.style.setProperty('--safe-top', safeTop + 'px');
-    document.documentElement.style.setProperty('--safe-bottom', safeBottom + 'px');
-    // Viewport-level (for full-screen modals outside game-container)
-    document.documentElement.style.setProperty('--vp-safe-top', vpTop + 'px');
-    document.documentElement.style.setProperty('--vp-safe-bottom', vpBot + 'px');
-
-    window.safeAreaInsets = { top: safeTop, bottom: safeBottom, left: 0, right: 0 };
-
-    // Container fills viewport (top:0;bottom:0). Read actual dimensions.
-    gameWidth = Math.min(600, gameContainer.clientWidth);
-    gameHeight = gameContainer.clientHeight;
-
-    canvas.width = gameWidth;
-    canvas.height = gameHeight;
-
-    G._gameWidth = gameWidth;
-    G._gameHeight = gameHeight;
-
-    G._safeTop = safeTop;
-    G._safeBottom = safeBottom;
-    const playableHeight = gameHeight - safeBottom;
-
-    if (player) {
-        player.gameWidth = gameWidth;
-        player.gameHeight = playableHeight;
-    }
-
-    // Update ParticleSystem dimensions
-    if (G.ParticleSystem) {
-        G.ParticleSystem.setDimensions(gameWidth, gameHeight);
-    }
-    // Update EffectsRenderer dimensions
-    if (G.EffectsRenderer) {
-        G.EffectsRenderer.setDimensions(gameWidth, gameHeight);
-    }
-    // Update MessageSystem dimensions (fixes text box positioning after resize)
-    if (G.MessageSystem) {
-        G.MessageSystem.setDimensions(gameWidth, gameHeight);
-    }
-    // v5.26: Cache message-strip position for canvas HUD alignment (48px bar at 47px + safe-top)
-    const stripElResize = document.getElementById('message-strip');
-    if (stripElResize) {
-        window._stripTopY = parseFloat(getComputedStyle(stripElResize).top) || 47;
-    }
-    // Update SkyRenderer dimensions (fixes gradient cache + hill positions on resize)
-    if (G.SkyRenderer) {
-        G.SkyRenderer.setDimensions(gameWidth, gameHeight);
-        if (G.WeatherController) G.WeatherController.setDimensions(gameWidth, gameHeight);
-    }
-    // v4.35: Update TitleAnimator dimensions
-    if (G.TitleAnimator) {
-        G.TitleAnimator.setDimensions(gameWidth, gameHeight);
-    }
-    // v5.5: Update StoryScreen dimensions (cinematic backgrounds)
-    if (G.StoryScreen && G.StoryScreen.isShowing()) {
-        G.StoryScreen.setDimensions(gameWidth, gameHeight);
-    }
+    if (G.UIManager) G.UIManager.resize();
 }
 
 function updateUIText() {
@@ -1602,14 +1330,48 @@ window.resetTutorial = function () {
     } catch {}
     if (G.MemeEngine) G.MemeEngine.queueMeme('NORMAL', t('RESET_TUTORIAL_DONE'), '\u21BB');
 };
-window.toggleSettings = function () { setStyle('settings-modal', 'display', (document.getElementById('settings-modal').style.display === 'flex') ? 'none' : 'flex'); updateUIText(); };
+window.toggleSettings = function () {
+    const modal = document.getElementById('settings-modal');
+    if (!modal) return;
+    const isVisible = modal.style.display === 'flex';
+    if (!isVisible) {
+        modal.style.display = 'flex';
+        modal.classList.remove('anim-modal-in');
+        void modal.offsetHeight;
+        modal.classList.add('anim-modal-in');
+        updateUIText();
+    } else {
+        modal.style.display = 'none';
+        modal.classList.remove('anim-modal-in');
+    }
+};
 window.toggleCreditsPanel = function () {
     const panel = document.getElementById('credits-panel');
-    if (panel) panel.style.display = (panel.style.display === 'flex') ? 'none' : 'flex';
+    if (!panel) return;
+    const isVisible = panel.style.display === 'flex';
+    if (!isVisible) {
+        panel.style.display = 'flex';
+        panel.classList.remove('anim-panel-in');
+        void panel.offsetHeight;
+        panel.classList.add('anim-panel-in');
+    } else {
+        panel.style.display = 'none';
+        panel.classList.remove('anim-panel-in');
+    }
 };
 window.togglePrivacyPanel = function () {
     const panel = document.getElementById('privacy-panel');
-    if (panel) panel.style.display = (panel.style.display === 'flex') ? 'none' : 'flex';
+    if (!panel) return;
+    const isVisible = panel.style.display === 'flex';
+    if (!isVisible) {
+        panel.style.display = 'flex';
+        panel.classList.remove('anim-panel-in');
+        void panel.offsetHeight;
+        panel.classList.add('anim-panel-in');
+    } else {
+        panel.style.display = 'none';
+        panel.classList.remove('anim-panel-in');
+    }
 };
 
 // v6.1: Quality tier cycling
@@ -1642,25 +1404,31 @@ G.toggleFeedback = function () {
     const overlay = document.getElementById('feedback-overlay');
     if (!overlay) return;
     const isVisible = overlay.style.display === 'flex';
-    overlay.style.display = isVisible ? 'none' : 'flex';
-    if (!isVisible) {
-        // Update i18n texts
-        const title = document.getElementById('feedback-title');
-        const subject = document.getElementById('feedback-subject');
-        const text = document.getElementById('feedback-text');
-        const sendBtn = document.getElementById('feedback-send');
-        const cancelBtn = document.getElementById('feedback-cancel');
-        const error = document.getElementById('feedback-error');
-        if (title) title.textContent = t('FB_TITLE');
-        if (subject) subject.placeholder = t('FB_SUBJECT_PH');
-        if (text) text.placeholder = t('FB_TEXT_PH');
-        if (sendBtn) sendBtn.textContent = t('FB_SEND');
-        if (cancelBtn) cancelBtn.textContent = t('FB_CANCEL');
-        if (error) error.style.display = 'none';
-        // Clear fields
-        if (subject) subject.value = '';
-        if (text) text.value = '';
+    if (isVisible) {
+        overlay.style.display = 'none';
+        overlay.classList.remove('anim-modal-in');
+        return;
     }
+    overlay.style.display = 'flex';
+    overlay.classList.remove('anim-modal-in');
+    void overlay.offsetHeight;
+    overlay.classList.add('anim-modal-in');
+    // Update i18n texts
+    const title = document.getElementById('feedback-title');
+    const subject = document.getElementById('feedback-subject');
+    const text = document.getElementById('feedback-text');
+    const sendBtn = document.getElementById('feedback-send');
+    const cancelBtn = document.getElementById('feedback-cancel');
+    const error = document.getElementById('feedback-error');
+    if (title) title.textContent = t('FB_TITLE');
+    if (subject) subject.placeholder = t('FB_SUBJECT_PH');
+    if (text) text.placeholder = t('FB_TEXT_PH');
+    if (sendBtn) sendBtn.textContent = t('FB_SEND');
+    if (cancelBtn) cancelBtn.textContent = t('FB_CANCEL');
+    if (error) error.style.display = 'none';
+    // Clear fields
+    if (subject) subject.value = '';
+    if (text) text.value = '';
 };
 G.sendFeedback = function () {
     const subject = (document.getElementById('feedback-subject')?.value || '').trim();
@@ -1688,11 +1456,17 @@ window.toggleManual = function () {
     const modal = document.getElementById('manual-modal');
     if (!modal) return;
     const isVisible = modal.style.display === 'flex';
-    modal.style.display = isVisible ? 'none' : 'flex';
-    if (!isVisible) {
-        updateManualText();
-        audioSys.play('coinUI');
+    if (isVisible) {
+        modal.style.display = 'none';
+        modal.classList.remove('anim-modal-in');
+        return;
     }
+    modal.style.display = 'flex';
+    modal.classList.remove('anim-modal-in');
+    void modal.offsetHeight;
+    modal.classList.add('anim-modal-in');
+    updateManualText();
+    audioSys.play('coinUI');
 };
 
 window.selectManualTab = function (tabId) {
@@ -1794,101 +1568,19 @@ function showControlToast(mode) {
 }
 // v7.0: goToHangar, launchShipAndStart → G.IntroScreen
 
-// === Tutorial System (v5.12 progressive steps) ===
-let tutorialCallback = null;
-let tutorialStep = 0;
-
-function showTutorialOverlay() {
-    const overlay = document.getElementById('tutorial-overlay');
-    if (!overlay) { endWarmup(); return; }
-    // Localize texts
-    const T = G.TEXTS[G._currentLang || 'EN'] || G.TEXTS.EN;
-    overlay.querySelectorAll('[data-i18n]').forEach(el => {
-        const key = el.getAttribute('data-i18n');
-        if (T[key]) el.textContent = T[key];
-    });
-    // Reset to step 0 — v7.7.0: 4 steps now (mission/controls/shield/hyper)
-    tutorialStep = 0;
-    for (let i = 0; i < 4; i++) {
-        const step = document.getElementById('tut-step-' + i);
-        if (step) {
-            step.className = 'tut-step' + (i === 0 ? ' tut-step--active' : '');
-        }
-    }
-    // Update dots
-    updateTutDots(0);
-    // Button text = NEXT
-    const btn = document.getElementById('tut-go-btn');
-    if (btn) {
-        btn.textContent = T.TUT_NEXT || 'NEXT';
-        btn.onclick = handleTutorialButton;
-    }
-    // v7.7.0: SKIP button → jumps straight to completeTutorial
-    const skipBtn = document.getElementById('tut-skip-btn');
-    if (skipBtn) skipBtn.onclick = completeTutorial;
-    overlay.style.display = 'flex';
-    tutorialCallback = endWarmup;
-}
-
-function updateTutDots(activeIdx) {
-    const dots = document.querySelectorAll('.tut-dot');
-    dots.forEach((dot, i) => {
-        dot.classList.toggle('active', i === activeIdx);
-    });
-}
-
-function advanceTutorial() {
-    const curStep = document.getElementById('tut-step-' + tutorialStep);
-    tutorialStep++;
-    const nextStep = document.getElementById('tut-step-' + tutorialStep);
-    if (!curStep || !nextStep) return;
-
-    // Animate out current
-    curStep.className = 'tut-step tut-step--out';
-    // After out animation, show next
-    setTimeout(() => {
-        curStep.className = 'tut-step';
-        nextStep.className = 'tut-step tut-step--active';
-        updateTutDots(tutorialStep);
-        // Last step (HYPER, idx 3) → change button to GO!
-        if (tutorialStep === 3) {
-            const T = G.TEXTS[G._currentLang || 'EN'] || G.TEXTS.EN;
-            const btn = document.getElementById('tut-go-btn');
-            if (btn) btn.textContent = T.GO || 'GO!';
-        }
-    }, 250);
-}
-
-function handleTutorialButton() {
-    if (tutorialStep < 3) {
-        advanceTutorial();
-    } else {
-        completeTutorial();
-    }
-}
-
-window.completeTutorial = completeTutorial;
-function completeTutorial() {
-    const tutMode = (G.CampaignState && G.CampaignState.isEnabled()) ? 'story' : 'arcade';
-    localStorage.setItem('fiat_tutorial_' + tutMode + '_seen', '1');
-    const overlay = document.getElementById('tutorial-overlay');
-    if (overlay) {
-        overlay.style.transition = 'opacity 0.2s ease-out';
-        overlay.style.opacity = '0';
-        setTimeout(() => {
-            overlay.style.display = 'none';
-            overlay.style.transition = '';
-            overlay.style.opacity = '';
-        }, 200);
-    }
-    if (tutorialCallback) tutorialCallback();
-    tutorialCallback = null;
-}
+// Tutorial system extracted to src/ui/TutorialManager.js
 
 window.togglePause = function () {
+    const pauseScreen = document.getElementById('pause-screen');
+    if (!pauseScreen) return;
     if (gameState === 'PLAY' || gameState === 'WARMUP' || gameState === 'INTERMISSION') {
-        window._pausedFromState = gameState; // v7.0: remember exact state for correct resume
-        setGameState('PAUSE'); setStyle('pause-screen', 'display', 'flex'); setStyle('pause-btn', 'display', 'none');
+        window._pausedFromState = gameState;
+        setGameState('PAUSE');
+        pauseScreen.style.display = 'flex';
+        pauseScreen.classList.remove('anim-screen-in');
+        void pauseScreen.offsetHeight;
+        pauseScreen.classList.add('anim-screen-in');
+        setStyle('pause-btn', 'display', 'none');
         // v7.10: stop music on pause (silence, not low-volume ghost loop)
         if (G.Audio && G.Audio.pauseMusic) G.Audio.pauseMusic();
     }
@@ -1896,7 +1588,9 @@ window.togglePause = function () {
         const resumeTo = window._pausedFromState || 'PLAY';
         setGameState(resumeTo);
         window._pausedFromState = null;
-        setStyle('pause-screen', 'display', 'none'); setStyle('pause-btn', 'display', 'block');
+        pauseScreen.style.display = 'none';
+        pauseScreen.classList.remove('anim-screen-in');
+        setStyle('pause-btn', 'display', 'block');
         // v7.12: always resume the music loop; musicMuted only controls gain, not loop state.
         // Fixes regression where toggling mute during pause left playback dead on resume.
         if (G.Audio && G.Audio.resumeMusic) G.Audio.resumeMusic();
@@ -1959,6 +1653,12 @@ function showV8Intermission() {
     if (streakEl) streakEl.textContent = bestStreak | 0;
     if (nextNameEl && nextLevel) nextNameEl.textContent = nextLevel.name;
     setStyle('v8-intermission-screen', 'display', 'flex');
+    const v8Screen = document.getElementById('v8-intermission-screen');
+    if (v8Screen) {
+        v8Screen.classList.remove('anim-screen-in');
+        void v8Screen.offsetHeight;
+        v8Screen.classList.add('anim-screen-in');
+    }
     setStyle('pause-btn', 'display', 'none');
     if (ui.uiLayer) ui.uiLayer.style.display = 'none';
     setGameState('PAUSE');
@@ -1990,6 +1690,18 @@ function advanceToNextV8Level() {
     runState.level = newLvl;
     window.currentLevel = newLvl;
     updateLevelUI();
+
+    // v7.15: Trigger phase transition based on campaign level
+    const phaseMap = { 1: 1, 2: 2, 3: 3 };
+    const newPhase = phaseMap[newLvl] || 3;
+    if (G.PhaseTransitionController) {
+        const curPhase = G.PhaseTransitionController.getCurrentPhase();
+        if (newPhase !== curPhase) {
+            G.PhaseTransitionController.startTransition(curPhase, newPhase);
+        }
+    }
+    if (G.SkyRenderer) G.SkyRenderer.setPhase(newPhase);
+    if (G.WeatherController) G.WeatherController.setPhase(newPhase);
 
     // Show the gameplay UI again + resume, with cinematic ship entry + 3-2-1
     if (ui.uiLayer) ui.uiLayer.style.display = 'block';
@@ -2249,23 +1961,6 @@ function updateReactiveHUD() {
     }
 }
 
-// Called from kill streak milestones
-function triggerScoreStreakColor(streakLevel) {
-    const reactive = G.Balance?.REACTIVE_HUD;
-    if (!reactive?.ENABLED) return;
-
-    const scoreEl = document.querySelector('.hud-score-compact');
-    if (!scoreEl) return;
-
-    // Remove old class
-    if (_reactiveStreakClass) scoreEl.classList.remove(_reactiveStreakClass);
-
-    const className = `score-streak-${streakLevel}`;
-    scoreEl.classList.add(className);
-    _reactiveStreakClass = className;
-    _reactiveStreakTimer = reactive.SCORE_STREAK_DURATION || 0.5;
-}
-
 function startGame() {
     if (G.DebugOverlay) G.DebugOverlay.hide();
     if (G.DailyMode && G.DailyMode.isActive()) G.DailyMode.markAttempt();
@@ -2350,16 +2045,10 @@ function startGame() {
     // gridSpeed now computed dynamically via getGridSpeed()
 
     // v4.37: First game → WARMUP + tutorial overlay. Retry → straight to PLAY.
-    // v5.24: Persistent — check localStorage so tutorial shows only on first-ever play per mode
+    // Tutorial state managed by TutorialManager
     const tutMode = (G.CampaignState && G.CampaignState.isEnabled()) ? 'story' : 'arcade';
-    const tutKey = 'fiat_tutorial_' + tutMode + '_seen';
-    const tutSeen = warmupShown || localStorage.getItem(tutKey);
-    if (!tutSeen) {
-        setGameState('WARMUP');
-        warmupShown = true;
-        showTutorialOverlay();
-    } else {
-        // v5.27: Countdown on retry — called at end of startGame() after all resets
+    if (!G.TutorialManager.isTutorialSeen(tutMode)) {
+        G.TutorialManager.showTutorial();
     }
 
     // WEAPON EVOLUTION v3.0: Full reset on new game (resets shot level to 1)
@@ -2397,6 +2086,13 @@ function startGame() {
     deathAlreadyTracked = false; // Reset death tracking flag
     if (G.SkyRenderer) G.SkyRenderer.reset();
     if (G.WeatherController) { G.WeatherController.reset(); G.WeatherController.setLevel(1, false, false); }
+    // v7.15: Init PhaseTransitionController — start at Phase 1 (Earth/LEO)
+    if (G.PhaseTransitionController) {
+        G.PhaseTransitionController.init();
+        G.PhaseTransitionController.setCurrentPhase(1);
+    }
+    if (G.SkyRenderer) G.SkyRenderer.setPhase(1);
+    if (G.WeatherController) G.WeatherController.setPhase(1);
     if (G.TransitionManager) G.TransitionManager.reset();
 
     updateLivesUI();
@@ -2466,8 +2162,8 @@ function startGame() {
 
     emitEvent('run_start', { bear: isBearMarket });
 
-    // v5.27b: Countdown AFTER all resets (was before, causing reset to cancel it)
-    if (tutSeen) {
+    // v5.27b: Countdown AFTER all resets (skipped if tutorial is shown)
+    if (G.TutorialManager.isTutorialSeen(tutMode)) {
         _startPlayCountdown();
         showShipIntroMeme();
     }
@@ -2484,17 +2180,7 @@ function showShipIntroMeme() {
 }
 
 // v4.37: End warmup — transition from tutorial overlay to PLAY
-window.endWarmup = function() {
-    const overlay = document.getElementById('tutorial-overlay');
-    if (overlay) overlay.style.display = 'none';
-    // Cleanup legacy warmup-overlay if present (old cached code)
-    const legacyWarmup = document.getElementById('warmup-overlay');
-    if (legacyWarmup) legacyWarmup.remove();
-    // v5.27: Start countdown before gameplay
-    _startPlayCountdown();
-    // Ship intro as meme popup (non-blocking)
-    showShipIntroMeme();
-};
+// endWarmup moved to TutorialManager (onTutorialComplete callback)
 
 // v5.27 / v7.11: Cinematic entry — ship flies in from below, then 3→2→1 countdown.
 // shipEntry runs first (waves/firing/input blocked); when it completes, the
@@ -2566,7 +2252,7 @@ function startIntermission(msgOverride) {
     // Play wave complete jingle (unless boss defeat which has its own sound)
     if (!msgOverride) {
         audioSys.play('waveComplete');
-        if (G.Events) G.Events.emit('weather:wave_clear');
+        if (G.Events) G.Events.emit('weather:wave-clear');
         // Note: No showVictory() here - the countdown overlay provides visual feedback
     }
 
@@ -2601,7 +2287,7 @@ function startIntermission(msgOverride) {
             }
         }, 4000);
     }
-    emitEvent('intermission_start', { level: level, wave: waveMgr.wave });
+    emitEvent('game:intermission-start', { level: level, wave: waveMgr.wave });
 }
 
 /**
@@ -2748,7 +2434,7 @@ function spawnBoss() {
     G.MemeEngine.queueMeme('BOSS_SPAWN', getBossMeme(bossType), bossConfig.name);
     audioSys.play('bossSpawn');
     audioSys.setBossPhase(1); // Start boss music phase 1
-    if (G.Events) G.Events.emit('weather:boss_spawn');
+    if (G.Events) G.Events.emit('weather:boss-spawn');
 
     // Set Harmonic Conductor to boss sequence
     // IMPORTANT: Share same reference to prevent desync (v2.22.3 fix)
@@ -2969,11 +2655,11 @@ function update(dt) {
             bullets = []; enemyBullets = [];
             window.enemyBullets = enemyBullets;
             audioSys.play('waveComplete');
-            if (G.Events) G.Events.emit('weather:wave_clear');
+            if (G.Events) G.Events.emit('weather:wave-clear');
             // Queue meme via popup (non-blocking)
             const waveMeme = G.MemeEngine.getIntermissionMeme();
             if (waveMeme) G.MemeEngine.queueMeme('STREAK', '\u201C' + waveMeme + '\u201D', '');
-            emitEvent('intermission_start', { level: level, wave: waveMgr.wave });
+            emitEvent('game:intermission-start', { level: level, wave: waveMgr.wave });
             // Immediately start next wave (fall through to START_WAVE)
             waveAction.action = 'START_WAVE';
         }
@@ -3114,11 +2800,29 @@ function update(dt) {
             });
         }
 
+        // v7.13.0: Engine exhaust trail particles
+        if (player.y > 50 && (gameState === 'PLAY' || gameState === 'WARMUP')) {
+            const _exhColor = player.hyperActive ? '#ffcc00' : player.stats.color;
+            const _exhCount = player.hyperActive ? 2 : 1;
+            for (let ei = 0; ei < _exhCount; ei++) {
+                addParticle({
+                    x: player.x + (Math.random() - 0.5) * 10,
+                    y: player.y + 16 + Math.random() * 4,
+                    vx: (Math.random() - 0.5) * 12,
+                    vy: 30 + Math.random() * 40,
+                    life: 0.3 + Math.random() * 0.2,
+                    maxLife: 0.5,
+                    color: _exhColor,
+                    size: 1.5 + Math.random() * 2,
+                    isGlow: true
+                });
+            }
+        }
+
       if (!inWarmup) {
 
-        // HYPER MODE: manual activation removed in v4.21 (now auto-activates when meter is full)
-        // Legacy manual trigger kept as fallback if AUTO_ACTIVATE is disabled
-        if (!Balance.HYPER.AUTO_ACTIVATE && (inputSys.isDown('KeyH') || inputSys.touch.hyper) && player.canActivateHyper && player.canActivateHyper(grazeMeter)) {
+        // HYPER MODE: manual trigger via keyboard (H) or touch — works alongside auto-activate
+        if ((inputSys.isDown('KeyH') || inputSys.touch.hyper) && player.canActivateHyper && player.canActivateHyper(grazeMeter)) {
             player.activateHyper();
             grazeMeter = 0;
             updateGrazeUI();
@@ -3244,8 +2948,8 @@ function update(dt) {
     if (G.MemeEngine) G.MemeEngine.update(dt);
     // v5.26: Combat HUD Bar update (HYPER/GODCHAIN/HYPERGOD)
     _updateCombatHUD();
-    // v5.14: Score pulse accumulator decay
-    if (_scorePulseAccTimer > 0) _scorePulseAccTimer -= dt;
+    // v5.14: Score pulse accumulator decay (delegated to ScoreManager)
+    if (G.ScoreManager && G.ScoreManager.update) G.ScoreManager.update(dt);
     // v5.11: Evolution item fly towards player
     updateEvolutionItem(dt);
     updateParticles(dt);
@@ -3351,6 +3055,49 @@ function updateGrazeUI() {
             meter.classList.remove('graze-full');
         }
     }
+}
+
+function updateShieldButton(player) {
+    const wrapper = document.getElementById('t-shield');
+    if (!wrapper) return;
+    wrapper.classList.remove('ready', 'active', 'cooldown');
+
+    if (player.shieldActive) {
+        wrapper.classList.add('active');
+        _setRadialProgress('shield-radial-progress', 1);
+    } else if (player.shieldCooldown <= 0) {
+        wrapper.classList.add('ready');
+        _setRadialProgress('shield-radial-progress', 1);
+    } else {
+        wrapper.classList.add('cooldown');
+        const pct = 1 - (player.shieldCooldown / (G.Balance.PLAYER.SHIELD_COOLDOWN || 10));
+        _setRadialProgress('shield-radial-progress', pct);
+    }
+}
+
+function updateHyperButton(player, grazeMeter) {
+    const wrapper = document.getElementById('t-hyper');
+    if (!wrapper) return;
+    wrapper.classList.remove('ready', 'visible');
+
+    const threshold = G.Balance.HYPER.METER_THRESHOLD || 100;
+    const canHyper = grazeMeter >= threshold && player.canActivateHyper && player.canActivateHyper(grazeMeter);
+
+    if (canHyper) {
+        wrapper.classList.add('ready', 'visible');
+        _setRadialProgress('hyper-radial-progress', 1);
+    } else if (grazeMeter > 0) {
+        wrapper.classList.add('visible');
+        _setRadialProgress('hyper-radial-progress', grazeMeter / threshold);
+    }
+}
+
+function _setRadialProgress(id, pct) {
+    const circ = document.getElementById(id);
+    if (!circ) return;
+    const r = circ.getAttribute('r') || 30;
+    const circumference = 2 * Math.PI * parseFloat(r);
+    circ.style.strokeDashoffset = circumference * (1 - Math.max(0, Math.min(1, pct)));
 }
 
 // Combat HUD tracking state
@@ -3521,6 +3268,25 @@ function updateEnemies(dt) {
         }
     }
 
+    // v7.15.1: Off-screen cull — remove enemies that flew far above screen (HOVER_GATE LEAVING)
+    for (let oi = enemies.length - 1; oi >= 0; oi--) {
+        if (enemies[oi] && enemies[oi].markedForDeletion) {
+            enemies.splice(oi, 1);
+        }
+    }
+
+    // v7.14: Burn DoT death cleanup — enemies killed by fire DoT need callback + splice
+    for (let bi = enemies.length - 1; bi >= 0; bi--) {
+        const be = enemies[bi];
+        if (be && be._burnKilled) {
+            be._burnKilled = false;
+            const stubBullet = { _elemFire: true, _elemLaser: false, _elemElectric: false, damageMult: 1 };
+            const gc = G.GameplayCallbacks;
+            if (gc && gc.onEnemyKilled) gc.onEnemyKilled(be, stubBullet, bi, enemies);
+            enemies.splice(bi, 1);
+        }
+    }
+
     // Bear Market: enemies drop faster (Panic Selling)
     // Note: hitEdge only triggers when allSettled=true, so all enemies are settled here
     if (hitEdge) {
@@ -3626,130 +3392,154 @@ function executeDeath() {
     }
 }
 
-function draw() {
-    if (gameState === 'VIDEO') { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, gameWidth, gameHeight); return; }
+/**
+ * v7.13.0: Draw Pipeline initialization.
+ * Registers all rendering steps as layer callbacks.
+ * Called once during startup from init().
+ */
+var _pipelineInited = false;
+function initDrawPipeline() {
+    if (_pipelineInited) return;
+    _pipelineInited = true;
 
-    // STORY_SCREEN: Full-screen narrative display
-    if (gameState === 'STORY_SCREEN' && G.StoryScreen) {
-        G.StoryScreen.draw(ctx, gameWidth, gameHeight);
-        return;
-    }
+    var PL = G.DrawPipeline;
+    var L = PL.LAYER;
 
-    ctx.save();
-    // Apply screen shake via EffectsRenderer
-    if (G.EffectsRenderer) {
-        G.EffectsRenderer.applyShakeTransform(ctx);
-    }
+    // L.BACKGROUND (0) — handled as early-return in pipeline core
 
-    // Sky via SkyRenderer
-    if (G.SkyRenderer) {
-        G.SkyRenderer.draw(ctx, { level, isBearMarket, bossActive: boss && boss.active });
-    }
-    if (G.WeatherController) {
-        G.WeatherController.draw(ctx, { isBearMarket, level, bossActive: boss && boss.active });
-    }
+    // L.SKY (1)
+    PL.register(L.SKY, function(ctx, fc) {
+        if (G.SkyRenderer) {
+            G.SkyRenderer.draw(ctx, { level: level, isBearMarket: isBearMarket, bossActive: boss && boss.active });
+        }
+    });
 
-    // v4.35: Title animation particles (drawn on canvas through transparent intro-screen)
-    if (gameState === 'INTRO' && G.TitleAnimator && G.TitleAnimator.isActive()) {
-        G.TitleAnimator.draw(ctx);
-    }
+    // L.WEATHER (2)
+    PL.register(L.WEATHER, function(ctx, fc) {
+        if (G.WeatherController) {
+            G.WeatherController.draw(ctx, { isBearMarket: isBearMarket, level: level, bossActive: boss && boss.active });
+        }
+    });
 
-    // Impact Flash via EffectsRenderer
-    if (G.EffectsRenderer) {
-        G.EffectsRenderer.drawImpactFlash(ctx);
-    }
+    // L.TITLE_ANIM (3) — INTRO state only
+    PL.register(L.TITLE_ANIM, function(ctx, fc) {
+        if (gameState === 'INTRO' && G.TitleAnimator && G.TitleAnimator.isActive()) {
+            G.TitleAnimator.draw(ctx);
+        }
+    });
 
-    // HYPER MODE screen overlay (golden tint)
-    const isHyperActive = player && player.isHyperActive && player.isHyperActive();
-    if (isHyperActive && G.EffectsRenderer) {
-        G.EffectsRenderer.drawHyperOverlay(ctx, totalTime);
-    }
+    // L.IMPACT_FLASH (4)
+    PL.register(L.IMPACT_FLASH, function(ctx, fc) {
+        if (G.EffectsRenderer) G.EffectsRenderer.drawImpactFlash(ctx);
+    });
 
-    if (gameState === 'PLAY' || gameState === 'WARMUP' || gameState === 'PAUSE' || gameState === 'GAMEOVER' || gameState === 'INTERMISSION') {
-        player.draw(ctx);
+    // L.HYPER_OVERLAY (5)
+    PL.register(L.HYPER_OVERLAY, function(ctx, fc) {
+        var isHyper = player && player.isHyperActive && player.isHyperActive();
+        if (isHyper && G.EffectsRenderer) {
+            G.EffectsRenderer.drawHyperVignette(ctx, true, totalTime);
+        }
+    });
 
-        // v4.56: Batched enemy glow pass (additive)
-        const _glowCfg = G.Balance?.GLOW;
-        if (_glowCfg?.ENABLED && _glowCfg?.ENEMY?.ENABLED) {
-            ctx.save();
-            ctx.globalCompositeOperation = 'lighter';
-            for (let i = 0; i < enemies.length; i++) {
-                const e = enemies[i];
-                if (!e || e.x < -80 || e.x > gameWidth + 80 || e.y < -80 || e.y > gameHeight + 80) continue;
+    // L.GLOW_ENEMY (6) — additive composite
+    PL.setLayerComposite(L.GLOW_ENEMY, 'lighter');
+    PL.register(L.GLOW_ENEMY, function(ctx, fc) {
+        var _glowCfg = G.Balance && G.Balance.GLOW;
+        if (!_glowCfg || !_glowCfg.ENABLED || !_glowCfg.ENEMY || !_glowCfg.ENEMY.ENABLED) return;
+        for (var i = 0; i < enemies.length; i++) {
+            var e = enemies[i];
+            if (!e) continue;
+            if (G.CullingHelper.isOnScreen(e.x, e.y, 80, gameWidth, gameHeight)) {
                 e.drawGlow(ctx);
             }
-            ctx.restore();
         }
+    });
 
-        // Enemies (for loop instead of forEach) with off-screen culling
-        for (let i = 0; i < enemies.length; i++) {
-            const e = enemies[i];
-            if (!e) continue; // Safety check
-            // Skip draw if completely off-screen (80px margin for 58px enemies + shadow)
-            if (e.x > -80 && e.x < gameWidth + 80 && e.y > -80 && e.y < gameHeight + 80) {
+    // L.ENTITY_ENEMY (7)
+    PL.register(L.ENTITY_ENEMY, function(ctx, fc) {
+        if (gameState !== 'PLAY' && gameState !== 'WARMUP' && gameState !== 'PAUSE' && gameState !== 'GAMEOVER' && gameState !== 'INTERMISSION') return;
+        // Player
+        player.draw(ctx);
+        // Enemies with culling
+        for (var i = 0; i < enemies.length; i++) {
+            var e = enemies[i];
+            if (!e) continue;
+            if (G.CullingHelper.isOnScreen(e.x, e.y, 80, gameWidth, gameHeight)) {
                 e.draw(ctx);
             }
         }
+        // Boss
+        if (boss && boss.active) boss.draw(ctx);
+        // MiniBoss
+        if (miniBoss && miniBoss.active) drawMiniBoss(ctx);
+    });
 
-        if (boss && boss.active) {
-            boss.draw(ctx);
-        }
-        if (miniBoss && miniBoss.active) {
-            drawMiniBoss(ctx);
-        }
-
-        // v4.30: Batched glow pass (additive) — all player bullet glows in one composite switch
-        if (_glowCfg?.ENABLED && _glowCfg?.BULLET?.ENABLED) {
-            ctx.save();
-            ctx.globalCompositeOperation = 'lighter';
-            for (let i = 0; i < bullets.length; i++) {
-                const b = bullets[i];
-                const gm = (b._elemLaser && !b.special) ? 130 : 20;
-                if (b.x < -gm || b.x > gameWidth + gm || b.y < -gm || b.y > gameHeight + gm) continue;
+    // L.GLOW_BULLET (8) — additive composite
+    PL.setLayerComposite(L.GLOW_BULLET, 'lighter');
+    PL.register(L.GLOW_BULLET, function(ctx, fc) {
+        var _glowCfg = G.Balance && G.Balance.GLOW;
+        if (!_glowCfg || !_glowCfg.ENABLED || !_glowCfg.BULLET || !_glowCfg.BULLET.ENABLED) return;
+        for (var i = 0; i < bullets.length; i++) {
+            var b = bullets[i];
+            var gm = (b._elemLaser && !b.special) ? 130 : 20;
+            if (G.CullingHelper.isOnScreen(b.x, b.y, gm, gameWidth, gameHeight)) {
                 b.drawGlow(ctx);
             }
-            ctx.restore();
         }
+    });
 
-        // Bullet bodies with culling (for loop)
-        for (let i = 0; i < bullets.length; i++) {
-            const b = bullets[i];
-            // Off-screen culling (X and Y)
-            const margin = (b._elemLaser && !b.special) ? 130 : 20;
-            if (b.x > -margin && b.x < gameWidth + margin && b.y > -margin && b.y < gameHeight + margin) b.draw(ctx);
+    // L.BULLET (9)
+    PL.register(L.BULLET, function(ctx, fc) {
+        if (gameState !== 'PLAY' && gameState !== 'WARMUP' && gameState !== 'PAUSE' && gameState !== 'GAMEOVER' && gameState !== 'INTERMISSION') return;
+        for (var i = 0; i < bullets.length; i++) {
+            var b = bullets[i];
+            var margin = (b._elemLaser && !b.special) ? 130 : 20;
+            if (G.CullingHelper.isOnScreen(b.x, b.y, margin, gameWidth, gameHeight)) b.draw(ctx);
         }
+    });
 
-        // v5.31: Energy Link Beam between LV2 paired bullets
-        const _linkCfg = Balance?.VFX?.ENERGY_LINK;
-        if (_linkCfg?.ENABLED !== false) {
+    // L.ENERGY_LINK (10)
+    PL.register(L.ENERGY_LINK, function(ctx, fc) {
+        if (gameState !== 'PLAY' && gameState !== 'WARMUP' && gameState !== 'PAUSE' && gameState !== 'GAMEOVER' && gameState !== 'INTERMISSION') return;
+        var _linkCfg = Balance && Balance.VFX && Balance.VFX.ENERGY_LINK;
+        if (_linkCfg && _linkCfg.ENABLED !== false) {
             drawEnergyLinks(ctx, bullets, _linkCfg);
         }
+    });
 
-        // Screen dimming when many enemy bullets (configurable)
-        if (Balance?.JUICE?.SCREEN_EFFECTS?.SCREEN_DIMMING && enemyBullets.length > 15) {
-            const dimAlpha = Math.min(0.25, (enemyBullets.length - 15) * 0.01);
-            ctx.fillStyle = `rgba(0, 0, 0, ${dimAlpha})`;
+    // L.SCREEN_DIM (11)
+    PL.register(L.SCREEN_DIM, function(ctx, fc) {
+        if (gameState !== 'PLAY' && gameState !== 'WARMUP' && gameState !== 'PAUSE' && gameState !== 'GAMEOVER' && gameState !== 'INTERMISSION') return;
+        if (Balance && Balance.JUICE && Balance.JUICE.SCREEN_EFFECTS && Balance.JUICE.SCREEN_EFFECTS.SCREEN_DIMMING && enemyBullets.length > 15) {
+            var dimAlpha = Math.min(0.25, (enemyBullets.length - 15) * 0.01);
+            ctx.fillStyle = 'rgba(0, 0, 0, ' + dimAlpha + ')';
             ctx.fillRect(0, 0, gameWidth, gameHeight);
         }
+    });
 
-        // Harmonic Conductor telegraphs (draw BEFORE bullets for layering)
-        if (G.HarmonicConductor) {
-            G.HarmonicConductor.draw(ctx);
+    // L.HARMONIC (12)
+    PL.register(L.HARMONIC, function(ctx, fc) {
+        if (gameState !== 'PLAY' && gameState !== 'WARMUP' && gameState !== 'PAUSE' && gameState !== 'GAMEOVER' && gameState !== 'INTERMISSION') return;
+        if (G.HarmonicConductor) G.HarmonicConductor.draw(ctx);
+    });
+
+    // L.ENEMY_BULLET (13)
+    PL.register(L.ENEMY_BULLET, function(ctx, fc) {
+        if (gameState !== 'PLAY' && gameState !== 'WARMUP' && gameState !== 'PAUSE' && gameState !== 'GAMEOVER' && gameState !== 'INTERMISSION') return;
+        for (var i = 0; i < enemyBullets.length; i++) {
+            var eb = enemyBullets[i];
+            if (!eb) continue;
+            if (G.CullingHelper.isOnScreen(eb.x, eb.y, 20, gameWidth, gameHeight)) eb.draw(ctx);
         }
+    });
 
-        // Enemy bullets with culling
-        for (let i = 0; i < enemyBullets.length; i++) {
-            const eb = enemyBullets[i];
-            if (!eb) continue; // Safety check
-            // Off-screen culling (X and Y)
-            if (eb.x > -20 && eb.x < gameWidth + 20 && eb.y > -20 && eb.y < gameHeight + 20) eb.draw(ctx);
-        }
-
-        // v5.32: Draw danger zones (bomber)
-        for (let dzi = 0; dzi < dangerZones.length; dzi++) {
-            const dz = dangerZones[dzi];
-            const dzAlpha = dz.alpha * (dz.timer / dz.duration);
-            const pulse = Math.sin(Date.now() * 0.008) * 0.1 + 0.9;
+    // L.DANGER_ZONE (14)
+    PL.register(L.DANGER_ZONE, function(ctx, fc) {
+        if (gameState !== 'PLAY' && gameState !== 'WARMUP' && gameState !== 'PAUSE' && gameState !== 'GAMEOVER' && gameState !== 'INTERMISSION') return;
+        for (var dzi = 0; dzi < dangerZones.length; dzi++) {
+            var dz = dangerZones[dzi];
+            var dzAlpha = dz.alpha * (dz.timer / dz.duration);
+            var pulse = Math.sin(Date.now() * 0.008) * 0.1 + 0.9;
             ctx.globalAlpha = dzAlpha * pulse;
             ctx.fillStyle = dz.color;
             ctx.beginPath();
@@ -3763,99 +3553,121 @@ function draw() {
             ctx.stroke();
             ctx.globalAlpha = 1;
         }
+    });
 
-        // PowerUps with off-screen culling
-        for (let i = 0; i < powerUps.length; i++) {
-            const p = powerUps[i];
-            if (!p) continue; // Safety check
-            // Skip draw if completely off-screen (40px is powerup size)
-            if (p.x > -40 && p.x < gameWidth + 40 && p.y > -40 && p.y < gameHeight + 40) {
-                p.draw(ctx);
-            }
+    // L.POWERUP (15)
+    PL.register(L.POWERUP, function(ctx, fc) {
+        if (gameState !== 'PLAY' && gameState !== 'WARMUP' && gameState !== 'PAUSE' && gameState !== 'GAMEOVER' && gameState !== 'INTERMISSION') return;
+        for (var i = 0; i < powerUps.length; i++) {
+            var p = powerUps[i];
+            if (!p) continue;
+            if (G.CullingHelper.isOnScreen(p.x, p.y, 40, gameWidth, gameHeight)) p.draw(ctx);
         }
+    });
 
+    // L.PARTICLE (16)
+    PL.register(L.PARTICLE, function(ctx, fc) {
+        if (gameState !== 'PLAY' && gameState !== 'WARMUP' && gameState !== 'PAUSE' && gameState !== 'GAMEOVER' && gameState !== 'INTERMISSION') return;
         drawParticles(ctx);
+    });
+
+    // L.EVOLUTION_ITEM (17)
+    PL.register(L.EVOLUTION_ITEM, function(ctx, fc) {
+        if (gameState !== 'PLAY' && gameState !== 'WARMUP' && gameState !== 'PAUSE' && gameState !== 'GAMEOVER' && gameState !== 'INTERMISSION') return;
         drawEvolutionItem(ctx);
+    });
 
-        // Floating texts (delegated to FloatingTextManager)
-        G.FloatingTextManager.draw(ctx, gameWidth);
+    // L.FLOATING_TEXT (18)
+    PL.register(L.FLOATING_TEXT, function(ctx, fc) {
+        if (gameState !== 'PLAY' && gameState !== 'WARMUP' && gameState !== 'PAUSE' && gameState !== 'GAMEOVER' && gameState !== 'INTERMISSION') return;
+        if (G.FloatingTextManager) G.FloatingTextManager.draw(ctx, gameWidth);
+    });
 
-        // Perk icons (delegated to PerkIconManager)
-        G.PerkIconManager.draw(ctx, gameWidth);
+    // L.PERK_ICON (19)
+    PL.register(L.PERK_ICON, function(ctx, fc) {
+        if (gameState !== 'PLAY' && gameState !== 'WARMUP' && gameState !== 'PAUSE' && gameState !== 'GAMEOVER' && gameState !== 'INTERMISSION') return;
+        if (G.PerkIconManager) G.PerkIconManager.draw(ctx, gameWidth);
+    });
 
-        // Typed messages (GAME_INFO, DANGER, VICTORY) - distinct visual styles
+    // L.MESSAGE (20)
+    PL.register(L.MESSAGE, function(ctx, fc) {
+        if (gameState !== 'PLAY' && gameState !== 'WARMUP' && gameState !== 'PAUSE' && gameState !== 'GAMEOVER' && gameState !== 'INTERMISSION') return;
         drawTypedMessages(ctx);
+    });
 
-        // v5.26: HYPER/GODCHAIN UI now in DOM Combat HUD Bar (MessageSystem)
-
-        // Arcade combo HUD
+    // L.ARCADE_HUD (21)
+    PL.register(L.ARCADE_HUD, function(ctx, fc) {
+        if (gameState !== 'PLAY' && gameState !== 'WARMUP' && gameState !== 'PAUSE' && gameState !== 'GAMEOVER' && gameState !== 'INTERMISSION') return;
         drawArcadeComboHUD(ctx);
+    });
 
-        // v4.21: Intermission countdown removed (seamless wave transitions)
-        // Boss-defeat intermission still uses timer but no visual countdown overlay
-        // (boss defeat has its own celebration via showVictory/showDanger)
-        if (gameState !== 'INTERMISSION') {
-            lastCountdownNumber = 0;
+    // L.INTERMISSION guard (22) — kept as closure access
+    PL.register(L.ARCADE_HUD, function(ctx, fc) {
+        if (gameState !== 'INTERMISSION') lastCountdownNumber = 0;
+    }, -1);
+
+    // L.BOSS_WARNING (22)
+    PL.register(L.BOSS_WARNING, function(ctx, fc) {
+        if (gameState !== 'PLAY' && gameState !== 'WARMUP' && gameState !== 'PAUSE' && gameState !== 'GAMEOVER' && gameState !== 'INTERMISSION') return;
+        if (bossWarningTimer > 0 && bossWarningType) drawBossWarningOverlay(ctx);
+    });
+
+    // L.COUNTDOWN (23)
+    PL.register(L.COUNTDOWN, function(ctx, fc) {
+        if (gameState !== 'PLAY' && gameState !== 'WARMUP' && gameState !== 'PAUSE' && gameState !== 'GAMEOVER' && gameState !== 'INTERMISSION') return;
+        if (startCountdownActive) drawStartCountdown(ctx);
+    });
+
+    // L.BEAR_MARKET (24)
+    PL.register(L.BEAR_MARKET, function(ctx, fc) {
+        if (isBearMarket && gameState === 'PLAY' && G.SkyRenderer) {
+            G.SkyRenderer.drawBearMarketOverlay(ctx, totalTime);
         }
+    });
 
-        // Perk pause overlay disabled - using floating icon above ship instead
-
-        // Boss warning overlay
-        if (bossWarningTimer > 0 && bossWarningType) {
-            drawBossWarningOverlay(ctx);
+    // L.EFFECTS (25) — Screen flash, score pulse, vignettes
+    PL.register(L.EFFECTS, function(ctx, fc) {
+        if (G.EffectsRenderer) {
+            G.EffectsRenderer.drawScreenFlash(ctx);
+            G.EffectsRenderer.drawScorePulse(ctx);
+            G.EffectsRenderer.drawDamageVignette(ctx);
+            G.EffectsRenderer.drawLowHPVignette(ctx, lives, totalTime);
+            var gcActive = player && player._godchainActive;
+            G.EffectsRenderer.drawGodchainVignette(ctx, gcActive, totalTime);
         }
+    });
 
-        // v5.27: Start countdown overlay
-        if (startCountdownActive) {
-            drawStartCountdown(ctx);
-        }
-    }
-    // Bear Market danger vignette overlay via SkyRenderer
-    if (isBearMarket && gameState === 'PLAY' && G.SkyRenderer) {
-        G.SkyRenderer.drawBearMarketOverlay(ctx, totalTime);
-    }
+    // ── OUTSIDE SHAKE ──────────────────────────────────────
 
-    // Screen flash overlay via EffectsRenderer
-    if (G.EffectsRenderer) {
-        G.EffectsRenderer.drawScreenFlash(ctx);
-        G.EffectsRenderer.drawScorePulse(ctx);
-        G.EffectsRenderer.drawDamageVignette(ctx);
-        // v4.4: Low-HP danger vignette
-        G.EffectsRenderer.drawLowHPVignette(ctx, lives, totalTime);
-        // v4.45: GODCHAIN screen border glow
-        const gcActive = player && player._godchainActive;
-        G.EffectsRenderer.drawGodchainVignette(ctx, gcActive, totalTime);
-    }
+    // L.TRANSITION (26)
+    PL.register(L.TRANSITION, function(ctx, fc) {
+        if (G.TransitionManager) G.TransitionManager.draw(ctx);
+    });
 
-    ctx.restore(); // Restore shake
+    // L.DEBUG (27)
+    PL.register(L.DEBUG, function(ctx, fc) {
+        if (debugMode) drawDebug(ctx);
+    });
 
-    // Screen transition overlay via TransitionManager
-    if (G.TransitionManager) G.TransitionManager.draw(ctx);
-
-    // Debug overlay (F3 toggle)
-    if (debugMode) drawDebug(ctx);
-
-    // v8 S02: scroll telemetry HUD removed — parallax now speaks visually.
-    // Use dbg.v8() or triple-tap overlay for debug state.
-
-    // v8 S07: BOSS COUNTDOWN / CORRIDOR CRUSH / LEVEL-END indicator (top-center HUD)
-    if (G.Balance?.V8_MODE?.ENABLED && gameState === 'PLAY' && G.LevelScript) {
-        const ls = G.LevelScript;
-        const elapsed = ls._elapsed || 0;
-        const bossAt = ls.BOSS_AT_S || 170;
-        const crushIn = ls.CRUSH_ENTER_S || 150;
-        const crushOut = ls.CRUSH_EXIT_S || 168;
-        const bossAlive = !!window.boss;
-        const endTimer = ls._levelEndTimer;
-        const lvlTag = `L${ls.currentLevelNum()}`;
-        let label = null, color = '#00f0ff', pulse = false;
+    // L.V8_HUD (28)
+    PL.register(L.V8_HUD, function(ctx, fc) {
+        if (!G.Balance || !G.Balance.V8_MODE || !G.Balance.V8_MODE.ENABLED || gameState !== 'PLAY' || !G.LevelScript) return;
+        var ls = G.LevelScript;
+        var elapsed = ls._elapsed || 0;
+        var bossAt = ls.BOSS_AT_S || 170;
+        var crushIn = ls.CRUSH_ENTER_S || 150;
+        var crushOut = ls.CRUSH_EXIT_S || 168;
+        var bossAlive = !!window.boss;
+        var endTimer = ls._levelEndTimer;
+        var lvlTag = 'L' + ls.currentLevelNum();
+        var label = null, color = '#00f0ff', pulse = false;
         if (endTimer >= 0) {
-            label = `VICTORY +${endTimer.toFixed(1)}s`;
+            label = 'VICTORY +' + endTimer.toFixed(1) + 's';
             color = '#ffaa00';
         } else if (bossAlive) {
-            // boss has own HP bar, skip
+            // skip
         } else if (elapsed >= crushOut && elapsed < bossAt) {
-            label = `${lvlTag}  BOSS INCOMING`;
+            label = lvlTag + '  BOSS INCOMING';
             color = '#ff2d95';
             pulse = true;
         } else if (elapsed >= crushIn && elapsed < crushOut) {
@@ -3863,71 +3675,122 @@ function draw() {
             color = '#ff2d95';
             pulse = true;
         } else if (elapsed < bossAt) {
-            const rem = Math.max(0, bossAt - elapsed);
-            label = `${lvlTag}  BOSS  T-${Math.ceil(rem)}s`;
+            var rem = Math.max(0, bossAt - elapsed);
+            label = lvlTag + '  BOSS  T-' + Math.ceil(rem) + 's';
         }
         if (label) {
-            const cw = ctx.canvas.width;
-            // v7.12.1: respect iOS notch/Dynamic Island — push label below safe-area
-            const y = (G._safeTop || 0) + 52;
+            var cw = ctx.canvas.width;
+            var y = (G._safeTop || 0) + 52;
             ctx.save();
-            const alpha = pulse ? (0.75 + 0.25 * Math.sin(totalTime * 6)) : 0.9;
+            var alpha = pulse ? (0.75 + 0.25 * Math.sin(totalTime * 6)) : 0.9;
             ctx.globalAlpha = alpha;
             ctx.font = 'bold 14px "Press Start 2P", monospace';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.shadowColor = color;
-            ctx.shadowBlur = 12;
+            // v7.13.0: additive glow via layered alpha (no shadowBlur)
             ctx.fillStyle = color;
+            ctx.globalAlpha = alpha * 0.25;
+            ctx.fillText(label, cw / 2, y);
+            ctx.globalAlpha = alpha * 0.6;
+            ctx.fillText(label, cw / 2, y);
+            ctx.globalAlpha = alpha;
             ctx.fillText(label, cw / 2, y);
             ctx.restore();
         }
-    }
+    });
 
-    // v4.1.1: Expose HUD state for debug overlay
-    if (G.Debug && G.Debug.OVERLAY_ENABLED) {
-        G._hudState = {
-            score, lives, level, gameState,
-            grazeMeter, grazeCount, grazeMultiplier,
-            killStreak, killStreakMult, bestStreak,
-            floatingTexts: _countActive(floatingTexts),
-            perkIcons: _countActive(perkIcons),
-            intermissionMeme,
-            intermissionTimer: waveMgr ? waveMgr.intermissionTimer : 0,
-            bossWarningTimer,
-            perkCooldown,
-            bulletCancelStreak,
-            player: player ? {
-                x: Math.round(player.x),
-                y: Math.round(player.y),
-                hp: player.hp,
-                shieldActive: player.shieldActive,
-                shieldCooldown: player.shieldCooldown,
-                hyperAvailable: player.hyperAvailable,
-                isHyper: player.isHyperActive ? player.isHyperActive() : false,
-                hyperTimer: player.getHyperTimeRemaining ? player.getHyperTimeRemaining() : 0,
-                weaponLevel: player.weaponLevel ?? 1,
-                special: player.special || null,
-                specialTimer: player.specialTimer || 0,
-                type: player.type
-            } : null,
-            msgSystem: {
-                hasActive: G.MessageSystem ? G.MessageSystem.hasActiveMessages() : false
-            },
-            dialogue: {
-                visible: G.DialogueUI ? G.DialogueUI.isVisible : false
-            }
-        };
-        G.Debug.drawOverlay(ctx, gameState);
-    }
-    // v4.22: Bullet hitbox debug overlay
-    if (G.BulletSystem && G.BulletSystem.debugEnabled) {
-        G.BulletSystem.drawDebugOverlay(ctx, bullets, enemyBullets, enemies, player, boss);
-    }
-    // v4.10: Perf overlay always draws when perf profiling is active (independent of debug overlay)
-    if (G.Debug._perf.overlayEnabled) {
-        G.Debug.drawPerfOverlay(ctx, gameWidth);
-    }
+    // L.DEBUG_HUD (29)
+    PL.register(L.DEBUG_HUD, function(ctx, fc) {
+        if (G.Debug && G.Debug.OVERLAY_ENABLED) {
+            G._hudState = {
+                score: score, lives: lives, level: level, gameState: gameState,
+                grazeMeter: grazeMeter, grazeCount: grazeCount, grazeMultiplier: grazeMultiplier,
+                killStreak: killStreak, killStreakMult: killStreakMult, bestStreak: bestStreak,
+                floatingTexts: _countActive(floatingTexts),
+                perkIcons: _countActive(perkIcons),
+                intermissionMeme: intermissionMeme,
+                intermissionTimer: waveMgr ? waveMgr.intermissionTimer : 0,
+                bossWarningTimer: bossWarningTimer,
+                perkCooldown: perkCooldown,
+                bulletCancelStreak: bulletCancelStreak,
+                player: player ? {
+                    x: Math.round(player.x), y: Math.round(player.y),
+                    hp: player.hp, shieldActive: player.shieldActive,
+                    shieldCooldown: player.shieldCooldown,
+                    hyperAvailable: player.hyperAvailable,
+                    isHyper: player.isHyperActive ? player.isHyperActive() : false,
+                    hyperTimer: player.getHyperTimeRemaining ? player.getHyperTimeRemaining() : 0,
+                    weaponLevel: player.weaponLevel || 1,
+                    special: player.special || null,
+                    specialTimer: player.specialTimer || 0,
+                    type: player.type
+                } : null,
+                msgSystem: { hasActive: G.MessageSystem ? G.MessageSystem.hasActiveMessages() : false },
+                dialogue: { visible: G.DialogueUI ? G.DialogueUI.isVisible : false }
+            };
+            G.Debug.drawOverlay(ctx, gameState);
+        }
+    });
+
+    // L.DEBUG_HITBOX (30)
+    PL.register(L.DEBUG_HITBOX, function(ctx, fc) {
+        if (G.BulletSystem && G.BulletSystem.debugEnabled) {
+            G.BulletSystem.drawDebugOverlay(ctx, bullets, enemyBullets, enemies, player, boss);
+        }
+    });
+
+    // L.DEBUG_PERF (31)
+    PL.register(L.DEBUG_PERF, function(ctx, fc) {
+        if (G.Debug && G.Debug._perf && G.Debug._perf.overlayEnabled) {
+            G.Debug.drawPerfOverlay(ctx, gameWidth);
+        }
+    });
+}
+
+/**
+ * Build frame context for the rendering pipeline.
+ * Collects module references needed by DrawPipeline internals.
+ */
+function buildFrameContext() {
+    return {
+        gameWidth: gameWidth,
+        gameHeight: gameHeight,
+        gameState: gameState,
+        totalTime: totalTime,
+        level: level,
+        isBearMarket: isBearMarket,
+        bossActive: boss && boss.active,
+        player: player,
+        enemies: enemies,
+        bullets: bullets,
+        enemyBullets: enemyBullets,
+        powerUps: powerUps,
+        lives: lives,
+        storyScreen: G.StoryScreen,
+        effectsRenderer: G.EffectsRenderer,
+        skyRenderer: G.SkyRenderer,
+        weatherController: G.WeatherController,
+        transitionManager: G.TransitionManager,
+        particleSystem: G.ParticleSystem,
+        floatingTextManager: G.FloatingTextManager,
+        perkIconManager: G.PerkIconManager,
+        messageSystem: G.MessageSystem,
+        harmonicConductor: G.HarmonicConductor,
+        miniBossManager: G.MiniBossManager,
+        levelScript: G.LevelScript,
+        arcadeModifiers: G.ArcadeModifiers,
+        debug: G.Debug,
+        bulletSystem: G.BulletSystem,
+        balance: G.Balance,
+        colorUtils: G.ColorUtils
+    };
+}
+
+/**
+ * Main draw function — dispatches to DrawPipeline
+ */
+function draw() {
+    G.DrawPipeline.draw(ctx, buildFrameContext());
 }
 
 // Perk pause overlay - shows acquired perk with dimmed background
@@ -3956,33 +3819,37 @@ function drawPerkPauseOverlay(ctx) {
     };
     const rarityColor = rarityColors[perkPauseData.rarity] || '#888';
 
-    // Card with glow
-    ctx.save();
-
-    // Glow effect
-    ctx.shadowColor = rarityColor;
-    ctx.shadowBlur = 20;
-
     // Card background (manual rounded rect for compatibility)
+    const _drawCardShape = function() {
+        ctx.beginPath();
+        ctx.moveTo(cardX + r, cardY);
+        ctx.lineTo(cardX + cardW - r, cardY);
+        ctx.quadraticCurveTo(cardX + cardW, cardY, cardX + cardW, cardY + r);
+        ctx.lineTo(cardX + cardW, cardY + cardH - r);
+        ctx.quadraticCurveTo(cardX + cardW, cardY + cardH, cardX + cardW - r, cardY + cardH);
+        ctx.lineTo(cardX + r, cardY + cardH);
+        ctx.quadraticCurveTo(cardX, cardY + cardH, cardX, cardY + cardH - r);
+        ctx.lineTo(cardX, cardY + r);
+        ctx.quadraticCurveTo(cardX, cardY, cardX + r, cardY);
+        ctx.closePath();
+    };
+    // v7.13.0: additive glow via layered card border (no shadowBlur)
+    ctx.save();
+    _drawCardShape();
+    ctx.strokeStyle = rarityColor;
+    ctx.lineWidth = 8;
+    ctx.globalAlpha = 0.2;
+    ctx.stroke();
+    ctx.restore();
+    // Card fill + border
+    ctx.save();
+    _drawCardShape();
     ctx.fillStyle = 'rgba(20, 20, 30, 0.95)';
     ctx.strokeStyle = rarityColor;
     ctx.lineWidth = 3;
-    ctx.beginPath();
-    const r = 10;
-    ctx.moveTo(cardX + r, cardY);
-    ctx.lineTo(cardX + cardW - r, cardY);
-    ctx.quadraticCurveTo(cardX + cardW, cardY, cardX + cardW, cardY + r);
-    ctx.lineTo(cardX + cardW, cardY + cardH - r);
-    ctx.quadraticCurveTo(cardX + cardW, cardY + cardH, cardX + cardW - r, cardY + cardH);
-    ctx.lineTo(cardX + r, cardY + cardH);
-    ctx.quadraticCurveTo(cardX, cardY + cardH, cardX, cardY + cardH - r);
-    ctx.lineTo(cardX, cardY + r);
-    ctx.quadraticCurveTo(cardX, cardY, cardX + r, cardY);
-    ctx.closePath();
     ctx.fill();
     ctx.stroke();
-
-    ctx.shadowBlur = 0;
+    ctx.restore();
 
     // "PERK ACQUIRED" header
     ctx.font = 'bold 16px "Courier New", monospace';
@@ -4520,6 +4387,8 @@ function loop(timestamp) {
         if (skyEffects.playSound) audioSys.play(skyEffects.playSound);
     }
     if (G.WeatherController) G.WeatherController.update(dt);
+    // v7.15: Advance phase transition crossfade
+    if (G.PhaseTransitionController) G.PhaseTransitionController.update(dt);
 
     if (G.Debug._perf.enabled) _perfT1 = performance.now();
 
@@ -4551,7 +4420,16 @@ function loop(timestamp) {
 // Local aliases for backward compatibility
 function showGameCompletion(onComplete) { if (G.GameCompletion) G.GameCompletion.showGameCompletion(onComplete); }
 function showCampaignVictory() { if (G.GameCompletion) G.GameCompletion.showCampaignVictory(); }
-function triggerGameOver() { if (G.GameCompletion) G.GameCompletion.triggerGameOver(); }
+function triggerGameOver() {
+    // v7.13.0: Fade to black before game over screen (smoother transition)
+    if (G.TransitionManager && !G.TransitionManager.isActive()) {
+        G.TransitionManager.start(function() {
+            if (G.GameCompletion) G.GameCompletion.triggerGameOver();
+        });
+    } else {
+        if (G.GameCompletion) G.GameCompletion.triggerGameOver();
+    }
+}
 
 // v5.0.8: Snapshot player power state for progression tracking
 function _snapPlayerState() {
@@ -4632,12 +4510,14 @@ function updatePowerUps(dt) {
                         G.Debug.trackPowerUpCollected(p.type, p.isPityDrop || false);
                     }
                     powerUps.splice(i, 1);
-                    emitEvent('powerup_pickup', { type: p.type, category: 'perk', elemType: elemType });
+                    emitEvent('player:powerup-pickup', { type: p.type, category: 'perk', elemType: elemType });
                     continue;
                 }
 
                 // Pickup effect for non-PERK power-ups
                 createPowerUpPickupEffect(p.x, p.y, p.config.color);
+                // v7.13.0: Audio feedback for power-up pickup
+                if (audioSys) audioSys.play('coinScore');
 
                 // WEAPON EVOLUTION v3.0: Use applyPowerUp for new types
                 const evolutionTypes = ['UPGRADE', 'HOMING', 'PIERCE', 'MISSILE', 'SHIELD', 'SPEED'];
@@ -4673,7 +4553,7 @@ function updatePowerUps(dt) {
                     G.Debug.trackPowerUpCollected(p.type, p.isPityDrop || false);
                 }
                 powerUps.splice(i, 1);
-                emitEvent('powerup_pickup', { type: p.type, category: p.config?.category });
+                emitEvent('player:powerup-pickup', { type: p.type, category: p.config?.category });
             }
         }
     }

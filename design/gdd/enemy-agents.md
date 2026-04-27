@@ -7,17 +7,15 @@
 
 ---
 
-## A. Overview
+## Overview
 
 The Enemy Agents system is a cohesive bundle of four mutually-reinforcing subsystems introduced in v7.9 that together transform the enemy from an abstract currency icon into a legible, characterful threat. Every regular enemy (non-minion, non-boss) is now a **procedurally-drawn humanoid pilot inside a regional vehicle**, whose **bullets are literally its own currency glyph**, who may **hover-stop mid-flight to stare the player down**, and who may carry an **elite variant overlay** or a **special combat behavior** that changes its tactical role. These four systems all attach to the same `Enemy` entity and share state machines, rendering state, and `HarmonicConductor` fire-suppression hooks, which is why they are documented as one cohesive GDD.
 
 The system is active in all game modes. Gravity Gate (hover-stop) is V8-exclusive by nature — it requires the `_v8Fall` flag, which is only set by `LevelScript`. Arcade enemies use the legacy WaveManager formation system and thus do not hover-stop, but they do use all three other subsystems: procedural agents, symbol bullets, and elite/behavior assignment.
 
-For the Gravity Gate's relationship to V8 movement patterns, this is the **primary reference**. `design/gdd/v8-scroller.md` section C.7 and G.5 describe it at the integration level only; update them to link here if revised.
+For the Gravity Gate's relationship to V8 movement patterns, this is the **primary reference**.
 
----
-
-## B. Player Fantasy
+## Player Fantasy
 
 **Threat legibility is the design thesis.** Every visual element of this bundle exists to answer the question "who is shooting at me and why should I care?"
 
@@ -31,7 +29,7 @@ Elite variants and behaviors add depth to the "read the field" fantasy: the meta
 
 ---
 
-## C. Detailed Rules
+## Detailed Rules
 
 ### C.1 Procedural Agents
 
@@ -360,7 +358,7 @@ Source: `src/config/BalanceConfig.js:660-669`; `src/entities/Enemy.js:552-588`; 
 
 ---
 
-## D. Formulas
+## Formulas
 
 ### D.1 Agent tier scale
 
@@ -527,7 +525,7 @@ Available behaviors filtered by `globalWave >= MIN_WAVE[behavior]` and `_behavio
 
 ---
 
-## E. Edge Cases
+## Edge Cases
 
 ### E.1 Agent rendering when `CURRENCY_VARIANT` is cold (cache cold, missing symbol)
 
@@ -575,7 +573,7 @@ V8 enemies are spawned by `LevelScript.spawnBurst()` which calls `new Enemy(x, y
 
 ---
 
-## F. Dependencies
+## Dependencies
 
 | System | File | Interaction |
 |---|---|---|
@@ -594,7 +592,7 @@ V8 enemies are spawned by `LevelScript.spawnBurst()` which calls `new Enemy(x, y
 
 ---
 
-## G. Tuning Knobs
+## Tuning Knobs
 
 All keys live in `G.Balance` (`src/config/BalanceConfig.js`) unless noted.
 
@@ -612,7 +610,7 @@ To tune: modify `TIER_SCALE` values to spread visual threat differentiation. The
 
 ### G.2 `HOVER_GATE` (BalanceConfig.js:690-698)
 
-This is the **primary reference** for Gravity Gate. The v8-scroller.md entry (G.5) is a secondary summary.
+This is the **primary reference** for Gravity Gate.
 
 | Key | Value | Effect |
 |---|---|---|
@@ -716,7 +714,7 @@ Without a `CURRENCY_VARIANT` entry, the enemy renders as a default tophat-cigar-
 
 ---
 
-## H. Acceptance Criteria
+## Acceptance Criteria
 
 Each criterion is independently testable.
 

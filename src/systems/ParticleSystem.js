@@ -368,6 +368,47 @@
             }
             addParticle(sparkProps);
         }
+
+        // v7.13.0: Phase ring burst — expanding shockwave ring for boss transitions
+        if (opts.isPhaseRing) {
+            const ringAvail = MAX_PARTICLES - particles.length;
+            if (ringAvail >= 2) {
+                // Outer ring
+                addParticle({
+                    x: x, y: y, vx: 0, vy: 0,
+                    life: 0.6, maxLife: 0.6,
+                    color: '#FF6600', size: 15,
+                    isRing: true
+                });
+                // Inner flash
+                if (ringAvail >= 3) {
+                    addParticle({
+                        x: x, y: y, vx: 0, vy: 0,
+                        life: 0.25, maxLife: 0.25,
+                        color: '#FFFFFF', size: 30,
+                        isRing: true
+                    });
+                }
+                // Radiating sparks outward in burst
+                const sparkBurst = Math.min(12, Math.floor((ringAvail - 2) * 0.5));
+                for (let i = 0; i < sparkBurst; i++) {
+                    const angle = (Math.PI * 2 / sparkBurst) * i + Math.random() * 0.2;
+                    const speed = 200 + Math.random() * 250;
+                    addParticle({
+                        x: x, y: y,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed,
+                        life: 0.3 + Math.random() * 0.15,
+                        maxLife: 0.45,
+                        color: i % 3 === 0 ? '#FFFFFF' : '#FFAA00',
+                        size: 2 + Math.random() * 2,
+                        baseSize: 3,
+                        explosionGrow: true,
+                        isSpark: true
+                    });
+                }
+            }
+        }
     }
 
     /**

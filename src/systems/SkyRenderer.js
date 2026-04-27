@@ -40,6 +40,16 @@
     // v8 S02: NEAR-layer streaks (parallax foreground)
     let nearStreaks = [];
 
+    // v7.15: Parallax planets (Phase 3 Deep Space)
+    let planets = [];
+
+    // v7.15: Current visual phase (1=Earth, 2=Atmosphere, 3=Deep Space)
+    let _currentPhase = 3;
+
+    // v7.15: Phase transition crossfade (dual-canvas)
+    let _oldPhaseCanvas = null, _oldPhaseCtx = null;
+    let _phaseTransitionBlend = 0;  // 0=all old, 1=all new
+
     // Gradient cache
     let cachedGradient = null;
     let cachedGradientKey = '';
@@ -124,6 +134,7 @@
         initStars();
         initAtmosphericParticles();
         initNearStreaks();
+        initPlanets();
         skyTime = 0;
         shootingStarTimer = 2 + Math.random() * 5;
         lightningTimer = 0;
@@ -180,9 +191,14 @@
     function initClouds() {
         clouds = [];
         const cfg = G.Balance?.SKY?.CLOUDS;
-        const count = cfg?.COUNT || 12;
-        const lobesMin = cfg?.LOBES_MIN || 2;
-        const lobesMax = cfg?.LOBES_MAX || 4;
+        const p = _currentPhase || 3;
+        // v7.15: phase-aware cloud count, lobes, speed
+        const phaseCount = cfg?.PHASE_COUNT?.[p] ?? cfg?.COUNT ?? 12;
+        const phaseLobeRange = cfg?.PHASE_LOBES?.[p] || [cfg?.LOBES_MIN || 2, cfg?.LOBES_MAX || 4];
+        const phaseSpeed = cfg?.PHASE_DRIFT_SPEED?.[p] || [20, 30];
+        const count = phaseCount;
+        const lobesMin = phaseLobeRange[0];
+        const lobesMax = phaseLobeRange[1];
 
         for (let i = 0; i < count; i++) {
             const lobeCount = (cfg?.ENABLED !== false && lobesMin >= 2)
@@ -207,7 +223,7 @@
                 y: Math.random() * gameHeight,
                 w: baseW,
                 h: baseH,
-                speed: Math.random() * 20 + 10,
+                speed: phaseSpeed[0] + Math.random() * (phaseSpeed[1] - phaseSpeed[0]),
                 layer: Math.floor(Math.random() * 3),
                 lobes: lobes
             });
@@ -291,16 +307,20 @@
      * Initialize floating crypto symbols
      */
     function initFloatingSymbols() {
-        const symbols = ['₿', 'Ξ', '◎', '₮', '∞'];
+        const cfg = G.Balance?.SKY?.FLOATING_SYMBOLS;
+        const p = _currentPhase || 3;
+        const symbols = cfg?.PHASE_SYMBOLS?.[p] || ['₿', 'Ξ', '◎', '₮', '∞'];
+        const count = cfg?.PHASE_COUNT?.[p] || cfg?.COUNT || 8;
+        const baseAlpha = cfg?.PHASE_ALPHA?.[p] ?? cfg?.ALPHA ?? 0.15;
         floatingSymbols = [];
-        for (let i = 0; i < 8; i++) {
+        for (let i = 0; i < count; i++) {
             floatingSymbols.push({
                 symbol: symbols[i % symbols.length],
                 x: Math.random() * gameWidth,
                 y: Math.random() * gameHeight * 0.6 + gameHeight * 0.15,
-                speed: Math.random() * 15 + 8,
+                speed: Math.random() * (cfg?.DRIFT_SPEED || 15) + 8,
                 size: Math.random() * 12 + 14,
-                alpha: Math.random() * 0.15 + 0.08,
+                alpha: baseAlpha * (0.6 + Math.random() * 0.4),
                 wobble: Math.random() * Math.PI * 2
             });
         }
@@ -334,16 +354,22 @@
      */
     function initNearStreaks() {
         const cfg = G.Balance?.SKY?.V8_PARALLAX?.STREAKS;
-        const count = cfg?.COUNT || 30;
+        const p = _currentPhase || 3;
+        // Use phase count if available
+        const phaseCount = cfg?.PHASE_COUNT?.[p];
+        const count = phaseCount || cfg?.COUNT || 30;
+        const phaseColors = cfg?.PHASE_COLORS?.[p] || cfg?.COLORS || ['#00f0ff', '#ff2d95', '#bb44ff'];
+        const phaseLen = cfg?.PHASE_LEN?.[p] || [cfg?.MIN_LEN || 6, cfg?.MAX_LEN || 22];
+        const phaseAlpha = cfg?.PHASE_ALPHA_RANGE?.[p] || [cfg?.MIN_ALPHA || 0.15, cfg?.MAX_ALPHA || 0.55];
         nearStreaks = [];
         for (let i = 0; i < count; i++) {
             nearStreaks.push({
                 x: Math.random() * gameWidth,
                 y: Math.random() * gameHeight,
-                len: (cfg?.MIN_LEN || 6) + Math.random() * ((cfg?.MAX_LEN || 22) - (cfg?.MIN_LEN || 6)),
-                alpha: (cfg?.MIN_ALPHA || 0.15) + Math.random() * ((cfg?.MAX_ALPHA || 0.55) - (cfg?.MIN_ALPHA || 0.15)),
-                color: (cfg?.COLORS || ['#00f0ff', '#ff2d95', '#bb44ff'])[i % 3],
-                depth: 0.7 + Math.random() * 0.6   // 0.7 - 1.3 individual multiplier
+                len: phaseLen[0] + Math.random() * (phaseLen[1] - phaseLen[0]),
+                alpha: phaseAlpha[0] + Math.random() * (phaseAlpha[1] - phaseAlpha[0]),
+                color: phaseColors[i % phaseColors.length],
+                depth: 0.7 + Math.random() * 0.6
             });
         }
     }
@@ -358,6 +384,52 @@
     }
 
     /**
+     * v7.15: Initialize parallax planets for Phase 3 (Deep Space)
+     */
+    function initPlanets() {
+        planets = [];
+        const cfg = G.Balance?.SKY?.PLANETS;
+        if (!cfg?.ENABLED) return;
+        const p = _currentPhase || 3;
+        const count = cfg.PHASE_COUNT?.[p] ?? 0;
+        if (count <= 0) return;
+
+        const minR = cfg.MIN_RADIUS || 30;
+        const maxR = cfg.MAX_RADIUS || 80;
+        const driftMin = cfg.DRIFT_SPEED?.[0] ?? 3;
+        const driftMax = cfg.DRIFT_SPEED?.[1] ?? 8;
+        const ringChance = cfg.RING_CHANCE ?? 0.4;
+        const moonChance = cfg.MOON_CHANCE ?? 0.33;
+        const colors = cfg.COLORS || [];
+
+        for (let i = 0; i < count; i++) {
+            const colorSet = colors[i % colors.length];
+            const radius = minR + Math.random() * (maxR - minR);
+            const hasMoon = Math.random() < moonChance;
+            const moonDist = hasMoon ? radius * (1.6 + Math.random() * 0.8) : 0;
+            const moonSize = hasMoon ? 4 + Math.random() * 6 : 0;
+
+            planets.push({
+                x: Math.random() * (gameWidth + 200) - 100,
+                y: -radius * 2 + Math.random() * (gameHeight + radius * 4),
+                radius: radius,
+                speed: driftMin + Math.random() * (driftMax - driftMin),
+                colors: colorSet,
+                rotation: Math.random() * Math.PI * 2,
+                rotSpeed: (0.02 + Math.random() * 0.06) * (Math.random() > 0.5 ? 1 : -1),
+                hasRings: !!(colorSet.ring && Math.random() < ringChance),
+                ringTilt: (Math.random() - 0.5) * 0.6,
+                moon: hasMoon ? {
+                    angle: Math.random() * Math.PI * 2,
+                    dist: moonDist,
+                    size: moonSize,
+                    speed: 0.3 + Math.random() * 0.4
+                } : null
+            });
+        }
+    }
+
+    /**
      * Reset sky state (for new game)
      */
     function reset() {
@@ -367,6 +439,7 @@
         initStars();
         initAtmosphericParticles();
         initNearStreaks();
+        initPlanets();
         shootingStars = [];
         skyTime = 0;
         shootingStarTimer = 2 + Math.random() * 5;
@@ -436,11 +509,15 @@
             if (p.y > gameHeight + 10) p.y = -10;
         }
 
-        // Update shooting stars
+        // Update shooting stars — v7.15: phase-aware interval
         const sCfg = G.Balance?.SKY?.STARS?.SHOOTING_STARS;
+        const pInterval = G.Balance?.SKY?.STARS?.PHASE_SHOOTING_INTERVAL?.[_currentPhase];
         if (sCfg?.ENABLED !== false) {
             shootingStarTimer -= dt;
-            if (shootingStarTimer <= 0 && shootingStars.length < (sCfg?.MAX_ACTIVE || 2)) {
+            const maxActive = sCfg?.MAX_ACTIVE || 2;
+            const canSpawn = shootingStars.length < (pInterval ? Math.min(maxActive, 1) : maxActive);
+            if (shootingStarTimer <= 0 && canSpawn) {
+                // Reschedule with phase-aware interval
                 // Spawn a shooting star
                 const speed = sCfg?.SPEED || 350;
                 const angle = Math.PI * 0.15 + Math.random() * Math.PI * 0.2; // 27-63 deg
@@ -453,8 +530,13 @@
                     alpha: 0.8 + Math.random() * 0.2,
                     life: 0
                 });
-                shootingStarTimer = (sCfg?.SPAWN_INTERVAL_MIN || 4) +
-                    Math.random() * ((sCfg?.SPAWN_INTERVAL_MAX || 12) - (sCfg?.SPAWN_INTERVAL_MIN || 4));
+                // v7.15: Use phase-aware interval if available, else default
+                if (pInterval) {
+                    shootingStarTimer = pInterval[0] + Math.random() * (pInterval[1] - pInterval[0]);
+                } else {
+                    shootingStarTimer = (sCfg?.SPAWN_INTERVAL_MIN || 4) +
+                        Math.random() * ((sCfg?.SPAWN_INTERVAL_MAX || 12) - (sCfg?.SPAWN_INTERVAL_MIN || 4));
+                }
             }
             for (let i = shootingStars.length - 1; i >= 0; i--) {
                 const ss = shootingStars[i];
@@ -498,6 +580,20 @@
             }
         }
 
+        // v7.15: Planet vertical drift (Phase 3 Deep Space)
+        for (let i = 0; i < planets.length; i++) {
+            const pl = planets[i];
+            pl.y += pl.speed * dt;
+            pl.rotation += pl.rotSpeed * dt;
+            if (pl.moon) {
+                pl.moon.angle += pl.moon.speed * dt;
+            }
+            if (pl.y > gameHeight + pl.radius + 20) {
+                pl.y = -pl.radius - 20;
+                pl.x = Math.random() * (gameWidth + 100) - 50;
+            }
+        }
+
         // Bear Market Lightning
         if (isBearMarket && gameState === 'PLAY') {
             lightningTimer -= dt;
@@ -525,19 +621,21 @@
     /**
      * Render sky gradient onto off-screen canvas (only on key change)
      */
-    function _renderSkyBg(level, isBearMarket, bossActive) {
-        const key = level + '-' + (isBearMarket ? 1 : 0) + '-' + (bossActive ? 1 : 0) + '-' + gameHeight;
+    function _renderSkyBg(level, isBearMarket, bossActive, phase) {
+        const p = phase || _currentPhase || 3;
+        const key = level + '-' + (isBearMarket ? 1 : 0) + '-' + (bossActive ? 1 : 0) + '-' + p + '-' + gameHeight;
         if (key === _skyBgKey) return;
-        drawBands(_skyBgCtx, level, isBearMarket, bossActive);
+        drawBands(_skyBgCtx, level, isBearMarket, bossActive, p);
         _skyBgKey = key;
     }
 
     /**
      * Render hills onto off-screen canvas (throttled + invalidation)
      */
-    function _renderHills(level, isBearMarket) {
-        // Color invalidation: level or bear market changed
-        const colorKey = level + '-' + (isBearMarket ? 1 : 0);
+    function _renderHills(level, isBearMarket, phase) {
+        const p = phase || _currentPhase || 3;
+        // Color invalidation: level, bear market, or phase changed
+        const colorKey = level + '-' + (isBearMarket ? 1 : 0) + '-' + p;
         if (colorKey !== _hillsColorKey) {
             _hillsNeedsRedraw = true;
             _hillsColorKey = colorKey;
@@ -556,44 +654,80 @@
 
         // Redraw
         _hillsCtx.clearRect(0, 0, gameWidth, gameHeight);
-        drawHills(_hillsCtx, level, isBearMarket, false);
+        drawHills(_hillsCtx, level, isBearMarket, false, p);
         _hillsNeedsRedraw = false;
+    }
+
+    /**
+     * Set current visual phase (called by PhaseTransitionController or directly).
+     * Re-initializes phase-dependent elements (clouds, stars, symbols, streaks).
+     */
+    function setPhase(phase) {
+        _currentPhase = Math.max(1, Math.min(3, phase || 3));
+        // Re-init phase-dependent visual elements so counts/lobes/speeds match new phase
+        initClouds();
+        initStars();
+        initFloatingSymbols();
+        initNearStreaks();
+        initPlanets();
+        // Reset hill silhouettes so they recolor on next draw
+        _hillsNeedsRedraw = true;
+    }
+
+    /**
+     * Get current visual phase
+     */
+    function getPhase() {
+        return _currentPhase;
     }
 
     /**
      * Draw the complete sky background
      */
     function draw(ctx, context = {}) {
-        const { level = 1, isBearMarket = false, bossActive = false } = context;
+        const { level = 1, isBearMarket = false, bossActive = false, phase } = context;
+        // Phase: use explicit if provided, else current phase
+        const activePhase = (phase !== undefined) ? Math.max(1, Math.min(3, phase)) : _currentPhase;
         const skyEnabled = G.Balance?.SKY?.ENABLED !== false;
         const useOffscreen = G.Balance?.SKY?.OFFSCREEN?.ENABLED && _skyBgCanvas && _hillsCanvas;
 
+        // Update phase transition blend from controller
+        if (G.PhaseTransitionController && G.PhaseTransitionController.isTransitioning()) {
+            _phaseTransitionBlend = G.PhaseTransitionController.getSkyBlendAlpha();
+        } else {
+            _phaseTransitionBlend = 0;
+        }
+
         if (useOffscreen) {
-            // Sky BG: blit cached gradient (redrawn only on level/bear/boss change)
-            _renderSkyBg(level, isBearMarket, bossActive);
+            // Sky BG: blit cached gradient (redrawn only on level/bear/boss/phase change)
+            _renderSkyBg(level, isBearMarket, bossActive, activePhase);
             ctx.drawImage(_skyBgCanvas, 0, 0);
 
+            // v7.15: Planets behind symbols but above sky
+            drawPlanets(ctx, activePhase);
+
             // Animated elements: draw direct every frame
-            drawFloatingSymbols(ctx, level, isBearMarket, bossActive);
-            drawStars(ctx, level, isBearMarket, bossActive);
+            drawFloatingSymbols(ctx, activePhase);
+            drawStars(ctx, activePhase, isBearMarket, bossActive);
             if (skyEnabled && G.Balance?.SKY?.PARTICLES?.ENABLED !== false) {
                 drawAtmosphericParticles(ctx, level, isBearMarket, bossActive);
             }
-            drawNearStreaks(ctx, bossActive);
-            drawClouds(ctx, level, isBearMarket);
-            drawGroundFog(ctx, level, isBearMarket, bossActive);
+            drawNearStreaks(ctx, bossActive, activePhase);
+            drawClouds(ctx, activePhase, isBearMarket);
+            drawGroundFog(ctx, level, isBearMarket, bossActive, activePhase);
             drawLightning(ctx);
         } else {
             // Fallback: original direct-draw pipeline (pre-v4.31)
-            drawBands(ctx, level, isBearMarket, bossActive);
-            drawFloatingSymbols(ctx, level, isBearMarket, bossActive);
-            drawStars(ctx, level, isBearMarket, bossActive);
+            drawBands(ctx, level, isBearMarket, bossActive, activePhase);
+            drawPlanets(ctx, activePhase);
+            drawFloatingSymbols(ctx, activePhase);
+            drawStars(ctx, activePhase, isBearMarket, bossActive);
             if (skyEnabled && G.Balance?.SKY?.PARTICLES?.ENABLED !== false) {
                 drawAtmosphericParticles(ctx, level, isBearMarket, bossActive);
             }
-            drawNearStreaks(ctx, bossActive);
-            drawClouds(ctx, level, isBearMarket);
-            drawGroundFog(ctx, level, isBearMarket, bossActive);
+            drawNearStreaks(ctx, bossActive, activePhase);
+            drawClouds(ctx, activePhase, isBearMarket);
+            drawGroundFog(ctx, level, isBearMarket, bossActive, activePhase);
             drawLightning(ctx);
         }
     }
@@ -601,17 +735,19 @@
     /**
      * v8 S02: NEAR-layer streaks (parallax foreground, additive blend)
      */
-    function drawNearStreaks(ctx, bossActive) {
+    function drawNearStreaks(ctx, bossActive, phase) {
         if (bossActive) return;
         const cfg = G.Balance?.SKY?.V8_PARALLAX;
         if (!cfg?.ENABLED || cfg?.STREAKS?.ENABLED === false) return;
         if (nearStreaks.length === 0) return;
+        const p = phase || _currentPhase || 3;
+        const phaseColors = cfg?.STREAKS?.PHASE_COLORS?.[p];
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
         ctx.lineWidth = 1.5;
         for (let i = 0; i < nearStreaks.length; i++) {
             const s = nearStreaks[i];
-            ctx.strokeStyle = s.color;
+            ctx.strokeStyle = phaseColors ? phaseColors[i % phaseColors.length] : s.color;
             ctx.globalAlpha = s.alpha;
             ctx.beginPath();
             ctx.moveTo(s.x, s.y);
@@ -625,24 +761,37 @@
      * Draw solid ground strip at screen bottom (control zone visual separator)
      * Only during PLAY state
      */
-    function drawGroundFog(ctx, level, isBearMarket, bossActive) {
+    function drawGroundFog(ctx, level, isBearMarket, bossActive, phase) {
         if (bossActive) return;
         if (!G.GameState || !G.GameState.is('PLAY')) return;
+        const p = phase || _currentPhase || 3;
         const fogH = 80;
-        ctx.fillStyle = isBearMarket ? '#0d0005' : level >= 4 ? '#020210' : '#020215';
+        // v7.15: phase-aware ground fog
+        let fogColor;
+        if (isBearMarket) {
+            fogColor = '#0d0005';
+        } else if (p <= 1) {
+            fogColor = '#3a6a3a';  // P1: earthy green-black
+        } else if (p <= 2) {
+            fogColor = '#1a1133';  // P2: dark violet-black
+        } else {
+            fogColor = '#020210';  // P3: deep black-blue (current)
+        }
+        ctx.fillStyle = fogColor;
         ctx.fillRect(0, gameHeight - fogH, gameWidth, fogH);
     }
 
     /**
      * Draw sky color bands (gradient or flat fallback)
      */
-    function drawBands(ctx, level, isBearMarket, bossActive) {
+    function drawBands(ctx, level, isBearMarket, bossActive, phase) {
         const skyCfg = G.Balance?.SKY;
         const useGradient = skyCfg?.ENABLED !== false && skyCfg?.GRADIENTS?.ENABLED !== false;
 
         if (useGradient) {
             // Build cache key
-            const key = level + '-' + (isBearMarket ? 1 : 0) + '-' + (bossActive ? 1 : 0) + '-' + gameHeight;
+            const p = phase || _currentPhase || 3;
+            const key = level + '-' + (isBearMarket ? 1 : 0) + '-' + (bossActive ? 1 : 0) + '-' + p + '-' + gameHeight;
             if (key !== cachedGradientKey || !cachedGradient) {
                 const grad = skyCfg.GRADIENTS;
                 let colors;
@@ -650,6 +799,9 @@
                     colors = grad.BEAR;
                 } else if (bossActive) {
                     colors = grad.BOSS;
+                } else if (grad.PHASES && grad.PHASES[p]) {
+                    // v7.15: Phase-indexed colors
+                    colors = grad.PHASES[p];
                 } else {
                     const skyLevel = Math.min(5, level);
                     colors = grad.LEVELS[skyLevel] || grad.LEVELS[1];
@@ -731,19 +883,131 @@
     }
 
     /**
+     * v7.15: Draw parallax planets (Phase 3 Deep Space)
+     */
+    function drawPlanets(ctx, phase) {
+        if (planets.length === 0) return;
+        const p = phase || _currentPhase || 3;
+        const cfg = G.Balance?.SKY?.PLANETS;
+        if (!cfg?.ENABLED) return;
+        const phaseAlpha = cfg.PHASE_ALPHA?.[p] ?? (p >= 3 ? 1 : 0);
+        if (phaseAlpha <= 0) return;
+
+        ctx.save();
+        ctx.globalAlpha = phaseAlpha;
+
+        for (let i = 0; i < planets.length; i++) {
+            const pl = planets[i];
+            if (pl.y + pl.radius < -20 || pl.y - pl.radius > gameHeight + 20) continue;
+
+            const cx = pl.x;
+            const cy = pl.y;
+            const r = pl.radius;
+            const bodyColor = pl.colors.body?.[0] || '#888888';
+            const atmosColor = pl.colors.body?.[1] || '#444444';
+
+            // Atmosphere glow
+            const glow = ctx.createRadialGradient(cx, cy, r * 0.8, cx, cy, r * 1.4);
+            glow.addColorStop(0, atmosColor + '40');
+            glow.addColorStop(0.5, atmosColor + '15');
+            glow.addColorStop(1, atmosColor + '00');
+            ctx.fillStyle = glow;
+            ctx.beginPath();
+            ctx.arc(cx, cy, r * 1.4, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Planet body (radial gradient)
+            const grad = ctx.createRadialGradient(cx - r * 0.25, cy - r * 0.25, r * 0.1, cx, cy, r);
+            grad.addColorStop(0, bodyColor);
+            grad.addColorStop(0.7, atmosColor);
+            grad.addColorStop(1, '#000000');
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(cx, cy, r, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Surface bands (gas giant stripes)
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(cx, cy, r, 0, Math.PI * 2);
+            ctx.clip();
+            for (let b = -3; b <= 3; b++) {
+                const bandY = cy + b * r * 0.22 + Math.sin(pl.rotation + b * 0.5) * r * 0.06;
+                const bandH = r * 0.06;
+                ctx.fillStyle = b % 2 === 0 ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.06)';
+                ctx.fillRect(cx - r, bandY - bandH / 2, r * 2, bandH);
+            }
+            ctx.restore();
+
+            // Rings
+            if (pl.hasRings) {
+                const ringColor = pl.colors.ring || '#888888';
+                ctx.save();
+                ctx.translate(cx, cy);
+                ctx.scale(1, 0.3 + pl.ringTilt || 0.2);
+                ctx.rotate(pl.rotation * 0.3);
+
+                // Back ring (behind planet — outer portion only, planet overdrawn on top)
+                ctx.strokeStyle = ringColor;
+                ctx.lineWidth = r * 0.35;
+                ctx.globalAlpha = phaseAlpha * 0.5;
+                ctx.beginPath();
+                ctx.arc(0, 0, r * 1.7, Math.PI * 1.1, Math.PI * 1.9);
+                ctx.stroke();
+
+                ctx.globalAlpha = phaseAlpha * 0.3;
+                ctx.lineWidth = r * 0.2;
+                ctx.beginPath();
+                ctx.arc(0, 0, r * 1.3, Math.PI * 1.1, Math.PI * 1.9);
+                ctx.stroke();
+
+                ctx.restore();
+            }
+
+            // Moon
+            if (pl.moon) {
+                const mx = cx + Math.cos(pl.moon.angle) * pl.moon.dist;
+                const my = cy + Math.sin(pl.moon.angle) * pl.moon.dist * 0.4;
+                ctx.fillStyle = '#bbbbcc';
+                ctx.globalAlpha = phaseAlpha * 0.8;
+                ctx.beginPath();
+                ctx.arc(mx, my, pl.moon.size, 0, Math.PI * 2);
+                ctx.fill();
+                // Moon glow
+                const moonGlow = ctx.createRadialGradient(mx, my, 0, mx, my, pl.moon.size * 3);
+                moonGlow.addColorStop(0, '#bbbbcc20');
+                moonGlow.addColorStop(1, '#bbbbcc00');
+                ctx.fillStyle = moonGlow;
+                ctx.globalAlpha = phaseAlpha * 0.3;
+                ctx.beginPath();
+                ctx.arc(mx, my, pl.moon.size * 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        ctx.globalAlpha = 1;
+        ctx.restore();
+    }
+
+    /**
      * Draw floating crypto symbols
      */
-    function drawFloatingSymbols(ctx, level, isBearMarket, bossActive) {
-        if (isBearMarket || bossActive) return;
+    function drawFloatingSymbols(ctx, phase) {
+        if (!phase || phase === undefined) phase = _currentPhase;
+        // Only draw if not in default/unknown phase
+        if (!phase) return;
+        const cfg = G.Balance?.SKY?.FLOATING_SYMBOLS;
+        const phaseColor = cfg?.PHASE_COLORS?.[phase];
+        const phaseAlpha = cfg?.PHASE_ALPHA?.[phase];
 
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         for (let i = 0; i < floatingSymbols.length; i++) {
             const s = floatingSymbols[i];
             const wobbleY = Math.sin(s.wobble) * 5;
-            ctx.globalAlpha = s.alpha;
+            ctx.globalAlpha = phaseAlpha ?? s.alpha;
             ctx.font = `bold ${s.size}px Arial`;
-            ctx.fillStyle = level >= 4 ? '#6666aa' : '#8888cc';
+            ctx.fillStyle = phaseColor ?? (phase >= 2 ? '#6666aa' : '#aabbcc');
             ctx.fillText(s.symbol, s.x, s.y + wobbleY);
         }
         ctx.globalAlpha = 1;
@@ -752,31 +1016,30 @@
     /**
      * Draw star field (enhanced — visible from L3+)
      */
-    function drawStars(ctx, level, isBearMarket, bossActive) {
+    function drawStars(ctx, phase, isBearMarket, bossActive) {
         const cfg = G.Balance?.SKY?.STARS;
         if (cfg?.ENABLED === false) {
             // Legacy fallback
-            drawStarsLegacy(ctx, level, isBearMarket, bossActive);
+            drawStarsLegacy(ctx, phase || _currentPhase || 3, isBearMarket, bossActive);
             return;
         }
 
-        // Determine visibility
-        const minLevel = cfg?.MIN_VISIBLE_LEVEL || 3;
-        const isVisible = level >= minLevel || bossActive;
-        if (!isVisible || isBearMarket) return;
+        // v7.15: Phase-based visibility
+        const p = phase || _currentPhase || 3;
+        const phaseVisible = cfg?.PHASE_VISIBLE?.[p] !== false;
+        if (!phaseVisible || isBearMarket) return;
 
-        // Get alpha for this level
-        let baseAlpha;
-        if (bossActive) {
-            baseAlpha = 1.0;
-        } else {
-            const alphaMap = cfg?.ALPHA_BY_LEVEL || { 3: 0.25, 4: 0.55, 5: 1.0 };
-            baseAlpha = alphaMap[Math.min(level, 5)] || 1.0;
-        }
+        // Phase alpha
+        let baseAlpha = cfg?.PHASE_ALPHA?.[p] ?? 1.0;
+        const upperOnly = cfg?.PHASE_UPPER_ONLY?.[p] === true;
+
+        // Phase 2: only upper half of stars visible
+        const upperBound = upperOnly ? gameHeight * 0.5 : gameHeight;
 
         ctx.fillStyle = '#ccccff';
         for (let i = 0; i < stars.length; i++) {
             const s = stars[i];
+            if (upperOnly && s.y > upperBound) continue;
             const twinkle = Math.sin(skyTime * s.twinkleSpeed + s.twinklePhase);
             const alpha = s.brightness * baseAlpha * (0.6 + twinkle * 0.4);
             if (alpha < 0.05) continue;
@@ -808,11 +1071,12 @@
         for (let i = 0; i < shootingStars.length; i++) {
             const ss = shootingStars[i];
             if (ss.alpha <= 0) continue;
+            const ssAlpha = ss.alpha * (cfg?.PHASE_SHOOTING_ALPHA?.[p] ?? 1.0);
             const len = ss.length;
             const nx = ss.vx / Math.sqrt(ss.vx * ss.vx + ss.vy * ss.vy);
             const ny = ss.vy / Math.sqrt(ss.vx * ss.vx + ss.vy * ss.vy);
 
-            ctx.globalAlpha = ss.alpha * baseAlpha;
+            ctx.globalAlpha = ssAlpha * baseAlpha;
             ctx.strokeStyle = '#bbbbff';
             ctx.lineWidth = 2;
             ctx.beginPath();
@@ -821,7 +1085,7 @@
             ctx.stroke();
 
             // Bright head
-            ctx.globalAlpha = ss.alpha * baseAlpha * 1.2;
+            ctx.globalAlpha = ssAlpha * baseAlpha * 1.2;
             ctx.fillStyle = '#ffffff';
             ctx.beginPath();
             ctx.arc(ss.x, ss.y, 2, 0, Math.PI * 2);
@@ -953,22 +1217,25 @@
     /**
      * Draw parallax hills (5 layers + silhouettes)
      */
-    function drawHills(ctx, level, isBearMarket, bossActive) {
+    function drawHills(ctx, level, isBearMarket, bossActive, phase) {
         if (bossActive) return;
 
         const cfg = G.Balance?.SKY?.HILLS;
         const useEnhanced = cfg?.ENABLED !== false;
+        const p = phase || _currentPhase || 3;
 
         let hillColors;
         if (useEnhanced) {
             if (isBearMarket) {
                 hillColors = cfg.BEAR_COLORS || ['#1a0808', '#220606', '#1e0505', '#1a0404', '#160303'];
+            } else if (cfg.PHASE_COLORS && cfg.PHASE_COLORS[p]) {
+                // v7.15: Phase-indexed hill colors
+                hillColors = cfg.PHASE_COLORS[p];
             } else {
                 const lvl = Math.min(level, 5);
                 hillColors = cfg.COLORS[lvl] || cfg.COLORS[1];
             }
         } else {
-            // Legacy 3 colors
             hillColors = isBearMarket
                 ? ['#1a0408', '#160306', '#120205']
                 : level >= 4
@@ -1068,28 +1335,54 @@
                 }
             }
         }
+
+        // v7.15: P3 — cyan underglow on hill bottoms
+        const hillPhase = phase || _currentPhase || 3;
+        if (hillPhase >= 3 && !isBearMarket && hills.length > 0) {
+            ctx.save();
+            ctx.globalAlpha = 0.15;
+            ctx.strokeStyle = '#00f0ff';
+            ctx.lineWidth = 2;
+            for (let idx = 0; idx < hills.length; idx++) {
+                const h = hills[idx];
+                const color = hillColors[idx] || hillColors[hillColors.length - 1];
+                ctx.strokeStyle = '#00f0ff';
+                ctx.beginPath();
+                let started = false;
+                for (let screenX = -20; screenX < gameWidth + 20; screenX += 4) {
+                    const y = h.y + Math.sin((screenX + h.offset) * h.freq1) * h.amp1
+                             + Math.sin((screenX + h.offset) * h.freq2 + idx) * h.amp2;
+                    if (!started) { ctx.moveTo(screenX, y); started = true; }
+                    else ctx.lineTo(screenX, y);
+                }
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
     }
 
     /**
      * Draw clouds (multi-lobe cell-shaded)
      */
-    function drawClouds(ctx, level, isBearMarket) {
-        const showClouds = level < 5;
-        if (!showClouds) return;
+    function drawClouds(ctx, phase, isBearMarket) {
+        const p = phase || _currentPhase || 3;
+        // v7.15: clouds visible in all phases (P3 uses silhouette + rim)
+        if (!p) return;
 
         const cfg = G.Balance?.SKY?.CLOUDS;
         const useEnhanced = cfg?.ENABLED !== false && cfg?.LOBES_MIN >= 2;
 
-        const cloudAlpha = level >= 4 ? 0.4 : 0.85;
-        ctx.globalAlpha = cloudAlpha;
+        // Phase-aware alpha
+        const phaseAlpha = cfg?.PHASE_CLOUD_ALPHA?.[p] ?? 0.85;
+        ctx.globalAlpha = isBearMarket ? phaseAlpha * 0.5 : phaseAlpha;
 
-        // Choose color scheme
+        // Choose color scheme — v7.15: phase colors take priority
         let colors;
         if (useEnhanced) {
             if (isBearMarket) {
                 colors = cfg.COLORS.BEAR;
-            } else if (level >= 4) {
-                colors = cfg.COLORS.NIGHT;
+            } else if (cfg.PHASE_COLORS && cfg.PHASE_COLORS[p]) {
+                colors = cfg.PHASE_COLORS[p];
             } else {
                 colors = cfg.COLORS.NORMAL;
             }
@@ -1101,6 +1394,9 @@
                 outline: isBearMarket ? '#180006' : '#0e0820'
             };
         }
+
+        // Phase 3: P3 uses silhouette mode — skip detailed rendering for body
+        const isP3Silhouette = (p >= 3);
 
         const shadowOffY = cfg?.SHADOW_OFFSET_Y || 4;
         const outlineWidth = cfg?.OUTLINE_WIDTH || 2;
@@ -1163,18 +1459,35 @@
                     ctx.fill();
                 }
 
-                // Highlight lobe (top, lighter)
-                ctx.fillStyle = colors.highlight;
-                const hl = c.lobes[Math.floor(c.lobes.length / 2)];
-                ctx.beginPath();
-                safeEllipse(ctx,
-                    c.x + hl.ox * scale,
-                    c.y + hl.oy * scale + sh * highlightOff,
-                    sw / 2 * hl.wMult * 0.7,
-                    sh / 3 * hl.hMult * 0.6,
-                    0, 0, Math.PI * 2
-                );
-                ctx.fill();
+                // P3 silhouette: only outline, no fill
+                if (isP3Silhouette) {
+                    ctx.fillStyle = colors.outline;
+                    for (let l = 0; l < c.lobes.length; l++) {
+                        const lb = c.lobes[l];
+                        ctx.beginPath();
+                        safeEllipse(ctx,
+                            c.x + lb.ox * scale,
+                            c.y + lb.oy * scale,
+                            sw / 2 * lb.wMult + border,
+                            sh / 2.2 * lb.hMult + border,
+                            0, 0, Math.PI * 2
+                        );
+                        ctx.fill();
+                    }
+                } else {
+                    // Highlight lobe (top, lighter)
+                    ctx.fillStyle = colors.highlight;
+                    const hl = c.lobes[Math.floor(c.lobes.length / 2)];
+                    ctx.beginPath();
+                    safeEllipse(ctx,
+                        c.x + hl.ox * scale,
+                        c.y + hl.oy * scale + sh * highlightOff,
+                        sw / 2 * hl.wMult * 0.7,
+                        sh / 3 * hl.hMult * 0.6,
+                        0, 0, Math.PI * 2
+                    );
+                    ctx.fill();
+                }
             } else {
                 // Legacy single-ellipse cloud
                 ctx.fillStyle = colors.shadow;
@@ -1182,7 +1495,7 @@
                 safeEllipse(ctx,c.x, c.y + 3, c.w / 2, c.h / 2, 0, 0, Math.PI * 2);
                 ctx.fill();
 
-                ctx.fillStyle = colors.main;
+                ctx.fillStyle = isP3Silhouette ? colors.outline : colors.main;
                 ctx.beginPath();
                 safeEllipse(ctx,c.x, c.y, c.w / 2, c.h / 2.2, 0, 0, Math.PI * 2);
                 ctx.fill();
@@ -1192,6 +1505,40 @@
                 ctx.stroke();
             }
         }
+
+        // P3: Draw neon rim on cloud silhouettes
+        if (isP3Silhouette) {
+            const rimCfg = cfg?.PHASE_RIM?.[3];
+            if (rimCfg) {
+                const rimAlpha = rimCfg.alpha ?? 0.7;
+                // Apply rim lag if transitioning (P2→P3 midpoint protection)
+                const rimBlend = G.PhaseTransitionController?.isTransitioning()
+                    ? Math.max(0, (G.PhaseTransitionController.getProgress() - 0.3) / 0.7)
+                    : 1.0;
+                ctx.globalAlpha = phaseAlpha * rimAlpha * rimBlend;
+                ctx.lineWidth = rimCfg.width || 2;
+
+                for (let i = 0; i < clouds.length; i++) {
+                    const c = clouds[i];
+                    const scale = c.layer === 0 ? 1.3 : c.layer === 2 ? 0.7 : 1.0;
+                    const sw = c.w * scale;
+                    const sh = c.h * scale;
+
+                    // Top edge: magenta rim
+                    ctx.strokeStyle = rimCfg.colorTop || '#ff2d95';
+                    ctx.beginPath();
+                    safeEllipse(ctx, c.x, c.y - sh * 0.3, sw / 2 + 2, sh / 3, 0, Math.PI * 0.6, Math.PI * 1.4);
+                    ctx.stroke();
+
+                    // Bottom edge: cyan rim
+                    ctx.strokeStyle = rimCfg.colorBot || '#00f0ff';
+                    ctx.beginPath();
+                    safeEllipse(ctx, c.x, c.y + sh * 0.25, sw / 2 + 1, sh / 3.5, 0, -Math.PI * 0.1, Math.PI * 0.6);
+                    ctx.stroke();
+                }
+            }
+        }
+
         ctx.globalAlpha = 1;
     }
 
@@ -1293,6 +1640,9 @@
         update,
         draw,
         drawBearMarketOverlay,
-        getLightningFlash
+        getLightningFlash,
+        setPhase,
+        getPhase,
+        initPlanets           // exposed for manual refresh if needed
     };
 })();

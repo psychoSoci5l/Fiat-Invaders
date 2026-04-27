@@ -63,7 +63,7 @@
 
         // Specific values
         assert(Balance.HYPER.METER_THRESHOLD === 100, 'METER_THRESHOLD is 100');
-        assert(Balance.HYPER.AUTO_ACTIVATE === true, 'AUTO_ACTIVATE is true');
+        assert(Balance.HYPER.AUTO_ACTIVATE === false, 'AUTO_ACTIVATE is false (v7.0 manual activation)');
         assert(Balance.HYPER.SCORE_MULT === 3.0, 'SCORE_MULT is 3.0');
 
         // Other HYPER config keys should exist

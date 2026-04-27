@@ -383,7 +383,7 @@ window.Game = window.Game || {};
             this._stats = this._freshStats();
             if (G.Events && typeof G.Events.on === 'function') {
                 if (this._killHook && typeof G.Events.off === 'function') {
-                    G.Events.off('enemy_killed', this._killHook);
+                    G.Events.off('enemy:killed', this._killHook);
                 }
                 // v7.4.0: richer kill hook — track pattern, y-at-death, aliveAtKill for tuning report
                 this._killHook = (payload) => {
@@ -410,7 +410,7 @@ window.Game = window.Game || {};
                         s.killsByYBucket[bucket] = (s.killsByYBucket[bucket] || 0) + 1;
                     }
                 };
-                G.Events.on('enemy_killed', this._killHook);
+                G.Events.on('enemy:killed', this._killHook);
             }
         },
 

@@ -38,8 +38,8 @@
         // Override to return 0 drop chance (no random drops, only pity)
         G.Balance.getDropChance = function () { return 0; };
 
-        // Ensure pity threshold is known
-        var pityKills = G.Balance.DROPS.PITY_TIMER_KILLS || 30;
+        // Effective pity threshold: DROP_SCALING.PITY_BASE overrides DROPS.PITY_TIMER_KILLS (v5.15.1)
+        var pityKills = G.Balance.DROP_SCALING ? G.Balance.DROP_SCALING.PITY_BASE : (G.Balance.DROPS.PITY_TIMER_KILLS || 30);
 
         // Simulate kills below pity threshold — should not drop
         for (var i = 0; i < pityKills - 1; i++) {

@@ -57,8 +57,6 @@ window.Game = window.Game || {};
         }
         const modeExpl = document.getElementById('mode-explanation');
         if (modeExpl) { modeExpl.classList.remove('hidden'); modeExpl.style.display = ''; }
-        const btn = document.getElementById('btn-primary-action');
-        if (btn) btn.style.display = 'none';
     }
 
     function _cleanupAnimClasses() {
@@ -71,7 +69,7 @@ window.Game = window.Game || {};
             document.getElementById('intro-title')
         ];
         els.forEach(el => {
-            if (el) el.classList.remove('anim-hidden', 'anim-show', 'anim-active');
+            if (el) el.classList.remove('anim-hidden', 'anim-show', 'anim-active', 'anim-selection-out', 'anim-fade-in');
         });
         // Also clean subtitle visibility class
         const sub = document.getElementById('title-subtitle');
@@ -88,15 +86,36 @@ window.Game = window.Game || {};
         if (G.TitleAnimator) G.TitleAnimator.hide();
         _cleanupAnimClasses();
 
-        // Hide splash elements
+        // P6: Fade out splash elements, then show selection
         const title = document.getElementById('intro-title');
         const modeSelector = document.getElementById('mode-selector');
         const introVersion = document.querySelector('.intro-version');
         const modeExpl = document.getElementById('mode-explanation');
+
+        // Animate splash elements out
+        if (title) { title.classList.add('anim-selection-out'); }
+        if (modeSelector) { modeSelector.classList.add('anim-selection-out'); }
+        if (modeExpl) { modeExpl.classList.add('anim-selection-out'); }
+        if (introVersion) { introVersion.style.opacity = '0'; introVersion.style.transition = 'opacity 0.2s'; }
+
+        // When prefers-reduced-motion, skip animation delay and show immediately
+        if (_prefersReducedMotion()) {
+            _showSelectionImmediate(title, modeSelector, modeExpl, introVersion);
+            return;
+        }
+
+        setTimeout(() => {
+            _showSelectionImmediate(title, modeSelector, modeExpl, introVersion);
+        }, 220);
+    }
+
+    function _showSelectionImmediate(title, modeSelector, modeExpl, introVersion) {
+        // Hide splash elements (after fade out)
         if (title) title.classList.add('hidden');
-        if (modeSelector) { modeSelector.classList.add('hidden'); modeSelector.style.display = 'none'; modeSelector.classList.remove('mode-revealed'); }
-        if (introVersion) introVersion.style.display = 'none';
+        if (modeSelector) { modeSelector.classList.add('hidden'); modeSelector.style.display = 'none'; modeSelector.classList.remove('mode-revealed', 'anim-selection-out'); }
+        if (introVersion) { introVersion.style.display = 'none'; introVersion.style.opacity = ''; }
         if (modeExpl) modeExpl.classList.add('hidden');
+
         // Hide PWA install banner when entering selection
         d.setStyle('pwa-install-banner', 'display', 'none');
 
@@ -109,10 +128,10 @@ window.Game = window.Game || {};
         const arrowRight = document.getElementById('arrow-right');
         const shipArea = document.querySelector('.ship-area');
 
-        if (header) header.style.display = 'block';
-        if (info) info.style.display = 'block';
-        if (modeIndicator) modeIndicator.style.display = 'flex';
-        if (scoreRow) scoreRow.style.display = 'flex';
+        if (header) { header.style.display = 'block'; header.classList.remove('anim-selection-in'); void header.offsetHeight; header.classList.add('anim-selection-in'); }
+        if (info) { info.style.display = 'block'; info.classList.remove('anim-selection-in'); void info.offsetHeight; info.classList.add('anim-selection-in'); }
+        if (modeIndicator) { modeIndicator.style.display = 'flex'; modeIndicator.classList.remove('anim-selection-in'); void modeIndicator.offsetHeight; modeIndicator.classList.add('anim-selection-in'); }
+        if (scoreRow) { scoreRow.style.display = 'flex'; }
         if (arrowLeft) arrowLeft.classList.add('visible');
         if (arrowRight) arrowRight.classList.add('visible');
         if (shipArea) shipArea.classList.remove('hidden');
@@ -136,14 +155,13 @@ window.Game = window.Game || {};
     window.goBackToModeSelect = function() {
         if (introState === 'SPLASH') return;
         introState = 'SPLASH';
-        _modesRevealed = false;
         G.Audio.play('coinUI');
         // v4.35: Restore title animator in loop state (no replay)
         if (G.TitleAnimator && !G.TitleAnimator.isActive()) {
             G.TitleAnimator.start(true);
         }
 
-        // Hide selection elements
+        // P6: Fade out selection elements first
         const header = document.getElementById('selection-header');
         const info = document.getElementById('selection-info');
         const modeIndicator = document.getElementById('current-mode-indicator');
@@ -151,28 +169,51 @@ window.Game = window.Game || {};
         const arrowLeft = document.getElementById('arrow-left');
         const arrowRight = document.getElementById('arrow-right');
 
-        if (header) header.style.display = 'none';
-        if (info) info.style.display = 'none';
-        if (modeIndicator) modeIndicator.style.display = 'none';
-        if (scoreRow) scoreRow.style.display = 'none';
-        if (arrowLeft) arrowLeft.classList.remove('visible');
-        if (arrowRight) arrowRight.classList.remove('visible');
+        if (header) header.classList.add('anim-selection-out');
+        if (info) info.classList.add('anim-selection-out');
+        if (modeIndicator) modeIndicator.classList.add('anim-selection-out');
 
-        // Show splash elements
-        const title = document.getElementById('intro-title');
-        const modeSelector = document.getElementById('mode-selector');
-        const introVersion = document.querySelector('.intro-version');
-        const modeExpl = document.getElementById('mode-explanation');
-        const shipArea = document.querySelector('.ship-area');
-        if (title) title.classList.remove('hidden');
-        if (modeSelector) { modeSelector.classList.remove('hidden', 'mode-revealed'); modeSelector.style.display = 'none'; }
-        if (introVersion) introVersion.style.display = 'block';
-        if (modeExpl) { modeExpl.classList.add('hidden'); modeExpl.style.display = 'none'; }
-        if (shipArea) shipArea.classList.add('hidden');
+        setTimeout(() => {
+            // Hide selection elements
+            if (header) { header.style.display = 'none'; header.classList.remove('anim-selection-out'); }
+            if (info) { info.style.display = 'none'; info.classList.remove('anim-selection-out'); }
+            if (modeIndicator) { modeIndicator.style.display = 'none'; modeIndicator.classList.remove('anim-selection-out'); }
+            if (scoreRow) scoreRow.style.display = 'none';
+            if (arrowLeft) arrowLeft.classList.remove('visible');
+            if (arrowRight) arrowRight.classList.remove('visible');
 
-        // Update primary action button to TAP TO START state
-        updatePrimaryButton('SPLASH');
+            // Clean up any stale animation classes before showing splash
+            _cleanupAnimClasses();
+
+            // Show splash elements — keep modes revealed so user can see pills + descriptions
+            const title = document.getElementById('intro-title');
+            const modeSelector = document.getElementById('mode-selector');
+            const introVersion = document.querySelector('.intro-version');
+            const modeExpl = document.getElementById('mode-explanation');
+            const shipArea = document.querySelector('.ship-area');
+            if (title) { title.classList.remove('hidden'); title.style.opacity = ''; title.style.transform = ''; }
+            if (modeSelector) {
+                modeSelector.classList.remove('hidden');
+                modeSelector.style.display = '';
+                modeSelector.classList.add('mode-revealed');
+            }
+            if (introVersion) { introVersion.style.display = 'block'; introVersion.classList.add('anim-fade-in'); }
+            if (modeExpl) { modeExpl.classList.remove('hidden'); modeExpl.style.display = ''; }
+            if (shipArea) shipArea.classList.add('hidden');
+
+            // Update primary action button to TAP TO START state
+            updatePrimaryButton('SPLASH');
+        }, 220);
     }
+
+    // P7: Skip title animation and reveal controls immediately
+    window.skipTitleAnim = function() {
+        if (G.TitleAnimator && G.TitleAnimator.isAnimating()) {
+            G.TitleAnimator.skip();
+        }
+        const skipBtn = document.getElementById('title-skip-btn');
+        if (skipBtn) skipBtn.style.display = 'none';
+    };
 
     // Handle primary action button click (unified for both states)
     window.handlePrimaryAction = function() {
@@ -189,6 +230,10 @@ window.Game = window.Game || {};
             if (!_modesRevealed) {
                 _revealModes();
                 _introActionCooldown = 0.4;
+            } else {
+                // Modes already revealed — proceed to ship selection
+                _introActionCooldown = 0.4;
+                enterSelectionState();
             }
         } else {
             launchShipAndStart();
@@ -224,10 +269,18 @@ window.Game = window.Game || {};
         const scoreValue = document.getElementById('badge-score-value');
 
         if (modeText) {
-            modeText.innerText = isStory ? (d.t('MODE_STORY') || d.t('CAMPAIGN')) + ' MODE' : d.t('MODE_ARCADE') + ' MODE';
+            let modeLabel;
+            if (G.DailyMode && G.DailyMode.isActive()) {
+                modeLabel = d.t('MODE_DAILY');
+            } else if (isStory) {
+                modeLabel = d.t('MODE_STORY') || d.t('CAMPAIGN');
+            } else {
+                modeLabel = d.t('MODE_ARCADE');
+            }
+            modeText.innerText = '← ' + modeLabel + ' MODE';
         }
         if (hint) {
-            hint.innerText = d.t('CHANGE_MODE');
+            hint.innerText = '← ' + d.t('CHANGE_MODE');
         }
         if (scoreLabel) {
             scoreLabel.innerText = d.t('HIGH_SCORE');
@@ -259,6 +312,7 @@ window.Game = window.Game || {};
 
     window.cycleShip = function(dir) {
         selectedShipIndex = (selectedShipIndex + dir + SHIP_KEYS.length) % SHIP_KEYS.length;
+        localStorage.setItem('fiat_selected_ship', selectedShipIndex);
         updateShipUI();
     }
 
@@ -298,13 +352,23 @@ window.Game = window.Game || {};
         if (arcadePill) arcadePill.classList.toggle('active', mode === 'arcade');
         if (dailyPill) dailyPill.classList.toggle('active', isDaily);
 
-        // Update mode explanation (SPLASH state)
+        // Update mode explanation (SPLASH state) with smooth transition
         const storyDesc = document.getElementById('mode-story-desc');
         const arcadeDesc = document.getElementById('mode-arcade-desc');
         const dailyDesc = document.getElementById('mode-daily-desc');
-        if (storyDesc) storyDesc.style.display = isStory ? 'block' : 'none';
-        if (arcadeDesc) arcadeDesc.style.display = mode === 'arcade' ? 'block' : 'none';
-        if (dailyDesc) dailyDesc.style.display = isDaily ? 'block' : 'none';
+        [storyDesc, arcadeDesc, dailyDesc].forEach(el => { if (el) el.classList.remove('anim-fade-in'); });
+        if (storyDesc) {
+            storyDesc.style.display = isStory ? 'block' : 'none';
+            if (isStory) { void storyDesc.offsetHeight; storyDesc.classList.add('anim-fade-in'); }
+        }
+        if (arcadeDesc) {
+            arcadeDesc.style.display = mode === 'arcade' ? 'block' : 'none';
+            if (mode === 'arcade') { void arcadeDesc.offsetHeight; arcadeDesc.classList.add('anim-fade-in'); }
+        }
+        if (dailyDesc) {
+            dailyDesc.style.display = isDaily ? 'block' : 'none';
+            if (isDaily) { void dailyDesc.offsetHeight; dailyDesc.classList.add('anim-fade-in'); }
+        }
 
         // Update mode indicator if in selection state
         if (introState === 'SELECTION') {
@@ -317,11 +381,7 @@ window.Game = window.Game || {};
 
         G.Audio.play('coinUI');
 
-        // v7.12.13: After mode choice, proceed directly to ship selection
-        if (_modesRevealed && introState === 'SPLASH') {
-            _introActionCooldown = 0.4;
-            enterSelectionState();
-        }
+        // v7.13.2: Mode pills just update the selection — user taps primary button to proceed to ship selection
     }
 
     function updateCampaignProgressUI() {
@@ -382,6 +442,10 @@ window.Game = window.Game || {};
         }
     }
 
+    function _prefersReducedMotion() {
+        return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    }
+
     function animateIntroShip() {
         if (!introShipCtx) return;
         introShipTime += 0.05;
@@ -396,10 +460,10 @@ window.Game = window.Game || {};
         // In SPLASH always show BTC, in SELECTION show selected ship
         const key = (introState === 'SPLASH') ? 'BTC' : SHIP_KEYS[selectedShipIndex];
         const ship = SHIP_DISPLAY[key];
-        const scale = 1.05; // v5.28: 1.35->1.05 (ship is +30% larger now)
+        const scale = 1.05;
 
-        // Hover animation
-        const hover = Math.sin(introShipTime * 2) * 6;
+        // Hover animation — disabled when prefers-reduced-motion
+        const hover = _prefersReducedMotion() ? 0 : Math.sin(introShipTime * 2) * 6;
 
         ctx.save();
         ctx.translate(cx, cy + hover);
@@ -422,9 +486,10 @@ window.Game = window.Game || {};
         const innerTailX = 7;
 
         // === TWIN EXHAUST FLAMES at inner tail (+/-5, 10) ===
-        const flameHeight = 18 + Math.sin(introShipTime * 12) * 7;
-        const flameWidth = 5 + Math.sin(introShipTime * 10) * 2;
-        const pulse = 1 + Math.sin(introShipTime * 8) * 0.15;
+        const reducedMotion = _prefersReducedMotion();
+        const flameHeight = reducedMotion ? 18 : 18 + Math.sin(introShipTime * 12) * 7;
+        const flameWidth = reducedMotion ? 5 : 5 + Math.sin(introShipTime * 10) * 2;
+        const pulse = reducedMotion ? 1 : 1 + Math.sin(introShipTime * 8) * 0.15;
 
         for (const side of [-1, 1]) {
             const nx = side * innerTailX;
@@ -604,10 +669,14 @@ window.Game = window.Game || {};
             ctx.font = 'bold 14px Arial';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.shadowColor = ship.accent;
-            ctx.shadowBlur = 8;
+            // v7.13.0: additive glow via dual-draw (no shadowBlur)
+            ctx.save();
+            ctx.globalAlpha = 0.3;
+            ctx.font = 'bold 17px Arial';
+            ctx.fillStyle = ship.accent;
             ctx.fillText(ship.symbol, 0, -10);
-            ctx.shadowBlur = 0;
+            ctx.restore();
+            ctx.fillText(ship.symbol, 0, -10);
         }
 
         ctx.restore();
@@ -1043,7 +1112,7 @@ window.Game = window.Game || {};
             }, i * 600);
         });
     }
-    if (G.Events) G.Events.on('ACHIEVEMENTS_UNLOCKED', showAchievementToasts);
+    if (G.Events) G.Events.on('achievements:unlocked', showAchievementToasts);
 
     // v7.0 Phase 5.1: Profile / Stats panel
     function _stat(label, value) {
@@ -1102,17 +1171,23 @@ window.Game = window.Game || {};
         const panel = document.getElementById('profile-panel');
         if (!panel) return;
         const isVisible = panel.style.display === 'flex';
-        panel.style.display = isVisible ? 'none' : 'flex';
-        if (!isVisible) {
-            renderProfile();
-            const title = document.getElementById('profile-title');
-            const closeBtn = document.getElementById('btn-profile-close');
-            const resetBtn = document.getElementById('btn-profile-reset');
-            if (title) title.innerText = d.t('PROFILE_TITLE') || 'PILOT PROFILE';
-            if (closeBtn) closeBtn.innerText = d.t('CLOSE') || 'CLOSE';
-            if (resetBtn) resetBtn.innerText = d.t('PROFILE_RESET') || 'RESET STATS';
-            G.Audio.play('coinUI');
+        if (isVisible) {
+            panel.style.display = 'none';
+            panel.classList.remove('anim-panel-in');
+            return;
         }
+        panel.style.display = 'flex';
+        panel.classList.remove('anim-panel-in');
+        void panel.offsetHeight;
+        panel.classList.add('anim-panel-in');
+        renderProfile();
+        const title = document.getElementById('profile-title');
+        const closeBtn = document.getElementById('btn-profile-close');
+        const resetBtn = document.getElementById('btn-profile-reset');
+        if (title) title.innerText = d.t('PROFILE_TITLE') || 'PILOT PROFILE';
+        if (closeBtn) closeBtn.innerText = d.t('CLOSE') || 'CLOSE';
+        if (resetBtn) resetBtn.innerText = d.t('PROFILE_RESET') || 'RESET STATS';
+        G.Audio.play('coinUI');
     };
     window.resetProfileStats = function () {
         if (!G.StatsTracker) return;
@@ -1128,28 +1203,40 @@ window.Game = window.Game || {};
         const panel = document.getElementById('whatsnew-panel');
         if (!panel) return;
         const isVisible = panel.style.display === 'flex';
-        panel.style.display = isVisible ? 'none' : 'flex';
-        if (!isVisible) {
-            renderWhatsNew();
-            // i18n
-            const title = document.getElementById('whatsnew-title');
-            const closeBtn = document.getElementById('btn-whatsnew-close');
-            if (title) title.innerText = d.t('WHATS_NEW') || "WHAT'S NEW";
-            if (closeBtn) closeBtn.innerText = d.t('CLOSE') || 'CLOSE';
-            G.Audio.play('coinUI');
-            // Mark version as seen -- remove glow
-            try { localStorage.setItem('fiat_whatsnew_seen', G.VERSION); } catch(e) {}
-            const wnBtn = document.getElementById('intro-whatsnew');
-            if (wnBtn) wnBtn.classList.remove('btn-glow-notify');
+        if (isVisible) {
+            panel.style.display = 'none';
+            panel.classList.remove('anim-panel-in');
+            return;
         }
+        panel.style.display = 'flex';
+        panel.classList.remove('anim-panel-in');
+        void panel.offsetHeight;
+        panel.classList.add('anim-panel-in');
+        renderWhatsNew();
+        // i18n
+        const title = document.getElementById('whatsnew-title');
+        const closeBtn = document.getElementById('btn-whatsnew-close');
+        if (title) title.innerText = d.t('WHATS_NEW') || "WHAT'S NEW";
+        if (closeBtn) closeBtn.innerText = d.t('CLOSE') || 'CLOSE';
+        G.Audio.play('coinUI');
+        // Mark version as seen -- remove glow
+        try { localStorage.setItem('fiat_whatsnew_seen', G.VERSION); } catch(e) {}
+        const wnBtn = document.getElementById('intro-whatsnew');
+        if (wnBtn) wnBtn.classList.remove('btn-glow-notify');
     };
 
     window.goToHangar = function () {
         G.Audio.init();
-        G.Audio.startMusic(); // Resumes context + starts music
+        G.Audio.startMusic();
         window.scrollTo(0, 0);
         d.setStyle('intro-screen', 'display', 'none');
         d.setStyle('hangar-screen', 'display', 'flex');
+        const hangarScreen = document.getElementById('hangar-screen');
+        if (hangarScreen) {
+            hangarScreen.classList.remove('anim-screen-in');
+            void hangarScreen.offsetHeight;
+            hangarScreen.classList.add('anim-screen-in');
+        }
         d.setGameState('HANGAR');
         if (G.SkyRenderer) G.SkyRenderer.init(d.getGameWidth(), d.getGameHeight());
         if (G.WeatherController) G.WeatherController.init(d.getGameWidth(), d.getGameHeight()); // Start BG effect early
@@ -1188,11 +1275,11 @@ window.Game = window.Game || {};
             G.RNG.clear();
         }
 
-        // v5.23: Prompt nickname once per session; skip allowed
+        // v5.23: Prompt nickname once per session; skip allowed.
+        // Keep isLaunching=true to prevent re-triggering while overlay is shown.
         if (!G.hasNickname() && !window._nickPromptShown) {
             window._nickPromptShown = true;
-            isLaunching = false;
-            G.showNicknamePrompt(() => launchShipAndStart());
+            G.showNicknamePrompt(() => { isLaunching = false; launchShipAndStart(); });
             return;
         }
 
@@ -1488,6 +1575,10 @@ window.Game = window.Game || {};
             d.setStyle('perk-modal', 'display', 'none');
             // v4.37: Hide tutorial overlay
             d.setStyle('tutorial-overlay', 'display', 'none');
+            // v4.37+: Hide any remaining modal overlays
+            d.setStyle('modifier-overlay', 'display', 'none');
+            d.setStyle('lesson-modal', 'display', 'none');
+            d.setStyle('v8-intermission-screen', 'display', 'none');
             const uiRef = d.getUI();
             if (uiRef.uiLayer) uiRef.uiLayer.style.display = 'none'; // HIDE HUD
             if (uiRef.touchControls) {
@@ -1500,14 +1591,6 @@ window.Game = window.Game || {};
             // Hide dialogue overlay (story mode leaves it with pointer-events)
             const dialogueContainer = document.getElementById('dialogue-container');
             if (dialogueContainer) dialogueContainer.classList.remove('visible');
-            // Hide modifier overlay, lesson modal, intermission if active
-            if (G.ModifierChoiceScreen) G.ModifierChoiceScreen.hide();
-            const _moCleanup = document.getElementById('modifier-overlay');
-            if (_moCleanup) _moCleanup.style.display = 'none';
-            const _lessonModal = document.getElementById('lesson-modal');
-            if (_lessonModal) _lessonModal.style.display = 'none';
-            const _v8Inter = document.getElementById('v8-intermission-screen');
-            if (_v8Inter) _v8Inter.style.display = 'none';
             // Hide campaign victory screen if exists
             const victoryScreen = document.getElementById('campaign-victory-screen');
             if (victoryScreen) victoryScreen.style.display = 'none';
@@ -1624,6 +1707,11 @@ window.Game = window.Game || {};
     G.IntroScreen = {
         init: function(deps) {
             d = deps;
+            // Restore persisted ship selection
+            const saved = localStorage.getItem('fiat_selected_ship');
+            if (saved !== null) {
+                selectedShipIndex = parseInt(saved, 10) || 0;
+            }
             initSplashShip();
             // v7.12.13: mode selector + explanation hidden until first tap on TAP TO START
             const modeSelector = document.getElementById('mode-selector');
@@ -1637,7 +1725,18 @@ window.Game = window.Game || {};
         getSelectedShipKey: function() { return SHIP_KEYS[selectedShipIndex]; },
         getIntroState: function() { return introState; },
         resetToSplash: function() { introState = 'SPLASH'; },
-        tick: function(dt) { if (_introActionCooldown > 0) _introActionCooldown -= dt; },
+        tick: function(dt) {
+            if (_introActionCooldown > 0) _introActionCooldown -= dt;
+            // P7: Show title skip button during title animation
+            const skipBtn = document.getElementById('title-skip-btn');
+            if (skipBtn) {
+                if (G.TitleAnimator && G.TitleAnimator.isAnimating()) {
+                    if (skipBtn.style.display !== 'block') skipBtn.style.display = 'block';
+                } else {
+                    if (skipBtn.style.display !== 'none') skipBtn.style.display = 'none';
+                }
+            }
+        },
         updateCampaignProgressUI: updateCampaignProgressUI,
         updateModeIndicator: updateModeIndicator,
         updatePrimaryButton: updatePrimaryButton,

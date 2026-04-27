@@ -26,6 +26,16 @@ Desktop.ini
 # === OS files ===
 .DS_Store
 
+# === Local scratch / debug artifacts ===
+error.png
+test.tmp
+la
+find_design.sh
+list_design.sh
+list_files.sh
+test-results/
+PATCH-*.md
+
 # === Node (dev tools only) ===
 node_modules/
 package.json

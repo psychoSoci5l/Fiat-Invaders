@@ -111,16 +111,13 @@
         assert(Array.isArray(RS.perks), 'perks is array');
         assert(RS.perks.length === 0, 'perks empty after reset');
         assert(typeof RS.perkStacks === 'object', 'perkStacks is object');
-        assert(typeof RS.modifiers === 'object', 'modifiers is object');
+        assert(typeof RS.arcadeBonuses === 'object', 'arcadeBonuses is object');
 
-        // getMod
-        assert(RS.getMod('scoreMult') === 1, 'getMod scoreMult = 1');
-        assert(RS.getMod('nonexistent', 42) === 42, 'getMod fallback works');
-
-        // Modifiers exist
-        assert(RS.modifiers.fireRateMult === 1, 'fireRateMult = 1');
-        assert(RS.modifiers.damageMult === 1, 'damageMult = 1');
-        assert(RS.modifiers.speedMult === 1, 'speedMult = 1');
+        // Arcade bonuses exist (modifiers renamed to arcadeBonuses in v7.x)
+        assert(RS.arcadeBonuses.scoreMult === 1, 'arcadeBonuses scoreMult = 1');
+        assert(RS.arcadeBonuses.fireRateMult === 1, 'arcadeBonuses fireRateMult = 1');
+        assert(RS.arcadeBonuses.damageMult === 1, 'arcadeBonuses damageMult = 1');
+        assert(RS.arcadeBonuses.speedMult === 1, 'arcadeBonuses speedMult = 1');
 
         // Fiat kill counter
         assert(RS.fiatKillCounter, 'fiatKillCounter exists');

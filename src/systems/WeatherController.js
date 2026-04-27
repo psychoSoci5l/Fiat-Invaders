@@ -43,6 +43,9 @@
     let currentBossActive = false;
     let ambientEffects = [];  // active ambient effect names
 
+    // v7.15: Current visual phase (1=Earth, 2=Atmosphere, 3=Deep Space)
+    let _currentPhase = 1;
+
     // Prevent duplicate EventBus subscriptions
     let _subscribed = false;
 
@@ -55,10 +58,10 @@
         reset();
 
         if (!_subscribed && G.Events) {
-            G.Events.on('weather:boss_spawn', function() { trigger('boss_spawn'); });
-            G.Events.on('weather:boss_defeat', function() { trigger('boss_defeat'); });
-            G.Events.on('weather:wave_clear', function() { trigger('wave_clear'); });
-            G.Events.on('GODCHAIN_ACTIVATED', function() { trigger('godchain'); });
+            G.Events.on('weather:boss-spawn', function() { trigger('boss_spawn'); });
+            G.Events.on('weather:boss-defeat', function() { trigger('boss_defeat'); });
+            G.Events.on('weather:wave-clear', function() { trigger('wave_clear'); });
+            G.Events.on('player:godchain-activated', function() { trigger('godchain'); });
             _subscribed = true;
         }
     }
@@ -87,6 +90,7 @@
         currentBearMarket = false;
         currentBossActive = false;
         ambientEffects = [];
+        _currentPhase = 1;
     }
 
     /**
@@ -466,6 +470,10 @@
         // Distant lightning: timer + flash decay
         if (ambientEffects.indexOf('distant_lightning') !== -1 && amb.DISTANT_LIGHTNING.ENABLED) {
             var dlCfg = amb.DISTANT_LIGHTNING;
+            // v7.15: Phase-adaptive flash alpha
+            var dlPhaseAlpha = dlCfg.PHASE_ALPHA ? dlCfg.PHASE_ALPHA[_currentPhase] : null;
+            var dlAlphaMin = dlPhaseAlpha ? dlPhaseAlpha[0] : dlCfg.ALPHA_MIN;
+            var dlAlphaMax = dlPhaseAlpha ? dlPhaseAlpha[1] : dlCfg.ALPHA_MAX;
             if (distantLightningFlash > 0) {
                 distantLightningFlash -= dlCfg.DECAY_SPEED * dt;
                 if (distantLightningFlash < 0) distantLightningFlash = 0;
@@ -473,7 +481,7 @@
             distantLightningTimer -= dt;
             if (distantLightningTimer <= 0) {
                 // Fire a distant flash
-                distantLightningFlash = dlCfg.ALPHA_MIN + Math.random() * (dlCfg.ALPHA_MAX - dlCfg.ALPHA_MIN);
+                distantLightningFlash = dlAlphaMin + Math.random() * (dlAlphaMax - dlAlphaMin);
                 // Reset timer
                 distantLightningTimer = dlCfg.INTERVAL_MIN + Math.random() * (dlCfg.INTERVAL_MAX - dlCfg.INTERVAL_MIN);
             }
@@ -555,7 +563,9 @@
 
         // Fog wisps (translucent ellipses)
         if (fogWisps.length > 0) {
-            var fogColor = isBearMarket ? (amb.FOG.BEAR_COLOR || '#aa4444') : (amb.FOG.COLOR || '#8888cc');
+            var fogPhaseColors = amb.FOG.PHASE_COLORS;
+            var fogColor = isBearMarket ? (amb.FOG.BEAR_COLOR || '#aa2244')
+                : (fogPhaseColors ? fogPhaseColors[_currentPhase] || '#8888cc' : amb.FOG.COLOR || '#8888cc');
             for (var i = 0; i < fogWisps.length; i++) {
                 var f = fogWisps[i];
                 ctx.globalAlpha = f.a;
@@ -570,9 +580,12 @@
         // Drizzle (thin vertical strokes)
         if (drizzleDrops.length > 0) {
             var dCfg = amb.DRIZZLE;
-            ctx.strokeStyle = isBearMarket ? (dCfg.BEAR_COLOR || '#664444') : (dCfg.COLOR || '#7788aa');
+            var dPhaseColors = dCfg.PHASE_COLORS;
+            ctx.strokeStyle = isBearMarket ? (dCfg.BEAR_COLOR || '#664444')
+                : (dPhaseColors ? dPhaseColors[_currentPhase] || dCfg.COLOR || '#7788aa' : dCfg.COLOR || '#7788aa');
             ctx.lineWidth = dCfg.WIDTH || 1;
-            ctx.globalAlpha = dCfg.ALPHA || 0.12;
+            var dPhaseOp = dCfg.PHASE_OPACITY;
+            ctx.globalAlpha = dPhaseOp ? (dPhaseOp[_currentPhase] ?? dCfg.ALPHA ?? 0.12) : (dCfg.ALPHA || 0.12);
             for (var i = 0; i < drizzleDrops.length; i++) {
                 var d = drizzleDrops[i];
                 ctx.beginPath();
@@ -586,8 +599,10 @@
         // Snow (white arcs)
         if (snowParticles.length > 0) {
             var sCfg = amb.SNOW;
-            ctx.fillStyle = '#ffffff';
-            ctx.globalAlpha = sCfg.ALPHA || 0.7;
+            var sPhaseTint = sCfg.PHASE_TINT;
+            ctx.fillStyle = sPhaseTint ? (sPhaseTint[_currentPhase] || '#ffffff') : '#ffffff';
+            var sPhaseOp = sCfg.PHASE_OPACITY;
+            ctx.globalAlpha = sPhaseOp ? (sPhaseOp[_currentPhase] ?? sCfg.ALPHA ?? 0.7) : (sCfg.ALPHA || 0.7);
             for (var i = 0; i < snowParticles.length; i++) {
                 var s = snowParticles[i];
                 ctx.beginPath();
@@ -638,6 +653,7 @@
         // Ambient
         lines.push('--- AMBIENT ---');
         lines.push('Level: ' + currentLevel + ' (bear=' + currentBearMarket + ', boss=' + currentBossActive + ')');
+        lines.push('Phase: ' + _currentPhase);
         lines.push('Ambient effects: ' + ambientEffects.join(', '));
         lines.push('Snow: ' + snowParticles.length);
         lines.push('Fog: ' + fogWisps.length);
@@ -660,8 +676,14 @@
             effects: activeEffects.length, rain: raindrops.length, meteors: meteorBurst.length,
             wind: windMultiplier, drawCalls: drawCalls, birds: birdParticles.length,
             snow: snowParticles.length, fog: fogWisps.length, drizzle: drizzleDrops.length,
-            distantLightning: distantLightningFlash, ambientEffects: ambientEffects
+            distantLightning: distantLightningFlash, ambientEffects: ambientEffects,
+            phase: _currentPhase
         };
+    }
+
+    // v7.15: Set visual phase for phase-adaptive weather colors/opacity
+    function setPhase(phase) {
+        _currentPhase = Math.max(1, Math.min(3, phase || 1));
     }
 
     G.WeatherController = {
@@ -675,6 +697,7 @@
         setLevel: setLevel,
         setIntroMode: setIntroMode,
         triggerLevelTransition: triggerLevelTransition,
+        setPhase: setPhase,
         status: status
     };
 })();

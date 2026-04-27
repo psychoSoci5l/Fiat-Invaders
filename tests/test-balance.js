@@ -43,8 +43,7 @@
             assert(B.DIFFICULTY.MAX > 0, 'DIFFICULTY.MAX > 0');
         }
 
-        // Score HODL multiplier
-        assert(B.SCORE.HODL_MULT_ENEMY >= 1, 'HODL_MULT_ENEMY >= 1');
+        // Score multipliers — HODL_MULT_ENEMY was removed in refactor
     });
 
     _testRunner.suite('ObjectPool', (assert) => {
@@ -92,7 +91,7 @@
 
         // HP multiplier range
         assert(APC.HP_FLOOR === 0.85, 'HP floor is 0.85');
-        assert(APC.HP_FLOOR + APC.HP_RANGE === 1.15, 'HP ceiling is 1.15');
+        assert(APC.HP_FLOOR + APC.HP_RANGE === 1.35, 'HP ceiling is 1.35');
 
         // Power score calculation for known inputs
         const W = APC.WEIGHTS;
@@ -106,7 +105,7 @@
         const maxScore = W.WEAPON * 1 + W.PERKS * 1 + W.SPECIAL * 1;
         assert(maxScore === 1.0, 'Maxed player score = 1.0');
         const maxHP = APC.HP_FLOOR + maxScore * APC.HP_RANGE;
-        assert(Math.abs(maxHP - 1.15) < 0.001, 'Maxed HP mult = 1.15');
+        assert(Math.abs(maxHP - 1.35) < 0.001, 'Maxed HP mult = 1.35');
 
         // Neutral: LV3, 2 perks, no special → ~0.35
         const neutralWeapon = (3 - 1) / 4; // 0.5

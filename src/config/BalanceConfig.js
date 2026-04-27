@@ -41,7 +41,7 @@
                 DIVE:  { ACCEL: 10 },                       // vy += ACCEL*dt (simple fall). v7.2.2: 35→10, enemies stay visible ~6-8s
                 SINE:  { AMPLITUDE: 70, FREQ: 2.0 },        // horizontal serpentine while descending
                 HOVER: { Y_TARGET_RATIO: 0.28, DWELL: 2.5, EXIT_VY: -180, APPROACH_VY: 60 },
-                SWOOP: { APPROACH_VY: 50, CURVE_FREQ: 1.3, CURVE_AMP: 140, SIDE_MARGIN: 30 }
+                SWOOP: { APPROACH_VY: 50, CURVE_FREQ: 1.3, CURVE_AMP: 100, SIDE_MARGIN: 30 }
             }
         },
 
@@ -118,11 +118,20 @@
                 SPLASH_RADIUS: 55,    // v5.0.8: 40→50→55 (wider AoE for formation clumps)
                 SPLASH_DAMAGE: 0.55,  // v5.31: 0.50→0.55 (+10% elemental buff)
                 TRAIL_COLORS: ['#ff4400', '#ff6600', '#ffaa00'],
-                IMPACT_PARTICLES: 8
+                IMPACT_PARTICLES: 8,
+                // v7.14: Burn DoT — fire damage over time on hit (not just on-kill)
+                BURN_DOT: {
+                    ENABLED: true,
+                    DURATION: 1.8,              // Total burn duration (seconds)
+                    TICK_INTERVAL: 0.45,         // ~4 ticks per burn
+                    DAMAGE_FRACTION: 0.25        // 25% of original hit damage over full duration
+                }
             },
             LASER: {
                 SPEED_MULT: 1.375,    // v5.31: 1.25→1.375 (+10% elemental buff)
                 PIERCE_BONUS: 1,      // +1 pierce HP
+                COOLDOWN_MULT: 0.75,  // v7.14: 25% faster fire rate (continuous beam feel)
+                DAMAGE_MULT: 0.80,    // v7.14: 20% less per-hit (offset by rate + beam sustain)
                 GLOW_COLOR: '#00f0ff',
                 TRAIL_LENGTH: 18,     // legacy overlay (fallback when BEAM disabled)
                 BEAM: {
@@ -144,8 +153,14 @@
                 CHAIN_RADIUS: 100,    // v5.0.8: 80→90→100 (wider chain reach)
                 CHAIN_DAMAGE: 0.44,   // v5.31: 0.40→0.44 (+10% elemental buff)
                 CHAIN_TARGETS: 2,     // max enemies to chain to
+                COOLDOWN_MULT: 1.30,  // v7.14: 30% slower fire rate (stun utility compensates)
                 ARC_COLOR: '#8844ff',
-                ARC_COLOR_BRIGHT: '#bb88ff'
+                ARC_COLOR_BRIGHT: '#bb88ff',
+                // v7.14: Electric stun — hit-stops enemy movement and firing
+                STUN: {
+                    ENABLED: true,
+                    DURATION: 0.40              // Seconds enemies are frozen per hit
+                }
             },
             // v5.0.7: Elemental Contagion — cascade kills propagate elemental effects
             CONTAGION: {
@@ -384,6 +399,7 @@
 
             // Screen flash effects (values used when enabled)
             FLASH: {
+                ENEMY_KILL: { duration: 0.04, opacity: 0.08, color: '#FFFFFF' },  // v7.13.0: subtle kill flash
                 CLOSE_GRAZE: { duration: 0.03, opacity: 0.10, color: '#FFFFFF' },
                 HYPER_ACTIVATE: { duration: 0.10, opacity: 0.20, color: '#FFD700' },
                 STREAK_10: { duration: 0.06, opacity: 0.15, color: '#00FFFF' },
@@ -1346,7 +1362,10 @@
 
             // v4.48: Missile optimization — fewer projectiles, more damage
             MISSILE_BULLET_DIVISOR: 2,   // floor(bullets / divisor), min 1
-            MISSILE_DAMAGE_BONUS: 2.0,   // stacked on damageMult
+            MISSILE_DAMAGE_BONUS: 3.0,   // v7.14: 2.0→3.0 (slower fire rate compensates)
+            MISSILE_COOLDOWN_MULT: 2.8,  // v7.14: slower fire rate for missile identity
+            HOMING_COOLDOWN_MULT: 1.2,   // v7.14: slightly slower (auto-track compensates)
+            PIERCE_COOLDOWN_MULT: 1.0,   // v7.14: no change (pierce damage decays)
 
             // Special duration (HOMING/PIERCE/MISSILE)
             SPECIAL_DURATION: 10,             // v7.0: 8→10 (more enjoyment time with specials)
@@ -1793,10 +1812,10 @@
             MUZZLE_TRACER_LIFE: 0.10,             // Tracer lifetime (s)
             MUZZLE_TRACER_SIZE: 2.5,              // Tracer radius
 
-            // Explosion tiers
+            // Explosion tiers — v7.13.0: boosted counts for more impactful feedback
             EXPLOSION_WEAK: { particles: 6, ringCount: 1, duration: 0.30, debrisCount: 2 },
-            EXPLOSION_MEDIUM: { particles: 10, ringCount: 1, duration: 0.40, debrisCount: 4 },
-            EXPLOSION_STRONG: { particles: 14, ringCount: 2, duration: 0.55, debrisCount: 6, flash: true },
+            EXPLOSION_MEDIUM: { particles: 14, ringCount: 2, duration: 0.45, debrisCount: 6 },
+            EXPLOSION_STRONG: { particles: 20, ringCount: 2, duration: 0.60, debrisCount: 8, flash: true },
 
             // v5.15: Cyber Destruction VFX
             ENEMY_DESTROY: {
@@ -1815,8 +1834,8 @@
                 SFX: {
                     ENABLED: true,
                     WEAK:   { VOLUME: 0.08, DURATION: 0.08 },
-                    MEDIUM: { VOLUME: 0.10, DURATION: 0.12 },
-                    STRONG: { VOLUME: 0.14, DURATION: 0.18 },
+                    MEDIUM: { VOLUME: 0.15, DURATION: 0.14 },  // v7.13.0: boosted for punchier feedback
+                    STRONG: { VOLUME: 0.22, DURATION: 0.20 },  // v7.13.0: boosted for punchier feedback
                     ELEM_LAYER: { ENABLED: true, VOLUME: 0.06, DURATION: 0.15 }
                 }
             },
@@ -1996,9 +2015,9 @@
                 PULSE_SPEED: 5.0        // v4.45: 3→5 (faster pulsing, more dramatic)
             },
             FIRE_TRAIL: {
-                TONGUE_COUNT: 5,        // v4.45: 3→5
-                LENGTH: 20,             // v4.45: 12→20
-                ALPHA: 0.85,            // v4.45: 0.7→0.85
+                TONGUE_COUNT: 5,        // v7.15: rendered as up to 7 when HYPERGOD
+                LENGTH: 26,             // v7.15: 20→26, 1.5x when HYPERGOD
+                ALPHA: 0.85,
                 COLORS: ['#ff4400', '#ff6600', '#ffaa00']
             },
             VIGNETTE: true              // v4.45: Enable screen-edge orange glow
@@ -2017,6 +2036,12 @@
             // A. Gradient sky (smooth cached linear gradient)
             GRADIENTS: {
                 ENABLED: true,
+                // Phase-indexed colors (v7.15: Phase 1=Earth, Phase 2=Atmosphere, Phase 3=Deep Space)
+                PHASES: {
+                    1: ['#4a90d9', '#6ab0e0', '#7ac0e8', '#87ceeb'],  // P1: blue sky
+                    2: ['#554488', '#664499', '#7755aa', '#8866aa'],  // P2: violet
+                    3: ['#000000', '#000000', '#000000', '#000000']   // P3: black
+                },
                 LEVELS: {
                     1: ['#0a0825', '#121040', '#1a1555', '#201a60'],
                     2: ['#080620', '#0f0d38', '#161250', '#1c1660'],
@@ -2028,6 +2053,12 @@
                 BEAR: ['#1a0008', '#200010', '#280015', '#200010']
             },
 
+            // Phase transition timing (v7.15)
+            PHASE_TRANSITION: {
+                P1P2_DURATION: 10,     // 8-12s crossfade P1→P2
+                P2P3_DURATION: 10      // 8-12s crossfade P2→P3
+            },
+
             // B. Star field
             STARS: {
                 ENABLED: true,
@@ -2036,6 +2067,12 @@
                 MAX_SIZE: 3.5,
                 MIN_VISIBLE_LEVEL: 1,      // Stars visible from L1 (dark sky)
                 ALPHA_BY_LEVEL: { 1: 0.15, 2: 0.30, 3: 0.50, 4: 0.75, 5: 1.0 },
+                // Phase visibility (v7.15): P1=no stars (daylight), P2=upper 50%, P3=full
+                PHASE_VISIBLE: { 1: false, 2: true, 3: true },
+                PHASE_ALPHA: { 1: 0, 2: 0.25, 3: 1.0 },
+                PHASE_UPPER_ONLY: { 1: false, 2: true, 3: false },  // P2: stars only in upper 50%
+                PHASE_SHOOTING_INTERVAL: { 1: null, 2: [8, 20], 3: [4, 12] },
+                PHASE_SHOOTING_ALPHA: { 1: 0, 2: 0.4, 3: 1.0 },
                 DRIFT_SPEED: 3,            // px/sec base drift
                 SHOOTING_STARS: {
                     ENABLED: true,
@@ -2063,6 +2100,12 @@
                     3: ['#100c22', '#0c081c', '#0a0618', '#080514', '#06040e'],
                     4: ['#0a0818', '#080614', '#060510', '#05040c', '#040308'],
                     5: ['#080614', '#060510', '#05040c', '#040308', '#030206']
+                },
+                // Phase hill colors (v7.15): P1=earth greens, P2=purple-blues, P3=black
+                PHASE_COLORS: {
+                    1: ['#5a8a4a', '#4a7a3a', '#3a6a2a', '#2a5a1a', '#1a4a0a'],
+                    2: ['#553366', '#442255', '#331144', '#220033', '#110022'],
+                    3: ['#000000', '#000000', '#000000', '#000000', '#000000']
                 },
                 BEAR_COLORS: ['#1a0408', '#160306', '#120205', '#0e0204', '#0a0103'],
                 SILHOUETTES: {
@@ -2115,7 +2158,21 @@
                     NORMAL: { shadow: '#1a1035', main: '#251848', highlight: '#352060', outline: '#0e0820' },
                     BEAR: { shadow: '#200008', main: '#300010', highlight: '#400018', outline: '#180006' },
                     NIGHT: { shadow: '#0c0820', main: '#141030', highlight: '#1c1840', outline: '#080515' }
-                }
+                },
+                // Phase cloud colors (v7.15): P1=white/gray, P2=violet-white, P3=black silhouettes+neon rim
+                PHASE_COLORS: {
+                    1: { shadow: '#8899aa', main: '#eef0f5', highlight: '#ffffff', outline: '#667788' },
+                    2: { shadow: '#554477', main: '#ccb3e6', highlight: '#e6d9f7', outline: '#443366' },
+                    3: { shadow: '#050510', main: '#08081a', highlight: '#0a0a22', outline: '#0c0c24' }
+                },
+                PHASE_RIM: {
+                    3: { colorTop: '#ff2d95', colorBot: '#00f0ff', width: 2, alpha: 0.7 }
+                },
+                // Phase cloud params: count, lobes, alpha (v7.15)
+                PHASE_COUNT: { 1: 12, 2: 8, 3: 0 },
+                PHASE_LOBES: { 1: [3, 5], 2: [2, 3], 3: [2, 2] },
+                PHASE_CLOUD_ALPHA: { 1: 0.85, 2: 0.55, 3: 0.35 },
+                PHASE_DRIFT_SPEED: { 1: [20, 30], 2: [15, 25], 3: [10, 20] }
             },
 
             // F. Horizon glow
@@ -2132,6 +2189,10 @@
                     4: '#100e38',
                     5: '#0a0a22'
                 },
+                // Phase horizon glow (v7.15): P1=warm daylight, P2=pale violet, P3=none
+                PHASE_COLORS: { 1: '#ffe4a0', 2: '#cc88ff', 3: '#000000' },
+                PHASE_HEIGHTS: { 1: 12, 2: 8, 3: 0 },
+                PHASE_ALPHA: { 1: [0.15, 0.35], 2: [0.10, 0.22], 3: [0, 0] },
                 BEAR_COLOR: '#200010',
                 BOSS_COLOR: '#080820'
             },
@@ -2148,12 +2209,19 @@
                 SHEET_LIGHTNING: {
                     COLOR: '#bb66ff',
                     BEAR_COLOR: '#ff2244',
-                    ALPHA: 0.5
+                    ALPHA: 0.5,
+                    // Phase colors (v7.15)
+                    PHASE_COLORS: { 1: '#8888ff', 2: '#aa66ff', 3: '#bb66ff' },
+                    PHASE_ALPHA: { 1: 0.35, 2: 0.45, 3: 0.50 }
                 },
                 RAIN: {
                     COLOR: '#6666aa',
                     BEAR_COLOR: '#882222',
-                    WIDTH: 1.5
+                    WIDTH: 1.5,
+                    // Phase rain (v7.15): P3 needs luminance boost against black
+                    PHASE_COLORS: { 1: '#6666aa', 2: '#8888cc', 3: '#bbaaff' },
+                    PHASE_OPACITY: { 1: 1.0, 2: 1.3, 3: 1.6 },
+                    PHASE_ADDITIVE: { 1: false, 2: false, 3: true }
                 },
                 TRIGGERS: {
                     boss_spawn: [
@@ -2188,7 +2256,11 @@
                     SIZE_MAX: 3.5,
                     WOBBLE_AMP: 25,       // horizontal wobble px
                     WOBBLE_FREQ: 1.2,     // wobble cycles/sec
-                    ALPHA: 0.7
+                    ALPHA: 0.7,
+                    // Phase snow (v7.15)
+                    PHASE_OPACITY: { 1: 1.0, 2: 1.0, 3: 0.65 },
+                    PHASE_TINT: { 1: '#ffffff', 2: '#ddddee', 3: '#ffffff' },
+                    PHASE_COUNT_MULT: { 1: 1.0, 2: 1.0, 3: 0.8 }
                 },
 
                 FOG: {
@@ -2201,7 +2273,11 @@
                     ALPHA_MIN: 0.04,
                     ALPHA_MAX: 0.08,
                     COLOR: '#4444aa',
-                    BEAR_COLOR: '#aa2244'
+                    BEAR_COLOR: '#aa2244',
+                    // Phase fog (v7.15)
+                    PHASE_COLORS: { 1: '#aaaacc', 2: '#8866bb', 3: '#4444aa' },
+                    PHASE_ALPHA: { 1: [0.06, 0.10], 2: [0.04, 0.08], 3: [0.02, 0.05] },
+                    PHASE_COUNT: { 1: 4, 2: 3, 3: 2 }
                 },
 
                 DRIZZLE: {
@@ -2214,7 +2290,10 @@
                     ALPHA: 0.12,
                     COLOR: '#5566aa',
                     BEAR_COLOR: '#664444',
-                    WIDTH: 1
+                    WIDTH: 1,
+                    // Phase drizzle (v7.15)
+                    PHASE_COLORS: { 1: '#5566aa', 2: '#7755aa', 3: '#8833aa' },
+                    PHASE_OPACITY: { 1: 0.12, 2: 0.10, 3: 0.08 }
                 },
 
                 DISTANT_LIGHTNING: {
@@ -2229,7 +2308,9 @@
                         4: '#aa44ff',     // deep violet
                         5: '#6644ff'      // indigo
                     },
-                    BEAR_COLOR: '#ff2244' // neon red
+                    BEAR_COLOR: '#ff2244', // neon red
+                    // Phase distant lightning (v7.15)
+                    PHASE_ALPHA: { 1: [0.08, 0.15], 2: [0.06, 0.12], 3: [0.05, 0.10] }
                 },
 
                 LEVEL_TRANSITION: {
@@ -2278,8 +2359,56 @@
                     MAX_LEN: 22,
                     MIN_ALPHA: 0.15,
                     MAX_ALPHA: 0.55,
-                    COLORS: ['#00f0ff', '#ff2d95', '#bb44ff']
+                    COLORS: ['#00f0ff', '#ff2d95', '#bb44ff'],
+                    // Phase streak colors (v7.15)
+                    PHASE_COLORS: {
+                        1: ['#6699cc', '#88aadd', '#5599bb'],   // daylight blues
+                        2: ['#8866cc', '#aa77dd', '#7755bb'],   // violet
+                        3: ['#00f0ff', '#ff2d95', '#bb44ff']    // neon (current)
+                    },
+                    PHASE_COUNT: { 1: 20, 2: 25, 3: 30 },
+                    PHASE_LEN: { 1: [4, 14], 2: [5, 18], 3: [6, 22] },
+                    PHASE_ALPHA_RANGE: { 1: [0.08, 0.30], 2: [0.10, 0.40], 3: [0.15, 0.55] },
+                    PHASE_BASE_SPEED: { 1: 20, 2: 50, 3: 100 }
                 }
+            },
+
+            // J. Floating crypto symbols (v7.15 phase-aware)
+            FLOATING_SYMBOLS: {
+                ENABLED: true,
+                COUNT: 8,
+                SYMBOLS: ['₿', 'Ξ', '◎', '₮', '∞'],
+                SIZE_MIN: 14,
+                SIZE_MAX: 26,
+                ALPHA: 0.15,
+                DRIFT_SPEED: 15,
+                WOBBLE_SPEED: 2,
+                PHASE_COUNT: { 1: 5, 2: 6, 3: 8 },
+                PHASE_ALPHA: { 1: 0.10, 2: 0.14, 3: 0.15 },
+                PHASE_COLORS: { 1: '#aabbcc', 2: '#8888cc', 3: '#8888cc' },
+                PHASE_SYMBOLS: {
+                    1: ['₿', 'Ξ', '◎'],
+                    2: ['₿', 'Ξ', '◎', '₮'],
+                    3: ['₿', 'Ξ', '◎', '₮', '∞']
+                }
+            },
+
+            // K. Parallax planets (v7.15: Phase 3 Deep Space only)
+            PLANETS: {
+                ENABLED: true,
+                PHASE_COUNT: { 1: 0, 2: 0, 3: 3 },
+                MIN_RADIUS: 30,
+                MAX_RADIUS: 80,
+                DRIFT_SPEED: [3, 8],
+                RING_CHANCE: 0.4,
+                MOON_CHANCE: 0.33,
+                COLORS: [
+                    { body: ['#c8a06e', '#8b6b4a'], ring: '#b8945e' },   // Saturn-like
+                    { body: ['#6ea8c8', '#4a6b8b'], ring: '#5e94b8' },   // Neptune-like
+                    { body: ['#8b6b4a', '#5c4430'], ring: null },         // Rocky
+                    { body: ['#a0c8e8', '#6b8ba8'], ring: '#8ab0d0' },   // Ice giant
+                    { body: ['#d4a074', '#a07050'], ring: '#c09060' }     // Saturn-like 2
+                ]
             }
         },
 
@@ -2476,14 +2605,15 @@
         // --- TITLE ANIMATION v4.35 ---
         TITLE_ANIM: {
             ENABLED: true,                // false = skip animation, show everything immediately
-            DURATION: 2.4,
+            DURATION: 1.4,
+            SPEED: 1.0,                   // multiplier: 1.0 = normal, 1.5 = 50% faster, 2.0 = 2x
             TIMELINE: {
-                SUBTITLE_IN: 0.24,
-                FIAT_IN: 0.6,
-                VS_IN: 0.96,
-                CRYPTO_IN: 1.32,
-                LOOP_START: 1.8,
-                CONTROLS_IN: 2.4
+                SUBTITLE_IN: 0.15,
+                FIAT_IN: 0.35,
+                VS_IN: 0.55,
+                CRYPTO_IN: 0.75,
+                LOOP_START: 1.0,
+                CONTROLS_IN: 1.4
             },
             PARTICLES: {
                 COUNT: 16,

@@ -17,7 +17,7 @@ scope: M
 
 ---
 
-## A. Overview
+## Overview
 
 The legacy **Wave System** is a wave-by-wave, phase-streaming enemy spawn system. Each level = 1 wave; each wave contains 2–3 **phases**; each phase is an independently configurable formation (count + formation type + allowed currencies). The next phase spawns when the previous is ~25% cleared — so the player sees a continuous stream of enemies instead of "wave cleared → pause → next wave". Wave counter increments only when all phases are spawned and all enemies are dead.
 
@@ -27,7 +27,7 @@ The system ships with **15 baseline waves** (5 per cycle × 3 cycles) and **~20 
 
 ---
 
-## B. Player Fantasy
+## Player Fantasy
 
 Each cycle has a theme: C1 is **Awakening** (tutorial-friendly shapes, weak/medium currencies), C2 is **Conflict** (more aggressive formations, Euro/Dollar blocs confront each other), C3 is **Reckoning** (digital threats like CBDC `Ⓒ`, swirling formations like Hurricane/Vortex, full currency mix). Wave names reinforce theme: "First Contact", "Eastern Front", "Digital Doom", "Endgame". The player feels narrative progression through formation complexity and currency strength, not through numeric inflation.
 
@@ -37,7 +37,7 @@ The phase-streaming design prevents the "wait for the last enemy to wander in" d
 
 ---
 
-## C. Detailed Rules
+## Detailed Rules
 
 ### C.1 Wave structure
 
@@ -206,7 +206,7 @@ Bear Market: `GAP_SIZE_BEAR_BONUS: -15`, `MAX_BULLETS_BEAR_BONUS: +15`, `COMPLEX
 
 ---
 
-## D. V8 vs Legacy routing
+## V8 vs Legacy routing
 
 `WaveManager.update()` at [WaveManager.js:49–52](src/managers/WaveManager.js:49):
 
@@ -224,7 +224,7 @@ Result:
 
 ---
 
-## E. Feature Matrix
+## Feature Matrix
 
 | Feature | Config key | Effect | Kill-switch |
 |---|---|---|---|
@@ -243,7 +243,7 @@ Result:
 
 ---
 
-## F. Analytics / Debug
+## Analytics / Debug
 
 - `dbg.log('WAVE', ...)` — every wave/phase spawn log. Silent by default (category off).
 - `dbg.waveReport()` — summary of current wave + streaming state.
@@ -253,7 +253,7 @@ Result:
 
 ---
 
-## G. Tuning Notes and Open Debts
+## Tuning Notes and Open Debts
 
 1. **Dead code path: non-streaming `startWave` branch**. The file still carries a legacy non-streaming `startWave` path (around [WaveManager.js:150–192](src/managers/WaveManager.js:150)) — scaled-count logic + single formation spawn. The live path is `prepareStreamingWave()` for all waves (streaming is always on in v6.2+). Consider dead-code removal when enemy-streaming is confirmed permanent.
 2. **CURRENCY_THEMES unused at runtime**. Named blocs (ASIAN_BLOC, BRICS, etc.) are a **documentation reference** — wave defs don't call them. They exist as a design palette for future wave authoring but currently they're a dead config branch.
@@ -266,7 +266,36 @@ Result:
 
 ---
 
-## H. Cross-links
+## Edge Cases
+
+1. **Post-C3 infinite loop.** After cycle 3, the system loops back to C1–C3 wave definitions with formation remixing (+40% chance of currency-symbol formations) and +20%/cycle difficulty scaling. Cycle tracking continues (C4, C5, ...) for analytics even though no new wave definitions exist.
+2. **MAX_CONCURRENT_ENEMIES cap during streaming.** If a large phase would push total enemies above `MAX_CONCURRENT_ENEMIES: 18`, the phase spawn is delayed until existing enemies are cleared — the player sees a "lull" as the stream pauses at the cap.
+3. **Formation overflow on small screens.** Responsive formations (`FORMATION.RESPONSIVE`) scale spacing to screen width. Non-responsive formations may clip lanes on narrow viewports (enemies spawning partially off-screen). Intentional — the game canvas is fixed-ratio and all lanes are within the canvas bounds.
+4. **Arcade +15% enemy count vs MAX_PER_PHASE clamp.** Arcade mode applies `ENEMY_COUNT_MULT: 1.15` after cycle scaling, but `MAX_PER_PHASE: 14` hard-clips the result. A C3W5 phase with base count 22 × 1.45 × 1.15 = 36.7 effectively spawns 14 — the count scaling is partially cosmetic at extreme values.
+5. **Phase threshold at 25% alive.** If a phase has very few enemies (e.g., 3 enemies in a phase), the 25% threshold means the next phase triggers when just 1 remains. This can create rapid micro-bursts of very small phases.
+
+## Dependencies
+
+- **V8 Scroller GDD** — replaces wave system in campaign mode (v7.5.0+). Wave system is active only when `!V8_MODE.ENABLED || isArcade`.
+- **Arcade Rogue Protocol GDD** — Arcade mode uses wave system with modifier stacking, combo multiplier, and enhanced mini-boss triggers.
+- **Boss System + Proximity Kill GDD** — boss spawns after wave 5 in each cycle, triggered on intermission completion.
+- **Enemy Agents GDD** — tier classification, elite variants, and behaviors are applied to enemies spawned by WaveManager.
+- **Drop System + APC GDD** — `GUARANTEED_SPECIAL_WAVE: 4` anchors to wave numbering; APC cycle transitions align with wave cycles.
+
+## Acceptance Criteria
+
+1. **15 baseline waves** (5 per cycle × 3 cycles) exist in `Balance.WAVE_DEFINITIONS.WAVES`, each with 2–3 streaming phases.
+2. **Phase streaming triggers correctly:** next phase spawns when ~25% of current phase is cleared and min 3.0s has elapsed, capped at `MAX_CONCURRENT_ENEMIES: 18`.
+3. **Wave counter increments only when all phases are spawned and all enemies are dead.**
+4. **Cycle escalation applies per-cycle scaling** (enemy count +20%/cycle, formation remixing post-C3).
+5. **Arcade overrides apply:** +15% enemy count, -15% HP, shorter intermissions (2s vs 3.2s).
+6. **Intermission fires between waves** (`ARCADE.INTERMISSION_DURATION: 2.0s` in Arcade, `Balance.TIMING.INTERMISSION_DURATION` in Story — though Story uses V8).
+7. **Boss spawns after wave 5** in each cycle via `SPAWN_BOSS` event.
+8. **Post-C3 infinite loop** cycles back to C1 definitions with difficulty scaling and formation remixing.
+
+---
+
+## Cross-links
 
 - [V8 Scroller GDD](v8-scroller.md) — replaces wave system in campaign mode (v7.5.0+).
 - [Arcade Rogue Protocol GDD](arcade-rogue-protocol.md) — Arcade mode pacing, combo, modifier triggers on wave progress.

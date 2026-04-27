@@ -40,6 +40,13 @@
     let hitStopFreeze = false;
     let hitStopSlowScale = 0.25; // v5.28: configurable slowmo scale (default 25%)
 
+    // v7.13.0: Transition overlay (fade to/from black)
+    let fadeOverlayAlpha = 0;
+    let fadeOverlayTarget = 0;
+    let fadeOverlaySpeed = 0;
+    let fadeOverlayCallback = null;
+    const FADE_DEFAULT_DURATION = 0.4;
+
     /**
      * Initialize effects system with canvas dimensions
      */
@@ -70,6 +77,51 @@
         lastScorePulseThreshold = 0;
         hitStopTimer = 0;
         hitStopFreeze = false;
+        // v7.13.0: reset transition overlay
+        fadeOverlayAlpha = 0;
+        fadeOverlayTarget = 0;
+        fadeOverlaySpeed = 0;
+        fadeOverlayCallback = null;
+    }
+
+    // --- v7.13.0: Transition overlay (fade to/from black) ---
+
+    /**
+     * Fade the screen to black, then call onComplete.
+     * @param {number} [duration] Seconds (default 0.4)
+     * @param {function} [onComplete] Called when black is reached
+     */
+    function startFadeOut(duration, onComplete) {
+        fadeOverlayAlpha = 0;
+        fadeOverlayTarget = 1;
+        fadeOverlaySpeed = 1 / (duration || FADE_DEFAULT_DURATION);
+        fadeOverlayCallback = onComplete || null;
+    }
+
+    /**
+     * Fade the screen in from black (start black, end clear).
+     * @param {number} [duration] Seconds (default 0.4)
+     * @param {function} [onComplete] Called when fully visible
+     */
+    function startFadeIn(duration, onComplete) {
+        fadeOverlayAlpha = 1;
+        fadeOverlayTarget = 0;
+        fadeOverlaySpeed = 1 / (duration || FADE_DEFAULT_DURATION);
+        fadeOverlayCallback = onComplete || null;
+    }
+
+    /**
+     * @returns {boolean} true while a transition fade is active
+     */
+    function isFading() {
+        return fadeOverlayAlpha !== fadeOverlayTarget;
+    }
+
+    /**
+     * @returns {number} Current fade overlay alpha (0=transparent, 1=black)
+     */
+    function getFadeAlpha() {
+        return fadeOverlayAlpha;
     }
 
     /**
@@ -224,6 +276,21 @@
             if (damageVignetteTimer < 0) damageVignetteTimer = 0;
         }
 
+        // v7.13.0: Transition overlay update
+        if (fadeOverlayAlpha !== fadeOverlayTarget) {
+            const dir = fadeOverlayTarget > fadeOverlayAlpha ? 1 : -1;
+            fadeOverlayAlpha += dir * fadeOverlaySpeed * dt;
+            if ((dir > 0 && fadeOverlayAlpha >= fadeOverlayTarget) ||
+                (dir < 0 && fadeOverlayAlpha <= fadeOverlayTarget)) {
+                fadeOverlayAlpha = fadeOverlayTarget;
+                if (fadeOverlayCallback) {
+                    const cb = fadeOverlayCallback;
+                    fadeOverlayCallback = null;
+                    cb();
+                }
+            }
+        }
+
         // Hit stop processing
         let modifiedDt = dt;
         if (hitStopTimer > 0) {
@@ -271,6 +338,21 @@
         if (screenFlashOpacity > 0) {
             ctx.fillStyle = screenFlashColor;
             ctx.globalAlpha = screenFlashOpacity;
+            ctx.fillRect(-20, -20, gameWidth + 40, gameHeight + 40);
+            ctx.globalAlpha = 1;
+        }
+    }
+
+    // --- v7.13.0: Transition overlay ---
+
+    /**
+     * Draw fade transition overlay (black overlay for scene transitions)
+     * @param {CanvasRenderingContext2D} ctx
+     */
+    function drawFadeOverlay(ctx) {
+        if (fadeOverlayAlpha > 0) {
+            ctx.fillStyle = '#000000';
+            ctx.globalAlpha = fadeOverlayAlpha;
             ctx.fillRect(-20, -20, gameWidth + 40, gameHeight + 40);
             ctx.globalAlpha = 1;
         }
@@ -325,15 +407,42 @@
     }
 
     /**
-     * Draw mode overlay (HYPER golden tint)
-     * @param {CanvasRenderingContext2D} ctx
-     * @param {number} totalTime - Total elapsed time for animation
+     * v7.15: HYPER full-screen dramatic overlay
+     * Golden radial glow + floating energy ribbons for catharsis.
      */
     function drawHyperOverlay(ctx, totalTime) {
         if (!G.Balance?.JUICE?.SCREEN_EFFECTS?.HYPER_OVERLAY) return;
-        const hyperPulse = Math.sin(totalTime * 6) * 0.05 + 0.15;
-        ctx.fillStyle = `rgba(255, 200, 0, ${hyperPulse})`;
+
+        // Full golden pulse — center glow + edge vignette
+        const pulse = Math.sin(totalTime * 5) * 0.04 + 0.12;
+        const gradient = ctx.createRadialGradient(
+            gameWidth / 2, gameHeight / 2, gameWidth * 0.05,
+            gameWidth / 2, gameHeight / 2, gameWidth * 0.7
+        );
+        gradient.addColorStop(0, 'rgba(255, 215, 0, 0)');
+        gradient.addColorStop(0.35, `rgba(255, 200, 50, ${pulse * 0.4})`);
+        gradient.addColorStop(0.65, `rgba(255, 180, 0, ${pulse * 0.6})`);
+        gradient.addColorStop(1, `rgba(255, 215, 0, ${pulse})`);
+        ctx.fillStyle = gradient;
         ctx.fillRect(-20, -20, gameWidth + 40, gameHeight + 40);
+
+        // Energy ribbons — golden bands flowing upward (screen-wide dynamism)
+        const ribbonCount = 4;
+        for (let i = 0; i < ribbonCount; i++) {
+            const phase = i / ribbonCount;
+            const y = ((totalTime * 70 + phase * gameHeight) % (gameHeight + 50)) - 25;
+            const alpha = 0.035 + Math.sin(totalTime * 3.5 + i * 1.8) * 0.02;
+            ctx.fillStyle = `rgba(255, 215, 0, ${alpha})`;
+            ctx.fillRect(0, y, gameWidth, 2 + Math.sin(totalTime * 2.5 + i * 2) * 1.5);
+        }
+    }
+
+    /**
+     * v7.15: HYPER vignette — full-screen dramatic glow (called by main.js)
+     */
+    function drawHyperVignette(ctx, isActive, totalTime) {
+        if (!isActive) return;
+        drawHyperOverlay(ctx, totalTime);
     }
 
     /**
@@ -383,21 +492,60 @@
     }
 
     /**
-     * v4.45: GODCHAIN vignette — persistent orange border glow while active
+     * v7.15: GODCHAIN overlay — intense red/orange full-screen effect
+     * Replaces the old border-only vignette with screen-wide catharsis.
      */
     function drawGodchainVignette(ctx, isActive, totalTime) {
         if (!isActive) return;
-        if (!G.Balance?.GODCHAIN?.VIGNETTE) return;
-        const pulse = Math.sin(totalTime * 6) * 0.06 + 0.18;
-        const thickness = 18;
+
+        // Full red/orange radial glow — more intense than HYPER
+        const pulse = Math.sin(totalTime * 7) * 0.1 + 0.22;
+        const gradient = ctx.createRadialGradient(
+            gameWidth / 2, gameHeight / 2, gameWidth * 0.02,
+            gameWidth / 2, gameHeight / 2, gameWidth * 0.7
+        );
+        gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+        gradient.addColorStop(0.25, 'rgba(255, 68, 0, 0)');
+        gradient.addColorStop(0.5, `rgba(255, 68, 0, ${pulse * 0.3})`);
+        gradient.addColorStop(0.75, `rgba(255, 51, 0, ${pulse * 0.6})`);
+        gradient.addColorStop(1, `rgba(200, 30, 0, ${pulse})`);
+        ctx.fillStyle = gradient;
+        ctx.fillRect(-20, -20, gameWidth + 40, gameHeight + 40);
+
+        // Fast energy ribbons — orange/red bands flowing upward
+        for (let i = 0; i < 4; i++) {
+            const phase = i / 4;
+            const y = ((totalTime * 100 + phase * gameHeight) % (gameHeight + 50)) - 25;
+            const alpha = 0.05 + Math.sin(totalTime * 4.5 + i * 1.8) * 0.025;
+            ctx.fillStyle = `rgba(255, 68, 0, ${alpha})`;
+            ctx.fillRect(0, y, gameWidth, 2 + Math.sin(totalTime * 3 + i * 2.5) * 1);
+        }
+
+        // Border glow — legacy orange bars but more visible
+        const borderPulse = Math.sin(totalTime * 8) * 0.06 + 0.2;
         const CU = G.ColorUtils;
-        // Top + bottom orange bars
-        ctx.fillStyle = CU.rgba(255, 68, 0, pulse);
-        ctx.fillRect(0, 0, gameWidth, thickness);
-        ctx.fillRect(0, gameHeight - thickness, gameWidth, thickness);
-        // Left + right
-        ctx.fillRect(0, 0, thickness, gameHeight);
-        ctx.fillRect(gameWidth - thickness, 0, thickness, gameHeight);
+        ctx.fillStyle = CU.rgba(255, 34, 0, borderPulse * 0.5);
+        ctx.fillRect(0, 0, gameWidth, 14);
+        ctx.fillRect(0, gameHeight - 14, gameWidth, 14);
+        ctx.fillRect(0, 0, 14, gameHeight);
+        ctx.fillRect(gameWidth - 14, 0, 14, gameHeight);
+    }
+
+    /**
+     * v7.15: HYPER vignette — subtle golden edge glow while HYPER active
+     */
+    function drawHyperVignette(ctx, isActive, totalTime) {
+        if (!isActive) return;
+        const pulse = Math.sin(totalTime * 5) * 0.04 + 0.08;
+        const gradient = ctx.createRadialGradient(
+            gameWidth / 2, gameHeight / 2, Math.min(gameWidth, gameHeight) * 0.25,
+            gameWidth / 2, gameHeight / 2, Math.max(gameWidth, gameHeight) * 0.65
+        );
+        gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+        gradient.addColorStop(0.5, 'rgba(0, 0, 0, 0)');
+        gradient.addColorStop(1, `rgba(255, 215, 0, ${pulse})`);
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, gameWidth, gameHeight);
     }
 
     // Getters for state inspection
@@ -423,6 +571,7 @@
         applyShakeTransform,
         drawImpactFlash,
         drawScreenFlash,
+        drawFadeOverlay,
         drawScorePulse,
         drawDamageVignette,
         // Triggers (new)
@@ -431,10 +580,16 @@
         drawVignette,
         drawLowHPVignette,
         drawGodchainVignette,
+        drawHyperVignette,
         // State
         getShake,
         getHitStopTimer,
-        isHitStopActive
+        isHitStopActive,
+        // v7.13.0: Transition overlay
+        startFadeOut,
+        startFadeIn,
+        isFading,
+        getFadeAlpha
     };
 
     // Also expose key functions globally for backward compatibility

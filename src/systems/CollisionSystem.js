@@ -223,6 +223,14 @@ window.Game = window.Game || {};
                     const elemType = bullet._elemFire ? 'fire' : bullet._elemLaser ? 'laser' : bullet._elemElectric ? 'electric' : null;
                     const shouldDie = e.takeDamage(dmg, elemType);
 
+                    // v7.14: On-hit elemental effects (applied regardless of death)
+                    if (bullet._elemFire) {
+                        this._applyBurnDot(e, dmg);
+                    }
+                    if (bullet._elemElectric) {
+                        this._applyStun(e);
+                    }
+
                     // v5.32: Reflector — bullet was absorbed, spawn reflected bullet
                     if (shouldDie === 'reflect') {
                         bullet.markedForDeletion = true;
@@ -540,6 +548,27 @@ window.Game = window.Game || {};
                 }
             }
         }
+    };
+
+    // v7.14: Apply fire burn DoT to an enemy on hit
+    CollisionSystem._applyBurnDot = function(enemy, hitDamage) {
+        if (enemy._burnDotActive) return; // Don't re-apply while burning
+        const dotCfg = window.Game.Balance?.ELEMENTAL?.FIRE?.BURN_DOT;
+        if (!dotCfg?.ENABLED) return;
+        const totalBurn = hitDamage * (dotCfg.DAMAGE_FRACTION || 0.25);
+        const tickCount = Math.max(1, (dotCfg.DURATION || 1.8) / (dotCfg.TICK_INTERVAL || 0.45));
+        enemy._burnDotActive = true;
+        enemy._burnDotDuration = dotCfg.DURATION || 1.8;
+        enemy._burnDotTickTimer = dotCfg.TICK_INTERVAL || 0.45;
+        enemy._burnDotTickDamage = totalBurn / tickCount;
+    };
+
+    // v7.14: Apply electric stun to an enemy on hit
+    CollisionSystem._applyStun = function(enemy) {
+        const stunCfg = window.Game.Balance?.ELEMENTAL?.ELECTRIC?.STUN;
+        if (!stunCfg?.ENABLED) return;
+        const maxDuration = stunCfg.DURATION || 0.40;
+        enemy._stunTimer = Math.max(enemy._stunTimer || 0, maxDuration);
     };
 
     G.CollisionSystem = CollisionSystem;

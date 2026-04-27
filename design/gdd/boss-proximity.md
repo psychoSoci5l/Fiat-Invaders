@@ -17,7 +17,7 @@ scope: M
 
 ---
 
-## A. Overview
+## Overview
 
 A **boss fight** is the closing act of every level in V8 campaign mode (spawn at `BOSS_AT_S = 170s` [BalanceConfig.js:25](src/config/BalanceConfig.js:25)) and the periodic climax in Arcade mode. Three bosses rotate in a fixed order — `FEDERAL_RESERVE → BCE → BOJ` — selected by `bossType = BOSS_ROTATION[(marketCycle - 1) % 3]` [main.js:2676](src/main.js:2676), overridden in V8 by `G.LevelScript.BOSS_TYPE` [main.js:2680](src/main.js:2680) so that L1=FED / L2=BCE / L3=BOJ regardless of `marketCycle`.
 
@@ -27,7 +27,7 @@ The **Proximity Kill Meter** (visually labeled "DIP") is a 0–100 gauge that fi
 
 ---
 
-## B. Player Fantasy
+## Player Fantasy
 
 Each boss is the **personification of a central bank**. The Fed is loud and arrogant (green, money-printer brrrr), the BCE is bureaucratic (EU blue with gold stars, "whatever it takes"), the BOJ is zen-turned-frantic (Japan red, yield curve control). The boss is meant to feel like a boss fight — bigger hitbox (160×140 vs. 58 for enemies [Boss.js:6](src/entities/Boss.js:6)), distinct entrance, phased escalation, and signature meme/dialogue.
 
@@ -37,7 +37,7 @@ The DIP meter gives players a reason to be **aggressive**: close the distance, t
 
 ---
 
-## C. Detailed Rules
+## Detailed Rules
 
 ### C.1 Boss roster and rotation
 
@@ -153,7 +153,7 @@ Defined in `Balance.BOSS.MOVEMENT[bossType][Pn]` [BalanceConfig.js:881–895](sr
 
 ---
 
-## D. Proximity Kill Meter (DIP)
+## Proximity Kill Meter (DIP)
 
 ### D.1 Rules
 
@@ -217,7 +217,7 @@ Internal `onEnemyKilled` path in GameplayCallbacks does **not** call `addProximi
 
 ---
 
-## E. Feature Matrix
+## Feature Matrix
 
 | Feature | Config key | Effect | Kill-switch |
 |---|---|---|---|
@@ -235,7 +235,7 @@ Internal `onEnemyKilled` path in GameplayCallbacks does **not** call `addProximi
 
 ---
 
-## F. Analytics
+## Analytics
 
 - `G.Debug.trackBossFightStart(bossType, marketCycle)` [main.js:2716](src/main.js:2716).
 - `G.Debug.trackBossSpawn(bossType, hp, level, marketCycle)` [main.js:2719](src/main.js:2719).
@@ -247,7 +247,7 @@ Debug helpers (from CLAUDE.md): `dbg.v8KillBoss()` fast-ends boss fight; `dbg.re
 
 ---
 
-## G. Tuning Notes and Open Debts
+## Tuning Notes and Open Debts
 
 1. **Dead fields in `Constants.BOSSES[]`**: each boss declares `baseHp / hpPerLevel / hpPerCycle` but the scaling path reads `Balance.BOSS.HP.*` instead. Safe to delete in a cleanup pass.
 2. **Dead comment at `BalanceConfig.js:1279`**: `HYPER_KILL_EXTENSION: 0` is disabled — old mechanic. Can be removed with its consumers.
@@ -258,7 +258,29 @@ Debug helpers (from CLAUDE.md): `dbg.v8KillBoss()` fast-ends boss fight; `dbg.re
 
 ---
 
-## H. Cross-links
+## Edge Cases
+
+1. **Boss skipped if player dies during entrance.** If the player dies while the boss entrance sequence (dialogue + meme + slowmo) is playing, the boss entity does not despawn — it continues its phase 1 behavior while the player respawns. The DIP meter retains its pre-death value.
+2. **Minion despawn on boss death.** All phase-3 minions are immediately despawned when the boss dies, regardless of their current HP or state. This prevents "orphan" minions after the fight ends.
+3. **Phase transition during HYPER/GODCHAIN.** If the player triggers a phase transition while HYPER or GODCHAIN is active, the hit-stop slowmo and screen flash fire normally. The boss's new phase movement/fire pattern activates immediately after the transition animation completes — the buff timer continues to tick during the transition.
+4. **BOSS_AT_S = 170s in V8.** If the player is still fighting a miniboss or the level hasn't progressed normally, the boss trigger at 170s still fires. The boss entrance is queued — it waits for the current fight to resolve before starting its entrance sequence.
+5. **Proximity meter overflow.** The DIP meter caps at 100. Any gain beyond 100 is discarded (not rolled over). This is intentional — the meter is a trigger threshold, not a reservoir.
+
+## Acceptance Criteria
+
+1. **Boss rotation is correct in both modes:**
+   - V8 campaign: L1 = FEDERAL_RESERVE, L2 = BCE, L3 = BOJ (regardless of marketCycle).
+   - Arcade: rotation follows `BOSS_ROTATION[(marketCycle - 1) % 3]`.
+2. **Phase transitions fire at correct HP thresholds:** Phase 2 at ≤66% HP, Phase 3 at ≤20% HP. Each transition triggers dialogue + meme + screen flash + hit-stop slowmo.
+3. **Each phase has distinct movement and fire rate:** Verifiable via `dbg.report()` phase output and visual observation.
+4. **DIP meter fills from enemy kills and boss hits:** Enemy kills at close vertical range gain meter; boss hits apply `BOSS_HIT_GAIN: 0.15`; phase transitions grant `BOSS_PHASE_GAIN: 15`.
+5. **HYPER triggers when DIP meter reaches 100:** HYPER activation is audible (audio pitch drop) and visible (ship aura, HUD indicator).
+6. **Boss death spawns Evolution Core:** The core pickup appears at the boss's death position, flies toward the player ship, and triggers hitstop + screen flash on collection.
+7. **Proximity meter resets on death:** `grazeMeter` resets to 0 when the player dies.
+
+---
+
+## Cross-links
 
 - [V8 Scroller GDD](v8-scroller.md) — `BOSS_AT_S` timing, per-level boss override via LevelScript.
 - [Arcade Rogue Protocol GDD](arcade-rogue-protocol.md) — MiniBoss system, Arcade boss cycling, JACKPOT modifier.

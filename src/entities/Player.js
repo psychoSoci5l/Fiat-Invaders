@@ -576,13 +576,37 @@ class Player extends window.Game.Entity {
         const wasGodchain = this._godchainActive;
         this._godchainActive = this.isGodchainActive();
         if (this._godchainActive && !wasGodchain) {
-            if (window.Game.Events) window.Game.Events.emit('GODCHAIN_ACTIVATED');
-            if (window.Game.Audio) window.Game.Audio.play('godchainActivate');
+            if (window.Game.Events) window.Game.Events.emit('player:godchain-activated');
+            if (window.Game.Audio) {
+                window.Game.Audio.play('godchainActivate');
+                // v7.15: Start GODCHAIN audio layer (intensifies HYPER)
+                window.Game.Audio.startGodchainLayer();
+            }
             if (window.Game.Input) window.Game.Input.vibrate([80, 40, 80, 40, 80]);
+            // v7.15: GODCHAIN activation burst — 30 fire particles
+            const PS = window.Game.ParticleSystem;
+            if (PS) {
+                for (let i = 0; i < 30; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = 100 + Math.random() * 280;
+                    PS.addParticle({
+                        x: this.x, y: this.y,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed,
+                        life: 0.6 + Math.random() * 0.4,
+                        maxLife: 1.0,
+                        color: ['#ff4400', '#ff6600', '#ffaa00', '#fff'][Math.floor(Math.random() * 4)],
+                        size: 3 + Math.random() * 4, baseSize: 3 + Math.random() * 4,
+                        explosionGrow: true
+                    });
+                }
+            }
             if (window.Game.Debug) window.Game.Debug.trackGodchainActivate();
         } else if (!this._godchainActive && wasGodchain) {
             this.godchainCooldown = window.Game.Balance?.GODCHAIN?.COOLDOWN || 10;
-            if (window.Game.Events) window.Game.Events.emit('GODCHAIN_DEACTIVATED');
+            if (window.Game.Events) window.Game.Events.emit('player:godchain-deactivated');
+            // v7.15: Stop GODCHAIN audio layer
+            if (window.Game.Audio) window.Game.Audio.stopGodchainLayer();
             if (window.Game.Debug) window.Game.Debug.trackGodchainDeactivate();
         }
 
@@ -723,14 +747,37 @@ class Player extends window.Game.Entity {
         this.hyperAvailable = false;
 
         // Play activation sound
-        if (window.Game.Audio) window.Game.Audio.play('hyperActivate');
+        if (window.Game.Audio) {
+            window.Game.Audio.play('hyperActivate');
+            // v7.15: Start continuous HYPER audio layer (drone + shimmer)
+            window.Game.Audio.startHyperLayer();
+        }
+
+        // v7.15: Activation burst — 25 golden radial particles
+        const PS = window.Game.ParticleSystem;
+        if (PS) {
+            for (let i = 0; i < 25; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 80 + Math.random() * 250;
+                PS.addParticle({
+                    x: this.x, y: this.y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    life: 0.5 + Math.random() * 0.4,
+                    maxLife: 0.9,
+                    color: Math.random() < 0.3 ? '#fff' : '#FFD700',
+                    size: 3 + Math.random() * 4, baseSize: 3 + Math.random() * 4,
+                    explosionGrow: true
+                });
+            }
+        }
 
         // Heavy vibration
         if (window.Game.Input) window.Game.Input.vibrate([100, 50, 100]);
 
         // Emit event for main.js to handle (reset meter, etc.)
         if (window.Game.Events) {
-            window.Game.Events.emit('HYPER_ACTIVATED');
+            window.Game.Events.emit('player:hyper-activated');
         }
 
         // Analytics: Track HYPER activation
@@ -748,12 +795,34 @@ class Player extends window.Game.Entity {
         this.hyperParticles = [];
         this._hyperSpeedLines = [];
 
+        // v7.15: Deactivation shockwave — expanding ring via particles
+        const PS = window.Game.ParticleSystem;
+        if (PS) {
+            for (let i = 0; i < 16; i++) {
+                const angle = (i / 16) * Math.PI * 2;
+                const speed = 120 + Math.random() * 100;
+                PS.addParticle({
+                    x: this.x, y: this.y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    life: 0.4 + Math.random() * 0.2,
+                    maxLife: 0.6,
+                    color: '#FFD700',
+                    size: 2 + Math.random() * 2, baseSize: 2 + Math.random() * 2,
+                    isSpark: true
+                });
+            }
+        }
+
+        // v7.15: Stop HYPER audio layer
+        if (window.Game.Audio) window.Game.Audio.stopHyperLayer();
+
         // Play deactivation sound
         if (window.Game.Audio) window.Game.Audio.play('hyperDeactivate');
 
         // Emit event
         if (window.Game.Events) {
-            window.Game.Events.emit('HYPER_DEACTIVATED');
+            window.Game.Events.emit('player:hyper-deactivated');
         }
 
         // Analytics: Track HYPER end
@@ -817,8 +886,8 @@ class Player extends window.Game.Entity {
         const Balance = window.Game.Balance;
         const WE = Balance.WEAPON_EVOLUTION;
         const bullets = [];
-        // Play Sound
-        window.Game.Audio.play('shoot');
+        // Play Sound (v7.15: hyperBoost layers extra power during HYPER)
+        window.Game.Audio.play('shoot', { hyperBoost: !!this.hyperActive });
         window.Game.Input.vibrate(Balance.PLAYER.FIRE_VIBRATION_MS);
         this.muzzleFlash = Balance.PLAYER.MUZZLE_FLASH_DURATION;
 
@@ -848,6 +917,25 @@ class Player extends window.Game.Entity {
         // Arcade modifier: fire rate
         const _ab = window.Game.RunState && window.Game.RunState.arcadeBonuses;
         if (_ab && _ab.fireRateMult !== 1.0) cooldown *= _ab.fireRateMult;
+        // v7.14: Special weapon cooldown adjustment
+        if (this.special === 'MISSILE') {
+            cooldown *= (WE.MISSILE_COOLDOWN_MULT || 2.8);
+        } else if (this.special === 'HOMING') {
+            cooldown *= (WE.HOMING_COOLDOWN_MULT || 1.2);
+        } else if (this.special === 'PIERCE') {
+            cooldown *= (WE.PIERCE_COOLDOWN_MULT || 1.0);
+        }
+        // v7.14: Elemental cooldown adjustment (compounds with special)
+        const rsCooldown = window.Game.RunState;
+        const elCfg = window.Game.Balance?.ELEMENTAL;
+        if (rsCooldown) {
+            if (rsCooldown.hasLaserPerk && elCfg?.LASER?.COOLDOWN_MULT) {
+                cooldown *= elCfg.LASER.COOLDOWN_MULT;  // 0.75 = faster
+            }
+            if (rsCooldown.hasElectricPerk && elCfg?.ELECTRIC?.COOLDOWN_MULT) {
+                cooldown *= elCfg.ELECTRIC.COOLDOWN_MULT;  // 1.30 = slower
+            }
+        }
         this.cooldown = cooldown;
 
         // Damage multiplier from level table
@@ -856,6 +944,11 @@ class Player extends window.Game.Entity {
         if (_ab && _ab.damageMult !== 1.0) damageMult *= _ab.damageMult;
         // Arcade modifier: critical hit
         if (_ab && _ab.critChance > 0 && Math.random() < _ab.critChance) damageMult *= _ab.critMult;
+        // v7.14: Elemental damage adjustment (laser: less per-hit, offset by rate + beam sustain)
+        const rsDmg = window.Game.RunState;
+        if (rsDmg?.hasLaserPerk && elCfg?.LASER?.DAMAGE_MULT) {
+            damageMult *= elCfg.LASER.DAMAGE_MULT;  // 0.80
+        }
 
         // Spread angle from level table
         const spreadAngle = levelData.spreadDeg * (Math.PI / 180);
@@ -908,7 +1001,7 @@ class Player extends window.Game.Entity {
             b.damageMult = damageMult;
             // v4.48: Missile damage bonus (compensates reduced projectile count)
             if (this.special === 'MISSILE') {
-                b.damageMult *= (WE.MISSILE_DAMAGE_BONUS || 2.0);
+                b.damageMult *= (WE.MISSILE_DAMAGE_BONUS || 3.0);
             }
 
             // Apply special properties
@@ -1002,6 +1095,28 @@ class Player extends window.Game.Entity {
         if (spawnCount < bulletCount) {
             const comp = bulletCount / spawnCount;
             for (const b of bullets) b.damageMult *= comp;
+        }
+
+        // v7.15: HYPER bullet trail — golden glow particles at muzzle
+        if (this.hyperActive && bullets.length > 0) {
+            const PS = window.Game.ParticleSystem;
+            if (PS) {
+                for (let i = 0; i < 4; i++) {
+                    const angle = -Math.PI / 2 + (Math.random() - 0.5) * 0.8;
+                    const speed = 20 + Math.random() * 40;
+                    PS.addParticle({
+                        x: this.x + (Math.random() - 0.5) * 14,
+                        y: this.y - 32 + (Math.random() - 0.5) * 8,
+                        vx: Math.cos(angle) * speed,
+                        vy: -250 + Math.random() * 80,
+                        life: 0.15 + Math.random() * 0.10,
+                        maxLife: 0.25,
+                        color: '#FFD700',
+                        size: 2 + Math.random() * 2, baseSize: 2 + Math.random() * 2,
+                        isSpark: true
+                    });
+                }
+            }
         }
 
         return bullets;
@@ -1151,8 +1266,10 @@ class Player extends window.Game.Entity {
         const _flameMult = 1 + (_flameLvl - 1) * 0.12;
         const _innerTailX = 7;
         const _innerTailBaseY = 13;
-        const _baseFlameH = (16 + Math.sin(this.animTime * 12) * 6) * _flameMult;
-        const flameWidth = (5 + Math.sin(this.animTime * 10) * 2) * _flameMult;
+        // v7.13.0: HYPER mode amplifies flames
+        const _hyperFlame = this.hyperActive ? 1.8 : 1.0;
+        const _baseFlameH = (16 + Math.sin(this.animTime * 12) * 6) * _flameMult * _hyperFlame;
+        const flameWidth = (5 + Math.sin(this.animTime * 10) * 2) * _flameMult * _hyperFlame;
         const pulse = 1 + Math.sin(this.animTime * 8) * 0.1;
 
         // v5.30: Asymmetric thrust multipliers (inner-curve flame longer)
@@ -1164,6 +1281,18 @@ class Player extends window.Game.Entity {
             const nx = side * _innerTailX;
             const thrMult = side === -1 ? _thrL : _thrR;
             const flameHeight = _baseFlameH * thrMult;
+            // v7.13.0: Outer glow with additive blending
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.globalAlpha = 0.25;
+            ctx.fillStyle = '#ff4400';
+            ctx.beginPath();
+            ctx.moveTo(nx - flameWidth * 1.8 * pulse, _innerTailBaseY);
+            ctx.lineTo(nx, _innerTailBaseY + flameHeight * 1.4);
+            ctx.lineTo(nx + flameWidth * 1.8 * pulse, _innerTailBaseY);
+            ctx.closePath(); ctx.fill();
+            ctx.restore();
+            // Core flame layers
             ctx.fillStyle = '#cc3300'; ctx.globalAlpha = 0.6;
             ctx.beginPath();
             ctx.moveTo(nx - flameWidth * 1.3 * pulse, _innerTailBaseY);
@@ -1194,19 +1323,47 @@ class Player extends window.Game.Entity {
         if (this._godchainActive) {
             const ft = window.Game.Balance?.GODCHAIN?.FIRE_TRAIL;
             if (ft) {
-                for (let i = 0; i < ft.TONGUE_COUNT; i++) {
+                // v7.15: Additive blending for fiery glow
+                ctx.save();
+                ctx.globalCompositeOperation = 'lighter';
+                const _isHyperGod = this.hyperActive;
+                const tongueCount = _isHyperGod ? 7 : ft.TONGUE_COUNT;
+                const trailLen = _isHyperGod ? ft.LENGTH * 1.5 : ft.LENGTH;
+                const baseAlpha = _isHyperGod ? ft.ALPHA * 1.2 : ft.ALPHA;
+                for (let i = 0; i < tongueCount; i++) {
                     const phase = this.animTime * 8 + i * 1.3;
-                    const flickerX = Math.sin(phase) * 6;
-                    const flickerLen = ft.LENGTH * (0.7 + Math.sin(phase * 1.5) * 0.3);
-                    ctx.globalAlpha = ft.ALPHA * (0.6 + Math.sin(phase * 2) * 0.4);
-                    ctx.fillStyle = ft.COLORS[i % ft.COLORS.length];
+                    const flickerX = Math.sin(phase) * (6 + i * 2);
+                    const flickerLen = trailLen * (0.7 + Math.sin(phase * 1.5) * 0.3);
+                    const alpha = baseAlpha * (0.6 + Math.sin(phase * 2) * 0.4);
+                    ctx.globalAlpha = alpha;
+                    ctx.fillStyle = _isHyperGod
+                        ? (i % 2 === 0 ? '#FFD700' : ft.COLORS[i % ft.COLORS.length])
+                        : ft.COLORS[i % ft.COLORS.length];
+                    // Wider base for GODCHAIN, wider still for HYPERGOD
+                    const baseW = _isHyperGod ? 5 + i * 0.5 : 3;
                     ctx.beginPath();
-                    ctx.moveTo(flickerX - 3, 18);
-                    ctx.lineTo(flickerX + 3, 18);
+                    ctx.moveTo(flickerX - baseW, 18);
+                    ctx.lineTo(flickerX + baseW, 18);
                     ctx.lineTo(flickerX, 18 + flickerLen);
                     ctx.closePath(); ctx.fill();
                 }
+                ctx.restore();
                 ctx.globalAlpha = 1;
+
+                // v7.15: HYPERGOD sparkle particles
+                if (_isHyperGod && window.Game.ParticleSystem && Math.random() < 0.5) {
+                    window.Game.ParticleSystem.addParticle({
+                        x: this.x + (Math.random() - 0.5) * 40,
+                        y: this.y + 18 + Math.random() * 10,
+                        vx: (Math.random() - 0.5) * 30,
+                        vy: 30 + Math.random() * 40,
+                        life: 0.3 + Math.random() * 0.3,
+                        maxLife: 0.6,
+                        color: Math.random() < 0.5 ? '#fff' : '#FFD700',
+                        size: 1.5 + Math.random() * 2,
+                        isSpark: true
+                    });
+                }
             }
         }
 
@@ -1775,7 +1932,8 @@ class Player extends window.Game.Entity {
                 if (window.Game.Debug) window.Game.Debug.trackWeaponEvent('UPGRADE', 'WPN_LV' + this.weaponLevel);
 
                 if (window.Game.Events) {
-                    window.Game.Events.emit('WEAPON_LEVEL_UP', { level: this.weaponLevel });
+                    window.Game.Events.emit('player:weapon-level-up', { level: this.weaponLevel });
+                    window.Game.Events.emit('weapon:evolved', { level: this.weaponLevel });
                 }
 
                 // v4.60: GODCHAIN no longer triggered by weapon level (now via elemental perks)
@@ -1794,7 +1952,7 @@ class Player extends window.Game.Entity {
             if (Audio) Audio.play('powerUp');
 
             if (window.Game.Events) {
-                window.Game.Events.emit('SPECIAL_APPLIED', { type: type, timer: this.specialTimer });
+                window.Game.Events.emit('player:special-applied', { type: type, timer: this.specialTimer });
             }
             return;
         }
@@ -1854,7 +2012,8 @@ class Player extends window.Game.Entity {
         // Debug tracking
         if (window.Game.Debug) window.Game.Debug.trackWeaponEvent('EVOLUTION', 'WPN_LV' + this.weaponLevel);
         if (window.Game.Events) {
-            window.Game.Events.emit('WEAPON_LEVEL_UP', { level: this.weaponLevel });
+            window.Game.Events.emit('player:weapon-level-up', { level: this.weaponLevel });
+            window.Game.Events.emit('weapon:evolved', { level: this.weaponLevel });
         }
     }
 
@@ -1881,7 +2040,7 @@ class Player extends window.Game.Entity {
         if (window.Game.Debug) window.Game.Debug.trackWeaponEvent('DEATH_PENALTY', 'WPN_LV' + this.weaponLevel);
 
         if (window.Game.Events) {
-            window.Game.Events.emit('DEATH_PENALTY_APPLIED', {
+            window.Game.Events.emit('game:death-penalty-applied', {
                 weaponLevel: this.weaponLevel
             });
         }

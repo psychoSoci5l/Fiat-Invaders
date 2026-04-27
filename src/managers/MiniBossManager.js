@@ -21,7 +21,8 @@
         const { gameWidth, gameHeight, level, marketCycle, runState,
                 player, waveMgr, enemies: getEnemies, setEnemies,
                 enemyBullets: getEnemyBullets, setEnemyBullets,
-                applyHitStop, showDanger, canSpawnEnemyBullet } = _deps;
+                applyHitStop, showDanger, canSpawnEnemyBullet,
+                bossDeathTimeout } = _deps;
 
         applyHitStop('BOSS_DEFEAT_SLOWMO', false);
 
@@ -347,8 +348,7 @@
                 // Arcade: mini-boss defeat → modifier choice (2-card)
                 if (G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode() && G.ModifierChoiceScreen) {
                     const picks = (G.Balance.ARCADE && G.Balance.ARCADE.MODIFIERS && G.Balance.ARCADE.MODIFIERS.POST_MINIBOSS_PICKS) || 2;
-                    const _bdt = _deps.bossDeathTimeout || setTimeout;
-                    _bdt(() => {
+                    const _showModChoice = () => {
                         G.ModifierChoiceScreen.show(picks, () => {
                             const rs = G.RunState;
                             const extraL = rs.arcadeBonuses.extraLives;
@@ -357,7 +357,12 @@
                                 rs.arcadeBonuses.extraLives = 0;
                             }
                         });
-                    }, 800);
+                    };
+                    if (typeof bossDeathTimeout === 'function') {
+                        bossDeathTimeout(_showModChoice, 800);
+                    } else {
+                        setTimeout(_showModChoice, 800);
+                    }
                 }
 
                 miniBoss = null;

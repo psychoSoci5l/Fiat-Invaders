@@ -24,6 +24,9 @@
     const DT_MAX = 0.050; // F6
 
     // MVP Level 1 LUT — FED: Wall Street Raid (GDD scroll-engine-and-camera §F2)
+    // Deceleration 180→40 over 14500→15500 (1000px window): boss arena deceleration.
+    // As scrollY enters this range, speed linearly ramps down from CRUSH velocity to boss-arena
+    // crawl. The player sees the scroll dramatically slow as the boss arena comes into view.
     const DEFAULT_LUT = [
         { y: 0,     v: 60  },
         { y: 2400,  v: 100 },

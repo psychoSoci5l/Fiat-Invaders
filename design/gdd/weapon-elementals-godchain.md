@@ -7,7 +7,7 @@
 
 ---
 
-## A. Overview
+## Overview
 
 The Combat Progression Core is the player's offensive toolbox. It is composed of three tightly-coupled subsystems that all read/write state on the `Player` entity and `RunState`:
 
@@ -24,7 +24,7 @@ The system is deliberately loss-averse: the permanent weapon tier survives death
 
 ---
 
-## B. Player Fantasy
+## Player Fantasy
 
 The player should feel a **steady arc of compounding power** across a run. Tier 1 is a lean nose-cannon; Tier 2 sprouts dual shoulder mounts with a visible "energy link" tether between paired shots; Tier 3 is a full three-barrel broadside that fans at 6° spread. The Boss Evolution Core arriving after each boss kill — floating in from the dead boss's position, flying toward the ship, triggering hitstop + screen flash + geometry slide-out animation — is the project's keystone reward moment.
 
@@ -34,7 +34,7 @@ Specials and utilities are the moment-to-moment surprise: a homing wave clearing
 
 ---
 
-## C. Detailed Rules
+## Detailed Rules
 
 ### C.1 Weapon Evolution — levels & firing
 
@@ -189,7 +189,7 @@ Config `Balance.GODCHAIN.HYPERGOD` [BalanceConfig.js:2022–2026](src/config/Bal
 
 ---
 
-## D. Balance & Tuning Reference
+## Balance & Tuning Reference
 
 | Parameter | Value | Location |
 |---|---|---|
@@ -218,7 +218,7 @@ Config `Balance.GODCHAIN.HYPERGOD` [BalanceConfig.js:2022–2026](src/config/Bal
 
 ---
 
-## E. Kill-switches & Risks
+## Kill-switches & Risks
 
 ### Kill-switches (feature flags)
 
@@ -255,7 +255,7 @@ Config `Balance.GODCHAIN.HYPERGOD` [BalanceConfig.js:2022–2026](src/config/Bal
 
 ---
 
-## F. Open Design Questions
+## Open Design Questions
 
 - **Should GODCHAIN have a score multiplier of its own** (independent of HYPERGOD)? Currently GODCHAIN grants no direct damage/score bonus — only compound elemental lethality. Playtest whether this reads as "earned power" or "visual-only".
 - **Pity tuning for PERK drops.** 100 kills is long. In V8 a level averages ~180-220 enemies; pity triggers ~once per level. Is that intended cadence?
@@ -265,7 +265,36 @@ Config `Balance.GODCHAIN.HYPERGOD` [BalanceConfig.js:2022–2026](src/config/Bal
 
 ---
 
-## G. Related Systems
+## Edge Cases
+
+1. **Death during GODCHAIN.** If the player dies while GODCHAIN is active, the GODCHAIN buff is cleared immediately. The post-death grace window does not extend the GODCHAIN duration. The GODCHAIN cooldown still applies — re-triggering requires collecting another PERK drop after respawn.
+2. **HYPERGOD timer display.** When both HYPER and GODCHAIN are active simultaneously, the HUD shows `⚡⛓ HYPERGOD` with the shorter of the two remaining timers. When one expires, the label reverts to the active buff (HYPER or nothing if both expire).
+3. **Special pickup during elemental perk.** Picking up HOMING/PIERCE/MISSILE while holding the Laser perk suppresses the beam VFX for 10 seconds. This is intentional but undocumented: the beam VFX is replaced by the Special's visual, and the elemental on-kill effects (splash/pierce/chain) still fire.
+4. **GODCHAIN pending dropped during cooldown.** If a 4th+ PERK pickup triggers `_godchainPending = true` while `godchainCooldown > 0`, the pending flag is lost on the next tick. The player sees the perk collected but no GODCHAIN activation — not a bug but can surprise players who don't know the 10s cooldown rule.
+5. **Contagion across element types.** If the player holds all three elements (GODCHAIN active), contagion cascades use the killing element's on-kill effect, not a "combined" effect. A Fire-element kill always cascades Fire splash damage regardless of which elements are held.
+6. **Evolution Core in Arcade mode.** In Arcade mode, mini-bosses and bosses drop Evolution Cores on the same cadence as V8 campaign. However, Arcade's modifier stacking can produce scenarios where the player reaches LV3 Triple MAX before hitting a boss — the Evolution Core pickup still appears but has no effect (already at max level).
+
+## Dependencies
+
+- **Drop System + APC GDD** — produces the PERK, SPECIAL, and UTILITY pickups consumed by this system. Drop suppression during GODCHAIN is implemented in DropSystem.
+- **Boss System + Proximity Kill GDD** — Evolution Core drops from boss kills; HYPER is triggered when the DIP meter reaches 100.
+- **Enemy Agents GDD** — enemies are the targets of elemental effects; tint overlays are applied to enemy entities.
+- **Arcade Rogue Protocol GDD** — modifier cards can affect weapon evolution and elemental behavior in Arcade mode.
+
+## Acceptance Criteria
+
+1. **Weapon evolution follows level progression:** LV1 Single (default) → LV2 Dual (Boss 1 core) → LV3 Triple MAX (Boss 2 core). Each level changes bullet count, cooldown, damage, and spread per config table.
+2. **HYPER boosts effective level by +2** (LV4/LV5) with cooldown ×0.45/×0.30 and damage ×2.00/×2.25. Underlying `weaponLevel` is unchanged.
+3. **Elemental perks collected in fixed order:** Fire → Laser → Electric. Each applies its on-kill effect and bullet mutation.
+4. **GODCHAIN triggers when all 3 elementals held:** 10s duration, 10s cooldown, +5% movement, red-orange aura/vapor/vignette.
+5. **HYPERGOD triggers when HYPER + GODCHAIN overlap:** 5× score multiplier, capped at 12× total.
+6. **Specials (HOMING/PIERCE/MISSILE) last 10s, lost on death.**
+7. **Utilities (SHIELD/SPEED) last 5s/8s respectively, lost on death.**
+8. **Death penalty is 0** — `DEATH_PENALTY: 0`, weapon level is preserved on death.
+
+---
+
+## Related Systems
 
 - **Proximity Kill Meter** (`Balance.PROXIMITY_KILL`) — fills the HYPER meter. Defined in main.js, documented separately.
 - **DropSystem** (`Balance.ADAPTIVE_DROPS`) — produces PERK / SPECIAL / UTILITY drops. Separate GDD candidate.

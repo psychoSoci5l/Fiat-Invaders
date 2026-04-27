@@ -8,6 +8,9 @@ class EventBus {
     }
 
     on(eventName, handler) {
+        if (!/^[a-z]+:[a-z-]+$/.test(eventName)) {
+            console.warn(`[EventBus] Event "${eventName}" does not follow domain:action convention (e.g. "player:died")`);
+        }
         if (!this.listeners[eventName]) this.listeners[eventName] = [];
         this.listeners[eventName].push(handler);
         return () => this.off(eventName, handler);

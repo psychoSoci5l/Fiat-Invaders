@@ -9,6 +9,8 @@ window.Game = window.Game || {};
     const GameStateMachine = {
         _current: 'VIDEO',
         _listeners: [],
+        _enterCallbacks: {},
+        _exitCallbacks: {},
 
         // Valid transition map — only listed transitions are allowed
         VALID_TRANSITIONS: {
@@ -49,7 +51,11 @@ window.Game = window.Game || {};
             this._current = newState;
             if (G.Debug) G.Debug.log('STATE', `${prev} → ${newState}`);
 
-            // Notify listeners
+            // Fire exit callbacks for previous state
+            this._fireCallbacks(this._exitCallbacks[prev], newState, prev);
+            // Fire enter callbacks for new state
+            this._fireCallbacks(this._enterCallbacks[newState], newState, prev);
+            // Notify generic listeners
             for (let i = 0; i < this._listeners.length; i++) {
                 try { this._listeners[i](newState, prev); }
                 catch (e) { console.error('[GameState] Listener error:', e); }
@@ -78,7 +84,62 @@ window.Game = window.Game || {};
         },
 
         /**
-         * Register a listener for state changes.
+         * Internal: fire a list of callbacks safely.
+         */
+        _fireCallbacks(list, newState, prevState) {
+            if (!list) return;
+            for (let i = 0; i < list.length; i++) {
+                try { list[i](newState, prevState); }
+                catch (e) { console.error('[GameState] Callback error:', e); }
+            }
+        },
+
+        /**
+         * Register a callback fired when transitioning TO a specific state.
+         * @param {string} state
+         * @param {function(newState, prevState)} fn
+         * @returns {function} unsubscribe function
+         */
+        onEnter(state, fn) {
+            if (!this._enterCallbacks[state]) this._enterCallbacks[state] = [];
+            this._enterCallbacks[state].push(fn);
+            return () => this.offEnter(state, fn);
+        },
+
+        /**
+         * Register a callback fired when transitioning FROM a specific state.
+         * @param {string} state
+         * @param {function(newState, prevState)} fn
+         * @returns {function} unsubscribe function
+         */
+        onExit(state, fn) {
+            if (!this._exitCallbacks[state]) this._exitCallbacks[state] = [];
+            this._exitCallbacks[state].push(fn);
+            return () => this.offExit(state, fn);
+        },
+
+        /**
+         * Unregister an enter callback.
+         */
+        offEnter(state, fn) {
+            const list = this._enterCallbacks[state];
+            if (!list) return;
+            const idx = list.indexOf(fn);
+            if (idx >= 0) list.splice(idx, 1);
+        },
+
+        /**
+         * Unregister an exit callback.
+         */
+        offExit(state, fn) {
+            const list = this._exitCallbacks[state];
+            if (!list) return;
+            const idx = list.indexOf(fn);
+            if (idx >= 0) list.splice(idx, 1);
+        },
+
+        /**
+         * Register a listener for all state changes.
          * @param {function(newState, prevState)} fn
          * @returns {function} unsubscribe function
          */

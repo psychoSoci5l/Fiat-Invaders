@@ -112,6 +112,7 @@ window.Game.WaveManager = {
         if (!bossActive && !this.miniBossActive && enemiesCount === 0 && !this.waveInProgress && gameState === 'PLAY') {
             this.waveInProgress = true;
             dbg.log('WAVE', `[WM] Action triggered. wave=${this.wave}, enemies=${enemiesCount}`);
+            if (window.Game.Events) window.Game.Events.emit('wave:started', { wave: this.wave, cycle: window.marketCycle || 1 });
             if (this.wave <= this.getWavesPerCycle()) {
                 dbg.log('WAVE', `[WM] → START_INTERMISSION (wave ${this.wave} <= ${this.getWavesPerCycle()})`);
                 return { action: 'START_INTERMISSION' };
@@ -557,6 +558,10 @@ window.Game.WaveManager = {
         if (phaseIndex >= this._streamingPhases.length) return null;
 
         const phase = this._streamingPhases[phaseIndex];
+
+        // EventBus: phase transition
+        if (window.Game.Events) window.Game.Events.emit('phase:transition', { phaseIndex, wave: this._streamingWave, cycle: this._streamingCycle });
+
         const cycle = this._streamingCycle || (window.marketCycle || 1);
         const gw = gameWidth || this._streamingGameWidth || G._gameWidth || 400;
 

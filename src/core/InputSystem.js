@@ -16,10 +16,14 @@ class InputSystem {
         this.debugOverlay = null;
         this.vibrationSupported = !!(navigator.vibrate);
         this.vibrationFallbackCallback = null;  // Visual fallback when no vibration
+        // Gamepad state
+        this.gamepad = { connected: false, index: -1, axes: [0, 0], prevButtons: {} };
+        this._gamepadPollInterval = null;
     }
 
     init() {
         window.addEventListener('keydown', e => {
+            if (e.repeat) return; // v7.13.2: Ignore key-repeat (browser auto-repeat) to prevent accidental rapid input across state transitions
             this.keys[e.code] = true;
             this.handleGlobalKeys(e.code);
         });
@@ -257,6 +261,18 @@ class InputSystem {
             }
         }
 
+        // Gamepad API: detect connection, poll d-pad for navigation
+        window.addEventListener('gamepadconnected', (e) => {
+            this.gamepad.connected = true;
+            this.gamepad.index = e.gamepad.index;
+        });
+        window.addEventListener('gamepaddisconnected', () => {
+            this.gamepad.connected = false;
+            this.gamepad.index = -1;
+        });
+        // Start polling on first interaction (lazy init)
+        this._startGamepadPoll();
+
         // v6.8: Tilt (accelerometer) — mobile only
         if ('ontouchstart' in window && window.DeviceOrientationEvent) {
             this.tilt.available = true;
@@ -354,6 +370,54 @@ class InputSystem {
         if (typeof sensitivity === 'number') this.touch.sensitivity = Math.max(0.5, Math.min(1.5, sensitivity));
         localStorage.setItem('fiat_joy_deadzone', String(this.touch.deadzone));
         localStorage.setItem('fiat_joy_sensitivity', String(this.touch.sensitivity));
+    }
+
+    // === GAMEPAD POLLING ===
+    _startGamepadPoll() {
+        if (this._gamepadPollInterval) return;
+        this._gamepadPollInterval = setInterval(() => {
+            if (!this.gamepad.connected) return;
+            const gps = navigator.getGamepads();
+            if (!gps) return;
+            const gp = gps[this.gamepad.index];
+            if (!gp) return;
+
+            // D-pad or left stick on axes 0/1
+            const axisX = Math.abs(gp.axes[0]) > 0.5 ? Math.sign(gp.axes[0]) : 0;
+
+            // Standard button map: 14=dpad-left, 15=dpad-right, 0=A, 9=start
+            const btnLeft = gp.buttons[14] ? gp.buttons[14].pressed : false;
+            const btnRight = gp.buttons[15] ? gp.buttons[15].pressed : false;
+            const btnStart = gp.buttons[9] ? gp.buttons[9].pressed : false;
+            const btnA = gp.buttons[0] ? gp.buttons[0].pressed : false;
+
+            // Track previous button states for edge detection
+            const prev = this.gamepad.prevButtons;
+
+            // D-pad left
+            if ((btnLeft || axisX < -0.5) && !prev.left) {
+                prev.left = true;
+                if (this.callbacks['navigate']) this.callbacks['navigate']('ArrowLeft');
+            } else if (!btnLeft && !(axisX < -0.5)) {
+                prev.left = false;
+            }
+
+            // D-pad right
+            if ((btnRight || axisX > 0.5) && !prev.right) {
+                prev.right = true;
+                if (this.callbacks['navigate']) this.callbacks['navigate']('ArrowRight');
+            } else if (!btnRight && !(axisX > 0.5)) {
+                prev.right = false;
+            }
+
+            // Start/A = Enter/Space
+            if ((btnStart || btnA) && !prev.start) {
+                prev.start = true;
+                if (this.callbacks['start']) this.callbacks['start']();
+            } else if (!btnStart && !btnA) {
+                prev.start = false;
+            }
+        }, 100); // 10Hz polling — responsive enough for menu nav, minimal CPU
     }
 
     // === DEADZONE: Smooth transition instead of hard cutoff ===

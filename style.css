@@ -677,6 +677,11 @@ body {
     color: #FF4444 !important;
     animation: livesDangerPulse 0.6s ease-in-out infinite;
 }
+.lives-danger .hud-heart::after {
+    content: " !";
+    font-weight: 900;
+    color: #FF4444;
+}
 
 @keyframes livesDangerPulse {
     0%, 100% { opacity: 1; text-shadow: 0 0 5px rgba(255, 68, 68, 0.5); }
@@ -1752,10 +1757,15 @@ body {
     margin: 8px 0 20px;
     padding: 10px 24px;
     animation: fadeSlideUp 0.3s ease-out;
+    border: 1px solid rgba(187, 68, 255, 0.2);
+    border-radius: 8px;
+    background: rgba(187, 68, 255, 0.06);
 }
 
 .current-mode-indicator:hover {
     transform: scale(1.02);
+    border-color: rgba(187, 68, 255, 0.4);
+    background: rgba(187, 68, 255, 0.1);
 }
 
 .current-mode-indicator:active {
@@ -3585,7 +3595,7 @@ body.bear-mode .neon-title {
 
 #graze-label {
     position: relative;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 900;
     letter-spacing: 2px;
     color: #fff;
@@ -6331,3 +6341,143 @@ body.is-touch p.mobile-only { display: block; }
     box-sizing: border-box;
 }
 
+/* ======================================
+   P6: UI Entrance Animations
+   ====================================== */
+
+/* Screen-level entrance (gameover, pause, hangar, intermission) */
+@keyframes screenFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* Modal entrance (settings, nickname, feedback — scale + fade) */
+@keyframes modalFadeScaleIn {
+    from { opacity: 0; transform: scale(0.92); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+/* Panel entrance (credits, privacy, profile, whatsnew — slide up + fade) */
+@keyframes panelSlideFadeIn {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Generic fade in */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* Selection elements entrance (SPLASH → SELECTION) */
+@keyframes selectionSlideIn {
+    from { opacity: 0; transform: translateY(-12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Selection elements exit (SELECTION → SPLASH) */
+@keyframes selectionFadeOut {
+    from { opacity: 1; transform: translateY(0); }
+    to   { opacity: 0; transform: translateY(-8px); }
+}
+
+/* Intro screen re-entrance from backToIntro */
+@keyframes introReEnter {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+.anim-screen-in {
+    animation: screenFadeIn 0.35s ease-out both;
+}
+
+.anim-modal-in {
+    animation: modalFadeScaleIn 0.3s ease-out both;
+}
+
+.anim-panel-in {
+    animation: panelSlideFadeIn 0.3s ease-out both;
+}
+
+.anim-fade-in {
+    animation: fadeIn 0.3s ease-out both;
+}
+
+.anim-selection-in {
+    animation: selectionSlideIn 0.3s ease-out both;
+}
+
+.anim-selection-out {
+    animation: selectionFadeOut 0.25s ease-in both;
+}
+
+.anim-intro-reenter {
+    animation: introReEnter 0.4s ease-out both;
+}
+
+/* P6: Button click feedback — intensify active state */
+.btn:active {
+    transform: scale(0.96);
+}
+
+.btn-primary:active {
+    transform: scale(0.96);
+}
+
+.btn-secondary:active {
+    transform: scale(0.96);
+}
+
+/* P6: prefers-reduced-motion — disable all P6 entrance animations */
+@media (prefers-reduced-motion: reduce) {
+    .anim-screen-in,
+    .anim-modal-in,
+    .anim-panel-in,
+    .anim-fade-in,
+    .anim-selection-in,
+    .anim-selection-out,
+    .anim-intro-reenter {
+        animation: none !important;
+        opacity: 1 !important;
+    }
+}
+
+/* ======================================
+   P7: Intro Skip Buttons
+   ====================================== */
+.skip-btn {
+    position: absolute;
+    bottom: 30px;
+    right: 20px;
+    z-index: 9999;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: rgba(255, 255, 255, 0.6);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    padding: 8px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    text-transform: uppercase;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.skip-btn:hover,
+.skip-btn:active {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.5);
+    color: #fff;
+}
+
+/* Title skip — top-right, smaller */
+.skip-btn--title {
+    bottom: auto;
+    top: max(20px, env(safe-area-inset-top));
+    right: 16px;
+    padding: 6px 14px;
+    font-size: 11px;
+    z-index: 300;
+}

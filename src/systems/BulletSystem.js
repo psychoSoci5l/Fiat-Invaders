@@ -154,7 +154,7 @@
 
             // Audio
             if (G.Audio && G.Audio.play) {
-                G.Audio.play('explosion');
+                G.Audio.play('missileExplosion');
             }
 
             return { damaged };

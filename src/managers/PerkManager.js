@@ -64,6 +64,7 @@
             if (G.Audio) G.Audio.play('perk');
             // v5.4.0: PerkIconManager replaced by showPickup toast in main.js
             if (_deps.emitEvent) _deps.emitEvent('perk_selected', { id: nextPerk.id });
+            if (window.Game.Events) window.Game.Events.emit('perk:selected', { id: nextPerk.id, level: runState.perkLevel });
 
             // After perk 3: trigger GODCHAIN
             if (runState.perkLevel >= (Balance.PERK.MAX_ELEMENTS || 3)) {

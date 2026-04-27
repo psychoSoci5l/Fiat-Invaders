@@ -68,6 +68,12 @@ class Boss extends window.Game.Entity {
         this.hp -= amount;
         this.hitTimer = 0.12;
 
+        // v7.13.0: Micro shake on boss hit
+        const G = window.Game;
+        if (G.EffectsRenderer && this.hp > 0) {
+            G.EffectsRenderer.applyShake(1.5);
+        }
+
         // Phase transitions — v4.16: read thresholds from Balance config (was hardcoded 0.66/0.33)
         const thresholds = window.Game.Balance?.BOSS?.PHASE_THRESHOLDS || [0.66, 0.33];
         const hpPct = this.hp / this.maxHp;
@@ -118,8 +124,15 @@ class Boss extends window.Game.Entity {
             window.Game.HarmonicConductor.setBossSequence(newPhase);
         }
 
-        // Screen shake via global
-        if (typeof shake !== 'undefined') shake = 30;
+        // v7.13.0: Screen shake via EffectsRenderer (was legacy global shake)
+        const G_ = window.Game;
+        if (G_.EffectsRenderer) {
+            G_.EffectsRenderer.applyShake(15);
+            // Energy ring burst on phase change
+            if (G_.ParticleSystem) {
+                G_.ParticleSystem.createExplosion(this.x, this.y, '#FF6600', 24, { isPhaseRing: true });
+            }
+        }
 
         // Hit stop and screen flash (Ikeda juice)
         if (window.Game.applyHitStop) {

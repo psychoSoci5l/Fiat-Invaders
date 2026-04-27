@@ -71,7 +71,7 @@
         if (newly.length) {
             _save();
             // Notify listeners (UI can show toasts)
-            if (G.Events) G.Events.emit('ACHIEVEMENTS_UNLOCKED', newly);
+            if (G.Events) G.Events.emit('achievements:unlocked', newly);
         }
         return newly;
     }
