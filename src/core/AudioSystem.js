@@ -78,6 +78,7 @@ class AudioSystem {
         // v7.15: HYPER/GODCHAIN continuous audio layers
         this._hyperLayerNodes = null;
         this._godchainLayerNodes = null;
+        this._hyperStartedByGodchain = false; // GODCHAIN auto-started HYPER — clean up on stop
 
         // v7.15.0: Music duck gain between music buses and musicGain
         this._musicDuckGain = null;
@@ -265,7 +266,10 @@ class AudioSystem {
      */
     startHyperLayer() {
         if (!this.ctx) return;
-        if (this._hyperLayerNodes) return; // already active
+        if (this._hyperLayerNodes) {
+            this._hyperStartedByGodchain = false; // Player wants HYPER independently
+            return;
+        }
         const t = this.ctx.currentTime;
         const output = this.getMusicOutput();
 
@@ -355,7 +359,10 @@ class AudioSystem {
         if (!this.ctx) return;
         if (this._godchainLayerNodes) return;
         // Ensure HYPER layer is active (GODCHAIN requires HYPER)
-        if (!this._hyperLayerNodes) this.startHyperLayer();
+        if (!this._hyperLayerNodes) {
+            this.startHyperLayer();
+            this._hyperStartedByGodchain = true;
+        }
 
         const t = this.ctx.currentTime;
         const output = this.getMusicOutput();
@@ -433,8 +440,12 @@ class AudioSystem {
             this._godchainLayerNodes = null;
         }
 
-        // Restore HYPER layer to base gain
-        if (this._hyperLayerNodes) {
+        // If GODCHAIN auto-started HYPER and Player didn't also activate it, stop HYPER
+        if (this._hyperStartedByGodchain && this._hyperLayerNodes) {
+            this._hyperStartedByGodchain = false;
+            this.stopHyperLayer();
+        } else if (this._hyperLayerNodes) {
+            // Restore HYPER gain (boosted by GODCHAIN) to base level
             this._hyperLayerNodes.forEach(n => {
                 try {
                     const cur = n.gain.gain.value || 0;
