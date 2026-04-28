@@ -267,7 +267,7 @@ class AudioSystem {
         if (!this.ctx) return;
         if (this._hyperLayerNodes) return; // already active
         const t = this.ctx.currentTime;
-        const output = this.musicGain || this.getMusicOutput();
+        const output = this.getMusicOutput();
 
         // Low rumble (sine, ~80Hz)
         const osc = this.ctx.createOscillator();
@@ -279,6 +279,7 @@ class AudioSystem {
         gain.gain.setValueAtTime(0, t);
         gain.gain.linearRampToValueAtTime(0.06, t + 0.4);
         osc.start(t);
+        osc.stop(t + 3600); // safety: kill switch if stopHyperLayer() fails
 
         // High shimmer (triangle, 2-3kHz)
         const osc2 = this.ctx.createOscillator();
@@ -290,6 +291,7 @@ class AudioSystem {
         gain2.gain.setValueAtTime(0, t);
         gain2.gain.linearRampToValueAtTime(0.025, t + 0.4);
         osc2.start(t);
+        osc2.stop(t + 3600); // safety: kill switch if stopHyperLayer() fails
 
         // Slow LFO pulse on shimmer amplitude via gain modulation
         const lfo = this.ctx.createOscillator();
@@ -300,6 +302,7 @@ class AudioSystem {
         lfo.frequency.value = 3.5;
         lfoGain.gain.value = 0.015;
         lfo.start(t);
+        lfo.stop(t + 3600); // safety: kill switch if stopHyperLayer() fails
 
         this._hyperLayerNodes = [
             { osc, gain },
@@ -313,16 +316,35 @@ class AudioSystem {
      */
     stopHyperLayer() {
         if (!this._hyperLayerNodes) return;
+        if (!this.ctx || this.ctx.state === 'closed') {
+            // Context is gone — can't stop oscillators, but the safety stop()
+            // set in startHyperLayer() will kill them. Clear the ref so a new
+            // game can create fresh nodes on a new context.
+            this._hyperLayerNodes = null;
+            return;
+        }
         const t = this.ctx.currentTime;
+        let allOk = true;
         this._hyperLayerNodes.forEach(n => {
             try {
                 n.gain.gain.cancelScheduledValues(t);
                 n.gain.gain.setValueAtTime(n.gain.gain.value, t);
                 n.gain.gain.linearRampToValueAtTime(0, t + 0.3);
                 n.osc.stop(t + 0.35);
-            } catch (e) { /* already stopped */ }
+            } catch (e) {
+                allOk = false;
+            }
         });
-        this._hyperLayerNodes = null;
+        if (allOk) {
+            this._hyperLayerNodes = null;
+        } else {
+            // Stop failed — force-disconnect everything to silence immediately
+            this._hyperLayerNodes.forEach(n => {
+                try { n.osc.disconnect(); } catch (e) { /* ignore */ }
+                try { n.gain.disconnect(); } catch (e) { /* ignore */ }
+            });
+            this._hyperLayerNodes = null;
+        }
     }
 
     /**
@@ -336,7 +358,7 @@ class AudioSystem {
         if (!this._hyperLayerNodes) this.startHyperLayer();
 
         const t = this.ctx.currentTime;
-        const output = this.musicGain || this.getMusicOutput();
+        const output = this.getMusicOutput();
 
         // Aggressive square wave (150Hz)
         const osc = this.ctx.createOscillator();
@@ -348,6 +370,7 @@ class AudioSystem {
         gain.gain.setValueAtTime(0, t);
         gain.gain.linearRampToValueAtTime(0.05, t + 0.25);
         osc.start(t);
+        osc.stop(t + 3600); // safety: kill switch if stopGodchainLayer() fails
 
         // Low sub layer (sine, 55Hz) for chest punch
         const sub = this.ctx.createOscillator();
@@ -359,6 +382,7 @@ class AudioSystem {
         subGain.gain.setValueAtTime(0, t);
         subGain.gain.linearRampToValueAtTime(0.08, t + 0.3);
         sub.start(t);
+        sub.stop(t + 3600); // safety: kill switch if stopGodchainLayer() fails
 
         // HYPER layer boost: increase gain of existing layers
         if (this._hyperLayerNodes) {
@@ -383,16 +407,31 @@ class AudioSystem {
      */
     stopGodchainLayer() {
         if (!this._godchainLayerNodes) return;
+        if (!this.ctx || this.ctx.state === 'closed') {
+            this._godchainLayerNodes = null;
+            return;
+        }
         const t = this.ctx.currentTime;
+        let allOk = true;
         this._godchainLayerNodes.forEach(n => {
             try {
                 n.gain.gain.cancelScheduledValues(t);
                 n.gain.gain.setValueAtTime(n.gain.gain.value, t);
                 n.gain.gain.linearRampToValueAtTime(0, t + 0.3);
                 n.osc.stop(t + 0.35);
-            } catch (e) { /* already stopped */ }
+            } catch (e) {
+                allOk = false;
+            }
         });
-        this._godchainLayerNodes = null;
+        if (allOk) {
+            this._godchainLayerNodes = null;
+        } else {
+            this._godchainLayerNodes.forEach(n => {
+                try { n.osc.disconnect(); } catch (e) { /* ignore */ }
+                try { n.gain.disconnect(); } catch (e) { /* ignore */ }
+            });
+            this._godchainLayerNodes = null;
+        }
 
         // Restore HYPER layer to base gain
         if (this._hyperLayerNodes) {
