@@ -485,7 +485,7 @@ class AudioSystem {
                 this.structureIndex = 0;
                 this.sectionBeat = 0;
                 this._stopPad();
-            }, fadeTime * 500);
+            }, fadeTime * 1000);
 
             gainNode.gain.setValueAtTime(0.05, t + fadeTime);
             gainNode.gain.linearRampToValueAtTime(currentVol, t + fadeTime * 2);
@@ -528,7 +528,7 @@ class AudioSystem {
             const currentVol = gainNode.gain.value;
             gainNode.gain.setValueAtTime(currentVol, t);
             gainNode.gain.linearRampToValueAtTime(0.05, t + fadeTime);
-            setTimeout(doSwap, fadeTime * 500);
+            setTimeout(doSwap, fadeTime * 1000);
             gainNode.gain.setValueAtTime(0.05, t + fadeTime);
             gainNode.gain.linearRampToValueAtTime(currentVol, t + fadeTime * 2);
         } else {
@@ -788,8 +788,8 @@ class AudioSystem {
         // v6.7: SFX reverb send for qualifying types
         const reverbInfo = this._getSfxReverbOutput(type);
         if (reverbInfo) {
+            reverbInfo.node.gain.cancelScheduledValues(t);
             reverbInfo.node.gain.setValueAtTime(reverbInfo.level, t);
-            // Schedule gain back to 0 after 1s to avoid bleed
             reverbInfo.node.gain.setValueAtTime(0, t + 1.0);
         }
         // SFX reverb: qualifying types also connect their final gain to sfxReverbSend
@@ -2183,6 +2183,8 @@ class AudioSystem {
         this.isPlaying = false;
         if (this.timerID) clearTimeout(this.timerID);
         this._stopPad();
+        this.stopHyperLayer();
+        this.stopGodchainLayer();
     }
 
     // v7.10: pause music without resetting structure/note index (resumes mid-loop)
@@ -2300,6 +2302,7 @@ class AudioSystem {
 
     schedule() {
         if (!this.isPlaying) return;
+        if (!this.ctx) { this.isPlaying = false; return; }
         if (this.ctx.state !== 'running') {
             this.timerID = setTimeout(() => this.schedule(), 100);
             return;
