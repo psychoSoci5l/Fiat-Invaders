@@ -999,6 +999,9 @@ function init() {
         else if (gameState === 'STORY_SCREEN' && G.StoryScreen) G.StoryScreen.handleTap();
         else if (gameState === 'PLAY' || gameState === 'WARMUP' || gameState === 'PAUSE') togglePause();
         else if (gameState === 'SETTINGS') window.backToIntro();
+        // Close settings if visible from INTRO (no state transition)
+        const settingsModal = document.getElementById('settings-modal');
+        if (settingsModal && settingsModal.style.display === 'flex') window.toggleSettings();
     });
 
     inputSys.on('start', () => {

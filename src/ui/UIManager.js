@@ -328,7 +328,17 @@ window.Game = window.Game || {};
 
     function toggleCreditsPanel() { toggleModal('credits-panel'); }
     function togglePrivacyPanel() { toggleModal('privacy-panel'); }
-    function toggleManual() { toggleModal('manual-panel'); if (d.getUI().manualPanel) updateManualText(); }
+    function toggleManual() {
+        var modal = document.getElementById('manual-modal');
+        if (!modal) return;
+        var isVisible = modal.style.display === 'flex';
+        if (isVisible) {
+            modal.style.display = 'none';
+        } else {
+            modal.style.display = 'flex';
+            if (d.getUI && d.getUI().manualPanel) updateManualText();
+        }
+    }
 
     function selectManualTab(tab) {
         var tabs = document.querySelectorAll('.manual-tab');
@@ -515,7 +525,6 @@ window.Game = window.Game || {};
         d = deps;
 
         // Expose window functions for onclick handlers
-        window.toggleSettings = toggleSettings;
         window.toggleCreditsPanel = toggleCreditsPanel;
         window.togglePrivacyPanel = togglePrivacyPanel;
         window.toggleManual = toggleManual;

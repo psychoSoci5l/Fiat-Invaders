@@ -2551,7 +2551,7 @@ body {
     height: 100%;
     background: #000000;
     backdrop-filter: blur(8px);
-    z-index: 200;
+    z-index: 300;
     display: flex;
     justify-content: center;
     align-items: center;

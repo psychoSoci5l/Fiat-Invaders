@@ -1121,6 +1121,112 @@ window.Game = window.Game || {};
                 ]
             }
         },
+        {
+            version: 'v7.17.1', date: '2026-04-29',
+            title: { EN: 'Phase-Aware UI Theming — colors evolve with the fight', IT: 'Tema UI sensibile alla fase — i colori evolvono con lo scontro' },
+            items: {
+                EN: [
+                    'UI accents now shift Earth→Atmosphere→Deep Space: blue-cyan → violet-purple → bright cyan/magenta',
+                    'PhaseTransitionController emits phase-change events; HUD adapts 5 CSS custom properties',
+                    'Intro SPLASH screen cycles through all 3 phase palettes every 10s with smooth transitions',
+                    'Game over screen captures death phase, glitch intensity scales per phase',
+                    'prefers-reduced-motion respected: SPLASH locked to Phase 2 palette, glitch suppressed'
+                ],
+                IT: [
+                    'Accenti UI ora cambiano Terra→Atmosfera→Spazio Profondo: blu-ciano → viola → ciano brillante/magenta',
+                    'PhaseTransitionController emette eventi phase-change; HUD adatta 5 proprietà CSS',
+                    'Schermata SPLASH cicla le 3 palette fase ogni 10s con transizioni fluide',
+                    'Game over cattura la fase di morte, intensità glitch scala per fase',
+                    'prefers-reduced-motion rispettato: SPLASH bloccato a palette Fase 2, glitch soppresso'
+                ]
+            }
+        },
+        {
+            version: 'v7.17.0', date: '2026-04-27',
+            title: { EN: 'Phase Sky System — Earth, Atmosphere, Deep Space', IT: 'Sistema cielo a fasi — Terra, Atmosfera, Spazio Profondo' },
+            items: {
+                EN: [
+                    'PhaseTransitionController: 8-12s crossfade between Earth→Atmosphere→Deep Space per level',
+                    'SkyRenderer phase-aware: star visibility/color per phase, cloud silhouettes in P3',
+                    'WeatherController adapts fog, rain, snow, lightning colors per phase',
+                    '3 parallax planets in Deep Space with atmospheric gradients, rings (40% chance), moons (33%)',
+                    'Planets drift vertically at 3-8 px/s with wrap-around'
+                ],
+                IT: [
+                    'PhaseTransitionController: crossfade 8-12s tra Terra→Atmosfera→Spazio Profondo per livello',
+                    'SkyRenderer adattivo: stelle visibilità/colore per fase, sagome nuvole in P3',
+                    'WeatherController adatta colori nebbia, pioggia, neve, fulmini per fase',
+                    '3 pianeti parallasse nello Spazio Profondo con gradienti atmosferici, anelli (40%), lune (33%)',
+                    'Pianeti driftano verticalmente a 3-8 px/s con wrap-around'
+                ]
+            }
+        },
+        {
+            version: 'v7.16.0', date: '2026-04-27',
+            title: { EN: 'Gamepad Support + Accessibility & UX Polish', IT: 'Supporto Gamepad + Accessibilità & Rifiniture UX' },
+            items: {
+                EN: [
+                    'Gamepad d-pad support for ship selection carousel and menu navigation',
+                    'HYPER key (H) always active — full keyboard parity with touch controls',
+                    'Ship selection persists between sessions via localStorage',
+                    'ARIA labels on icon buttons + live region on score/lives HUD',
+                    'prefers-reduced-motion extended: hover-bob and flame flicker disabled',
+                    'V8 SWOOP amplitude reduced (140→100px) preventing off-screen oscillation'
+                ],
+                IT: [
+                    'Supporto gamepad d-pad per carousel selezione navi e navigazione menu',
+                    'Tasto HYPER (H) sempre attivo — piena parità tastiera con controlli touch',
+                    'Selezione nave persistente tra sessioni via localStorage',
+                    'Etichette ARIA su bottoni icona + regione live su punteggio/vite HUD',
+                    'prefers-reduced-motion esteso: hover-bob e flame flicker disabilitati',
+                    'Ampiezza SWOOP V8 ridotta (140→100px) — prevenuta oscillazione fuori schermo'
+                ]
+            }
+        },
+        {
+            version: 'v7.15.0', date: '2026-04-27',
+            title: { EN: 'HYPER/GODCHAIN Catharsis + Layered Audio', IT: 'Catarsi HYPER/GODCHAIN + Audio Stratificato' },
+            items: {
+                EN: [
+                    'Layer enemy hit sounds by tier and elemental type — fire rumble, laser ring, electric zap',
+                    'New boss hit sound: sub 120Hz + square 300Hz + noise highpass',
+                    'Missile explosion: pre-delay hiss → boom sub + noise blast + metallic ring + reverb',
+                    'HYPER mode: 25 radial particles, continuous audio drone (sine 75-85Hz + shimmer triangle)',
+                    'GODCHAIN: 30 fire particles on activation, compounding audio layer (square 140-160Hz + sub 55Hz)',
+                    'HYPER+GODCHAIN = 7-way fire tongue, 1.5× longer fire trail, extra sparkle',
+                    'EffectsRenderer: golden radial gradient overlay + 4 energy ribbons during HYPER'
+                ],
+                IT: [
+                    'Suoni hit nemico stratificati per tier e tipo elementale — fuoco rombo, laser anello, elettrico zap',
+                    'Nuovo suono hit boss: sub 120Hz + square 300Hz + noise highpass',
+                    'Esplosione missile: pre-delay sibilo → boom sub + noise blast + anello metallico + riverbero',
+                    'Modalità HYPER: 25 particelle radiali, drone audio continuo (sine 75-85Hz + triangle shimmer)',
+                    'GODCHAIN: 30 particelle fuoco all\'attivazione, layer audio compounding (square 140-160Hz + sub 55Hz)',
+                    'HYPER+GODCHAIN = 7 vie di fuoco, scia 1.5× più lunga, extra sparkle',
+                    'EffectsRenderer: overlay gradiente radiale dorato + 4 energy ribbons durante HYPER'
+                ]
+            }
+        },
+        {
+            version: 'v7.13', date: '2026-04-26',
+            title: { EN: 'Modular Rendering Pipeline + Code Refactor', IT: 'Pipeline di Render Modulare + Refactoring Codice' },
+            items: {
+                EN: [
+                    'DrawPipeline: 32-layer rendering architecture with culling, glow pass, and composite ops',
+                    'OffscreenCanvas cache for static sky/background renders — zero re-draw cost',
+                    'GlowManager: batched glow with 'lighter' composite, directional shake, frame-rate independent decay',
+                    'EnemyAgentRenderer extracted (~1100 lines) — procedural agents, pilots, vehicles',
+                    'TutorialManager extracted from main.js into dedicated module'
+                ],
+                IT: [
+                    'DrawPipeline: architettura rendering a 32 layer con culling, pass glow e operazioni composite',
+                    'Cache OffscreenCanvas per render statici cielo/sfondo — costo zero di re-disegno',
+                    'GlowManager: glow batch con composito \'lighter\', shake direzionale, decay indipendente dal frame-rate',
+                    'EnemyAgentRenderer estratto (~1100 linee) — agenti procedurali, piloti, veicoli',
+                    'TutorialManager estratto da main.js in modulo dedicato'
+                ]
+            }
+        },
     ];
     const WHATS_NEW_PLANNED = [
         { EN: 'Achievement system', IT: 'Sistema achievement' },
@@ -1634,6 +1740,8 @@ window.Game = window.Game || {};
         setTimeout(() => {
             // v4.21: Comprehensive cleanup of ALL game overlays
             d.setStyle('pause-screen', 'display', 'none');
+            d.setStyle('settings-modal', 'display', 'none');
+            d.setStyle('manual-modal', 'display', 'none');
             d.setStyle('gameover-screen', 'display', 'none');
             d.setStyle('hangar-screen', 'display', 'none');
             d.setStyle('perk-modal', 'display', 'none');
