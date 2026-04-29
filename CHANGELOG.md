@@ -1,5 +1,19 @@
 # Changelog
 
+## v7.17.1 — Phase-aware UI theming system - 2026-04-29
+
+### feat(ui): phase-aware theming system
+- UI accent colors now adapt to 3-phase visual progression (Earth→Atmosphere→Deep Space)
+- Phase 1 (Earth): blue-cyan accents (#4a90d9), warm amber secondary (#ffb347), reduced glow (0.85×)
+- Phase 2 (Atmosphere): violet-purple accents (#8866aa) — heritage default palette
+- Phase 3 (Deep Space): bright cyan accents (#00f0ff), magenta secondary (#ff2d95), boosted glow (1.2×)
+- PhaseTransitionController emits `phase-change` event; EventBus handler updates 5 CSS custom properties
+- Intro SPLASH screen cycles P1→P2→P3 every 10s with 2s ease-in-out transition
+- Game over captures death phase, glitch intensity scales per phase (1px/2px/3px offset)
+- prefers-reduced-motion respected: SPLASH locked to P2, glitch suppressed
+- All invariant colors preserved (buttons violet, score gold, etc.)
+- Docs: all 5 UX specs updated + new `visual-design-phase-ui.md`
+
 ## v7.17.0 — Phase sky system + Parallax planets (Deep Space) - 2026-04-27
 
 ### feat(sky): phase transition system (Earth→Atmosphere→Deep Space)
