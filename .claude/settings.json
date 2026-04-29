@@ -11,11 +11,20 @@
       "Bash(git log*)",
       "Bash(git branch*)",
       "Bash(git rev-parse*)",
+      "Bash(git fetch *)",
       "Bash(ls *)",
       "Bash(dir *)",
       "Bash(python -m json.tool*)",
       "Bash(python -m pytest*)",
-      "Bash(py -m pytest*)"
+      "Bash(py -m pytest*)",
+      "Bash(sleep *)",
+      "Bash(curl *localhost*)",
+      "Bash(node -c *)",
+      "mcp__Claude_Preview__preview_console_logs",
+      "mcp__Claude_Preview__preview_screenshot",
+      "mcp__Claude_Preview__preview_list",
+      "mcp__Claude_Preview__preview_snapshot",
+      "mcp__Claude_Preview__preview_inspect"
     ],
     "deny": [
       "Bash(rm -rf *)",

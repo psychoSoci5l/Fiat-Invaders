@@ -1214,7 +1214,7 @@ window.Game = window.Game || {};
                 EN: [
                     'DrawPipeline: 32-layer rendering architecture with culling, glow pass, and composite ops',
                     'OffscreenCanvas cache for static sky/background renders — zero re-draw cost',
-                    'GlowManager: batched glow with 'lighter' composite, directional shake, frame-rate independent decay',
+                    'GlowManager: batched glow with \'lighter\' composite, directional shake, frame-rate independent decay',
                     'EnemyAgentRenderer extracted (~1100 lines) — procedural agents, pilots, vehicles',
                     'TutorialManager extracted from main.js into dedicated module'
                 ],
