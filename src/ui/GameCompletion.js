@@ -265,6 +265,9 @@ window.Game = window.Game || {};
             goScreen.classList.remove('anim-screen-in');
             void goScreen.offsetHeight;
             goScreen.classList.add('anim-screen-in');
+            // v7.17.0: Capture death phase for phase-aware game-over styling
+            var deathPhase = G.PhaseTransitionController ? G.PhaseTransitionController.getCurrentPhase() : 2;
+            goScreen.setAttribute('data-death-phase', deathPhase || '2');
         }
         d.setUI('finalScore', Math.floor(d.getScore()));
         const ui = d.getUI();

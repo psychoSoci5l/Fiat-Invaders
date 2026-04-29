@@ -1,7 +1,7 @@
 ---
 Status: Reverse-documented from v7.12.3
 Author: reverse-document + ux-designer
-Last Updated: 2026-04-23
+Last Updated: 2026-04-29
 Template: HUD Design
 Platform Target: Mobile (PWA primary), Desktop browser secondary
 Accessibility Tier: Basic — color + shape encoding for differentiation; minimum 4.5:1 contrast; screen shake within 8px amplitude
@@ -225,6 +225,94 @@ Managed entirely by `_updateCombatHUD()` called each game loop frame. Three mutu
 ### Boss Phase Indicators
 
 Rendered on canvas (not DOM). Not reverse-documented here — implementation lives in `Boss.js` and `main.js` render loop. Referenced in CLAUDE.md as "boss cinematics" under `Balance.JUICE`.
+
+---
+
+## Phase Adaptation
+
+The HUD responds to the 3-phase visual progression (Earth / Atmosphere / Deep Space)
+by shifting its accent colors. The core palette is defined in `color-system.md` Section 10.
+This section documents HUD-specific behavior.
+
+### CSS Variable Updates
+
+On phase completion, PhaseTransitionController fires a `'phase-change'` event.
+The following CSS custom properties are updated:
+
+| Variable | Phase 1 (Horizon) | Phase 2 (Twilight) | Phase 3 (Void) |
+|---|---|---|---|
+| `--terminal-border` | `rgba(74, 144, 217, 0.35)` | `rgba(136, 102, 170, 0.40)` | `rgba(0, 240, 255, 0.50)` |
+| `--neon-accent` | `#4a90d9` | `#8866aa` | `#00f0ff` |
+| `--hud-glow-rgb` | `74, 144, 217` | `136, 102, 170` | `0, 240, 255` |
+| `--accent-secondary` | `#ffb347` | `#bb44ff` | `#ff2d95` |
+
+### HUD Element Behavior by Phase
+
+**Top bar (`#hud-top-bar`):**
+- Bottom border shifts to `--terminal-border`
+- Lives count uses `--accent-secondary` in P3 (magenta) vs fixed `#ff2d95` in P1/P2
+- Level label uses `--neon-accent` for the "LV" prefix and number
+
+**Score (`#scoreVal`):**
+- Unchanged — always gold `#ffd700`. Phase does not affect score color.
+
+**Message strip (`#message-strip`):**
+- Background remains `--terminal-bg` (unchanged across all phases)
+- Border-bottom shifts to `--terminal-border`
+- DANGER type: always red gradient bg, unaffected by phase
+- VICTORY type: always dark gold bg, unaffected by phase
+- WAVE type: semi-transparent bg unchanged; text uses `--neon-accent` for the wave label
+- Combat state bars (HYPER/GODCHAIN/HYPERGOD): their own fixed colors override phase theming
+
+**DIP meter (`#graze-meter`):**
+- Border shifts to `--terminal-border`
+- Fill gradient: maintains violet-to-gold progression (violet = crypto power, gold = payout).
+  The violet base shifts to match phase:
+  - P1: blue-shift in the gradient base (`#4a3a8a` → gold)
+  - P2: standard violet (`#7b3fcf` → gold) — heritage default
+  - P3: slightly brighter violet (`#9944ee` → gold) for contrast against void sky
+- `.graze-full` pulsing glow: pink/yellow, unchanged (signals "FULL" regardless of phase)
+
+**HYPER button (`#t-hyper`):**
+- `.ready` state outer glow: uses `rgba(var(--hud-glow-rgb), 0.4)` for the outer ring
+- Gold gradient button face: unchanged — HYPER is always gold
+- `.active` state: white-gold glow, unaffected
+
+**Shield button (`#t-shield`):**
+- `.ready` state outer glow: uses `rgba(var(--hud-glow-rgb), 0.4)` for the outer ring
+- Cyan gradient button face and cooldown ring: unchanged — shield is always cyan
+
+**Status HUD (`#meme-popup` status-* classes):**
+- `status-laser`: uses `--neon-accent` instead of fixed `#00f0ff`:
+  - P1: `#4a90d9` (laser shifts from cyan to blue)
+  - P2: `#8866aa` (laser shifts toward violet)
+  - P3: `#00f0ff` (laser returns to bright cyan)
+- `status-shield`: uses `--neon-accent` for glow
+- Other status types (fire, electric, godchain, homing, speed): their fixed semantic colors
+  are unaffected by phase
+
+### Phase-Specific HUD Glow Amplitude
+
+In addition to color shift, the HUD glow intensity changes subtly per phase to
+match the ambient lighting:
+
+| Phase | Glow multiplier | Rationale |
+|---|---|---|
+| P1 — Earth | 0.85× | Ambient blue sky washes out some glow; keep it subtle |
+| P2 — Atmosphere | 1.0× | Default intensity; twilight contrast works as-is |
+| P3 — Void | 1.2× | Pure black sky needs brighter glow for the same visual weight |
+
+This multiplier applies to `box-shadow` spread and alpha on HUD elements that use glow
+(HYPER ready ring, shield ready ring, DIP meter full glow). Applied as a factor on the
+`rgba` alpha channel of the glow layer.
+
+### Implementation Notes
+
+- All HUD color overrides use CSS custom properties — no inline style mutations.
+- Update fires from `PhaseTransitionController` via EventBus `'phase-change'` event.
+- During the 8–12s crossfade, HUD stays in the previous phase. Snaps on completion.
+- The `.hud-glow-multiplier` CSS var can be consumed by glow animation keyframes
+  for real-time brightness scaling.
 
 ---
 

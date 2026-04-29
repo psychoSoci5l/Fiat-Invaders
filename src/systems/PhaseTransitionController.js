@@ -107,6 +107,8 @@
                     _callbacks[i](_fromPhase, _toPhase);
                 }
                 _callbacks = [];
+                // v7.17.0: Emit phase-change event for phase-aware UI theming
+                if (G.Events) G.Events.emit('phase-change', { phase: _currentPhase });
             }
         },
 

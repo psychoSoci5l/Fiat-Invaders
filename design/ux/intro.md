@@ -4,7 +4,7 @@
 |------------------|----------------------------------------------------|
 | Status           | Reverse-documented from v7.12.3                    |
 | Author           | reverse-document + ux-designer                     |
-| Last Updated     | 2026-04-23                                         |
+| Last Updated     | 2026-04-29                                         |
 | Template         | UX Spec                                            |
 | Platform Target  | Mobile PWA + Desktop browser                       |
 | Scope            | Intro flow: VIDEO state → SPLASH state → SELECTION state |
@@ -325,6 +325,65 @@ HANGAR (`#hangar-screen`) is a legacy dead-end: it exists in HTML but `launchShi
 13. `backToIntro()` restores SPLASH with TitleAnimator in skip mode; previously selected mode is preserved.
 14. LAUNCH animation completes and game state transitions correctly without leaving orphan DOM nodes.
 15. All four icon buttons in `.intro-icons` are reachable and activatable via keyboard Tab + Enter.
+
+## Phase Adaptation — Journey Preview
+
+The intro flow is pre-game — no `PhaseTransitionController` is active during SPLASH
+or SELECTION states. However, the intro can provide a **passive visual preview** of the
+3-phase journey the player will experience during gameplay.
+
+### Design Objective
+
+The player should subconsciously absorb that the world transitions through three
+distinct visual phases before they ever reach gameplay. This reduces cognitive surprise
+when the first phase change occurs mid-flight.
+
+### SPLASH Screen — Subtle Ambient Palette
+
+During SPLASH, the `#intro-screen` background or ship canvas can subtly cycle
+through the three phase palettes at a slow, ambient pace (one palette every 8–12s,
+matching the in-game crossfade duration):
+
+| Time window | Palette accent | CSS var applied |
+|---|---|---|
+| 0–10s after SPLASH | Phase 1 — Horizon | `--terminal-border: rgba(74, 144, 217, 0.35)` blue |
+| 10–20s | Phase 2 — Twilight | `--terminal-border: rgba(136, 102, 170, 0.40)` violet |
+| 20–30s | Phase 3 — Void | `--terminal-border: rgba(0, 240, 255, 0.50)` cyan |
+
+This affects only the **intro-screen border accents and title glow** — the title text
+itself (`#intro-title`, `#title-subtitle`) remains gold/white, preserving brand identity.
+
+**Cycle behavior:**
+- Loop: P1 → P2 → P3 → P1 (continuous while SPLASH is visible)
+- Each transition is a 2s CSS ease-in-out on the `--terminal-border` and `--neon-accent`
+  CSS variables (not instant — unlike gameplay snap)
+- On return visit (`backToIntro()` or `resetToSplash()`), the palette resets to P1
+  and begins cycling from the start
+- `prefers-reduced-motion`: skip the cycle entirely; lock to Phase 2 (Twilight) default
+
+### SELECTION Screen — No Phase Cycling
+
+During SELECTION (ship carousel), phase cycling stops. The palette locks to
+Phase 2 (Twilight) — the heritage default and most neutral backdrop for ship
+comparison. The player is making a tactical decision; ambient color shifts would
+be a distraction.
+
+### Ship Canvas Background
+
+The `#intro-ship-canvas` (160x180px) renders with the current phase palette applied
+to its border and glow effects. The ship sprite itself retains its brand color
+(BTC violet, ETH blue-purple, SOL teal) regardless of phase — ship identity is
+invariant.
+
+### Implementation
+
+- Phase cycling in SPLASH is driven by a simple interval timer in `IntroScreen.js`,
+  not by PhaseTransitionController (which is gameplay-only).
+- CSS variables `--terminal-border`, `--neon-accent`, and `--hud-glow-rgb` are updated
+  via `document.documentElement.style.setProperty()` on each cycle step.
+- The timer is cleared on `enterSelectionState()` and `backToIntro()`.
+- On reduced-motion, the timer is never started; variables remain at Phase 2 defaults.
+- No audio feedback on palette cycling — it is purely visual ambience.
 
 ---
 

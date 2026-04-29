@@ -839,6 +839,18 @@ function init() {
         if (G.Events) {
             G.Events.on('player:hyper-activated', () => G.StatsTracker.recordHyper());
             G.Events.on('player:godchain-activated', () => G.StatsTracker.recordGodchain());
+            // v7.17.0: Phase-aware UI theming — update CSS vars on phase change
+            G.Events.on('phase-change', function(data) {
+                var phaseVars = {
+                    1: { '--terminal-border': 'rgba(74, 144, 217, 0.35)', '--neon-accent': '#4a90d9', '--accent-secondary': '#ffb347', '--hud-glow-rgb': '74, 144, 217', '--hud-glow-multiplier': '0.85' },
+                    2: { '--terminal-border': 'rgba(136, 102, 170, 0.40)', '--neon-accent': '#8866aa', '--accent-secondary': '#bb44ff', '--hud-glow-rgb': '136, 102, 170', '--hud-glow-multiplier': '1.0' },
+                    3: { '--terminal-border': 'rgba(0, 240, 255, 0.50)', '--neon-accent': '#00f0ff', '--accent-secondary': '#ff2d95', '--hud-glow-rgb': '0, 240, 255', '--hud-glow-multiplier': '1.2' }
+                }[data.phase] || {};
+                var root = document.documentElement;
+                for (var key in phaseVars) {
+                    if (phaseVars.hasOwnProperty(key)) root.style.setProperty(key, phaseVars[key]);
+                }
+            });
         }
     }
     if (G.AchievementSystem) G.AchievementSystem.init();

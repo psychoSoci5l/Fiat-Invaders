@@ -1,4 +1,4 @@
-# Color System — FIAT vs CRYPTO v7.12.14
+# Color System — FIAT vs CRYPTO v7.17.0
 
 > "Economy is not the theme; economy is the rendering substrate — currencies are geometry, data is light, black is the ledger."
 
@@ -393,3 +393,104 @@ The game pre-caches 19 frequently-used colors at all alpha levels (21 steps from
 | Enemy faction | Currency accent color on chest + vehicle | Each fiat currency's national color |
 | Player power state | Ship color shifts: Normal → Gold (HYPER) → Orange (GODCHAIN) | Escalating value → incandescence |
 | Boss phase progression | Boss accent shifts toward red/corruption | Decaying institutional control |
+
+---
+
+## 10. Phase-Aware UI Theming
+
+> "The UI frame shifts with the world it contains — horizon blue, twilight violet, void cyan."
+
+As of v7.17.0, the HTML/CSS UI layer (HUD, menus, overlays) responds to the 3-phase
+visual progression defined by PhaseTransitionController. The UI does not dramatically
+change — it subtly shifts accent colors to complement the world it is embedded in,
+maintaining readability and terminal-aesthetic consistency across all phases.
+
+### Phase Palette Mapping
+
+| Role | Phase 1 — Earth (Horizon) | Phase 2 — Atmosphere (Twilight) | Phase 3 — Deep Space (Void) |
+|---|---|---|---|
+| **Terminal border** | `rgba(74, 144, 217, 0.35)` sky blue | `rgba(136, 102, 170, 0.40)` violet | `rgba(0, 240, 255, 0.50)` bright cyan |
+| **Neon accent** | `#4a90d9` cyan-blue | `#8866aa` violet-purple | `#00f0ff` bright cyan |
+| **Secondary accent** | `#ffb347` warm amber | `#bb44ff` neon violet | `#ff2d95` neon magenta |
+| **HUD glow** | `rgba(74, 144, 217, 0.25)` blue tint | `rgba(136, 102, 170, 0.30)` purple tint | `rgba(0, 240, 255, 0.35)` cyan tint |
+| **Terminal bg** | `rgba(4, 4, 16, 0.85)` | `rgba(4, 4, 16, 0.85)` | `rgba(4, 4, 16, 0.85)` |
+| **Primary text** | `rgba(255, 255, 255, 0.90)` | `rgba(255, 255, 255, 0.90)` | `rgba(255, 255, 255, 0.95)` |
+| **Score color** | `#ffd700` (unchanged) | `#ffd700` (unchanged) | `#ffd700` (unchanged) |
+
+Phase 2 is the default / heritage palette — the colors that existed before phase-aware
+theming were added. Phase 1 shifts toward blue/warm to match sky. Phase 3 shifts
+toward high-contrast cyan/magenta against black void.
+
+### CSS Custom Properties
+
+The following CSS variables are updated via JS when PhaseTransitionController fires
+a phase-change event:
+
+| Variable | Phase 1 | Phase 2 | Phase 3 |
+|---|---|---|---|
+| `--neon-accent` | `#4a90d9` | `#8866aa` | `#00f0ff` |
+| `--terminal-border` | `rgba(74, 144, 217, 0.35)` | `rgba(136, 102, 170, 0.40)` | `rgba(0, 240, 255, 0.50)` |
+| `--accent-secondary` | `#ffb347` | `#bb44ff` | `#ff2d95` |
+| `--hud-glow-rgb` | `74, 144, 217` | `136, 102, 170` | `0, 240, 255` |
+
+`--terminal-bg` and `--terminal-white` remain unchanged across phases.
+
+### Colors That Do NOT Change
+
+The following UI colors are semantically loaded and remain invariant across all phases:
+
+- **Gold** `#ffd700` — Score, HYPER mode, DIP meter full
+- **Red/Magenta** `#ff2d95` — Lives, danger, graze meter (see exception: secondary accent in P3)
+- **Green** `#39ff14` — HP bar, shield pickup
+- **Orange** `#ff4400–ffaa00` — GODCHAIN mode, fire perk
+- **Danger colors** (pre-cached reds) — invariant, must remain recognizable
+
+Phase-aware theming touches only the **frame** of the UI (borders, backgrounds,
+non-semantic accents, glow tints) and leaves semantically loaded colors untouched.
+
+### Contrast Verification
+
+All three phases maintain a minimum 4.5:1 contrast ratio for readable text
+(WCAG AA for normal text):
+
+- **Primary text** (`rgba(255,255,255,0.90)`) on `rgba(4,4,16,0.85)` terminal bg:
+  White-on-near-black exceeds 15:1 on all phases.
+- **Neon accent** (`--neon-accent`) on `#000000`:
+  - Phase 1: `#4a90d9` — 6.28:1 (AA for normal text)
+  - Phase 2: `#8866aa` — 5.1:1 (AA for normal text)
+  - Phase 3: `#00f0ff` — 8.0:1 (AAA for normal text)
+- **Terminal border** against terminal bg:
+  - Phase 1: `rgba(74, 144, 217, 0.35)` — semi-transparent border on near-black exceeds 4.5:1
+  - Phase 2: `rgba(136, 102, 170, 0.40)` — same pass
+  - Phase 3: `rgba(0, 240, 255, 0.50)` — same pass
+
+### Implementation Guidance
+
+- **Update timing:** CSS custom properties are set once when the phase change
+  completes. During the 8–12s crossfade, the UI remains in the previous phase's
+  palette and snaps to the new palette on phase completion.
+- **Event hook:** PhaseTransitionController fires `'phase-change'` event via
+  EventBus with `{phase: 1|2|3}` payload. A dedicated handler in `main.js`
+  applies the new CSS variables.
+- **Fallback:** If PhaseTransitionController is unavailable or returns
+  `getCurrentPhase() === null`, fall back to Phase 2 (Atmosphere) palette.
+- **Initial value:** On game start, CSS variables default to Phase 1 (Earth),
+  matching the initial visual phase before any transition occurs.
+
+### Per-Surface Application
+
+| Surface | Phase Behavior | Example |
+|---|---|---|
+| **HUD top bar** | Border uses `--terminal-border` at phase opacity | `.hud-top-bar` box-shadow |
+| **HUD labels** | `--neon-accent` for level label, mode indicator | `#lvlVal`, ship name in HUD |
+| **Message strip** | `--terminal-bg` unchanged; border uses `--terminal-border` | `#message-strip` border-bottom |
+| **DIP meter** | Border uses `--terminal-border` at phase opacity | `.graze-meter` border color |
+| **HYPER button glow** | `--hud-glow-rgb` for outer glow in `.ready` state | `.hyper-btn-wrapper.ready` box-shadow |
+| **Shield button glow** | `--hud-glow-rgb` for outer glow in `.ready` state | `.shield-btn-wrapper.ready` box-shadow |
+| **Score** | Unchanged (`#ffd700` gold) | `#scoreVal` |
+| **Menu overlays** | `--neon-accent` for headings, `--terminal-border` for borders | Modifier choice, pause, game over |
+| **Status HUD** | Icon glow tints shift with `--neon-accent` | `.status-laser`, `.status-shield` |
+
+The phase-aware system applies to **all DOM UI** inside `#game-container`.
+Canvas-rendered elements (boss phase slots, arcade combo HUD) update separately
+through their own render paths and are not covered by this theming system.

@@ -2,7 +2,7 @@
 title: Game Over Screen — UX Spec
 status: Reverse-documented from v7.12.3
 author: reverse-document + ux-designer
-last_updated: 2026-04-23
+last_updated: 2026-04-29
 template: UX Spec
 platform_target: Mobile PWA + Desktop browser
 scope: >
@@ -261,7 +261,86 @@ screen entrance itself (display:flex, no CSS transition).
 
 ---
 
-## 9. Accessibility
+## 9. Phase Adaptation — Death Phase Palette
+
+The game-over screen captures the visual phase at the moment of the player's death
+and uses it to tint the overlay's accent colors. This gives the death screen an
+emotional context — dying in the blue sky of Earth, the violet twilight of the
+atmosphere, or the neon void of deep space — without requiring layout changes.
+
+### Palette Capture
+
+When `triggerGameOver()` fires, it reads `PhaseTransitionController.getCurrentPhase()`
+and stores the phase index on the game-over overlay as a data attribute:
+
+```html
+<div id="gameover-screen" data-death-phase="1|2|3">
+```
+
+This attribute drives CSS custom property overrides for the game-over elements only.
+
+### Phase Mapping
+
+| Element | Phase 1 — Horizon | Phase 2 — Twilight | Phase 3 — Void |
+|---|---|---|---|
+| Screen heading "LIQUIDATION EVENT" | `#4a90d9` cyan-blue | `#8866aa` violet (default) | `#00f0ff` bright cyan |
+| Meme text (`#gameover-meme`) | `--neon-accent` (blue) | `--neon-accent` (violet) | `--neon-accent` (cyan) |
+| "ACCOUNT BALANCE" label (`#roast-msg`) | `#a0a0a0` cool grey | `#a0a0a0` (unchanged) | `#a0a0a0` (unchanged) |
+| Score value | `#ffd700` gold (unchanged) | `#ffd700` (unchanged) | `#ffd700` (unchanged) |
+| Stats labels | `rgba(255,255,255,0.7)` | `rgba(255,255,255,0.7)` | `rgba(255,255,255,0.8)` slightly brighter |
+| NEW BEST badge | `#39ff14` green (unchanged) | `#39ff14` (unchanged) | `#39ff14` (unchanged) |
+| Rank badge border | `--terminal-border` | `--terminal-border` | `--terminal-border` |
+| Rank badge "YOUR RANK" label | `--neon-accent` | `--neon-accent` | `--neon-accent` |
+| RETRY button border | `--terminal-border` | `--terminal-border` | `--terminal-border` |
+| MENU button text | `rgba(255,255,255,0.6)` | `rgba(255,255,255,0.6)` | `rgba(255,255,255,0.7)` |
+
+### Phase-Specific Emotional Tint
+
+Beyond colors, the death phase influences the **glitch intensity** of the "LIQUIDATION
+EVENT" heading:
+
+| Phase | Glitch effect | Rationale |
+|---|---|---|
+| P1 — Earth | Minimal glitch, 1px offset | Dying close to home — clean, almost peaceful end |
+| P2 — Atmosphere | Moderate glitch, 2px offset, 0.3s interval | Standard death; the transition zone is where failure feels natural |
+| P3 — Void | Intense glitch, 3px offset, 0.15s interval | Dying in deep space — the stakes are highest. Max visual impact |
+
+The `.glitch-text` class on the `h1` applies an existing CSS glitch keyframe
+(defined in style.css). The phase modifies glitch intensity via `--glitch-offset`
+and `--glitch-speed` CSS variables driven by `data-death-phase`.
+
+### Arcade Records — No Phase Effect
+
+Arcade-specific elements (cycle/level/wave display, combo rows) are unaffected by
+death phase. They render with fixed colors matching the heritage palette. This keeps
+statistical data visually neutral across all death contexts.
+
+### Campaign Victory Path
+
+The `showCampaignVictory()` screen is a distinct visual experience (gold fade,
+triumphant palette) and does not use death-phase theming. Phase adaptation applies
+only to the standard GAMEOVER screen.
+
+### Implementation
+
+1. `triggerGameOver()` calls `G.PhaseTransitionController.getCurrentPhase()` (or
+   reads from a snapshot stored at `RunState.currentPhase`).
+2. `#gameover-screen` receives `data-death-phase="{phase}"` attribute.
+3. CSS rules under `[data-death-phase="1"]`, `[data-death-phase="2"]`,
+   `[data-death-phase="3"]` override `--neon-accent`, `--terminal-border`,
+   `--glitch-offset`, and `--glitch-speed` for game-over elements only.
+4. If PhaseTransitionController is unavailable, default to `data-death-phase="2"`
+   (Atmosphere) — the heritage default.
+
+### Accessibility Note
+
+The heading glitch effect respects `prefers-reduced-motion`: when the user has
+reduced motion enabled, the glitch animation is suppressed entirely regardless of
+`data-death-phase`. The glitch CSS animation uses `@media (prefers-reduced-motion: no-preference)`.
+
+---
+
+## 10. Accessibility
 
 - [x] RETRY and MENU are `.btn` elements — keyboard-focusable
 - [x] Nickname input: `autocapitalize="characters"`, `inputmode="text"` for mobile keyboards
@@ -280,7 +359,7 @@ screen entrance itself (display:flex, no CSS transition).
 
 ---
 
-## 10. Localization
+## 11. Localization
 
 | Key | Usage |
 |---|---|
@@ -305,7 +384,7 @@ and in HTML, bypassing the i18n system. It does not change in IT locale.
 
 ---
 
-## 11. Platform Specifics
+## 12. Platform Specifics
 
 ### Mobile PWA
 
@@ -324,7 +403,7 @@ and in HTML, bypassing the i18n system. It does not change in IT locale.
 
 ---
 
-## 12. localStorage Keys
+## 13. localStorage Keys
 
 | Key | Purpose |
 |---|---|
@@ -339,7 +418,7 @@ and in HTML, bypassing the i18n system. It does not change in IT locale.
 
 ---
 
-## 13. Edge Cases
+## 14. Edge Cases
 
 - **Simultaneous offline queue + new run:** `renderGameoverRank` calls
   `flushPendingScore()` before submitting the current score. If the flush
@@ -365,7 +444,7 @@ and in HTML, bypassing the i18n system. It does not change in IT locale.
 
 ---
 
-## 14. Open Questions
+## 15. Open Questions
 
 1. **Arcade leaderboard:** `renderGameoverRank` is only called inside the
    `isStoryMode` branch. Arcade scores are never submitted to the leaderboard.

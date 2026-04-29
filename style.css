@@ -10,8 +10,16 @@
     --neon-cyan: #00f0ff;
     --bg-color: #000000;
     --terminal-bg: rgba(4, 4, 16, 0.8);
-    --terminal-border: rgba(0, 240, 255, 0.35);
-    --terminal-glow: rgba(0, 240, 255, 0.25);
+    --terminal-border: rgba(74, 144, 217, 0.35);   /* P1 default — updated via JS on phase-change */
+    --terminal-glow: rgba(0, 240, 255, 0.25);       /* Static — decorative only */
+    /* Phase-aware accent system (v7.17.0) */
+    --neon-accent: #4a90d9;                          /* P1 default — updated via JS */
+    --accent-secondary: #ffb347;                     /* P1 default — updated via JS */
+    --hud-glow-rgb: 74, 144, 217;                    /* P1 default — updated via JS */
+    --hud-glow-multiplier: 0.85;                     /* P1 default — updated via JS */
+    /* Death-phase glitch (v7.17.0) */
+    --glitch-offset: 1px;                            /* Updated via data-death-phase attr */
+    --glitch-speed: 1s;                              /* Updated via data-death-phase attr */
     /* Button Design System */
     --btn-violet-border: #bb44ff;
     --btn-violet-glow: rgba(187, 68, 255, 0.4);
@@ -1907,10 +1915,20 @@ body {
     color: #ff2d95;
     margin: 0 0 4px 0;
     text-shadow: 2px 2px 0px rgba(255,255,255,0.3), 0 0 20px rgba(255,45,149,0.4);
-    animation: shake 0.4s infinite;
+    animation: shake var(--glitch-speed, 1s) infinite;
     font-weight: 900;
     letter-spacing: 3px;
     text-transform: uppercase;
+}
+
+/* v7.17.0: Death-phase glitch intensity */
+[data-death-phase="1"] { --glitch-offset: 1px; --glitch-speed: 1s; }
+[data-death-phase="2"] { --glitch-offset: 2px; --glitch-speed: 0.6s; }
+[data-death-phase="3"] { --glitch-offset: 3px; --glitch-speed: 0.3s; }
+
+/* v7.17.0: Reduced motion — suppress game-over glitch */
+@media (prefers-reduced-motion: reduce) {
+    .glitch-text { animation: none !important; }
 }
 
 .final-score {
@@ -2463,11 +2481,11 @@ body {
 
 @keyframes shake {
     0% {
-        transform: translate(2px, 2px);
+        transform: translate(var(--glitch-offset, 1px), var(--glitch-offset, 1px));
     }
 
     50% {
-        transform: translate(-2px, -2px);
+        transform: translate(calc(var(--glitch-offset, 1px) * -1), calc(var(--glitch-offset, 1px) * -1));
     }
 }
 

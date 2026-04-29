@@ -50,6 +50,15 @@ window.Game = window.Game || {};
     let _introActionCooldown = 0;
     let _modesRevealed = false; // v7.12.13: mode tabs hidden until first tap
 
+    // v7.17.0: SPLASH phase palette cycling
+    let _phaseCycleTimer = null;
+    let _phaseCycleStep = 0;
+    const PHASE_CYCLE = [
+        { '--terminal-border': 'rgba(74, 144, 217, 0.35)', '--neon-accent': '#4a90d9', '--accent-secondary': '#ffb347', '--hud-glow-rgb': '74, 144, 217' },
+        { '--terminal-border': 'rgba(136, 102, 170, 0.40)', '--neon-accent': '#8866aa', '--accent-secondary': '#bb44ff', '--hud-glow-rgb': '136, 102, 170' },
+        { '--terminal-border': 'rgba(0, 240, 255, 0.50)', '--neon-accent': '#00f0ff', '--accent-secondary': '#ff2d95', '--hud-glow-rgb': '0, 240, 255' },
+    ];
+
     function _revealModes() {
         _modesRevealed = true;
         const modeSelector = document.getElementById('mode-selector');
@@ -82,6 +91,7 @@ window.Game = window.Game || {};
     // v4.43: Inner selection logic (called after paper tear closes or directly)
     function _doEnterSelection() {
         if (introState === 'SELECTION') return;
+        _stopPhaseCycle(); // v7.17.0: Stop SPLASH palette cycling when entering selection
         introState = 'SELECTION';
         G.Audio.play('coinUI');
         // v4.35: Hide title animator and clean up anim classes
@@ -446,6 +456,49 @@ window.Game = window.Game || {};
 
     function _prefersReducedMotion() {
         return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    }
+
+    // v7.17.0: Start SPLASH phase palette cycling
+    function _startPhaseCycle() {
+        _stopPhaseCycle();
+        if (_prefersReducedMotion()) {
+            // Lock to Phase 2 (heritage default) without cycling
+            const root = document.documentElement;
+            root.style.transition = 'none';
+            root.style.setProperty('--terminal-border', 'rgba(136, 102, 170, 0.40)');
+            root.style.setProperty('--neon-accent', '#8866aa');
+            root.style.setProperty('--accent-secondary', '#bb44ff');
+            root.style.setProperty('--hud-glow-rgb', '136, 102, 170');
+            return;
+        }
+        // Enable CSS transitions for smooth palette cycling
+        document.documentElement.style.transition =
+            '--terminal-border 2s ease-in-out, --neon-accent 2s ease-in-out, --accent-secondary 2s ease-in-out, --hud-glow-rgb 2s ease-in-out';
+        _phaseCycleStep = 0;
+        _applyPhaseCycle(0);
+        _phaseCycleTimer = setInterval(function() {
+            _phaseCycleStep = (_phaseCycleStep + 1) % PHASE_CYCLE.length;
+            _applyPhaseCycle(_phaseCycleStep);
+        }, 10000);
+    }
+
+    function _stopPhaseCycle() {
+        if (_phaseCycleTimer) {
+            clearInterval(_phaseCycleTimer);
+            _phaseCycleTimer = null;
+        }
+        // Remove CSS transitions after cycling stops (snap for gameplay)
+        document.documentElement.style.transition = '';
+    }
+
+    function _applyPhaseCycle(step) {
+        const vars = PHASE_CYCLE[step];
+        const root = document.documentElement;
+        for (const key in vars) {
+            if (vars.hasOwnProperty(key)) {
+                root.style.setProperty(key, vars[key]);
+            }
+        }
     }
 
     function animateIntroShip() {
@@ -1255,6 +1308,15 @@ window.Game = window.Game || {};
     window.launchShipAndStart = async function () {
         if (isLaunching) return;
         isLaunching = true;
+        _stopPhaseCycle(); // v7.17.0: Stop SPLASH cycling, reset vars to P1
+        // Reset CSS vars to Phase 1 (Earth) for gameplay start
+        var _root = document.documentElement;
+        _root.style.transition = 'none';
+        _root.style.setProperty('--terminal-border', 'rgba(74, 144, 217, 0.35)');
+        _root.style.setProperty('--neon-accent', '#4a90d9');
+        _root.style.setProperty('--accent-secondary', '#ffb347');
+        _root.style.setProperty('--hud-glow-rgb', '74, 144, 217');
+        _root.style.setProperty('--hud-glow-multiplier', '0.85');
 
         // v6.10.0: Daily Seed Run gating — block second attempt and seed RNG
         if (G.DailyMode && G.DailyMode.isActive()) {
@@ -1702,6 +1764,8 @@ window.Game = window.Game || {};
             setTimeout(() => {
                 if (curtain) curtain.classList.add('open');
             }, 100);
+            // Restart SPLASH phase cycling (starts from P1)
+            _startPhaseCycle();
         }, 800);
     };
 
@@ -1720,6 +1784,7 @@ window.Game = window.Game || {};
                 selectedShipIndex = parseInt(saved, 10) || 0;
             }
             initSplashShip();
+            _startPhaseCycle(); // v7.17.0: Start SPLASH palette preview
             // v7.12.13: mode selector + explanation hidden until first tap on TAP TO START
             const modeSelector = document.getElementById('mode-selector');
             if (modeSelector) modeSelector.style.display = 'none';

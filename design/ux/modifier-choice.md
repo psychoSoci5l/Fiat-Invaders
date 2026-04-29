@@ -2,7 +2,7 @@
 title: Modifier Choice Screen
 status: Reverse-documented from v7.12.3
 author: reverse-document + ux-designer
-last_updated: 2026-04-23
+last_updated: 2026-04-29
 template: UX Spec
 platform_target: Mobile PWA + Desktop browser
 mode: Arcade only
@@ -195,6 +195,64 @@ Attempt to tap canvas  → No effect — overlay is z-index 9800, full-viewport
 No overlay fade-in/fade-out animation exists on `#modifier-overlay` itself
 (despite `mod-overlay-enter` class being added). The class has no corresponding
 CSS rule — it is inert. Overlay appears/disappears instantly via `display`.
+
+
+## Phase Adaptation — Backdrop & Accents
+
+The Modifier Choice Screen appears during gameplay, so it inherits the current
+visual phase at the moment the boss or mini-boss is defeated. The overlay adapts
+its accent colors to the phase, making the choice screen feel continuous with the
+world the player just fought in.
+
+### Palette Mapping
+
+| Element | Phase 1 — Horizon | Phase 2 — Twilight | Phase 3 — Void |
+|---|---|---|---|
+| Heading text ("CHOOSE YOUR PROTOCOL") | `--neon-accent` = `#4a90d9` | `--neon-accent` = `#8866aa` (default) | `--neon-accent` = `#00f0ff` |
+| Card border default | `--terminal-border` = `rgba(74, 144, 217, 0.35)` | `--terminal-border` = `rgba(136, 102, 170, 0.40)` | `--terminal-border` = `rgba(0, 240, 255, 0.50)` |
+| Card hover border highlight | `--neon-accent` at 60% opacity | `--neon-accent` at 60% opacity | `--neon-accent` at 70% opacity |
+| Category gradient tint (card `::before`) | Uses `--neon-accent` at 8% opacity as fallback base | Uses `--neon-accent` at 8% opacity as fallback base | Uses `--neon-accent` at 8% opacity as fallback base |
+| Selected card glow | `#39ff14` green (unchanged) | `#39ff14` green (unchanged) | `#39ff14` green (unchanged) |
+| Overlay backdrop | `background: #000` (unchanged) | `background: #000` (unchanged) | `background: #000` (unchanged) |
+
+### Category Colors — Unchanged
+
+The three category colors (OFFENSE `#ff6b35`, DEFENSE `#00f0ff`, WILD `#ff2d95`)
+carry **semantic meaning** and must remain invariant across all phases. These
+colors tell the player the type of choice they are making — changing them per
+phase would break the learned association.
+
+The category gradient tint on the card background (`::before` pseudo-element)
+uses the category's own `--cat-color`, not the phase `--neon-accent`. This is
+an exception to the general phase-theming rule.
+
+### Stack Badge — Phase-Tinted
+
+The stack indicator badge (`.mod-stack`, showing `x{current+1}`) uses
+`--neon-accent` instead of the fixed `--neon-cyan`:
+
+- P1: `#4a90d9` blue
+- P2: `#8866aa` violet
+- P3: `#00f0ff` bright cyan
+
+This is a subtle differentiator — the stack badge is a secondary information
+element, not a primary semantic signal.
+
+### Related Bug Note
+
+The `--cat-color-rgb` bug documented in Open Questions (always falls back to
+violet `187, 68, 255` due to being unset) affects the category gradient on all
+phases equally. Fixing that bug (setting `--cat-color-rgb` per category) is
+independent of this phase adaptation and is a prerequisite for the category
+gradient to render correctly at all.
+
+### Implementation
+
+- The Modifier Choice Screen reads the current phase variables from CSS custom
+  properties, which have already been updated by PhaseTransitionController during
+  gameplay. No additional phase-detection logic is needed within the screen.
+- Card selected/rejected animation colors (green glow, fade-out) are invariant —
+  selection feedback should always read as "chosen" regardless of phase.
 
 
 ## Data Requirements
