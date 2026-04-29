@@ -1,6 +1,6 @@
 # Roadmap: FIAT vs CRYPTO
 
-> **Versione corrente**: v7.12.9 (2026-04-23)
+> **Versione corrente**: v7.17.0 (2026-04-27)
 > **Branch attivo**: `main`
 > **Modalità primaria**: v8 scroller Gradius-style (`V8_MODE.ENABLED=true`)
 > **Modalità legacy**: Arcade rogue Space-Invaders (WaveManager)
@@ -29,7 +29,31 @@ Da Space Invaders (formazioni statiche + WaveManager) a shmup verticale Gradius-
 - **v7.8.0–v7.11.1** — polish sweep (safe-area PWA, audio richness, cinematic enemy entry, leaderboard, story crawl, arcade fix waveManager/minibosses/boss rotation)
 - **v7.12.0–v7.12.2** — PWA deep safe-area fix (Dynamic Island), tutorial SKIP button audit
 - **v7.12.3** — **balance-check V8 pacing**: curva inter-livello HP (L1 1.40 / L2 1.55 / L3 1.75 STRONG), `V8_RAMP` 0.35→0.50 start + quad→lin (OPENING non più muto, no spike 90-120s), L3 CRUSH densificato (14→19 burst), `V8_RAMP.LEVEL_MULT [1.0, 1.1, 1.25]` (fuoco scala anche per livello, non solo per ciclo)
-- **v7.12.4** — **UX review pass** (reverse-documented HUD/intro/modifier-choice/game-over in `design/ux/`): gradient categoriale modifier-choice ripristinato (`--cat-color-rgb` mai settato), keyboard + ARIA sul modifier-choice (no più hard-lock desktop senza pointer), submit leaderboard anche in Arcade (era chiuso in `if (isStoryMode)`), pulizia dead CSS
+- **v7.12.4** — **UX review pass** (reverse-documented HUD/intro/modifier-choice/game-over in `design/ux/`): gradient categoriale modifier-choice ripristinato, keyboard + ARIA sul modifier-choice, submit leaderboard anche in Arcade, pulizia dead CSS
+
+### GDD reverse-doc sweep (v7.12.5→v7.12.11)
+Tutti i sistemi core reverse-documentati in `design/gdd/` con drift fix su config/docs, dead config cleanup, e systems-index centralizzato.
+
+- **v7.12.5** — V8 GDD reverse-doc + dead config cleanup (`HOVER_GATE.EASE_IN_MS`)
+- **v7.12.6** — Arcade GDD reverse-doc + **JACKPOT modifier ora effettivo** (malus DIP gain, era solo upside) + **CHAIN_LIGHTNING 30% chance ripristinato** (era 100%)
+- **v7.12.7** — Enemy Agents GDD reverse-doc + dead config (`ELITE_VARIANTS.ARMORED.SPEED_MULT`, `WALK_CYCLE_MS`)
+- **v7.12.8** — Weapon+Elementals+GODCHAIN GDD reverse-doc (XL, ~90 citazioni file:line)
+- **v7.12.9** — Drop System + APC GDD reverse-doc (M)
+- **v7.12.10** — Boss+Proximity + Wave legacy GDD reverse-doc (2×M). **Copertura GDD completa** per FvC v7.12.10: 7 GDD approvati
+- **v7.12.11** — Tech-debt cleanup: dead config rimossa (3 aree), JACKPOT modifier ora coerente su tutte le 3 path DIP (kill / boss hit / phase transition)
+
+### Bug fix + refactor (v7.12.12→v7.17.0)
+
+- **v7.12.12** — Fix: Arcade launch blocked (INTRO → PLAY via `forceSet('HANGAR')`)
+- **v7.12.13** — Fix: SPLASH → SELECTION skippato da double-tap / key repeat (cooldown mancante)
+- **v7.12.14** — Fix: tab modalità visibili in SELECTION + testo descrittivo prima del tap (completamento rework)
+- **v7.12.15** — Fix overlay: touch intercept + cleanup critico (4 bug)
+- **v7.12.16–18** — **Audio audit**: HYPER layer oscillator leak → GODCHAIN oscillator leak → 5 bug audit (schedule crash, stopMusic leak, crossfade, reverb contention). OggettoPool audit (bullet leak su advanceToNextV8Level, particelle homing senza life/bounds, dead code)
+- **v7.13.0** — **Refactor: DrawPipeline rendering modulare**: 32 layer registrati, CullingHelper, OffscreenCanvas, GlowManager. Sostituisce il draw() monolitico in main.js
+- **v7.13.1** — Refactor: EnemyAgentRenderer extraction (~1100 linee da Enemy.js) + TutorialManager extraction (~130 linee da main.js)
+- **v7.15.0** — **HYPER/GODCHAIN catarsi**: effetti visivi (burst, shockwave, trail, sparkle) + audio stratificato (hitEnemy tier-based, hitBoss, missileExplosion, HYPER drone layer, GODCHAIN square layer)
+- **v7.16.0** — **Production readiness**: gamepad d-pad support, HYPER key (H) sempre attiva, aria-label su bottoni icona + HUD, ship selection persistente, prefers-reduced-motion esteso, fix V8 SWOOP/HOVER/graze label
+- **v7.17.0** — **Phase sky system**: SkyRenderer + PhaseTransitionController (crossfade 8-12s Earth→Atmosphere→Deep Space) + WeatherController phase-aware + parallax planets (3 corpi celesti con anelli/lune)
 
 ### Altri sistemi maturi (v6 era, ancora in uso)
 Combat core (weapon evo, GODCHAIN, elemental perks, proximity kill), rendering cyberpunk, HUD/status, audio richness v6.7, tilt/mouse input, PWA full-bleed, debug overlay v2, leaderboard anti-spam, OLED pure black UI.
@@ -37,16 +61,6 @@ Combat core (weapon evo, GODCHAIN, elemental perks, proximity kill), rendering c
 ---
 
 ## Open work
-
-### Imminente — validazione v7.5.0
-- [ ] Playthrough completo L1→L2→L3→victory senza debug helpers
-- [ ] Bilanciamento regional: verificare che tier normalization non rompa la percezione di difficoltà (es. ¥ STRONG L3 deve sentirsi come $ STRONG L1)
-- [ ] Escape rate target <10% in tutti i livelli (telemetria via `dbg.v8()`)
-
-### Tuning post-release (se emergono problemi dal playtest)
-- Anchor CRUSH speed: attualmente L1=1.8×, L2=2.2×, L3=2.6×. Aggiustare solo su feedback
-- Fire budget `V8_RAMP` curve: validato, non toccare senza dati
-- L3 opening softening: monitorare se MEDIUM 元 da t=0 è ancora troppo duro
 
 ### Potenziali direzioni future (nessun impegno)
 - **Contenuto**: L4+ (nuova regione? IMF/World Bank?), nuovi pattern oltre DIVE/SINE/HOVER/SWOOP
@@ -66,4 +80,3 @@ Combat core (weapon evo, GODCHAIN, elemental perks, proximity kill), rendering c
 - Balance config è legge: modificare `BalanceConfig.js`, mai hardcode in entity files
 - Non ping-pong in sessione: un obiettivo, poi vai
 - Non toccare combat core (bullet/perk/HYPER) senza motivo forte
-- Budget token finito (Max cancellato 2026-04-18): no esplorazioni a vuoto

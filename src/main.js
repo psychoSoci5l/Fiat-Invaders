@@ -1677,7 +1677,9 @@ function advanceToNextV8Level() {
 
     // Clear any lingering entities (enemies array shared with G.enemies)
     enemies.length = 0;
+    bullets.forEach(b => G.Bullet.Pool.release(b));
     enemyBullets.forEach(b => G.Bullet.Pool.release(b));
+    bullets.length = 0;
     enemyBullets.length = 0;
 
     // Reset scroll (camera + mult + speedOverride) and load next level
@@ -1978,6 +1980,7 @@ function startGame() {
         };
     }
 
+    if (G.IntroScreen) G.IntroScreen.stopAnimation();
     setStyle('intro-screen', 'display', 'none'); setStyle('gameover-screen', 'display', 'none'); setStyle('pause-screen', 'display', 'none'); setStyle('pause-btn', 'display', 'block');
     if (ui.uiLayer) ui.uiLayer.style.display = 'flex'; // SHOW HUD
     // Show touch controls with opacity fade-in to avoid visual flash

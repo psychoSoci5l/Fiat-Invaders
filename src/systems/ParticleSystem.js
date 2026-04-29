@@ -642,6 +642,12 @@
                     p.y += p.vy * dt;
                     p.size = Math.max(1, p.size * 0.95);
                 }
+
+                // Life + offscreen expiry (prevents particle leak if target unreachable)
+                p.life -= dt;
+                if (p.life <= 0 || p.x < -50 || p.x > gameWidth + 50 || p.y < -50 || p.y > gameHeight + 50) {
+                    remove = true;
+                }
             } else {
                 // Standard Physics
                 // v5.11: Gravity + wobble support
@@ -670,8 +676,8 @@
                     p.size *= 0.97; // Gentler shrink for non-explosion particles
                 }
 
-                // Remove dead or offscreen particles
-                if (p.life <= 0 || p.x < -50 || p.x > gameWidth + 50 || p.y > gameHeight + 50) {
+                // Remove dead or offscreen particles (including above screen)
+                if (p.life <= 0 || p.x < -50 || p.x > gameWidth + 50 || p.y < -50 || p.y > gameHeight + 50) {
                     remove = true;
                 }
             }

@@ -12,6 +12,7 @@ window.Game = window.Game || {};
     let introShipCtx = null;
     let introShipTime = 0;
     let introShipAnimId = null;
+    let _introAnimActive = false; // Guard: stops rAF loop when game starts
     let selectedShipIndex = 0;
     let introState = 'SPLASH'; // 'SPLASH' or 'SELECTION'
     const SHIP_KEYS = ['BTC', 'ETH', 'SOL'];
@@ -31,6 +32,7 @@ window.Game = window.Game || {};
     function initIntroShip() {
         // Cancel any existing rAF loop before starting a new one (prevents N loops after N restarts)
         if (introShipAnimId) { cancelAnimationFrame(introShipAnimId); introShipAnimId = null; }
+        _introAnimActive = true;
         introShipCanvas = document.getElementById('intro-ship-canvas');
         if (!introShipCanvas) return;
         introShipCtx = introShipCanvas.getContext('2d');
@@ -447,7 +449,7 @@ window.Game = window.Game || {};
     }
 
     function animateIntroShip() {
-        if (!introShipCtx) return;
+        if (!introShipCtx || !_introAnimActive) { introShipAnimId = null; return; }
         introShipTime += 0.05;
 
         const ctx = introShipCtx;
@@ -1704,6 +1706,11 @@ window.Game = window.Game || {};
     };
 
     // --- Public API ---
+    function stopIntroAnimation() {
+        _introAnimActive = false;
+        if (introShipAnimId) { cancelAnimationFrame(introShipAnimId); introShipAnimId = null; }
+    }
+
     G.IntroScreen = {
         init: function(deps) {
             d = deps;
@@ -1741,6 +1748,7 @@ window.Game = window.Game || {};
         updateModeIndicator: updateModeIndicator,
         updatePrimaryButton: updatePrimaryButton,
         initIntroShip: initIntroShip,
+        stopAnimation: stopIntroAnimation,
         // For backToIntro cleanup
         _cleanupAnimClasses: _cleanupAnimClasses
     };

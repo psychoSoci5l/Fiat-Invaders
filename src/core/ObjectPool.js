@@ -3,7 +3,6 @@ window.Game = window.Game || {};
 class ObjectPool {
     constructor(createFn, initialSize = 10, maxSize = 200) {
         this.createFn = createFn;
-        this.active = [];
         this.reserve = [];
         this.maxSize = maxSize;
 
@@ -135,8 +134,6 @@ window.Game.ParticlePool = {
         return particleStackPtr;
     },
 
-    // Reset pool (for game restart)
-    clear() {
-        particleStackPtr = 0;
-    }
-};
+    // Reset pool (for game restart) — managed by ParticleSystem.clear()
+    // (clear() defined here but unused; ParticleSystem handles particle release per-frame)
+    };
