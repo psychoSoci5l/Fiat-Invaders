@@ -95,4 +95,15 @@
         int,
         pick
     };
+
+    // ─── FastRNG ────────────────────────────────────────────────
+    // LCG puro per hot path di rendering (SkyRenderer, WeatherController).
+    // ~2-3x più veloce di Math.random() perché non è cryptographic-grade.
+    // Non è seeded/deterministico — serve solo per performance.
+    // Uso: var r = G.FastRNG.next(); // [0, 1)
+    G.FastRNG = { _state: 1 };
+    G.FastRNG.next = function() {
+        this._state = (this._state * 1664525 + 1013904223) | 0;
+        return (this._state >>> 0) / 4294967296;
+    };
 })(window.Game = window.Game || {});

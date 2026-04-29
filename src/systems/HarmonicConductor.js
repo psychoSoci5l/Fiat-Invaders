@@ -45,6 +45,12 @@ window.Game.HarmonicConductor = {
     _panicGrad: null,
     _panicGradKey: '',
 
+    // v7.18: Enemy state cache — popolato UNA volta per frame in update(),
+    // invalidato dopo. Elimina 3+ iterazioni separate su this.enemies.
+    _cachedActiveCount: -1,
+    _cachedEntering: false,
+    _cachedTotalCount: 0,
+
     // Wave Intensity System (Ikeda Choreography)
     waveIntensity: {
         initialCount: 0,          // Enemies at wave start
@@ -65,6 +71,25 @@ window.Game.HarmonicConductor = {
     _burstCycle: {
         timer: 0,
         isFiring: true
+    },
+
+    // v7.18: Singolo scan enemies per-frame. Popola le cache usate da
+    // getWaveProgress(), updateIntensityPhase(), areEnemiesEntering().
+    // Chiamato UNA volta in update() prima di qualsiasi altra operazione.
+    _cacheEnemyState() {
+        var active = 0, total = 0, entering = false;
+        if (this.enemies) {
+            for (var i = 0, len = this.enemies.length; i < len; i++) {
+                var e = this.enemies[i];
+                if (!e) continue;
+                total++;
+                if (e.active) active++;
+                if (e.active && e.isEntering) entering = true;
+            }
+        }
+        this._cachedActiveCount = active;
+        this._cachedTotalCount = total;
+        this._cachedEntering = entering;
     },
 
     init(enemies, player, gameWidth, gameHeight) {
@@ -134,28 +159,30 @@ window.Game.HarmonicConductor = {
     },
 
     // Get wave progress (0.0 to 1.0)
+    // v7.18: usa _cachedActiveCount se disponibile (popolato da update())
     getWaveProgress() {
         if (!this.enemies || this.waveIntensity.initialCount === 0) return 0;
-        var remaining = 0;
-        for (var i = 0, len = this.enemies.length; i < len; i++) {
-            if (this.enemies[i] && this.enemies[i].active) remaining++;
-        }
+        var remaining = this._cachedActiveCount >= 0
+            ? this._cachedActiveCount
+            : (function(self) {
+                var c = 0;
+                for (var i = 0, len = self.enemies.length; i < len; i++) {
+                    if (self.enemies[i] && self.enemies[i].active) c++;
+                }
+                return c;
+              })(this);
         return 1 - (remaining / this.waveIntensity.initialCount);
     },
 
     // Update intensity phase based on wave progress
+    // v7.18: usa _cachedActiveCount invece di iterare enemies separatamente
     updateIntensityPhase() {
         const Balance = window.Game.Balance;
         const choreography = Balance?.CHOREOGRAPHY?.INTENSITY;
         if (!choreography) return;
 
         const progress = this.getWaveProgress();
-        var remaining = 0;
-        if (this.enemies) {
-            for (var i = 0, len = this.enemies.length; i < len; i++) {
-                if (this.enemies[i] && this.enemies[i].active) remaining++;
-            }
-        }
+        var remaining = this._cachedActiveCount >= 0 ? this._cachedActiveCount : 0;
 
         // Determine phase
         let newPhase = 'SETUP';
@@ -200,16 +227,12 @@ window.Game.HarmonicConductor = {
     },
 
     // Check if enemies are still entering formation (should not fire)
-    // v6.2: Streaming mode never blocks firing (phases flow continuously)
+    // v7.18: usa _cachedEntering invece di iterare enemies
     areEnemiesEntering() {
-        if (!this.enemies || this.enemies.length === 0) return false;
+        if (this._cachedTotalCount === 0) return false;
         // Streaming: never block firing during phase entry
         if (window.Game.WaveManager?.isStreaming) return false;
-        for (var i = 0, len = this.enemies.length; i < len; i++) {
-            var e = this.enemies[i];
-            if (e && e.active && e.isEntering) return true;
-        }
-        return false;
+        return this._cachedEntering;
     },
 
     // Get last enemy score bonus
@@ -337,6 +360,9 @@ window.Game.HarmonicConductor = {
 
     // Main update - called every frame with delta time
     update(dt) {
+        // v7.18: Singolo scan enemies — popola cache per tutti i metodi
+        this._cacheEnemyState();
+
         this.updateTelegraphs(dt);
 
         // Update wave intensity phase
@@ -409,6 +435,9 @@ window.Game.HarmonicConductor = {
 
         // Advance spiral angle
         this.spiralAngle += dt * 1.5;
+
+        // v7.18: Invalida cache enemy — prossimo frame ri-scan
+        this._cachedActiveCount = -1;
     },
 
     // Process a single beat

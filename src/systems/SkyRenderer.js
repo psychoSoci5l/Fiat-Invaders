@@ -18,6 +18,9 @@
 
     const G = window.Game = window.Game || {};
 
+    // v7.18: FastRNG per hot path — LCG ~2-3x più veloce di Math.random()
+    const _r = G.FastRNG.next.bind(G.FastRNG);
+
     // v7.0: ellipse fallback now in ColorUtils.js (G.safeEllipse)
     const safeEllipse = G.safeEllipse || G.ColorUtils?.safeEllipse || function(ctx, x, y, rx, ry, rot, start, end) {
         ctx.ellipse(x, y, rx, ry, rot, start, end);
@@ -476,8 +479,8 @@
             const c = clouds[i];
             c.y += c.speed * (c.layer + 1) * 0.4 * speedMult * dt;
             if (c.y - c.h > gameHeight + 50) {
-                c.y = -c.h - 30 - Math.random() * 80;
-                c.x = Math.random() * gameWidth;
+                c.y = -c.h - 30 - _r() * 80;
+                c.x = _r() * gameWidth;
             }
         }
 
@@ -490,7 +493,7 @@
             s.wobble += dt * 2;
             if (s.x < -30) {
                 s.x = gameWidth + 30;
-                s.y = Math.random() * gameHeight * 0.5 + gameHeight * 0.15;
+                s.y = _r() * gameHeight * 0.5 + gameHeight * 0.15;
             }
         }
 
@@ -520,22 +523,22 @@
                 // Reschedule with phase-aware interval
                 // Spawn a shooting star
                 const speed = sCfg?.SPEED || 350;
-                const angle = Math.PI * 0.15 + Math.random() * Math.PI * 0.2; // 27-63 deg
+                const angle = Math.PI * 0.15 + _r() * Math.PI * 0.2; // 27-63 deg
                 shootingStars.push({
-                    x: Math.random() * gameWidth * 0.8,
-                    y: Math.random() * gameHeight * 0.3,
+                    x: _r() * gameWidth * 0.8,
+                    y: _r() * gameHeight * 0.3,
                     vx: Math.cos(angle) * speed,
                     vy: Math.sin(angle) * speed,
                     length: sCfg?.LENGTH || 40,
-                    alpha: 0.8 + Math.random() * 0.2,
+                    alpha: 0.8 + _r() * 0.2,
                     life: 0
                 });
                 // v7.15: Use phase-aware interval if available, else default
                 if (pInterval) {
-                    shootingStarTimer = pInterval[0] + Math.random() * (pInterval[1] - pInterval[0]);
+                    shootingStarTimer = pInterval[0] + _r() * (pInterval[1] - pInterval[0]);
                 } else {
                     shootingStarTimer = (sCfg?.SPAWN_INTERVAL_MIN || 4) +
-                        Math.random() * ((sCfg?.SPAWN_INTERVAL_MAX || 12) - (sCfg?.SPAWN_INTERVAL_MIN || 4));
+                        _r() * ((sCfg?.SPAWN_INTERVAL_MAX || 12) - (sCfg?.SPAWN_INTERVAL_MIN || 4));
                 }
             }
             for (let i = shootingStars.length - 1; i >= 0; i--) {
@@ -590,7 +593,7 @@
             }
             if (pl.y > gameHeight + pl.radius + 20) {
                 pl.y = -pl.radius - 20;
-                pl.x = Math.random() * (gameWidth + 100) - 50;
+                pl.x = _r() * (gameWidth + 100) - 50;
             }
         }
 
@@ -599,7 +602,7 @@
             lightningTimer -= dt;
             if (lightningTimer <= 0) {
                 lightningTarget = 0.4;
-                lightningTimer = 1.5 + Math.random() * 3;
+                lightningTimer = 1.5 + _r() * 3;
                 effects.shake = 8;
                 effects.playSound = 'hit';
             }

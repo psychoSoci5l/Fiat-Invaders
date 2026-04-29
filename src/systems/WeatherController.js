@@ -11,6 +11,9 @@
 
     const G = window.Game = window.Game || {};
 
+    // v7.18: FastRNG per hot path — LCG ~2-3x più veloce di Math.random()
+    const _r = G.FastRNG.next.bind(G.FastRNG);
+
     let gameWidth = 0, gameHeight = 0;
 
     // Active effect lifecycle trackers
@@ -380,8 +383,8 @@
             r.x += r.spd * r.w * windMultiplier * dt * 0.3;
             if (r.y > gameHeight + 20) {
                 if (rainActive) {
-                    r.y = -r.len - Math.random() * 40;
-                    r.x = Math.random() * (gameWidth + 60) - 30;
+                    r.y = -r.len - _r() * 40;
+                    r.x = _r() * (gameWidth + 60) - 30;
                 } else {
                     raindrops.splice(i, 1);
                 }
@@ -415,7 +418,7 @@
                 // Wrap around
                 if (s.y > gameHeight + 10) {
                     s.y = -10;
-                    s.x = Math.random() * gameWidth;
+                    s.x = _r() * gameWidth;
                 }
                 if (s.x < -20) s.x = gameWidth + 10;
                 if (s.x > gameWidth + 20) s.x = -10;
@@ -444,8 +447,8 @@
                 d.y += d.spd * dt;
                 d.x += windMultiplier * 5 * dt;
                 if (d.y > gameHeight + 15) {
-                    d.y = -d.len - Math.random() * 30;
-                    d.x = Math.random() * gameWidth;
+                    d.y = -d.len - _r() * 30;
+                    d.x = _r() * gameWidth;
                 }
             }
         }
@@ -461,7 +464,7 @@
                     // Wrap: re-enter from left with random y
                     if (b.x > gameWidth + 20) {
                         b.x = -20;
-                        b.y = 20 + Math.random() * (gameHeight * 0.3);
+                        b.y = 20 + _r() * (gameHeight * 0.3);
                     }
                 }
             }
@@ -481,9 +484,9 @@
             distantLightningTimer -= dt;
             if (distantLightningTimer <= 0) {
                 // Fire a distant flash
-                distantLightningFlash = dlAlphaMin + Math.random() * (dlAlphaMax - dlAlphaMin);
+                distantLightningFlash = dlAlphaMin + _r() * (dlAlphaMax - dlAlphaMin);
                 // Reset timer
-                distantLightningTimer = dlCfg.INTERVAL_MIN + Math.random() * (dlCfg.INTERVAL_MAX - dlCfg.INTERVAL_MIN);
+                distantLightningTimer = dlCfg.INTERVAL_MIN + _r() * (dlCfg.INTERVAL_MAX - dlCfg.INTERVAL_MIN);
             }
         }
     }

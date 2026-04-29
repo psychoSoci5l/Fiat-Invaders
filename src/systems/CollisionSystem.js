@@ -314,17 +314,21 @@ window.Game = window.Game || {};
                 const bR = (b.collisionRadius || 4) * cancelMult;
 
                 // v5.3: Beam bullets use line-segment collision for cancellation
+                // Calcola beamTail UNA SOLA VOLTA per proiettile, non per ogni cella
                 const isBeam = b._elemLaser && !b.special && beamCfg?.ENABLED;
-                let beamTailX, beamTailY;
+                let beamTailX, beamTailY, beamLen;
                 if (isBeam) {
                     const spd = Math.sqrt(b.vx * b.vx + b.vy * b.vy) || 1;
-                    beamTailX = b.x - (b.vx / spd) * beamCfg.LENGTH;
-                    beamTailY = b.y - (b.vy / spd) * beamCfg.LENGTH;
+                    beamLen = beamCfg.LENGTH;
+                    const nx = b.vx / spd, ny = b.vy / spd;
+                    beamTailX = b.x - nx * beamLen;
+                    beamTailY = b.y - ny * beamLen;
                 }
 
                 if (useGrid) {
                     // Grid-accelerated: query nearby enemy bullets
-                    const queryR = isBeam ? (beamCfg.LENGTH + 10) : (bR + (Balance.BULLET_CONFIG.ENEMY_DEFAULT.collisionRadius || 6) + 10);
+                    const defaultCR = Balance.BULLET_CONFIG.ENEMY_DEFAULT.collisionRadius || 6;
+                    const queryR = isBeam ? (beamLen + 10) : (bR + defaultCR + 10);
                     const minCx = Math.floor((b.x - queryR) / 80);
                     const maxCx = Math.floor((b.x + queryR) / 80);
                     const minCy = Math.floor((b.y - queryR) / 80);
@@ -338,7 +342,7 @@ window.Game = window.Game || {};
                             for (let k = cell.length - 1; k >= 0; k--) {
                                 const eb = cell[k];
                                 if (!eb || eb.markedForDeletion) continue;
-                                const ebR = (eb.collisionRadius || Balance.BULLET_CONFIG.ENEMY_DEFAULT.collisionRadius) * cancelMult;
+                                const ebR = (eb.collisionRadius || defaultCR) * cancelMult;
                                 const cancelHit = isBeam
                                     ? G.BulletSystem.lineSegmentVsCircle(b.x, b.y, beamTailX, beamTailY, eb.x, eb.y, ebR)
                                     : G.BulletSystem.circleCollide(b.x, b.y, bR, eb.x, eb.y, ebR);
@@ -420,7 +424,10 @@ window.Game = window.Game || {};
     };
 
     // ─── v4.60: Elemental on-kill effects ─────────────────────────
-    CollisionSystem._applyElementalOnKill = function(deadEnemy, bullet, killDmg, enemies, depth) {
+    // v7.18: _contagionVisited Set previene processare lo stesso nemico più
+    // volte nella stessa cascata (es. due splash che colpiscono lo stesso
+    // survived), riducendo la complessità da O(n^depth) a O(n).
+    CollisionSystem._applyElementalOnKill = function(deadEnemy, bullet, killDmg, enemies, depth, _visited) {
         const elCfg = Balance.ELEMENTAL;
         if (!elCfg) return;
 
@@ -433,6 +440,14 @@ window.Game = window.Game || {};
             : 0;
         const damageDecay = conCfg?.DAMAGE_DECAY || 0.5;
 
+        // v7.18: Alloca il visited set al primo livello, riusato per tutta la cascata
+        if (depth === 0) {
+            _visited = new Set();
+        } else if (_visited) {
+            // Al depth > 0, se il deadEnemy è già stato processato, skip
+            if (_visited.has(deadEnemy)) return;
+        }
+
         // Fire: splash damage to nearby enemies
         if (bullet._elemFire) {
             const fireCfg = elCfg.FIRE;
@@ -441,19 +456,21 @@ window.Game = window.Game || {};
             for (let i = enemies.length - 1; i >= 0; i--) {
                 const en = enemies[i];
                 if (!en || en.markedForDeletion) continue;
+                if (_visited && _visited.has(en)) continue;
                 const dx = en.x - deadEnemy.x;
                 const dy = en.y - deadEnemy.y;
                 if (dx * dx + dy * dy <= splashR * splashR) {
                     const died = en.takeDamage(splashDmg, 'fire');
                     if (G.Debug) G.Debug.trackContagion('fire', depth, splashDmg, died);
                     if (died) {
+                        if (_visited) _visited.add(en);
                         enemies.splice(i, 1);
                         if (this._ctx && this._ctx.callbacks && this._ctx.callbacks.onEnemyKilled) {
                             this._ctx.callbacks.onEnemyKilled(en, bullet, i, enemies);
                         }
                         if (depth < maxDepth) {
                             const decayedDmg = splashDmg * damageDecay;
-                            this._applyElementalOnKill(en, bullet, decayedDmg, enemies, depth + 1);
+                            this._applyElementalOnKill(en, bullet, decayedDmg, enemies, depth + 1, _visited);
                         }
                     } else if (en.applyContagionTint) {
                         en.applyContagionTint('fire');
@@ -497,6 +514,7 @@ window.Game = window.Game || {};
             for (let i = 0; i < enemies.length; i++) {
                 const en = enemies[i];
                 if (!en || en.markedForDeletion) continue;
+                if (_visited && _visited.has(en)) continue;
                 const dx = en.x - deadEnemy.x;
                 const dy = en.y - deadEnemy.y;
                 const distSq = dx * dx + dy * dy;
@@ -511,6 +529,7 @@ window.Game = window.Game || {};
                 const died = tgt.enemy.takeDamage(chainDmg, 'electric');
                 if (G.Debug) G.Debug.trackContagion('electric', depth, chainDmg, died);
                 if (died) {
+                    if (_visited) _visited.add(tgt.enemy);
                     const idx = enemies.indexOf(tgt.enemy);
                     if (idx >= 0) enemies.splice(idx, 1);
                     if (this._ctx && this._ctx.callbacks && this._ctx.callbacks.onEnemyKilled) {
@@ -518,7 +537,7 @@ window.Game = window.Game || {};
                     }
                     if (depth < maxDepth) {
                         const decayedDmg = chainDmg * damageDecay;
-                        this._applyElementalOnKill(tgt.enemy, bullet, decayedDmg, enemies, depth + 1);
+                        this._applyElementalOnKill(tgt.enemy, bullet, decayedDmg, enemies, depth + 1, _visited);
                     }
                 } else if (tgt.enemy.applyContagionTint) {
                     tgt.enemy.applyContagionTint('electric');
