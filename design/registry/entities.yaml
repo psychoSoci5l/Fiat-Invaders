@@ -1,441 +1,168 @@
-# Entity Registry — FIAT vs CRYPTO v7.12.14
+# Game World Entity Registry
 #
-# Auto-generated from GDD reverse-documentation.
-# Source GDD is the authoritative owner of each entry.
-# referenced_by lists other GDDs that mention this entry.
-
-entities:
-  # ---- Player ----
-  - name: PlayerShip
-    source_gdd: v8-scroller.md
-    attributes:
-      bounding_box: [55, 55]
-      weapon_levels: [1, 2, 3]
-      ship_types: [BTC_Striker, ETH_Heavy, SOL_Speedster]
-    referenced_by:
-      - weapon-elementals-godchain.md
-      - drop-system-apc.md
-      - boss-proximity.md
-
-  # ---- Enemies ----
-  - name: EnemyAgent
-    source_gdd: enemy-agents.md
-    attributes:
-      bounding_box: [58, 58]
-      scale_range: [0.90, 1.12]
-      regions: [USA, EU, ASIA]
-      tiers: [WEAK, MEDIUM, STRONG]
-    referenced_by:
-      - v8-scroller.md
-      - wave-legacy-arcade.md
-      - arcade-rogue-protocol.md
-      - drop-system-apc.md
-
-  - name: EnemyMinion
-    source_gdd: enemy-agents.md
-    attributes:
-      bounding_box: [44, 44]
-      shape: coin
-    referenced_by:
-      - boss-proximity.md
-
-  - name: CurrencyEnemy
-    source_gdd: enemy-agents.md
-    attributes:
-      count: 12
-      currencies: [$, €, £, ¥, ₽, ₹, C$, ₩, ₣, ₺, 元, Ⓒ]
-      regions: [USA, EU, ASIA]
-    referenced_by:
-      - wave-legacy-arcade.md
-      - drop-system-apc.md
-
-  - name: Boss_FED
-    source_gdd: boss-proximity.md
-    attributes:
-      bounding_box: [160, 140]
-      phases: [P1, P2, P3]
-      colors: [green, orange, red]
-      hp_formula: "Balance.BOSS.HP.*"
-    referenced_by:
-      - v8-scroller.md
-
-  - name: Boss_BCE
-    source_gdd: boss-proximity.md
-    attributes:
-      bounding_box: [160, 140]
-      phases: [P1, P2, P3]
-      colors: [blue, blue_gold, fractured_blue]
-    referenced_by:
-      - v8-scroller.md
-
-  - name: Boss_BOJ
-    source_gdd: boss-proximity.md
-    attributes:
-      bounding_box: [160, 140]
-      phases: [P1, P2, P3]
-      colors: [red, red_white, incandescent]
-    referenced_by:
-      - v8-scroller.md
-
-  - name: MiniBoss
-    source_gdd: arcade-rogue-protocol.md
-    attributes:
-      trigger: currency_boss_map
-      arcade_hp_mult: "Balance.MINI_BOSS.ARCADE_HP_SCALE"
-      perk_scale: "Balance.BOSS.HP.PERK_SCALE"
-    referenced_by:
-      - boss-proximity.md
-
-  - name: EliteVariant
-    source_gdd: enemy-agents.md
-    attributes:
-      types: [ARMORED, EVADER, REFLECTOR]
-      tier_requirement: [MEDIUM, STRONG]
-      cycle_assignment: per_cycle
-    referenced_by:
-      - arcade-rogue-protocol.md
-      - wave-legacy-arcade.md
-
-  # ---- Boss (abstract) ----
-  - name: Boss
-    source_gdd: boss-proximity.md
-    attributes:
-      bounding_box: [160, 140]
-      hp_base: "Balance.BOSS.HP.BASE"
-      hp_per_cycle: "Balance.BOSS.HP.PER_CYCLE"
-      rotation: [FEDERAL_RESERVE, BCE, BOJ]
-      phases: [P1, P2, P3]
-    referenced_by:
-      - v8-scroller.md
-
-items:
-  - name: PowerUp_Upgrade
-    source_gdd: drop-system-apc.md
-    attributes:
-      type: weapon_upgrade
-      rarity_chance: tier_dependent
-      shape: shaded_sphere_up_arrow
-
-  - name: PowerUp_Homing
-    source_gdd: drop-system-apc.md
-    attributes:
-      type: special
-      duration: 10
-      shape: shaded_sphere_crosshair
-    referenced_by:
-      - weapon-elementals-godchain.md
-
-  - name: PowerUp_Pierce
-    source_gdd: drop-system-apc.md
-    attributes:
-      type: special
-      duration: 10
-      shape: shaded_sphere_up_arrow_cross
-
-  - name: PowerUp_Missile
-    source_gdd: drop-system-apc.md
-    attributes:
-      type: special
-      duration: 10
-      shape: shaded_sphere_explosive_star
-
-  - name: PowerUp_Shield
-    source_gdd: drop-system-apc.md
-    attributes:
-      type: utility
-      duration: 5.0
-      shape: shaded_sphere_shield
-    referenced_by:
-      - weapon-elementals-godchain.md
-
-  - name: PowerUp_Speed
-    source_gdd: drop-system-apc.md
-    attributes:
-      type: utility
-      shape: shaded_sphere_lightning
-    referenced_by:
-      - weapon-elementals-godchain.md
-
-  - name: EvolutionCore
-    source_gdd: weapon-elementals-godchain.md
-    attributes:
-      source: boss_drop
-      deploy_duration: 0.35
-      invuln_frames: 0.5
-    referenced_by:
-      - boss-proximity.md
-      - drop-system-apc.md
-
-  - name: Perk_Fire
-    source_gdd: weapon-elementals-godchain.md
-    attributes:
-      element: FIRE
-      on_kill: explosion
-      color: orange
-
-  - name: Perk_Laser
-    source_gdd: weapon-elementals-godchain.md
-    attributes:
-      element: LASER
-      on_kill: beam
-      color: cyan
-
-  - name: Perk_Electric
-    source_gdd: weapon-elementals-godchain.md
-    attributes:
-      element: ELECTRIC
-      on_kill: chain
-      color: yellow_white
-
-  - name: ModifierCard
-    source_gdd: arcade-rogue-protocol.md
-    attributes:
-      categories: [weapon, defense, economy, enemy]
-      max_stack: 3
-      selection_count: 3
-
-formulas:
-  - name: EnemyHP
-    source_gdd: v8-scroller.md
-    variables: [difficulty, cycle, wave, tier, hpMult (APC)]
-    output_range: [10, 500]
-    referenced_by:
-      - wave-legacy-arcade.md
-      - arcade-rogue-protocol.md
-
-  - name: EnemyScoreValue
-    source_gdd: v8-scroller.md
-    variables: [cycle, wave, tier, combo_mult]
-    output_range: [10, 5000]
-
-  - name: FireBudget
-    source_gdd: v8-scroller.md
-    variables: [cycle, wave, time_in_level]
-    output_range: [0, 40]
-    unit: bullets_per_second
-
-  - name: ScrollSpeed
-    source_gdd: v8-scroller.md
-    variables: [cycle, wave, crush_active]
-    output_range: [60, 180]
-    unit: px_per_s
-
-  - name: BossHP
-    source_gdd: boss-proximity.md
-    variables: [baseHp, cycle, level, phase]
-    output_range: [500, 10000]
-    referenced_by:
-      - arcade-rogue-protocol.md
-
-  - name: DIPGain_BossHit
-    source_gdd: boss-proximity.md
-    variables: [hit_dip]
-    output_range: [0, 15]
-    unit: dip_points
-
-  - name: DIPGain_EnemyKill
-    source_gdd: boss-proximity.md
-    variables: [proximity_at_kill]
-    output_range: [0, 5]
-    unit: dip_points
-
-  - name: DIPGain_PhaseTransition
-    source_gdd: boss-proximity.md
-    value: 15
-    unit: dip_points
-
-  - name: ComboMultiplier
-    source_gdd: arcade-rogue-protocol.md
-    variables: [combo_count, timer_remaining]
-    output_range: [1.0, 10.0]
-
-  - name: KillScore_Arcade
-    source_gdd: arcade-rogue-protocol.md
-    variables: [base_score, combo_mult, modifier_mult]
-    output_range: [10, 50000]
-
-  - name: EnemyHP_Arcade
-    source_gdd: arcade-rogue-protocol.md
-    variables: [base_hp, cycle, arcade_hp_mult, perk_scale]
-    output_range: [10, 500]
-
-  - name: EnemyCount_Arcade
-    source_gdd: arcade-rogue-protocol.md
-    variables: [base_count, cycle, arcade_count_mult]
-    output_range: [3, 14]
-
-  - name: AgentTierScale
-    source_gdd: enemy-agents.md
-    variables: [_tier]
-    output_range: [0.90, 1.12]
-    unit: scale_multiplier
-
-  - name: GravityGate_HoverY
-    source_gdd: enemy-agents.md
-    variables: [spawn_y, cycle]
-    output_range: [0, 300]
-    unit: px
-
-  - name: PhaseTrigger
-    source_gdd: wave-legacy-arcade.md
-    variables: [phase_original_count, phase_timer, total_alive]
-    output_range: [3, 4]
-    unit: threshold_alive_count
-    referenced_by:
-      - arcade-rogue-protocol.md
-
-  - name: CountScaling
-    source_gdd: wave-legacy-arcade.md
-    variables: [base_count, bear_mult, cycle_mult, arcade_mult, rank_mult]
-    output_range: [1, 14]
-
-  - name: EntryAnimationStagger
-    source_gdd: wave-legacy-arcade.md
-    value: 0.04
-    unit: s_per_enemy
-
-constants:
-  - name: MAX_CONCURRENT_ENEMIES
-    source_gdd: wave-legacy-arcade.md
-    value: 18
-    unit: count
-    referenced_by:
-      - arcade-rogue-protocol.md
-
-  - name: MAX_PER_PHASE
-    source_gdd: wave-legacy-arcade.md
-    value: 14
-    unit: count
-
-  - name: WAVES_PER_CYCLE
-    source_gdd: wave-legacy-arcade.md
-    value: 5
-    unit: count
-
-  - name: V8_SPAWN_Y_OFFSET
-    source_gdd: v8-scroller.md
-    value: -40
-    unit: px
-
-  - name: V8_BOSS_AT_S
-    source_gdd: v8-scroller.md
-    value: 170
-    unit: seconds
-
-  - name: V8_CRUSH_SPEED_MULT
-    source_gdd: v8-scroller.md
-    value: [1.8, 2.2, 2.6]
-    unit: multiplier_per_level
-    # was: 1.50 before 2026-04-27 (single value; CRUSH multiplier is per-level)
-
-  - name: SPECIAL_DURATION
-    source_gdd: weapon-elementals-godchain.md
-    value: 10
-    unit: seconds
-
-  - name: SHIELD_DURATION
-    source_gdd: weapon-elementals-godchain.md
-    value: 5.0
-    unit: seconds
-
-  - name: GODCHAIN_DURATION
-    source_gdd: weapon-elementals-godchain.md
-    value: 10
-    unit: seconds
-
-  - name: HYPERGOD_TOTAL_MULT_CAP
-    source_gdd: arcade-rogue-protocol.md
-    value: 50
-    unit: multiplier
-
-  - name: GLOBAL_BULLET_CAP
-    source_gdd: wave-legacy-arcade.md
-    value: 150
-    unit: count
-    referenced_by:
-      - enemy-agents.md
-
-  - name: DIP_MAX
-    source_gdd: boss-proximity.md
-    value: 100
-    unit: dip_points
-
-  - name: DIP_BOSS_HIT
-    source_gdd: boss-proximity.md
-    value: 0.15
-    unit: dip_points_per_hit
-
-  - name: DIP_PHASE_TRANSITION
-    source_gdd: boss-proximity.md
-    value: 15
-    unit: dip_points
-
-  - name: INTERMISSION_DURATION_ARCADE
-    source_gdd: arcade-rogue-protocol.md
-    value: 2.0
-    unit: seconds
-
-  - name: POST_C3_DIFF_PER_CYCLE
-    source_gdd: arcade-rogue-protocol.md
-    value: 0.20
-    unit: multiplier
-
-  - name: POST_C3_FORMATION_REMIX
-    source_gdd: arcade-rogue-protocol.md
-    value: 0.40
-    unit: chance
-
-  - name: ARCADE_ENEMY_COUNT_MULT
-    source_gdd: arcade-rogue-protocol.md
-    value: 1.15
-    unit: multiplier
-
-  - name: ARCADE_ENEMY_HP_MULT
-    source_gdd: arcade-rogue-protocol.md
-    value: 0.85
-    unit: multiplier
-
-  - name: BEAR_COUNT_MULT
-    source_gdd: wave-legacy-arcade.md
-    value: 1.25
-    unit: multiplier
-
-  - name: CYCLE_COUNT_MULT
-    source_gdd: wave-legacy-arcade.md
-    value: [1.0, 1.25, 1.45]
-    unit: multiplier_per_cycle
-
-  - name: PHASE_TRIGGER_THRESHOLD
-    source_gdd: wave-legacy-arcade.md
-    value: 0.25
-    unit: ratio
-
-  - name: PHASE_TRIGGER_MIN_DURATION
-    source_gdd: wave-legacy-arcade.md
-    value: 3.0
-    unit: seconds
-
-  - name: ENTRY_SPEED
-    source_gdd: wave-legacy-arcade.md
-    value: 600
-    unit: px_per_s
-
-  - name: ENEMY_AGENT_ENABLED
-    source_gdd: enemy-agents.md
-    value: true
-    type: kill_switch
-
-  - name: ADAPTIVE_DROPS_ENABLED
-    source_gdd: drop-system-apc.md
-    value: true
-    type: kill_switch
-
-  - name: V8_MODE_ENABLED
-    source_gdd: v8-scroller.md
-    value: true
-    type: feature_flag
-
-  - name: ELEMENTAL_CONTAGION_ENABLED
-    source_gdd: weapon-elementals-godchain.md
-    value: true
-    type: kill_switch
+# PURPOSE: Single source of truth for all named game-world facts that appear
+# in more than one document. Skills check this before writing new content to
+# detect cross-doc inconsistencies at authoring time.
+#
+# RULES:
+#   - Only register facts that cross system boundaries. Internal-only facts
+#     (a formula used in one GDD only) do NOT need to be registered.
+#   - Never delete entries — set status: deprecated instead.
+#   - When a value changes: update the value, set revised: to today's date,
+#     and add a comment with the old value and which GDD changed it.
+#   - source: is the authoritative GDD — the one that "owns" this fact.
+#     Other GDDs that reference it list themselves in referenced_by.
+#   - When a new GDD references an existing entry, append its path to
+#     referenced_by. Do not create a duplicate entry.
+#
+# WRITTEN BY: /design-system (Phase 5 — after GDD sections are approved)
+#             /consistency-check (when resolving conflicts)
+# READ BY:    /design-system (Phase 2 — before authoring begins, and after
+#               Section C/D writes to conflict-check new entities/formulas)
+#             /consistency-check (primary input — grep-first, GDD-second)
+#             /review-all-gdds (Phase 1 — baseline for Phase 2 checks)
+#             /architecture-review (data structure and interface validation)
+#
+# SEARCH PATTERNS (for skills using Grep):
+#   All entity names:        Grep pattern="^  - name:" path="design/registry/entities.yaml"
+#   Specific entity:         Grep pattern="  - name: goblin" path="design/registry/entities.yaml"
+#   All items:               Grep pattern="^  - name:" path="design/registry/entities.yaml" (items section)
+#   What combat.md owns:     Grep pattern="source: design/gdd/combat.md"
+#   What inventory.md uses:  Grep pattern="referenced_by.*inventory"
+#   All gold values:          Grep pattern="value_gold:"
+#   Deprecated entries:      Grep pattern="status: deprecated"
+#
+# FORMAT: YAML. Consistent indentation is critical for grep reliability.
+#   Sections: entities | items | formulas | constants
+#   Each entry: name, status, source, referenced_by[], attributes{}, added, revised
+
+version: 1
+last_updated: ""
+
+# ─── ENTITIES ────────────────────────────────────────────────────────────────
+# Named game-world objects: enemies, NPCs, characters, factions, bosses.
+# Register an entity here when it appears in more than one GDD — e.g., an
+# enemy defined in combat.md that also drops items listed in inventory.md.
+#
+# Required fields: name, status, source, referenced_by, added
+# Attribute fields: any key stats that could appear in another GDD
+#   (health, damage, drops, faction, etc.)
+
+entities: []
+
+# Example (remove when first real entry is added):
+#
+# entities:
+#   - name: goblin
+#     status: active              # active | deprecated
+#     source: design/gdd/combat.md
+#     referenced_by:
+#       - design/gdd/combat.md
+#       - design/gdd/inventory.md
+#     health: 40
+#     damage: 8
+#     drops:
+#       - item: goblin_arm        # must match an entry in items section
+#         qty: 1
+#         drop_rate: 0.8          # 0.0–1.0
+#     added: 2026-03-26
+#     revised: ""
+
+
+# ─── ITEMS ───────────────────────────────────────────────────────────────────
+# Named collectables, equipment, consumables, crafting materials, currency.
+# Register an item when its name or value appears in more than one GDD.
+#
+# Required fields: name, status, source, referenced_by, added
+# Attribute fields: value_gold, weight, stackable, category, and any stat
+#   modifiers that another system (e.g., economy, crafting) might reference.
+
+items: []
+
+# Example:
+#
+# items:
+#   - name: goblin_arm
+#     status: active
+#     source: design/gdd/combat.md   # drop defined in combat GDD
+#     referenced_by:
+#       - design/gdd/combat.md
+#       - design/gdd/inventory.md    # inventory GDD lists its weight/stack rules
+#       - design/gdd/economy.md      # economy GDD references its sell price
+#     value_gold: 5
+#     weight: 1
+#     stackable: true
+#     category: crafting_material
+#     added: 2026-03-26
+#     revised: ""
+
+
+# ─── FORMULAS ────────────────────────────────────────────────────────────────
+# Named calculations with defined variables and output ranges.
+# Register a formula when its output feeds into another system's input,
+# or when another GDD references it by name.
+#
+# Required fields: name, status, source, referenced_by, variables[],
+#   output_range[min, max], added
+# Optional: expression (the actual formula), notes
+
+formulas: []
+
+# Example:
+#
+# formulas:
+#   - name: damage_formula
+#     status: active
+#     source: design/gdd/combat.md
+#     referenced_by:
+#       - design/gdd/combat.md
+#       - design/gdd/progression.md   # progression GDD scales attack variable
+#     variables:
+#       - attack
+#       - defense
+#       - crit_chance
+#       - crit_multiplier
+#     output_range: [0, 999]
+#     expression: "max(0, attack - defense) * (1 + crit_chance * crit_multiplier)"
+#     notes: "Output feeds into health-system damage intake. Min is 0 (armour
+#       can absorb all damage). Max is uncapped in formula but tuning knob
+#       damage_cap in combat.md clamps at 999."
+#     added: 2026-03-26
+#     revised: ""
+
+
+# ─── CONSTANTS ───────────────────────────────────────────────────────────────
+# Named numerical values referenced across multiple systems.
+# Register a constant when it is defined in one GDD but another GDD must
+# agree with it (e.g., gold carry limit defined in economy but checked in
+# inventory, or base inventory slots defined in inventory but displayed in HUD).
+#
+# Required fields: name, status, source, referenced_by, value, unit, added
+
+constants: []
+
+# Example:
+#
+# constants:
+#   - name: gold_carry_limit
+#     status: active
+#     source: design/gdd/economy.md
+#     referenced_by:
+#       - design/gdd/economy.md
+#       - design/gdd/inventory.md   # inventory enforces the carry limit
+#       - design/gdd/ui.md          # HUD displays current gold vs limit
+#     value: 9999
+#     unit: gold
+#     added: 2026-03-26
+#     revised: ""
+#
+#   - name: base_inventory_slots
+#     status: active
+#     source: design/gdd/inventory.md
+#     referenced_by:
+#       - design/gdd/inventory.md
+#       - design/gdd/progression.md  # progression unlocks additional slots
+#     value: 20
+#     unit: slots
+#     added: 2026-03-26
+#     revised: ""
