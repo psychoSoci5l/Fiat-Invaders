@@ -2025,6 +2025,37 @@ window.Game.Debug = {
     },
 
     /**
+     * v7.19.5: Toggle a singolo asse del GODCHAIN audio per isolare la sorgente
+     * del "sibilo larsen". Chiama senza argomenti per stampare lo stato attuale.
+     * Argomenti accettati: 'LAYERS' | 'ARP_DETUNE' | 'INTENSITY' | 'ALL'.
+     * Test consigliato: disattiva uno alla volta e ascolta se il sibilo sparisce.
+     */
+    toggleGodchainAudio(key) {
+        const ga = window.Game?.Balance?.GODCHAIN_AUDIO;
+        if (!ga) { console.log('[DEBUG] GODCHAIN_AUDIO config not present'); return; }
+        const k = (key || '').toUpperCase();
+        const map = {
+            'LAYERS':    'LAYERS_ENABLED',
+            'ARP_DETUNE': 'ARP_DETUNE_ENABLED',
+            'INTENSITY': 'INTENSITY_BOOST_ENABLED'
+        };
+        if (k === 'ALL') {
+            const newVal = !(ga.LAYERS_ENABLED && ga.ARP_DETUNE_ENABLED && ga.INTENSITY_BOOST_ENABLED);
+            ga.LAYERS_ENABLED = newVal;
+            ga.ARP_DETUNE_ENABLED = newVal;
+            ga.INTENSITY_BOOST_ENABLED = newVal;
+            console.log('[DEBUG] GODCHAIN_AUDIO ALL → ' + newVal);
+        } else if (map[k]) {
+            ga[map[k]] = !ga[map[k]];
+            console.log('[DEBUG] GODCHAIN_AUDIO.' + map[k] + ' → ' + ga[map[k]]);
+        } else {
+            console.log('[DEBUG] usage: dbg.toggleGodchainAudio("LAYERS" | "ARP_DETUNE" | "INTENSITY" | "ALL")');
+        }
+        console.log('[DEBUG] current state:', JSON.stringify(ga));
+        return ga;
+    },
+
+    /**
      * v7.19.2: Snapshot dello stato audio (per debug del sibilo). Stampa quanti
      * nodi audio continuous sono attivi al momento della chiamata.
      */
@@ -3095,7 +3126,7 @@ window.Game.Debug = {
 window.dbg = window.Game.Debug;
 
 // Console helper message
-console.log('[DEBUG] DebugSystem loaded. Commands: dbg.stats(), dbg.showOverlay(), dbg.perf(), dbg.perfReport(), dbg.entityReport(), dbg.boss(type), dbg.debugBoss(), dbg.debugHUD(), dbg.hudStatus(), dbg.toggleHudMsg(key), dbg.maxWeapon(), dbg.weaponStatus(), dbg.godchain(), dbg.godchainStatus(), dbg.audioState(), dbg.powerUpReport(), dbg.progressionReport(), dbg.contagionReport(), dbg.hitboxes(), dbg.formations(), dbg.arcade(), dbg.arcadeHelp(), dbg.completion(), dbg.waveReport(), dbg.elites(), dbg.behaviors(), dbg.streaming(), dbg.quality(), dbg.qualitySet(tier), dbg.v8(), dbg.toggleV8()');
+console.log('[DEBUG] DebugSystem loaded. Commands: dbg.stats(), dbg.showOverlay(), dbg.perf(), dbg.perfReport(), dbg.entityReport(), dbg.boss(type), dbg.debugBoss(), dbg.debugHUD(), dbg.hudStatus(), dbg.toggleHudMsg(key), dbg.maxWeapon(), dbg.weaponStatus(), dbg.godchain(), dbg.godchainStatus(), dbg.audioState(), dbg.toggleGodchainAudio(key), dbg.powerUpReport(), dbg.progressionReport(), dbg.contagionReport(), dbg.hitboxes(), dbg.formations(), dbg.arcade(), dbg.arcadeHelp(), dbg.completion(), dbg.waveReport(), dbg.elites(), dbg.behaviors(), dbg.streaming(), dbg.quality(), dbg.qualitySet(tier), dbg.v8(), dbg.toggleV8()');
 
 // v8: auto-enable V8 category + master debug flag when V8_MODE is ENABLED
 // Deferred to DOMContentLoaded because BalanceConfig.js loads AFTER DebugSystem.js

@@ -1,5 +1,31 @@
 # Changelog
 
+## v7.19.5 — fix(audio): "larsen" del GODCHAIN era ARP filter Q troppo alto - 2026-05-01
+
+### fix(audio): ARP filter resonance peak (Q=2) + arpDetune GODCHAIN = wah-wah larsen
+Diagnosi corretta dell'utente ("non è calibrazione, è tipo larsen, stai osservando
+dal punto di vista sbagliato"). Tutte le iterazioni precedenti (v7.19.1, .3, .4)
+hanno tweakato il drone layer del GODCHAIN ma il vero problema era la
+**modulazione del filter biquad sull'arp bus**:
+
+- `Balance.AUDIO.LFO.ARP_FILTER` aveva `Q: 2` — biquad lowpass con quel Q
+  produce un picco di risonanza ~18 dB sulla cutoff frequency.
+- Filter cutoff modulato da LFO 2 Hz tra 800 e 4000 Hz (sweep continuo).
+- Durante GODCHAIN: `arpDetune += 300` trasla l'arp di +3 semitoni → le note
+  dell'arp casuano più frequentemente nella zona di risonanza del filter
+  durante lo sweep.
+- Risultato: ogni passaggio dell'LFO sopra una nota dell'arp triggera una
+  risonanza, generando un wah-wah crescente percepito come **effetto larsen**.
+
+Fix: `Q: 2 → 0.7` (no peak di risonanza). Lo sweep del filter resta audibile
+come effetto tonale, ma senza il picco che amplificava le note in resonance.
+
+### chore(audio): kill-switches diagnostici per future regressioni
+Aggiunti `Balance.GODCHAIN_AUDIO.{LAYERS_ENABLED,ARP_DETUNE_ENABLED,INTENSITY_BOOST_ENABLED}`
+e comando `dbg.toggleGodchainAudio('LAYERS' | 'ARP_DETUNE' | 'INTENSITY' | 'ALL')`
+per isolare future fonti audio sospette senza modificare codice. Tutti default
+true (comportamento invariato), settabili a false a runtime.
+
 ## v7.19.4 — fix(audio): GODCHAIN/HYPER drone meno invasivo - 2026-05-01
 
 ### fix(audio): "sibilo" del GODCHAIN — sound design ricalibrato

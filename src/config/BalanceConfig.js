@@ -2064,6 +2064,16 @@
             }
         },
 
+        // --- GODCHAIN AUDIO kill-switches v7.19.5 — diagnostic for "sibilo larsen" ---
+        // Three independent toggles to isolate the source of the perceived feedback
+        // sibilo during GODCHAIN. Set any to false at runtime via dbg.toggleGodchainAudio()
+        // and report which one silences the issue.
+        GODCHAIN_AUDIO: {
+            LAYERS_ENABLED: true,          // continuous oscillator drone (square+sub+rumble+shimmer)
+            ARP_DETUNE_ENABLED: true,      // +300 cents transposition on the arp during GODCHAIN
+            INTENSITY_BOOST_ENABLED: true  // +12 to music intensity during GODCHAIN (raises arp/melody/drums)
+        },
+
         // --- GODCHAIN MODE v4.6 (All modifiers maxed simultaneously) ---
         GODCHAIN: {
             // v4.60: GODCHAIN = 3 elemental perks collected (was weapon level 5)
@@ -2779,7 +2789,7 @@
                 PAN: { bass: 0, arp: -0.3, melody: 0.3, kick: 0, snare: 0, hihat: 0.4, crash: -0.2, pad: 0 }
             },
             LFO: {
-                ARP_FILTER: { ENABLED: true, RATE: 2, MIN_FREQ: 800, MAX_FREQ: 4000, Q: 2 },
+                ARP_FILTER: { ENABLED: true, RATE: 2, MIN_FREQ: 800, MAX_FREQ: 4000, Q: 0.7 }, // v7.19.5: Q 2 → 0.7 — peak di risonanza a Q=2 + arpDetune +300 durante GODCHAIN faceva cascare le note dell'arp esattamente sulla frequency del filter LFO sweep, generando wah-wah aggressivo percepito come "larsen". Q=0.7 rimuove il peak di risonanza mantenendo il filter sweep audibile.
                 MELODY_FILTER: { ENABLED: true, ATTACK_FREQ: 3000, RELEASE_FREQ: 800, Q: 1 },
                 PAD_TREMOLO: { ENABLED: true, RATE: 0.5, DEPTH: 0.3 },
                 PAD_DETUNE: { ENABLED: true, CENTS: 8 }

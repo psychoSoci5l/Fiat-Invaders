@@ -289,6 +289,15 @@ class AudioSystem {
      */
     startHyperLayer() {
         if (!this.ctx) return;
+        // v7.19.5: master kill-switch on continuous drone layers. When false, no
+        // oscillators are spun up — used to isolate the "larsen" sibilo source.
+        // If the user still hears the sibilo with this off, the source is in the
+        // music modulation path (arp detune + filter LFO) or elsewhere.
+        const layersEnabled = window.Game.Balance?.GODCHAIN_AUDIO?.LAYERS_ENABLED;
+        if (layersEnabled === false) {
+            console.log('[AUDIO-TRACE] startHyperLayer: BLOCKED by kill-switch GODCHAIN_AUDIO.LAYERS_ENABLED=false');
+            return;
+        }
         if (this._hyperLayerNodes) {
             this._hyperStartedByGodchain = false; // Player wants HYPER independently
             console.log('[AUDIO-TRACE] startHyperLayer: SKIP (already running, nodes=' + this._hyperLayerNodes.length + ')');
@@ -396,6 +405,13 @@ class AudioSystem {
      */
     startGodchainLayer() {
         if (!this.ctx) return;
+        // v7.19.5: kill-switch — blocks both the GODCHAIN-specific layer AND prevents
+        // it from auto-starting HYPER (since HYPER would also be blocked). See startHyperLayer.
+        const layersEnabled = window.Game.Balance?.GODCHAIN_AUDIO?.LAYERS_ENABLED;
+        if (layersEnabled === false) {
+            console.log('[AUDIO-TRACE] startGodchainLayer: BLOCKED by kill-switch GODCHAIN_AUDIO.LAYERS_ENABLED=false');
+            return;
+        }
         if (this._godchainLayerNodes) {
             console.log('[AUDIO-TRACE] startGodchainLayer: SKIP (already running, nodes=' + this._godchainLayerNodes.length + ')');
             return;

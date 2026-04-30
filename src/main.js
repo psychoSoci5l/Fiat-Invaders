@@ -2981,8 +2981,10 @@ function update(dt) {
             arpDetune += 500; // +5 semitones (~perfect fourth)
         }
         if (player && player._godchainActive) {
-            intensity += 12;
-            arpDetune += 300; // +3 semitones
+            // v7.19.5: per-axis kill-switches to isolate the "sibilo larsen" source.
+            const ga = G.Balance?.GODCHAIN_AUDIO;
+            if (!ga || ga.INTENSITY_BOOST_ENABLED !== false) intensity += 12;
+            if (!ga || ga.ARP_DETUNE_ENABLED !== false)      arpDetune += 300; // +3 semitones
         }
 
         intensity = Math.min(100, intensity);
