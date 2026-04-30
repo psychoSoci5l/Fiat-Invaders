@@ -1593,6 +1593,7 @@ window.togglePause = function () {
     const pauseScreen = document.getElementById('pause-screen');
     if (!pauseScreen) return;
     if (gameState === 'PLAY' || gameState === 'WARMUP' || gameState === 'INTERMISSION') {
+        console.log('[AUDIO-TRACE] togglePause: ENTER PAUSE (from ' + gameState + ', godchainTimer=' + (player?.godchainTimer?.toFixed?.(2) ?? 'N/A') + ', hyperActive=' + player?.hyperActive + ')');
         window._pausedFromState = gameState;
         setGameState('PAUSE');
         pauseScreen.style.display = 'flex';
@@ -1614,6 +1615,7 @@ window.togglePause = function () {
         }
     }
     else if (gameState === 'PAUSE') {
+        console.log('[AUDIO-TRACE] togglePause: EXIT PAUSE → ' + (window._pausedFromState || 'PLAY') + ' (godchainTimer=' + (player?.godchainTimer?.toFixed?.(2) ?? 'N/A') + ', hyperActive=' + player?.hyperActive + ')');
         const resumeTo = window._pausedFromState || 'PLAY';
         setGameState(resumeTo);
         window._pausedFromState = null;

@@ -2025,6 +2025,36 @@ window.Game.Debug = {
     },
 
     /**
+     * v7.19.2: Snapshot dello stato audio (per debug del sibilo). Stampa quanti
+     * nodi audio continuous sono attivi al momento della chiamata.
+     */
+    audioState() {
+        const audio = window.Game?.Audio;
+        const player = window.player;
+        if (!audio) {
+            console.log('[AUDIO-STATE] no audio system');
+            return;
+        }
+        const state = {
+            ctxState: audio.ctx?.state || 'N/A',
+            ctxTime: audio.ctx?.currentTime?.toFixed(2) || 'N/A',
+            hyperLayerNodes: Array.isArray(audio._hyperLayerNodes) ? audio._hyperLayerNodes.length : null,
+            godchainLayerNodes: Array.isArray(audio._godchainLayerNodes) ? audio._godchainLayerNodes.length : null,
+            hyperStartedByGodchain: audio._hyperStartedByGodchain,
+            pendingDisconnects: Array.isArray(audio._pendingDisconnectTimers) ? audio._pendingDisconnectTimers.length : null,
+            isPlaying: audio.isPlaying,
+            pausedState: audio._pausedState,
+            playerHyperActive: player?.hyperActive,
+            playerGodchainActive: player?._godchainActive,
+            playerGodchainTimer: player?.godchainTimer?.toFixed?.(2),
+            playerGodchainPending: player?._godchainPending,
+            gameState: window.Game?.gameState || (typeof gameState !== 'undefined' ? gameState : 'unknown')
+        };
+        console.log('[AUDIO-STATE]', JSON.stringify(state, null, 2));
+        return state;
+    },
+
+    /**
      * Show GODCHAIN status
      */
     godchainStatus() {
@@ -3065,7 +3095,7 @@ window.Game.Debug = {
 window.dbg = window.Game.Debug;
 
 // Console helper message
-console.log('[DEBUG] DebugSystem loaded. Commands: dbg.stats(), dbg.showOverlay(), dbg.perf(), dbg.perfReport(), dbg.entityReport(), dbg.boss(type), dbg.debugBoss(), dbg.debugHUD(), dbg.hudStatus(), dbg.toggleHudMsg(key), dbg.maxWeapon(), dbg.weaponStatus(), dbg.godchain(), dbg.godchainStatus(), dbg.powerUpReport(), dbg.progressionReport(), dbg.contagionReport(), dbg.hitboxes(), dbg.formations(), dbg.arcade(), dbg.arcadeHelp(), dbg.completion(), dbg.waveReport(), dbg.elites(), dbg.behaviors(), dbg.streaming(), dbg.quality(), dbg.qualitySet(tier), dbg.v8(), dbg.toggleV8()');
+console.log('[DEBUG] DebugSystem loaded. Commands: dbg.stats(), dbg.showOverlay(), dbg.perf(), dbg.perfReport(), dbg.entityReport(), dbg.boss(type), dbg.debugBoss(), dbg.debugHUD(), dbg.hudStatus(), dbg.toggleHudMsg(key), dbg.maxWeapon(), dbg.weaponStatus(), dbg.godchain(), dbg.godchainStatus(), dbg.audioState(), dbg.powerUpReport(), dbg.progressionReport(), dbg.contagionReport(), dbg.hitboxes(), dbg.formations(), dbg.arcade(), dbg.arcadeHelp(), dbg.completion(), dbg.waveReport(), dbg.elites(), dbg.behaviors(), dbg.streaming(), dbg.quality(), dbg.qualitySet(tier), dbg.v8(), dbg.toggleV8()');
 
 // v8: auto-enable V8 category + master debug flag when V8_MODE is ENABLED
 // Deferred to DOMContentLoaded because BalanceConfig.js loads AFTER DebugSystem.js

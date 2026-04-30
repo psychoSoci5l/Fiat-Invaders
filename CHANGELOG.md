@@ -1,5 +1,28 @@
 # Changelog
 
+## v7.19.2 — chore(audio): tracing instrumentation per debug del sibilo - 2026-05-01
+
+### chore(audio): [AUDIO-TRACE] log strutturati su tutto il path drone
+Il fix v7.19.1 non ha eliminato il sibilo segnalato in playtest. Invece di
+continuare a tentativi, aggiungo strumentazione mirata per capire DOVE il
+flusso si rompe.
+
+Log inseriti (tutti con prefisso `[AUDIO-TRACE]`):
+- `AudioSystem.startHyperLayer` — STARTING / SKIP (already running)
+- `AudioSystem.stopHyperLayer` — STOPPING ${n} nodes / NOOP
+- `AudioSystem.startGodchainLayer` — STARTING (con `_hyperStartedByGodchain`) / SKIP
+- `AudioSystem.stopGodchainLayer` — STOPPING ${n} nodes / NOOP / ctx-closed
+- `Player.update` — transizione GODCHAIN false→true e true→false
+- `main.togglePause` — ENTER PAUSE / EXIT PAUSE (con godchainTimer + hyperActive)
+
+Nuovo comando: `dbg.audioState()` — stampa snapshot completo stato audio
+(ctx state/time, layer node counts, flag `_hyperStartedByGodchain`, pending
+disconnect timers, player flags, gameState). Da usare in qualsiasi momento
+per capire cosa sta tenendo vivo il drone.
+
+Niente fix in questa release — solo strumentazione. Una volta raccolti i
+log dal playtest, si applicherà il fix mirato.
+
 ## v7.19.1 — fix(audio): pause leak GODCHAIN/HYPER drone - 2026-05-01
 
 ### fix(audio): GODCHAIN sibilo durante PAUSA

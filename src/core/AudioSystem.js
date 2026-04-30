@@ -291,8 +291,10 @@ class AudioSystem {
         if (!this.ctx) return;
         if (this._hyperLayerNodes) {
             this._hyperStartedByGodchain = false; // Player wants HYPER independently
+            console.log('[AUDIO-TRACE] startHyperLayer: SKIP (already running, nodes=' + this._hyperLayerNodes.length + ')');
             return;
         }
+        console.log('[AUDIO-TRACE] startHyperLayer: STARTING at t=' + this.ctx.currentTime.toFixed(2));
         const t = this.ctx.currentTime;
         const output = this.getMusicOutput();
 
@@ -349,12 +351,17 @@ class AudioSystem {
      * that wouldn't stop after the timer expired.
      */
     stopHyperLayer() {
-        if (!this._hyperLayerNodes) return;
+        if (!this._hyperLayerNodes) {
+            console.log('[AUDIO-TRACE] stopHyperLayer: NOOP (no active layer)');
+            return;
+        }
+        console.log('[AUDIO-TRACE] stopHyperLayer: STOPPING ' + this._hyperLayerNodes.length + ' nodes at t=' + (this.ctx?.currentTime?.toFixed(2) || 'N/A'));
         const nodes = this._hyperLayerNodes;
         this._hyperLayerNodes = null; // claim ownership — prevents races on restart
 
         if (!this.ctx || this.ctx.state === 'closed') {
             // Context is gone — safety osc.stop() in startHyperLayer() will kill nodes.
+            console.log('[AUDIO-TRACE] stopHyperLayer: ctx closed, relying on safety stops');
             return;
         }
         const t = this.ctx.currentTime;
@@ -382,7 +389,11 @@ class AudioSystem {
      */
     startGodchainLayer() {
         if (!this.ctx) return;
-        if (this._godchainLayerNodes) return;
+        if (this._godchainLayerNodes) {
+            console.log('[AUDIO-TRACE] startGodchainLayer: SKIP (already running, nodes=' + this._godchainLayerNodes.length + ')');
+            return;
+        }
+        console.log('[AUDIO-TRACE] startGodchainLayer: STARTING at t=' + this.ctx.currentTime.toFixed(2) + ', _hyperStartedByGodchain=' + this._hyperStartedByGodchain);
         // Ensure HYPER layer is active (GODCHAIN requires HYPER)
         if (!this._hyperLayerNodes) {
             this.startHyperLayer();
@@ -442,7 +453,11 @@ class AudioSystem {
      * oscillator state edge cases.
      */
     stopGodchainLayer() {
-        if (!this._godchainLayerNodes) return;
+        if (!this._godchainLayerNodes) {
+            console.log('[AUDIO-TRACE] stopGodchainLayer: NOOP (no active layer)');
+            return;
+        }
+        console.log('[AUDIO-TRACE] stopGodchainLayer: STOPPING ' + this._godchainLayerNodes.length + ' nodes at t=' + (this.ctx?.currentTime?.toFixed(2) || 'N/A') + ', _hyperStartedByGodchain=' + this._hyperStartedByGodchain);
         const nodes = this._godchainLayerNodes;
         this._godchainLayerNodes = null; // claim ownership before any awaits
 
@@ -451,6 +466,7 @@ class AudioSystem {
             // tells us whether to also stop the HYPER layer. With ctx closed, both
             // are dead anyway; the flag clear keeps state consistent.
             this._hyperStartedByGodchain = false;
+            console.log('[AUDIO-TRACE] stopGodchainLayer: ctx closed, exiting');
             return;
         }
         const t = this.ctx.currentTime;

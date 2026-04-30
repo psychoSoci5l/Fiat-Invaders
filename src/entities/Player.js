@@ -584,6 +584,7 @@ class Player extends window.Game.Entity {
         const wasGodchain = this._godchainActive;
         this._godchainActive = this.isGodchainActive();
         if (this._godchainActive && !wasGodchain) {
+            console.log('[AUDIO-TRACE] Player: GODCHAIN false→true (timer=' + this.godchainTimer.toFixed(2) + 's)');
             if (window.Game.Events) window.Game.Events.emit('player:godchain-activated');
             if (window.Game.Audio) {
                 window.Game.Audio.play('godchainActivate');
@@ -611,6 +612,7 @@ class Player extends window.Game.Entity {
             }
             if (window.Game.Debug) window.Game.Debug.trackGodchainActivate();
         } else if (!this._godchainActive && wasGodchain) {
+            console.log('[AUDIO-TRACE] Player: GODCHAIN true→false (timer=' + this.godchainTimer.toFixed(2) + 's, transition detected)');
             this.godchainCooldown = window.Game.Balance?.GODCHAIN?.COOLDOWN || 10;
             if (window.Game.Events) window.Game.Events.emit('player:godchain-deactivated');
             // v7.15: Stop GODCHAIN audio layer
