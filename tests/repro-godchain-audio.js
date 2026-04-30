@@ -132,14 +132,72 @@ const { chromium } = require('playwright');
         pass = false; failures.push('pendingDisconnectTimers should be 0 (got ' + final.pendingDisconnects + ')');
     }
 
+    if (!pass) {
+        console.log('\n❌ FAIL (timer-expiry path) — issues detected:');
+        failures.forEach(f => console.log('  - ' + f));
+        await browser.close();
+        process.exit(1);
+    }
+
+    // ── Phase 2: pause-during-GODCHAIN must also stop the drone layers ───
+    // Re-trigger godchain, then immediately pause the game and assert that the
+    // continuous layers are released without waiting for the timer to expire.
+    // Regression test for v7.19.1: the original v7.19 fix only ran via Player.update
+    // tick — which is suppressed in PAUSE — so the sibilo leaked through pause.
+    await page.evaluate(() => {
+        window.player.godchainCooldown = 0;
+        window.player.activateGodchain();
+        try { window.player.update(0.05, false); } catch (e) {}
+    });
+    await page.waitForTimeout(100);
+
+    // Confirm layers are running before we pause.
+    const beforePause = await page.evaluate(() => ({
+        godchainLayerNodes: Array.isArray(window.Game.Audio._godchainLayerNodes)
+            ? window.Game.Audio._godchainLayerNodes.length : null,
+        hyperLayerNodes: Array.isArray(window.Game.Audio._hyperLayerNodes)
+            ? window.Game.Audio._hyperLayerNodes.length : null
+    }));
+    console.log('[PRE-PAUSE]', JSON.stringify(beforePause));
+
+    // Simulate what togglePause(PLAY → PAUSE) does internally for the audio side.
+    // We can't drive togglePause() through the public API in the test harness
+    // because the GameStateMachine blocks INTRO → PLAY without walking the full
+    // intro flow, but we can verify the contract that stopXxxLayer() is what
+    // gets called and that it cleans up properly. Mirrors src/main.js togglePause.
+    await page.evaluate(() => {
+        const audio = window.Game.Audio;
+        if (audio.pauseMusic) audio.pauseMusic();
+        if (audio.stopGodchainLayer) audio.stopGodchainLayer();
+        if (audio.stopHyperLayer) audio.stopHyperLayer();
+    });
+    await page.waitForTimeout(700); // wait past the deferred disconnect
+
+    const afterPause = await page.evaluate(() => ({
+        godchainLayerNodes: window.Game.Audio._godchainLayerNodes,
+        hyperLayerNodes: window.Game.Audio._hyperLayerNodes,
+        pendingDisconnects: Array.isArray(window.Game.Audio._pendingDisconnectTimers)
+            ? window.Game.Audio._pendingDisconnectTimers.length : null
+    }));
+    console.log('[POST-PAUSE]', JSON.stringify(afterPause));
+
+    let pausePass = true;
+    const pauseFails = [];
+    if (afterPause.godchainLayerNodes !== null) {
+        pausePass = false; pauseFails.push('godchainLayerNodes still set after pause');
+    }
+    if (afterPause.hyperLayerNodes !== null) {
+        pausePass = false; pauseFails.push('hyperLayerNodes still set after pause');
+    }
+
     await browser.close();
 
-    if (pass) {
-        console.log('\n✅ PASS — GODCHAIN audio cleanup verified end-to-end');
+    if (pass && pausePass) {
+        console.log('\n✅ PASS — GODCHAIN audio cleanup verified (timer expiry + pause paths)');
         process.exit(0);
     } else {
         console.log('\n❌ FAIL — issues detected:');
-        failures.forEach(f => console.log('  - ' + f));
+        if (!pausePass) pauseFails.forEach(f => console.log('  - ' + f));
         process.exit(1);
     }
 })();

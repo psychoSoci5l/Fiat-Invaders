@@ -1602,6 +1602,16 @@ window.togglePause = function () {
         setStyle('pause-btn', 'display', 'none');
         // v7.10: stop music on pause (silence, not low-volume ghost loop)
         if (G.Audio && G.Audio.pauseMusic) G.Audio.pauseMusic();
+        // v7.19.1: HYPER/GODCHAIN drone layers (continuous oscillators) keep
+        // playing through PAUSE because Player.update() — which detects timer
+        // expiry and calls stopXxxLayer() — does NOT tick in PAUSE state.
+        // Stop them explicitly here; they'll be restarted on resume if the
+        // player is still in HYPER/GODCHAIN. Without this, the GODCHAIN drone
+        // ("sibilo") leaked indefinitely whenever the user paused.
+        if (G.Audio) {
+            if (G.Audio.stopGodchainLayer) G.Audio.stopGodchainLayer();
+            if (G.Audio.stopHyperLayer) G.Audio.stopHyperLayer();
+        }
     }
     else if (gameState === 'PAUSE') {
         const resumeTo = window._pausedFromState || 'PLAY';
@@ -1613,6 +1623,16 @@ window.togglePause = function () {
         // v7.12: always resume the music loop; musicMuted only controls gain, not loop state.
         // Fixes regression where toggling mute during pause left playback dead on resume.
         if (G.Audio && G.Audio.resumeMusic) G.Audio.resumeMusic();
+        // v7.19.1: restart continuous drone layers if the player is still in
+        // HYPER/GODCHAIN (timers were frozen during PAUSE so they're still > 0).
+        if (G.Audio && player) {
+            if (player.hyperActive && G.Audio.startHyperLayer) {
+                G.Audio.startHyperLayer();
+            }
+            if (player.godchainTimer > 0 && G.Audio.startGodchainLayer) {
+                G.Audio.startGodchainLayer();
+            }
+        }
     }
 };
 

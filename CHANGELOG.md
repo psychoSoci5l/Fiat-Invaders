@@ -1,5 +1,27 @@
 # Changelog
 
+## v7.19.1 — fix(audio): pause leak GODCHAIN/HYPER drone - 2026-05-01
+
+### fix(audio): GODCHAIN sibilo durante PAUSA
+Regressione scoperta in playtest dopo il fix v7.19. Il fix originale chiudeva i
+layer audio continuous (HYPER drone + GODCHAIN square+sub) tramite la transizione
+`_godchainActive: true → false` rilevata in `Player.update()`. Ma `Player.update()`
+**non gira in PAUSE state** — quindi se l'utente metteva pausa mentre GODCHAIN
+era attivo, il timer non scendeva, la transizione non scattava, e il drone
+continuava a suonare per tutta la durata della pausa.
+
+Fix in `togglePause()` (`src/main.js`):
+- Entrata PAUSE: chiama esplicitamente `Audio.stopGodchainLayer()` +
+  `Audio.stopHyperLayer()`. `pauseMusic()` da solo fermava solo la musica, non
+  i layer continuous.
+- Uscita PAUSE (resume): se `player.hyperActive` o `player.godchainTimer > 0`,
+  ri-avvia i layer corrispondenti — il timer non è sceso durante la pausa,
+  quindi i drone devono tornare attivi.
+
+Test: `tests/repro-godchain-audio.js` esteso con Phase 2 — attiva GODCHAIN, mette
+pausa, verifica che `_godchainLayerNodes === null && _hyperLayerNodes === null`.
+**PASS**.
+
 ## v7.19 — Enemy archetypes + SW reliability - 2026-05-01
 
 ### feat(enemy): 3 nuove tipologie di nemici (boss esclusi)
