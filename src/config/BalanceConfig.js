@@ -2064,14 +2064,16 @@
             }
         },
 
-        // --- GODCHAIN AUDIO kill-switches v7.19.5 — diagnostic for "sibilo larsen" ---
-        // Three independent toggles to isolate the source of the perceived feedback
-        // sibilo during GODCHAIN. Set any to false at runtime via dbg.toggleGodchainAudio()
-        // and report which one silences the issue.
+        // --- GODCHAIN AUDIO kill-switches v7.19.5+ ---
+        // v7.19.6: tutti default false. La combinazione di drone layer + arp detune +
+        // intensity boost generava un suono continuo percepito come "sibilo/larsen"
+        // durante l'intera durata del GODCHAIN (10s). Disabilitati di default,
+        // GODCHAIN resta visivo + SFX one-shot 'godchainActivate' senza side-effect
+        // continui. Riattivabili individualmente via dbg.toggleGodchainAudio().
         GODCHAIN_AUDIO: {
-            LAYERS_ENABLED: true,          // continuous oscillator drone (square+sub+rumble+shimmer)
-            ARP_DETUNE_ENABLED: true,      // +300 cents transposition on the arp during GODCHAIN
-            INTENSITY_BOOST_ENABLED: true  // +12 to music intensity during GODCHAIN (raises arp/melody/drums)
+            LAYERS_ENABLED: false,         // continuous oscillator drone (square+sub+rumble+shimmer)
+            ARP_DETUNE_ENABLED: false,     // +300 cents transposition on the arp during GODCHAIN
+            INTENSITY_BOOST_ENABLED: false // +12 to music intensity during GODCHAIN
         },
 
         // --- GODCHAIN MODE v4.6 (All modifiers maxed simultaneously) ---

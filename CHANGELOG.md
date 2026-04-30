@@ -1,5 +1,28 @@
 # Changelog
 
+## v7.19.6 — fix(audio): GODCHAIN audio side-effects disabilitati di default - 2026-05-01
+
+### fix(audio): kill-switches GODCHAIN_AUDIO ora default FALSE
+Dopo 5 iterazioni di tweak (v7.19.1, .3, .4, .5) il sibilo continuo durante
+GODCHAIN persisteva. I log confermano che i layer drone si fermano
+correttamente al timer expiry (`stopGodchainLayer: STOPPING 2 nodes` +
+`stopHyperLayer: STOPPING 3 nodes`) e il sibilo sparisce esattamente in
+quel momento — quindi è prodotto da uno dei side-effect audio attivi
+durante il GODCHAIN.
+
+Decisione: **disabilito di default tutti e 3 i side-effect audio**:
+- `LAYERS_ENABLED: false` — niente drone oscillator (square+sub+rumble+shimmer)
+- `ARP_DETUNE_ENABLED: false` — niente +300 cents detune sull'arp
+- `INTENSITY_BOOST_ENABLED: false` — niente +12 intensity sulla musica
+
+Risultato: GODCHAIN resta puramente **visivo** (screen flash, ship colors,
+fire trail, aura, particles) + lo SFX one-shot `godchainActivate` all'attivazione.
+Nessun side-effect audio continuo che possa essere percepito come sibilo.
+
+I kill-switch restano disponibili via `dbg.toggleGodchainAudio('LAYERS' |
+'ARP_DETUNE' | 'INTENSITY' | 'ALL')` per chi voglia ri-abilitarli (per chi
+ha trovato il drone gradito) o per future regressioni.
+
 ## v7.19.5 — fix(audio): "larsen" del GODCHAIN era ARP filter Q troppo alto - 2026-05-01
 
 ### fix(audio): ARP filter resonance peak (Q=2) + arpDetune GODCHAIN = wah-wah larsen
