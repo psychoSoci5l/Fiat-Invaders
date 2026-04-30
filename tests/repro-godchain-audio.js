@@ -190,14 +190,74 @@ const { chromium } = require('playwright');
         pausePass = false; pauseFails.push('hyperLayerNodes still set after pause');
     }
 
+    if (!pausePass) {
+        console.log('\n❌ FAIL (pause path) — issues detected:');
+        pauseFails.forEach(f => console.log('  - ' + f));
+        await browser.close();
+        process.exit(1);
+    }
+
+    // ── Phase 3: death/respawn (resetState) must also stop drone layers ───
+    // Regression test for v7.19.3: the original v7.19 + v7.19.1 fixes covered
+    // the timer-expiry path and pause path, but the death/respawn flow goes
+    // through Player.resetState() which previously zeroed _godchainActive
+    // without calling stopXxxLayer(), trapping the layers alive forever.
+    await page.evaluate(() => {
+        // Force a clean GODCHAIN state with active layers — bypass the
+        // detect-transition logic that would otherwise no-op.
+        const audio = window.Game.Audio;
+        if (audio.startHyperLayer) audio.startHyperLayer();
+        if (audio.startGodchainLayer) audio.startGodchainLayer();
+        // Mirror the player flags as if godchain was actively running.
+        window.player._godchainActive = true;
+        window.player.godchainTimer = 5.0;
+        window.player.hyperActive = false; // hyper is forced by godchain only
+    });
+    await page.waitForTimeout(100);
+
+    const beforeReset = await page.evaluate(() => ({
+        godchainLayerNodes: Array.isArray(window.Game.Audio._godchainLayerNodes)
+            ? window.Game.Audio._godchainLayerNodes.length : null,
+        hyperLayerNodes: Array.isArray(window.Game.Audio._hyperLayerNodes)
+            ? window.Game.Audio._hyperLayerNodes.length : null,
+        godchainActive: window.player._godchainActive
+    }));
+    console.log('[PRE-RESET]', JSON.stringify(beforeReset));
+
+    // Trigger resetState — equivalent to death/respawn flow.
+    await page.evaluate(() => {
+        try { window.player.resetState(); } catch (e) { console.log('[reset-err]', e.message); }
+    });
+    await page.waitForTimeout(700); // wait past deferred disconnect
+
+    const afterReset = await page.evaluate(() => ({
+        godchainLayerNodes: window.Game.Audio._godchainLayerNodes,
+        hyperLayerNodes: window.Game.Audio._hyperLayerNodes,
+        godchainActive: window.player._godchainActive,
+        godchainTimer: window.player.godchainTimer
+    }));
+    console.log('[POST-RESET]', JSON.stringify(afterReset));
+
+    let resetPass = true;
+    const resetFails = [];
+    if (afterReset.godchainLayerNodes !== null) {
+        resetPass = false; resetFails.push('godchainLayerNodes still set after resetState');
+    }
+    if (afterReset.hyperLayerNodes !== null) {
+        resetPass = false; resetFails.push('hyperLayerNodes still set after resetState');
+    }
+    if (afterReset.godchainActive !== false) {
+        resetPass = false; resetFails.push('_godchainActive should be false after resetState');
+    }
+
     await browser.close();
 
-    if (pass && pausePass) {
-        console.log('\n✅ PASS — GODCHAIN audio cleanup verified (timer expiry + pause paths)');
+    if (pass && pausePass && resetPass) {
+        console.log('\n✅ PASS — GODCHAIN audio cleanup verified (timer expiry + pause + death/respawn)');
         process.exit(0);
     } else {
         console.log('\n❌ FAIL — issues detected:');
-        if (!pausePass) pauseFails.forEach(f => console.log('  - ' + f));
+        if (!resetPass) resetFails.forEach(f => console.log('  - ' + f));
         process.exit(1);
     }
 })();

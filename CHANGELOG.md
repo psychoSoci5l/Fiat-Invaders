@@ -1,5 +1,33 @@
 # Changelog
 
+## v7.19.3 — fix(audio): resetState non fermava i drone layer (death/respawn) - 2026-05-01
+
+### fix(audio): GODCHAIN sibilo persistente dopo morte del player
+**Root cause** identificato grazie alla strumentazione v7.19.2.
+
+`Player.resetState()` (chiamato al death/respawn — il "RINASCITA!") azzerava
+`_godchainActive`, `godchainTimer`, `hyperActive` MA **non chiamava** mai
+`Audio.stopGodchainLayer()` né `Audio.stopHyperLayer()`. Sequenza:
+
+1. Player attiva GODCHAIN → `startGodchainLayer()` + `startHyperLayer()` →
+   `_hyperLayerNodes` e `_godchainLayerNodes` attivi.
+2. Player muore prima dello scadere → respawn → `resetState()` → flag
+   azzerati (`_godchainActive=false`, `godchainTimer=0`).
+3. Prossimo `Player.update()` tick:
+   - `wasGodchain = this._godchainActive = false` (già azzerato dal reset)
+   - `_godchainActive = isGodchainActive() = (timer > 0) = false`
+   - **Nessuna transizione rilevata** → `stopGodchainLayer()` MAI chiamato.
+4. I layer audio continuano a girare per sempre = sibilo permanente.
+
+I fix v7.19 (claim-fade-disconnect su stop functions) e v7.19.1 (pause path)
+gestivano correttamente i loro path, ma il death/respawn path bypassa sia il
+timer-expiry detection sia il pause flow.
+
+Fix in `Player.resetState()`: chiamata esplicita a `Audio.stopGodchainLayer()`
+e `Audio.stopHyperLayer()` PRIMA di azzerare i flag, condizionata alla
+presenza di stato attivo (per evitare NOOP ripetuti). Mantengo il logging
+[AUDIO-TRACE] aggiunto in v7.19.2 per visibilità.
+
 ## v7.19.2 — chore(audio): tracing instrumentation per debug del sibilo - 2026-05-01
 
 ### chore(audio): [AUDIO-TRACE] log strutturati su tutto il path drone

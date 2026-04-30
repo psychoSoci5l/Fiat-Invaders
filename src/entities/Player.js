@@ -133,6 +133,27 @@ class Player extends window.Game.Entity {
     }
 
     resetState() {
+        // v7.19.3: stop continuous audio drone layers BEFORE zeroing the state flags.
+        // Without this, the death/respawn flow (RINASCITA) leaves _hyperLayerNodes /
+        // _godchainLayerNodes alive and the next Player.update() can't detect the
+        // transition (wasGodchain is read AFTER the flags were already cleared here),
+        // so stopXxxLayer() never fires and the GODCHAIN drone leaks indefinitely.
+        //
+        // Check the layer references directly instead of player flags: when GODCHAIN
+        // auto-starts HYPER, player.hyperActive stays false but _hyperLayerNodes is
+        // populated — so a flag-based check would miss the cleanup.
+        if (window.Game && window.Game.Audio) {
+            const audio = window.Game.Audio;
+            if (audio._godchainLayerNodes && audio.stopGodchainLayer) {
+                console.log('[AUDIO-TRACE] Player.resetState: stopping GODCHAIN layer before flag clear');
+                audio.stopGodchainLayer();
+            }
+            if (audio._hyperLayerNodes && audio.stopHyperLayer) {
+                console.log('[AUDIO-TRACE] Player.resetState: stopping HYPER layer before flag clear');
+                audio.stopHyperLayer();
+            }
+        }
+
         this.x = this.gameWidth / 2;
         this.y = this.gameHeight - window.Game.Balance.PLAYER.RESET_Y_OFFSET; // Standard position above controls
         this.weapon = 'NORMAL';
