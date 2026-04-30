@@ -43,6 +43,17 @@
         if (agentCfg && agentCfg.ENABLED === false) {
             return false; // Signal caller to use minion fallback
         }
+        // v7.19: Archetype agents (HFT/AUDITOR/PRINTER) bypass the regional pilot/vehicle path
+        // entirely — they have dedicated procedural shapes (no oligarch, no kabuto).
+        if (enemy.archetype) {
+            ctx.save();
+            ctx.translate(x, y);
+            if (enemy.archetype === 'HFT') _drawHFT(ctx, enemy);
+            else if (enemy.archetype === 'AUDITOR') _drawAuditor(ctx, enemy);
+            else if (enemy.archetype === 'PRINTER') _drawPrinter(ctx, enemy);
+            ctx.restore();
+            return true;
+        }
         const region = (G.CURRENCY_REGION || {})[enemy.symbol] || 'USA';
         const tier = enemy._tier || 'MEDIUM';
         const tierScales = agentCfg?.TIER_SCALE;
@@ -1092,6 +1103,266 @@
         // Currency accent dot on forehead of pod
         ctx.fillStyle = accent;
         ctx.fillRect(-1, 8.5, 2, 1.2);
+    }
+
+    // ================================================================
+    // v7.19 ARCHETYPE AGENTS — non-currency entities of the fiat system
+    // ================================================================
+    // HFT_SWARMER ⚡ — sharp neon-cyan triangle, motion-trail
+    // TAX_AUDITOR ⚖ — institutional grey-blue hexagonal seal
+    // QE_NODE     💸 — green stationary printer with paper feed
+    // ================================================================
+
+    /**
+     * HFT_SWARMER — sharp triangle silhouette, neon cyan, motion trail.
+     * Drawn at (0,0) — caller has already translated to enemy center.
+     * @private
+     */
+    function _drawHFT(ctx, enemy) {
+        const color = enemy.color || '#00ffff';
+        const dark = '#003355';
+        const now = performance.now();
+        const flicker = 0.85 + 0.15 * Math.sin((now + (enemy._walkOffset || 0)) * 0.025);
+
+        // Motion trail — fading triangles behind direction of travel.
+        // Travel direction: laterally per zigzag + downward descent.
+        const t = enemy._archetypeTime || 0;
+        const cfg = G.Balance?.ARCHETYPES?.HFT;
+        const freq = cfg?.ZIGZAG_FREQ_HZ ?? 1.4;
+        const trailDx = -Math.cos(t * freq * Math.PI * 2) * 6; // derivative direction
+        ctx.save();
+        for (let i = 1; i <= 3; i++) {
+            ctx.globalAlpha = 0.18 / i;
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(trailDx * i, -10 - i * 4);
+            ctx.lineTo(trailDx * i - 8, 4 - i * 4);
+            ctx.lineTo(trailDx * i + 8, 4 - i * 4);
+            ctx.closePath();
+            ctx.fill();
+        }
+        ctx.restore();
+
+        // Body — sharp arrowhead pointing DOWN (toward player).
+        ctx.save();
+        ctx.fillStyle = dark;
+        ctx.beginPath();
+        ctx.moveTo(0, 16);
+        ctx.lineTo(-12, -10);
+        ctx.lineTo(0, -4);
+        ctx.lineTo(12, -10);
+        ctx.closePath();
+        ctx.fill();
+
+        // Neon glow rim
+        ctx.globalAlpha = flicker;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Inner highlight stripe
+        ctx.globalAlpha = flicker * 0.7;
+        ctx.beginPath();
+        ctx.moveTo(0, 12);
+        ctx.lineTo(-6, -4);
+        ctx.lineTo(0, -2);
+        ctx.lineTo(6, -4);
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.restore();
+
+        // Lightning glyph at center
+        ctx.save();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('⚡', 0, 2);
+        ctx.restore();
+
+        // Hit flash overlay
+        if (enemy.hitFlash > 0) {
+            ctx.save();
+            ctx.globalAlpha = Math.min(1, enemy.hitFlash);
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.moveTo(0, 16);
+            ctx.lineTo(-12, -10);
+            ctx.lineTo(12, -10);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+        }
+    }
+
+    /**
+     * TAX_AUDITOR — hexagonal "official seal" silhouette, grey-blue institutional.
+     * @private
+     */
+    function _drawAuditor(ctx, enemy) {
+        const color = enemy.color || '#6e7c8a';
+        const dark = '#2a3340';
+        const accent = '#cfd6dd';
+        const now = performance.now();
+
+        // Outer authority ring — slow rotating, subtle
+        const ringR = 22;
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.globalAlpha = 0.35;
+        ctx.lineWidth = 1.2;
+        ctx.setLineDash([4, 3]);
+        ctx.lineDashOffset = -now * 0.005;
+        ctx.beginPath();
+        ctx.arc(0, 0, ringR, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+
+        // Hexagonal seal body
+        ctx.save();
+        const rH = 16;
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+            const a = (Math.PI / 3) * i + Math.PI / 6;
+            const px = Math.cos(a) * rH;
+            const py = Math.sin(a) * rH;
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fillStyle = dark;
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = color;
+        ctx.stroke();
+
+        // Inner panel — slightly lighter
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+            const a = (Math.PI / 3) * i + Math.PI / 6;
+            const px = Math.cos(a) * (rH - 4);
+            const py = Math.sin(a) * (rH - 4);
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.globalAlpha = 0.3;
+        ctx.fill();
+        ctx.restore();
+
+        // Scales / balance glyph at center
+        ctx.save();
+        ctx.fillStyle = accent;
+        ctx.font = 'bold 14px serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('⚖', 0, 1);
+        ctx.restore();
+
+        // FLEE phase — shake + warning red tint
+        if (enemy._auditorPhase === 'FLEE') {
+            ctx.save();
+            ctx.globalAlpha = 0.4;
+            ctx.fillStyle = '#ff3344';
+            ctx.beginPath();
+            ctx.arc(0, 0, ringR + 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        // Hit flash overlay
+        if (enemy.hitFlash > 0) {
+            ctx.save();
+            ctx.globalAlpha = Math.min(1, enemy.hitFlash);
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(0, 0, rH, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+    }
+
+    /**
+     * QE_NODE — stationary money printer, green palette, paper feeding out.
+     * @private
+     */
+    function _drawPrinter(ctx, enemy) {
+        const color = enemy.color || '#3ddc84';
+        const dark = '#0d3a20';
+        const now = performance.now();
+        const cfg = G.Balance?.ARCHETYPES?.PRINTER;
+
+        // Printer body — wide rectangle
+        const w = 36, h = 24;
+        ctx.save();
+        ctx.fillStyle = dark;
+        ctx.fillRect(-w / 2, -h / 2, w, h);
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = color;
+        ctx.strokeRect(-w / 2, -h / 2, w, h);
+
+        // Top cap (paper input slot)
+        ctx.fillStyle = color;
+        ctx.fillRect(-w / 2 + 4, -h / 2 - 3, w - 8, 3);
+
+        // Bottom slot (paper output)
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(-w / 2 + 6, h / 2 - 2, w - 12, 2);
+
+        // Status LEDs — pulse based on print timer proximity
+        const interval = cfg?.PRINT_INTERVAL ?? 4.5;
+        const t = enemy._printerTimer ?? interval;
+        const charge = 1 - Math.max(0, Math.min(1, t / interval));   // 0 → idle, 1 → about to print
+        const ledOn = Math.sin(now * 0.012) > 0;
+        ctx.fillStyle = ledOn ? color : '#114b28';
+        ctx.fillRect(-w / 2 + 4, -h / 2 + 4, 3, 3);
+        ctx.fillStyle = charge > 0.7 ? '#ffaa00' : '#114b28';
+        ctx.fillRect(-w / 2 + 10, -h / 2 + 4, 3, 3);
+        ctx.fillStyle = charge > 0.95 ? '#ff3344' : '#114b28';
+        ctx.fillRect(-w / 2 + 16, -h / 2 + 4, 3, 3);
+        ctx.restore();
+
+        // Animated paper sheet emerging from bottom slot
+        const paperLen = 6 + (1 - Math.max(0, Math.min(1, t / interval))) * 14;
+        ctx.save();
+        ctx.fillStyle = '#f6f1e0';
+        ctx.fillRect(-8, h / 2, 16, paperLen);
+        ctx.strokeStyle = '#cdb86b';
+        ctx.lineWidth = 0.8;
+        for (let i = 1; i <= 2; i++) {
+            ctx.beginPath();
+            ctx.moveTo(-6, h / 2 + i * 4);
+            ctx.lineTo(6, h / 2 + i * 4);
+            ctx.stroke();
+        }
+        // Currency mark on the paper
+        ctx.fillStyle = '#3a8554';
+        ctx.font = 'bold 8px serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('$', 0, h / 2 + 4);
+        ctx.restore();
+
+        // Glyph badge on center of body
+        ctx.save();
+        ctx.fillStyle = color;
+        ctx.font = 'bold 11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('💸', 0, 0);
+        ctx.restore();
+
+        // Hit flash overlay
+        if (enemy.hitFlash > 0) {
+            ctx.save();
+            ctx.globalAlpha = Math.min(1, enemy.hitFlash);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(-w / 2, -h / 2, w, h);
+            ctx.restore();
+        }
     }
 
     // ── Export ──────────────────────────────────────────────

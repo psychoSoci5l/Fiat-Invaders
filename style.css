@@ -873,7 +873,11 @@ body {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    z-index: 110;
+    /* v7.19: bumped 110 → 260 to sit above message-strip (110), ui-layer (120),
+       hud (140), and hint-strip (150). Without this, z-index ties caused stale
+       HUD elements (perk pickup toasts, combo counter) to leak above the
+       intermission overlay. */
+    z-index: 260;
     padding: 24px 32px;
     padding-top: max(24px, var(--di-safe-top, 0px));
     padding-bottom: max(24px, var(--safe-bottom, 0px));

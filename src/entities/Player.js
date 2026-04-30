@@ -111,6 +111,11 @@ class Player extends window.Game.Entity {
             scaleX: 1, scaleY: 1,
             prevVx: 0, vaporTimer: 0,
         };
+
+        // v7.19: Active debuffs applied by enemy archetypes (Auditor writs, etc.).
+        // Each entry: { type: 'FIRE_RATE'|..., mult: number, remaining: number }.
+        // Multiplicative composition via getDebuffMult; expired entries pruned in updateDebuffs.
+        this._debuffs = [];
     }
 
     configure(type) {
@@ -306,6 +311,9 @@ class Player extends window.Game.Entity {
         // Animation timer for visual effects
         this.animTime += dt;
         if (this.muzzleFlash > 0) this.muzzleFlash -= dt;
+
+        // v7.19: Tick active debuffs (Auditor writs, etc.) and prune expired entries.
+        this.updateDebuffs(dt);
 
         // v5.13: Elemental pulse timer + frame counter
         this._elemFrameCount++;
@@ -936,6 +944,8 @@ class Player extends window.Game.Entity {
                 cooldown *= elCfg.ELECTRIC.COOLDOWN_MULT;  // 1.30 = slower
             }
         }
+        // v7.19: Auditor "writ" debuff — multiplicative cooldown penalty (>1 = slower fire).
+        cooldown *= this.getDebuffMult('FIRE_RATE');
         this.cooldown = cooldown;
 
         // Damage multiplier from level table
@@ -3023,6 +3033,53 @@ class Player extends window.Game.Entity {
             special: this.special,
             specialTimer: this.specialTimer
         };
+    }
+
+    /**
+     * Apply a temporary debuff to the player (v7.19 — Auditor writs).
+     * Stackable across multiple instances of the same type (multiplicative composition).
+     * @param {Object} debuff - { type: string, mult: number, duration: number }
+     */
+    applyDebuff(debuff) {
+        if (!debuff || !debuff.type || !(debuff.duration > 0)) return;
+        this._debuffs.push({
+            type: debuff.type,
+            mult: typeof debuff.mult === 'number' ? debuff.mult : 1,
+            remaining: debuff.duration
+        });
+        // Floating-text feedback over the player position so the hit is legible.
+        const FT = window.Game.FloatingTextManager;
+        if (FT && typeof FT.add === 'function') {
+            const label = debuff.type === 'FIRE_RATE' ? 'AUDITED' : debuff.type;
+            FT.add(this.x, this.y - 30, label, '#ff8800', 1.0);
+        }
+    }
+
+    /**
+     * Get the composed multiplier for a debuff type (1.0 = no active debuff).
+     * @param {string} type - Debuff type key (e.g. 'FIRE_RATE')
+     * @returns {number} Multiplicative product of all active debuffs of this type
+     */
+    getDebuffMult(type) {
+        if (!this._debuffs || this._debuffs.length === 0) return 1;
+        let m = 1;
+        for (let i = 0; i < this._debuffs.length; i++) {
+            const d = this._debuffs[i];
+            if (d.type === type && d.remaining > 0) m *= d.mult;
+        }
+        return m;
+    }
+
+    /**
+     * Tick all active debuffs and remove expired entries.
+     * @param {number} dt - Delta time in seconds
+     */
+    updateDebuffs(dt) {
+        if (!this._debuffs || this._debuffs.length === 0) return;
+        for (let i = this._debuffs.length - 1; i >= 0; i--) {
+            this._debuffs[i].remaining -= dt;
+            if (this._debuffs[i].remaining <= 0) this._debuffs.splice(i, 1);
+        }
     }
 
 }

@@ -127,6 +127,47 @@ class Enemy extends window.Game.Entity {
         this._hoverTimer = 0;           // DWELL countdown
         this._uprightFlip = false;      // Render flag consumed by drawAgent + _drawChestMark
         this._fireSuppressed = false;   // v7.9.5b: true during DWELL grace window — skipped by HarmonicConductor
+
+        // v7.19: Archetype dispatch — non-currency agents (HFT/AUDITOR/PRINTER) bypass
+        // the standard hover-gate / formation-entry / Conductor-orchestrated firing path.
+        // The dispatch in update() routes to dedicated _updateXxx methods below.
+        this.archetype = typeConf.archetype || null;
+        if (this.archetype) {
+            // Skip formation/entry — archetypes manage their own movement from spawn.
+            this.isEntering = false;
+            this.hasSettled = true;
+            // Skip HOVER_GATE auto-attivation; archetypes never enter DWELL via that state machine.
+            this._hoverEnabled = false;
+            // Conductor short-circuits on archetype, but mark suppressed for any older tier scans.
+            this._fireSuppressed = true;
+            this._archetypeTime = 0;
+
+            const G2 = window.Game;
+            const arcCfg = G2.Balance?.ARCHETYPES;
+            const gh = G2._gameHeight || 800;
+
+            if (this.archetype === 'HFT') {
+                const c = arcCfg?.HFT || {};
+                this._swarmerBaseX = x;
+                this._swarmerEntryDir = (Math.random() < 0.5) ? 1 : -1;
+                this._swarmerEntryDone = false;
+                this._swarmerCooldownTimer = (c.FIRE_COOLDOWN_MIN ?? 4) +
+                    Math.random() * ((c.FIRE_COOLDOWN_MAX ?? 5) - (c.FIRE_COOLDOWN_MIN ?? 4));
+                this._swarmerBurstLeft = 0;
+                this._swarmerBurstTimer = 0;
+            } else if (this.archetype === 'AUDITOR') {
+                const c = arcCfg?.AUDITOR || {};
+                this._auditorPhase = 'APPROACH';   // APPROACH | DWELL | FLEE
+                this._auditorHoverY = gh * (c.HOVER_Y_RATIO ?? 0.20);
+                this._auditorWritTimer = (c.WRIT_FIRE_COOLDOWN ?? 3.5) * 0.6; // first writ slightly sooner
+                this._auditorFleeDir = 0;
+            } else if (this.archetype === 'PRINTER') {
+                const c = arcCfg?.PRINTER || {};
+                this._printerEntryDone = false;
+                this._printerHoverY = gh * (c.HOVER_Y_RATIO ?? 0.22);
+                this._printerTimer = c.PRINT_INTERVAL ?? 4.5;
+            }
+        }
     }
 
     // Note: attemptFire() removed in v2.13.0 - all firing now handled by HarmonicConductor
@@ -264,6 +305,17 @@ class Enemy extends window.Game.Entity {
                     });
                 }
             }
+        }
+
+        // v7.19: Archetype dispatch — bypasses v8Fall, formation entry, hover-gate, and
+        // pattern movement. Each archetype runs its own update logic.
+        if (this.archetype) {
+            this._archetypeTime += dt;
+            const t = this._archetypeTime;
+            if (this.archetype === 'HFT') this._updateHFT(dt, t, playerX, playerY);
+            else if (this.archetype === 'AUDITOR') this._updateAuditor(dt, t, playerX, playerY);
+            else if (this.archetype === 'PRINTER') this._updatePrinter(dt, t, playerX, playerY);
+            return;
         }
 
         // v8 fall-with-scroll: scripted enemies drop with a Gradius-style entry pattern.
@@ -1090,6 +1142,197 @@ class Enemy extends window.Game.Entity {
         ctx.lineTo(x, y + r);
         ctx.quadraticCurveTo(x, y, x + r, y);
         ctx.closePath();
+    }
+
+    // ── v7.19 Archetype updates ──────────────────────────────────────────────
+
+    /**
+     * HFT_SWARMER — lateral entry, sine-wave zigzag, slow descent, burst-fire.
+     * @private
+     */
+    _updateHFT(dt, t, playerX, playerY) {
+        const cfg = window.Game.Balance?.ARCHETYPES?.HFT;
+        if (!cfg) return;
+        const gw = window.Game._gameWidth || 400;
+        const gh = window.Game._gameHeight || 800;
+
+        // Lateral entry: slide toward base X from offscreen side.
+        if (!this._swarmerEntryDone) {
+            const target = this._swarmerBaseX;
+            const step = (cfg.ENTRY_SPEED ?? 320) * dt;
+            const delta = target - this.x;
+            if (Math.abs(delta) <= step) {
+                this.x = target;
+                this._swarmerEntryDone = true;
+            } else {
+                this.x += Math.sign(delta) * step;
+            }
+            this.y += (cfg.DESCEND_SPEED ?? 60) * dt;
+            return;
+        }
+
+        // Zigzag X around base, descend Y at constant rate.
+        const freq = cfg.ZIGZAG_FREQ_HZ ?? 1.4;
+        const amp = cfg.ZIGZAG_AMPLITUDE ?? 90;
+        this.x = this._swarmerBaseX + Math.sin(t * freq * Math.PI * 2) * amp;
+        this.y += (cfg.DESCEND_SPEED ?? 60) * dt;
+
+        // Clamp to screen horizontally.
+        const margin = 24;
+        if (this.x < margin) this.x = margin;
+        else if (this.x > gw - margin) this.x = gw - margin;
+
+        // Despawn when offscreen below.
+        if (this.y > gh + 60) { this.active = false; return; }
+
+        // Burst fire — auto, NOT orchestrated by HarmonicConductor.
+        if (this._swarmerBurstLeft > 0) {
+            this._swarmerBurstTimer -= dt;
+            if (this._swarmerBurstTimer <= 0) {
+                const target = (typeof playerX === 'number') ? { x: playerX, y: playerY } : null;
+                const bd = this.buildBullet(target, cfg.BULLET_SPEED ?? 280, 1);
+                if (bd) {
+                    if (window.Game.Events) window.Game.Events.emit('system:harmonic-bullets', { bullets: [bd] });
+                    if (window.Game.Audio) window.Game.Audio.play('enemyShoot');
+                }
+                this._swarmerBurstLeft -= 1;
+                this._swarmerBurstTimer = cfg.FIRE_BURST_INTERVAL ?? 0.07;
+            }
+        } else {
+            this._swarmerCooldownTimer -= dt;
+            if (this._swarmerCooldownTimer <= 0) {
+                this._swarmerBurstLeft = cfg.FIRE_BURST_COUNT ?? 3;
+                this._swarmerBurstTimer = 0;
+                const cdMin = cfg.FIRE_COOLDOWN_MIN ?? 4;
+                const cdMax = cfg.FIRE_COOLDOWN_MAX ?? 5;
+                this._swarmerCooldownTimer = cdMin + Math.random() * (cdMax - cdMin);
+            }
+        }
+    }
+
+    /**
+     * TAX_AUDITOR — slow descent, hover-stop, fires "writ" debuff projectiles.
+     * Flees laterally when HP drops below FLEE_HP_THRESHOLD.
+     * @private
+     */
+    _updateAuditor(dt, t, playerX, playerY) {
+        const cfg = window.Game.Balance?.ARCHETYPES?.AUDITOR;
+        if (!cfg) return;
+        const gw = window.Game._gameWidth || 400;
+        const gh = window.Game._gameHeight || 800;
+
+        if (this._auditorPhase === 'APPROACH') {
+            this.y += (cfg.DESCEND_SPEED ?? 70) * dt;
+            if (this.y >= this._auditorHoverY) {
+                this.y = this._auditorHoverY;
+                this._auditorPhase = 'DWELL';
+                this._uprightFlip = true;
+            }
+        } else if (this._auditorPhase === 'DWELL') {
+            // Stationary — fire writs at cooldown.
+            this._auditorWritTimer -= dt;
+            if (this._auditorWritTimer <= 0) {
+                this.fireWrit(playerX, playerY);
+                this._auditorWritTimer = cfg.WRIT_FIRE_COOLDOWN ?? 3.5;
+            }
+            // Switch to FLEE if heavily damaged.
+            const fleeAt = (cfg.FLEE_HP_THRESHOLD ?? 0.5) * this.maxHp;
+            if (this.hp > 0 && this.hp <= fleeAt) {
+                this._auditorPhase = 'FLEE';
+                this._uprightFlip = false;
+                this._auditorFleeDir = (this.x < gw / 2) ? -1 : 1;
+            }
+        } else if (this._auditorPhase === 'FLEE') {
+            this.x += this._auditorFleeDir * (cfg.FLEE_SPEED ?? 220) * dt;
+            this.y -= (cfg.DESCEND_SPEED ?? 70) * dt;
+            if (this.x < -60 || this.x > gw + 60 || this.y < -60 || this.y > gh + 60) {
+                this.active = false;
+            }
+        }
+    }
+
+    /**
+     * QE_NODE — descend to hover Y, then stationary; periodically prints minion enemies.
+     * Does not fire bullets directly.
+     * @private
+     */
+    _updatePrinter(dt, t, playerX, playerY) {
+        const cfg = window.Game.Balance?.ARCHETYPES?.PRINTER;
+        if (!cfg) return;
+
+        if (!this._printerEntryDone) {
+            this.y += (cfg.DESCEND_SPEED ?? 50) * dt;
+            if (this.y >= this._printerHoverY) {
+                this.y = this._printerHoverY;
+                this._printerEntryDone = true;
+                this._uprightFlip = true;
+            }
+            return;
+        }
+
+        // Stationary — tick print timer.
+        this._printerTimer -= dt;
+        if (this._printerTimer <= 0) {
+            this.printMinions();
+            this._printerTimer = cfg.PRINT_INTERVAL ?? 4.5;
+        }
+    }
+
+    /**
+     * Fire a "writ" projectile — slow, debuff-only. Aimed at the player.
+     * @param {number} playerX
+     * @param {number} playerY
+     */
+    fireWrit(playerX, playerY) {
+        const cfg = window.Game.Balance?.ARCHETYPES?.AUDITOR;
+        if (!cfg) return;
+        const target = (typeof playerX === 'number') ? { x: playerX, y: playerY } : null;
+        // Build a base bullet then override velocity to the slow writ speed.
+        const bd = this.buildBullet(target, cfg.WRIT_SPEED ?? 90, 0.4);
+        if (!bd) return;
+        // Re-normalize velocity to exact WRIT_SPEED magnitude (buildBullet may scale otherwise).
+        const sp = cfg.WRIT_SPEED ?? 90;
+        const m = Math.hypot(bd.vx, bd.vy) || 1;
+        bd.vx = (bd.vx / m) * sp;
+        bd.vy = (bd.vy / m) * sp;
+        bd.isWrit = true;
+        bd.debuff = cfg.DEBUFF ? Object.assign({}, cfg.DEBUFF) : null;
+        if (window.Game.Events) window.Game.Events.emit('system:harmonic-bullets', { bullets: [bd] });
+        if (window.Game.Audio) window.Game.Audio.play('enemyShoot');
+    }
+
+    /**
+     * Spawn minion enemies (clones of MINION_TYPE with reduced HP) — Printer only.
+     * Replicates the pattern of Boss.printMoney.
+     */
+    printMinions() {
+        const G = window.Game;
+        if (!G.enemies || !G.MINION_TYPE) return;
+        const cfg = G.Balance?.ARCHETYPES?.PRINTER;
+        if (!cfg) return;
+
+        const count = cfg.MINIONS_PER_PRINT ?? 2;
+        const scatter = cfg.MINION_SCATTER ?? 60;
+        const hpMult = cfg.MINION_HP_MULT ?? 0.5;
+
+        for (let i = 0; i < count; i++) {
+            // Clone MINION_TYPE so we don't mutate the shared boss minion config.
+            const minionConfig = Object.assign({}, G.MINION_TYPE);
+            minionConfig.hp = (G.MINION_TYPE.hp || 0.5) * hpMult;
+            // Spread minions left/right of the printer.
+            const sign = (i % 2 === 0) ? -1 : 1;
+            const offset = sign * (scatter * (0.5 + Math.random() * 0.5));
+            const sx = this.x + offset;
+            const sy = this.y + 28;
+            const minion = new G.Enemy(sx, sy, minionConfig);
+            minion.isMinion = true;
+            // Minions are auto-settled and visible immediately.
+            minion.isEntering = false;
+            minion.hasSettled = true;
+            G.enemies.push(minion);
+        }
+
+        if (G.Audio) G.Audio.play('coinUI');
     }
 
 }

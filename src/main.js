@@ -678,6 +678,10 @@ function init() {
                 const _isArcadeBul = G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode();
                 bullet.ownerColor = (G.Balance?.V8_MODE?.ENABLED && !_isArcadeBul) ? null : (bd.ownerColor || null);
                 if (bd.isBomb) bullet.isBomb = true; // v5.32: Bomber bomb flag
+                if (bd.isWrit) {                    // v7.19: Auditor writ — debuff projectile
+                    bullet.isWrit = true;
+                    bullet.debuff = bd.debuff || null;
+                }
                 enemyBullets.push(bullet);
             }
         });
@@ -1667,6 +1671,32 @@ function showV8Intermission() {
     if (killsEl) killsEl.textContent = killCount | 0;
     if (streakEl) streakEl.textContent = bestStreak | 0;
     if (nextNameEl && nextLevel) nextNameEl.textContent = nextLevel.name;
+
+    // v7.19: clear transient canvas-rendered HUD elements that would otherwise
+    // remain frozen on the last frame underneath the intermission overlay.
+    // Targets: floating texts, ship status messages above the player, message
+    // strip queue (perk pickup toasts), and recent perks display.
+    if (G.MessageSystem && G.MessageSystem.reset) G.MessageSystem.reset();
+    if (G.FloatingTextManager && G.FloatingTextManager.reset) G.FloatingTextManager.reset();
+    if (G.PerkIconManager && G.PerkIconManager.reset) G.PerkIconManager.reset();
+    if (G.PerkManager && G.PerkManager.reset) G.PerkManager.reset();
+
+    // v7.19: snap the player ship back to its canonical resting position before
+    // freezing the game loop. Fixes the visible "ship in random spot" issue when
+    // the level ends — the player is no longer updated in PAUSE state, so its
+    // last position before freeze is whatever it was during the boss fight.
+    if (player) {
+        const restY = (player.gameHeight || gameHeight) - (G.Balance?.PLAYER?.RESET_Y_OFFSET || 80);
+        player.x = gameWidth / 2;
+        player.y = restY;
+        // Also clear any in-flight bullets so the canvas doesn't show frozen tracer trails.
+        bullets.forEach(b => G.Bullet.Pool.release(b));
+        enemyBullets.forEach(b => G.Bullet.Pool.release(b));
+        bullets.length = 0;
+        enemyBullets.length = 0;
+        window.enemyBullets = enemyBullets;
+    }
+
     setStyle('v8-intermission-screen', 'display', 'flex');
     const v8Screen = document.getElementById('v8-intermission-screen');
     if (v8Screen) {

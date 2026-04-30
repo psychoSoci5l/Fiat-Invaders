@@ -33,6 +33,8 @@ window.Game.WaveManager = {
         this._phaseEnemyTag = 0;          // Current phase tag for enemy tracking
         this.streamingSpawnedCount = 0;
         this._behaviorCounts = {};
+        // v7.19: per-wave archetype spawn tracking — reset to {} so each wave re-evaluates.
+        this._archetypeSpawnedThisWave = false;
         dbg.log('WAVE', `[WM] RESET complete. wave=${this.wave}`);
     },
 
@@ -182,6 +184,10 @@ window.Game.WaveManager = {
             enemies.push(enemy);
         }
 
+        // v7.19: Append archetype agents (HFT/AUDITOR/PRINTER) to this wave.
+        const archetypes = this._spawnArchetypesOnce(cycle, waveInCycle, gameWidth);
+        for (let i = 0; i < archetypes.length; i++) enemies.push(archetypes[i]);
+
         dbg.log('WAVE', `[WM] Spawned ${enemies.length} enemies with formation ${phaseDef.formation}`);
 
         this.wave++;
@@ -190,6 +196,166 @@ window.Game.WaveManager = {
 
         const movementPattern = this.getMovementPattern(phaseDef.formation);
         return { enemies: enemies, pattern: movementPattern };
+    },
+
+    /**
+     * v7.19: Spawn archetype agents (HFT/AUDITOR/PRINTER) for the given wave.
+     * Called once per wave from spawnWave() and prepareStreamingWave(). Returns an
+     * array of new Enemy instances that the caller appends to its spawn list.
+     * Respects per-archetype gating (MIN_CYCLE/MIN_WAVE), spawn chance, and a
+     * shared MAX_CONCURRENT_AGENTS budget across already-alive agents.
+     * @param {number} cycle - Market cycle (1..N)
+     * @param {number} waveInCycle - Wave within current cycle (1..PER_CYCLE)
+     * @param {number} gameWidth - Current game width
+     * @returns {Array<Enemy>} Spawned archetype enemies (possibly empty)
+     */
+    _spawnArchetypesOnce(cycle, waveInCycle, gameWidth) {
+        const G = window.Game;
+        const cfg = G.Balance?.ARCHETYPES;
+        if (!cfg || !cfg.ENABLED) return [];
+        const types = G.AGENT_TYPES;
+        if (!types || types.length === 0) return [];
+
+        const out = [];
+        const gw = gameWidth || G._gameWidth || 400;
+
+        // Shared concurrent cap — count already-alive agents to prevent stacking.
+        const aliveAgents = (G.enemies || []).reduce((n, e) => (e && e.active && e.archetype ? n + 1 : n), 0);
+        let budget = Math.max(0, (cfg.MAX_CONCURRENT_AGENTS ?? 10) - aliveAgents);
+        if (budget <= 0) return [];
+
+        const typeOf = (key) => types.find(t => t.archetype === key);
+        const gateOk = (minCycle, minWave) =>
+            (cycle > minCycle) || (cycle === minCycle && waveInCycle >= minWave);
+
+        // ── HFT_SWARMER — group spawn from offscreen side ─────────────────
+        const hft = cfg.HFT;
+        if (hft?.ENABLED && gateOk(hft.MIN_CYCLE ?? 1, hft.MIN_WAVE ?? 2) &&
+            Math.random() < (hft.GROUP_CHANCE_PER_WAVE ?? 0.6)) {
+            const tHft = typeOf('HFT');
+            if (tHft) {
+                const groupMin = hft.GROUP_MIN ?? 3;
+                const groupMax = hft.GROUP_MAX ?? 5;
+                const concurrentCap = Math.min(hft.MAX_CONCURRENT ?? 8, budget);
+                const wantSize = groupMin + Math.floor(Math.random() * (groupMax - groupMin + 1));
+                const groupSize = Math.min(concurrentCap, wantSize);
+                const fromLeft = Math.random() < 0.5;
+                const baseY = 100 + Math.random() * 80;
+                for (let i = 0; i < groupSize; i++) {
+                    const spawnX = fromLeft ? (-40 - i * 35) : (gw + 40 + i * 35);
+                    const baseX = (gw * 0.2) + Math.random() * (gw * 0.6);
+                    const e = new G.Enemy(spawnX, baseY + i * 18, tHft);
+                    e._swarmerBaseX = baseX;
+                    e._swarmerEntryDir = fromLeft ? 1 : -1;
+                    out.push(e);
+                    budget -= 1;
+                    if (budget <= 0) break;
+                }
+            }
+        }
+
+        // ── TAX_AUDITOR — solo or pair, top-center descender ──────────────
+        const aud = cfg.AUDITOR;
+        if (budget > 0 && aud?.ENABLED && gateOk(aud.MIN_CYCLE ?? 1, aud.MIN_WAVE ?? 3) &&
+            Math.random() < (aud.SPAWN_CHANCE ?? 0.8)) {
+            const tAud = typeOf('AUDITOR');
+            if (tAud) {
+                const maxPerWave = aud.MAX_PER_WAVE ?? 2;
+                const wantCount = 1 + Math.floor(Math.random() * Math.max(1, maxPerWave));
+                const count = Math.min(wantCount, maxPerWave, budget);
+                for (let i = 0; i < count; i++) {
+                    const spawnX = (gw * 0.25) + Math.random() * (gw * 0.5);
+                    const e = new G.Enemy(spawnX, -40 - i * 30, tAud);
+                    out.push(e);
+                    budget -= 1;
+                }
+            }
+        }
+
+        // ── QE_NODE — single stationary spawner ───────────────────────────
+        const prn = cfg.PRINTER;
+        if (budget > 0 && prn?.ENABLED && gateOk(prn.MIN_CYCLE ?? 2, prn.MIN_WAVE ?? 1)) {
+            const tPrn = typeOf('PRINTER');
+            if (tPrn) {
+                const e = new G.Enemy(gw / 2, -50, tPrn);
+                out.push(e);
+                budget -= 1;
+            }
+        }
+
+        if (out.length > 0 && G.Debug) {
+            G.Debug.log('WAVE', `[WM] Archetypes spawned: ${out.length} (C${cycle}W${waveInCycle})`);
+        }
+        return out;
+    },
+
+    /**
+     * v7.19: Spawn a single archetype (HFT/AUDITOR/PRINTER) on demand, bypassing
+     * the per-wave chance rolls. Used by V8 LevelScript temporal schedule so that
+     * archetypes appear in campaign mode (where _spawnArchetypesOnce is dormant).
+     *
+     * Respects the per-archetype concurrent caps and the global agent budget so
+     * back-to-back schedule hits don't oversaturate the field.
+     *
+     * @param {string} key - 'HFT' | 'AUDITOR' | 'PRINTER'
+     * @param {number} gameWidth - Current game width
+     * @returns {Array<Enemy>} New enemies pushed (caller appends to its array)
+     */
+    _spawnSingleArchetype(key, gameWidth) {
+        const G = window.Game;
+        const cfg = G.Balance?.ARCHETYPES;
+        if (!cfg || !cfg.ENABLED) return [];
+        const types = G.AGENT_TYPES;
+        if (!types) return [];
+        const tCfg = cfg[key];
+        if (!tCfg || tCfg.ENABLED === false) return [];
+        const conf = types.find(t => t.archetype === key);
+        if (!conf) return [];
+
+        // Global budget — don't overcrowd the field with stacked agents.
+        const aliveAgents = (G.enemies || []).reduce((n, e) => (e && e.active && e.archetype ? n + 1 : n), 0);
+        if (aliveAgents >= (cfg.MAX_CONCURRENT_AGENTS ?? 10)) return [];
+
+        const out = [];
+        const gw = gameWidth || G._gameWidth || 400;
+
+        if (key === 'HFT') {
+            // Per-archetype concurrent cap (HFT can saturate; clamp)
+            const aliveHft = (G.enemies || []).reduce((n, e) => (e && e.active && e.archetype === 'HFT' ? n + 1 : n), 0);
+            const concurrentRoom = Math.max(0, (tCfg.MAX_CONCURRENT ?? 8) - aliveHft);
+            if (concurrentRoom <= 0) return [];
+            const groupMin = tCfg.GROUP_MIN ?? 3;
+            const groupMax = tCfg.GROUP_MAX ?? 5;
+            const wantSize = groupMin + Math.floor(Math.random() * (groupMax - groupMin + 1));
+            const groupSize = Math.min(concurrentRoom, wantSize);
+            const fromLeft = Math.random() < 0.5;
+            const baseY = 100 + Math.random() * 80;
+            for (let i = 0; i < groupSize; i++) {
+                const spawnX = fromLeft ? (-40 - i * 35) : (gw + 40 + i * 35);
+                const baseX = (gw * 0.2) + Math.random() * (gw * 0.6);
+                const e = new G.Enemy(spawnX, baseY + i * 18, conf);
+                e._swarmerBaseX = baseX;
+                e._swarmerEntryDir = fromLeft ? 1 : -1;
+                out.push(e);
+            }
+        } else if (key === 'AUDITOR') {
+            const spawnX = (gw * 0.25) + Math.random() * (gw * 0.5);
+            out.push(new G.Enemy(spawnX, -40, conf));
+        } else if (key === 'PRINTER') {
+            // Only one printer alive at a time.
+            const aliveP = (G.enemies || []).some(e => e && e.active && e.archetype === 'PRINTER');
+            if (aliveP) return [];
+            out.push(new G.Enemy(gw / 2, -50, conf));
+        }
+
+        // Append to the live enemies array directly so V8 LevelScript callers don't
+        // need to plumb the result through tick()'s return value.
+        if (G.enemies && out.length > 0) {
+            for (let i = 0; i < out.length; i++) G.enemies.push(out[i]);
+            if (G.HarmonicConductor) G.HarmonicConductor.enemies = G.enemies;
+            if (G.Debug) G.Debug.log('WAVE', `[WM] V8 spawn ${key} ×${out.length}`);
+        }
+        return out;
     },
 
     /**
@@ -539,6 +705,10 @@ window.Game.WaveManager = {
         // Spawn phase 0 immediately
         const phaseData = this._spawnPhase(0, gameWidth);
         if (!phaseData) return null;
+
+        // v7.19: Append archetype agents (HFT/AUDITOR/PRINTER) once per wave at phase 0.
+        const archetypes = this._spawnArchetypesOnce(cycle, waveInCycle, gameWidth);
+        for (let i = 0; i < archetypes.length; i++) phaseData.enemies.push(archetypes[i]);
 
         const movementPattern = this.getMovementPattern(phases[0].formation);
         const totalCount = phases.reduce((s, p) => s + p.count, 0);

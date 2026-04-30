@@ -102,10 +102,17 @@ window.Game = window.Game || {};
 
                 // Core hit check (take damage)
                 if (G.BulletSystem.circleCollide(eb.x, eb.y, ebR, player.x, player.y, coreR)) {
-                    // HYPER instant death
+                    // HYPER instant death — applies to all bullets including writs (no debuff applied).
                     if (player.isHyperActive && player.isHyperActive()) {
                         cb.onPlayerHyperDeath(eb, i, enemyBullets);
                         return; // Exit — player is dead
+                    }
+                    // v7.19: Auditor writ — debuff-only, no HP damage. Bypasses takeDamage flow.
+                    if (eb.isWrit) {
+                        if (eb.debuff) player.applyDebuff(eb.debuff);
+                        G.Bullet.Pool.release(eb);
+                        enemyBullets.splice(i, 1);
+                        continue;
                     }
                     // Normal hit
                     if (player.takeDamage()) {

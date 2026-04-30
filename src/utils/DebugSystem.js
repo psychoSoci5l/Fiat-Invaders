@@ -2002,7 +2002,9 @@ window.Game.Debug = {
     },
 
     /**
-     * Force GODCHAIN mode ON (set weapon level to max)
+     * Force GODCHAIN mode ON (set weapon level to max + activate GODCHAIN timer).
+     * v7.19: Now actually triggers `player.activateGodchain()` so the audio
+     * layer + timer flow runs end-to-end. Useful for QA repro of audio bugs.
      */
     godchain() {
         const player = window.player;
@@ -2011,7 +2013,15 @@ window.Game.Debug = {
             return;
         }
         this.maxWeapon();
-        console.log(`[DEBUG] GODCHAIN forced ON — weapon level ${player.weaponLevel}`);
+        // v7.19: bypass perk-collection requirement and trigger directly.
+        if (typeof player.activateGodchain === 'function') {
+            // Reset cooldown so the activation actually fires this frame.
+            player.godchainCooldown = 0;
+            player.activateGodchain();
+            console.log(`[DEBUG] GODCHAIN forced ON — weapon level ${player.weaponLevel}, godchainPending=true`);
+        } else {
+            console.log(`[DEBUG] GODCHAIN partial — weapon level ${player.weaponLevel} (no activateGodchain method)`);
+        }
     },
 
     /**

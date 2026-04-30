@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v7.17.1 FIAT vs CRYPTO";
+window.Game.VERSION = "v7.19 FIAT vs CRYPTO";
 
 // Leaderboard API
 window.Game.LEADERBOARD_API = 'https://fiat-vs-crypto-leaderboard.psychosocial-01.workers.dev/api';
@@ -811,6 +811,20 @@ window.Game.FIAT_TYPES = [
     { s: '$', name: 'DOLLAR', c: '#00ff66', val: 80, hp: 1.3, fireMin: 1.8, fireMax: 2.8, aimSpread: 0.14, pattern: 'DOUBLE', shape: 'bill' },
     { s: '元', name: 'YUAN', c: '#ff2244', val: 90, hp: 1.4, fireMin: 1.6, fireMax: 2.5, aimSpread: 0.12, pattern: 'BURST', shape: 'bar' },
     { s: 'Ⓒ', name: 'CBDC', c: '#aa33ff', val: 100, hp: 1.5, fireMin: 1.4, fireMax: 2.2, aimSpread: 0.10, pattern: 'DOUBLE', shape: 'card' }
+];
+
+// v7.19 — AGENT_TYPES: 3 non-currency archetypes (agents of the fiat system).
+// Distinct from FIAT_TYPES: not part of the currency-grid pool, never assigned by
+// assignCurrencies(), spawned only via WaveManager.spawnArchetypes(). Each entry
+// declares an `archetype` field that Enemy.update() dispatches on, bypassing the
+// standard hover-gate / formation-entry / Conductor-orchestrated firing path.
+window.Game.AGENT_TYPES = [
+    // HFT_SWARMER — rapid lateral swarm, burst-fire, low HP
+    { s: '⚡', name: 'HFT_BOT',     c: '#00ffff', val: 12,  hp: 0.4, fireMin: 4.0, fireMax: 5.0, aimSpread: 0.10, pattern: 'BURST', shape: 'card', archetype: 'HFT' },
+    // TAX_AUDITOR — slow descender, fires "writ" projectiles that debuff player fire rate
+    { s: '⚖', name: 'TAX_AUDITOR', c: '#6e7c8a', val: 60,  hp: 1.2, fireMin: 3.0, fireMax: 4.0, aimSpread: 0.05, pattern: 'WRIT',  shape: 'card', archetype: 'AUDITOR' },
+    // QE_NODE — stationary minion-spawner, no direct fire, sustained-DPS target
+    { s: '💸', name: 'QE_NODE',    c: '#3ddc84', val: 220, hp: 5.0, fireMin: 9999, fireMax: 9999, aimSpread: 0, pattern: 'NONE', shape: 'bar', archetype: 'PRINTER' }
 ];
 
 // v7.8 Soldi Vivi — currency symbol → regional emblem lookup

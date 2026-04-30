@@ -684,6 +684,80 @@
             }
         },
 
+        // --- ENEMY ARCHETYPES v7.19 — non-currency agents of the fiat system ---
+        // HFT_SWARMER (⚡), TAX_AUDITOR (⚖), QE_NODE (💸) — distinct gameplay roles
+        // beyond the 13 currency-skin enemies. Spawned by WaveManager.spawnArchetypes
+        // parallel to the currency-grid pool. Bypass HarmonicConductor (auto-fire),
+        // HOVER_GATE auto-attivation, and elite/behavior assignment.
+        ARCHETYPES: {
+            ENABLED: true,
+            MAX_CONCURRENT_AGENTS: 10,    // global cap across the 3 archetypes (distinct from currency cap)
+            HFT: {
+                ENABLED: true,
+                MIN_CYCLE: 1,
+                MIN_WAVE: 2,
+                GROUP_MIN: 3,
+                GROUP_MAX: 5,
+                GROUP_CHANCE_PER_WAVE: 0.6,
+                MAX_CONCURRENT: 8,
+                ZIGZAG_FREQ_HZ: 1.4,
+                ZIGZAG_AMPLITUDE: 90,        // px
+                DESCEND_SPEED: 60,           // px/s
+                ENTRY_SPEED: 320,            // px/s lateral entry
+                FIRE_BURST_COUNT: 3,
+                FIRE_BURST_INTERVAL: 0.07,   // s between bullets in burst
+                FIRE_COOLDOWN_MIN: 4.0,
+                FIRE_COOLDOWN_MAX: 5.0,
+                BULLET_SPEED: 280
+            },
+            AUDITOR: {
+                ENABLED: true,
+                MIN_CYCLE: 1,
+                MIN_WAVE: 3,
+                MAX_PER_WAVE: 2,
+                SPAWN_CHANCE: 0.8,
+                HOVER_Y_RATIO: 0.20,
+                DESCEND_SPEED: 70,
+                WRIT_SPEED: 90,              // slow projectile (vs. ~280 standard)
+                WRIT_TELEGRAPH: 0.6,
+                WRIT_FIRE_COOLDOWN: 3.5,
+                DEBUFF: {
+                    type: 'FIRE_RATE',
+                    mult: 1.43,              // cooldown *= 1.43 → -30% effective fire rate
+                    duration: 3.0
+                },
+                FLEE_HP_THRESHOLD: 0.5,
+                FLEE_SPEED: 220
+            },
+            PRINTER: {
+                ENABLED: true,
+                MIN_CYCLE: 2,
+                MIN_WAVE: 1,
+                MAX_PER_WAVE: 1,
+                HOVER_Y_RATIO: 0.22,
+                DESCEND_SPEED: 50,
+                PRINT_INTERVAL: 4.5,
+                MINIONS_PER_PRINT: 2,
+                MINION_HP_MULT: 0.5,
+                MINION_SCATTER: 60,          // ± spawn x-offset spread
+                DEATH_BANKNOTE_BURST: 14     // particle count on death
+            },
+
+            // v7.19: V8 LevelScript temporal schedule. WaveManager._spawnArchetypesOnce
+            // is called by spawnWave/prepareStreamingWave, both of which are dormant in
+            // V8 (campaign) mode. Without this schedule the 3 archetypes are invisible
+            // outside Arcade. Each level (1..3) ticks the schedule and spawns the
+            // archetype at the listed elapsed-seconds via WaveManager._spawnSingleArchetype.
+            // FROM_LEVEL gates the archetype to a minimum campaign level (1=Earth,
+            // 2=Atmosphere, 3=Deep Space). Times must be < BOSS_AT_S (170) so the
+            // boss fight isn't crowded.
+            V8_SCHEDULE: {
+                HFT:     { FROM_LEVEL: 1, AT: [25, 75, 130] },     // 3 swarm groups per level
+                AUDITOR: { FROM_LEVEL: 1, AT: [45, 105, 160] },    // 3 auditor spawns per level
+                PRINTER: { FROM_LEVEL: 2, AT: [60, 130] }          // 2 printers from L2
+            }
+        },
+
         // --- ENEMY AGENT / "AGENTS OF THE SYSTEM" v7.9 ---
         // Procedural humanoid enemies (USA Oligarch / EU Bureaucrat / ASIA Ronin).
         // Full-replace of v7.8.x "Soldi Vivi" shape-based system.
@@ -2815,6 +2889,15 @@
          */
         isMediumTier(symbol) {
             return this.TIERS.MEDIUM.includes(symbol);
+        },
+
+        /**
+         * Check if symbol belongs to an archetype agent (HFT/AUDITOR/PRINTER) — not a fiat currency.
+         * @param {string} symbol - Enemy glyph
+         * @returns {boolean}
+         */
+        isAgentSymbol(symbol) {
+            return symbol === '⚡' || symbol === '⚖' || symbol === '💸';
         },
 
         /**

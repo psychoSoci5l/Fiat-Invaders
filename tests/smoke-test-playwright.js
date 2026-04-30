@@ -61,7 +61,8 @@ async function run() {
 
     // Check version
     const version = await page.evaluate(() => window.Game?.VERSION || 'N/A');
-    report('Load', `Game version: ${version}`, version.includes('v7.16'));
+    // v7.19: match any v7.x(.y) FIAT vs CRYPTO version — robust to bumps without test churn.
+    report('Load', `Game version: ${version}`, /^v7\.\d+(\.\d+)?\s+FIAT vs CRYPTO/.test(version));
 
     // --- 2. Canvas and rendering ---
     console.log('\n[2/12] Canvas & Rendering');

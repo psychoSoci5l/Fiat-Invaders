@@ -1,5 +1,161 @@
 # Changelog
 
+## v7.19 — Enemy archetypes + SW reliability - 2026-05-01
+
+### feat(enemy): 3 nuove tipologie di nemici (boss esclusi)
+Risolve la percezione "tutto il gioco con un unico character contro" — i 13 fiat erano di
+fatto skin diversi della stessa entità (entry → hover → fire down). Aggiunti **3 archetipi
+distinti** che riempiono dimensioni di gameplay finora vuote, tutti coerenti con il tema
+"agents of the fiat system" (NON nuove valute):
+
+- **HFT_SWARMER ⚡** — `#00ffff`. Swarm laterale rapido, gruppi 3-5, zigzag a 1.4 Hz, burst
+  di 3 proiettili con cooldown 4-5s. HP 0.4 (one-shot per Solana). Dispositivo: triangolo
+  affilato neon-cyan con scia. Da C1 W2+. Cap 8 vivi.
+- **TAX_AUDITOR ⚖** — `#6e7c8a`. Debuffer high-priority. Scende lento, hover-stop, telegrafa
+  un "writ" lento (vy=90, telegraph 0.6s) che applica `-30% fire rate per 3s` al player
+  senza HP damage. Sotto il 50% HP fugge laterale. HP 1.2. Esagono "sigillo istituzionale"
+  grigio-blu. Da C1 W3+. Max 2 per wave.
+- **QE_NODE 💸** — `#3ddc84`. Spawner stazionario. Hover Y a 22% altezza, immobile, NON
+  spara. Ogni 4.5s "stampa" 2 minion (clone di MINION_TYPE con HP 0.5×). HP 5.0. Stampante
+  verde con carta animata in uscita. Da C2 W1+. Max 1 per wave.
+
+#### Architettura
+- **Data-driven**: `Balance.ARCHETYPES.{HFT,AUDITOR,PRINTER}` per tutte le tunables (HP,
+  fire CD, spawn rate, debuff, ecc.). Niente magic number nelle hot path.
+- **Zero sottoclassi**: il pattern è un campo `archetype` su `FIAT_TYPES`-like config
+  (`window.Game.AGENT_TYPES`), letto dal constructor di `Enemy` e dispatchato in
+  `update()` a `_updateHFT/_updateAuditor/_updatePrinter`. Bypass totale di v8Fall,
+  formation entry, hover-gate, e Conductor-orchestrated firing.
+- **Spawn separato**: `WaveManager._spawnArchetypesOnce(cycle, wave, gw)` spawna in
+  parallelo al pool currency-grid (`assignCurrencies` invariato). Cap globale
+  `MAX_CONCURRENT_AGENTS = 10` separato dal cap currency.
+- **Debuff system**: nuovo `Player.applyDebuff/getDebuffMult/updateDebuffs` con
+  composizione moltiplicativa, hook nel calcolo `cooldown` (riga 916) e nel main.js
+  handler `system:harmonic-bullets` per propagare `isWrit`/`debuff` su Bullet pool.
+- **Conductor short-circuit**: `HarmonicConductor.fireEnemy` ritorna early se
+  `enemy.archetype` (nessuna interferenza con i 3 update path auto-contenuti).
+- **Rendering procedurale Canvas** in `EnemyAgentRenderer.js`: 3 nuove `_drawHFT`,
+  `_drawAuditor`, `_drawPrinter` (no asset esterni).
+
+#### Test
+- Nuovo `tests/test-archetypes.js`: 9 suites (config, AGENT_TYPES, construction, HFT
+  zigzag, Auditor phases, Printer minions, Auditor writ firing, Wave gating, Player
+  debuff). 78 nuovi asserts.
+- `tests/runner.html` esteso con `Bullet.js`, `Enemy.js`, `Player.js` per i nuovi suite.
+- Suite totale: **661 → 739 pass**, zero regressioni.
+
+### feat(enemy): archetypes ora spawnano in V8 campaign mode (default)
+Bug di scope rilevato in playtest: `Balance.V8_MODE.ENABLED = true` di default,
+quindi `WaveManager.update()` resta dormant in modalità "Normal" (campagna). Gli
+archetipi venivano spawnati solo da `_spawnArchetypesOnce` chiamato dentro
+`spawnWave`/`prepareStreamingWave` — entrambi unreachable in V8. Risultato: in
+una run di campagna gli archetipi erano completamente invisibili.
+
+Fix:
+- Nuovo `Balance.ARCHETYPES.V8_SCHEDULE` — temporal schedule per livello con
+  array `AT: [seconds...]` e `FROM_LEVEL` gating. Default:
+  - HFT: L1+ a 25s, 75s, 130s (3 swarm group per livello)
+  - AUDITOR: L1+ a 45s, 105s, 160s (3 spawn per livello)
+  - PRINTER: L2+ a 60s, 130s (2 spawn dal Level 2 in poi)
+- `WaveManager._spawnSingleArchetype(key, gameWidth)` — public helper che
+  bypassa i rolling chance del wave-based path e rispetta i caps concurrent
+  (per-archetype + global MAX_CONCURRENT_AGENTS).
+- `LevelScript._tickArchetypeSchedule()` chiamato in tick(), processa lo
+  schedule per il livello corrente. Cursor `_archetypeIdx` resettato in
+  `_resetLevelState` così ogni livello caricato riparte da zero.
+- Repro test: `tests/repro-v8-archetypes.js` accorcia lo schedule a 1/2/3s,
+  pumpa il LevelScript.tick e verifica counts in `G.enemies` per ogni
+  archetype. **PASS**: HFT=3, AUDITOR=1, PRINTER=1.
+
+### fix(intermission): UI residua + nave fuori posizione (V8)
+Due bug correlati segnalati in playtest dopo la kill del boss:
+1. La nave del player restava in posizione "random" (l'ultima dove era prima
+   del boss kill) invece di tornare al centro-bottom canonico.
+2. HUD elements (perk pickup toasts, combo counter, ship status, message strip)
+   permanevano visibili sopra la schermata di intermission.
+
+Root cause:
+- `setGameState('PAUSE')` smette di ticka `player.update()` ma **non resetta**
+  la posizione del player. Quindi il canvas mostra l'ultimo frame con la nave
+  dove era.
+- `#v8-intermission-screen` aveva `z-index: 110` — **uguale** a `#message-strip`
+  (z-index 110), `#hud` (140), e altri overlay HUD. Conflict di stacking
+  permetteva agli HUD HTML di apparire sopra l'intermission.
+- `MessageSystem.shipStatuses`, `FloatingTextManager.texts`,
+  `PerkManager.recentPerks`, `PerkIconManager` resettati solo all'init/restart,
+  mai tra wave/level transition.
+
+Fix in `showV8Intermission()`:
+- z-index del v8-intermission-screen 110 → **260** (sopra HUD/messaggi/hint).
+- Clear esplicito di MessageSystem, FloatingTextManager, PerkIconManager,
+  PerkManager.
+- Snap del player a `{ x: gameWidth/2, y: gameHeight - RESET_Y_OFFSET }`.
+- Rilascio di tutti i bullet pool prima del freeze (no tracer trail
+  congelati).
+
+### fix(audio): GODCHAIN sibilo che non si fermava più
+Bug critico riprodotto in playtest: all'attivazione del GODCHAIN partiva un suono
+continuo (square 140-160Hz + sub 55Hz del godchain layer + drone HYPER 75Hz +
+shimmer 2-3kHz) che non terminava più, rompendo il mix per il resto della run.
+
+Root cause: `stopHyperLayer` / `stopGodchainLayer` usavano un pattern di cleanup
+fragile: `osc.stop(t + 0.35)` con `try/catch` e ramp del gain a 0, ma se la chiamata
+`stop()` falliva (browser quirks su nodi già scheduled-to-stop), il fallback
+disconnect veniva eseguito SOLO nel branch catch. Inoltre il safety stop a
+`t + 3600` (1 ora) significava che un nodo orfano poteva sopravvivere fino a
+60 minuti se per qualunque motivo il cleanup deterministico falliva.
+
+Fix difensivo a 3 livelli:
+- **Claim-then-fade-then-disconnect**: la nuova implementazione "rivendica" subito
+  la lista nodi (la imposta a `null`) per prevenire race con un eventuale restart,
+  poi schedula fade + osc.stop + disconnect deferred via setTimeout(400ms). Il
+  disconnect è la garanzia ferrea: anche se osc.stop è no-op, severare il routing
+  rende silenzioso l'oscillator orfano.
+- **Safety stop ridotto da 3600s a 60s**: nel caso peggiore di completo fallimento
+  del cleanup, l'audio si silenzia in 1 minuto invece di 1 ora.
+- **`_pendingDisconnectTimers`**: lista dei setTimeout pendenti per audit.
+- **Helper `_scheduleDisconnect(nodes, delayMs)`** centralizza il pattern.
+
+Riproduzione + test:
+- `tests/repro-godchain-audio.js` — playwright headless, attiva GODCHAIN via
+  `dbg.godchain()`, accorcia DURATION a 1s, attende fade + disconnect window,
+  asserisce `_godchainLayerNodes === null && _hyperLayerNodes === null && pendingDisconnectTimers.length === 0`. **PASS**.
+- `dbg.godchain()` ora chiama davvero `player.activateGodchain()` (prima settava
+  solo weaponLevel — utile per QA repro futuro).
+
+### fix(sw): cache list completa + fallback offline pulito
+Bug pre-esistente: `index.html` carica 11 script che NON erano in `ASSETS_TO_CACHE`
+(`HintTracker`, `PhaseTransitionController`, `CullingHelper`, `OffscreenCanvas`,
+`GlowManager`, `DrawPipeline`, `EnemyAgentRenderer`, `LevelScript`, `UIManager`,
+`TutorialManager`, `ScoreManager`). Quando il network falliva (server offline o cold
+start senza cache), il SW ritornava promise rejected → cascade DevTools "Failed to
+convert value to 'Response'.".
+
+- `sw.js` ASSETS_TO_CACHE: aggiunti 12 file (gli 11 mancanti + `EnemyAgentRenderer.js`
+  appena introdotto) — ora 73 entry totali, allineate 1:1 con `index.html`.
+- `sw.js` fetch handler: aggiunto `.catch()` su entrambi i rami (network-first +
+  cache-first) che restituisce un `Response` 503 sintetico invece di propagare il
+  rejection. Niente più spam in console quando il dev server è giù.
+- `SW_VERSION` 7.18 → 7.19 → forza re-install della cache su tutti i client.
+
+### Verifica
+- 739/739 unit test pass
+- Smoke test 45/46 (l'1 fail è pre-esistente: smoke test hardcoded su v7.16, ora
+  irrilevante con il bump v7.19)
+- 11 file modificati, 1 file nuovo (test-archetypes.js)
+- Sintassi OK su tutti i file toccati
+
+## v7.18 — Performance optimization pass - 2026-04-29
+
+### perf(profile): beam caching, enemy scan unificato, FastRNG
+- **CollisionSystem.js** — Beam tail caching: beamTailX/Y calcolato una volta per proiettile, non per ogni cella grid
+- **CollisionSystem.js** — `_contagionVisited` Set previene processare lo stesso nemico più volte nella stessa cascata elementale
+- **HarmonicConductor.js** — Singolo scan enemies per-frame: nuova `_cacheEnemyState()` popolata una volta in update()
+- **RNG.js** — FastRNG (LCG puro, *1664525 + 1013904223) per hot path rendering: 1.6× più veloce di Math.random()
+- 11 Math.random() sostituiti in SkyRenderer update, 8 in WeatherController update
+- Benchmark: 721 frame campionati, 0 frame > 16ms, media 0.88ms (headless)
+- 661/661 test pass, nessuna regressione
+
 ## v7.17.1 — Phase-aware UI theming system - 2026-04-29
 
 ### feat(ui): phase-aware theming system

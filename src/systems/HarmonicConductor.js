@@ -976,6 +976,8 @@ window.Game.HarmonicConductor = {
         if (enemy._fireSuppressedByEntry) return;
         // v7.14: Electrically stunned enemies cannot fire
         if (enemy._stunTimer > 0) return;
+        // v7.19: Archetype agents (HFT/AUDITOR/PRINTER) manage their own firing — never via Conductor.
+        if (enemy.archetype) return;
 
         const bulletSpeed = 150 + (this.difficultyParams.complexity * 15);
         let bulletData = null;

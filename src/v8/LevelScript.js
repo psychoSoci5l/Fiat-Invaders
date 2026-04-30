@@ -439,6 +439,9 @@ window.Game = window.Game || {};
             this._bossSpawned = false;
             this._hcPrimed = false;
             this._levelEndTimer = -1;
+            // v7.19: per-level cursor into Balance.ARCHETYPES.V8_SCHEDULE.AT arrays.
+            // Reset on every level load so each campaign level gets the full schedule.
+            this._archetypeIdx = { HFT: 0, AUDITOR: 0, PRINTER: 0 };
         },
 
         // Switch to a specific level (0-indexed). Called on CONTINUE after intermission.
@@ -515,6 +518,10 @@ window.Game = window.Game || {};
                 this._anchorIdx++;
             }
 
+            // v7.19: Archetype agents (HFT/AUDITOR/PRINTER) — V8 temporal schedule.
+            // WaveManager._spawnSingleArchetype handles concurrent caps + global budget.
+            this._tickArchetypeSchedule();
+
             if (this._levelEndTimer >= 0) {
                 this._levelEndTimer -= dt;
                 if (this._levelEndTimer <= 0) {
@@ -555,6 +562,36 @@ window.Game = window.Game || {};
         scheduleLevelEnd(delay) {
             this._levelEndTimer = Math.max(0, delay || 0);
             if (G.Debug) G.Debug.log('V8', `level end scheduled in ${this._levelEndTimer.toFixed(1)}s (L${this.currentLevelNum()})`);
+        },
+
+        /**
+         * v7.19: Process the V8 archetype temporal schedule. Called once per tick.
+         * Walks the per-level AT[] arrays in Balance.ARCHETYPES.V8_SCHEDULE and asks
+         * WaveManager to spawn whenever this._elapsed crosses the next timestamp.
+         * @private
+         */
+        _tickArchetypeSchedule() {
+            const sched = G.Balance?.ARCHETYPES?.V8_SCHEDULE;
+            if (!sched) return;
+            const wm = G.WaveManager;
+            if (!wm || typeof wm._spawnSingleArchetype !== 'function') return;
+            const lvl = this.currentLevelNum();
+            const gw = G._gameWidth || 400;
+            const cursor = this._archetypeIdx || (this._archetypeIdx = { HFT: 0, AUDITOR: 0, PRINTER: 0 });
+
+            const keys = ['HFT', 'AUDITOR', 'PRINTER'];
+            for (let i = 0; i < keys.length; i++) {
+                const key = keys[i];
+                const cfg = sched[key];
+                if (!cfg || !Array.isArray(cfg.AT)) continue;
+                if (lvl < (cfg.FROM_LEVEL || 1)) continue;
+                const idx = cursor[key] || 0;
+                if (idx >= cfg.AT.length) continue;
+                if (this._elapsed >= cfg.AT[idx]) {
+                    wm._spawnSingleArchetype(key, gw);
+                    cursor[key] = idx + 1;
+                }
+            }
         },
 
         _spawnBurst(entry) {

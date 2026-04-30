@@ -79,6 +79,7 @@ class AudioSystem {
         this._hyperLayerNodes = null;
         this._godchainLayerNodes = null;
         this._hyperStartedByGodchain = false; // GODCHAIN auto-started HYPER — clean up on stop
+        this._pendingDisconnectTimers = [];   // v7.19: deferred force-disconnects after fade
 
         // v7.15.0: Music duck gain between music buses and musicGain
         this._musicDuckGain = null;
@@ -262,6 +263,28 @@ class AudioSystem {
     // ===== v7.15: HYPER continuous audio layer =====
 
     /**
+     * v7.19: Defer a forceful disconnect of audio nodes after a fade window.
+     * Used by stopHyperLayer / stopGodchainLayer as last-line-of-defense:
+     * even if osc.stop() is a no-op (already stopped, browser quirk, etc.),
+     * cutting the routing guarantees no audio leaks past the fade.
+     * @param {Array} nodes - Array of { osc, gain } pairs to disconnect
+     * @param {number} delayMs - Wait this long (covers the fade) before disconnecting
+     * @private
+     */
+    _scheduleDisconnect(nodes, delayMs) {
+        const handle = setTimeout(() => {
+            nodes.forEach(n => {
+                try { n.osc.disconnect(); } catch (e) { /* ignore */ }
+                try { n.gain.disconnect(); } catch (e) { /* ignore */ }
+            });
+            // Drop the handle from the pending list once executed.
+            const idx = this._pendingDisconnectTimers.indexOf(handle);
+            if (idx >= 0) this._pendingDisconnectTimers.splice(idx, 1);
+        }, delayMs);
+        this._pendingDisconnectTimers.push(handle);
+    }
+
+    /**
      * Start continuous HYPER layer: low drone + high shimmer, blends with music.
      */
     startHyperLayer() {
@@ -283,7 +306,7 @@ class AudioSystem {
         gain.gain.setValueAtTime(0, t);
         gain.gain.linearRampToValueAtTime(0.06, t + 0.4);
         osc.start(t);
-        osc.stop(t + 3600); // safety: kill switch if stopHyperLayer() fails
+        osc.stop(t + 60); // safety: kill switch if stopHyperLayer() fails
 
         // High shimmer (triangle, 2-3kHz)
         const osc2 = this.ctx.createOscillator();
@@ -295,7 +318,7 @@ class AudioSystem {
         gain2.gain.setValueAtTime(0, t);
         gain2.gain.linearRampToValueAtTime(0.025, t + 0.4);
         osc2.start(t);
-        osc2.stop(t + 3600); // safety: kill switch if stopHyperLayer() fails
+        osc2.stop(t + 60); // safety: kill switch if stopHyperLayer() fails
 
         // Slow LFO pulse on shimmer amplitude via gain modulation
         const lfo = this.ctx.createOscillator();
@@ -306,7 +329,7 @@ class AudioSystem {
         lfo.frequency.value = 3.5;
         lfoGain.gain.value = 0.015;
         lfo.start(t);
-        lfo.stop(t + 3600); // safety: kill switch if stopHyperLayer() fails
+        lfo.stop(t + 60); // safety: kill switch if stopHyperLayer() fails
 
         this._hyperLayerNodes = [
             { osc, gain },
@@ -317,38 +340,40 @@ class AudioSystem {
 
     /**
      * Stop HYPER audio layer with fade-out.
+     *
+     * v7.19: Hardened cleanup — claim ownership of the node list immediately so a
+     * concurrent restart can't see stale references, then fade-then-disconnect via
+     * a deferred setTimeout. The disconnect is the LAST line of defense: even if
+     * osc.stop() silently no-ops or the context is in an odd state, severing the
+     * routing guarantees no audio leaks past the fade. Fixes the GODCHAIN sibilo
+     * that wouldn't stop after the timer expired.
      */
     stopHyperLayer() {
         if (!this._hyperLayerNodes) return;
+        const nodes = this._hyperLayerNodes;
+        this._hyperLayerNodes = null; // claim ownership — prevents races on restart
+
         if (!this.ctx || this.ctx.state === 'closed') {
-            // Context is gone — can't stop oscillators, but the safety stop()
-            // set in startHyperLayer() will kill them. Clear the ref so a new
-            // game can create fresh nodes on a new context.
-            this._hyperLayerNodes = null;
+            // Context is gone — safety osc.stop() in startHyperLayer() will kill nodes.
             return;
         }
         const t = this.ctx.currentTime;
-        let allOk = true;
-        this._hyperLayerNodes.forEach(n => {
+        nodes.forEach(n => {
+            // Phase 1: ramp gain to 0 (avoids audible click). Wrapped per-call so a
+            // failure on one node doesn't abort cleanup of the others.
             try {
                 n.gain.gain.cancelScheduledValues(t);
                 n.gain.gain.setValueAtTime(n.gain.gain.value, t);
                 n.gain.gain.linearRampToValueAtTime(0, t + 0.3);
+            } catch (e) { /* keep going */ }
+            try {
                 n.osc.stop(t + 0.35);
-            } catch (e) {
-                allOk = false;
-            }
+            } catch (e) { /* already stopped or scheduled — disconnect below catches it */ }
         });
-        if (allOk) {
-            this._hyperLayerNodes = null;
-        } else {
-            // Stop failed — force-disconnect everything to silence immediately
-            this._hyperLayerNodes.forEach(n => {
-                try { n.osc.disconnect(); } catch (e) { /* ignore */ }
-                try { n.gain.disconnect(); } catch (e) { /* ignore */ }
-            });
-            this._hyperLayerNodes = null;
-        }
+
+        // Phase 2: deferred force-disconnect. Severs the audio graph routing so
+        // even if an oscillator survives osc.stop(), it produces no audible output.
+        this._scheduleDisconnect(nodes, 400);
     }
 
     /**
@@ -377,7 +402,7 @@ class AudioSystem {
         gain.gain.setValueAtTime(0, t);
         gain.gain.linearRampToValueAtTime(0.05, t + 0.25);
         osc.start(t);
-        osc.stop(t + 3600); // safety: kill switch if stopGodchainLayer() fails
+        osc.stop(t + 60); // safety: kill switch if stopGodchainLayer() fails
 
         // Low sub layer (sine, 55Hz) for chest punch
         const sub = this.ctx.createOscillator();
@@ -389,7 +414,7 @@ class AudioSystem {
         subGain.gain.setValueAtTime(0, t);
         subGain.gain.linearRampToValueAtTime(0.08, t + 0.3);
         sub.start(t);
-        sub.stop(t + 3600); // safety: kill switch if stopGodchainLayer() fails
+        sub.stop(t + 60); // safety: kill switch if stopGodchainLayer() fails
 
         // HYPER layer boost: increase gain of existing layers
         if (this._hyperLayerNodes) {
@@ -411,34 +436,35 @@ class AudioSystem {
 
     /**
      * Stop GODCHAIN audio layer and restore HYPER layer to base level.
+     *
+     * v7.19: Hardened with the same claim-fade-disconnect pattern as
+     * stopHyperLayer to guarantee silence after fade regardless of
+     * oscillator state edge cases.
      */
     stopGodchainLayer() {
         if (!this._godchainLayerNodes) return;
+        const nodes = this._godchainLayerNodes;
+        this._godchainLayerNodes = null; // claim ownership before any awaits
+
         if (!this.ctx || this.ctx.state === 'closed') {
-            this._godchainLayerNodes = null;
+            // Pass through to HYPER cleanup decision below — _hyperStartedByGodchain
+            // tells us whether to also stop the HYPER layer. With ctx closed, both
+            // are dead anyway; the flag clear keeps state consistent.
+            this._hyperStartedByGodchain = false;
             return;
         }
         const t = this.ctx.currentTime;
-        let allOk = true;
-        this._godchainLayerNodes.forEach(n => {
+        nodes.forEach(n => {
             try {
                 n.gain.gain.cancelScheduledValues(t);
                 n.gain.gain.setValueAtTime(n.gain.gain.value, t);
                 n.gain.gain.linearRampToValueAtTime(0, t + 0.3);
+            } catch (e) { /* keep going */ }
+            try {
                 n.osc.stop(t + 0.35);
-            } catch (e) {
-                allOk = false;
-            }
+            } catch (e) { /* already stopped — disconnect below catches it */ }
         });
-        if (allOk) {
-            this._godchainLayerNodes = null;
-        } else {
-            this._godchainLayerNodes.forEach(n => {
-                try { n.osc.disconnect(); } catch (e) { /* ignore */ }
-                try { n.gain.disconnect(); } catch (e) { /* ignore */ }
-            });
-            this._godchainLayerNodes = null;
-        }
+        this._scheduleDisconnect(nodes, 400);
 
         // If GODCHAIN auto-started HYPER and Player didn't also activate it, stop HYPER
         if (this._hyperStartedByGodchain && this._hyperLayerNodes) {
