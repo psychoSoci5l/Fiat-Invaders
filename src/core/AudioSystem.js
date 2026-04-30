@@ -298,7 +298,7 @@ class AudioSystem {
         const t = this.ctx.currentTime;
         const output = this.getMusicOutput();
 
-        // Low rumble (sine, ~80Hz)
+        // Low rumble (sine, ~80Hz). v7.19.4: gain 0.06 → 0.03 (less invasive bed).
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.connect(gain);
@@ -306,30 +306,37 @@ class AudioSystem {
         osc.type = 'sine';
         osc.frequency.value = 75 + Math.random() * 10;
         gain.gain.setValueAtTime(0, t);
-        gain.gain.linearRampToValueAtTime(0.06, t + 0.4);
+        gain.gain.linearRampToValueAtTime(0.03, t + 0.4);
         osc.start(t);
         osc.stop(t + 60); // safety: kill switch if stopHyperLayer() fails
 
-        // High shimmer (triangle, 2-3kHz)
+        // High shimmer (triangle, 2-3kHz). v7.19.4: low-pass filter @ 1.8kHz to soften
+        // the perceived "whistle/sibilo" without losing the texture, plus gain 0.025 → 0.010.
+        // The triangle was the dominant culprit of the "sibilo che non si ferma".
         const osc2 = this.ctx.createOscillator();
+        const filter2 = this.ctx.createBiquadFilter();
         const gain2 = this.ctx.createGain();
-        osc2.connect(gain2);
+        osc2.connect(filter2);
+        filter2.connect(gain2);
         gain2.connect(output);
         osc2.type = 'triangle';
-        osc2.frequency.value = 2200 + Math.random() * 600;
+        osc2.frequency.value = 1600 + Math.random() * 400; // 1.6–2.0 kHz (was 2.2–2.8)
+        filter2.type = 'lowpass';
+        filter2.frequency.value = 1800;
+        filter2.Q.value = 0.7;
         gain2.gain.setValueAtTime(0, t);
-        gain2.gain.linearRampToValueAtTime(0.025, t + 0.4);
+        gain2.gain.linearRampToValueAtTime(0.010, t + 0.4);
         osc2.start(t);
         osc2.stop(t + 60); // safety: kill switch if stopHyperLayer() fails
 
-        // Slow LFO pulse on shimmer amplitude via gain modulation
+        // Slow LFO pulse on shimmer amplitude. v7.19.4: depth 0.015 → 0.006 (subtler).
         const lfo = this.ctx.createOscillator();
         const lfoGain = this.ctx.createGain();
         lfo.connect(lfoGain);
         lfoGain.connect(gain2.gain);
         lfo.type = 'sine';
         lfo.frequency.value = 3.5;
-        lfoGain.gain.value = 0.015;
+        lfoGain.gain.value = 0.006;
         lfo.start(t);
         lfo.stop(t + 60); // safety: kill switch if stopHyperLayer() fails
 
@@ -403,19 +410,25 @@ class AudioSystem {
         const t = this.ctx.currentTime;
         const output = this.getMusicOutput();
 
-        // Aggressive square wave (150Hz)
+        // Aggressive square wave (150Hz). v7.19.4: gain 0.05 → 0.022, low-pass added
+        // to remove the harsh harmonics that contributed to "sibilo" perception.
         const osc = this.ctx.createOscillator();
+        const oscFilter = this.ctx.createBiquadFilter();
         const gain = this.ctx.createGain();
-        osc.connect(gain);
+        osc.connect(oscFilter);
+        oscFilter.connect(gain);
         gain.connect(output);
         osc.type = 'square';
         osc.frequency.value = 140 + Math.random() * 20;
+        oscFilter.type = 'lowpass';
+        oscFilter.frequency.value = 800;   // tames the buzzy upper harmonics
+        oscFilter.Q.value = 0.7;
         gain.gain.setValueAtTime(0, t);
-        gain.gain.linearRampToValueAtTime(0.05, t + 0.25);
+        gain.gain.linearRampToValueAtTime(0.022, t + 0.25);
         osc.start(t);
         osc.stop(t + 60); // safety: kill switch if stopGodchainLayer() fails
 
-        // Low sub layer (sine, 55Hz) for chest punch
+        // Low sub layer (sine, 55Hz) for chest punch. v7.19.4: gain 0.08 → 0.04.
         const sub = this.ctx.createOscillator();
         const subGain = this.ctx.createGain();
         sub.connect(subGain);
@@ -423,18 +436,19 @@ class AudioSystem {
         sub.type = 'sine';
         sub.frequency.value = 55;
         subGain.gain.setValueAtTime(0, t);
-        subGain.gain.linearRampToValueAtTime(0.08, t + 0.3);
+        subGain.gain.linearRampToValueAtTime(0.04, t + 0.3);
         sub.start(t);
         sub.stop(t + 60); // safety: kill switch if stopGodchainLayer() fails
 
-        // HYPER layer boost: increase gain of existing layers
+        // HYPER layer boost. v7.19.4: factor 1.6 → 1.25 (less aggressive bump on top
+        // of an already-reduced HYPER bed, keeps the layered drama without overpressing).
         if (this._hyperLayerNodes) {
             this._hyperLayerNodes.forEach(n => {
                 try {
                     const cur = n.gain.gain.value || 0;
                     n.gain.gain.cancelScheduledValues(t);
                     n.gain.gain.setValueAtTime(cur, t);
-                    n.gain.gain.linearRampToValueAtTime(cur * 1.6, t + 0.25);
+                    n.gain.gain.linearRampToValueAtTime(cur * 1.25, t + 0.25);
                 } catch (e) { /* skip */ }
             });
         }
@@ -493,7 +507,7 @@ class AudioSystem {
                     const cur = n.gain.gain.value || 0;
                     n.gain.gain.cancelScheduledValues(t);
                     n.gain.gain.setValueAtTime(cur, t);
-                    n.gain.gain.linearRampToValueAtTime(cur / 1.6, t + 0.3);
+                    n.gain.gain.linearRampToValueAtTime(cur / 1.25, t + 0.3); // v7.19.4: matches startGodchainLayer boost factor
                 } catch (e) { /* skip */ }
             });
         }

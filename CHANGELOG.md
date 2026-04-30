@@ -1,5 +1,37 @@
 # Changelog
 
+## v7.19.4 — fix(audio): GODCHAIN/HYPER drone meno invasivo - 2026-05-01
+
+### fix(audio): "sibilo" del GODCHAIN — sound design ricalibrato
+Verifica programmatica via `tests/debug-audio-realflow.js` (playwright) ha
+confermato che il flusso di cleanup dei layer continuous funziona end-to-end
+in tutti e 3 i path (timer expiry, pause, death/respawn). Il "sibilo che non
+si ferma" segnalato dall'utente non era un layer leak, ma il sound design
+del drone GODCHAIN+HYPER stesso, percepito come fastidioso a causa di:
+- Triangle 2.2–2.8 kHz a gain 0.025 con LFO pulse 0.015 → "fischio" udibile.
+- Square 140–160 Hz a gain 0.05 con armoniche dispari aggressive → buzz.
+- Sub 55 Hz a gain 0.08 → low-end pesante.
+- HYPER boost ×1.6 al sopraggiungere del GODCHAIN → tutto +60% per 10s.
+
+Sound design ricalibrato (`src/core/AudioSystem.js`):
+- HYPER rumble (sine 75 Hz): gain 0.06 → **0.03**.
+- HYPER shimmer (triangle): freq 2.2–2.8 kHz → **1.6–2.0 kHz** + nuovo
+  **low-pass 1.8 kHz Q=0.7** sulla chain → freq alte attenuate, addio
+  fischio. Gain 0.025 → **0.010**.
+- HYPER LFO depth: 0.015 → **0.006** (modulazione più discreta).
+- GODCHAIN square: gain 0.05 → **0.022** + nuovo **low-pass 800 Hz Q=0.7**
+  per addomesticare le armoniche superiori del segnale square.
+- GODCHAIN sub: gain 0.08 → **0.04**.
+- HYPER boost factor durante GODCHAIN: 1.6 → **1.25**.
+- Restore factor in stopGodchainLayer aggiornato di conseguenza (1.6 → 1.25)
+  per mantenere simmetria.
+
+Risultato: drone più "morbido" mantenendo la dramatic intensity del
+GODCHAIN, senza la freq harsh che generava la percezione di sibilo.
+
+I log [AUDIO-TRACE] aggiunti in v7.19.2 restano per future osservazioni —
+non sono spam (solo eventi rari di start/stop).
+
 ## v7.19.3 — fix(audio): resetState non fermava i drone layer (death/respawn) - 2026-05-01
 
 ### fix(audio): GODCHAIN sibilo persistente dopo morte del player
