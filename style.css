@@ -2555,7 +2555,7 @@ body {
     height: 100%;
     background: #000000;
     backdrop-filter: blur(8px);
-    z-index: 300;
+    z-index: 10000;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -4518,7 +4518,7 @@ body.bear-mode .toggle-switch#bear-toggle .switch-label {
     height: 100%;
     background: #000000;
     backdrop-filter: blur(10px);
-    z-index: 300;
+    z-index: 10000;
     display: flex;
     justify-content: center;
     align-items: center;

@@ -1227,6 +1227,100 @@ window.Game = window.Game || {};
                 ]
             }
         },
+        {
+            version: 'v7.18', date: '2026-04-29',
+            title: { EN: 'Performance optimization pass — beam caching, unified enemy scan, FastRNG', IT: 'Passaggio ottimizzazione performance — beam caching, scan nemico unificato, FastRNG' },
+            items: {
+                EN: [
+                    'CollisionSystem.js: beam tail caching reduces per-bullet calc; _contagionVisited Set prevents cascading reprocess',
+                    'HarmonicConductor.js: single enemy scan per-frame via _cacheEnemyState()',
+                    'RNG.js: FastRNG (LCG) for hot-path rendering — 1.6x faster than Math.random()',
+                    '19 Math.random() calls replaced in SkyRenderer and WeatherController update paths',
+                    'Benchmark: 721 frames sampled, 0 frames > 16ms, avg 0.88ms (headless)',
+                    '661/661 tests pass, zero regressions'
+                ],
+                IT: [
+                    'CollisionSystem.js: beam tail caching riduce il calcolo per proiettile; _contagionVisited Set previene riprocessamento a cascata',
+                    'HarmonicConductor.js: scan nemico unico per frame via _cacheEnemyState()',
+                    'RNG.js: FastRNG (LCG) per rendering hot-path — 1.6x più veloce di Math.random()',
+                    '19 chiamate Math.random() sostituite in SkyRenderer e WeatherController',
+                    'Benchmark: 721 frame campionati, 0 frame > 16ms, media 0.88ms (headless)',
+                    '661/661 test passano, zero regressioni'
+                ]
+            }
+        },
+        {
+            version: 'v7.19.6', date: '2026-05-01',
+            title: { EN: 'GODCHAIN audio side-effects disabled by default', IT: 'Effetti collaterali audio GODCHAIN disabilitati di default' },
+            items: {
+                EN: [
+                    'All GODCHAIN_AUDIO side-effects (LAYERS, ARP_DETUNE, INTENSITY_BOOST) default to false',
+                    'Diagnostic confirms hiss stops exactly when GODCHAIN timer expires',
+                    'Individual kill-switches remain available via dbg.toggleGodchainAudio()'
+                ],
+                IT: [
+                    'Tutti i side-effect GODCHAIN_AUDIO (LAYERS, ARP_DETUNE, INTENSITY_BOOST) default false',
+                    'Diagnosi conferma: il sibilo termina esattamente quando scade il timer GODCHAIN',
+                    'Kill-switch individuali restano disponibili via dbg.toggleGodchainAudio()'
+                ]
+            }
+        },
+        {
+            version: 'v7.19.7', date: '2026-05-01',
+            title: { EN: 'Removed shimmer triangle — real source of hiss, momentum restored', IT: 'Rimosso shimmer triangle — vera fonte del sibilo, momentum ripristinato' },
+            items: {
+                EN: [
+                    'Shimmer triangle (1.6-2.8kHz) identified as real hiss source, not the other effects',
+                    'HYPER layer simplified to rumble sine 75-85Hz only (drone)',
+                    'GODCHAIN momentum fully restored: LAYERS, ARP_DETUNE, INTENSITY_BOOST re-enabled',
+                    'All kill-switches preserved for individual component tuning'
+                ],
+                IT: [
+                    'Shimmer triangle (1.6-2.8kHz) identificato come vera fonte del sibilo, non gli altri effetti',
+                    'Layer HYPER semplificato: solo rumble sine 75-85Hz (drone)',
+                    'Momentum GODCHAIN completamente ripristinato: LAYERS, ARP_DETUNE, INTENSITY_BOOST riattivati',
+                    'Tutti i kill-switch preservati per tuning dei singoli componenti'
+                ]
+            }
+        },
+        {
+            version: 'v7.19.8', date: '2026-05-01',
+            title: { EN: 'Full GODCHAIN momentum + intermission HUD fix + dbg.archetype', IT: 'Momentum GODCHAIN pieno + fix HUD intermission + dbg.archetype' },
+            items: {
+                EN: [
+                    'HYPER layer: added sawtooth ~150Hz (lowpass @600Hz) for drive without hiss',
+                    'GODCHAIN square gain restored 0.022→0.05, sub gain restored 0.04→0.08',
+                    'HYPER boost during GODCHAIN restored 1.25→1.6 (original value)',
+                    '#message-strip no longer persists over V8 intermission overlay'
+                ],
+                IT: [
+                    'Layer HYPER: aggiunto sawtooth ~150Hz (lowpass @600Hz) per spinta senza sibilo',
+                    'GODCHAIN square gain ripristinato 0.022→0.05, sub gain ripristinato 0.04→0.08',
+                    'Boost HYPER durante GODCHAIN ripristinato a 1.25→1.6 (valore originale)',
+                    '#message-strip non persiste più sopra l\'overlay V8 intermission'
+                ]
+            }
+        },
+        {
+            version: 'v7.20', date: '2026-05-01',
+            title: { EN: 'GODCHAIN ronzìo fixed — redesigned as effects chain (no oscillators)', IT: 'Ronzìo GODCHAIN fixato — ridisegnato come catena effetti (zero oscillatori)' },
+            items: {
+                EN: [
+                    'GODCHAIN replaced 4 continuous oscillators with music effects chain',
+                    'Master LFO Filter: lowpass 350-3200Hz breathing at 0.35Hz on the music mix',
+                    'Bass Distortion + Pad Enhancement (tremolo/reverb) + Arp Reverb Boost',
+                    'Activation duck: volume dip (0.65→recovery 0.2s) on activation',
+                    'Legacy kill-switch for oscillator rollback (LEGACY_OSCILLATORS_ENABLED, default false)'
+                ],
+                IT: [
+                    'GODCHAIN: 4 oscillatori continui sostituiti da catena di effetti sulla musica',
+                    'Master LFO Filter: lowpass 350-3200Hz che respira a 0.35Hz sul mix musicale',
+                    'Bass Distortion + Pad Enhancement (tremolo/riverbero) + Arp Reverb Boost',
+                    'Activation duck: volume dip (0.65→recupero 0.2s) all\'attivazione',
+                    'Kill-switch legacy per rollback oscillatori (LEGACY_OSCILLATORS_ENABLED, default false)'
+                ]
+            }
+        },
     ];
     const WHATS_NEW_PLANNED = [
         { EN: 'Achievement system', IT: 'Sistema achievement' },

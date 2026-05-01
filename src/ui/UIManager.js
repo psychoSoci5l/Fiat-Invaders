@@ -340,17 +340,6 @@ window.Game = window.Game || {};
         }
     }
 
-    function selectManualTab(tab) {
-        var tabs = document.querySelectorAll('.manual-tab');
-        tabs.forEach(function (t) { t.classList.remove('active'); });
-        var activeTab = document.querySelector('.manual-tab[data-tab="' + tab + '"]');
-        if (activeTab) activeTab.classList.add('active');
-        var contents = document.querySelectorAll('.manual-content');
-        contents.forEach(function (c) { c.style.display = 'none'; });
-        var activeContent = document.getElementById('manual-content');
-        if (activeContent) activeContent.style.display = 'block';
-    }
-
     // --- Language Toggle ---
     function toggleLang() {
         var newLang = d.getCurrentLang() === 'IT' ? 'EN' : 'IT';
