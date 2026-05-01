@@ -1,5 +1,26 @@
 # Changelog
 
+## v7.20 — fix(audio): GODCHAIN ronzìo — redesign effettistico (no oscillatori) - 2026-05-01
+
+Il GODCHAIN layer usava 4 oscillatori continui (sine 80Hz + saw 150Hz + square 150Hz
++ sub 55Hz) che creavano un ronzìo/rimbombo opprimente. Sostituiti con catena di
+effetti che trasforma la musica esistente:
+
+### feat(audio): GODCHAIN effettistico (filter, distortion, reverb)
+
+- **Master LFO Filter**: lowpass 350-3200Hz che respira a 0.35Hz sul mix musicale
+- **Bass Distortion**: saturazione mild (0.25) sul bus basso
+- **Pad Enhancement**: tremolo più profondo (0.65) + riverbero extra (0.15)
+- **Arp Reverb Boost**: extra wet (+0.20) sul bus arpeggiatore
+- **Activation Duck**: volume dip (0.65 → recovery 0.2s) all'attivazione
+- Kill-switch: `GODCHAIN_AUDIO.LEGACY_OSCILLATORS_ENABLED` (default false) per rollback
+- Architettura: dispatch effetti/legacy in start/stopHyperLayer e start/stopGodchainLayer
+
+### fix
+- `Player.js resetState`: chiamate stop semplificate (i metodi hanno NOOP check interni)
+- `DebugSystem.js audioState`: aggiunti flag effect chain alla diagnostica
+- `tests/repro-godchain-audio.js`: Phase 4 — effects mode flag management
+
 ## v7.19.8 — momentum GODCHAIN pieno + intermission HUD residuo + dbg.archetype - 2026-05-01
 
 ### feat(audio): GODCHAIN momentum sostanzioso (no più "rumore basso di sottofondo")
