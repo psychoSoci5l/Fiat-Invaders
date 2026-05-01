@@ -2065,16 +2065,50 @@
         },
 
         // --- GODCHAIN AUDIO kill-switches ---
-        // v7.19.7: tutti ripristinati a default true. v7.19.6 li aveva disabilitati
-        // come fix grezzo del "sibilo larsen", ma questo ha rimosso anche il
-        // momentum audio voluto (cambio tonale + music gonfia + drone bass). Il
-        // sibilo era specificamente lo shimmer triangle ad alta freq dell'HYPER
-        // layer (ora rimosso da startHyperLayer in AudioSystem.js). Il resto del
-        // sound design del momentum è preservato.
+        // v7.20: redesigned — GODCHAIN now applies EFFECTS (filter, distortion, reverb)
+        // to the existing music mix instead of spawning continuous oscillators.
+        // Set LEGACY_OSCILLATORS_ENABLED=true to restore the old oscillator-based
+        // behavior for A/B comparison or emergency rollback.
         GODCHAIN_AUDIO: {
-            LAYERS_ENABLED: true,          // continuous oscillator drone (rumble + square + sub)
+            // v7.20: legacy oscillator mode. When true, spawns the 4 continuous
+            // oscillators (HYPER sine/saw + GODCHAIN square/sub) and HYPER gain
+            // boost as before v7.20. Default false — uses effect chain instead.
+            LEGACY_OSCILLATORS_ENABLED: false,
+
+            // Existing music modulation (preserved from v7.19)
             ARP_DETUNE_ENABLED: true,      // +300 cents transposition on the arp during GODCHAIN
-            INTENSITY_BOOST_ENABLED: true  // +12 to music intensity during GODCHAIN
+            INTENSITY_BOOST_ENABLED: true, // +12 to music intensity during GODCHAIN
+
+            // v7.20: GODCHAIN effect chain — transforms the existing music mix
+            // instead of adding continuous oscillator layers. Each effect has
+            // its own enable flag and tuning parameters.
+            EFFECTS: {
+                MASTER_FILTER: {
+                    ENABLED: true,
+                    RATE: 0.35,             // LFO frequency (Hz) — slow breathing, ~3s cycle
+                    MIN_FREQ: 350,          // filter floor — prevents total muffling
+                    MAX_FREQ: 3200,         // filter ceiling — opens fully
+                    Q: 0.7                  // resonance — moderate to avoid peak
+                },
+                BASS_DISTORTION: {
+                    ENABLED: true,
+                    AMOUNT: 0.25            // WaveShaper curve intensity (0.0-1.0)
+                },
+                PAD_ENHANCE: {
+                    ENABLED: true,
+                    TREMOLO_DEPTH: 0.65,    // increased from default 0.3
+                    REVERB_BOOST: 0.15      // extra wet signal to reverb bus
+                },
+                ARP_REVERB: {
+                    ENABLED: true,
+                    ADDITIONAL_WET: 0.20    // extra reverb send level on arp bus
+                },
+                ACTIVATION_DUCK: {
+                    ENABLED: true,
+                    TARGET: 0.65,           // duck volume target (0-1)
+                    RECOVERY: 0.2            // seconds to return to full volume
+                }
+            }
         },
 
         // --- GODCHAIN MODE v4.6 (All modifiers maxed simultaneously) ---

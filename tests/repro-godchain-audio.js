@@ -20,6 +20,11 @@ const { chromium } = require('playwright');
             window.Game.Balance.GODCHAIN.DURATION = 1.0;
             window.Game.Balance.GODCHAIN.COOLDOWN = 0.1;
         }
+        // Force legacy oscillator mode for Phases 1-3 (oscillator cleanup tests).
+        // Phase 4 tests the new effects mode separately.
+        if (window.Game?.Balance?.GODCHAIN_AUDIO) {
+            window.Game.Balance.GODCHAIN_AUDIO.LEGACY_OSCILLATORS_ENABLED = true;
+        }
     });
 
     // Bypass intro: simulate a click on the play area to start the AudioContext + game.
@@ -250,14 +255,79 @@ const { chromium } = require('playwright');
         resetPass = false; resetFails.push('_godchainActive should be false after resetState');
     }
 
+    // ── Phase 4: effects mode flag management ────────────────────────
+    // Switch to effects mode (the new default) and verify that the effect
+    // chain state flags are managed correctly on activation/deactivation.
+    await page.evaluate(() => {
+        if (window.Game?.Balance?.GODCHAIN_AUDIO) {
+            window.Game.Balance.GODCHAIN_AUDIO.LEGACY_OSCILLATORS_ENABLED = false;
+        }
+    });
+
+    await page.evaluate(() => {
+        window.player.godchainCooldown = 0;
+        window.player.activateGodchain();
+        try { window.player.update(0.05, false); } catch (e) {}
+    });
+    await page.waitForTimeout(200);
+
+    const fxActive = await page.evaluate(() => ({
+        effectsActive: window.Game.Audio._godchainEffectsActive,
+        hyperFlag: window.Game.Audio._hyperActiveFlag,
+        masterFilter: !!window.Game.Audio._godchainMasterFilter,
+        bassDistortion: !!window.Game.Audio._godchainBassDistortion
+    }));
+    console.log('[FX-ACTIVATE]', JSON.stringify(fxActive));
+
+    // Deactivate: wait + pump timer expiry
+    await page.waitForTimeout(1400);
+    await page.evaluate(() => {
+        if (window.player && typeof window.player.update === 'function') {
+            for (let i = 0; i < 10; i++) {
+                try { window.player.update(0.2, false); } catch (e) {}
+            }
+        }
+    });
+    await page.waitForTimeout(500);
+
+    const fxDeactive = await page.evaluate(() => ({
+        effectsActive: window.Game.Audio._godchainEffectsActive,
+        hyperFlag: window.Game.Audio._hyperActiveFlag,
+        masterFilter: !!window.Game.Audio._godchainMasterFilter,
+        bassDistortion: !!window.Game.Audio._godchainBassDistortion
+    }));
+    console.log('[FX-DEACTIVATE]', JSON.stringify(fxDeactive));
+
+    let fxPass = true;
+    const fxFails = [];
+    if (!fxActive.effectsActive) {
+        fxPass = false; fxFails.push('effectsActive should be true during GODCHAIN');
+    }
+    if (!fxActive.hyperFlag) {
+        fxPass = false; fxFails.push('hyperFlag should be true during GODCHAIN (auto-started)');
+    }
+    if (!fxActive.masterFilter) {
+        fxPass = false; fxFails.push('masterFilter should be created during GODCHAIN');
+    }
+    if (fxDeactive.effectsActive) {
+        fxPass = false; fxFails.push('effectsActive should be false after timer expiry');
+    }
+    if (fxDeactive.masterFilter) {
+        fxPass = false; fxFails.push('masterFilter should be null after deactivation');
+    }
+
     await browser.close();
 
-    if (pass && pausePass && resetPass) {
-        console.log('\n✅ PASS — GODCHAIN audio cleanup verified (timer expiry + pause + death/respawn)');
+    const allPass = pass && pausePass && resetPass && fxPass;
+    if (allPass) {
+        console.log('\n✅ PASS — GODCHAIN audio cleanup verified (timer expiry + pause + death/respawn + effects mode)');
         process.exit(0);
     } else {
         console.log('\n❌ FAIL — issues detected:');
+        if (!pass) failures.forEach(f => console.log('  - ' + f));
+        if (!pausePass) pauseFails.forEach(f => console.log('  - ' + f));
         if (!resetPass) resetFails.forEach(f => console.log('  - ' + f));
+        if (!fxPass) fxFails.forEach(f => console.log('  - ' + f));
         process.exit(1);
     }
 })();

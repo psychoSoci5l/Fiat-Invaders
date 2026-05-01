@@ -144,12 +144,14 @@ class Player extends window.Game.Entity {
         // populated — so a flag-based check would miss the cleanup.
         if (window.Game && window.Game.Audio) {
             const audio = window.Game.Audio;
-            if (audio._godchainLayerNodes && audio.stopGodchainLayer) {
-                console.log('[AUDIO-TRACE] Player.resetState: stopping GODCHAIN layer before flag clear');
+            // v7.20: stopGodchainLayer/stopHyperLayer handle both effects mode
+            // and legacy oscillator mode internally via NOOP checks.
+            if (audio.stopGodchainLayer) {
+                console.log('[AUDIO-TRACE] Player.resetState: stopping GODCHAIN before flag clear');
                 audio.stopGodchainLayer();
             }
-            if (audio._hyperLayerNodes && audio.stopHyperLayer) {
-                console.log('[AUDIO-TRACE] Player.resetState: stopping HYPER layer before flag clear');
+            if (audio.stopHyperLayer) {
+                console.log('[AUDIO-TRACE] Player.resetState: stopping HYPER before flag clear');
                 audio.stopHyperLayer();
             }
         }

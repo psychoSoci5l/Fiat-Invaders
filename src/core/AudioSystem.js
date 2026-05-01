@@ -81,6 +81,14 @@ class AudioSystem {
         this._hyperStartedByGodchain = false; // GODCHAIN auto-started HYPER — clean up on stop
         this._pendingDisconnectTimers = [];   // v7.19: deferred force-disconnects after fade
 
+        // v7.20: GODCHAIN effect chain state (replaces continuous oscillators)
+        this._godchainEffectsActive = false;  // true when GODCHAIN effects are applied
+        this._hyperActiveFlag = false;        // true when HYPER is active (effects mode)
+        this._godchainMasterFilter = null;    // { filter, lfo, lfoGain } for master sweep
+        this._godchainBassDistortion = null;  // { distortion, gain, output } for bass bus
+        this._godchainPadReverbExtra = null;  // extra reverb send gain for pad
+        this._godchainArpReverbExtra = null;  // extra reverb send gain for arp
+
         // v7.15.0: Music duck gain between music buses and musicGain
         this._musicDuckGain = null;
         // v7.15.0: Global error counter (disables audio at 50)
@@ -285,32 +293,47 @@ class AudioSystem {
     }
 
     /**
-     * Start continuous HYPER layer: low drone + high shimmer, blends with music.
+     * Start HYPER layer.
+     *
+     * v7.20: In effects mode (default), sets a flag — no oscillators created.
+     * In legacy mode, spawns continuous oscillators (sine 80Hz + saw 150Hz).
+     * See _startHyperLayerLegacy().
      */
     startHyperLayer() {
         if (!this.ctx) return;
-        // v7.19.5: master kill-switch on continuous drone layers. When false, no
-        // oscillators are spun up — used to isolate the "larsen" sibilo source.
-        // If the user still hears the sibilo with this off, the source is in the
-        // music modulation path (arp detune + filter LFO) or elsewhere.
+        const legacyMode = window.Game.Balance?.GODCHAIN_AUDIO?.LEGACY_OSCILLATORS_ENABLED;
+        if (legacyMode) {
+            this._startHyperLayerLegacy();
+            return;
+        }
+        if (this._hyperActiveFlag) {
+            console.log('[AUDIO-TRACE] startHyperLayer: SKIP (already active via flag)');
+            return;
+        }
+        console.log('[AUDIO-TRACE] startHyperLayer: ACTIVATED (effects mode)');
+        this._hyperActiveFlag = true;
+    }
+
+    /**
+     * Legacy HYPER layer: spawns continuous oscillators (sine 80Hz + saw 150Hz).
+     * Only used when LEGACY_OSCILLATORS_ENABLED=true.
+     */
+    _startHyperLayerLegacy() {
+        if (!this.ctx) return;
         const layersEnabled = window.Game.Balance?.GODCHAIN_AUDIO?.LAYERS_ENABLED;
         if (layersEnabled === false) {
-            console.log('[AUDIO-TRACE] startHyperLayer: BLOCKED by kill-switch GODCHAIN_AUDIO.LAYERS_ENABLED=false');
+            console.log('[AUDIO-TRACE] _startHyperLayerLegacy: BLOCKED by LAYERS_ENABLED=false');
             return;
         }
         if (this._hyperLayerNodes) {
-            this._hyperStartedByGodchain = false; // Player wants HYPER independently
-            console.log('[AUDIO-TRACE] startHyperLayer: SKIP (already running, nodes=' + this._hyperLayerNodes.length + ')');
+            this._hyperStartedByGodchain = false;
+            console.log('[AUDIO-TRACE] _startHyperLayerLegacy: SKIP (already running, nodes=' + this._hyperLayerNodes.length + ')');
             return;
         }
-        console.log('[AUDIO-TRACE] startHyperLayer: STARTING at t=' + this.ctx.currentTime.toFixed(2));
+        console.log('[AUDIO-TRACE] _startHyperLayerLegacy: STARTING at t=' + this.ctx.currentTime.toFixed(2));
         const t = this.ctx.currentTime;
         const output = this.getMusicOutput();
 
-        // Low rumble (sine ~80Hz) + mid drone (sawtooth ~160Hz) per il momentum
-        // HYPER/GODCHAIN. v7.19.8: triangle shimmer (1.6–2.8 kHz) RIMOSSO (era la
-        // fonte del sibilo larsen) e sostituito con un sawtooth ottava sopra il
-        // rumble — drive percepibile senza freq alte. Volumi originali ripristinati.
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.connect(gain);
@@ -322,9 +345,6 @@ class AudioSystem {
         osc.start(t);
         osc.stop(t + 60);
 
-        // Mid sawtooth ottava sopra il rumble — fornisce "drive" senza freq alte.
-        // Sawtooth a ~150 Hz ha armoniche pesanti ma sotto il range del "sibilo"
-        // (>1 kHz). Filtrato lowpass @ 600 Hz per restare dentro la zona bass/low-mid.
         const drive = this.ctx.createOscillator();
         const driveFilter = this.ctx.createBiquadFilter();
         const driveGain = this.ctx.createGain();
@@ -348,33 +368,43 @@ class AudioSystem {
     }
 
     /**
-     * Stop HYPER audio layer with fade-out.
+     * Stop HYPER layer.
      *
-     * v7.19: Hardened cleanup — claim ownership of the node list immediately so a
-     * concurrent restart can't see stale references, then fade-then-disconnect via
-     * a deferred setTimeout. The disconnect is the LAST line of defense: even if
-     * osc.stop() silently no-ops or the context is in an odd state, severing the
-     * routing guarantees no audio leaks past the fade. Fixes the GODCHAIN sibilo
-     * that wouldn't stop after the timer expired.
+     * v7.20: In effects mode, clears the active flag. In legacy mode,
+     * fades and disconnects oscillators. See _stopHyperLayerLegacy().
      */
     stopHyperLayer() {
-        if (!this._hyperLayerNodes) {
-            console.log('[AUDIO-TRACE] stopHyperLayer: NOOP (no active layer)');
+        const legacyMode = window.Game.Balance?.GODCHAIN_AUDIO?.LEGACY_OSCILLATORS_ENABLED;
+        if (legacyMode) {
+            this._stopHyperLayerLegacy();
             return;
         }
-        console.log('[AUDIO-TRACE] stopHyperLayer: STOPPING ' + this._hyperLayerNodes.length + ' nodes at t=' + (this.ctx?.currentTime?.toFixed(2) || 'N/A'));
+        if (!this._hyperActiveFlag) {
+            console.log('[AUDIO-TRACE] stopHyperLayer: NOOP (not active)');
+            return;
+        }
+        console.log('[AUDIO-TRACE] stopHyperLayer: DEACTIVATED (effects mode)');
+        this._hyperActiveFlag = false;
+    }
+
+    /**
+     * Legacy HYPER stop: fade-out + disconnect oscillators.
+     */
+    _stopHyperLayerLegacy() {
+        if (!this._hyperLayerNodes) {
+            console.log('[AUDIO-TRACE] _stopHyperLayerLegacy: NOOP (no active layer)');
+            return;
+        }
+        console.log('[AUDIO-TRACE] _stopHyperLayerLegacy: STOPPING ' + this._hyperLayerNodes.length + ' nodes at t=' + (this.ctx?.currentTime?.toFixed(2) || 'N/A'));
         const nodes = this._hyperLayerNodes;
-        this._hyperLayerNodes = null; // claim ownership — prevents races on restart
+        this._hyperLayerNodes = null;
 
         if (!this.ctx || this.ctx.state === 'closed') {
-            // Context is gone — safety osc.stop() in startHyperLayer() will kill nodes.
-            console.log('[AUDIO-TRACE] stopHyperLayer: ctx closed, relying on safety stops');
+            console.log('[AUDIO-TRACE] _stopHyperLayerLegacy: ctx closed, relying on safety stops');
             return;
         }
         const t = this.ctx.currentTime;
         nodes.forEach(n => {
-            // Phase 1: ramp gain to 0 (avoids audible click). Wrapped per-call so a
-            // failure on one node doesn't abort cleanup of the others.
             try {
                 n.gain.gain.cancelScheduledValues(t);
                 n.gain.gain.setValueAtTime(n.gain.gain.value, t);
@@ -382,33 +412,62 @@ class AudioSystem {
             } catch (e) { /* keep going */ }
             try {
                 n.osc.stop(t + 0.35);
-            } catch (e) { /* already stopped or scheduled — disconnect below catches it */ }
+            } catch (e) { /* already stopped */ }
         });
-
-        // Phase 2: deferred force-disconnect. Severs the audio graph routing so
-        // even if an oscillator survives osc.stop(), it produces no audible output.
         this._scheduleDisconnect(nodes, 400);
     }
 
     /**
-     * Start GODCHAIN layer: adds aggressive square + noise on top of HYPER.
-     * Call after startHyperLayer() — compounds for extra intensity.
+     * Start GODCHAIN layer.
+     *
+     * v7.20: In effects mode (default), applies effect chain (filter, distortion,
+     * reverb) to the existing music mix. In legacy mode, spawns continuous
+     * oscillators (square 150Hz + sub 55Hz). See _startGodchainLayerLegacy().
      */
     startGodchainLayer() {
         if (!this.ctx) return;
-        // v7.19.5: kill-switch — blocks both the GODCHAIN-specific layer AND prevents
-        // it from auto-starting HYPER (since HYPER would also be blocked). See startHyperLayer.
+        const legacyMode = window.Game.Balance?.GODCHAIN_AUDIO?.LEGACY_OSCILLATORS_ENABLED;
+        if (legacyMode) {
+            this._startGodchainLayerLegacy();
+            return;
+        }
+        const effectsEnabled = window.Game.Balance?.GODCHAIN_AUDIO?.EFFECTS;
+        if (!effectsEnabled) {
+            console.log('[AUDIO-TRACE] startGodchainLayer: NOOP (EFFECTS not in config)');
+            return;
+        }
+        if (this._godchainEffectsActive) {
+            console.log('[AUDIO-TRACE] startGodchainLayer: SKIP (effects already active)');
+            return;
+        }
+        console.log('[AUDIO-TRACE] startGodchainLayer: ACTIVATING EFFECTS at t=' + this.ctx.currentTime.toFixed(2));
+
+        // Ensure HYPER layer is active (GODCHAIN requires HYPER for full intensity)
+        if (!this._hyperActiveFlag && !this._hyperLayerNodes) {
+            this.startHyperLayer();
+            this._hyperStartedByGodchain = true;
+        }
+
+        // Apply the GODCHAIN effect chain
+        this._enableGodchainEffects();
+    }
+
+    /**
+     * Legacy GODCHAIN start: spawns continuous oscillators (square 150Hz + sub 55Hz).
+     * Only used when LEGACY_OSCILLATORS_ENABLED=true.
+     */
+    _startGodchainLayerLegacy() {
+        if (!this.ctx) return;
         const layersEnabled = window.Game.Balance?.GODCHAIN_AUDIO?.LAYERS_ENABLED;
         if (layersEnabled === false) {
-            console.log('[AUDIO-TRACE] startGodchainLayer: BLOCKED by kill-switch GODCHAIN_AUDIO.LAYERS_ENABLED=false');
+            console.log('[AUDIO-TRACE] _startGodchainLayerLegacy: BLOCKED by LAYERS_ENABLED=false');
             return;
         }
         if (this._godchainLayerNodes) {
-            console.log('[AUDIO-TRACE] startGodchainLayer: SKIP (already running, nodes=' + this._godchainLayerNodes.length + ')');
+            console.log('[AUDIO-TRACE] _startGodchainLayerLegacy: SKIP (already running, nodes=' + this._godchainLayerNodes.length + ')');
             return;
         }
-        console.log('[AUDIO-TRACE] startGodchainLayer: STARTING at t=' + this.ctx.currentTime.toFixed(2) + ', _hyperStartedByGodchain=' + this._hyperStartedByGodchain);
-        // Ensure HYPER layer is active (GODCHAIN requires HYPER)
+        console.log('[AUDIO-TRACE] _startGodchainLayerLegacy: STARTING at t=' + this.ctx.currentTime.toFixed(2) + ', _hyperStartedByGodchain=' + this._hyperStartedByGodchain);
         if (!this._hyperLayerNodes) {
             this.startHyperLayer();
             this._hyperStartedByGodchain = true;
@@ -417,9 +476,6 @@ class AudioSystem {
         const t = this.ctx.currentTime;
         const output = this.getMusicOutput();
 
-        // Aggressive square wave (150Hz). Volumi originali pre-fix per momentum pieno.
-        // Low-pass @ 800 Hz per addomesticare le armoniche superiori dello square
-        // (oltre il range del "sibilo" >1 kHz).
         const osc = this.ctx.createOscillator();
         const oscFilter = this.ctx.createBiquadFilter();
         const gain = this.ctx.createGain();
@@ -436,7 +492,6 @@ class AudioSystem {
         osc.start(t);
         osc.stop(t + 60);
 
-        // Low sub layer (sine, 55Hz) for chest punch. Volume originale pieno.
         const sub = this.ctx.createOscillator();
         const subGain = this.ctx.createGain();
         sub.connect(subGain);
@@ -448,7 +503,6 @@ class AudioSystem {
         sub.start(t);
         sub.stop(t + 60);
 
-        // HYPER layer boost — drive il momentum del godchain pompando il bed di HYPER.
         if (this._hyperLayerNodes) {
             this._hyperLayerNodes.forEach(n => {
                 try {
@@ -467,27 +521,51 @@ class AudioSystem {
     }
 
     /**
-     * Stop GODCHAIN audio layer and restore HYPER layer to base level.
+     * Stop GODCHAIN layer.
      *
-     * v7.19: Hardened with the same claim-fade-disconnect pattern as
-     * stopHyperLayer to guarantee silence after fade regardless of
-     * oscillator state edge cases.
+     * v7.20: In effects mode, removes the GODCHAIN effect chain and restores
+     * clean signal routing. In legacy mode, fades and disconnects oscillators.
+     * See _stopGodchainLayerLegacy().
      */
     stopGodchainLayer() {
-        if (!this._godchainLayerNodes) {
-            console.log('[AUDIO-TRACE] stopGodchainLayer: NOOP (no active layer)');
+        const legacyMode = window.Game.Balance?.GODCHAIN_AUDIO?.LEGACY_OSCILLATORS_ENABLED;
+        if (legacyMode) {
+            this._stopGodchainLayerLegacy();
             return;
         }
-        console.log('[AUDIO-TRACE] stopGodchainLayer: STOPPING ' + this._godchainLayerNodes.length + ' nodes at t=' + (this.ctx?.currentTime?.toFixed(2) || 'N/A') + ', _hyperStartedByGodchain=' + this._hyperStartedByGodchain);
+        if (!this._godchainEffectsActive) {
+            console.log('[AUDIO-TRACE] stopGodchainLayer: NOOP (no active effects)');
+            return;
+        }
+        console.log('[AUDIO-TRACE] stopGodchainLayer: DISABLING EFFECTS at t=' + (this.ctx?.currentTime?.toFixed(2) || 'N/A'));
+
+        // Remove the GODCHAIN effect chain
+        this._disableGodchainEffects();
+
+        // If GODCHAIN auto-started HYPER and Player didn't also activate it, deactivate HYPER
+        if (this._hyperStartedByGodchain && this._hyperActiveFlag) {
+            this._hyperStartedByGodchain = false;
+            this.stopHyperLayer();
+        }
+
+        this._godchainEffectsActive = false;
+    }
+
+    /**
+     * Legacy GODCHAIN stop: fade-out + disconnect oscillators + restore HYPER gain.
+     */
+    _stopGodchainLayerLegacy() {
+        if (!this._godchainLayerNodes) {
+            console.log('[AUDIO-TRACE] _stopGodchainLayerLegacy: NOOP (no active layer)');
+            return;
+        }
+        console.log('[AUDIO-TRACE] _stopGodchainLayerLegacy: STOPPING ' + this._godchainLayerNodes.length + ' nodes at t=' + (this.ctx?.currentTime?.toFixed(2) || 'N/A') + ', _hyperStartedByGodchain=' + this._hyperStartedByGodchain);
         const nodes = this._godchainLayerNodes;
-        this._godchainLayerNodes = null; // claim ownership before any awaits
+        this._godchainLayerNodes = null;
 
         if (!this.ctx || this.ctx.state === 'closed') {
-            // Pass through to HYPER cleanup decision below — _hyperStartedByGodchain
-            // tells us whether to also stop the HYPER layer. With ctx closed, both
-            // are dead anyway; the flag clear keeps state consistent.
             this._hyperStartedByGodchain = false;
-            console.log('[AUDIO-TRACE] stopGodchainLayer: ctx closed, exiting');
+            console.log('[AUDIO-TRACE] _stopGodchainLayerLegacy: ctx closed, exiting');
             return;
         }
         const t = this.ctx.currentTime;
@@ -499,22 +577,20 @@ class AudioSystem {
             } catch (e) { /* keep going */ }
             try {
                 n.osc.stop(t + 0.35);
-            } catch (e) { /* already stopped — disconnect below catches it */ }
+            } catch (e) { /* already stopped */ }
         });
         this._scheduleDisconnect(nodes, 400);
 
-        // If GODCHAIN auto-started HYPER and Player didn't also activate it, stop HYPER
         if (this._hyperStartedByGodchain && this._hyperLayerNodes) {
             this._hyperStartedByGodchain = false;
             this.stopHyperLayer();
         } else if (this._hyperLayerNodes) {
-            // Restore HYPER gain (boosted by GODCHAIN) to base level
             this._hyperLayerNodes.forEach(n => {
                 try {
                     const cur = n.gain.gain.value || 0;
                     n.gain.gain.cancelScheduledValues(t);
                     n.gain.gain.setValueAtTime(cur, t);
-                    n.gain.gain.linearRampToValueAtTime(cur / 1.6, t + 0.3); // matches startGodchainLayer boost factor
+                    n.gain.gain.linearRampToValueAtTime(cur / 1.6, t + 0.3);
                 } catch (e) { /* skip */ }
             });
         }
@@ -3058,6 +3134,218 @@ class AudioSystem {
             noise.start(t);
             noise.stop(t + 0.65);
         }
+    }
+
+    // ===== v7.20: GODCHAIN effect chain (replaces continuous oscillators) =====
+
+    /**
+     * Apply GODCHAIN effect chain to the existing music mix.
+     *
+     * Transforms the sound with filter sweeps, distortion, and spatial
+     * enhancement instead of adding continuous oscillator layers.
+     * All effects use fade-in ramps to avoid clicks/pops.
+     * @private
+     */
+    _enableGodchainEffects() {
+        if (!this.ctx || this._godchainEffectsActive) return;
+        const cfg = window.Game.Balance?.GODCHAIN_AUDIO?.EFFECTS;
+        if (!cfg) return;
+
+        const t = this.ctx.currentTime;
+        const fadeIn = 0.25; // seconds for effect ramp-in
+
+        // ---- 1. Master LFO Filter ----
+        // Insert a lowpass filter between _musicDuckGain and musicGain.
+        // The filter sweeps slowly so the whole mix "breathes."
+        if (cfg.MASTER_FILTER?.ENABLED) {
+            const mfCfg = cfg.MASTER_FILTER;
+
+            // Disconnect _musicDuckGain from musicGain
+            try { this._musicDuckGain.disconnect(this.musicGain); } catch (e) { /* not connected */ }
+
+            // Create filter node and insert: _musicDuckGain -> filter -> musicGain
+            const filter = this.ctx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.value = mfCfg.MAX_FREQ; // start fully open
+            filter.Q.value = mfCfg.Q;
+            this._musicDuckGain.connect(filter);
+            filter.connect(this.musicGain);
+
+            // LFO modulates filter.frequency additively on top of the center value
+            const center = (mfCfg.MAX_FREQ + mfCfg.MIN_FREQ) / 2;
+            const depth = (mfCfg.MAX_FREQ - mfCfg.MIN_FREQ) / 2;
+            filter.frequency.setValueAtTime(center, t);
+
+            const lfo = this.ctx.createOscillator();
+            lfo.type = 'sine';
+            lfo.frequency.value = mfCfg.RATE;
+
+            const lfoGain = this.ctx.createGain();
+            lfoGain.gain.setValueAtTime(0, t); // start at 0, ramp in
+            lfoGain.gain.linearRampToValueAtTime(depth, t + fadeIn);
+
+            lfo.connect(lfoGain);
+            lfoGain.connect(filter.frequency);
+            lfo.start(t);
+
+            this._godchainMasterFilter = { filter, lfo, lfoGain };
+        }
+
+        // ---- 2. Bass Distortion ----
+        // Insert a WaveShaper between the bass bus and _musicDuckGain
+        if (cfg.BASS_DISTORTION?.ENABLED && this._bassBus) {
+            const amount = cfg.BASS_DISTORTION.AMOUNT;
+            const distortion = this.ctx.createWaveShaper();
+            const distGain = this.ctx.createGain();
+            distGain.gain.value = amount || 0.25;
+            const curve = new Float32Array(256);
+            for (let i = 0; i < 256; i++) {
+                const x = (i * 2) / 256 - 1;
+                curve[i] = ((3 + amount) * x * 20 * (Math.PI / 180)) /
+                    (Math.PI + Math.abs(x) * (3 + amount) * 20 * (Math.PI / 180));
+            }
+            distortion.curve = curve;
+            distortion.oversample = 'none';
+
+            // Reroute: bass bus -> distortion -> distGain -> _musicDuckGain
+            try { this._bassBus.disconnect(this._musicDuckGain); } catch (e) { /* not directly connected */ }
+            this._bassBus.connect(distortion);
+            distortion.connect(distGain);
+            distGain.connect(this._musicDuckGain);
+
+            this._godchainBassDistortion = { distortion, gain: distGain, output: distGain };
+        }
+
+        // ---- 3. Pad Enhancement ----
+        // Increase pad tremolo depth and add reverb
+        if (cfg.PAD_ENHANCE?.ENABLED) {
+            if (this._padTremoloGain) {
+                const curDepth = this._padTremoloGain.gain.value || 0.3;
+                this._padTremoloGain.gain.cancelScheduledValues(t);
+                this._padTremoloGain.gain.setValueAtTime(curDepth, t);
+                this._padTremoloGain.gain.linearRampToValueAtTime(
+                    cfg.PAD_ENHANCE.TREMOLO_DEPTH, t + fadeIn
+                );
+            }
+
+            const reverbBoost = cfg.PAD_ENHANCE.REVERB_BOOST;
+            if (reverbBoost > 0 && this._padBus && this._reverbBus) {
+                const extraSend = this.ctx.createGain();
+                extraSend.gain.setValueAtTime(0, t);
+                extraSend.gain.linearRampToValueAtTime(reverbBoost, t + fadeIn);
+                this._padBus.connect(extraSend);
+                extraSend.connect(this._reverbBus);
+                this._godchainPadReverbExtra = extraSend;
+            }
+        }
+
+        // ---- 4. Arp Reverb Boost ----
+        if (cfg.ARP_REVERB?.ENABLED && this._arpBus && this._reverbBus) {
+            const wet = cfg.ARP_REVERB.ADDITIONAL_WET;
+            if (wet > 0) {
+                const extraSend = this.ctx.createGain();
+                extraSend.gain.setValueAtTime(0, t);
+                extraSend.gain.linearRampToValueAtTime(wet, t + fadeIn);
+                this._arpBus.connect(extraSend);
+                extraSend.connect(this._reverbBus);
+                this._godchainArpReverbExtra = extraSend;
+            }
+        }
+
+        // ---- 5. Activation Impact (duck) ----
+        if (cfg.ACTIVATION_DUCK?.ENABLED) {
+            this._duckMusic(cfg.ACTIVATION_DUCK.TARGET, cfg.ACTIVATION_DUCK.RECOVERY);
+        }
+
+        this._godchainEffectsActive = true;
+        console.log('[AUDIO-TRACE] GODCHAIN effects ENABLED');
+    }
+
+    /**
+     * Remove the GODCHAIN effect chain and restore clean signal routing.
+     *
+     * Fades out all effects with ramps and deferred disconnects to avoid
+     * pops. Restores the original signal routing.
+     * @private
+     */
+    _disableGodchainEffects() {
+        if (!this.ctx || !this._godchainEffectsActive) return;
+        const cfg = window.Game.Balance?.GODCHAIN_AUDIO?.EFFECTS;
+        const t = this.ctx.currentTime;
+        const fadeOut = 0.3; // seconds for effect ramp-out
+
+        // ---- 1. Remove Master LFO Filter ----
+        if (this._godchainMasterFilter) {
+            const mf = this._godchainMasterFilter;
+
+            // Ramp LFO gain to 0 silently
+            mf.lfoGain.gain.cancelScheduledValues(t);
+            mf.lfoGain.gain.setValueAtTime(mf.lfoGain.gain.value || 0, t);
+            mf.lfoGain.gain.linearRampToValueAtTime(0, t + fadeOut);
+
+            // After fade, disconnect filter and restore direct routing
+            setTimeout(() => {
+                if (!this.ctx) return;
+                try {
+                    this._musicDuckGain.disconnect(mf.filter);
+                    mf.filter.disconnect(this.musicGain);
+                    this._musicDuckGain.connect(this.musicGain);
+                } catch (e) { /* ctx may be closed */ }
+                try { mf.lfo.stop(); } catch (e) { /* already stopped */ }
+            }, fadeOut * 1000 + 50);
+
+            this._godchainMasterFilter = null;
+        }
+
+        // ---- 2. Remove Bass Distortion ----
+        if (this._godchainBassDistortion) {
+            const dist = this._godchainBassDistortion;
+            setTimeout(() => {
+                if (!this.ctx) return;
+                try {
+                    this._bassBus.disconnect(dist.distortion);
+                    dist.distortion.disconnect(dist.gain);
+                    dist.gain.disconnect();
+                    this._bassBus.connect(this._musicDuckGain);
+                } catch (e) { /* ignore */ }
+            }, fadeOut * 1000 + 50);
+            this._godchainBassDistortion = null;
+        }
+
+        // ---- 3. Restore Pad Tremolo ----
+        if (this._padTremoloGain) {
+            const defaultDepth = window.Game.Balance?.AUDIO?.LFO?.PAD_TREMOLO?.DEPTH ?? 0.3;
+            this._padTremoloGain.gain.cancelScheduledValues(t);
+            this._padTremoloGain.gain.setValueAtTime(this._padTremoloGain.gain.value || defaultDepth, t);
+            this._padTremoloGain.gain.linearRampToValueAtTime(defaultDepth, t + fadeOut);
+        }
+
+        // Remove extra pad reverb send
+        if (this._godchainPadReverbExtra) {
+            const extraSend = this._godchainPadReverbExtra;
+            extraSend.gain.cancelScheduledValues(t);
+            extraSend.gain.setValueAtTime(extraSend.gain.value || 0, t);
+            extraSend.gain.linearRampToValueAtTime(0, t + fadeOut);
+            setTimeout(() => {
+                try { extraSend.disconnect(); } catch (e) { /* ignore */ }
+            }, fadeOut * 1000 + 50);
+            this._godchainPadReverbExtra = null;
+        }
+
+        // ---- 4. Remove Arp Reverb Boost ----
+        if (this._godchainArpReverbExtra) {
+            const extraSend = this._godchainArpReverbExtra;
+            extraSend.gain.cancelScheduledValues(t);
+            extraSend.gain.setValueAtTime(extraSend.gain.value || 0, t);
+            extraSend.gain.linearRampToValueAtTime(0, t + fadeOut);
+            setTimeout(() => {
+                try { extraSend.disconnect(); } catch (e) { /* ignore */ }
+            }, fadeOut * 1000 + 50);
+            this._godchainArpReverbExtra = null;
+        }
+
+        this._godchainEffectsActive = false;
+        console.log('[AUDIO-TRACE] GODCHAIN effects DISABLED');
     }
 }
 
