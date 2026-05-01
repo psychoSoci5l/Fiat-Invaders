@@ -2064,16 +2064,17 @@
             }
         },
 
-        // --- GODCHAIN AUDIO kill-switches v7.19.5+ ---
-        // v7.19.6: tutti default false. La combinazione di drone layer + arp detune +
-        // intensity boost generava un suono continuo percepito come "sibilo/larsen"
-        // durante l'intera durata del GODCHAIN (10s). Disabilitati di default,
-        // GODCHAIN resta visivo + SFX one-shot 'godchainActivate' senza side-effect
-        // continui. Riattivabili individualmente via dbg.toggleGodchainAudio().
+        // --- GODCHAIN AUDIO kill-switches ---
+        // v7.19.7: tutti ripristinati a default true. v7.19.6 li aveva disabilitati
+        // come fix grezzo del "sibilo larsen", ma questo ha rimosso anche il
+        // momentum audio voluto (cambio tonale + music gonfia + drone bass). Il
+        // sibilo era specificamente lo shimmer triangle ad alta freq dell'HYPER
+        // layer (ora rimosso da startHyperLayer in AudioSystem.js). Il resto del
+        // sound design del momentum è preservato.
         GODCHAIN_AUDIO: {
-            LAYERS_ENABLED: false,         // continuous oscillator drone (square+sub+rumble+shimmer)
-            ARP_DETUNE_ENABLED: false,     // +300 cents transposition on the arp during GODCHAIN
-            INTENSITY_BOOST_ENABLED: false // +12 to music intensity during GODCHAIN
+            LAYERS_ENABLED: true,          // continuous oscillator drone (rumble + square + sub)
+            ARP_DETUNE_ENABLED: true,      // +300 cents transposition on the arp during GODCHAIN
+            INTENSITY_BOOST_ENABLED: true  // +12 to music intensity during GODCHAIN
         },
 
         // --- GODCHAIN MODE v4.6 (All modifiers maxed simultaneously) ---

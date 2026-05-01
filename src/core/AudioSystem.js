@@ -307,7 +307,12 @@ class AudioSystem {
         const t = this.ctx.currentTime;
         const output = this.getMusicOutput();
 
-        // Low rumble (sine, ~80Hz). v7.19.4: gain 0.06 → 0.03 (less invasive bed).
+        // Low rumble (sine, ~80Hz). Drone bass per il momentum HYPER/GODCHAIN.
+        // v7.19.7: questo è ora l'UNICO oscillator dell'hyper layer. Il triangle
+        // shimmer (1.6–2.8 kHz) e il LFO pulse erano la fonte del "sibilo larsen"
+        // che durava per tutta la durata del GODCHAIN — rimossi. Il momentum
+        // audio del godchain resta intatto via questo rumble + il GODCHAIN layer
+        // (square+sub) + intensity boost + arp detune sulla musica.
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.connect(gain);
@@ -315,44 +320,12 @@ class AudioSystem {
         osc.type = 'sine';
         osc.frequency.value = 75 + Math.random() * 10;
         gain.gain.setValueAtTime(0, t);
-        gain.gain.linearRampToValueAtTime(0.03, t + 0.4);
+        gain.gain.linearRampToValueAtTime(0.05, t + 0.4); // v7.19.7: 0.03 → 0.05 (compensa rimozione shimmer)
         osc.start(t);
         osc.stop(t + 60); // safety: kill switch if stopHyperLayer() fails
 
-        // High shimmer (triangle, 2-3kHz). v7.19.4: low-pass filter @ 1.8kHz to soften
-        // the perceived "whistle/sibilo" without losing the texture, plus gain 0.025 → 0.010.
-        // The triangle was the dominant culprit of the "sibilo che non si ferma".
-        const osc2 = this.ctx.createOscillator();
-        const filter2 = this.ctx.createBiquadFilter();
-        const gain2 = this.ctx.createGain();
-        osc2.connect(filter2);
-        filter2.connect(gain2);
-        gain2.connect(output);
-        osc2.type = 'triangle';
-        osc2.frequency.value = 1600 + Math.random() * 400; // 1.6–2.0 kHz (was 2.2–2.8)
-        filter2.type = 'lowpass';
-        filter2.frequency.value = 1800;
-        filter2.Q.value = 0.7;
-        gain2.gain.setValueAtTime(0, t);
-        gain2.gain.linearRampToValueAtTime(0.010, t + 0.4);
-        osc2.start(t);
-        osc2.stop(t + 60); // safety: kill switch if stopHyperLayer() fails
-
-        // Slow LFO pulse on shimmer amplitude. v7.19.4: depth 0.015 → 0.006 (subtler).
-        const lfo = this.ctx.createOscillator();
-        const lfoGain = this.ctx.createGain();
-        lfo.connect(lfoGain);
-        lfoGain.connect(gain2.gain);
-        lfo.type = 'sine';
-        lfo.frequency.value = 3.5;
-        lfoGain.gain.value = 0.006;
-        lfo.start(t);
-        lfo.stop(t + 60); // safety: kill switch if stopHyperLayer() fails
-
         this._hyperLayerNodes = [
-            { osc, gain },
-            { osc: osc2, gain: gain2 },
-            { osc: lfo, gain: lfoGain }
+            { osc, gain }
         ];
     }
 

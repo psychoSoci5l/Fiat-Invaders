@@ -1,5 +1,35 @@
 # Changelog
 
+## v7.19.7 — fix(audio): rimosso shimmer triangle (vera fonte del sibilo), momentum ripristinato - 2026-05-01
+
+### fix(audio): chirurgico — solo lo shimmer triangle era il "sibilo larsen"
+v7.19.6 aveva disabilitato di default tutti i side-effect audio del GODCHAIN
+(LAYERS + ARP_DETUNE + INTENSITY_BOOST). Questo eliminava il sibilo MA
+distruggeva il **momentum audio** del godchain — l'utente ha legittimamente
+contestato la scelta.
+
+Diagnosi corretta: il sibilo era specificamente lo **shimmer triangle**
+1.6–2.8 kHz dell'HYPER layer (l'oscillator alto-medio modulato da un LFO
+3.5 Hz), che durante GODCHAIN veniva boostato del 25-60% dal HYPER boost
+factor. Il triangle ad alta freq + LFO modulating gain produceva un suono
+continuo "sssh-sssh" percepito come sibilo che pulsa.
+
+Fix in `AudioSystem.startHyperLayer`:
+- **Rimosso** il triangle shimmer (osc2) + il suo low-pass filter + il LFO.
+- L'HYPER layer ora ha solo il **rumble sine 75–85 Hz** (drone bass).
+- Gain del rumble alzato 0.03 → 0.05 per compensare la rimozione.
+- `_hyperLayerNodes` array ora ha 1 elemento (era 3).
+
+Ripristinato in `Balance.GODCHAIN_AUDIO`:
+- `LAYERS_ENABLED: false → true` (drone tornato attivo)
+- `ARP_DETUNE_ENABLED: false → true` (+3 semitoni sull'arp tornato)
+- `INTENSITY_BOOST_ENABLED: false → true` (music gonfia tornata)
+
+Risultato: momentum audio del GODCHAIN integro (drone bass + arp tonale shift
++ music gonfia) senza la freq alta che generava il sibilo. I kill-switch
+restano disponibili via `dbg.toggleGodchainAudio()` per chi voglia disattivare
+componenti specifici.
+
 ## v7.19.6 — fix(audio): GODCHAIN audio side-effects disabilitati di default - 2026-05-01
 
 ### fix(audio): kill-switches GODCHAIN_AUDIO ora default FALSE
