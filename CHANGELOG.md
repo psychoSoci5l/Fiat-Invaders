@@ -1,5 +1,42 @@
 # Changelog
 
+## v7.19.8 — momentum GODCHAIN pieno + intermission HUD residuo + dbg.archetype - 2026-05-01
+
+### feat(audio): GODCHAIN momentum sostanzioso (no più "rumore basso di sottofondo")
+v7.19.7 aveva ridotto troppo l'HYPER layer (solo rumble sine 75 Hz a gain 0.05).
+Risultato: GODCHAIN era percepito come un drone-bed troppo timido. Ripristino:
+
+- `startHyperLayer`: aggiunto un secondo oscillator **sawtooth ~150 Hz**
+  (octave sopra il rumble), filtrato lowpass @ 600 Hz Q=0.7. Drive percettibile
+  senza freq alte (resta sotto la soglia del "sibilo" >1 kHz). Gain 0.04.
+- `startGodchainLayer` square: gain ripristinato 0.022 → **0.05** (volume
+  originale pre-fix).
+- `startGodchainLayer` sub: gain ripristinato 0.04 → **0.08** (volume originale).
+- HYPER boost factor durante GODCHAIN: 1.25 → **1.6** (originale).
+- HYPER restore factor in stopGodchainLayer: matched 1.6.
+
+Il triangle shimmer (1.6–2.8 kHz, fonte del sibilo) resta rimosso. Risultato
+finale: drone bass + sawtooth drive + square + sub = momentum pieno cinematico
+senza sibilo.
+
+### fix(intermission): #message-strip permaneva sopra l'overlay V8
+L'utente segnalava che "perk raccolti, combo e altre informazioni a schermo
+permangono al posto di sparire" durante intermission V8. Diagnosi: in
+`index.html` `#message-strip` (la strip in cima dove appaiono i pickup toasts
+"+PIERCE", "+SHIELD", combo HUD bar) vive **fuori** dal `#ui-layer`. Quindi
+quando `showV8Intermission` faceva `ui.uiLayer.style.display = 'none'`, lui
+restava visibile.
+
+Fix: nascondo esplicitamente `#message-strip` in showV8Intermission e lo
+ripristino in advanceToNextV8Level al resume.
+
+### chore(debug): dbg.archetype(key) per playtest immediato
+I 3 archetipi v7.19 (HFT/AUDITOR/PRINTER) hanno schedule temporale che li fa
+apparire a 25-60s dopo l'inizio del livello. Per playtest immediato:
+- `dbg.archetype('HFT')` — spawna gruppo HFT swarm subito
+- `dbg.archetype('AUDITOR')` — spawna 1 auditor subito
+- `dbg.archetype('PRINTER')` — spawna 1 printer subito (concurrent cap rispettato)
+
 ## v7.19.7 — fix(audio): rimosso shimmer triangle (vera fonte del sibilo), momentum ripristinato - 2026-05-01
 
 ### fix(audio): chirurgico — solo lo shimmer triangle era il "sibilo larsen"

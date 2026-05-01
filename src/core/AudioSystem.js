@@ -307,12 +307,10 @@ class AudioSystem {
         const t = this.ctx.currentTime;
         const output = this.getMusicOutput();
 
-        // Low rumble (sine, ~80Hz). Drone bass per il momentum HYPER/GODCHAIN.
-        // v7.19.7: questo è ora l'UNICO oscillator dell'hyper layer. Il triangle
-        // shimmer (1.6–2.8 kHz) e il LFO pulse erano la fonte del "sibilo larsen"
-        // che durava per tutta la durata del GODCHAIN — rimossi. Il momentum
-        // audio del godchain resta intatto via questo rumble + il GODCHAIN layer
-        // (square+sub) + intensity boost + arp detune sulla musica.
+        // Low rumble (sine ~80Hz) + mid drone (sawtooth ~160Hz) per il momentum
+        // HYPER/GODCHAIN. v7.19.8: triangle shimmer (1.6–2.8 kHz) RIMOSSO (era la
+        // fonte del sibilo larsen) e sostituito con un sawtooth ottava sopra il
+        // rumble — drive percepibile senza freq alte. Volumi originali ripristinati.
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.connect(gain);
@@ -320,12 +318,32 @@ class AudioSystem {
         osc.type = 'sine';
         osc.frequency.value = 75 + Math.random() * 10;
         gain.gain.setValueAtTime(0, t);
-        gain.gain.linearRampToValueAtTime(0.05, t + 0.4); // v7.19.7: 0.03 → 0.05 (compensa rimozione shimmer)
+        gain.gain.linearRampToValueAtTime(0.06, t + 0.4);
         osc.start(t);
-        osc.stop(t + 60); // safety: kill switch if stopHyperLayer() fails
+        osc.stop(t + 60);
+
+        // Mid sawtooth ottava sopra il rumble — fornisce "drive" senza freq alte.
+        // Sawtooth a ~150 Hz ha armoniche pesanti ma sotto il range del "sibilo"
+        // (>1 kHz). Filtrato lowpass @ 600 Hz per restare dentro la zona bass/low-mid.
+        const drive = this.ctx.createOscillator();
+        const driveFilter = this.ctx.createBiquadFilter();
+        const driveGain = this.ctx.createGain();
+        drive.connect(driveFilter);
+        driveFilter.connect(driveGain);
+        driveGain.connect(output);
+        drive.type = 'sawtooth';
+        drive.frequency.value = 150 + Math.random() * 20;
+        driveFilter.type = 'lowpass';
+        driveFilter.frequency.value = 600;
+        driveFilter.Q.value = 0.7;
+        driveGain.gain.setValueAtTime(0, t);
+        driveGain.gain.linearRampToValueAtTime(0.04, t + 0.4);
+        drive.start(t);
+        drive.stop(t + 60);
 
         this._hyperLayerNodes = [
-            { osc, gain }
+            { osc, gain },
+            { osc: drive, gain: driveGain }
         ];
     }
 
@@ -399,8 +417,9 @@ class AudioSystem {
         const t = this.ctx.currentTime;
         const output = this.getMusicOutput();
 
-        // Aggressive square wave (150Hz). v7.19.4: gain 0.05 → 0.022, low-pass added
-        // to remove the harsh harmonics that contributed to "sibilo" perception.
+        // Aggressive square wave (150Hz). Volumi originali pre-fix per momentum pieno.
+        // Low-pass @ 800 Hz per addomesticare le armoniche superiori dello square
+        // (oltre il range del "sibilo" >1 kHz).
         const osc = this.ctx.createOscillator();
         const oscFilter = this.ctx.createBiquadFilter();
         const gain = this.ctx.createGain();
@@ -410,14 +429,14 @@ class AudioSystem {
         osc.type = 'square';
         osc.frequency.value = 140 + Math.random() * 20;
         oscFilter.type = 'lowpass';
-        oscFilter.frequency.value = 800;   // tames the buzzy upper harmonics
+        oscFilter.frequency.value = 800;
         oscFilter.Q.value = 0.7;
         gain.gain.setValueAtTime(0, t);
-        gain.gain.linearRampToValueAtTime(0.022, t + 0.25);
+        gain.gain.linearRampToValueAtTime(0.05, t + 0.25);
         osc.start(t);
-        osc.stop(t + 60); // safety: kill switch if stopGodchainLayer() fails
+        osc.stop(t + 60);
 
-        // Low sub layer (sine, 55Hz) for chest punch. v7.19.4: gain 0.08 → 0.04.
+        // Low sub layer (sine, 55Hz) for chest punch. Volume originale pieno.
         const sub = this.ctx.createOscillator();
         const subGain = this.ctx.createGain();
         sub.connect(subGain);
@@ -425,19 +444,18 @@ class AudioSystem {
         sub.type = 'sine';
         sub.frequency.value = 55;
         subGain.gain.setValueAtTime(0, t);
-        subGain.gain.linearRampToValueAtTime(0.04, t + 0.3);
+        subGain.gain.linearRampToValueAtTime(0.08, t + 0.3);
         sub.start(t);
-        sub.stop(t + 60); // safety: kill switch if stopGodchainLayer() fails
+        sub.stop(t + 60);
 
-        // HYPER layer boost. v7.19.4: factor 1.6 → 1.25 (less aggressive bump on top
-        // of an already-reduced HYPER bed, keeps the layered drama without overpressing).
+        // HYPER layer boost — drive il momentum del godchain pompando il bed di HYPER.
         if (this._hyperLayerNodes) {
             this._hyperLayerNodes.forEach(n => {
                 try {
                     const cur = n.gain.gain.value || 0;
                     n.gain.gain.cancelScheduledValues(t);
                     n.gain.gain.setValueAtTime(cur, t);
-                    n.gain.gain.linearRampToValueAtTime(cur * 1.25, t + 0.25);
+                    n.gain.gain.linearRampToValueAtTime(cur * 1.6, t + 0.25);
                 } catch (e) { /* skip */ }
             });
         }
@@ -496,7 +514,7 @@ class AudioSystem {
                     const cur = n.gain.gain.value || 0;
                     n.gain.gain.cancelScheduledValues(t);
                     n.gain.gain.setValueAtTime(cur, t);
-                    n.gain.gain.linearRampToValueAtTime(cur / 1.25, t + 0.3); // v7.19.4: matches startGodchainLayer boost factor
+                    n.gain.gain.linearRampToValueAtTime(cur / 1.6, t + 0.3); // matches startGodchainLayer boost factor
                 } catch (e) { /* skip */ }
             });
         }

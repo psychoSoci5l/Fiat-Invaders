@@ -2025,6 +2025,29 @@ window.Game.Debug = {
     },
 
     /**
+     * v7.19.8: Spawn manuale di un archetipo per playtest (HFT/AUDITOR/PRINTER).
+     * I 3 archetipi v7.19 hanno schedule temporale che li fa apparire a 25-60s
+     * dopo l'inizio del livello. Per vederli SUBITO usa questo comando.
+     * Esempi: dbg.archetype('HFT'), dbg.archetype('AUDITOR'), dbg.archetype('PRINTER')
+     */
+    archetype(key) {
+        const wm = window.Game?.WaveManager;
+        if (!wm || typeof wm._spawnSingleArchetype !== 'function') {
+            console.log('[DEBUG] WaveManager._spawnSingleArchetype non disponibile');
+            return;
+        }
+        const k = (key || '').toUpperCase();
+        if (!['HFT', 'AUDITOR', 'PRINTER'].includes(k)) {
+            console.log('[DEBUG] usage: dbg.archetype("HFT" | "AUDITOR" | "PRINTER")');
+            return;
+        }
+        const gw = window.Game._gameWidth || 400;
+        const out = wm._spawnSingleArchetype(k, gw);
+        console.log('[DEBUG] spawned ' + k + ' x' + (out ? out.length : 0));
+        return out;
+    },
+
+    /**
      * v7.19.5: Toggle a singolo asse del GODCHAIN audio per isolare la sorgente
      * del "sibilo larsen". Chiama senza argomenti per stampare lo stato attuale.
      * Argomenti accettati: 'LAYERS' | 'ARP_DETUNE' | 'INTENSITY' | 'ALL'.
@@ -3126,7 +3149,7 @@ window.Game.Debug = {
 window.dbg = window.Game.Debug;
 
 // Console helper message
-console.log('[DEBUG] DebugSystem loaded. Commands: dbg.stats(), dbg.showOverlay(), dbg.perf(), dbg.perfReport(), dbg.entityReport(), dbg.boss(type), dbg.debugBoss(), dbg.debugHUD(), dbg.hudStatus(), dbg.toggleHudMsg(key), dbg.maxWeapon(), dbg.weaponStatus(), dbg.godchain(), dbg.godchainStatus(), dbg.audioState(), dbg.toggleGodchainAudio(key), dbg.powerUpReport(), dbg.progressionReport(), dbg.contagionReport(), dbg.hitboxes(), dbg.formations(), dbg.arcade(), dbg.arcadeHelp(), dbg.completion(), dbg.waveReport(), dbg.elites(), dbg.behaviors(), dbg.streaming(), dbg.quality(), dbg.qualitySet(tier), dbg.v8(), dbg.toggleV8()');
+console.log('[DEBUG] DebugSystem loaded. Commands: dbg.stats(), dbg.showOverlay(), dbg.perf(), dbg.perfReport(), dbg.entityReport(), dbg.boss(type), dbg.debugBoss(), dbg.debugHUD(), dbg.hudStatus(), dbg.toggleHudMsg(key), dbg.maxWeapon(), dbg.weaponStatus(), dbg.godchain(), dbg.godchainStatus(), dbg.audioState(), dbg.toggleGodchainAudio(key), dbg.archetype(key), dbg.powerUpReport(), dbg.progressionReport(), dbg.contagionReport(), dbg.hitboxes(), dbg.formations(), dbg.arcade(), dbg.arcadeHelp(), dbg.completion(), dbg.waveReport(), dbg.elites(), dbg.behaviors(), dbg.streaming(), dbg.quality(), dbg.qualitySet(tier), dbg.v8(), dbg.toggleV8()');
 
 // v8: auto-enable V8 category + master debug flag when V8_MODE is ENABLED
 // Deferred to DOMContentLoaded because BalanceConfig.js loads AFTER DebugSystem.js

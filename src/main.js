@@ -1728,6 +1728,12 @@ function showV8Intermission() {
     }
     setStyle('pause-btn', 'display', 'none');
     if (ui.uiLayer) ui.uiLayer.style.display = 'none';
+    // v7.19.8: #message-strip vive FUORI da #ui-layer nel DOM e quindi non viene
+    // nascosto da ui.uiLayer.style.display='none'. Era questo che faceva
+    // "permanere a schermo perk raccolti / combo" sopra la schermata di
+    // intermission. Nascondiamolo esplicitamente; advanceToNextV8Level lo
+    // ripristina al resume.
+    setStyle('message-strip', 'display', 'none');
     setGameState('PAUSE');
 }
 
@@ -1775,6 +1781,9 @@ function advanceToNextV8Level() {
     // Show the gameplay UI again + resume, with cinematic ship entry + 3-2-1
     if (ui.uiLayer) ui.uiLayer.style.display = 'block';
     setStyle('pause-btn', 'display', 'block');
+    // v7.19.8: ripristina la message-strip nascosta in showV8Intermission.
+    // Default vuoto (lasciamo che il CSS .show / .hide la regoli normalmente).
+    setStyle('message-strip', 'display', '');
     _startPlayCountdown();
 }
 window.advanceToNextV8Level = advanceToNextV8Level;
