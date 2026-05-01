@@ -11,4 +11,4 @@ id = "8b01ea48078c480facd28c6d79aad44a"
 
 # Secret — set with:
 #   npx wrangler secret put HMAC_SECRET
-# (enter the same key as Game.LEADERBOARD_HMAC_KEY in Constants.js)
+# v2.0: HMAC is server-side only (not in client code)

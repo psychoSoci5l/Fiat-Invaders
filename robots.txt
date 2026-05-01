@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://fiat-invaders.games.psychosoci5l.com/sitemap.xml
