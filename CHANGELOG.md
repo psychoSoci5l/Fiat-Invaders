@@ -1,5 +1,30 @@
 # Changelog
 
+## v7.20.3 — fix(cr): Fase 1 regressioni — BossSpawner mancante + 6 fix QA plan - 2026-05-02
+
+### fix (critical)
+- **BossSpawner.js**: Estratto da main.js nel refactoring v7.20 Fase 1 (ADR-0014) ma
+  mai aggiunto a `index.html`. `G.BossSpawner` rimaneva undefined, causando crash su
+  `startBossWarning()` al primo boss in Arcade. Aggiunto script tag.
+- **ModifierChoiceScreen.js**: PAUSE guard in `_onKeyDown` — card selection ora ignorata
+  quando `gameState === 'PAUSE' || 'INTERMISSION'`.
+- **Player.js**: `DEATH_PENALTY` fallback `?? 1` → `?? 0` (config mancante = 0 penalità,
+  non perdita di 1 weapon level).
+- **DropSystem.js**: `MIN_DROP_INTERVAL` hardcoded 6.0 estratto in `BalanceConfig.DROPS`.
+- **WaveManager.js**: `MAX_PER_PHASE` ora scala con cycle multiplier (C1=14, C2=18,
+  C3=22 invece di hardcoded 14 per tutti i cicli).
+
+### fix (doc)
+- **v8-scroller.md**: SWOOP amplitude corretta 140→100px (allineata al codice).
+
+### test
+- **test-boss.js**: Regressione BossSpawner (API contract + rotazione FED→BCE→BOJ).
+- **test-v8-levels.js**: 6 suite (config, timeline, CRUSH events, schedule, tier maps).
+- **test-drops.js/test-perks.js/test-waves.js**: Config validation (MIN_DROP_INTERVAL,
+  DEATH_PENALTY, MAX_PER_PHASE scaling).
+- **smoke-test**: BossSpawner aggiunto ai moduli core (47/47).
+- Totale: 791 test pass.
+
 ## v7.20.2 — fix(ui): qualità UI — bottom button allineamento, padding messaggi, pause tondo, vite più grandi, scanlines vincolati - 2026-05-02
 
 ### fix

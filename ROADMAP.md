@@ -1,6 +1,6 @@
 # Roadmap: FIAT vs CRYPTO
 
-> **Versione corrente**: v7.17.0 (2026-04-27)
+> **Versione corrente**: v7.20.3 (2026-05-02)
 > **Branch attivo**: `main`
 > **Modalità primaria**: v8 scroller Gradius-style (`V8_MODE.ENABLED=true`)
 > **Modalità legacy**: Arcade rogue Space-Invaders (WaveManager)
