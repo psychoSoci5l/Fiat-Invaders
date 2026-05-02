@@ -684,7 +684,7 @@
             }
             if (label) {
                 var cw = ctx.canvas.width;
-                var y = (G._safeTop || 0) + 52;
+                var y = (G._safeTop || 0) + 95;
                 ctx.save();
                 var alpha = pulse ? (0.75 + 0.25 * Math.sin(fc.totalTime * 6)) : 0.9;
                 ctx.globalAlpha = alpha;

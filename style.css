@@ -433,13 +433,13 @@ body {
 
 /* EFFECTS */
 .scanlines {
-    position: fixed;
+    position: absolute;
     top: 0;
     left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
-    background-size: 100% 2px, 3px 100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
+    background-size: 100% 2px;
     pointer-events: none;
     z-index: 100;
 }
@@ -495,12 +495,12 @@ body {
 
 .hud-heart {
     color: #ff2d95;
-    font-size: 18px;
-    text-shadow: 0 0 6px rgba(255, 45, 149, 0.6);
+    font-size: 24px;
+    text-shadow: 0 0 8px rgba(255, 45, 149, 0.7);
 }
 
 .hud-lives #livesText {
-    font-size: 20px;
+    font-size: 26px;
     font-weight: 900;
     color: #fff;
     text-shadow: 0 0 5px rgba(255, 255, 255, 0.5),
@@ -2159,7 +2159,7 @@ body {
 .shield-btn-wrapper {
     position: absolute;
     left: 20px;
-    bottom: calc(90px + var(--safe-bottom, 0px));
+    bottom: calc(80px + var(--safe-bottom, 0px));
     width: 72px;
     height: 72px;
     pointer-events: auto;
@@ -2327,9 +2327,9 @@ body {
 .hyper-btn-wrapper {
     position: absolute;
     right: 20px;
-    bottom: calc(75px + var(--safe-bottom, 0px));
-    width: 64px;
-    height: 64px;
+    bottom: calc(80px + var(--safe-bottom, 0px));
+    width: 72px;
+    height: 72px;
     pointer-events: auto;
     touch-action: none;
     user-select: none;
@@ -2936,11 +2936,11 @@ body.bear-mode .neon-title {
 /* Common: non-italic, slightly smaller for status clarity */
 #meme-popup[class*="status-"] .meme-text {
     font-style: normal;
-    font-size: 16px;
+    font-size: 14px;
     letter-spacing: 1px;
 }
 #meme-popup[class*="status-"] .meme-emoji {
-    font-size: 16px;
+    font-size: 14px;
     margin-bottom: 2px;
 }
 
@@ -3089,7 +3089,7 @@ body.bear-mode .neon-title {
 @media (max-width: 380px) {
     .meme-text { font-size: 13px; }
     .meme-box { padding: 0 12px; }
-    #meme-popup[class*="status-"] .meme-text { font-size: 14px; }
+    #meme-popup[class*="status-"] .meme-text { font-size: 12px; }
 }
 
 /* --- COMBAT HUD BAR v5.26.0 (was MESSAGE STRIP v4.26.0) --- */
@@ -3152,6 +3152,7 @@ body.bear-mode .neon-title {
 /* Type: Wave — medium attention */
 #message-strip.type-wave {
     background: rgba(0, 0, 0, 0.50);
+    border-bottom: 1px solid #bb44ff;
 }
 #message-strip.type-wave .strip-text {
     color: #bb44ff;
@@ -3161,8 +3162,7 @@ body.bear-mode .neon-title {
 /* Type: Danger — high attention */
 #message-strip.type-danger {
     background: linear-gradient(rgba(120, 0, 0, 0.88), rgba(60, 0, 0, 0.78));
-    border-bottom: 2px solid #FF0000;
-    padding: 8px 16px;
+    border-bottom: 1px solid #FF0000;
 }
 #message-strip.type-danger .strip-text {
     color: #FF4444;
@@ -3184,8 +3184,7 @@ body.bear-mode .neon-title {
 /* Type: Victory — high attention */
 #message-strip.type-victory {
     background: linear-gradient(rgba(80, 60, 0, 0.88), rgba(40, 30, 0, 0.78));
-    border-bottom: 2px solid #bb44ff;
-    padding: 8px 16px;
+    border-bottom: 1px solid #bb44ff;
 }
 #message-strip.type-victory .strip-text {
     color: #bb44ff;
@@ -3203,6 +3202,7 @@ body.bear-mode .neon-title {
 /* Type: Info — low attention */
 #message-strip.type-info {
     background: rgba(0, 0, 0, 0.35);
+    border-bottom: 1px solid #00E5FF;
 }
 #message-strip.type-info .strip-text {
     color: #00E5FF;
@@ -3486,33 +3486,34 @@ body.bear-mode .neon-title {
 .perk-card.rarity-rare .perk-name { color: #6aa9ff; }
 .perk-card.rarity-epic .perk-name { color: #f3a4ff; }
 
-/* Pause Button - HUD Top-Left (under lives) - Gold pill */
+/* Pause Button - HUD Top-Left (under lives) - Circular */
 #pause-btn {
     position: absolute;
     left: 10px;
     top: calc(47px + var(--safe-top, 0px));
-    width: 58px;
+    width: 48px;
     height: 48px;
-    border-radius: 8px;
-    border: 2px solid #000;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.2);
     background: linear-gradient(180deg, #bb44ff 0%, #9933dd 100%);
-    color: #000;
-    font-size: 16px;
+    color: #fff;
+    font-size: 20px;
     font-weight: bold;
     pointer-events: auto;
     z-index: 150;
     display: none;
     transition: all 0.15s ease;
     box-shadow:
-        0 2px 4px rgba(0, 0, 0, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        0 2px 8px rgba(0, 0, 0, 0.5),
+        0 0 12px rgba(187, 68, 255, 0.3);
     touch-action: none;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
+    line-height: 1;
 }
 
 #pause-btn:active {
-    transform: scale(0.95);
+    transform: scale(0.92);
     background: linear-gradient(180deg, #9933dd 0%, #7722aa 100%);
 }
 
@@ -5293,19 +5294,6 @@ body.is-touch p.mobile-only { display: block; }
 }
 .tut-card--shield .tutorial-text {
     color: #00f0ff;
-}
-
-/* Control zone hint — grey area below graze meter, visible during PLAY only */
-#control-zone-hint {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: calc(80px + var(--safe-bottom, 0px));
-    background: transparent;
-    z-index: 10;
-    pointer-events: none;
-    display: none;
 }
 
 .tutorial-title {

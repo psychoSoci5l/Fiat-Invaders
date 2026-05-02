@@ -1715,7 +1715,6 @@ function restoreGameUI() {
             if (ui.touchControls) ui.touchControls.classList.add('visible');
         });
     }
-    setStyle('control-zone-hint', 'display', 'block');
 }
 
 /**
@@ -1853,8 +1852,6 @@ function startGame() {
             });
         });
     }
-    setStyle('control-zone-hint', 'display', 'block');
-
     // v4.28.0: RunState handles all per-run variable resets
     if (runState && runState.reset) runState.reset();
     syncFromRunState();

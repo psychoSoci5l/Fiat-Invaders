@@ -1,7 +1,7 @@
 ---
-Status: Reverse-documented from v7.12.3
+Status: Reverse-documented from v7.12.3 (v2.0 — combat bar separation applied 2026-05-02)
 Author: reverse-document + ux-designer
-Last Updated: 2026-04-29
+Last Updated: 2026-05-02
 Template: HUD Design
 Platform Target: Mobile (PWA primary), Desktop browser secondary
 Accessibility Tier: Basic — color + shape encoding for differentiation; minimum 4.5:1 contrast; screen shake within 8px amplitude
@@ -58,26 +58,65 @@ Meme/status feedback is channelled through a single DOM node (`#meme-popup`) tha
 
 ```
 ┌──────────────────────────────────┐  ← --safe-top boundary
-│  ♥ 3   [SCORE]   LV 1           │  hud-top-bar  height=45px+safe-top
+│  ♥ 3   [SCORE]        LV 1      │  hud-top-bar  height=45px+safe-top, z=100
 ├──────────────────────────────────┤
-│  [MESSAGE STRIP]  top=47px+safe  │  z-index 110, height ~34px
-│                                  │
+│  ⚡ HYPER 8.3s [████████░░░]     │  #combat-bar (v2.0) top=47px+safe, z=110, h=48px
+│                                  │  visibile solo in HYPER/GODCHAIN/HYPERGOD
 │         GAMEPLAY AREA            │
+│         (enemies, bullets,       │
+│          boss, patterns)         │
 │                                  │
-│    [MEME / STATUS HUD]           │  bottom=240px+safe-bottom, z-index 90
+│      ┌──────────────────┐        │
+│      │ 💀 ULTIMO FIAT!  │        │  #message-strip (v2.0, riposizionato)
+│      │ ⚠ WARNING ⚠     │        │  top=45%, z=115, max-width 80%, centrato
+│      └──────────────────┘        │  solo messaggi transienti
 │                                  │
-│  [DIP METER]                     │  bottom=95px+safe-bottom, centered
+│    [MEME / STATUS HUD]           │  bottom=240px+safe, z=90
 │                                  │
-│  🛡️ SHIELD    [JOYSTICK]  ⚡ HYPER │  bottom area, respects --safe-bottom
+│  [DIP METER]                     │  bottom=95px+safe, centrato
+│                                  │
+│  🛡️ SHIELD    [JOYSTICK]  ⚡ HYPER │  bottom area
 └──────────────────────────────────┘  ← --safe-bottom boundary
-      ↑ Pause btn: left=10px, top=47px+safe-top (below top bar)
 ```
 
-**Gameplay safe zone:** Top of playfield starts at 65px (HUD top bar 45px + message strip 34px). Boss `targetY` = 65 + safeOffset per CLAUDE.md.
+**Gameplay safe zone:** Top of playfield starts at 95px (HUD top bar 45px + combat bar 48px + 2px gap). Boss `targetY` = 95 + safeOffset.
 
 **Canvas playable height:** `gameHeight - safeBottom` — ship is capped at `playableHeight - RESET_Y_OFFSET` to stay above home indicator.
 
+> **v2.0:** `#control-zone-hint` rimosso. Sfondo full-screen uniforme (`background: #000`). Gli elementi bottom (DIP meter, shield/HYPER buttons, touch controls) usano già `--safe-bottom` per il posizionamento corretto su dispositivi con notch/home indicator, senza bisogno di una zona colorata separata.
+
 ---
+
+## Typography System
+
+### Font Stack
+
+Unico font stack per tutto l'HUD: **`Consolas, "Courier New", monospace`**. `'Press Start 2P'` rimosso — non era mai stato caricato.
+
+| Token CSS | Font | Uso |
+|---|---|---|
+| `--font-data` | `Consolas, "Courier New", monospace` | Testi dati, label, valori non critici |
+| `--font-display` | `Consolas, "Courier New", monospace` | Messaggi transienti, combat bar, score |
+| `--font-title` | `Consolas, "Courier New", monospace` | Titoli, warning, valori principali |
+
+### Scale Tipografica
+
+| Token | Size | Weight | Uso |
+|---|---|---|---|
+| `--text-xs` | 10-11px | 700 | Graze label, info bassa priorità |
+| `--text-sm` | 12-14px | 700 | Pickup, wave, label HUD secondari |
+| `--text-md` | 16-18px | 900 | Testo HUD normale, pulsanti, combat bar |
+| `--text-lg` | 20-24px | 900 | Danger/victory, score valore, HYPER bar |
+| `--text-xl` | 28-36px | 900 | Score primario, titoli sezioni |
+| `--text-display` | 48-72px | 900 | Game title (solo intro) |
+
+### Regole
+
+1. **Tutto maiuscolo** — `text-transform: uppercase` su tutti gli elementi HUD
+2. **Letter-spacing:** 2px per label, 1px per valori
+3. **Text-shadow:** stroke nero (`-2px -2px 0 #000` etc.) su tutti i testi HUD per leggibilità su sfondo variabile
+4. **Niente italic** — solo weight normal (400), bold (700), black (900)
+5. **Canvas text** segue la stessa scala e lo stesso font stack
 
 ## HUD Elements
 
@@ -85,7 +124,7 @@ Meme/status feedback is channelled through a single DOM node (`#meme-popup`) tha
 
 - **Position:** `top: 0; width: 100%; height: calc(45px + --safe-top)`
 - **Padding:** `max(calc(8px + --safe-top), 20px)` top — Dynamic Island safe
-- **Layout:** flex row, space-between; 3 columns (lives / score / level)
+- **Layout:** flex row, space-between; 4 columns (lives / score / level / pause)
 - **Pointer events:** none (pass-through to canvas)
 
 **Lives** (`.hud-lives`): heart glyph `♥` (#ff2d95 magenta) + number `#livesText`. Danger state (1 life): `.lives-danger` turns text red (#FF4444) with glow.
@@ -97,13 +136,45 @@ Meme/status feedback is channelled through a single DOM node (`#meme-popup`) tha
 - Color shifts: streak-10 = green, streak-25 = gold, streak-50 = red, HYPER active = gold with infinite pulse animation `hyperScorePulse`
 - New record: magenta (`#ff2d95`) persistent glow class `.score-new-record`; one-shot break flash `.score-record-break`
 
-**Level** (`.hud-level` / `#lvlVal`): right side, `::before` pseudo-element renders "LV" prefix (10px). Number 20px weight 900.
+**Level** (`.hud-level` / `#lvlVal`): right side (third column), `::before` pseudo-element renders "LV" prefix (10px). Number 20px weight 900.
 
-### Message Strip (`#message-strip`)
+**Pause Button** (`#pause-btn`, integrato in top bar) — Punto 3:
+- **Posizione:** quarta colonna nella `.hud-top-bar`, `right: 12px`, allineato verticalmente
+- **Forma:** icona `⏸` (Pause), senza testo
+- **Dimensione:** `36×36px` con padding a `44×44px` (touch target minimo)
+- **z-index:** `101` (stesso layer della top bar)
+- **Visibilità:** sempre visibile in PLAY, su mobile e desktop
+- **Stati:**
+  - Default: icona bianca, opacità 0.7
+  - Hover/focus: opacità 1.0, glow sottile
+  - `:active`: scale 0.95
+- **Pointer events:** `auto` (deve essere cliccabile, a differenza del resto della top bar)
+- **Nota:** combat bar ora usa `left: 0` (larghezza piena) — non compete più con pause button
 
-- **Position:** `top: calc(47px + --safe-top); left:0; right:0; z-index: 110`
-- **Inside `#game-container`** (not a sibling)
-- **Priority types** (from `Balance.MESSAGE_STRIP`):
+### Combat Bar (`#combat-bar`) — v2.0 Separato
+
+- **Position:** `top: calc(47px + --safe-top); left: 0; right: 0; height: 48px; z-index: 110`
+- **Visibilità:** solo quando HYPER/GODCHAIN/HYPERGOD attivo. Non mostrato altrimenti.
+- **Larghezza piena (`100%`):** niente `left: 68px` — il pause button non condivide questa zona.
+- **Contenuto:** testo stato + fill bar a larghezza intera
+- **Persistente:** nessun auto-dismiss, nessuna coda, nessuna interruzione da messaggi transienti.
+- **Label format:** `⚡ HYPER 8.3s` / `⛓ GODCHAIN 9.1s` / `⚡⛓ HYPERGOD 7.4s`
+
+| State | Class | Visual |
+|---|---|---|
+| HYPER | `type-combat-hyper` | Dark bg, white border, gold fill bar |
+| GODCHAIN | `type-combat-godchain` | Orange border, pulsing animation, orange-red fill bar |
+| HYPERGOD | `type-combat-hypergod` | Animated gradient border (gold→orange→red→violet), rainbow fill bar |
+
+**Gestione:** `MessageSystem.setCombatState()` / `updateCombatDisplay()` chiamato ogni frame da `_updateCombatHUD()` in `main.js`. Nessuna partecipazione alla coda prioritaria — è un canale indipendente.
+
+### Message Strip (`#message-strip`) — v2.0 Riposizionato
+
+- **Posizione:** `top: 45%; left: 50%; transform: translateX(-50%); z-index: 115`
+- **Larghezza:** `max-width: 80%` — si adatta al contenuto, centrato orizzontalmente
+- **Altezza:** `auto` (si adatta al contenuto del messaggio)
+- **Solo messaggi transienti.** Combat bar è un elemento separato.
+- **Priority types** (da `Balance.MESSAGE_STRIP`):
 
 | Type | Priority | Duration | Visual |
 |---|---|---|---|
@@ -113,17 +184,11 @@ Meme/status feedback is channelled through a single DOM node (`#meme-popup`) tha
 | WAVE | 2 | 2500ms | Semi-transparent bg, violet 14px text |
 | INFO | 1 | 2000ms | — |
 
-- **Combat state types** (persistent, no auto-dismiss, no entrance animation):
-
-| State | Class | Visual | Left offset |
-|---|---|---|---|
-| HYPER | `type-combat-hyper` | Dark bg, white border, gold fill bar | 68px (clears pause btn) |
-| GODCHAIN | `type-combat-godchain` | Cyan gradient, pulsing animation | 68px |
-| HYPERGOD | `type-combat-hypergod` | Animated gradient (gold→orange→red→violet), border shift | 68px |
-
-Combat states are managed by `_updateCombatHUD()` in `main.js`, called every frame. Label format: `⚡ HYPER 8.3s` / `⛓ GODCHAIN 9.1s` / `⚡⛓ HYPERGOD 7.4s`. Progress fill width is updated via `MessageSystem.updateCombatDisplay()`.
-
-CRITICAL memes during PLAY are redirected here (boss defeated → victory type, death → danger type) by `MemeEngine.queueMeme()`.
+- **Priority queue invariata** — DANGER/VICTORY (prio 3) interrompono, INFO (prio 1) si accoda.
+- **Animazioni invariate** — `stripEntrance`, `stripPulseFade`, `stripPulse`, ecc.
+- **CRITICAL memes** durante PLAY reindirizzati qui da `MemeEngine.queueMeme()` (boss defeated → VICTORY, death → DANGER).
+- **Combat interruption rimosso** — la combat bar non condivide più questo elemento.
+- **Pointer events:** `none` (pass-through a canvas, come la HUD top bar).
 
 ### Status HUD (`#meme-popup` with `status-*` class)
 
@@ -188,9 +253,7 @@ CRITICAL memes during PLAY are redirected here (boss defeated → victory type, 
 
 ### Pause Button (`#pause-btn`)
 
-- **Position:** `left: 10px; top: calc(47px + --safe-top)` — directly below top bar
-- **Style:** gold pill, violet on press
-- **Note:** Combat HUD bar (HYPER/GODCHAIN) uses `left: 68px` to leave space for pause button
+**v2.0 — Integrato nella HUD top bar.** Vedi sezione Top Bar → Pause Button per posizione e specifiche complete. La vecchia posizione `left: 10px; top: calc(47px + --safe-top)` è deprecata.
 
 ---
 
@@ -212,7 +275,7 @@ Five tiers based on score gain per kill (`Balance.JUICE.SCORE_PULSE_TIERS`):
 
 ### Message Strip Priority Queue
 
-`MessageSystem` (`src/systems/MessageSystem.js`) manages a priority queue with cooldown (`Balance.MESSAGE_STRIP.COOLDOWN: 300ms`). DANGER and VICTORY (priority 3) interrupt lower-priority content. Combat state is a separate persistent slot that does not participate in the queue — it is set/cleared by `_updateCombatHUD()` every frame.
+`MessageSystem` (`src/systems/MessageSystem.js`) manages a priority queue with cooldown (`Balance.MESSAGE_STRIP.COOLDOWN: 300ms`). DANGER and VICTORY (priority 3) interrupt lower-priority content. Combat state non partecipa più alla coda — è un canale separato gestito dall'elemento `#combat-bar`.
 
 ### Meme Popup Queue
 
@@ -220,7 +283,11 @@ Five tiers based on score gain per kill (`Balance.JUICE.SCORE_PULSE_TIERS`):
 
 ### GODCHAIN / HYPER Overlay (Combat HUD)
 
-Managed entirely by `_updateCombatHUD()` called each game loop frame. Three mutually exclusive sub-states: hyper-only, godchain-only, hypergod (both simultaneously). Each displays a live countdown in the message strip label and a progress fill width. Screen flash (`triggerScreenFlash`) fires on GODCHAIN_ACTIVATED event separately from the strip. A LessonModal is shown once on first GODCHAIN activation (400ms delay, game paused).
+### Combat Bar (v2.0)
+
+Canale indipendente gestito da `MessageSystem.setCombatState()` / `updateCombatDisplay()` chiamato ogni frame da `_updateCombatHUD()`. Tre sub-stati mutuamente esclusivi: hyper-only, godchain-only, hypergod (entrambi). Countdown live e fill bar progress. **Non usa `#message-strip`** — elemento `#combat-bar` separato, nessuna partecipazione alla coda prioritaria, nessuna interruzione da messaggi transienti.
+
+Screen flash (`triggerScreenFlash`) fires on GODCHAIN_ACTIVATED event separately from the bar. LessonModal shown once on first GODCHAIN activation (400ms delay, game paused).
 
 ### Boss Phase Indicators
 
@@ -262,7 +329,14 @@ The following CSS custom properties are updated:
 - DANGER type: always red gradient bg, unaffected by phase
 - VICTORY type: always dark gold bg, unaffected by phase
 - WAVE type: semi-transparent bg unchanged; text uses `--neon-accent` for the wave label
-- Combat state bars (HYPER/GODCHAIN/HYPERGOD): their own fixed colors override phase theming
+- Nota: la message strip v2.0 gestisce solo messaggi transienti. I combat state (HYPER/GODCHAIN/HYPERGOD) hanno un elemento separato `#combat-bar` (vedi sotto).
+
+**Combat bar (`#combat-bar`):**
+- Posizione fissa sotto la HUD top bar, non influenzata dalla fase
+- HYPER: dark bg, white border, gold fill bar — invariato per fase
+- GODCHAIN: orange border, pulsing animation — invariato per fase
+- HYPERGOD: animated gradient border — invariato per fase
+- `--terminal-border` usato per il bordo inferiore secondario
 
 **DIP meter (`#graze-meter`):**
 - Border shifts to `--terminal-border`

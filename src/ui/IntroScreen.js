@@ -1825,8 +1825,6 @@ window.Game = window.Game || {};
             ui.touchControls.classList.remove('visible');
             ui.touchControls.style.display = 'none';
         }
-        d.setStyle('control-zone-hint', 'display', 'none');
-
         // Close curtain first
         const curtain = document.getElementById('curtain-overlay');
         if (curtain) curtain.classList.remove('open');

@@ -1,5 +1,18 @@
 # Changelog
 
+## v7.20.2 — fix(ui): qualità UI — bottom button allineamento, padding messaggi, pause tondo, vite più grandi, scanlines vincolati - 2026-05-02
+
+### fix
+- **Bottom buttons**: Shield e HYPER allineati alla stessa altezza (80px) e dimensione (72×72)
+- **Padding messaggi**: Unificato a 6px 16px per tutti i tipi (DANGER, VICTORY ora non sovrascrivono)
+- **Border-bottom**: Aggiunto a WAVE e INFO; DANGER e VICTORY passati da 2px a 1px
+- **Pause button**: Ridisegnato circolare (48×48, border-radius: 50%, glow viola)
+- **Lives indicator**: Cuore 18→24px, numero 20→26px
+- **Scanlines**: Vincolati al game container (position: absolute), rimosso gradiente RGB
+- **V8 HUD label**: Spostata da y=52 a y=95 per non sovrapporsi alla message strip
+- **Status HUD font**: Ridotto da 16px a 14px
+- **#control-zone-hint**: Rimosso (non più necessario)
+
 ## v7.20.1 — fix(cr): code review Fase 1 — Date.now pulse, dead ref cleanup - 2026-05-02
 
 ### fix
