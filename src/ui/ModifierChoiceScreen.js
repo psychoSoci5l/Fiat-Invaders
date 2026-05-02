@@ -95,6 +95,9 @@
 
     function _onKeyDown(e) {
         if (!_isVisible) return;
+        // v7.20.3: PAUSE guard — don't process card selection while game is paused
+        const gs = window.Game && window.Game.gameState;
+        if (gs === 'PAUSE' || gs === 'INTERMISSION') return;
         // Digits 1-3 select card by index
         if (e.key >= '1' && e.key <= '9') {
             const idx = parseInt(e.key, 10) - 1;

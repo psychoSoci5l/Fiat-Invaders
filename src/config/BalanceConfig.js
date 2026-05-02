@@ -852,6 +852,7 @@
         DROPS: {
             WEAPON_COOLDOWN: 8.0,     // Min seconds between weapon drops (v4.17: 5.0→8.0)
             PITY_TIMER_KILLS: 45,     // Guaranteed drop after N kills (v4.16: 30→45)
+            MIN_DROP_INTERVAL: 6.0,   // v7.20.3: Min seconds between non-pity enemy drops (was hardcoded in DropSystem.js)
             CHANCE_STRONG: 0.03,      // 3% for strong enemies (v4.16: 6%→3%)
             CHANCE_MEDIUM: 0.025,     // 2.5% for medium enemies (v4.16: 4%→2.5%)
             CHANCE_WEAK: 0.01,        // 1% for weak enemies (v4.16: 2%→1%)

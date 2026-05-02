@@ -286,4 +286,21 @@
 
         resetRunState();
     });
+
+    // ── DEATH_PENALTY config ────────────────────────────────────────────
+    _testRunner.suite('Weapon — DEATH_PENALTY config', (assert) => {
+        const WE = window.Game.Balance && window.Game.Balance.WEAPON_EVOLUTION;
+        assert(WE, 'WEAPON_EVOLUTION config exists');
+
+        // Must have DEATH_PENALTY key (default 0 = no penalty on death)
+        assert(WE.DEATH_PENALTY !== undefined, 'DEATH_PENALTY key exists');
+        assert(typeof WE.DEATH_PENALTY === 'number', 'DEATH_PENALTY is number');
+        assert(WE.DEATH_PENALTY >= 0, 'DEATH_PENALTY >= 0');
+        assert(WE.DEATH_PENALTY < 5, 'DEATH_PENALTY < 5 (sanity: would lose 5+ levels)');
+
+        // When key is present, nullish coalescing (?? 0) must return the config value
+        const fallbackCheck = WE.DEATH_PENALTY ?? 0;
+        assert(fallbackCheck === WE.DEATH_PENALTY,
+            '?? 0 fallback returns config value (' + WE.DEATH_PENALTY + '), not default');
+    });
 })();

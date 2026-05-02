@@ -103,7 +103,8 @@ async function run() {
         'Boss': 'Boss',
         'Bullet': 'Bullet',
         'ArcadeModifiers': 'ArcadeModifiers',
-        'PerkManager': 'PerkManager'
+        'PerkManager': 'PerkManager',
+        'BossSpawner': 'BossSpawner'
     };
     for (const [name, key] of Object.entries(modules)) {
         const exists = await page.evaluate((k) => {

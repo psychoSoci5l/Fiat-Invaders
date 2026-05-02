@@ -682,8 +682,12 @@ window.Game.WaveManager = {
 
         // Scale counts per phase individually
         const streamCfg = Balance.STREAMING || {};
+        const baseCap = streamCfg.MAX_PER_PHASE || 99;
+        const cycleIdx = Math.min(Math.max(0, cycle - 1), 2);
+        const cycleMult = (Balance.WAVE_DEFINITIONS?.CYCLE_COUNT_MULT?.[cycleIdx]) || 1.0;
+        const adjustedCap = Math.round(baseCap * cycleMult);
         const phases = rawPhases.map((p, idx) => ({
-            count: Math.min(this._scaleCount(p.count, cycle), streamCfg.MAX_PER_PHASE || 99),
+            count: Math.min(this._scaleCount(p.count, cycle), adjustedCap),
             formation: p.formation,
             currencies: p.currencies,
             phaseIndex: idx,

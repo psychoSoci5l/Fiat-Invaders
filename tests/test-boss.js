@@ -282,6 +282,36 @@
         if (prevEnemies !== undefined) window.Game.enemies = prevEnemies;
     });
 
+    // ── BossSpawner regression (v7.20 Fase 1: missing index.html script tag) ──
+    _testRunner.suite('BossSpawner — module loaded and API contract', (assert) => {
+        const BS = window.Game.BossSpawner;
+        assert(BS, 'G.BossSpawner exists (script tag present in index.html)');
+        assert(typeof BS.startWarning === 'function', 'startWarning() is function');
+        assert(typeof BS.spawn === 'function', 'spawn() is function');
+
+        // startWarning returns correct contract
+        const result = BS.startWarning({ marketCycle: 1 });
+        assert(result, 'startWarning returns result');
+        assert(typeof result.bossWarningType === 'string', 'result.bossWarningType is string');
+        assert(result.bossWarningType === 'FEDERAL_RESERVE', 'cycle 1 → FEDERAL_RESERVE');
+        assert(typeof result.bossWarningTimer === 'number', 'result.bossWarningTimer is number');
+        assert(result.bossWarningTimer > 0, 'bossWarningTimer > 0');
+        assert(Array.isArray(result.enemies), 'result.enemies is array');
+        assert(typeof result.shake === 'number', 'result.shake is number');
+
+        // Cycle 2 → BCE
+        const result2 = BS.startWarning({ marketCycle: 2 });
+        assert(result2.bossWarningType === 'BCE', 'cycle 2 → BCE');
+
+        // Cycle 3 → BOJ
+        const result3 = BS.startWarning({ marketCycle: 3 });
+        assert(result3.bossWarningType === 'BOJ', 'cycle 3 → BOJ');
+
+        // Cycle 4 wraps to FEDERAL_RESERVE (rotation)
+        const result4 = BS.startWarning({ marketCycle: 4 });
+        assert(result4.bossWarningType === 'FEDERAL_RESERVE', 'cycle 4 wraps → FEDERAL_RESERVE');
+    });
+
     // --- Phase 3 BOJ zenMode becomes false ---
     _testRunner.suite('BOJ zenMode deactivates in phase 2+', (assert) => {
         const boj = new Boss(480, 720, 'BOJ');

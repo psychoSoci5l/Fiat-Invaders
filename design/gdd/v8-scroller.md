@@ -89,7 +89,7 @@ All movement is executed in `Enemy.update()` when `_v8Fall === true`.
 
 **SWOOP**: Enemy spawns near a side edge and curves across the screen.
 - `x = spawnX + swoopDir × sin(patTimer × CURVE_FREQ) × CURVE_AMP`
-- CURVE_FREQ = 1.3, CURVE_AMP = 140 px, APPROACH_VY = 50 px/s
+- CURVE_FREQ = 1.3, CURVE_AMP = 100 px (codice; GDD rettificata da 140px dopo reverse-doc), APPROACH_VY = 50 px/s
 - Clamped to [SIDE_MARGIN, gameWidth-SIDE_MARGIN].
 
 Source for all patterns: `src/config/BalanceConfig.js:41-44`; `src/entities/Enemy.js:281-318`.

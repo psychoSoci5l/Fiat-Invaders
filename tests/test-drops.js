@@ -87,4 +87,13 @@
             assert(true, 'ADAPTIVE_DROPS not configured, suppression tests skipped');
         }
     });
+
+    _testRunner.suite('DropSystem — MIN_DROP_INTERVAL config', (assert) => {
+        const drops = window.Game.Balance && window.Game.Balance.DROPS;
+        assert(drops, 'DROPS config exists');
+        assert(drops.MIN_DROP_INTERVAL !== undefined, 'MIN_DROP_INTERVAL key exists');
+        assert(drops.MIN_DROP_INTERVAL > 0, 'MIN_DROP_INTERVAL > 0 (positive interval)');
+        assert(drops.MIN_DROP_INTERVAL <= 30, 'MIN_DROP_INTERVAL <= 30 (sanity: not hours)');
+        assert(typeof drops.MIN_DROP_INTERVAL === 'number', 'MIN_DROP_INTERVAL is number');
+    });
 })();

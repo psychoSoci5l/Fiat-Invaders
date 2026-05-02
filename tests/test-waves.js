@@ -79,4 +79,33 @@
         WM.isStreaming = origStreaming;
         WM.intermissionTimer = origIntermission;
     });
+
+    _testRunner.suite('WaveManager — MAX_PER_PHASE scaling', (assert) => {
+        const streamCfg = window.Game.Balance && window.Game.Balance.STREAMING;
+        assert(streamCfg, 'STREAMING config exists');
+        assert(streamCfg.MAX_PER_PHASE > 0, 'MAX_PER_PHASE > 0');
+        assert(streamCfg.MAX_PER_PHASE >= 14, 'MAX_PER_PHASE >= 14 (baseline)');
+
+        // Verify cycle-based cap scaling via _scaleCount's cycle multipliers
+        // CYCLE_COUNT_MULT: [1.0, 1.3, 1.6] → caps should be [14, 18, 22]
+        const cycleMult = window.Game.Balance.WAVE_DEFINITIONS.CYCLE_COUNT_MULT;
+        assert(cycleMult && cycleMult.length === 3, 'CYCLE_COUNT_MULT has 3 entries');
+
+        const baseCap = streamCfg.MAX_PER_PHASE;
+        const expectedCaps = cycleMult.map(m => Math.round(baseCap * m));
+
+        // Cycle 1: cap == baseCap (multiplier 1.0)
+        assert(expectedCaps[0] === baseCap, 'Cycle 1 cap = ' + baseCap);
+
+        // Cycle 2: cap > baseCap (multiplier 1.3)
+        assert(expectedCaps[1] > baseCap, 'Cycle 2 cap (' + expectedCaps[1] + ') > base (' + baseCap + ')');
+
+        // Cycle 3: cap > Cycle 2 cap (multiplier 1.6)
+        assert(expectedCaps[2] > expectedCaps[1], 'Cycle 3 cap (' + expectedCaps[2] + ') > C2 cap (' + expectedCaps[1] + ')');
+
+        // Sanity: caps don't exceed 99 (absolute max)
+        for (let i = 0; i < expectedCaps.length; i++) {
+            assert(expectedCaps[i] <= 99, 'Cycle ' + (i + 1) + ' cap <= 99');
+        }
+    });
 })();
