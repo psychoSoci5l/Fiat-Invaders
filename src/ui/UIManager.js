@@ -197,19 +197,61 @@ window.Game = window.Game || {};
 
     // --- Audio Toggle UI ---
     function updateMusicUI(isMuted) {
-        var btn = document.getElementById('set-music-btn');
-        if (!btn) return;
-        var icon = btn.querySelector('.toggle-icon');
-        if (icon) icon.textContent = isMuted ? '🔇' : '🎵';
-        btn.classList.toggle('active', !isMuted);
+        // Icon-based toggles (pause menu round icons)
+        document.querySelectorAll('.music-toggle').forEach(function (btn) {
+            if (btn.classList.contains('toggle-switch')) return;
+            var svg = btn.querySelector('.icon-svg');
+            if (svg) {
+                if (isMuted) {
+                    btn.classList.add('muted');
+                    svg.innerHTML = '<path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/><line x1="3" y1="3" x2="21" y2="21" stroke="#c0392b" stroke-width="2.5"/>';
+                } else {
+                    btn.classList.remove('muted');
+                    svg.innerHTML = '<path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>';
+                }
+            }
+        });
+        // Toggle-switch in settings
+        var settingsToggle = document.getElementById('settings-music-toggle');
+        if (settingsToggle) {
+            var label = settingsToggle.querySelector('.switch-label');
+            if (isMuted) {
+                settingsToggle.classList.remove('active');
+                if (label) label.textContent = 'OFF';
+            } else {
+                settingsToggle.classList.add('active');
+                if (label) label.textContent = 'ON';
+            }
+        }
     }
 
     function updateSfxUI(isMuted) {
-        var btn = document.getElementById('set-sfx-btn');
-        if (!btn) return;
-        var icon = btn.querySelector('.toggle-icon');
-        if (icon) icon.textContent = isMuted ? '🔇' : '🔊';
-        btn.classList.toggle('active', !isMuted);
+        // Icon-based toggles (pause menu round icons)
+        document.querySelectorAll('.sfx-toggle').forEach(function (btn) {
+            if (btn.classList.contains('toggle-switch')) return;
+            var svg = btn.querySelector('.icon-svg');
+            if (svg) {
+                if (isMuted) {
+                    btn.classList.add('muted');
+                    svg.innerHTML = '<path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>';
+                } else {
+                    btn.classList.remove('muted');
+                    svg.innerHTML = '<path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>';
+                }
+            }
+        });
+        // Toggle-switch in settings
+        var settingsToggle = document.getElementById('settings-sfx-toggle');
+        if (settingsToggle) {
+            var label = settingsToggle.querySelector('.switch-label');
+            if (isMuted) {
+                settingsToggle.classList.remove('active');
+                if (label) label.textContent = 'OFF';
+            } else {
+                settingsToggle.classList.add('active');
+                if (label) label.textContent = 'ON';
+            }
+        }
     }
 
     // --- Level UI ---
@@ -401,19 +443,34 @@ window.Game = window.Game || {};
 
     function checkPWAInstallPrompt() {
         var banner = document.getElementById('pwa-install-banner');
-        if (banner && !localStorage.getItem('fiat_pwa_dismissed') && _deferredPrompt) {
-            var text = document.getElementById('pwa-banner-text');
-            var action = document.getElementById('pwa-banner-action');
-            var close = document.getElementById('pwa-banner-close');
-            if (text) text.textContent = d.t('PWA_INSTALL_ANDROID');
-            if (action) {
-                action.textContent = d.t('PWA_INSTALL_BTN');
-                action.onclick = function () {
-                    if (_deferredPrompt) { _deferredPrompt.prompt(); _deferredPrompt = null; }
-                    dismissPWABanner();
-                };
-            }
-            if (close) close.onclick = dismissPWABanner;
+        if (!banner || localStorage.getItem('fiat_pwa_dismissed')) return;
+        // Skip if already standalone (PWA installed)
+        if (window.navigator.standalone) return;
+        if (window.matchMedia('(display-mode: standalone)').matches) return;
+
+        var text = document.getElementById('pwa-banner-text');
+        var action = document.getElementById('pwa-banner-action');
+        var close = document.getElementById('pwa-banner-close');
+        if (!text || !action || !close) return;
+
+        var isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+
+        if (isIOS) {
+            // iOS: show install instructions (no beforeinstallprompt event available)
+            text.innerHTML = d.t('PWA_INSTALL_IOS');
+            action.style.display = 'none';
+            close.onclick = dismissPWABanner;
+            banner.style.display = 'flex';
+            setTimeout(dismissPWABanner, 15000);
+        } else if (_deferredPrompt) {
+            text.textContent = d.t('PWA_INSTALL_ANDROID');
+            action.textContent = d.t('PWA_INSTALL_BTN');
+            action.style.display = '';
+            action.onclick = function () {
+                if (_deferredPrompt) { _deferredPrompt.prompt(); _deferredPrompt = null; }
+                dismissPWABanner();
+            };
+            close.onclick = dismissPWABanner;
             banner.style.display = 'flex';
         }
     }
@@ -526,6 +583,9 @@ window.Game = window.Game || {};
         window.toggleTilt = toggleTilt;
         window.dismissPWABanner = dismissPWABanner;
         window.checkPWAInstallPrompt = checkPWAInstallPrompt;
+
+        // Delayed check for iOS PWA install prompt (beforeinstallprompt doesn't fire on iOS)
+        setTimeout(checkPWAInstallPrompt, 3000);
 
         // Expose on window for backward compat
         window.setStyle = setStyle;

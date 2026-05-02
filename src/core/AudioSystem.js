@@ -3347,6 +3347,83 @@ class AudioSystem {
         this._godchainEffectsActive = false;
         console.log('[AUDIO-TRACE] GODCHAIN effects DISABLED');
     }
+
+    // ── Dynamic Music Engine (extracted from main.js per ADR-0014) ──
+    // Reads game state from ctx and updates audio parameters per-frame.
+
+    updateMusicIntensity(ctx) {
+        // ctx: { boss, player, lives, dt, levelScript, scrollEngine, balance }
+        var ls = ctx.levelScript;
+        var boss = ctx.boss;
+        var player = ctx.player;
+        var lives = ctx.lives;
+        var dt = ctx.dt;
+
+        let intensity = 50;
+        let bpmMult = 0.92;
+        let transpose = 1.0;
+
+        // V8 progress → phase intensity + BPM ramp + mid-level key change
+        if (ls && ls.BOSS_AT_S > 0) {
+            const progress = Math.min(1, ls._elapsed / ls.BOSS_AT_S);
+            const phaseRamp =
+                progress < 0.15 ? 0 :
+                progress < 0.40 ? (progress - 0.15) / 0.25 * 15 :
+                progress < 0.65 ? 15 + (progress - 0.40) / 0.25 * 15 :
+                progress < 0.85 ? 30 + (progress - 0.65) / 0.20 * 12 :
+                                  42 + (progress - 0.85) / 0.15 * 13;
+            intensity += phaseRamp;
+            bpmMult = 0.92 + progress * 0.18;
+            if (progress > 0.5) transpose = Math.pow(2, 2 / 12);
+        }
+
+        // Scroll mult (CRUSH anchors)
+        var scrollEngine = ctx.scrollEngine;
+        const scrollMult = (scrollEngine && typeof scrollEngine._speedMult === 'number')
+            ? scrollEngine._speedMult : 1.0;
+        intensity += Math.min(15, Math.max(0, (scrollMult - 1.0) * 10));
+
+        // Boss / last-life bump
+        if (boss) { intensity += 20; bpmMult = Math.max(bpmMult, 1.08); transpose = 1.0; }
+        if (lives === 1) intensity += 8;
+
+        // HYPER / GODCHAIN
+        let arpDetune = 0;
+        if (player && player.hyperActive) {
+            intensity += 18;
+            bpmMult *= 1.04;
+            arpDetune += 500;
+        }
+        if (player && player._godchainActive) {
+            var ga = ctx.balance && ctx.balance.GODCHAIN_AUDIO;
+            if (!ga || ga.INTENSITY_BOOST_ENABLED !== false) intensity += 12;
+            if (!ga || ga.ARP_DETUNE_ENABLED !== false)      arpDetune += 300;
+        }
+
+        intensity = Math.min(100, intensity);
+        this.setIntensity(intensity);
+        if (this.setBpmMult) this.setBpmMult(bpmMult);
+        if (this.setTransposeMult) this.setTransposeMult(transpose);
+        if (this.setArpDetune) this.setArpDetune(arpDetune);
+
+        // Near-death heartbeat (last life)
+        if (lives === 1) {
+            if (!this.isNearDeath) {
+                this.setNearDeath(true);
+            }
+            if (typeof this._nearDeathTimer === 'undefined') this._nearDeathTimer = 0;
+            this._nearDeathTimer -= dt;
+            if (this._nearDeathTimer <= 0) {
+                this.play('nearDeath');
+                this._nearDeathTimer = 0.75;
+            }
+        } else {
+            if (this.isNearDeath) {
+                this.setNearDeath(false);
+            }
+            this._nearDeathTimer = 0;
+        }
+    }
 }
 
 // Attach to namespace

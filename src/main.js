@@ -63,7 +63,7 @@ if (G.GameState) {
 let userLang = navigator.language || navigator.userLanguage;
 let currentLang = userLang.startsWith('it') ? 'IT' : 'EN';
 
-// v7.13.0: Rendering via DrawPipeline (see initDrawPipeline)
+// v7.13.0: Rendering via DrawPipeline (layers registered in registerAll)
 G._currentLang = currentLang; // v4.11.0: Expose for StoryScreen localization
 let isBearMarket = false; // 🐻
 window.isBearMarket = isBearMarket; // Expose globally for WaveManager
@@ -948,55 +948,8 @@ function init() {
                 setTimeout(() => curtain.classList.add('open'), 100);
             }
 
-            // PWA install prompt — delay until after title animation (2.4s)
-            setTimeout(checkPWAInstallPrompt, 3000);
         }, 1000);
     };
-
-    // --- PWA Install Prompt ---
-    function dismissPWABanner() {
-        const b = document.getElementById('pwa-install-banner');
-        if (b) b.style.display = 'none';
-        localStorage.setItem('fiat_pwa_dismissed', '1');
-    }
-
-    function checkPWAInstallPrompt() {
-        // Skip if already standalone (PWA installed)
-        if (window.navigator.standalone) return;
-        if (window.matchMedia('(display-mode: standalone)').matches) return;
-        // Skip if already dismissed
-        if (localStorage.getItem('fiat_pwa_dismissed')) return;
-
-        const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
-        const banner = document.getElementById('pwa-install-banner');
-        const text = document.getElementById('pwa-banner-text');
-        const action = document.getElementById('pwa-banner-action');
-        const close = document.getElementById('pwa-banner-close');
-        if (!banner || !text || !action || !close) return;
-
-        const T = G.TEXTS[currentLang] || G.TEXTS.EN;
-
-        if (isIOS) {
-            text.innerHTML = T.PWA_INSTALL_IOS;
-            action.style.display = 'none';
-        } else if (window._deferredInstallPrompt) {
-            text.textContent = T.PWA_INSTALL_ANDROID;
-            action.textContent = T.PWA_INSTALL_BTN;
-            action.style.display = '';
-            action.onclick = () => {
-                window._deferredInstallPrompt.prompt();
-                window._deferredInstallPrompt.userChoice.then(() => { window._deferredInstallPrompt = null; });
-                dismissPWABanner();
-            };
-        } else {
-            // Desktop/other without install prompt — don't show
-            return;
-        }
-
-        banner.style.display = 'flex';
-        close.onclick = dismissPWABanner;
-        setTimeout(dismissPWABanner, 15000);
-    }
 
     inputSys.on('escape', () => {
         if (gameState === 'VIDEO') startApp();
@@ -1189,7 +1142,21 @@ function init() {
 
     // v7.13.0: Initialize rendering pipeline
     G.DrawPipeline.init(ctx);
-    initDrawPipeline();
+    // v7.20: Bulk layer registration via DrawPipeline.registerAll() (extracted per ADR-0014)
+    G.DrawPipeline.registerAll({
+        drawMiniBoss: drawMiniBoss,
+        drawEnergyLinks: drawEnergyLinks,
+        drawParticles: drawParticles,
+        drawEvolutionItem: drawEvolutionItem,
+        drawTypedMessages: drawTypedMessages,
+        drawArcadeComboHUD: drawArcadeComboHUD,
+        drawDebug: drawDebug,
+        countActive: _countActive
+    });
+    // Intermission guard: resets countdown tracking when not in intermission
+    G.DrawPipeline.register(G.DrawPipeline.LAYER.ARCADE_HUD, function(ctx, fc) {
+        if (fc.gameState !== 'INTERMISSION') lastCountdownNumber = 0;
+    }, -1);
 
     requestAnimationFrame(loop);
 }
@@ -1204,139 +1171,7 @@ function resize() {
 }
 
 function updateUIText() {
-    if (document.getElementById('version-tag')) document.getElementById('version-tag').innerText = Constants.VERSION;
-    // Lang/Control toggle-switches updated below in Settings section
-    if (ui.joyDeadzone && G.Input && G.Input.touch) ui.joyDeadzone.value = Math.round(G.Input.touch.deadzone * 100);
-    if (ui.joySensitivity && G.Input && G.Input.touch) ui.joySensitivity.value = Math.round(G.Input.touch.sensitivity * 100);
-    if (ui.introMeme) ui.introMeme.innerText = getRandomMeme();
-    if (ui.memeTicker && !ui.memeTicker.innerText) ui.memeTicker.innerText = getRandomMeme();
-
-    // Intro screen
-    // v4.35: Update subtitle text on language change
-    const subtitleEl = document.getElementById('title-subtitle');
-    if (subtitleEl) subtitleEl.textContent = t('TITLE_SUBTITLE');
-    // Primary action button text updated via updatePrimaryButton()
-    const selectionHeader = document.getElementById('selection-header');
-    if (selectionHeader) selectionHeader.innerText = t('CHOOSE_SHIP');
-
-    // Mode selector tabs (v4.8)
-    const labelStory = document.getElementById('label-story');
-    if (labelStory) labelStory.innerText = t('MODE_STORY') || t('CAMPAIGN');
-    const labelArcade = document.getElementById('label-arcade');
-    if (labelArcade) labelArcade.innerText = t('MODE_ARCADE') || t('ARCADE');
-
-    // Mode description (v4.9: separate elements for Story/Arcade)
-    const storyDesc = document.getElementById('mode-story-desc');
-    const arcadeDesc = document.getElementById('mode-arcade-desc');
-    if (storyDesc) storyDesc.innerText = t('MODE_STORY_DESC') || "Follow Bitcoin's rise against central banks.";
-    if (arcadeDesc) arcadeDesc.innerText = t('MODE_ARCADE_DESC') || "Endless waves. High scores. Pure action.";
-
-    // Primary action button
-    const btnPrimary = document.getElementById('btn-primary-action');
-    if (btnPrimary) {
-        if (G.IntroScreen && G.IntroScreen.getIntroState() === 'SELECTION') {
-            btnPrimary.innerHTML = t('LAUNCH');
-        } else {
-            btnPrimary.innerHTML = t('TAP_START');
-        }
-    }
-
-    // Mode indicator
-    const modeHint = document.getElementById('mode-indicator-hint');
-    if (modeHint) modeHint.innerText = t('CHANGE_MODE');
-    const scoreRowLabel = document.getElementById('score-row-label');
-    if (scoreRowLabel) scoreRowLabel.innerText = t('HIGH_SCORE');
-    if (G.IntroScreen) G.IntroScreen.updateModeIndicator();
-
-    // HUD labels
-    const scoreLabel = document.getElementById('score-label');
-    if (scoreLabel) scoreLabel.innerText = t('ACCOUNT_BALANCE');
-    const levelLabel = document.getElementById('level-label');
-    if (levelLabel) levelLabel.innerText = t('LEVEL');
-    const livesLabel = document.getElementById('lives-label');
-    if (livesLabel) livesLabel.innerText = t('LIVES');
-    const killLabel = document.getElementById('killLabel');
-    if (killLabel) killLabel.innerText = t('KILLS');
-    const grazeLabel = document.getElementById('graze-label');
-    if (grazeLabel) grazeLabel.innerText = t('GRAZE');
-
-    // Pause menu
-    const pauseTitle = document.getElementById('pause-title');
-    if (pauseTitle) pauseTitle.innerText = t('PAUSED');
-    const resumeBtn = document.getElementById('btn-resume');
-    if (resumeBtn) resumeBtn.innerText = '⟡ ' + t('RESUME');
-    const settingsBtn = document.getElementById('btn-settings');
-    if (settingsBtn) settingsBtn.innerText = '⟡ ' + t('SETTINGS');
-    const restartBtn = document.getElementById('btn-restart');
-    if (restartBtn) restartBtn.innerText = '⟡ ' + t('RESTART_RUN');
-    const exitBtn = document.getElementById('btn-exit-title');
-    if (exitBtn) exitBtn.innerText = '⟡ ' + t('EXIT');
-
-    // Game Over
-    const goTitle = document.querySelector('#gameover-screen h1');
-    if (goTitle) goTitle.innerText = "LIQUIDATION EVENT";
-    const goBtn = document.getElementById('btn-retry');
-    if (goBtn) goBtn.innerText = t('RESTART');
-
-    // Settings (v5.22: section headers + info buttons)
-    const setHeader = document.querySelector('#settings-modal h2');
-    if (setHeader) setHeader.innerText = t('SETTINGS');
-    const closeBtn = document.getElementById('btn-settings-close');
-    if (closeBtn) closeBtn.innerText = t('CLOSE');
-    // Section headers
-    document.querySelectorAll('#settings-modal .settings-section-header').forEach(h => {
-        const key = h.dataset.i18n;
-        if (key) h.innerText = t(key);
-    });
-    // Info buttons
-    const setManualBtn = document.getElementById('set-manual-btn');
-    if (setManualBtn) setManualBtn.innerText = t('SET_MANUAL');
-    const setFeedbackBtn = document.getElementById('set-feedback-btn');
-    if (setFeedbackBtn) setFeedbackBtn.innerText = t('SET_FEEDBACK');
-    const setCreditsBtn = document.getElementById('set-credits-btn');
-    if (setCreditsBtn) setCreditsBtn.innerText = t('SET_CREDITS');
-    const setPrivacyBtn = document.getElementById('set-privacy-btn');
-    if (setPrivacyBtn) setPrivacyBtn.innerText = t('PRIVACY');
-    // Audio labels
-    const setMusicLabel = document.getElementById('set-music-label');
-    if (setMusicLabel) setMusicLabel.innerText = t('SET_MUSIC');
-    const setSfxLabel = document.getElementById('set-sfx-label');
-    if (setSfxLabel) setSfxLabel.innerText = t('SET_SFX');
-    // Lang toggle-switch
-    const langBtn = document.getElementById('lang-btn');
-    if (langBtn) {
-        const langLabel = langBtn.parentElement.querySelector('.setting-label');
-        if (langLabel) langLabel.innerText = t('LANG');
-        const switchLabel = langBtn.querySelector('.switch-label');
-        if (switchLabel) switchLabel.innerText = currentLang;
-        // Toggle active state: active = IT (non-default)
-        if (currentLang === 'IT') {
-            langBtn.classList.add('active');
-        } else {
-            langBtn.classList.remove('active');
-        }
-    }
-    // Control toggle-switch (binary SWIPE / JOY)
-    const controlBtn = document.getElementById('control-btn');
-    if (controlBtn) {
-        const isJoystick = G.Input && G.Input.touch && G.Input.touch.useJoystick;
-        const switchLabel = controlBtn.querySelector('.switch-label');
-        if (switchLabel) switchLabel.innerText = isJoystick ? 'JOY' : 'SWIPE';
-        if (isJoystick) {
-            controlBtn.classList.add('active');
-        } else {
-            controlBtn.classList.remove('active');
-        }
-    }
-    updateTiltUI();
-
-    // Quality tier label
-    const qualityLabel = document.getElementById('set-quality-label');
-    if (qualityLabel) qualityLabel.innerText = t('SET_QUALITY');
-    updateQualityUI();
-
-    // Manual (if open, update text)
-    updateManualText();
+    if (G.UIManager) G.UIManager.updateUIText();
 }
 
 window.toggleLang = function () { currentLang = (currentLang === 'EN') ? 'IT' : 'EN'; G._currentLang = currentLang; localStorage.setItem('fiat_lang', currentLang); updateUIText(); };
@@ -1852,63 +1687,11 @@ window.toggleBearMode = function () {
 };
 
 function updateMusicUI(isMuted) {
-    // Icon-based toggles (pause menu round icons)
-    document.querySelectorAll('.music-toggle').forEach(btn => {
-        // Skip toggle-switch elements (settings panel)
-        if (btn.classList.contains('toggle-switch')) return;
-        const svg = btn.querySelector('.icon-svg');
-        if (svg) {
-            if (isMuted) {
-                btn.classList.add('muted');
-                svg.innerHTML = '<path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/><line x1="3" y1="3" x2="21" y2="21" stroke="#c0392b" stroke-width="2.5"/>';
-            } else {
-                btn.classList.remove('muted');
-                svg.innerHTML = '<path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>';
-            }
-        }
-    });
-    // Toggle-switch in settings
-    const settingsToggle = document.getElementById('settings-music-toggle');
-    if (settingsToggle) {
-        const label = settingsToggle.querySelector('.switch-label');
-        if (isMuted) {
-            settingsToggle.classList.remove('active');
-            if (label) label.textContent = 'OFF';
-        } else {
-            settingsToggle.classList.add('active');
-            if (label) label.textContent = 'ON';
-        }
-    }
+    if (G.UIManager) G.UIManager.updateMusicUI(isMuted);
 }
 
 function updateSfxUI(isMuted) {
-    // Icon-based toggles (pause menu round icons)
-    document.querySelectorAll('.sfx-toggle').forEach(btn => {
-        // Skip toggle-switch elements (settings panel)
-        if (btn.classList.contains('toggle-switch')) return;
-        const svg = btn.querySelector('.icon-svg');
-        if (svg) {
-            if (isMuted) {
-                btn.classList.add('muted');
-                svg.innerHTML = '<path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>';
-            } else {
-                btn.classList.remove('muted');
-                svg.innerHTML = '<path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>';
-            }
-        }
-    });
-    // Toggle-switch in settings
-    const settingsToggle = document.getElementById('settings-sfx-toggle');
-    if (settingsToggle) {
-        const label = settingsToggle.querySelector('.switch-label');
-        if (isMuted) {
-            settingsToggle.classList.remove('active');
-            if (label) label.textContent = 'OFF';
-        } else {
-            settingsToggle.classList.add('active');
-            if (label) label.textContent = 'ON';
-        }
-    }
+    if (G.UIManager) G.UIManager.updateSfxUI(isMuted);
 }
 
 function updateLevelUI() {
@@ -2424,119 +2207,35 @@ function clearBattlefield(options) {
 G.clearBattlefield = clearBattlefield;
 
 function startBossWarning() {
-    // v4.21: Unified boss rotation for both Story and Arcade (FED→BCE→BOJ cycle)
-    const bossRotation = G.BOSS_ROTATION || ['FEDERAL_RESERVE', 'BCE', 'BOJ'];
-    bossWarningType = bossRotation[(marketCycle - 1) % bossRotation.length];
-    // Start warning timer
-    bossWarningTimer = Balance.BOSS.WARNING_DURATION;
-
-    // Clear all bullets with VFX + score, then clear enemies for clean boss entrance
-    clearBattlefield();
-    enemies = [];
+    var result = G.BossSpawner.startWarning({ marketCycle: marketCycle });
+    if (!result) return;
+    bossWarningType = result.bossWarningType;
+    bossWarningTimer = result.bossWarningTimer;
+    enemies = result.enemies;
     G.enemies = enemies;
     if (G.HarmonicConductor) G.HarmonicConductor.enemies = enemies;
-
-    // Play warning sound (use explosion for dramatic effect)
-    audioSys.play('explosion');
-
-    // Dramatic screen shake
-    shake = 10;
+    shake = result.shake;
 }
 
 function spawnBoss() {
-    // v4.21: Unified boss rotation for both Story and Arcade (FED→BCE→BOJ cycle)
-    const bossRotation = G.BOSS_ROTATION || ['FEDERAL_RESERVE', 'BCE', 'BOJ'];
-    let bossType = bossRotation[(marketCycle - 1) % bossRotation.length];
-    // v7.2.0: in V8_MODE, LevelScript declares the boss per level — overrides cycle rotation
-    // v7.11.1: V8 is campaign-only — Arcade keeps the FED→BCE→BOJ cycle rotation.
-    const _isArcadeBossOverride = G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode();
-    if (G.Balance?.V8_MODE?.ENABLED && !_isArcadeBossOverride && G.LevelScript && G.LevelScript.BOSS_TYPE) {
-        bossType = G.LevelScript.BOSS_TYPE;
-    }
-    const campaignState = G.CampaignState; // Still needed for NG+ multiplier
-
-    const bossConfig = G.BOSSES[bossType] || G.BOSSES.FEDERAL_RESERVE;
-
-    // Flash color based on boss via TransitionManager
-    const bossFlashColor = bossType === 'BCE' ? '#000033' : (bossType === 'BOJ' ? '#330000' : '#400000');
-    if (G.TransitionManager) G.TransitionManager.startFadeOut(0.6, bossFlashColor);
-
-    boss = new G.Boss(gameWidth, gameHeight, bossType);
-    window.boss = boss; // v2.22.5: Expose for debug overlay
-
-    // Scale boss HP using Balance config
-    const Balance = G.Balance;
-    const hpConfig = Balance.BOSS.HP;
-    const baseHp = hpConfig.BASE;
-    const hpPerLevel = hpConfig.PER_LEVEL;
-    const hpPerCycle = hpConfig.PER_CYCLE;
-
-    // Perk-aware scaling: boss gets stronger based on player's accumulated power
-    const perkCount = (runState && runState.perks) ? runState.perks.length : 0;
-    const perkScaling = 1 + (perkCount * hpConfig.PERK_SCALE);
-
-    // v4.10.2: Removed dmgCompensation (was punishing player for damage perks — counterintuitive)
-    // perkScaling already accounts for perk count including Kinetic Rounds
-
-    // NG+ scaling (campaign mode)
-    const ngPlusMult = (campaignState && campaignState.isEnabled()) ? campaignState.getNGPlusMultiplier() : 1;
-
-    const rawHp = baseHp + (level * hpPerLevel) + ((marketCycle - 1) * hpPerCycle);
-    boss.hp = Math.max(hpConfig.MIN_FLOOR, Math.floor(rawHp * perkScaling * ngPlusMult));
-    boss.maxHp = boss.hp;
-
-    // Analytics: Track boss fight start
-    if (G.Debug) G.Debug.trackBossFightStart(bossType, marketCycle);
-
-    // v2.22.5: Track boss spawn event
-    G.Debug.trackBossSpawn(bossType, boss.hp, level, marketCycle);
-
-    // v4.42: Ambient weather with boss active
-    if (G.WeatherController) G.WeatherController.setLevel(level, isBearMarket, true);
-
-    // Reset boss drop tracking for new boss fight
-    G.DropSystem.resetBossDrops();
-
-    // v2.22.1 fix: Clear all entities for clean boss entrance
-    enemies = [];
-    if (window.Game) window.Game.enemies = enemies;
-
-    // v2.22.4: Clear miniBoss if active - only main boss should exist
-    if (miniBoss) { G.MiniBossManager.clear(); miniBoss = null; }
-
-    // Safety pass: clear any remaining bullets (main clear was in startBossWarning)
-    clearBattlefield();
-
-    // Boss-specific danger message
-    const dangerMsg = bossConfig.country + ' ' + bossConfig.name + ' ' + bossConfig.country;
-    showDanger("⚠️ " + dangerMsg + " ⚠️");
-    G.MemeEngine.queueMeme('BOSS_SPAWN', getBossMeme(bossType), bossConfig.name);
-    audioSys.play('bossSpawn');
-    audioSys.setBossPhase(1); // Start boss music phase 1
-    if (G.Events) G.Events.emit('weather:boss-spawn');
-
-    // Set Harmonic Conductor to boss sequence
-    // IMPORTANT: Share same reference to prevent desync (v2.22.3 fix)
-    if (G.HarmonicConductor) {
-        G.HarmonicConductor.enemies = enemies;  // Share reference, don't create new array
-        G.HarmonicConductor.setBossSequence(1);
-    }
-
-    // Start with boss-specific meme in the ticker
-    if (ui.memeTicker) ui.memeTicker.innerText = getBossMeme(bossType);
-    memeSwapTimer = Balance.MEMES.BOSS_TICKER_INTERVAL;
-
-    // v4.20.0: Boss intro dialogue via meme popup (was DialogueUI at bottom)
-    const bossIntroPool = G.DIALOGUES?.BOSS_INTRO?.[bossType];
-    if (bossIntroPool && bossIntroPool.length > 0) {
-        const intro = bossIntroPool[Math.floor(Math.random() * bossIntroPool.length)];
-        G.MemeEngine.queueMeme('BOSS_SPAWN', intro.text, intro.speaker);
-    }
-
-    // v8 S05: Stop the camera scroll — boss fight happens in a fixed arena.
-    if (Balance.V8_MODE && Balance.V8_MODE.ENABLED && G.ScrollEngine && G.ScrollEngine.halt) {
-        G.ScrollEngine.halt();
-    }
+    var result = G.BossSpawner.spawn({
+        marketCycle: marketCycle,
+        gameWidth: gameWidth,
+        gameHeight: gameHeight,
+        level: level,
+        isBearMarket: isBearMarket,
+        miniBoss: miniBoss,
+        memeSwapTimer: memeSwapTimer
+    });
+    if (!result) return;
+    boss = result.boss;
+    window.boss = result.boss;
+    enemies = result.enemies;
+    G.enemies = enemies;
+    if (G.HarmonicConductor) G.HarmonicConductor.enemies = enemies;
+    miniBoss = result.miniBoss;
+    memeSwapTimer = result.memeSwapTimer;
+    if (ui.memeTicker) ui.memeTicker.innerText = result.memeTickerText;
 }
 
 G._spawnBoss = spawnBoss; // v5.7: debug access
@@ -2948,78 +2647,16 @@ function update(dt) {
         }
 
         // v7.10.1: Dynamic music — phase-aware intensity + BPM ramp + modulation + reactive events.
-        // Three inputs converge: V8 progress (time-based), gameplay state (boss/HYPER/GODCHAIN),
-        // and scroll mult (CRUSH anchors). Result: music evolves across a 170s level instead of
-        // looping the same 10s loop 16 times.
-        let intensity = 50; // v7.12: raised 30→50 so drums+melody ride from bar 1 (pathos)
-        let bpmMult = 0.92; // start a touch under nominal
-        let transpose = 1.0;
-
-        // V8 progress → phase intensity + BPM ramp + mid-level key change
-        if (G.LevelScript && G.LevelScript.BOSS_AT_S > 0) {
-            const progress = Math.min(1, G.LevelScript._elapsed / G.LevelScript.BOSS_AT_S);
-            // Smooth ramp: OPENING(0-0.15)=+0, BUILDUP(0.15-0.4)=+15, ESCALATION(0.4-0.65)=+30,
-            // PEAK(0.65-0.85)=+42, CRUSH(0.85-1)=+55
-            const phaseRamp =
-                progress < 0.15 ? 0 :
-                progress < 0.40 ? (progress - 0.15) / 0.25 * 15 :
-                progress < 0.65 ? 15 + (progress - 0.40) / 0.25 * 15 :
-                progress < 0.85 ? 30 + (progress - 0.65) / 0.20 * 12 :
-                                  42 + (progress - 0.85) / 0.15 * 13;
-            intensity += phaseRamp;
-            bpmMult = 0.92 + progress * 0.18; // 0.92 → 1.10 across the level
-            // Key modulation: up a whole tone at midpoint (structure "gear shift")
-            if (progress > 0.5) transpose = Math.pow(2, 2 / 12); // +2 semitones
-        }
-
-        // Scroll mult (CRUSH anchors) adds on top — ramps hard in L3 late game
-        const scrollMult = (G.ScrollEngine && typeof G.ScrollEngine._speedMult === 'number')
-            ? G.ScrollEngine._speedMult : 1.0;
-        intensity += Math.min(15, Math.max(0, (scrollMult - 1.0) * 10));
-
-        // Boss → everything on, tempo bump
-        if (boss) { intensity += 20; bpmMult = Math.max(bpmMult, 1.08); transpose = 1.0; /* boss owns key */ }
-        if (lives === 1) intensity += 8;
-
-        // HYPER: big energy push — drums full, tempo bump, arp up a fourth
-        // GODCHAIN: mystical color — arp detuned up a minor third, pad swells
-        let arpDetune = 0;
-        if (player && player.hyperActive) {
-            intensity += 18;
-            bpmMult *= 1.04;
-            arpDetune += 500; // +5 semitones (~perfect fourth)
-        }
-        if (player && player._godchainActive) {
-            // v7.19.5: per-axis kill-switches to isolate the "sibilo larsen" source.
-            const ga = G.Balance?.GODCHAIN_AUDIO;
-            if (!ga || ga.INTENSITY_BOOST_ENABLED !== false) intensity += 12;
-            if (!ga || ga.ARP_DETUNE_ENABLED !== false)      arpDetune += 300; // +3 semitones
-        }
-
-        intensity = Math.min(100, intensity);
-        audioSys.setIntensity(intensity);
-        if (audioSys.setBpmMult) audioSys.setBpmMult(bpmMult);
-        if (audioSys.setTransposeMult) audioSys.setTransposeMult(transpose);
-        if (audioSys.setArpDetune) audioSys.setArpDetune(arpDetune);
-
-        // Near-death heartbeat (last life in 1-hit = 1-life system)
-        if (lives === 1) {
-            if (!audioSys.isNearDeath) {
-                audioSys.setNearDeath(true);
-            }
-            // Play heartbeat every 0.75s
-            if (typeof nearDeathTimer === 'undefined') window.nearDeathTimer = 0;
-            window.nearDeathTimer -= dt;
-            if (window.nearDeathTimer <= 0) {
-                audioSys.play('nearDeath');
-                window.nearDeathTimer = 0.75;
-            }
-        } else {
-            if (audioSys.isNearDeath) {
-                audioSys.setNearDeath(false);
-            }
-            window.nearDeathTimer = 0;
-        }
+        // (extracted to AudioSystem.updateMusicIntensity per ADR-0014)
+        audioSys.updateMusicIntensity({
+            boss: boss,
+            player: player,
+            lives: lives,
+            dt: dt,
+            levelScript: G.LevelScript,
+            scrollEngine: G.ScrollEngine,
+            balance: G.Balance
+        });
       } // end !inWarmup
     }
     updateFloatingTexts(dt);
@@ -3478,359 +3115,16 @@ function executeDeath() {
  * Registers all rendering steps as layer callbacks.
  * Called once during startup from init().
  */
-var _pipelineInited = false;
-function initDrawPipeline() {
-    if (_pipelineInited) return;
-    _pipelineInited = true;
-
-    var PL = G.DrawPipeline;
-    var L = PL.LAYER;
-
-    // L.BACKGROUND (0) — handled as early-return in pipeline core
-
-    // L.SKY (1)
-    PL.register(L.SKY, function(ctx, fc) {
-        if (G.SkyRenderer) {
-            G.SkyRenderer.draw(ctx, { level: level, isBearMarket: isBearMarket, bossActive: boss && boss.active });
-        }
-    });
-
-    // L.WEATHER (2)
-    PL.register(L.WEATHER, function(ctx, fc) {
-        if (G.WeatherController) {
-            G.WeatherController.draw(ctx, { isBearMarket: isBearMarket, level: level, bossActive: boss && boss.active });
-        }
-    });
-
-    // L.TITLE_ANIM (3) — INTRO state only
-    PL.register(L.TITLE_ANIM, function(ctx, fc) {
-        if (gameState === 'INTRO' && G.TitleAnimator && G.TitleAnimator.isActive()) {
-            G.TitleAnimator.draw(ctx);
-        }
-    });
-
-    // L.IMPACT_FLASH (4)
-    PL.register(L.IMPACT_FLASH, function(ctx, fc) {
-        if (G.EffectsRenderer) G.EffectsRenderer.drawImpactFlash(ctx);
-    });
-
-    // L.HYPER_OVERLAY (5)
-    PL.register(L.HYPER_OVERLAY, function(ctx, fc) {
-        var isHyper = player && player.isHyperActive && player.isHyperActive();
-        if (isHyper && G.EffectsRenderer) {
-            G.EffectsRenderer.drawHyperVignette(ctx, true, totalTime);
-        }
-    });
-
-    // L.GLOW_ENEMY (6) — additive composite
-    PL.setLayerComposite(L.GLOW_ENEMY, 'lighter');
-    PL.register(L.GLOW_ENEMY, function(ctx, fc) {
-        var _glowCfg = G.Balance && G.Balance.GLOW;
-        if (!_glowCfg || !_glowCfg.ENABLED || !_glowCfg.ENEMY || !_glowCfg.ENEMY.ENABLED) return;
-        for (var i = 0; i < enemies.length; i++) {
-            var e = enemies[i];
-            if (!e) continue;
-            if (G.CullingHelper.isOnScreen(e.x, e.y, 80, gameWidth, gameHeight)) {
-                e.drawGlow(ctx);
-            }
-        }
-    });
-
-    // L.ENTITY_ENEMY (7)
-    PL.register(L.ENTITY_ENEMY, function(ctx, fc) {
-        if (gameState !== 'PLAY' && gameState !== 'WARMUP' && gameState !== 'PAUSE' && gameState !== 'GAMEOVER' && gameState !== 'INTERMISSION') return;
-        // Player
-        player.draw(ctx);
-        // Enemies with culling
-        for (var i = 0; i < enemies.length; i++) {
-            var e = enemies[i];
-            if (!e) continue;
-            if (G.CullingHelper.isOnScreen(e.x, e.y, 80, gameWidth, gameHeight)) {
-                e.draw(ctx);
-            }
-        }
-        // Boss
-        if (boss && boss.active) boss.draw(ctx);
-        // MiniBoss
-        if (miniBoss && miniBoss.active) drawMiniBoss(ctx);
-    });
-
-    // L.GLOW_BULLET (8) — additive composite
-    PL.setLayerComposite(L.GLOW_BULLET, 'lighter');
-    PL.register(L.GLOW_BULLET, function(ctx, fc) {
-        var _glowCfg = G.Balance && G.Balance.GLOW;
-        if (!_glowCfg || !_glowCfg.ENABLED || !_glowCfg.BULLET || !_glowCfg.BULLET.ENABLED) return;
-        for (var i = 0; i < bullets.length; i++) {
-            var b = bullets[i];
-            var gm = (b._elemLaser && !b.special) ? 130 : 20;
-            if (G.CullingHelper.isOnScreen(b.x, b.y, gm, gameWidth, gameHeight)) {
-                b.drawGlow(ctx);
-            }
-        }
-    });
-
-    // L.BULLET (9)
-    PL.register(L.BULLET, function(ctx, fc) {
-        if (gameState !== 'PLAY' && gameState !== 'WARMUP' && gameState !== 'PAUSE' && gameState !== 'GAMEOVER' && gameState !== 'INTERMISSION') return;
-        for (var i = 0; i < bullets.length; i++) {
-            var b = bullets[i];
-            var margin = (b._elemLaser && !b.special) ? 130 : 20;
-            if (G.CullingHelper.isOnScreen(b.x, b.y, margin, gameWidth, gameHeight)) b.draw(ctx);
-        }
-    });
-
-    // L.ENERGY_LINK (10)
-    PL.register(L.ENERGY_LINK, function(ctx, fc) {
-        if (gameState !== 'PLAY' && gameState !== 'WARMUP' && gameState !== 'PAUSE' && gameState !== 'GAMEOVER' && gameState !== 'INTERMISSION') return;
-        var _linkCfg = Balance && Balance.VFX && Balance.VFX.ENERGY_LINK;
-        if (_linkCfg && _linkCfg.ENABLED !== false) {
-            drawEnergyLinks(ctx, bullets, _linkCfg);
-        }
-    });
-
-    // L.SCREEN_DIM (11)
-    PL.register(L.SCREEN_DIM, function(ctx, fc) {
-        if (gameState !== 'PLAY' && gameState !== 'WARMUP' && gameState !== 'PAUSE' && gameState !== 'GAMEOVER' && gameState !== 'INTERMISSION') return;
-        if (Balance && Balance.JUICE && Balance.JUICE.SCREEN_EFFECTS && Balance.JUICE.SCREEN_EFFECTS.SCREEN_DIMMING && enemyBullets.length > 15) {
-            var dimAlpha = Math.min(0.25, (enemyBullets.length - 15) * 0.01);
-            ctx.fillStyle = 'rgba(0, 0, 0, ' + dimAlpha + ')';
-            ctx.fillRect(0, 0, gameWidth, gameHeight);
-        }
-    });
-
-    // L.HARMONIC (12)
-    PL.register(L.HARMONIC, function(ctx, fc) {
-        if (gameState !== 'PLAY' && gameState !== 'WARMUP' && gameState !== 'PAUSE' && gameState !== 'GAMEOVER' && gameState !== 'INTERMISSION') return;
-        if (G.HarmonicConductor) G.HarmonicConductor.draw(ctx);
-    });
-
-    // L.ENEMY_BULLET (13)
-    PL.register(L.ENEMY_BULLET, function(ctx, fc) {
-        if (gameState !== 'PLAY' && gameState !== 'WARMUP' && gameState !== 'PAUSE' && gameState !== 'GAMEOVER' && gameState !== 'INTERMISSION') return;
-        for (var i = 0; i < enemyBullets.length; i++) {
-            var eb = enemyBullets[i];
-            if (!eb) continue;
-            if (G.CullingHelper.isOnScreen(eb.x, eb.y, 20, gameWidth, gameHeight)) eb.draw(ctx);
-        }
-    });
-
-    // L.DANGER_ZONE (14)
-    PL.register(L.DANGER_ZONE, function(ctx, fc) {
-        if (gameState !== 'PLAY' && gameState !== 'WARMUP' && gameState !== 'PAUSE' && gameState !== 'GAMEOVER' && gameState !== 'INTERMISSION') return;
-        for (var dzi = 0; dzi < dangerZones.length; dzi++) {
-            var dz = dangerZones[dzi];
-            var dzAlpha = dz.alpha * (dz.timer / dz.duration);
-            var pulse = Math.sin(Date.now() * 0.008) * 0.1 + 0.9;
-            ctx.globalAlpha = dzAlpha * pulse;
-            ctx.fillStyle = dz.color;
-            ctx.beginPath();
-            ctx.arc(dz.x, dz.y, dz.radius, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.strokeStyle = dz.color;
-            ctx.lineWidth = 2;
-            ctx.globalAlpha = dzAlpha * 0.6;
-            ctx.beginPath();
-            ctx.arc(dz.x, dz.y, dz.radius, 0, Math.PI * 2);
-            ctx.stroke();
-            ctx.globalAlpha = 1;
-        }
-    });
-
-    // L.POWERUP (15)
-    PL.register(L.POWERUP, function(ctx, fc) {
-        if (gameState !== 'PLAY' && gameState !== 'WARMUP' && gameState !== 'PAUSE' && gameState !== 'GAMEOVER' && gameState !== 'INTERMISSION') return;
-        for (var i = 0; i < powerUps.length; i++) {
-            var p = powerUps[i];
-            if (!p) continue;
-            if (G.CullingHelper.isOnScreen(p.x, p.y, 40, gameWidth, gameHeight)) p.draw(ctx);
-        }
-    });
-
-    // L.PARTICLE (16)
-    PL.register(L.PARTICLE, function(ctx, fc) {
-        if (gameState !== 'PLAY' && gameState !== 'WARMUP' && gameState !== 'PAUSE' && gameState !== 'GAMEOVER' && gameState !== 'INTERMISSION') return;
-        drawParticles(ctx);
-    });
-
-    // L.EVOLUTION_ITEM (17)
-    PL.register(L.EVOLUTION_ITEM, function(ctx, fc) {
-        if (gameState !== 'PLAY' && gameState !== 'WARMUP' && gameState !== 'PAUSE' && gameState !== 'GAMEOVER' && gameState !== 'INTERMISSION') return;
-        drawEvolutionItem(ctx);
-    });
-
-    // L.FLOATING_TEXT (18)
-    PL.register(L.FLOATING_TEXT, function(ctx, fc) {
-        if (gameState !== 'PLAY' && gameState !== 'WARMUP' && gameState !== 'PAUSE' && gameState !== 'GAMEOVER' && gameState !== 'INTERMISSION') return;
-        if (G.FloatingTextManager) G.FloatingTextManager.draw(ctx, gameWidth);
-    });
-
-    // L.PERK_ICON (19)
-    PL.register(L.PERK_ICON, function(ctx, fc) {
-        if (gameState !== 'PLAY' && gameState !== 'WARMUP' && gameState !== 'PAUSE' && gameState !== 'GAMEOVER' && gameState !== 'INTERMISSION') return;
-        if (G.PerkIconManager) G.PerkIconManager.draw(ctx, gameWidth);
-    });
-
-    // L.MESSAGE (20)
-    PL.register(L.MESSAGE, function(ctx, fc) {
-        if (gameState !== 'PLAY' && gameState !== 'WARMUP' && gameState !== 'PAUSE' && gameState !== 'GAMEOVER' && gameState !== 'INTERMISSION') return;
-        drawTypedMessages(ctx);
-    });
-
-    // L.ARCADE_HUD (21)
-    PL.register(L.ARCADE_HUD, function(ctx, fc) {
-        if (gameState !== 'PLAY' && gameState !== 'WARMUP' && gameState !== 'PAUSE' && gameState !== 'GAMEOVER' && gameState !== 'INTERMISSION') return;
-        drawArcadeComboHUD(ctx);
-    });
-
-    // L.INTERMISSION guard (22) — kept as closure access
-    PL.register(L.ARCADE_HUD, function(ctx, fc) {
-        if (gameState !== 'INTERMISSION') lastCountdownNumber = 0;
-    }, -1);
-
-    // L.BOSS_WARNING (22)
-    PL.register(L.BOSS_WARNING, function(ctx, fc) {
-        if (gameState !== 'PLAY' && gameState !== 'WARMUP' && gameState !== 'PAUSE' && gameState !== 'GAMEOVER' && gameState !== 'INTERMISSION') return;
-        if (bossWarningTimer > 0 && bossWarningType) drawBossWarningOverlay(ctx);
-    });
-
-    // L.COUNTDOWN (23)
-    PL.register(L.COUNTDOWN, function(ctx, fc) {
-        if (gameState !== 'PLAY' && gameState !== 'WARMUP' && gameState !== 'PAUSE' && gameState !== 'GAMEOVER' && gameState !== 'INTERMISSION') return;
-        if (startCountdownActive) drawStartCountdown(ctx);
-    });
-
-    // L.BEAR_MARKET (24)
-    PL.register(L.BEAR_MARKET, function(ctx, fc) {
-        if (isBearMarket && gameState === 'PLAY' && G.SkyRenderer) {
-            G.SkyRenderer.drawBearMarketOverlay(ctx, totalTime);
-        }
-    });
-
-    // L.EFFECTS (25) — Screen flash, score pulse, vignettes
-    PL.register(L.EFFECTS, function(ctx, fc) {
-        if (G.EffectsRenderer) {
-            G.EffectsRenderer.drawScreenFlash(ctx);
-            G.EffectsRenderer.drawScorePulse(ctx);
-            G.EffectsRenderer.drawDamageVignette(ctx);
-            G.EffectsRenderer.drawLowHPVignette(ctx, lives, totalTime);
-            var gcActive = player && player._godchainActive;
-            G.EffectsRenderer.drawGodchainVignette(ctx, gcActive, totalTime);
-        }
-    });
-
-    // ── OUTSIDE SHAKE ──────────────────────────────────────
-
-    // L.TRANSITION (26)
-    PL.register(L.TRANSITION, function(ctx, fc) {
-        if (G.TransitionManager) G.TransitionManager.draw(ctx);
-    });
-
-    // L.DEBUG (27)
-    PL.register(L.DEBUG, function(ctx, fc) {
-        if (debugMode) drawDebug(ctx);
-    });
-
-    // L.V8_HUD (28)
-    PL.register(L.V8_HUD, function(ctx, fc) {
-        if (!G.Balance || !G.Balance.V8_MODE || !G.Balance.V8_MODE.ENABLED || gameState !== 'PLAY' || !G.LevelScript) return;
-        var ls = G.LevelScript;
-        var elapsed = ls._elapsed || 0;
-        var bossAt = ls.BOSS_AT_S || 170;
-        var crushIn = ls.CRUSH_ENTER_S || 150;
-        var crushOut = ls.CRUSH_EXIT_S || 168;
-        var bossAlive = !!window.boss;
-        var endTimer = ls._levelEndTimer;
-        var lvlTag = 'L' + ls.currentLevelNum();
-        var label = null, color = '#00f0ff', pulse = false;
-        if (endTimer >= 0) {
-            label = 'VICTORY +' + endTimer.toFixed(1) + 's';
-            color = '#ffaa00';
-        } else if (bossAlive) {
-            // skip
-        } else if (elapsed >= crushOut && elapsed < bossAt) {
-            label = lvlTag + '  BOSS INCOMING';
-            color = '#ff2d95';
-            pulse = true;
-        } else if (elapsed >= crushIn && elapsed < crushOut) {
-            label = '⚠ CORRIDOR CRUSH ⚠';
-            color = '#ff2d95';
-            pulse = true;
-        } else if (elapsed < bossAt) {
-            var rem = Math.max(0, bossAt - elapsed);
-            label = lvlTag + '  BOSS  T-' + Math.ceil(rem) + 's';
-        }
-        if (label) {
-            var cw = ctx.canvas.width;
-            var y = (G._safeTop || 0) + 52;
-            ctx.save();
-            var alpha = pulse ? (0.75 + 0.25 * Math.sin(totalTime * 6)) : 0.9;
-            ctx.globalAlpha = alpha;
-            ctx.font = 'bold 14px "Press Start 2P", monospace';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            // v7.13.0: additive glow via layered alpha (no shadowBlur)
-            ctx.fillStyle = color;
-            ctx.globalAlpha = alpha * 0.25;
-            ctx.fillText(label, cw / 2, y);
-            ctx.globalAlpha = alpha * 0.6;
-            ctx.fillText(label, cw / 2, y);
-            ctx.globalAlpha = alpha;
-            ctx.fillText(label, cw / 2, y);
-            ctx.restore();
-        }
-    });
-
-    // L.DEBUG_HUD (29)
-    PL.register(L.DEBUG_HUD, function(ctx, fc) {
-        if (G.Debug && G.Debug.OVERLAY_ENABLED) {
-            G._hudState = {
-                score: score, lives: lives, level: level, gameState: gameState,
-                grazeMeter: grazeMeter, grazeCount: grazeCount, grazeMultiplier: grazeMultiplier,
-                killStreak: killStreak, killStreakMult: killStreakMult, bestStreak: bestStreak,
-                floatingTexts: _countActive(floatingTexts),
-                perkIcons: _countActive(perkIcons),
-                intermissionMeme: intermissionMeme,
-                intermissionTimer: waveMgr ? waveMgr.intermissionTimer : 0,
-                bossWarningTimer: bossWarningTimer,
-                perkCooldown: perkCooldown,
-                bulletCancelStreak: bulletCancelStreak,
-                player: player ? {
-                    x: Math.round(player.x), y: Math.round(player.y),
-                    hp: player.hp, shieldActive: player.shieldActive,
-                    shieldCooldown: player.shieldCooldown,
-                    hyperAvailable: player.hyperAvailable,
-                    isHyper: player.isHyperActive ? player.isHyperActive() : false,
-                    hyperTimer: player.getHyperTimeRemaining ? player.getHyperTimeRemaining() : 0,
-                    weaponLevel: player.weaponLevel || 1,
-                    special: player.special || null,
-                    specialTimer: player.specialTimer || 0,
-                    type: player.type
-                } : null,
-                msgSystem: { hasActive: G.MessageSystem ? G.MessageSystem.hasActiveMessages() : false },
-                dialogue: { visible: G.DialogueUI ? G.DialogueUI.isVisible : false }
-            };
-            G.Debug.drawOverlay(ctx, gameState);
-        }
-    });
-
-    // L.DEBUG_HITBOX (30)
-    PL.register(L.DEBUG_HITBOX, function(ctx, fc) {
-        if (G.BulletSystem && G.BulletSystem.debugEnabled) {
-            G.BulletSystem.drawDebugOverlay(ctx, bullets, enemyBullets, enemies, player, boss);
-        }
-    });
-
-    // L.DEBUG_PERF (31)
-    PL.register(L.DEBUG_PERF, function(ctx, fc) {
-        if (G.Debug && G.Debug._perf && G.Debug._perf.overlayEnabled) {
-            G.Debug.drawPerfOverlay(ctx, gameWidth);
-        }
-    });
-}
+/**
+ * Build frame context for the rendering pipeline.
 
 /**
  * Build frame context for the rendering pipeline.
  * Collects module references needed by DrawPipeline internals.
+ */
+/**
+ * Build frame context for the rendering pipeline.
+ * Collects module references and current game state for DrawPipeline.
  */
 function buildFrameContext() {
     return {
@@ -3840,13 +3134,35 @@ function buildFrameContext() {
         totalTime: totalTime,
         level: level,
         isBearMarket: isBearMarket,
+        boss: boss,
         bossActive: boss && boss.active,
+        miniBoss: miniBoss,
         player: player,
         enemies: enemies,
         bullets: bullets,
         enemyBullets: enemyBullets,
         powerUps: powerUps,
         lives: lives,
+        score: score,
+        dangerZones: dangerZones,
+        bossWarningTimer: bossWarningTimer,
+        bossWarningType: bossWarningType,
+        startCountdownActive: startCountdownActive,
+        startCountdownTimer: startCountdownTimer,
+        startCountdownGoTimer: startCountdownGoTimer,
+        lastCountdownNumber: lastCountdownNumber,
+        debugMode: debugMode,
+        grazeMeter: grazeMeter,
+        grazeCount: grazeCount,
+        grazeMultiplier: grazeMultiplier,
+        killStreak: killStreak,
+        killStreakMult: killStreakMult,
+        bestStreak: bestStreak,
+        floatingTexts: floatingTexts,
+        perkIcons: perkIcons,
+        intermissionMeme: intermissionMeme,
+        perkCooldown: perkCooldown,
+        bulletCancelStreak: bulletCancelStreak,
         storyScreen: G.StoryScreen,
         effectsRenderer: G.EffectsRenderer,
         skyRenderer: G.SkyRenderer,
@@ -3872,221 +3188,6 @@ function buildFrameContext() {
  */
 function draw() {
     G.DrawPipeline.draw(ctx, buildFrameContext());
-}
-
-// Perk pause overlay - shows acquired perk with dimmed background
-function drawPerkPauseOverlay(ctx) {
-    if (!perkPauseData) return;
-
-    const centerX = gameWidth / 2;
-    const centerY = gameHeight / 2;
-
-    // Dim background
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-    ctx.fillRect(0, 0, gameWidth, gameHeight);
-
-    // Perk card background
-    const cardW = 280;
-    const cardH = 140;
-    const cardX = centerX - cardW / 2;
-    const cardY = centerY - cardH / 2;
-
-    // Rarity colors
-    const rarityColors = {
-        common: '#8899bb',
-        uncommon: '#00ff66',
-        rare: '#00aaff',
-        epic: '#bb44ff'
-    };
-    const rarityColor = rarityColors[perkPauseData.rarity] || '#888';
-
-    // Card background (manual rounded rect for compatibility)
-    const _drawCardShape = function() {
-        ctx.beginPath();
-        ctx.moveTo(cardX + r, cardY);
-        ctx.lineTo(cardX + cardW - r, cardY);
-        ctx.quadraticCurveTo(cardX + cardW, cardY, cardX + cardW, cardY + r);
-        ctx.lineTo(cardX + cardW, cardY + cardH - r);
-        ctx.quadraticCurveTo(cardX + cardW, cardY + cardH, cardX + cardW - r, cardY + cardH);
-        ctx.lineTo(cardX + r, cardY + cardH);
-        ctx.quadraticCurveTo(cardX, cardY + cardH, cardX, cardY + cardH - r);
-        ctx.lineTo(cardX, cardY + r);
-        ctx.quadraticCurveTo(cardX, cardY, cardX + r, cardY);
-        ctx.closePath();
-    };
-    // v7.13.0: additive glow via layered card border (no shadowBlur)
-    ctx.save();
-    _drawCardShape();
-    ctx.strokeStyle = rarityColor;
-    ctx.lineWidth = 8;
-    ctx.globalAlpha = 0.2;
-    ctx.stroke();
-    ctx.restore();
-    // Card fill + border
-    ctx.save();
-    _drawCardShape();
-    ctx.fillStyle = 'rgba(20, 20, 30, 0.95)';
-    ctx.strokeStyle = rarityColor;
-    ctx.lineWidth = 3;
-    ctx.fill();
-    ctx.stroke();
-    ctx.restore();
-
-    // "PERK ACQUIRED" header
-    ctx.font = 'bold 16px "Courier New", monospace';
-    ctx.textAlign = 'center';
-    ctx.fillStyle = rarityColor;
-    ctx.fillText('PERK ACQUIRED', centerX, cardY + 22);
-
-    // Icon + Name
-    ctx.font = 'bold 30px "Courier New", monospace';
-    ctx.fillStyle = '#fff';
-    ctx.fillText(`${perkPauseData.icon} ${perkPauseData.name}`, centerX, cardY + 60);
-
-    // Description
-    ctx.font = '16px "Courier New", monospace';
-    ctx.fillStyle = '#aaa';
-    ctx.fillText(perkPauseData.desc, centerX, cardY + 90);
-
-    // Rarity badge
-    ctx.font = 'bold 14px "Courier New", monospace';
-    ctx.fillStyle = rarityColor;
-    ctx.fillText(perkPauseData.rarity.toUpperCase(), centerX, cardY + 120);
-
-    ctx.restore();
-}
-
-// v5.27: Start countdown overlay (3→2→1→GO!)
-function drawStartCountdown(ctx) {
-    const CU = G.ColorUtils;
-    const centerX = gameWidth / 2;
-    const centerY = gameHeight / 2;
-
-    ctx.save();
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-
-    if (startCountdownTimer > 0) {
-        // Number countdown (3, 2, 1)
-        const num = Math.ceil(startCountdownTimer);
-        const frac = startCountdownTimer - Math.floor(startCountdownTimer);
-        const pulseScale = 1.0 + frac * 0.3;
-
-        ctx.save();
-        ctx.translate(centerX, centerY);
-        ctx.scale(pulseScale, pulseScale);
-
-        // Glow (additive)
-        ctx.globalCompositeOperation = 'lighter';
-        ctx.font = CU.font('bold', 80, 'Courier New, monospace');
-        ctx.fillStyle = CU.rgba(255, 170, 0, 0.15);
-        ctx.fillText(num, 0, 0);
-
-        // Main text
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = CU.rgba(0, 0, 0, 0.8);
-        ctx.strokeText(num, 0, 0);
-        ctx.fillStyle = '#ffaa00';
-        ctx.fillText(num, 0, 0);
-
-        ctx.restore();
-    } else if (startCountdownGoTimer > 0) {
-        // GO! flash
-        const goDur = Balance.TIMING.START_COUNTDOWN_GO ?? 0.5;
-        const goProgress = 1 - (startCountdownGoTimer / goDur);
-        const goScale = 1.0 + goProgress * 0.4;
-        const goAlpha = 1.0 - goProgress;
-
-        ctx.save();
-        ctx.translate(centerX, centerY);
-        ctx.scale(goScale, goScale);
-        ctx.globalAlpha = goAlpha;
-
-        // Glow
-        ctx.globalCompositeOperation = 'lighter';
-        ctx.font = CU.font('bold', 72, 'Courier New, monospace');
-        ctx.fillStyle = CU.rgba(57, 255, 20, 0.2);
-        ctx.fillText('GO!', 0, 0);
-
-        // Main
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.globalAlpha = goAlpha;
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = CU.rgba(0, 0, 0, 0.8);
-        ctx.strokeText('GO!', 0, 0);
-        ctx.fillStyle = '#39ff14';
-        ctx.fillText('GO!', 0, 0);
-
-        ctx.restore();
-    }
-
-    ctx.restore();
-}
-
-// Boss warning overlay - dramatic warning before boss spawns
-function drawBossWarningOverlay(ctx) {
-    if (!bossWarningType) return;
-
-    const centerX = gameWidth / 2;
-    const centerY = gameHeight / 2;
-
-    // Get boss config for display
-    const bossConfig = G.BOSSES[bossWarningType] || G.BOSSES.FEDERAL_RESERVE;
-
-    // Pulsing red overlay
-    const pulse = Math.sin(bossWarningTimer * 8) * 0.5 + 0.5; // 0-1 oscillation
-    const overlayAlpha = 0.3 + pulse * 0.2;
-
-    // Red danger overlay
-    ctx.fillStyle = `rgba(80, 0, 0, ${overlayAlpha})`;
-    ctx.fillRect(0, 0, gameWidth, gameHeight);
-
-    // Vignette effect
-    const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, gameWidth * 0.7);
-    gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
-    gradient.addColorStop(1, 'rgba(0, 0, 0, 0.6)');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, gameWidth, gameHeight);
-
-    ctx.save();
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-
-    // "WARNING" flashing text
-    const warningAlpha = pulse > 0.5 ? 1 : 0.3;
-    ctx.font = 'bold 32px "Courier New", monospace';
-    ctx.fillStyle = `rgba(255, 50, 50, ${warningAlpha})`;
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 4;
-    ctx.strokeText('⚠ WARNING ⚠', centerX, centerY - 60);
-    ctx.fillText('⚠ WARNING ⚠', centerX, centerY - 60);
-
-    // Boss name
-    const bossName = bossConfig.name || 'CENTRAL BANK';
-    ctx.font = 'bold 28px "Courier New", monospace';
-    ctx.fillStyle = '#fff';
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 3;
-    ctx.strokeText(bossName, centerX, centerY);
-    ctx.fillText(bossName, centerX, centerY);
-
-    // "INCOMING" text
-    ctx.font = 'bold 24px "Courier New", monospace';
-    ctx.fillStyle = '#ff6666';
-    ctx.strokeText('INCOMING', centerX, centerY + 40);
-    ctx.fillText('INCOMING', centerX, centerY + 40);
-
-    // Countdown (shows seconds remaining)
-    const countdown = Math.ceil(bossWarningTimer);
-    ctx.font = G.ColorUtils.font('bold', 60 + pulse * 10, '"Courier New", monospace');
-    ctx.fillStyle = '#ffaa00';
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 5;
-    ctx.strokeText(countdown, centerX, centerY + 110);
-    ctx.fillText(countdown, centerX, centerY + 110);
-
-    ctx.restore();
 }
 
 function drawDebug(ctx) {

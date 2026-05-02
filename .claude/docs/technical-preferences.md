@@ -72,6 +72,7 @@
 - [ADR-0011](docs/architecture/adr-0011-collision-hitbox.md) — Collision & Hitbox
 - [ADR-0012](docs/architecture/adr-0012-object-pool.md) — Object Pool
 - [ADR-0013](docs/architecture/adr-0013-performance-guardrails.md) — Performance Guardrails
+- [ADR-0014](docs/architecture/adr-0014-mainjs-structure-refactoring.md) — main.js Structure & Refactoring Strategy
 
 ## Engine Specialists
 

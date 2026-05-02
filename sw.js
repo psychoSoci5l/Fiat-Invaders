@@ -56,6 +56,7 @@ const ASSETS_TO_CACHE = [
     './src/story/StoryManager.js',
     './src/story/DialogueUI.js',
     // Systems
+    './src/systems/BossSpawner.js',
     './src/systems/BulletPatterns.js',
     './src/systems/BulletSystem.js',
     './src/systems/SpatialGrid.js',

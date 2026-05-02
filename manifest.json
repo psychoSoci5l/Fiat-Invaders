@@ -1,10 +1,11 @@
 {
   "name": "FIAT vs CRYPTO",
   "short_name": "FIATvsCRYPTO",
-  "start_url": ".",
+  "start_url": "/",
   "display": "standalone",
+  "description": "FIAT vs CRYPTO — un twin-stick shooter economico-satirico. Spara ai ministri, schiva le criptovalute, sopravvivi al Bear Market.",
   "background_color": "#000000",
-  "theme_color": "#bb44ff",
+  "theme_color": "#000000",
   "orientation": "portrait",
   "icons": [
     {
