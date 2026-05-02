@@ -1,5 +1,17 @@
 # Changelog
 
+## v7.20.1 — fix(cr): code review Fase 1 — Date.now pulse, dead ref cleanup - 2026-05-02
+
+### fix
+- `DrawPipeline.js`: Danger zone pulse usava `Date.now()` invece di `fc.totalTime`,
+  causava animazione attiva durante PAUSE. Sostituito con `fc.totalTime * 8`.
+- `UIManager.js`: Rimossa `window.selectManualTab` orfana (funzione rimossa dal
+  file ma reference residua in init(), sovrascriveva la definizione valida in main.js).
+
+### meta
+- Code review della Fase 1 refactoring completata. Verdict: APPROVED WITH SUGGESTIONS.
+- Gate check Polish → Release re-run: PASS (739/739 test, 0 bug, 0 TODO).
+
 ## v7.20 — fix(audio): GODCHAIN ronzìo — redesign effettistico (no oscillatori) - 2026-05-01
 
 Il GODCHAIN layer usava 4 oscillatori continui (sine 80Hz + saw 150Hz + square 150Hz

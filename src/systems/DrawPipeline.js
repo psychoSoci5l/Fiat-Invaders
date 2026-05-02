@@ -539,7 +539,7 @@
             for (var dzi = 0; dzi < fc.dangerZones.length; dzi++) {
                 var dz = fc.dangerZones[dzi];
                 var dzAlpha = dz.alpha * (dz.timer / dz.duration);
-                var pulse = Math.sin(Date.now() * 0.008) * 0.1 + 0.9;
+                var pulse = Math.sin(fc.totalTime * 8) * 0.1 + 0.9;
                 ctx.globalAlpha = dzAlpha * pulse;
                 ctx.fillStyle = dz.color;
                 ctx.beginPath();

@@ -574,7 +574,6 @@ window.Game = window.Game || {};
         window.toggleCreditsPanel = toggleCreditsPanel;
         window.togglePrivacyPanel = togglePrivacyPanel;
         window.toggleManual = toggleManual;
-        window.selectManualTab = selectManualTab;
         window.toggleLang = toggleLang;
         window.toggleBearMode = toggleBearMode;
         window.togglePause = togglePause;
