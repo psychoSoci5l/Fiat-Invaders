@@ -1365,10 +1365,177 @@
         }
     }
 
+    // ── Semi-Agent (Automated Turret) ───────────────────────
+    // v7.20.4: Mid-tier between minion and WEAK agent. Vehicle with glowing
+    // energy core instead of pilot bust, targeting laser reticle, holographic
+    // currency symbol. Reads as "automated weapons platform" — a drone, not a
+    // piloted craft. Scale 0.70 fills the visible gap between minion (0.55)
+    // and WEAK agent (0.82).
+    function drawSemiAgent(ctx, enemy, x, y) {
+        const region = (G.CURRENCY_REGION || {})[enemy.symbol] || 'USA';
+        const scale = 0.70;
+        const now = performance.now();
+        const thrusterPhase = (Math.floor((now + enemy._walkOffset) / 80)) & 1;
+
+        // Core colors by region
+        const coreColors = {
+            'USA':  { primary: '#ff4422', glow: 'rgba(255,68,34,0.35)', ring: '#ff8844' },
+            'EU':   { primary: '#22bbff', glow: 'rgba(34,187,255,0.35)', ring: '#66ddff' },
+            'ASIA': { primary: '#cc44ff', glow: 'rgba(204,68,255,0.35)', ring: '#dd88ff' }
+        };
+        const cc = coreColors[region] || coreColors.USA;
+        const laserPulse = Math.sin(now * 0.006) * 0.3 + 0.7;
+        const corePulse = Math.sin(now * 0.005) * 0.12 + 0.88;
+
+        // Vehicle (full detail, MEDIUM tier for richer coloring than minion WEAK)
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(scale, scale);
+        if (!enemy._uprightFlip) ctx.scale(1, -1);
+        if (region === 'EU') {
+            _drawVehicleEU(ctx, enemy, 'MEDIUM', thrusterPhase);
+        } else if (region === 'ASIA') {
+            _drawVehicleASIA(ctx, enemy, 'MEDIUM', thrusterPhase);
+        } else {
+            _drawVehicleUSA(ctx, enemy, 'MEDIUM', thrusterPhase);
+        }
+        ctx.restore();
+
+        // Energy core at vehicle center (world space)
+        // Outer glow
+        ctx.save();
+        ctx.globalAlpha = 0.3 * corePulse;
+        ctx.fillStyle = cc.glow;
+        ctx.beginPath();
+        ctx.arc(x, y, 13 * corePulse, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        // Inner core (bright, with shadow glow)
+        ctx.fillStyle = cc.primary;
+        ctx.shadowColor = cc.primary;
+        ctx.shadowBlur = 14;
+        ctx.beginPath();
+        ctx.arc(x, y, 5.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // Core containment ring
+        ctx.strokeStyle = cc.ring;
+        ctx.lineWidth = 1.5;
+        ctx.globalAlpha = 0.6;
+        ctx.beginPath();
+        ctx.arc(x, y, 8.5, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+
+        // Targeting laser reticle (pulsing crosshair)
+        ctx.strokeStyle = cc.primary;
+        ctx.globalAlpha = 0.35 * laserPulse;
+        ctx.lineWidth = 0.5;
+        const rR = 17;
+        ctx.beginPath();
+        ctx.moveTo(x - rR, y); ctx.lineTo(x + rR, y);
+        ctx.moveTo(x, y - rR); ctx.lineTo(x, y + rR);
+        ctx.stroke();
+        // Diagonal tick marks
+        const dR = rR * 0.65;
+        for (let a = 0; a < 4; a++) {
+            const ang = a * Math.PI / 2 + Math.PI / 4;
+            ctx.beginPath();
+            ctx.moveTo(x + Math.cos(ang) * dR * 0.55, y + Math.sin(ang) * dR * 0.55);
+            ctx.lineTo(x + Math.cos(ang) * dR, y + Math.sin(ang) * dR);
+            ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+        ctx.restore();
+
+        // Holographic currency symbol floating above vehicle
+        const symHover = Math.sin(now * 0.004) * 3;
+        ctx.save();
+        ctx.globalAlpha = 0.85;
+        ctx.fillStyle = cc.ring;
+        ctx.font = 'bold 13px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = cc.primary;
+        ctx.shadowBlur = 8;
+        ctx.fillText(enemy.symbol, x, y - 26 + symHover);
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = 1;
+        ctx.restore();
+    }
+
+    // ── Minion Agent ────────────────────────────────────────
+    // v7.20.4: Minions now render as simplified regional vehicles (no pilot).
+    // Creates a clear visual hierarchy: minion=drone vs. agent=full pilot+vehicle.
+    function drawMinionAgent(ctx, enemy, x, y) {
+        const region = (G.CURRENCY_REGION || {})[enemy.symbol] || 'USA';
+        const scale = 0.55;
+        const r = 22; // match previous minion body radius for glow
+
+        // Flying animation — bob up and down
+        const bobOffset = Math.sin(Date.now() * 0.005 + x * 0.1) * 5;
+        y += bobOffset;
+
+        // Danger glow
+        const pulse = Math.sin(Date.now() * 0.01) * 0.15 + 1;
+        ctx.fillStyle = enemy.color;
+        ctx.globalAlpha = 0.3 * pulse;
+        ctx.beginPath();
+        ctx.arc(x, y, r + 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        // Regional vehicle at reduced scale (no pilot bust, no hat/accessory)
+        const thrusterPhase = (Math.floor((performance.now() + enemy._walkOffset) / 80)) & 1;
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(scale, scale);
+        // Flip for descent orientation (same as full agents)
+        if (!enemy._uprightFlip) ctx.scale(1, -1);
+
+        if (region === 'EU') {
+            _drawVehicleEU(ctx, enemy, 'WEAK', thrusterPhase);
+        } else if (region === 'ASIA') {
+            _drawVehicleASIA(ctx, enemy, 'WEAK', thrusterPhase);
+        } else {
+            _drawVehicleUSA(ctx, enemy, 'WEAK', thrusterPhase);
+        }
+        ctx.restore();
+
+        // Symbol marking on vehicle body (small, centered)
+        ctx.fillStyle = '#fff';
+        ctx.globalAlpha = 0.8;
+        ctx.font = 'bold 12px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(enemy.symbol, x, y + 2);
+        ctx.globalAlpha = 1;
+
+        // Wing-like sparkles on sides (flying money effect)
+        ctx.fillStyle = '#fff';
+        ctx.globalAlpha = 0.7;
+        const wingAngle = Date.now() * 0.02;
+        for (let i = -1; i <= 1; i += 2) {
+            const wingX = x + i * (r + 4);
+            const wingY = y + Math.sin(wingAngle + i) * 4;
+            ctx.beginPath();
+            ctx.moveTo(wingX, wingY - 6);
+            ctx.lineTo(wingX + i * 8, wingY);
+            ctx.lineTo(wingX, wingY + 6);
+            ctx.closePath();
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+    }
+
     // ── Export ──────────────────────────────────────────────
     G.EnemyAgentRenderer = {
         drawAgent: drawAgent,
-        drawGlow: drawGlow
+        drawGlow: drawGlow,
+        drawMinionAgent: drawMinionAgent,
+        drawSemiAgent: drawSemiAgent
     };
 
 })();

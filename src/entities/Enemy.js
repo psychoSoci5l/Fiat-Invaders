@@ -63,6 +63,7 @@ class Enemy extends window.Game.Entity {
         this.teleportFlash = 0;       // Visual feedback
 
         this.isMinion = false;        // Boss minion type
+        this._isSemiAgent = false;    // v7.20.4: Semi-agent (automated turret drone)
 
         // v5.32: Elite variant state
         this.isElite = false;
@@ -831,7 +832,10 @@ class Enemy extends window.Game.Entity {
         ctx.lineWidth = this._outlineWidth;
 
         // v7.9 Agents of the System — regional humanoid instead of shape + glyph
-        if (this.isMinion) {
+        // v7.20.4: Semi-agent dispatch takes priority (automated turret, no pilot)
+        if (this._isSemiAgent) {
+            G.EnemyAgentRenderer.drawSemiAgent(ctx, this, x, y);
+        } else if (this.isMinion) {
             this.drawMinion(ctx, x, y);
         } else {
             // v7.13.1: delegated to EnemyAgentRenderer
@@ -1027,45 +1031,46 @@ class Enemy extends window.Game.Entity {
     }
 
     drawMinion(ctx, x, y) {
-        // Boss minions: slightly smaller than regular enemies
-        const r = 22; // v4.25: 18→22 (+20% resize)
-        const pulse = Math.sin(Date.now() * 0.01) * 0.15 + 1;
+        // v7.20.4: Delegated to EnemyAgentRenderer.drawMinionAgent — renders as
+        // simplified regional vehicle (Stealth Wedge / Diplomatic Shuttle / Quad-Drone)
+        // instead of a generic coin silhouette. Keeps bob animation, glow, and sparkles.
+        const G = window.Game;
+        if (G.EnemyAgentRenderer) {
+            G.EnemyAgentRenderer.drawMinionAgent(ctx, this, x, y);
+            return;
+        }
+        // Fallback: legacy coin silhouette (shouldn't be reached with EnemyAgentRenderer loaded)
+        this._drawLegacyMinion(ctx, x, y);
+    }
 
-        // Flying animation - minions bob up and down
+    // v7.20.4: Legacy coin-based minion render, preserved as fallback
+    _drawLegacyMinion(ctx, x, y) {
+        const r = 22;
+        const pulse = Math.sin(Date.now() * 0.01) * 0.15 + 1;
         const bobOffset = Math.sin(Date.now() * 0.005 + x * 0.1) * 5;
         y += bobOffset;
-
-        // Danger glow (minions are aggressive)
+        // Danger glow
         ctx.fillStyle = this.color;
         ctx.globalAlpha = 0.3 * pulse;
         ctx.beginPath();
         ctx.arc(x, y, r + 8, 0, Math.PI * 2);
         ctx.fill();
         ctx.globalAlpha = 1;
-
-        // Main body (small coin)
+        // Coin body
         ctx.fillStyle = this._colorDark35;
         ctx.beginPath();
         ctx.arc(x, y, r, Math.PI * 0.4, Math.PI * 1.4);
-        ctx.lineTo(x, y);
-        ctx.closePath();
-        ctx.fill();
-
+        ctx.lineTo(x, y); ctx.closePath(); ctx.fill();
         ctx.fillStyle = this.color;
         ctx.beginPath();
         ctx.arc(x, y, r, Math.PI * 1.4, Math.PI * 0.4);
-        ctx.lineTo(x, y);
-        ctx.closePath();
-        ctx.fill();
-
-        // Outline
+        ctx.lineTo(x, y); ctx.closePath(); ctx.fill();
         ctx.strokeStyle = this._colorDark50 || '#111';
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.arc(x, y, r, 0, Math.PI * 2);
         ctx.stroke();
-
-        // Wing-like sparkles on sides (flying money effect)
+        // Wing sparkles
         ctx.fillStyle = '#fff';
         ctx.globalAlpha = 0.7;
         const wingAngle = Date.now() * 0.02;
@@ -1076,12 +1081,10 @@ class Enemy extends window.Game.Entity {
             ctx.moveTo(wingX, wingY - 6);
             ctx.lineTo(wingX + i * 8, wingY);
             ctx.lineTo(wingX, wingY + 6);
-            ctx.closePath();
-            ctx.fill();
+            ctx.closePath(); ctx.fill();
         }
         ctx.globalAlpha = 1;
-
-        // Symbol (smaller)
+        // Symbol
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 17px Arial';
         ctx.textAlign = 'center';

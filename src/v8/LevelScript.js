@@ -52,7 +52,7 @@ window.Game = window.Game || {};
     // LEVEL 1 — FED / ONBOARDING ACT. v7.5.0 regional rewrite:
     // USA-sphere roster. WEAK: ₽ RUB + C$ CAD. MEDIUM: Ⓒ USDC. STRONG: $ USD.
     // Timing/lanes/patterns preserved from v7.4.2 (validated spine).
-    const LEVEL_1_TIERS = { '₽': 'WEAK', 'C$': 'WEAK', 'Ⓒ': 'MEDIUM', '$': 'STRONG' };
+    const LEVEL_1_TIERS = { '₽': 'WEAK', 'C$': 'WEAK', 'Ⓒ': 'MEDIUM', '$': 'STRONG', '€': 'STRONG', '¥': 'MEDIUM' };
     const LEVEL_1_SCRIPT = [
         // 0-50s OPENING — WEAK only (₽/C$). Tutorial window.
         { at_s: 2.0,  currencies: '₽',                  lanes: [0.3, 0.7] },
@@ -90,27 +90,27 @@ window.Game = window.Game || {};
         { at_s: 124.0, currencies: ['$','Ⓒ','$','Ⓒ'],  lanes: [0.2, 0.4, 0.6, 0.8] },
         { at_s: 127.5, currencies: ['$','Ⓒ','$'],       lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
 
-        // 130-150s PEAK — max density wall, multi-pattern
+        // 130-150s PEAK — max density wall, multi-pattern + first cross-region intrusions
         { at_s: 131.0, currencies: '$',                 lanes: [0.1, 0.9],        pattern: 'SWOOP' },
         { at_s: 132.5, currencies: ['$','Ⓒ','$','Ⓒ','$'], lanes: [0.2, 0.35, 0.5, 0.65, 0.8] },
         { at_s: 135.0, currencies: ['$','Ⓒ','$'],       lanes: [0.25, 0.5, 0.75], pattern: 'HOVER' },
         { at_s: 137.0, currencies: 'Ⓒ',                 lanes: [0.15, 0.35, 0.55, 0.75, 0.95], pattern: 'SINE' },
-        { at_s: 139.5, currencies: ['Ⓒ','$'],           lanes: [0.1, 0.9],        pattern: 'SWOOP' },
-        { at_s: 141.0, currencies: ['$','Ⓒ','$','Ⓒ','$'], lanes: [0.2, 0.35, 0.5, 0.65, 0.8] },
+        { at_s: 139.0, currencies: ['€','$'],           lanes: [0.3, 0.7],        pattern: 'SWOOP' },   // v7.20.4: EU intruder
+        { at_s: 141.0, currencies: ['$','Ⓒ','€','Ⓒ','$'], lanes: [0.2, 0.35, 0.5, 0.65, 0.8] },
         { at_s: 143.5, currencies: ['$','Ⓒ'],           lanes: [0.35, 0.65],      pattern: 'HOVER' },
-        { at_s: 145.5, currencies: '$',                 lanes: [0.1, 0.3, 0.5, 0.7, 0.9], pattern: 'SINE' },
+        { at_s: 145.5, currencies: ['$','€','$'],       lanes: [0.1, 0.3, 0.5, 0.7, 0.9], pattern: 'SINE' },
         { at_s: 148.0, currencies: ['$','Ⓒ'],           lanes: [0.15, 0.85],      pattern: 'SWOOP' },
 
-        // 150-168s CORRIDOR CRUSH SET-PIECE — wall relentless
-        { at_s: 150.5, currencies: ['$','Ⓒ','$','Ⓒ','$'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85] },
+        // 150-168s CORRIDOR CRUSH SET-PIECE — mixed regions enter
+        { at_s: 150.5, currencies: ['$','€','$','¥','$'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85] },
         { at_s: 152.5, currencies: ['$','Ⓒ'],           lanes: [0.1, 0.9],        pattern: 'SWOOP' },
-        { at_s: 153.5, currencies: ['$','Ⓒ','$'],       lanes: [0.25, 0.5, 0.75], pattern: 'SINE' },
-        { at_s: 155.5, currencies: ['$','Ⓒ','$','Ⓒ','$','Ⓒ'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
-        { at_s: 158.0, currencies: ['Ⓒ','$','Ⓒ'],      lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
-        { at_s: 160.0, currencies: ['$','Ⓒ','$'],       lanes: [0.15, 0.85],      pattern: 'SWOOP' },
-        { at_s: 161.5, currencies: ['Ⓒ','$','Ⓒ','$','Ⓒ'], lanes: [0.2, 0.35, 0.5, 0.65, 0.8], pattern: 'SINE' },
-        { at_s: 164.0, currencies: ['$','Ⓒ','$','Ⓒ','$'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9] },
-        { at_s: 166.5, currencies: ['$','Ⓒ'],           lanes: [0.1, 0.9],        pattern: 'SWOOP' }
+        { at_s: 153.5, currencies: ['$','¥','$'],       lanes: [0.25, 0.5, 0.75], pattern: 'SINE' },
+        { at_s: 155.5, currencies: ['$','€','$','¥','$','€'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
+        { at_s: 158.0, currencies: ['¥','$','Ⓒ'],      lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
+        { at_s: 160.0, currencies: ['$','€','$'],       lanes: [0.15, 0.85],      pattern: 'SWOOP' },
+        { at_s: 161.5, currencies: ['€','$','¥','$','€'], lanes: [0.2, 0.35, 0.5, 0.65, 0.8], pattern: 'SINE' },
+        { at_s: 164.0, currencies: ['$','€','$','¥','$'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9] },
+        { at_s: 166.5, currencies: ['$','€'],           lanes: [0.1, 0.9],        pattern: 'SWOOP' }
     ];
 
     const LEVEL_1_ANCHORS = [
@@ -121,7 +121,7 @@ window.Game = window.Game || {};
 
     // LEVEL 2 — BCE / FRAGMENTATION ACT. v7.5.0 regional:
     // EU roster. WEAK: ₺ LIRA + ₣ FRANC. MEDIUM: £ GBP. STRONG: € EUR.
-    const LEVEL_2_TIERS = { '₺': 'WEAK', '₣': 'WEAK', '£': 'MEDIUM', '€': 'STRONG' };
+    const LEVEL_2_TIERS = { '₺': 'WEAK', '₣': 'WEAK', '£': 'MEDIUM', '€': 'STRONG', '$': 'STRONG', '¥': 'MEDIUM' };
     const LEVEL_2_SCRIPT = [
         // 0-25s OPENING — WEAK/MEDIUM EU mix, no € yet
         { at_s: 1.0,  currencies: ['₺','₣','₺'],        lanes: [0.2, 0.5, 0.8] },
@@ -168,7 +168,7 @@ window.Game = window.Game || {};
         { at_s: 96.5, currencies: ['£','€','£','€'],    lanes: [0.2, 0.4, 0.6, 0.8], pattern: 'SINE' },
         { at_s: 99.0, currencies: ['£','€'],            lanes: [0.1, 0.9],        pattern: 'SWOOP' },
 
-        // 100-148s PEAK — sustained €/£ pressure, dual swoops
+        // 100-148s PEAK — sustained €/£ pressure, dual swoops, cross-region intruders
         { at_s: 100.5, currencies: ['€','£','€','£','€','£'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
         { at_s: 103.0, currencies: ['£','€','£'],       lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
         { at_s: 105.5, currencies: ['€','£','€','£','€'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9], pattern: 'SINE' },
@@ -178,32 +178,32 @@ window.Game = window.Game || {};
         { at_s: 113.5, currencies: ['£','€'],           lanes: [0.35, 0.65],      pattern: 'HOVER' },
         { at_s: 116.0, currencies: ['€','£','€','£','€'], lanes: [0.2, 0.35, 0.5, 0.65, 0.8], pattern: 'SINE' },
         { at_s: 118.5, currencies: ['£','€'],           lanes: [0.1, 0.9],        pattern: 'SWOOP' },
-        { at_s: 120.0, currencies: ['€','£','€','£','€','£'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
+        { at_s: 120.0, currencies: ['€','£','$','£','€','£'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
         { at_s: 122.5, currencies: ['£','€','£'],       lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
-        { at_s: 125.0, currencies: ['€','£','€','£','€'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9], pattern: 'SINE' },
+        { at_s: 125.0, currencies: ['€','$','€','¥','€'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9], pattern: 'SINE' },
         { at_s: 127.5, currencies: ['£','€'],           lanes: [0.15, 0.85],      pattern: 'SWOOP' },
-        { at_s: 129.0, currencies: ['€','£','€','£','€'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9] },
+        { at_s: 129.0, currencies: ['€','$','€','¥','€'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9] },
         { at_s: 131.5, currencies: ['£','€','£'],       lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
-        { at_s: 133.5, currencies: ['€','£','€','£','€'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9], pattern: 'SINE' },
+        { at_s: 133.5, currencies: ['€','$','€','¥','€'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9], pattern: 'SINE' },
         { at_s: 136.0, currencies: ['€','£'],           lanes: [0.1, 0.9],        pattern: 'SWOOP' },
-        { at_s: 137.5, currencies: ['€','£','€','£','€','£'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
+        { at_s: 137.5, currencies: ['€','$','€','¥','€','£'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
         { at_s: 140.0, currencies: ['£','€','£'],       lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
-        { at_s: 142.5, currencies: ['€','£','€','£','€'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9] },
+        { at_s: 142.5, currencies: ['€','$','€','¥','€'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9] },
         { at_s: 145.0, currencies: ['£','€','£','€'],   lanes: [0.1, 0.35, 0.65, 0.9], pattern: 'SWOOP' },
         { at_s: 147.0, currencies: ['€','£','€'],       lanes: [0.25, 0.5, 0.75], pattern: 'HOVER' },
 
-        // 148-168s CORRIDOR CRUSH — peak speed 2.2
-        { at_s: 148.5, currencies: ['€','£','€','£','€','£'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
+        // 148-168s CORRIDOR CRUSH — peak speed 2.2, mixed regions
+        { at_s: 148.5, currencies: ['€','$','€','¥','€','£'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
         { at_s: 150.0, currencies: ['£','€'],           lanes: [0.1, 0.9],        pattern: 'SWOOP' },
-        { at_s: 151.0, currencies: ['€','£','€','£','€'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85], pattern: 'SINE' },
-        { at_s: 153.0, currencies: ['£','€','£','€'],   lanes: [0.2, 0.4, 0.6, 0.8] },
-        { at_s: 155.0, currencies: ['€','£','€'],       lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
+        { at_s: 151.0, currencies: ['€','$','€','¥','€'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85], pattern: 'SINE' },
+        { at_s: 153.0, currencies: ['£','€','$','€'],   lanes: [0.2, 0.4, 0.6, 0.8] },
+        { at_s: 155.0, currencies: ['€','¥','€'],       lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
         { at_s: 157.0, currencies: ['€','£'],           lanes: [0.1, 0.9],        pattern: 'SWOOP' },
-        { at_s: 158.5, currencies: ['£','€','£','€','£','€'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
+        { at_s: 158.5, currencies: ['£','$','£','¥','€','£'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
         { at_s: 160.5, currencies: ['£','€','£'],       lanes: [0.3, 0.5, 0.7],   pattern: 'HOVER' },
-        { at_s: 162.5, currencies: ['€','£','€','£','€'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85], pattern: 'SINE' },
-        { at_s: 164.5, currencies: ['£','€','£','€'],   lanes: [0.1, 0.35, 0.65, 0.9], pattern: 'SWOOP' },
-        { at_s: 166.5, currencies: ['£','€','£','€','£'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9] }
+        { at_s: 162.5, currencies: ['€','$','€','¥','€'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85], pattern: 'SINE' },
+        { at_s: 164.5, currencies: ['£','$','£','€'],   lanes: [0.1, 0.35, 0.65, 0.9], pattern: 'SWOOP' },
+        { at_s: 166.5, currencies: ['£','€','£','¥','£'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9] }
     ];
 
     const LEVEL_2_ANCHORS = [
@@ -216,7 +216,7 @@ window.Game = window.Game || {};
     // Asia roster. WEAK: ₹ INR + ₩ KRW. MEDIUM: 元 CNY. STRONG: ¥ JPY.
     // Opens MEDIUM+WEAK (not STRONG) for a softer entry than pre-v7.5, but
     // ramp & CRUSH 2.6× remain the hardest in campaign.
-    const LEVEL_3_TIERS = { '₹': 'WEAK', '₩': 'WEAK', '元': 'MEDIUM', '¥': 'STRONG' };
+    const LEVEL_3_TIERS = { '₹': 'WEAK', '₩': 'WEAK', '元': 'MEDIUM', '¥': 'STRONG', '$': 'STRONG', '€': 'STRONG' };
     const LEVEL_3_SCRIPT = [
         // 0-25s OPENING — MEDIUM 元 with WEAK ₹/₩ fillers, no ¥ yet
         { at_s: 1.0,  currencies: ['元','₹','元'],       lanes: [0.2, 0.5, 0.8] },
@@ -267,48 +267,48 @@ window.Game = window.Game || {};
         { at_s: 96.5, currencies: ['元','¥'],            lanes: [0.1, 0.9],         pattern: 'SWOOP' },
         { at_s: 98.0, currencies: ['¥','元','¥','元','¥','元'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
 
-        // 100-142s PEAK — relentless ¥ walls, overlapping SWOOP from both sides
+        // 100-142s PEAK — relentless ¥/元 walls, $/€ intruders appear
         { at_s: 100.5, currencies: ['¥','元','¥','元','¥'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85], pattern: 'SINE' },
-        { at_s: 103.0, currencies: ['元','¥','元'],      lanes: [0.3, 0.5, 0.7],    pattern: 'HOVER' },
-        { at_s: 105.5, currencies: ['¥','元'],           lanes: [0.1, 0.9],         pattern: 'SWOOP' },
+        { at_s: 103.0, currencies: ['元','$','元'],      lanes: [0.3, 0.5, 0.7],    pattern: 'HOVER' },
+        { at_s: 105.5, currencies: ['¥','€'],           lanes: [0.1, 0.9],         pattern: 'SWOOP' },
         { at_s: 106.5, currencies: ['元','¥'],           lanes: [0.2, 0.8],         pattern: 'SWOOP' },
-        { at_s: 108.0, currencies: ['¥','元','¥','元','¥','元'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
-        { at_s: 110.5, currencies: ['元','¥','元','¥'],  lanes: [0.2, 0.4, 0.6, 0.8], pattern: 'SINE' },
-        { at_s: 113.0, currencies: ['¥','元','¥'],       lanes: [0.3, 0.5, 0.7],    pattern: 'HOVER' },
+        { at_s: 108.0, currencies: ['¥','元','$','元','¥','€'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
+        { at_s: 110.5, currencies: ['元','¥','€','¥'],  lanes: [0.2, 0.4, 0.6, 0.8], pattern: 'SINE' },
+        { at_s: 113.0, currencies: ['¥','元','$'],       lanes: [0.3, 0.5, 0.7],    pattern: 'HOVER' },
         { at_s: 115.5, currencies: ['元','¥','元','¥'],  lanes: [0.1, 0.35, 0.65, 0.9], pattern: 'SWOOP' },
-        { at_s: 117.5, currencies: ['¥','元','¥','元','¥','元'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
-        { at_s: 120.0, currencies: ['元','¥'],           lanes: [0.35, 0.65],       pattern: 'HOVER' },
-        { at_s: 122.5, currencies: ['¥','元','¥','元','¥'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85], pattern: 'SINE' },
+        { at_s: 117.5, currencies: ['¥','€','¥','元','¥','元'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
+        { at_s: 120.0, currencies: ['元','$'],           lanes: [0.35, 0.65],       pattern: 'HOVER' },
+        { at_s: 122.5, currencies: ['¥','元','€','元','¥'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85], pattern: 'SINE' },
         { at_s: 125.0, currencies: ['¥','元'],           lanes: [0.1, 0.9],         pattern: 'SWOOP' },
-        { at_s: 126.0, currencies: ['元','¥'],           lanes: [0.2, 0.8],         pattern: 'SWOOP' },
-        { at_s: 127.5, currencies: ['元','¥','元','¥','元'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9] },
-        { at_s: 130.0, currencies: ['¥','元','¥'],       lanes: [0.3, 0.5, 0.7],    pattern: 'HOVER' },
-        { at_s: 132.5, currencies: ['元','¥','元','¥','元'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85], pattern: 'SINE' },
-        { at_s: 135.0, currencies: ['¥','元','¥','元','¥','元'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
+        { at_s: 126.0, currencies: ['$','¥'],           lanes: [0.2, 0.8],         pattern: 'SWOOP' },
+        { at_s: 127.5, currencies: ['元','¥','€','¥','元'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9] },
+        { at_s: 130.0, currencies: ['¥','$','¥'],       lanes: [0.3, 0.5, 0.7],    pattern: 'HOVER' },
+        { at_s: 132.5, currencies: ['€','¥','元','¥','元'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85], pattern: 'SINE' },
+        { at_s: 135.0, currencies: ['¥','元','$','元','¥','€'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
         { at_s: 137.5, currencies: ['元','¥','元','¥'],  lanes: [0.1, 0.35, 0.65, 0.9], pattern: 'SWOOP' },
-        { at_s: 139.5, currencies: ['元','¥','元'],      lanes: [0.3, 0.5, 0.7],    pattern: 'HOVER' },
+        { at_s: 139.5, currencies: ['$','¥','€'],      lanes: [0.3, 0.5, 0.7],    pattern: 'HOVER' },
 
-        // 142-168s CORRIDOR CRUSH — hardest in campaign (peak 2.6×, 26s)
+        // 142-168s CORRIDOR CRUSH — hardest in campaign, cross-region chaos
         // v7.12.3: +5 burst (14→19) per riempire il CRUSH climax (prima 0.54/s,
         // ora 0.73/s). L3 finale era anti-climactico: veloce ma poco denso.
-        { at_s: 142.5, currencies: ['¥','元','¥','元','¥','元'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
+        { at_s: 142.5, currencies: ['¥','元','$','元','¥','€'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
         { at_s: 144.0, currencies: ['元','¥'],           lanes: [0.1, 0.9],         pattern: 'SWOOP' },
-        { at_s: 145.0, currencies: ['¥','元','¥','元','¥'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85], pattern: 'SINE' },
+        { at_s: 145.0, currencies: ['¥','€','¥','元','¥'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85], pattern: 'SINE' },
         { at_s: 146.5, currencies: ['¥','元','¥','元'],  lanes: [0.2, 0.4, 0.6, 0.8] },           // v7.12.3 +
         { at_s: 147.0, currencies: ['¥','元'],           lanes: [0.25, 0.75],       pattern: 'SWOOP' },
-        { at_s: 148.5, currencies: ['元','¥','元','¥','元'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9] },
-        { at_s: 149.5, currencies: ['¥','元','¥'],       lanes: [0.2, 0.5, 0.8],    pattern: 'HOVER' }, // v7.12.3 +
+        { at_s: 148.5, currencies: ['元','¥','$','¥','元'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9] },
+        { at_s: 149.5, currencies: ['¥','€','¥'],       lanes: [0.2, 0.5, 0.8],    pattern: 'HOVER' }, // v7.12.3 +
         { at_s: 150.5, currencies: ['¥','元','¥'],       lanes: [0.3, 0.5, 0.7],    pattern: 'HOVER' },
         { at_s: 152.5, currencies: ['元','¥'],           lanes: [0.1, 0.9],         pattern: 'SWOOP' },
-        { at_s: 153.5, currencies: ['¥','元'],           lanes: [0.2, 0.8],         pattern: 'SWOOP' },
-        { at_s: 154.0, currencies: ['¥','元','¥','元','¥','元'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9], pattern: 'SINE' }, // v7.12.3 +
-        { at_s: 155.0, currencies: ['¥','元','¥','元','¥','元'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
+        { at_s: 153.5, currencies: ['¥','€'],           lanes: [0.2, 0.8],         pattern: 'SWOOP' },
+        { at_s: 154.0, currencies: ['¥','元','$','元','¥','元'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9], pattern: 'SINE' }, // v7.12.3 +
+        { at_s: 155.0, currencies: ['¥','€','¥','元','¥','元'], lanes: [0.1, 0.25, 0.4, 0.6, 0.75, 0.9] },
         { at_s: 157.5, currencies: ['元','¥','元'],      lanes: [0.3, 0.5, 0.7],    pattern: 'HOVER' },
-        { at_s: 159.5, currencies: ['¥','元','¥','元','¥'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85], pattern: 'SINE' },
+        { at_s: 159.5, currencies: ['¥','€','¥','元','¥'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85], pattern: 'SINE' },
         { at_s: 161.0, currencies: ['¥','元','¥','元'],  lanes: [0.15, 0.4, 0.6, 0.85], pattern: 'SWOOP' }, // v7.12.3 +
-        { at_s: 162.0, currencies: ['元','¥','元','¥'],  lanes: [0.1, 0.35, 0.65, 0.9], pattern: 'SWOOP' },
-        { at_s: 163.5, currencies: ['¥','元','¥','元','¥'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85] },        // v7.12.3 +
-        { at_s: 164.5, currencies: ['元','¥','元','¥','元'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9] },
+        { at_s: 162.0, currencies: ['$','¥','元','¥'],  lanes: [0.1, 0.35, 0.65, 0.9], pattern: 'SWOOP' },
+        { at_s: 163.5, currencies: ['¥','€','¥','元','¥'], lanes: [0.15, 0.35, 0.5, 0.65, 0.85] },        // v7.12.3 +
+        { at_s: 164.5, currencies: ['元','¥','元','¥','€'], lanes: [0.1, 0.3, 0.5, 0.7, 0.9] },
         { at_s: 166.5, currencies: ['元','¥'],           lanes: [0.1, 0.9],         pattern: 'SWOOP' }
     ];
 
@@ -442,6 +442,8 @@ window.Game = window.Game || {};
             // v7.19: per-level cursor into Balance.ARCHETYPES.V8_SCHEDULE.AT arrays.
             // Reset on every level load so each campaign level gets the full schedule.
             this._archetypeIdx = { HFT: 0, AUDITOR: 0, PRINTER: 0 };
+            // v7.20.4: per-level behavior caps (reset each level).
+            this._v8BehaviorCounts = null;
         },
 
         // Switch to a specific level (0-indexed). Called on CONTINUE after intermission.
@@ -687,6 +689,105 @@ window.Game = window.Game || {};
                 if (G.HarmonicConductor) G.HarmonicConductor.enemies = arr;
             }
             if (this._stats) this._stats.spawned++;
+
+            // v7.20.4: Semi-agent conversion — randomly turn spawns into automated turrets
+            // (vehicle with energy core, no pilot). Applied before elite/behavior so those
+            // checks can skip semi-agents if desired (elite on semi-agent is fine though).
+            const semiCfg = G.Balance?.SEMI_AGENT;
+            if (semiCfg?.ENABLED && !enemy._isSemiAgent && Math.random() < (semiCfg.SEMI_CHANCE ?? 0)) {
+                enemy._isSemiAgent = true;
+                // Slightly tougher than a pure minion but weaker than a WEAK agent
+                enemy.hp = (enemy.hp || 1) * (semiCfg.HP_MULT ?? 0.75);
+                enemy.scoreVal += semiCfg.VAL_BONUS ?? 5;
+            }
+
+            // v7.20.4: Elite variant assignment for V8 campaign
+            // Uses reduced rates (STORY tier) since V8 is already higher difficulty.
+            this._assignV8Elite(enemy, currencySymbol, tier);
+
+            // v7.20.4: Behavior assignment for V8 campaign
+            this._assignV8Behavior(enemy, currencySymbol);
+        },
+
+        // v7.20.4: Elite variant assignment for V8 campaign enemies
+        _assignV8Elite(enemy, currencySymbol, tierOverride) {
+            const Balance = G.Balance;
+            const eliteCfg = Balance?.ELITE_VARIANTS;
+            if (!eliteCfg?.ENABLED) return;
+
+            // Use per-level tier if available, otherwise resolve from Balance.TIERS
+            const enemyTier = tierOverride || 'WEAK';
+            if (!eliteCfg.ELIGIBLE_TIERS.includes(enemyTier)) return;
+
+            // V8 cycle maps to level index (L1=cycle1, L2=cycle2, L3=cycle3)
+            const cycleIdx = Math.min(this._levelIdx, 2);
+            const variantType = eliteCfg.CYCLE_VARIANTS[this._levelIdx + 1] || eliteCfg.CYCLE_VARIANTS[1];
+            const chance = (eliteCfg.CHANCE.STORY || [0.10, 0.15, 0.20])[cycleIdx];
+            const variantCfg = eliteCfg[variantType];
+            if (!variantCfg || variantCfg.ENABLED === false) return;
+
+            if (Math.random() < chance) {
+                enemy.isElite = true;
+                enemy.eliteType = variantType;
+                if (variantType === 'ARMORED') {
+                    enemy.hp *= variantCfg.HP_MULT;
+                    enemy.maxHp = enemy.hp;
+                    enemy.scoreVal = Math.round(enemy.scoreVal * variantCfg.SCORE_MULT);
+                } else if (variantType === 'EVADER') {
+                    enemy._evaderCooldown = 1;
+                } else if (variantType === 'REFLECTOR') {
+                    enemy.reflectCharges = variantCfg.CHARGES;
+                }
+                if (G.Debug) G.Debug.log('V8', `[ELITE] ${currencySymbol} → ${variantType} (L${this.currentLevelNum()})`);
+            }
+        },
+
+        // v7.20.4: Behavior assignment for V8 campaign enemies
+        _assignV8Behavior(enemy, currencySymbol) {
+            const Balance = G.Balance;
+            const behCfg = Balance?.ENEMY_BEHAVIORS;
+            if (!behCfg?.ENABLED) return;
+
+            // V8 uses the STORY rate (0.18) — lower than Arcade (0.22)
+            const behRate = behCfg.BEHAVIOR_RATE || 0.18;
+            if (Math.random() >= behRate) return;
+
+            // Virtual global wave: L1≈wave5, L2≈wave10, L3≈wave15
+            // This gates behavior availability (FLANKER from wave3, rest from wave7+)
+            const virtualGlobalWave = (this._levelIdx + 1) * 5;
+            const available = [];
+            if (behCfg.FLANKER?.ENABLED && virtualGlobalWave >= behCfg.MIN_WAVE.FLANKER) available.push('FLANKER');
+            if (behCfg.BOMBER?.ENABLED && virtualGlobalWave >= behCfg.MIN_WAVE.BOMBER) available.push('BOMBER');
+            if (behCfg.HEALER?.ENABLED && virtualGlobalWave >= behCfg.MIN_WAVE.HEALER) available.push('HEALER');
+            if (behCfg.CHARGER?.ENABLED && virtualGlobalWave >= behCfg.MIN_WAVE.CHARGER) available.push('CHARGER');
+            if (available.length === 0) return;
+
+            // Per-level cap tracking (reset per loadLevel)
+            if (!this._v8BehaviorCounts) this._v8BehaviorCounts = {};
+            const caps = behCfg.CAPS || {};
+            const unCapped = available.filter(b => (this._v8BehaviorCounts[b] || 0) < (caps[b] || 99));
+            if (unCapped.length === 0) return;
+
+            const pick = unCapped[Math.floor(Math.random() * unCapped.length)];
+            enemy.behavior = pick;
+            this._v8BehaviorCounts[pick] = (this._v8BehaviorCounts[pick] || 0) + 1;
+
+            // Init behavior state (same patterns as WaveManager)
+            const gw = G._gameWidth || 400;
+            if (pick === 'FLANKER') {
+                enemy._behaviorPhase = 'RUN';
+                enemy._behaviorTimer = behCfg.FLANKER.RUN_DURATION;
+                enemy._flankerDir = enemy.x < (gw / 2) ? 1 : -1;
+            } else if (pick === 'BOMBER') {
+                enemy._behaviorBombTimer = behCfg.BOMBER.BOMB_COOLDOWN * (0.5 + Math.random());
+                enemy._behaviorPhase = 'IDLE';
+            } else if (pick === 'CHARGER') {
+                enemy._behaviorPhase = 'IDLE';
+                enemy._behaviorTimer = behCfg.CHARGER.CHARGE_INTERVAL * (0.3 + Math.random() * 0.7);
+            } else if (pick === 'HEALER') {
+                enemy._behaviorPulseTimer = 0;
+            }
+            if (G.Debug) G.Debug.log('V8', `[BEHAVIOR] ${currencySymbol} → ${pick} (L${this.currentLevelNum()})`);
         }
     };
 })();

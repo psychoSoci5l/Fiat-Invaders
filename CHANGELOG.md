@@ -1,6 +1,19 @@
 # Changelog
 
-## v7.20.3 — fix(cr): Fase 1 regressioni — BossSpawner mancante + 6 fix QA plan - 2026-05-02
+## v7.20.4 — feat(enemy): varietà nemici — minion regionali, elite/behavior V8, cross-region mixing, semi-agent - 2026-05-02
+
+### feat
+- **Minion Agent**: I minion ora si disegnano come veicoli regionali ridotti (Stealth Wedge / Diplomatic Shuttle / Quad-Drone) con simbolo e scintille. Gerarchia visiva netta: minion=drone vs agent=pilota+veicolo.
+- **Semi-Agent (Automated Turret)**: Nuovo tier intermedio tra minion e WEAK agent. Veicolo regionale con core energetico pulsante + reticolo laser + simbolo olografico (scale 0.70). 25% di conversione random in V8.
+- **Elite/Behavior in V8**: `_assignV8Elite()` e `_assignV8Behavior()` in LevelScript. ARMORED/EVADER/REFLECTOR + FLANKER/BOMBER/CHARGER/HEALER con tassi STORY (10-20%), virtual wave gating, per-level caps.
+- **Cross-region mixing**: Ogni livello V8 ora include valute intrusi dalle altre regioni (L1: €/¥, L2: $/¥, L3: $/€) nelle fasi PEAK e CRUSH.
+
+### config
+- **BalanceConfig.js**: Nuovo blocco `SEMI_AGENT` con `SEMI_CHANCE`, `HP_MULT`, `VAL_BONUS`, `SCALE`.
+
+### test
+- 763/764 test pass (1 fallimento pre-esistente: clearBattlefield).
+- 4 file modificati, 0 errori di sintassi.
 
 ### fix (critical)
 - **BossSpawner.js**: Estratto da main.js nel refactoring v7.20 Fase 1 (ADR-0014) ma

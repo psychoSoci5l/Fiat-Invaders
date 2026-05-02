@@ -772,6 +772,18 @@
             }
         },
 
+        // v7.20.4: Semi-agent automated turrets — mid-tier between minion and WEAK agent.
+        // Vehicle with glowing energy core + targeting laser (no pilot). Spawned via
+        // random conversion in LevelScript._spawn() at SEMI_CHANCE rate per burst.
+        // Semi-agents use WEAK tier stats × HP_MULT with a small val bonus.
+        SEMI_AGENT: {
+            ENABLED: true,
+            SEMI_CHANCE: 0.25,           // Fraction of V8 spawns converted to semi-agent
+            HP_MULT: 0.75,              // ×WEAK tier HP (between minion ×0.5 and WEAK ×1.0)
+            VAL_BONUS: 5,               // +val over base (minion=15, semi≈20-25, WEAK=35)
+            SCALE: 0.70                 // Visual scale (between minion 0.55 and WEAK 0.82)
+        },
+
         // v7.9.5 Gravity Gate — enemies hover-stop at random Y, flip upright (thrusters below),
         // dwell for a while engaging the player, then depart upward. Gives the player a moment
         // of "gravity suspends them" → readable combat windows instead of endless rain.
