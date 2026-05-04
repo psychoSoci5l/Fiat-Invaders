@@ -346,10 +346,13 @@
                 setWaveStartTime(getTotalTime());
 
                 if (G.HarmonicConductor) G.HarmonicConductor.enemies = restored;
-                if (waveMgr) waveMgr.miniBossActive = false;
 
                 // Arcade: mini-boss defeat → modifier choice (2-card)
+                // v7.31: keep miniBossActive=true + waveInProgress=true during the
+                // modifier pick window so WaveManager doesn't trigger a full boss
+                // spawn or intermission while the player is choosing cards.
                 if (G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode() && G.ModifierChoiceScreen) {
+                    if (waveMgr) waveMgr.waveInProgress = true;
                     const picks = (G.Balance.ARCADE && G.Balance.ARCADE.MODIFIERS && G.Balance.ARCADE.MODIFIERS.POST_MINIBOSS_PICKS) || 2;
                     const _showModChoice = () => {
                         G.ModifierChoiceScreen.show(picks, () => {
@@ -359,6 +362,11 @@
                                 G.adjustLives(extraL);
                                 rs.arcadeBonuses.extraLives = 0;
                             }
+                            // Unblock WaveManager now that modifier pick is done
+                            if (waveMgr) {
+                                waveMgr.miniBossActive = false;
+                                waveMgr.waveInProgress = false;
+                            }
                         });
                     };
                     if (typeof bossDeathTimeout === 'function') {
@@ -366,6 +374,8 @@
                     } else {
                         setTimeout(_showModChoice, 800);
                     }
+                } else {
+                    if (waveMgr) waveMgr.miniBossActive = false;
                 }
 
                 miniBoss = null;
