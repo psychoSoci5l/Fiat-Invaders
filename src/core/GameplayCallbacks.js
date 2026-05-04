@@ -312,7 +312,9 @@ window.Game = window.Game || {};
                     const _mbMaxWave = _arcadeMini ? _arcadeMini.MAX_PER_WAVE : (Balance.MINI_BOSS.MAX_PER_WAVE || 2);
                     const boss = d.getBoss();
                     const miniBoss = d.getMiniBoss();
-                    if (!(G.CampaignState && G.CampaignState.isEnabled()) && e.symbol && d.getFiatKillCounter()[e.symbol] !== undefined && !miniBoss && !boss && !e.isMinion && d.getBossWarningTimer() <= 0 && (d.getTotalTime() - d.getLastMiniBossSpawnTime()) >= _mbCooldown && d.getMiniBossThisWave() < _mbMaxWave) {
+                    if (!(G.CampaignState && G.CampaignState.isEnabled()) && e.symbol && d.getFiatKillCounter()[e.symbol] !== undefined && !miniBoss && !boss && !e.isMinion && d.getBossWarningTimer() <= 0 && (d.getTotalTime() - d.getLastMiniBossSpawnTime()) >= _mbCooldown && d.getMiniBossThisWave() < _mbMaxWave
+                        // v7.31: no mini-boss in wave 1 — gives the player one full warm-up wave
+                        && (G.WaveManager && G.WaveManager.wave > 1)) {
                         const fkc = d.getFiatKillCounter();
                         fkc[e.symbol]++;
                         const mapping = Balance.MINI_BOSS.CURRENCY_BOSS_MAP?.[e.symbol];
