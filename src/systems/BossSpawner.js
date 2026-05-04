@@ -18,7 +18,10 @@
 
     function getBossForCycle(marketCycle) {
         var rotation = G.BOSS_ROTATION || DEFAULT_ROTATION;
-        return rotation[(marketCycle - 1) % rotation.length];
+        var idx = ((marketCycle - 1) % rotation.length + rotation.length) % rotation.length;
+        var picked = rotation[idx];
+        if (G.Debug) G.Debug.log('BOSS', '[ROTATION] marketCycle=' + marketCycle + ' rotation=' + JSON.stringify(rotation) + ' idx=' + idx + ' → ' + picked);
+        return picked;
     }
 
     function getBossFlashColor(bossType) {
@@ -44,6 +47,8 @@
          */
         startWarning: function (ctx) {
             var bossWarningType = getBossForCycle(ctx.marketCycle);
+
+            if (G.Debug) G.Debug.log('BOSS', '[WARNING] marketCycle=' + ctx.marketCycle + ' bossType=' + bossWarningType + ' globalMarketCycle=' + window.marketCycle);
 
             G.clearBattlefield();
 

@@ -26,20 +26,24 @@
 
         applyHitStop('BOSS_DEFEAT_SLOWMO', false);
 
-        // Clear all bullets (player + enemy) with VFX + score bonus
+        // Save enemies and suspend the wave BEFORE clearing the battlefield.
+        // WaveManager.suspendStreaming captures the streaming state snapshot
+        // so it can be resumed after mini-boss defeat. clearBattlefield() runs
+        // after — it provides bullet VFX + score bonus and resets streaming
+        // internals (which are already safely snapshotted).
+        const savedEnemies = [...getEnemies()];
+        if (waveMgr) waveMgr.suspendStreaming(savedEnemies);
+
         if (G.clearBattlefield) {
             G.clearBattlefield();
         } else {
-            // Fallback: manual clear without VFX
             const eb = getEnemyBullets();
             eb.forEach(b => { b.markedForDeletion = true; G.Bullet.Pool.release(b); });
             setEnemyBullets([]);
         }
 
-        // Save and clear enemies
-        const savedEnemies = [...getEnemies()];
+        // Clear enemies — the wave is now suspended
         setEnemies([]);
-
         if (waveMgr) waveMgr.miniBossActive = true;
         if (G.HarmonicConductor) G.HarmonicConductor.enemies = getEnemies();
 
@@ -53,7 +57,6 @@
             miniBoss = new G.Boss(gameWidth(), gameHeight(), bossType);
             window.miniBoss = miniBoss;
             miniBoss.isMiniBoss = true;
-            miniBoss.savedEnemies = savedEnemies;
             miniBoss.triggerColor = triggerColor;
 
             const perkCount = (runState() && runState().perks) ? runState().perks.length : 0;
@@ -98,7 +101,6 @@
                 fireRate: 0.8,
                 phase: 0,
                 phaseTimer: 0,
-                savedEnemies: savedEnemies,
                 animTime: 0,
                 active: true
             };
@@ -336,9 +338,10 @@
                 if (window.Game.applyHitStop) window.Game.applyHitStop('BOSS_DEFEAT_SLOWMO', false);
                 if (window.Game.triggerScreenFlash) window.Game.triggerScreenFlash('BOSS_DEFEAT');
 
-                // Restore enemies
-                const restored = (miniBoss.savedEnemies && miniBoss.savedEnemies.length > 0)
-                    ? miniBoss.savedEnemies : [];
+                // Resume the wave: WaveManager restores streaming state + saved enemies
+                var restored = (waveMgr && typeof waveMgr.resumeStreaming === 'function')
+                    ? waveMgr.resumeStreaming()
+                    : [];
                 setEnemies(restored);
                 setWaveStartTime(getTotalTime());
 

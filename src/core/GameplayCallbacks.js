@@ -537,21 +537,19 @@ window.Game = window.Game || {};
                             if (G.RunState.arcadeBonuses.lastStandAvailable) {
                                 G.RunState.arcadeBonuses.lastStandAvailable = true;
                             }
-                            d.startIntermission(d.t('CYCLE') + ' ' + newCycle + ' ' + d.t('BEGINS'));
-                            d.bossDeathTimeout(() => {
-                                G.ModifierChoiceScreen.show(picks, () => {
-                                    const extraL = G.RunState.arcadeBonuses.extraLives;
-                                    if (extraL > 0) {
-                                        d.setLives(d.getLives() + extraL);
-                                        G.RunState.arcadeBonuses.extraLives = 0;
-                                        d.updateLivesUI();
-                                    } else if (extraL < 0) {
-                                        d.setLives(Math.max(1, d.getLives() + extraL));
-                                        G.RunState.arcadeBonuses.extraLives = 0;
-                                        d.updateLivesUI();
-                                    }
-                                });
-                            }, 1500);
+                            G.ModifierChoiceScreen.show(picks, () => {
+                                const extraL = G.RunState.arcadeBonuses.extraLives;
+                                if (extraL > 0) {
+                                    d.setLives(d.getLives() + extraL);
+                                    G.RunState.arcadeBonuses.extraLives = 0;
+                                    d.updateLivesUI();
+                                } else if (extraL < 0) {
+                                    d.setLives(Math.max(1, d.getLives() + extraL));
+                                    G.RunState.arcadeBonuses.extraLives = 0;
+                                    d.updateLivesUI();
+                                }
+                                d.startIntermission(d.t('CYCLE') + ' ' + newCycle + ' ' + d.t('BEGINS'));
+                            });
                         } else if (campaignComplete && shouldShowChapter) {
                             d.showStoryScreen(chapterId, () => {
                                 if (!localStorage.getItem('fiat_completion_seen')) {

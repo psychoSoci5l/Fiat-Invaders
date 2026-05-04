@@ -782,6 +782,51 @@ window.Game.WaveManager = {
     },
 
     /**
+     * Suspend streaming — called when the wave is interrupted (e.g. mini-boss spawns).
+     * Saves the full streaming state and the current enemies so it can be resumed later.
+     * @param {Array} enemies - Current enemies array to save
+     */
+    suspendStreaming(enemies) {
+        var snapshot = enemies ? enemies.slice() : [];
+        this._suspendedEnemies = snapshot;
+        this._suspendedStreaming = {
+            isStreaming: this.isStreaming,
+            streamingPhases: this._streamingPhases,
+            currentPhaseIndex: this._currentPhaseIndex,
+            phasesSpawned: this._phasesSpawned,
+            phaseTimer: this._phaseTimer,
+            streamingSpawnedCount: this.streamingSpawnedCount
+        };
+        this.isStreaming = false;
+        this._streamingPhases = [];
+        if (window.Game.Debug) window.Game.Debug.log('WAVE', '[WM] Streaming suspended, saved ' + snapshot.length + ' enemies');
+    },
+
+    /**
+     * Resume streaming — called when the wave interruption ends (e.g. mini-boss defeated).
+     * Restores the streaming state and returns the saved enemies to be re-added to the field.
+     * @returns {Array} Saved enemies to restore to the game field
+     */
+    resumeStreaming() {
+        if (!this._suspendedStreaming) {
+            if (window.Game.Debug) window.Game.Debug.log('WAVE', '[WM] No suspended streaming state to resume');
+            return [];
+        }
+        var s = this._suspendedStreaming;
+        this.isStreaming = s.isStreaming;
+        this._streamingPhases = s.streamingPhases;
+        this._currentPhaseIndex = s.currentPhaseIndex;
+        this._phasesSpawned = s.phasesSpawned;
+        this._phaseTimer = s.phaseTimer;
+        this.streamingSpawnedCount = s.streamingSpawnedCount;
+        var saved = this._suspendedEnemies || [];
+        this._suspendedStreaming = null;
+        this._suspendedEnemies = null;
+        if (window.Game.Debug) window.Game.Debug.log('WAVE', '[WM] Streaming resumed, restored ' + saved.length + ' enemies');
+        return saved;
+    },
+
+    /**
      * Check if streaming wave is fully complete (all phases spawned + all dead)
      */
     isStreamingComplete() {

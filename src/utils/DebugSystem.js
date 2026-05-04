@@ -1761,7 +1761,10 @@ window.Game.Debug = {
         // Override boss rotation to force specific type
         const origRotation = G.BOSS_ROTATION;
         G.BOSS_ROTATION = [bossType];
-        window.marketCycle = 1; // Cycle 1 for consistent rotation
+        window.marketCycle = 1;
+        if (G.RunState) G.RunState.marketCycle = 1;
+        // v7.20.4: sync main.js local via _debugAPI
+        if (G._debugAPI) G._debugAPI.setCycle(1);
 
         // Spawn
         if (G._spawnBoss) {
@@ -2876,6 +2879,8 @@ window.Game.Debug = {
 
         // Set cycle 3 (BOJ cycle)
         window.marketCycle = 3;
+        if (G.RunState) G.RunState.marketCycle = 3;
+        if (G._debugAPI) G._debugAPI.setCycle(3);
         window.currentLevel = 14; // Late wave
 
         // Clear enemies + bullets
