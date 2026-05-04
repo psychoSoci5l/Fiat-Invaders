@@ -387,6 +387,10 @@ window.Game.WaveManager = {
         const diff = Balance.calculateDifficulty(level, cycle);
         const apcMult = (G.RunState && G.RunState.cyclePower) ? G.RunState.cyclePower.hpMult : 1.0;
         let scaledHP = Balance.calculateEnemyHP(diff, cycle) * apcMult;
+        // v7.31: NG+ enemy HP scaling (campaign mode only; Arcade returns 1.0)
+        const _cs = G.CampaignState;
+        const ngPlusMult = (_cs && _cs.isEnabled()) ? _cs.getNGPlusMultiplier() : 1;
+        scaledHP *= ngPlusMult;
         // Arcade modifiers: enemy HP scaling
         const _arcadeCfg = Balance.ARCADE;
         const _isArcadeWM = G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode();

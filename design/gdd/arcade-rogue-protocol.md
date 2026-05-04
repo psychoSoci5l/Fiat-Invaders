@@ -1,7 +1,7 @@
 # Arcade Rogue Protocol — Game Design Document
 
 **System:** Arcade Rogue Protocol (legacy WaveManager mode + roguelike modifiers)
-**Version covered:** v7.12.4 (reverse-documented from code; cite file:line where noted)
+**Version covered:** v7.31.0 (reverse-documented from code; cite file:line where noted)
 **Status:** Active alternative to V8 campaign; WaveManager-driven; no LevelScript involvement
 **File audience:** Designers, engineers, QA
 
@@ -9,13 +9,13 @@
 
 ## Overview
 
-Arcade Rogue Protocol is the roguelike alternative to the V8 campaign in *FIAT vs CRYPTO*. It activates whenever `G.CampaignState.isEnabled()` returns `false` (i.e., the player launches in Arcade mode from the intro screen), which causes `G.ArcadeModifiers.isArcadeMode()` to return `true`. In Arcade mode the V8 LevelScript is fully dormant — `WaveManager.update()` takes over spawning, cycling through 15 pre-defined waves (5 waves × 3 cycles) at higher enemy density and lower enemy HP than Story mode. The core roguelike layer adds three interlocking systems: a **combo multiplier** (kills in rapid succession compound a score bonus that resets on timeout or death), **enhanced mini-bosses** (lower thresholds, shorter cooldown, up to 3 per wave), and **accumulating modifier cards** (chosen from a DOM modal after every boss or mini-boss defeat, stacking indefinitely across the run up to a cap of 20). Post-cycle-3 the game scales infinitely by cycling through C1–C3 wave definitions with remixed formations and accelerated difficulty. Persistent high scores (best cycle, level, kill count) are tracked in localStorage and displayed on the game-over screen.
+Arcade Rogue Protocol is the roguelike alternative to the V8 campaign in *FIAT vs CRYPTO*. It activates whenever `G.CampaignState.isEnabled()` returns `false` (i.e., the player launches in Arcade mode from the intro screen), which causes `G.ArcadeModifiers.isArcadeMode()` to return `true`. In Arcade mode the V8 LevelScript is fully dormant — `WaveManager.update()` takes over spawning, cycling through 15 pre-defined waves (5 waves × 3 cycles) at higher enemy density and lower enemy HP than Story mode. The core roguelike layer adds three interlocking systems: a **combo multiplier** (kills in rapid succession compound a score bonus that resets on timeout or death), **enhanced mini-bosses** (lower thresholds, shorter cooldown, up to 3 per wave), and **accumulating modifier cards** (chosen from a DOM modal after every boss or mini-boss defeat, stacking indefinitely across the run up to a cap of 20). Post-cycle-3 the game scales infinitely by cycling through C1–C3 wave definitions with remixed formations and accelerated difficulty. A **visual phase progression** mirrors the campaign's sky journey: the arcade background transitions from blue sky (C1) → violet upper atmosphere (C2) → cyberpunk neon void (C3+), using the same `PhaseTransitionController` crossfade system as Story mode. Persistent high scores (best cycle, level, kill count) are tracked in localStorage and displayed on the game-over screen.
 
 ---
 
 ## Player Fantasy
 
-The player should feel like a one-person trading floor that keeps printing higher and higher numbers. Every kill chain rewards momentum — the combo counter climbs, the score multiplier spikes, the HUD pulses. Modifier cards are the pivotal beat-breath of the loop: two or three seconds of agency between boss explosions to select a permanent power that tilts the next cycle in a chosen direction (faster fire vs. tankier defense vs. degenerate WILD). By cycle 4 the screen is busier than Story mode, the formations are random, and the player's accumulated modifier stack is the only thing keeping them alive. The fantasy is "one more cycle" — just like a roguelite, each run ends in death but teaches exactly which modifiers synergize.
+The player should feel like a one-person trading floor that keeps printing higher and higher numbers. Every kill chain rewards momentum — the combo counter climbs, the score multiplier spikes, the HUD pulses. Modifier cards are the pivotal beat-breath of the loop: two or three seconds of agency between boss explosions to select a permanent power that tilts the next cycle in a chosen direction (faster fire vs. tankier defense vs. degenerate WILD). The visual journey reinforces progress: beating the first central bank lifts the player from blue daylight into violet upper atmosphere (C2), and crushing the second bank plunges them into the full cyberpunk neon void (C3+), where planets, shooting stars, and neon streaks complete the "Bloomberg Terminal in deep space" aesthetic. By cycle 4 the screen is busier than Story mode, the formations are random, and the player's accumulated modifier stack is the only thing keeping them alive. The fantasy is "one more cycle" — just like a roguelite, each run ends in death but teaches exactly which modifiers synergize.
 
 ---
 
@@ -37,7 +37,7 @@ The player should feel like a one-person trading floor that keeps printing highe
   - Source: `src/config/BalanceConfig.js` (`WAVE_DEFINITIONS.WAVES`)
 - WaveManager drives spawning: on every `PLAY` tick it checks enemy count → emits `START_INTERMISSION` (within cycle) or `SPAWN_BOSS` (end of cycle, wave > 5).
   - Source: `src/managers/WaveManager.js:112-122`
-- Streaming: phase 0 spawns immediately; subsequent phases trigger when `currentPhaseAlive ≤ threshold` (35% of phase count, min 3, max 6) AND min duration of 3.0 s has elapsed AND adding next phase wouldn't push total above `MAX_CONCURRENT_ENEMIES (22)`.
+- Streaming: phase 0 spawns immediately; subsequent phases trigger when `currentPhaseAlive ≤ threshold` (25% of phase count, min 3, max 4) AND min duration of 3.0 s has elapsed AND adding next phase wouldn't push total above `MAX_CONCURRENT_ENEMIES (18)`.
   - Source: `src/managers/WaveManager.js:63-99`
 
 ### C.3 Enemy count and HP (Arcade overrides)
@@ -175,6 +175,29 @@ Behavior assignment (FLANKER, BOMBER, HEALER, CHARGER) uses `BEHAVIOR_RATE_ARCAD
 Elite variant chances use `ELITE_VARIANTS.CHANCE.ARCADE` array (vs. `CHANCE.STORY`). Exact values referenced as `[0.15, 0.20, 0.25]` per cycle index.
   - Source: `src/config/BalanceConfig.js:597`; `src/managers/WaveManager.js:301`
 
+### C.18 Visual phase progression
+
+Arcade mode inherits the campaign's visual phase system (P1 Earth/LEO → P2 upper atmosphere → P3 deep space) using the shared `PhaseTransitionController`, `SkyRenderer`, and `WeatherController` infrastructure:
+
+- **Phase 1 (C1):** Blue sky gradient, white clouds, green hills, daylight horizon glow, zero stars, zero planets. All arcade runs start here.
+- **Phase 2 (C2):** Violet-to-purple sky gradient, thinning violet-white clouds, purple hills, stars emerging in upper half of screen, violet NEAR streaks. Triggered after C1 boss defeat.
+- **Phase 3 (C3+):** Black void, zero clouds (silhouette with neon rim), black hills with cyan underglow, full starfield + shooting stars, 3 gas-giant planets with rings, cyberpunk neon streaks (`#00f0ff`, `#ff2d95`), floating crypto symbols. Triggered after C2 boss defeat.
+
+**Transition triggers** (in `onBossDeath` arcade branch, `src/core/GameplayCallbacks.js:536-548`):
+- `marketCycle === 1` (C1 boss defeated) → `PhaseTransitionController.startTransition(1, 2)` — P1→P2, 10s crossfade
+- `marketCycle === 2` (C2 boss defeated) → `PhaseTransitionController.startTransition(2, 3)` — P2→P3, 10s crossfade
+- `marketCycle >= 3` → no transition (already at P3, infinite loop)
+
+The crossfade overlaps with the modifier pick screen and intermission, completing ~10s after boss death. `SkyRenderer.setPhase()` and `WeatherController.setPhase()` update immediately with the new phase; the `PhaseTransitionController` manages the visual blend via per-layer easing curves (linear for sky/clouds/hills/streaks, sigmoid for stars).
+
+**CSS UI theming** updates automatically via the `'phase-change'` event emitted by `PhaseTransitionController` at transition completion — `--terminal-border`, `--neon-accent`, `--hud-glow-rgb` shift from blue (P1) → violet (P2) → cyan (P3).
+
+**Edge case — campaign/arcade isolation:** the phase triggers are inside the `if (_isArcadeMode)` branch only. Campaign mode uses its own `advanceToNextV8Level()` phase mapping. The two paths never overlap.
+
+**Reset on new game:** `regularGameStart()` unconditionally resets `PhaseTransitionController`, `SkyRenderer`, and `WeatherController` to Phase 1 for both modes.
+
+Source: `src/core/GameplayCallbacks.js:536-548`; `src/systems/PhaseTransitionController.js`; `src/systems/SkyRenderer.js`; `art-bible.md §6.5-6.6`
+
 ---
 
 ## Formulas
@@ -238,7 +261,7 @@ Source: `src/managers/WaveManager.js:220-229`; `src/config/BalanceConfig.js:2616
 ```
 targetCount = waveDef.phases[0].count
             × bearMarketMult          // if bear market: ×1.25
-            × CYCLE_COUNT_MULT[i]     // [1.0, 1.2, 1.5] per cycle
+             × CYCLE_COUNT_MULT[i]     // [1.0, 1.25, 1.45] per cycle
             × ARCADE.ENEMY_COUNT_MULT (1.15)
             × RankSystem.getEnemyCountMultiplier()
 ```
@@ -356,6 +379,14 @@ Source: `src/main.js:3559-3574`
 After boss defeat, `startIntermission()` fires immediately, then 1500 ms later the card modal shows. The `onComplete` callback calls `adjustLives(extraLives)` only **after** the pick animation (600 ms). Total delay from boss death: celebration delay + 1500 ms + 600 ms. Lives are added after the intermission label has already shown, meaning the lives count in the UI updates silently mid-intermission.
 Source: `src/core/GameplayCallbacks.js:524-535`
 
+### E.11 Visual phase transition during intermission
+
+The P1→P2 and P2→P3 transitions are 10-second crossfades triggered at the same time as the modifier pick screen (post-celebration delay). Gameplay remains paused during the modifier pick and subsequent intermission, but `PhaseTransitionController.update(dt)` runs unconditionally in the main loop regardless of `gameState` — the transition continues to blend through the intermission and into the first waves of the next cycle. By the time `START_WAVE` fires (~8s after transition start), the sky is at ~80% blend, completing fully after ~10s. If the player pauses the game during the transition, `dt` goes to 0 in the update loop, causing the transition to freeze alongside gameplay. The `PhaseTransitionController` has no explicit PAUSE guard — this is handled implicitly by the zero-dt game loop.
+
+### E.12 Phase reset on new arcade run
+
+`regularGameStart()` unconditionally calls `PhaseTransitionController.init()` + `setCurrentPhase(1)`, `SkyRenderer.setPhase(1)`, and `WeatherController.setPhase(1)` for every game start regardless of mode. Any in-progress transition from a previous arcade run is reset. Phase 1 is the guaranteed starting state.
+
 ---
 
 ## Dependencies
@@ -376,6 +407,9 @@ Source: `src/core/GameplayCallbacks.js:524-535`
 | Player | `src/entities/Player.js` | Reads `arcadeBonuses.critChance`/`critMult` for bullet damage (line 857-858); `speedMult`, `fireRateMult`, `piercePlus` applied in fire/move logic |
 | EventBus | `G.Events` | No dedicated Arcade events; runs use the same `enemy_killed` hook |
 | HarmonicConductor | `src/systems/HarmonicConductor.js` | V8 ramp skipped in Arcade; base fire budget (`BULLETS_PER_SECOND`) applies normally |
+| PhaseTransitionController | `src/systems/PhaseTransitionController.js` | `startTransition(1,2)` / `startTransition(2,3)` after C1/C2 boss defeat; manages 10s crossfade blend with per-layer easing curves |
+| SkyRenderer | `src/systems/SkyRenderer.js` | `setPhase(2)` / `setPhase(3)` updates sky, clouds, stars, hills, planets, streaks, symbols to target phase; renders phase-aware visuals every frame |
+| WeatherController | `src/systems/WeatherController.js` | `setPhase(2)` / `setPhase(3)` updates weather effects (sheet lightning, rain, snow, fog) to phase-specific colors and intensities |
 
 ---
 
@@ -492,6 +526,20 @@ Source: `src/systems/ArcadeModifiers.js:178-206`
 | WILD | `#ff2d95` (magenta) |
 
 Source: `src/systems/ArcadeModifiers.js:111-115`
+
+### G.10 Visual phase progression
+
+Visual phases are governed by `Balance.SKY.PHASE_TRANSITION` (`src/config/BalanceConfig.js`) — the same config used by campaign mode. No arcade-specific keys; the trigger points (which cycle triggers which transition) are hardcoded in `GameplayCallbacks.js:536-548`.
+
+| Key | Value | Effect |
+|---|---|---|
+| `SKY.PHASE_TRANSITION.P1P2_DURATION` | `10 s` | Crossfade duration for C1→C2 transition |
+| `SKY.PHASE_TRANSITION.P2P3_DURATION` | `10 s` | Crossfade duration for C2→C3 transition |
+| Trigger: `marketCycle === 1` | P1→P2 | After C1 boss (FED) defeat |
+| Trigger: `marketCycle === 2` | P2→P3 | After C2 boss (BCE) defeat |
+| Trigger: `marketCycle >= 3` | None | Already at P3; infinite loop |
+
+The transition is not configurable on/off — it always runs in Arcade mode because the `PhaseTransitionController`/`SkyRenderer`/`WeatherController` are always available. Disabling would require a kill-switch in the trigger code.
 
 ---
 
@@ -619,6 +667,21 @@ Each criterion is independently testable.
 **Test:** Pick OVERCLOCK + DOUBLE_SCORE. Run `dbg.arcade()` in console.
 **Pass:** Output lists both modifiers, their bonuses (`fireRateMult: 0.80`, `scoreMult: 2.0`), comboCount, best combo.
 
+### H.25 Visual phase transitions on C1 and C2 boss defeat
+
+**Test:** Start an arcade run. Defeat the C1 boss (FED). Within 2s of the modifier pick screen appearing, verify `G.PhaseTransitionController.isTransitioning() === true` and `getFromPhase() === 1, getToPhase() === 2`.
+**Pass:** `G.SkyRenderer` and `G.WeatherController` phase set to 2; sky crossfade visible. Repeat for C2 boss → P2→P3.
+
+### H.26 No visual phase transition on C3+ boss defeat
+
+**Test:** Reach C3 in arcade (defeat two bosses). Defeat the C3 boss (BOJ). Verify no transition fires.
+**Pass:** `G.PhaseTransitionController.isTransitioning() === false` before and after the boss defeat; `getCurrentPhase() === 3` unchanged.
+
+### H.27 Visual phase resets to P1 on new arcade game
+
+**Test:** Complete an arcade run to C2+ (sky at P2 or P3). Start a new arcade game.
+**Pass:** `G.PhaseTransitionController.getCurrentPhase() === 1`; `G.SkyRenderer` phase is 1; sky shows blue daylight, green hills, no stars.
+
 ---
 
 ## Documented Gaps
@@ -642,4 +705,17 @@ Count confirmed: 5 OFFENSE + 5 DEFENSE + 5 WILD = 15. No discrepancy.
 
 ### Gap 6 — ~~`CHAIN_LIGHTNING` 30% chance missing~~ — **Resolved v7.12.6**: `Math.random() < CHANCE` guard added in `GameplayCallbacks.js:235`; `Balance.ARCADE.MODIFIER_TUNING.CHAIN_LIGHTNING.CHANCE = 0.30` extracted as tunable config key.
 
-*End of GDD — Arcade Rogue Protocol v7.12.4*
+### Gap 7 — ~~Visual phase progression missing (Pillar 4)~~ — **Resolved v7.31.0**
+
+Arcade mode was visually frozen at Phase 1 (blue sky / daylight) for the entire infinite run despite the `PhaseTransitionController`/`SkyRenderer`/`WeatherController` infrastructure supporting all three phases. Phase transitions now trigger at C1 boss (P1→P2) and C2 boss (P2→P3) in `GameplayCallbacks.js:536-548`, giving arcade the same visual journey as campaign.
+
+### Gap 8 — ~~CYCLE_COUNT_MULT / MAX_CONCURRENT / PHASE_TRIGGER drifted from wave GDD~~ — **Resolved v7.31.0**
+
+Arcade GDD had stale values from pre-v6.5 tuning:
+- `CYCLE_COUNT_MULT`: `[1.0, 1.2, 1.5]` → corrected to `[1.0, 1.25, 1.45]` (v4.40 nerf)
+- `MAX_CONCURRENT_ENEMIES`: `22` → corrected to `18` (v6.5: "22→18")
+- `PHASE_TRIGGER`: `THRESHOLD_RATIO 0.35`, `MAX_THRESHOLD 6` → corrected to `0.25` / `4` (v6.5 tuning)
+
+The wave-legacy-arcade.md GDD is the authoritative reference for these values since it documents the tuning history. Arcade GDD now matches.
+
+*End of GDD — Arcade Rogue Protocol v7.31.0*

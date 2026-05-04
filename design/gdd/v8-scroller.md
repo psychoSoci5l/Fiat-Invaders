@@ -1,7 +1,7 @@
 # V8 Scroller — Game Design Document
 
 **System:** V8 Scroller (Gradius-style vertical campaign mode)
-**Version covered:** v7.12.4 (reverse-documented from code; cite file:line where noted)
+**Version covered:** v7.31.0 (reverse-documented from code; cite file:line where noted)
 **Status:** PRIMARY campaign mode since v7.5.0; Arcade mode excluded
 **File audience:** Designers, engineers, QA
 
@@ -9,7 +9,7 @@
 
 ## Overview
 
-The V8 Scroller is the primary campaign mode of *FIAT vs CRYPTO* (active when `Balance.V8_MODE.ENABLED = true`, default since v7.5.0). It replaces the legacy WaveManager formation system with a Gradius-style vertical scrolling shooter: enemies spawn from the top of the screen on scripted absolute timestamps, fly through the arena in one of four movement patterns (DIVE, SINE, HOVER, SWOOP), and the player must survive a 170-second timeline before a regional central-bank boss appears. The campaign consists of three levels (L1 FED / L2 BCE / L3 BOJ), each themed around a distinct regional currency roster, with HP targets, scroll speed, and fire density escalating between levels. Completing a level triggers a DOM intermission screen; completing all three levels triggers campaign victory. Arcade mode continues to use the legacy WaveManager and is deliberately excluded from V8 logic.
+The V8 Scroller is the primary campaign mode of *FIAT vs CRYPTO* (active when `Balance.V8_MODE.ENABLED = true`, default since v7.5.0). It replaces the legacy WaveManager formation system with a Gradius-style vertical scrolling shooter: enemies spawn from the top of the screen on scripted absolute timestamps, fly through the arena in one of four movement patterns (DIVE, SINE, HOVER, SWOOP), and the player must survive a 170-second timeline before a regional central-bank boss appears. The campaign consists of three levels (L1 FED / L2 BCE / L3 BOJ), each themed around a distinct regional currency roster, with HP targets, scroll speed, and fire density escalating between levels. At campaign start, the PROLOGUE story screen (Nixon 1971 / end of gold standard) sets the narrative context before the first countdown. Completing a level triggers a DOM intermission screen; completing all three levels triggers campaign victory. Arcade mode continues to use the legacy WaveManager and is deliberately excluded from V8 logic.
 
 ---
 
@@ -89,7 +89,7 @@ All movement is executed in `Enemy.update()` when `_v8Fall === true`.
 
 **SWOOP**: Enemy spawns near a side edge and curves across the screen.
 - `x = spawnX + swoopDir × sin(patTimer × CURVE_FREQ) × CURVE_AMP`
-- CURVE_FREQ = 1.3, CURVE_AMP = 100 px (codice; GDD rettificata da 140px dopo reverse-doc), APPROACH_VY = 50 px/s
+- CURVE_FREQ = 1.3, CURVE_AMP = 80 px, APPROACH_VY = 50 px/s
 - Clamped to [SIDE_MARGIN, gameWidth-SIDE_MARGIN].
 
 Source for all patterns: `src/config/BalanceConfig.js:41-44`; `src/entities/Enemy.js:281-318`.
@@ -101,6 +101,22 @@ When an enemy first spawns (y = -40), it immediately falls at `ENTRY_BURST.VY = 
 - Applies to all four patterns: `PATTERNS: ['DIVE', 'SINE', 'SWOOP', 'HOVER']`.
 - While y < 0 (enemy center above screen top), `_fireSuppressedByEntry = true` — HarmonicConductor skips it.
   - Source: `src/config/BalanceConfig.js:31-36`; `src/entities/Enemy.js:227-233`
+
+### C.7 Campaign start flow (PROLOGUE)
+
+When the player launches Story Mode, `startGame()` completes all initialization and then calls `_maybeShowPrologueThenCountdown()` (`src/main.js:2046-2057`):
+
+1. If campaign mode is active AND `shouldShowStory('PROLOGUE')` returns true: the PROLOGUE story screen (canvas cinematic crawl with "falling coins" background) is displayed via `showStoryScreen('PROLOGUE', callback)`.
+2. When the player dismisses the story screen, the callback fires `_startPlayCountdown()` + `showShipIntroMeme()`.
+3. If PROLOGUE has already been seen (replay) or mode is not campaign: `_startPlayCountdown()` is called directly.
+
+The PROLOGUE is triggered from two paths:
+- **Tutorial-seen path**: inside `startGame()`, after initialization, `_maybeShowPrologueThenCountdown()` is called directly (line ~2038).
+- **Tutorial path**: inside `TutorialManager.init()`, the `onTutorialComplete` callback reads `window._onTutorialCompleteV7` (set at the start of `startGame()`), which points to `_maybeShowPrologueThenCountdown()`.
+
+The `shouldShowStory()` guard (`src/main.js:1760-1770`) checks `campaignState.storyProgress[storyId]` — since `startGame()` resets all chapter progress to `false` (line ~1843), PROLOGUE shows on every fresh campaign run. The `showStoryScreen()` function marks the chapter as seen and persists to localStorage.
+
+Source: `src/main.js:1836-1841, 2036-2057`; `src/story/StoryScreenData.js`; `src/story/StoryBackgrounds.js`
 
 ### C.8 Off-edge culling
 
@@ -354,7 +370,7 @@ Source: `src/config/BalanceConfig.js:43`; `src/entities/Enemy.js:291`.
 ```
 swoopDir = lane < 0.5 ? +1 : -1
 spawnX   = lane < 0.5 ? SIDE_MARGIN (30) : gameWidth - SIDE_MARGIN (30)
-x(t)     = spawnX + swoopDir × sin(patTimer × 1.3) × CURVE_AMP  (140 px — see Gap #5)
+x(t)     = spawnX + swoopDir × sin(patTimer × 1.3) × CURVE_AMP  (80 px)
 ```
 
 Source: `src/config/BalanceConfig.js:44`; `src/entities/Enemy.js:314-315`.
@@ -401,6 +417,12 @@ Defensive guard in `advanceToNextV8Level()`: `if (nextIdx >= LEVELS.length) { tr
 
 `HarmonicConductor.reset()` increments `generation`. Pending `setTimeout` callbacks capture `gen` at creation and bail if changed. Prevents ghost fire commands from a previous level surviving `loadLevel()`.
 
+### E.10 PROLOGUE shown before countdown, blocks campaign start
+
+`_maybeShowPrologueThenCountdown()` (`src/main.js:2046-2057`) may call `showStoryScreen('PROLOGUE', cb)` which sets `gameState = 'STORY_SCREEN'`. The campaign countdown (and thus enemy spawning) is deferred until the story is dismissed. If the player force-closes the tab during the story screen, the game state is lost — but story progress is already persisted to localStorage before the callback fires, so the chapter won't re-show on a new campaign (it was marked in `showStoryScreen()`'s pre-display block).
+
+Source: `src/main.js:1725-1755, 2046-2057`
+
 ---
 
 ## Dependencies
@@ -419,6 +441,9 @@ Defensive guard in `advanceToNextV8Level()`: `if (nextIdx >= LEVELS.length) { tr
 | Audio | `G.Audio` | `setDetune(-100, 2.0)` on CRUSH_ENTER; `setDetune(0, 1.5)` on CRUSH_EXIT |
 | EffectsRenderer | `G.EffectsRenderer` | `applyShake(4.0)` + `triggerDamageVignette()` on CRUSH_PEAK |
 | CampaignState / Leaderboard | (various) | Campaign complete = `defeatedBossType === 'BOJ'`; LB worker maps Story→`wave=5/cycle=level` |
+| StoryScreen | `src/story/StoryScreen.js` | Canvas-based cinematic crawl rendered for PROLOGUE and CH1-3; manages tap-to-speed, fade masks, keyword highlighting |
+| StoryScreenData | `src/story/StoryScreenData.js` | Story chapter content (4 chapters); `BOSS_TO_CHAPTER` map linking defeated bosses to story chapters |
+| TutorialManager | `src/ui/TutorialManager.js` | `showTutorial()` blocks start; `onTutorialComplete` fires `_onTutorialCompleteV7` → `_maybeShowPrologueThenCountdown()` |
 
 **Broken / missing GDDs in `design/gdd/`:** every dependency above has zero GDD coverage in this repo (`design/gdd/` was empty before this file). All of them are implemented in code but undocumented at the design-doc level.
 
@@ -450,7 +475,7 @@ All keys live in `G.Balance` (= `src/config/BalanceConfig.js`) **unless noted as
 | `V8_MODE.PATTERNS.HOVER.APPROACH_VY` | `60 px/s` | Scripted HOVER descent. |
 | `V8_MODE.PATTERNS.SWOOP.APPROACH_VY` | `50 px/s` | SWOOP descent. |
 | `V8_MODE.PATTERNS.SWOOP.CURVE_FREQ` | `1.3 rad/s` | SWOOP lateral freq. |
-| `V8_MODE.PATTERNS.SWOOP.CURVE_AMP` | `TBD — 140 px` | SWOOP lateral amplitude. **Design review 2026-04-27: 140 px exceeds screen bounds; 80 px recommended.** |
+| `V8_MODE.PATTERNS.SWOOP.CURVE_AMP` | `80 px` | SWOOP lateral amplitude. v7.31: 100→80 — eliminates sine clamping at screen edges. |
 | `V8_MODE.PATTERNS.SWOOP.SIDE_MARGIN` | `30 px` | SWOOP edge spawn distance. |
 
 ### G.2 TIER_TARGETS_BY_LEVEL — *in LevelScript.js, NOT BalanceConfig*
@@ -592,11 +617,17 @@ Each criterion is independently testable.
 
 4. **Off-screen cull `cullY = gameHeight + 120`** is a magic number with no config key.
 
-5. **SWOOP amplitude exceeds screen bounds.** `CURVE_AMP` (140 px) + `SIDE_MARGIN` spawn (30 px from edge) causes the sine oscillation to clamp at `[30, gameWidth-30]` for ~2.4 s per half-cycle, destroying the sweeping arc. ~~Recommended fix: reduce `CURVE_AMP` to ~80 px.~~ *(Design review 2026-04-27: flagged for fix.)*
+5. ~~**SWOOP amplitude exceeds screen bounds.**~~ — **Resolved v7.31.0**: `CURVE_AMP` set to 80 px (`src/config/BalanceConfig.js:44`). With `SIDE_MARGIN = 30`, the full sine swing (30–110 px from left edge, 490–570 px from right edge) stays within screen bounds with no clamping. Prior values: 140 px → 100 px → 80 px.
 
-6. **No top-side enemy cull.** Enemies in scripted HOVER LEAVE state (vy = -180 px/s) fly upward and accumulate indefinitely in the enemies array. There is no culling for `y < -200`. ~~Recommended fix: add top-side cull in LevelScript tick.~~ *(Design review 2026-04-27: flagged for fix.)*
+6. ~~**No top-side enemy cull.**~~ — **Resolved v7.31.0**: top-side cull added in `LevelScript.js:496` (`cullTopY = -200`). Enemies with `_v8Fall && y < -200` (HOVER LEAVE exit path) are spliced from the array alongside the existing bottom cull.
 
 7. **LUT deceleration inverts apparent enemy motion.** At scrollY ≈ 14500–15500 the LUT drops from 180 to 40 px/s over ~10 s. Enemy apparent vertical velocity inverts from ≈ -140 px/s (rising on screen) to ≈ 0 px/s (hovering in place). This affects all four movement patterns and is undocumented. *(Design review 2026-04-27: flagged for review.)*
+
+### Gap 8 — ~~PROLOGUE story screen unreachable in normal campaign flow~~ — **Resolved v7.31.0**
+
+The PROLOGUE chapter (Nixon 1971, end of gold standard) was defined in `StoryScreenData.js` with its cinematic background ("falling coins") but never triggered during campaign startup. `startGame()` had no code path to call `showStoryScreen('PROLOGUE')` — the story-screen system was only wired for boss-defeat chapters (CH1 after FED, CH2 after BCE, CH3 after BOJ). A new player entering Story Mode missed the foundational narrative context.
+
+Fix: `_maybeShowPrologueThenCountdown()` (`src/main.js:2046-2057`) now gates the campaign countdown behind PROLOGUE. If campaign mode is active and PROLOGUE hasn't been shown this run, the story screen displays first; countdown + ship intro fire on dismiss. Wired through both the tutorial-seen direct path and the `onTutorialComplete` callback via `window._onTutorialCompleteV7`.
 
 ## Recommended Improvements (non-blocking)
 
@@ -604,4 +635,4 @@ Each criterion is independently testable.
 
 2. **CRUSH-specific enemy variant or behavior.** CRUSH is numerically intense (speed multiplier + fire budget ramp) but uses the same enemy patterns as PEAK. A CRUSH-exclusive variant (e.g., gold-plated currency enemies with unique bullet patterns) would make the set-piece feel qualitatively distinct.
 
-*End of GDD — V8 Scroller v7.12.4 — revised 2026-04-27*
+*End of GDD — V8 Scroller v7.31.0*

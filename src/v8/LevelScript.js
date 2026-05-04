@@ -491,10 +491,13 @@ window.Game = window.Game || {};
             // the array invisibly firing — bullets appear but no enemies visible).
             const gh = G._gameHeight || 849;
             const cullY = gh + 120;
+            // v7.31: top-side cull for HOVER LEAVE enemies (vy = -180 px/s).
+            // Without this, HOVER enemies that exit upward accumulate indefinitely.
+            const cullTopY = -200;
             for (let i = arr.length - 1; i >= 0; i--) {
                 const e = arr[i];
                 if (!e) continue;
-                if (e._v8Fall && e.y > cullY) {
+                if (e._v8Fall && (e.y > cullY || e.y < cullTopY)) {
                     arr.splice(i, 1);
                     if (this._stats) this._stats.escapedOffScreen++;
                 }
@@ -636,6 +639,9 @@ window.Game = window.Game || {};
             const cycle = window.marketCycle || 1;
             const diff = Balance.calculateDifficulty(level, cycle);
             const scaledHP = Balance.calculateEnemyHP(diff, cycle);
+            // v7.31: NG+ enemy HP scaling (campaign mode only)
+            const _cs = G.CampaignState;
+            const ngPlusMult = (_cs && _cs.isEnabled()) ? _cs.getNGPlusMultiplier() : 1;
 
             // v7.5.0: regional tier normalization. Each level assigns each
             // currency a regional tier (WEAK/MEDIUM/STRONG); we override hp+val
@@ -649,7 +655,7 @@ window.Game = window.Game || {};
             const baseHp  = target ? target.hp  : currencyType.hp;
             const baseVal = target ? target.val : currencyType.val;
             const scaledType = Object.assign({}, currencyType, {
-                hp: baseHp * scaledHP,
+                hp: baseHp * scaledHP * ngPlusMult,
                 val: baseVal
             });
 

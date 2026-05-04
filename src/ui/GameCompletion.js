@@ -152,6 +152,7 @@ window.Game = window.Game || {};
                 </div>` : ''}
                 <div class="victory-actions">
                     ${showBearSuggestion ? `<button class="btn btn-danger btn-lg btn-block" onclick="activateBearFromVictory()">${d.t('CV_BEAR_BTN')}</button>` : ''}
+                    <button class="btn btn-success btn-lg btn-block" onclick="startNGPlusFromVictory()">${d.t('CV_NGPLUS') || 'NEW GAME+'}</button>
                     <button class="btn btn-primary btn-lg btn-block" onclick="replayStoryFromVictory()">${d.t('CV_REPLAY')}</button>
                     <button class="btn btn-secondary btn-block" onclick="backToIntroFromVictory()">${d.t('CV_MENU')}</button>
                 </div>
@@ -217,9 +218,28 @@ window.Game = window.Game || {};
 
     // Return to intro from campaign victory
     window.backToIntroFromVictory = function() {
+        const campaignState = G.CampaignState;
+        if (campaignState) campaignState.resetCampaign();
+
         const victoryOverlay = document.getElementById('campaign-victory-screen');
         if (victoryOverlay) victoryOverlay.style.display = 'none';
         window.backToIntro();
+    };
+
+    // v7.31: Start New Game+ from campaign victory
+    window.startNGPlusFromVictory = function() {
+        const campaignState = G.CampaignState;
+        if (!campaignState) return;
+
+        // Increment NG+ level (preserves ngPlusLevel in localStorage)
+        campaignState.startNewGamePlus();
+
+        const victoryOverlay = document.getElementById('campaign-victory-screen');
+        if (victoryOverlay) victoryOverlay.style.display = 'none';
+
+        d.startGame();
+        if (G.IntroScreen) G.IntroScreen.updateCampaignProgressUI();
+        G.Audio.play('levelUp');
     };
 
     // triggerGameOver

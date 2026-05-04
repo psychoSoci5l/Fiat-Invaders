@@ -533,6 +533,19 @@ window.Game = window.Game || {};
                     const celebDelay = (Balance.TIMING.BOSS_CELEBRATION_DELAY || 5.0) * 1000;
                     d.bossDeathTimeout(() => {
                         if (_isArcadeMode && G.ModifierChoiceScreen) {
+                            // v7.31: Arcade visual phase progression (art bible §6.6)
+                            // C1 boss → P1→P2, C2 boss → P2→P3, C3+ stays P3
+                            if (G.PhaseTransitionController && G.SkyRenderer && G.WeatherController) {
+                                const curVisualPhase = G.PhaseTransitionController.getCurrentPhase();
+                                let targetVisualPhase = curVisualPhase;
+                                if (marketCycle === 1) targetVisualPhase = 2;
+                                else if (marketCycle === 2) targetVisualPhase = 3;
+                                if (targetVisualPhase !== curVisualPhase) {
+                                    G.PhaseTransitionController.startTransition(curVisualPhase, targetVisualPhase);
+                                    G.SkyRenderer.setPhase(targetVisualPhase);
+                                    G.WeatherController.setPhase(targetVisualPhase);
+                                }
+                            }
                             const picks = Balance.ARCADE.MODIFIERS.POST_BOSS_PICKS || 3;
                             if (G.RunState.arcadeBonuses.lastStandAvailable) {
                                 G.RunState.arcadeBonuses.lastStandAvailable = true;

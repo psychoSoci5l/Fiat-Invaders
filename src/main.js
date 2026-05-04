@@ -799,8 +799,13 @@ function init() {
         G.TutorialManager.init({
             setGameState: setGameState,
             onTutorialComplete: function () {
-                _startPlayCountdown();
-                showShipIntroMeme();
+                // v7.31: dynamic callback — startGame() sets window._onTutorialCompleteV7
+                if (window._onTutorialCompleteV7) {
+                    window._onTutorialCompleteV7();
+                } else {
+                    _startPlayCountdown();
+                    showShipIntroMeme();
+                }
             }
         });
     }
@@ -1828,6 +1833,13 @@ function startGame() {
     audioSys.init();
     clearBossDeathTimeouts(); // v5.13.1: Cancel orphan boss death timeouts
 
+    // v7.31: Register tutorial-complete callback BEFORE tutorial is shown
+    // TutorialManager fires this asynchronously; must be set here so the
+    // closure captures the current _maybeShowPrologue reference.
+    window._onTutorialCompleteV7 = function() {
+        _maybeShowPrologueThenCountdown();
+    };
+
     // Always reset story progress when starting Story Mode (shows all chapters fresh)
     if (G.CampaignState && G.CampaignState.isEnabled()) {
         G.CampaignState.storyProgress = {
@@ -1920,7 +1932,14 @@ function startGame() {
     // v4.21: Always reset campaign boss defeats on new game (fresh cycle every run)
     const campaignState = G.CampaignState;
     if (campaignState && campaignState.isEnabled()) {
+        // v7.31: Preserve NG+ level — resetCampaign() sets it to 0, but NG+ runs
+        // must retain the accumulated multiplier across restarts.
+        const preservedNG = campaignState.ngPlusLevel;
         campaignState.resetCampaign();
+        if (preservedNG > 0) {
+            campaignState.ngPlusLevel = preservedNG;
+            campaignState.save();
+        }
     }
 
     if (isBearMarket) {
@@ -2021,8 +2040,24 @@ function startGame() {
 
     emitEvent('run_start', { bear: isBearMarket });
 
-    // v5.27b: Countdown AFTER all resets (skipped if tutorial is shown)
+    // v5.27b: Start campaign flow — show PROLOGUE before countdown if unseen
     if (G.TutorialManager.isTutorialSeen(tutMode)) {
+        _maybeShowPrologueThenCountdown();
+    }
+}
+
+/**
+ * v7.31: Show PROLOGUE story screen before campaign countdown if appropriate.
+ * Called from both the tutorial-seen direct path and the tutorial-complete callback.
+ */
+function _maybeShowPrologueThenCountdown() {
+    const isStoryMode = G.CampaignState && G.CampaignState.isEnabled();
+    if (isStoryMode && shouldShowStory('PROLOGUE')) {
+        showStoryScreen('PROLOGUE', function() {
+            _startPlayCountdown();
+            showShipIntroMeme();
+        });
+    } else {
         _startPlayCountdown();
         showShipIntroMeme();
     }

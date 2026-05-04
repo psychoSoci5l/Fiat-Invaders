@@ -41,7 +41,7 @@
                 DIVE:  { ACCEL: 10 },                       // vy += ACCEL*dt (simple fall). v7.2.2: 35→10, enemies stay visible ~6-8s
                 SINE:  { AMPLITUDE: 70, FREQ: 2.0 },        // horizontal serpentine while descending
                 HOVER: { Y_TARGET_RATIO: 0.28, DWELL: 2.5, EXIT_VY: -180, APPROACH_VY: 60 },
-                SWOOP: { APPROACH_VY: 50, CURVE_FREQ: 1.3, CURVE_AMP: 100, SIDE_MARGIN: 30 }
+                SWOOP: { APPROACH_VY: 50, CURVE_FREQ: 1.3, CURVE_AMP: 80, SIDE_MARGIN: 30 }  // v7.31: 100→80 — prevent sine clamping at screen edges
             }
         },
 
