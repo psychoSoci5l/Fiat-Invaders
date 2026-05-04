@@ -211,53 +211,127 @@
         ctx.save();
         ctx.translate(miniBoss.x, miniBoss.y);
 
-        const pulseAlpha = 0.3 + Math.sin(miniBoss.animTime * 5) * 0.2;
         const hpPct = miniBoss.hp / miniBoss.maxHp;
+        const pulse = Math.sin(miniBoss.animTime * 3.5) * 0.12;
+        const rgb = G.ColorUtils.hexToRgb(miniBoss.color);
+        const isDamaged = hpPct < 0.3;
 
-        ctx.fillStyle = `rgba(${G.ColorUtils.hexToRgb(miniBoss.color)}, ${pulseAlpha})`;
+        // ── Outer glow (additive) ──
+        ctx.globalCompositeOperation = 'lighter';
+        const glowGrad = ctx.createRadialGradient(0, 0, 15, 0, 0, 100);
+        glowGrad.addColorStop(0, `rgba(${rgb}, 0.35)`);
+        glowGrad.addColorStop(0.5, `rgba(${rgb}, 0.12)`);
+        glowGrad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = glowGrad;
         ctx.beginPath();
-        ctx.arc(0, 0, 80 + Math.sin(miniBoss.animTime * 3) * 10, 0, Math.PI * 2);
+        ctx.arc(0, 0, 100 + pulse * 20, 0, Math.PI * 2);
         ctx.fill();
 
-        ctx.fillStyle = miniBoss.color;
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 4;
+        // Rotating outer ring
+        ctx.strokeStyle = `rgba(${rgb}, 0.20)`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, 72, miniBoss.animTime * 0.8, miniBoss.animTime * 0.8 + Math.PI * 1.6);
+        ctx.stroke();
+
+        ctx.globalCompositeOperation = 'source-over';
+
+        // ── Hexagon body ──
+        const hexR = 56;
+        const hexGrad = ctx.createLinearGradient(0, -hexR, 0, hexR);
+        hexGrad.addColorStop(0, `rgba(${rgb}, 0.85)`);
+        hexGrad.addColorStop(1, `rgba(${rgb}, 0.50)`);
+        ctx.fillStyle = hexGrad;
+        ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+        ctx.lineWidth = 3;
         ctx.beginPath();
         for (let i = 0; i < 6; i++) {
-            const angle = (Math.PI * 2 / 6) * i - Math.PI / 2;
-            const x = Math.cos(angle) * 55;
-            const y = Math.sin(angle) * 55;
-            if (i === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
+            const a = (Math.PI * 2 / 6) * i - Math.PI / 2;
+            const hx = Math.cos(a) * hexR;
+            const hy = Math.sin(a) * hexR;
+            if (i === 0) ctx.moveTo(hx, hy);
+            else ctx.lineTo(hx, hy);
         }
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
 
-        ctx.fillStyle = '#111';
+        // Edge highlight
+        ctx.strokeStyle = `rgba(${rgb}, 0.45)`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // ── Inner ring ──
+        ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+        ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.arc(0, 0, 40, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // ── Dark core ──
+        ctx.fillStyle = '#08081a';
+        ctx.beginPath();
+        ctx.arc(0, 0, 37, 0, Math.PI * 2);
         ctx.fill();
 
-        ctx.fillStyle = miniBoss.color;
-        ctx.font = 'bold 50px Arial';
+        // ── Currency symbol with glow ──
+        ctx.shadowColor = miniBoss.color;
+        ctx.shadowBlur = 18 + pulse * 12;
+        ctx.fillStyle = isDamaged ? '#fff' : '#f0f0ff';
+        ctx.font = 'bold 56px "Courier New", monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(miniBoss.symbol, 0, 0);
+        ctx.shadowBlur = 0;
 
-        const barWidth = 100;
-        const barHeight = 8;
-        ctx.fillStyle = '#333';
-        ctx.fillRect(-barWidth / 2, 70, barWidth, barHeight);
-        ctx.fillStyle = hpPct > 0.3 ? miniBoss.color : '#ff0000';
-        ctx.fillRect(-barWidth / 2, 70, barWidth * hpPct, barHeight);
-        ctx.strokeStyle = '#fff';
+        // ── Damage cracks + red flash (<30% HP) ──
+        if (isDamaged) {
+            ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(-28, -22); ctx.lineTo(-12, -6); ctx.lineTo(-20, 12);
+            ctx.moveTo(22, -16); ctx.lineTo(30, 6); ctx.lineTo(16, 24);
+            ctx.moveTo(6, -36); ctx.lineTo(0, -26);
+            ctx.stroke();
+
+            ctx.fillStyle = `rgba(255, 0, 0, ${0.08 + Math.abs(pulse) * 0.35})`;
+            ctx.beginPath();
+            ctx.arc(0, 0, 48, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // ── Phase dots (3 around the hexagon) ──
+        for (let p = 0; p < 3; p++) {
+            const da = -Math.PI / 2 + (p * Math.PI * 2 / 3);
+            const dx = Math.cos(da) * 51;
+            const dy = Math.sin(da) * 51;
+            ctx.fillStyle = miniBoss.phase >= p ? miniBoss.color : '#333';
+            ctx.shadowColor = miniBoss.phase >= p ? miniBoss.color : 'transparent';
+            ctx.shadowBlur = miniBoss.phase >= p ? 4 : 0;
+            ctx.beginPath();
+            ctx.arc(dx, dy, 3.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.shadowBlur = 0;
+
+        // ── HP bar ──
+        const barW = 114, barH = 7, barY = 72;
+        ctx.fillStyle = '#15152a';
+        ctx.fillRect(-barW / 2, barY, barW, barH);
+        const barGrad = ctx.createLinearGradient(-barW / 2, 0, -barW / 2 + barW * hpPct, 0);
+        barGrad.addColorStop(0, isDamaged ? '#ff3333' : miniBoss.color);
+        barGrad.addColorStop(1, isDamaged ? '#ff7777' : '#ffffff');
+        ctx.fillStyle = barGrad;
+        ctx.fillRect(-barW / 2, barY, barW * hpPct, barH);
+        ctx.strokeStyle = 'rgba(255,255,255,0.45)';
         ctx.lineWidth = 1;
-        ctx.strokeRect(-barWidth / 2, 70, barWidth, barHeight);
+        ctx.strokeRect(-barW / 2, barY, barW, barH);
 
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 14px Courier New';
-        ctx.fillText(miniBoss.name + ' BOSS', 0, 90);
+        // ── Name ──
+        ctx.fillStyle = isDamaged ? '#ff7777' : '#bbb';
+        ctx.font = 'bold 13px "Courier New", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(miniBoss.name + ' BOSS', 0, barY + 20);
 
         ctx.restore();
     }
