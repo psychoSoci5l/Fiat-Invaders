@@ -322,19 +322,15 @@ window.Game = window.Game || {};
                         const threshold = Math.floor((mapping?.threshold || Balance.MINI_BOSS.KILL_THRESHOLD) * _threshMult);
                         G.Debug.log('MINIBOSS', `Kill ${e.symbol}: ${fkc[e.symbol]}/${threshold}`);
                         if (fkc[e.symbol] >= threshold) {
-                            let bossType = mapping?.boss || 'FEDERAL_RESERVE';
-                            if (bossType === 'RANDOM') {
-                                const rotation = G.BOSS_ROTATION || ['FEDERAL_RESERVE', 'BCE', 'BOJ'];
-                                bossType = rotation[Math.floor(Math.random() * rotation.length)];
-                            } else if (bossType === 'CYCLE_BOSS') {
-                                const rotation = G.BOSS_ROTATION || ['FEDERAL_RESERVE', 'BCE', 'BOJ'];
-                                bossType = rotation[(d.getMarketCycle() - 1) % rotation.length];
-                            }
-                            G.Debug.trackMiniBossSpawn(bossType, e.symbol, fkc[e.symbol]);
-                            G.Debug._miniBossStartInfo = { type: bossType, trigger: e.symbol, killCount: fkc[e.symbol], startTime: Date.now() };
+                            // v7.31: mini-bosses are the CURRENCY itself, not a boss clone.
+                            // Pass the symbol directly → MiniBossManager legacy path (hexagon + symbol).
+                            // The CURRENCY_BOSS_MAP provides the kill threshold but we ignore its boss field.
+                            const miniBossSymbol = e.symbol;
+                            G.Debug.trackMiniBossSpawn(miniBossSymbol, e.symbol, fkc[e.symbol]);
+                            G.Debug._miniBossStartInfo = { type: miniBossSymbol, trigger: e.symbol, killCount: fkc[e.symbol], startTime: Date.now() };
                             d.setLastMiniBossSpawnTime(d.getTotalTime());
                             d.setMiniBossThisWave(d.getMiniBossThisWave() + 1);
-                            d.spawnMiniBoss(bossType, e.color);
+                            d.spawnMiniBoss(miniBossSymbol, e.color);
                             const fkcReset = d.getFiatKillCounter();
                             Object.keys(fkcReset).forEach(k => fkcReset[k] = 0);
                         }
