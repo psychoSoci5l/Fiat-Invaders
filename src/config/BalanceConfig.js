@@ -890,26 +890,19 @@
             // v2.24.5: Balanced thresholds (~1.5x original) with 15s cooldown + global reset
             // Target: 1-2 mini-bosses per boss cycle (5 waves = ~200 enemies, ~20 per currency)
             CURRENCY_BOSS_MAP: {
-                // Dollar → FED (US hegemony) - spawns waves 1,3,5
-                '$': { boss: 'FEDERAL_RESERVE', threshold: 22 },
-
-                // Euro/Europe → BCE
-                '€': { boss: 'BCE', threshold: 22 },
-                '₣': { boss: 'BCE', threshold: 22 },
-                '£': { boss: 'BCE', threshold: 22 },
-
-                // Asia → BOJ (appear frequently in weak tier waves)
-                '¥': { boss: 'BOJ', threshold: 18 },
-                '元': { boss: 'BOJ', threshold: 18 },
-
-                // Emerging markets → Random boss (most common, reach 40+ per cycle)
-                '₽': { boss: 'RANDOM', threshold: 35 },
-                '₹': { boss: 'RANDOM', threshold: 35 },
-                '₺': { boss: 'RANDOM', threshold: 35 },
-
-                // CBDC → Boss of current cycle
-                // v4.10.2: threshold 12→24 (C3W5H2 has 26 Ⓒ, was triggering 3 minibosses)
-                'Ⓒ': { boss: 'CYCLE_BOSS', threshold: 24 }
+                // v7.31: thresholds ricalibrati per mini-boss legacy (non più boss cloni).
+                // I mini-boss ora sono valute potenziate (~400 HP, 2 fasi, ~10-15s fight).
+                // Soglie abbassate così ogni valuta può triggerare almeno una volta nell'ondata dove è primaria.
+                '$':  { boss: 'FEDERAL_RESERVE', threshold: 16 },   // was 22
+                '€':  { boss: 'BCE',              threshold: 16 },   // was 22
+                '₣':  { boss: 'BCE',              threshold: 16 },   // was 22
+                '£':  { boss: 'BCE',              threshold: 16 },   // was 22
+                '¥':  { boss: 'BOJ',              threshold: 14 },   // was 18
+                '元': { boss: 'BOJ',              threshold: 14 },   // was 18
+                '₽':  { boss: 'RANDOM',           threshold: 18 },   // was 35
+                '₹':  { boss: 'RANDOM',           threshold: 18 },   // was 35
+                '₺':  { boss: 'RANDOM',           threshold: 18 },   // was 35
+                'Ⓒ':  { boss: 'CYCLE_BOSS',       threshold: 16 }    // was 24
             }
         },
 
