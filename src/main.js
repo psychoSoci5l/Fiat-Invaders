@@ -1143,6 +1143,7 @@ function init() {
         startGame: startGame,
         checkArcadeRecords: function () { return G.ScoreManager ? G.ScoreManager.checkArcadeRecords() : { newBest: false, records: null }; },
         getRandomMeme: getRandomMeme,
+        clearBossDeathTimeouts: clearBossDeathTimeouts, // v7.31: RC-1 fix
     });
 
     // v7.13.0: Initialize rendering pipeline

@@ -458,8 +458,10 @@ window.Game = window.Game || {};
                     G.Debug.trackCycleUp(newCycle);
                     if (G.Debug) G.Debug.trackCycleStart(newCycle);
                     const waveMgr = G.WaveManager;
-                    waveMgr.reset();
+                    // v7.31 (RC-11): reset() no longer touches waveInProgress;
+                    // we set it BEFORE to close the frame window.
                     waveMgr.waveInProgress = true;
+                    waveMgr.reset();
                     G.DropSystem.specialDroppedThisCycle = false;
                     d.resetFiatKillCounter();
                     if (G.HarmonicConductor) { G.HarmonicConductor.reset(); G.HarmonicConductor.setDifficulty(d.getLevel(), newCycle, d.getIsBearMarket()); }

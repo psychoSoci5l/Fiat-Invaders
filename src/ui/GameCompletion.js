@@ -246,6 +246,9 @@ window.Game = window.Game || {};
     function triggerGameOver() {
         const audioSys = G.Audio;
 
+        // v7.31: cancel orphan boss death timeouts that could fire during gameover
+        if (d.clearBossDeathTimeouts) d.clearBossDeathTimeouts();
+
         // Hide any open modifier overlay (z-index 9800 would block gameover screen)
         if (G.ModifierChoiceScreen) G.ModifierChoiceScreen.hide();
         const mo = document.getElementById('modifier-overlay');

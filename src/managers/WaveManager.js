@@ -21,7 +21,9 @@ window.Game.WaveManager = {
         const dbg = window.Game.Debug;
         dbg.log('WAVE', `[WM] RESET called. Previous wave=${this.wave}`);
         this.wave = 1;
-        this.waveInProgress = false;
+        // v7.31 (RC-11): waveInProgress moved to caller control — reset() no longer
+        // overwrites it. Callers that need it false already call prepareStreamingWave()
+        // or set it explicitly. Object literal default is false.
         this.intermissionTimer = 0;
         this.miniBossActive = false;
         // Phase-based streaming state
