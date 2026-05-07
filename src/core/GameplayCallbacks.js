@@ -531,7 +531,9 @@ window.Game = window.Game || {};
 
                     // Delayed transition
                     const celebDelay = (Balance.TIMING.BOSS_CELEBRATION_DELAY || 5.0) * 1000;
+                    console.log('[TRACE] onBossDeath Arcade — scheduling delayed transition in', celebDelay, 'ms');
                     d.bossDeathTimeout(() => {
+                        console.log('[TRACE] onBossDeath Arcade — delayed transition FIRED, gameState:', G.GameState?.current, '| intermissionTimer:', G.WaveManager?.intermissionTimer);
                         if (_isArcadeMode && G.ModifierChoiceScreen) {
                             // v7.31: Arcade visual phase progression (art bible §6.6)
                             // C1 boss → P1→P2, C2 boss → P2→P3, C3+ stays P3
