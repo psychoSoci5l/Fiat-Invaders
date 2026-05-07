@@ -1768,11 +1768,13 @@ function showStoryScreen(storyId, onComplete) {
  */
 function shouldShowStory(storyId) {
     const campaignState = G.CampaignState;
-    if (!campaignState || !campaignState.isEnabled()) return false;
-    if (!G.STORY_CONTENT || !G.STORY_CONTENT[storyId]) return false;
+    if (!campaignState || !campaignState.isEnabled()) { console.log('[TRACE] shouldShowStory:', storyId, '→ false (disabled/none)'); return false; }
+    if (!G.STORY_CONTENT || !G.STORY_CONTENT[storyId]) { console.log('[TRACE] shouldShowStory:', storyId, '→ false (no content)'); return false; }
 
     // Check if already shown
-    if (campaignState.storyProgress && campaignState.storyProgress[storyId]) {
+    const val = campaignState.storyProgress && campaignState.storyProgress[storyId];
+    console.log('[TRACE] shouldShowStory:', storyId, '→ storyProgress[', storyId, '] =', val, '| full:', JSON.stringify(campaignState.storyProgress));
+    if (val) {
         return false;
     }
     return true;
@@ -1850,12 +1852,14 @@ function startGame() {
         // PROLOGUE is already shown by IntroScreen before startGame();
         // resetting it to false here causes it to be shown a second time,
         // hiding the HUD and blocking state transitions (WARMUP → STORY_SCREEN).
+        console.log('[TRACE] startGame BEFORE reassign — storyProgress ref ===', G.CampaignState.storyProgress, '| PROLOGUE =', G.CampaignState.storyProgress?.PROLOGUE);
         G.CampaignState.storyProgress = {
             PROLOGUE: G.CampaignState.storyProgress ? G.CampaignState.storyProgress.PROLOGUE : true,
             CHAPTER_1: false,
             CHAPTER_2: false,
             CHAPTER_3: false
         };
+        console.log('[TRACE] startGame AFTER reassign — PROLOGUE =', G.CampaignState.storyProgress.PROLOGUE, '| full:', JSON.stringify(G.CampaignState.storyProgress));
     }
 
     if (G.IntroScreen) G.IntroScreen.stopAnimation();
