@@ -1833,7 +1833,6 @@ function updateReactiveHUD() {
 }
 
 function startGame() {
-    console.log('[TRACE] startGame ENTRY — gameState:', gameState, '| CampaignState.enabled:', G.CampaignState?.enabled, '| storyProgress:', JSON.stringify(G.CampaignState?.storyProgress));
     if (G.DebugOverlay) G.DebugOverlay.hide();
     if (G.DailyMode && G.DailyMode.isActive()) G.DailyMode.markAttempt();
     if (G.ScrollEngine) G.ScrollEngine.reset();
@@ -1849,17 +1848,12 @@ function startGame() {
 
     // Always reset story progress when starting Story Mode (shows all chapters fresh)
     if (G.CampaignState && G.CampaignState.isEnabled()) {
-        // PROLOGUE is already shown by IntroScreen before startGame();
-        // resetting it to false here causes it to be shown a second time,
-        // hiding the HUD and blocking state transitions (WARMUP → STORY_SCREEN).
-        console.log('[TRACE] startGame BEFORE reassign — storyProgress ref ===', G.CampaignState.storyProgress, '| PROLOGUE =', G.CampaignState.storyProgress?.PROLOGUE);
         G.CampaignState.storyProgress = {
             PROLOGUE: G.CampaignState.storyProgress ? G.CampaignState.storyProgress.PROLOGUE : true,
             CHAPTER_1: false,
             CHAPTER_2: false,
             CHAPTER_3: false
         };
-        console.log('[TRACE] startGame AFTER reassign — PROLOGUE =', G.CampaignState.storyProgress.PROLOGUE, '| full:', JSON.stringify(G.CampaignState.storyProgress));
     }
 
     if (G.IntroScreen) G.IntroScreen.stopAnimation();
@@ -1952,6 +1946,9 @@ function startGame() {
             campaignState.ngPlusLevel = preservedNG;
             campaignState.save();
         }
+        // resetCampaign() wipes storyProgress including PROLOGUE,
+        // but PROLOGUE was already shown by IntroScreen. Preserve it.
+        campaignState.storyProgress.PROLOGUE = true;
     }
 
     if (isBearMarket) {
