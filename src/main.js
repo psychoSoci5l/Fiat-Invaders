@@ -1833,6 +1833,7 @@ function updateReactiveHUD() {
 }
 
 function startGame() {
+    console.log('[TRACE] startGame — gameState:', gameState, '| storyProgress:', JSON.stringify(G.CampaignState?.storyProgress));
     if (G.DebugOverlay) G.DebugOverlay.hide();
     if (G.DailyMode && G.DailyMode.isActive()) G.DailyMode.markAttempt();
     if (G.ScrollEngine) G.ScrollEngine.reset();
