@@ -58,7 +58,6 @@ window.Game.WaveManager = {
         if (gameState === 'INTERMISSION') {
             this.intermissionTimer -= dt;
             if (this.intermissionTimer <= 0) {
-                console.log('[TRACE] WaveManager — intermissionTimer expired, returning START_WAVE');
                 return { action: 'START_WAVE' };
             }
             return null;

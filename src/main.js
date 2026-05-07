@@ -2110,7 +2110,6 @@ function highlightShip(idx) {
 }
 
 function startIntermission(msgOverride) {
-    console.log('[TRACE] startIntermission — msgOverride:', !!msgOverride, '| gameState before setGameState:', gameState);
     setGameState('INTERMISSION');
     // v5.4.0: Boss defeat uses longer intermission (6s, skippable)
     const isBossDefeat = !!msgOverride;
