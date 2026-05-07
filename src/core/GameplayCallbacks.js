@@ -551,6 +551,7 @@ window.Game = window.Game || {};
                                 G.RunState.arcadeBonuses.lastStandAvailable = true;
                             }
                             G.ModifierChoiceScreen.show(picks, () => {
+                                console.log('[TRACE] ModifierChoiceScreen callback — gameState:', d.getGameState(), '| intermissionTimer:', G.WaveManager?.intermissionTimer);
                                 const extraL = G.RunState.arcadeBonuses.extraLives;
                                 if (extraL > 0) {
                                     d.setLives(d.getLives() + extraL);
