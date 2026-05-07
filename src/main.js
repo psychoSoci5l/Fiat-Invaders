@@ -1620,7 +1620,7 @@ function advanceToNextV8Level() {
     if (G.WeatherController) G.WeatherController.setPhase(newPhase);
 
     // Show the gameplay UI again + resume, with cinematic ship entry + 3-2-1
-    if (ui.uiLayer) ui.uiLayer.style.display = 'block';
+    if (ui.uiLayer) ui.uiLayer.style.display = 'flex';
     setStyle('pause-btn', 'display', 'block');
     // v7.19.8: ripristina la message-strip nascosta in showV8Intermission.
     // Default vuoto (lasciamo che il CSS .show / .hide la regoli normalmente).
@@ -1843,8 +1843,11 @@ function startGame() {
 
     // Always reset story progress when starting Story Mode (shows all chapters fresh)
     if (G.CampaignState && G.CampaignState.isEnabled()) {
+        // PROLOGUE is already shown by IntroScreen before startGame();
+        // resetting it to false here causes it to be shown a second time,
+        // hiding the HUD and blocking state transitions (WARMUP → STORY_SCREEN).
         G.CampaignState.storyProgress = {
-            PROLOGUE: false,
+            PROLOGUE: G.CampaignState.storyProgress ? G.CampaignState.storyProgress.PROLOGUE : true,
             CHAPTER_1: false,
             CHAPTER_2: false,
             CHAPTER_3: false
