@@ -1567,6 +1567,7 @@ window.Game = window.Game || {};
             if (G.SkyRenderer) G.SkyRenderer.init(d.getGameWidth(), d.getGameHeight());
             if (G.WeatherController) G.WeatherController.init(d.getGameWidth(), d.getGameHeight());
             const campaignState = G.CampaignState;
+            console.log('[TRACE] IntroScreen launchShipAndStart (no canvas) — enabled:', campaignState?.enabled, '| shouldShowStory(PROLOGUE):', d.shouldShowStory('PROLOGUE'), '| storyProgress:', JSON.stringify(campaignState?.storyProgress));
             if (campaignState && campaignState.isEnabled() && d.shouldShowStory('PROLOGUE')) {
                 setTimeout(() => { if (curtain) curtain.classList.add('open'); }, 100);
                 d.showStoryScreen('PROLOGUE', () => { d.startGame(); });
@@ -1789,6 +1790,7 @@ window.Game = window.Game || {};
 
             // Show prologue if needed, then start game (WARMUP + tutorial on first play)
             const campaignState = G.CampaignState;
+            console.log('[TRACE] IntroScreen launchShipAndStart (with canvas) — enabled:', campaignState?.enabled, '| shouldShowStory(PROLOGUE):', d.shouldShowStory('PROLOGUE'), '| storyProgress:', JSON.stringify(campaignState?.storyProgress));
             if (campaignState && campaignState.isEnabled() && d.shouldShowStory('PROLOGUE')) {
                 setTimeout(() => {
                     if (curtain) curtain.classList.add('open');

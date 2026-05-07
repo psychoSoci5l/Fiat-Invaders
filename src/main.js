@@ -1714,6 +1714,7 @@ function updateLevelUI() {
 
 /** Restore HUD + touchControls after story screen */
 function restoreGameUI() {
+    console.log('[TRACE] restoreGameUI — caller stack:', new Error().stack.split('\n')[2].trim());
     if (ui.uiLayer) ui.uiLayer.style.display = 'flex';
     if (ui.touchControls) {
         ui.touchControls.style.display = 'block';
@@ -1729,6 +1730,7 @@ function restoreGameUI() {
  * @param {Function} onComplete - Function to call when story is dismissed
  */
 function showStoryScreen(storyId, onComplete) {
+    console.log('[TRACE] showStoryScreen:', storyId, '| gameState:', gameState, '| uiLayer display:', ui.uiLayer?.style.display);
     if (!G.StoryScreen || !G.STORY_CONTENT || !G.STORY_CONTENT[storyId]) {
         // Story system not loaded or story not found - skip
         if (onComplete) onComplete();
@@ -1753,6 +1755,7 @@ function showStoryScreen(storyId, onComplete) {
     if (audioSys && audioSys.setIntermissionMode) audioSys.setIntermissionMode(true);
 
     G.StoryScreen.show(storyId, () => {
+        console.log('[TRACE] StoryScreen dismissed:', storyId, '| gameState:', gameState, '| uiLayer display:', ui.uiLayer?.style.display);
         // Restore combat music before handing control back
         if (audioSys && audioSys.setIntermissionMode) audioSys.setIntermissionMode(false);
         // Let onComplete handle state transition and UI — don't force PLAY or show controls here
@@ -1828,6 +1831,7 @@ function updateReactiveHUD() {
 }
 
 function startGame() {
+    console.log('[TRACE] startGame ENTRY — gameState:', gameState, '| CampaignState.enabled:', G.CampaignState?.enabled, '| storyProgress:', JSON.stringify(G.CampaignState?.storyProgress));
     if (G.DebugOverlay) G.DebugOverlay.hide();
     if (G.DailyMode && G.DailyMode.isActive()) G.DailyMode.markAttempt();
     if (G.ScrollEngine) G.ScrollEngine.reset();
@@ -2055,6 +2059,7 @@ function startGame() {
  * Called from both the tutorial-seen direct path and the tutorial-complete callback.
  */
 function _maybeShowPrologueThenCountdown() {
+    console.log('[TRACE] _maybeShowPrologueThenCountdown — gameState:', gameState, '| CampaignState.enabled:', G.CampaignState?.isEnabled?.(), '| shouldShowStory(PROLOGUE):', shouldShowStory('PROLOGUE'));
     const isStoryMode = G.CampaignState && G.CampaignState.isEnabled();
     if (isStoryMode && shouldShowStory('PROLOGUE')) {
         showStoryScreen('PROLOGUE', function() {
