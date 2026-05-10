@@ -123,7 +123,10 @@
                 this._statusRemaining -= dt;
                 if (this._statusCountdown && this._textEl) {
                     if (this._statusRemaining > 0) {
-                        this._textEl.textContent = this._statusBaseText + ' ' + this._statusRemaining.toFixed(1) + 's';
+                        this._textEl.textContent = this._statusBaseText;
+                        if (this._detailEl) {
+                            this._detailEl.textContent = this._statusRemaining.toFixed(1) + 's';
+                        }
                     }
                 }
                 if (this._statusRemaining <= 0) {
@@ -391,7 +394,10 @@
             this._statusBaseText = text;
 
             this._emojiEl.textContent = icon;
-            this._textEl.textContent = countdown ? text + ' ' + duration.toFixed(1) + 's' : text;
+            this._textEl.textContent = text;
+            if (this._detailEl) {
+                this._detailEl.textContent = countdown ? duration.toFixed(1) + 's' : '';
+            }
 
             this._popup.className = '';
             void this._popup.offsetWidth;
@@ -494,6 +500,7 @@
             if (this._popup) {
                 this._emojiEl = this._popup.querySelector('.meme-emoji');
                 this._textEl = this._popup.querySelector('.meme-text');
+                this._detailEl = this._popup.querySelector('.meme-detail');
             }
         }
 
@@ -531,7 +538,7 @@
             const priority = config.PRIORITIES[tier] || 1;
             const duration = config.DURATIONS[event] || 2000;
 
-            const item = { event, text, emoji: emoji || '', tier, priority, duration };
+            const item = { event, text, emoji: emoji || '', detail: '', tier, priority, duration };
 
             // CRITICAL interrupts immediately
             if (tier === 'CRITICAL' && this._isShowing) {
@@ -588,6 +595,9 @@
             // Set content
             this._textEl.textContent = item.text;
             this._emojiEl.textContent = item.emoji || '';
+            if (this._detailEl) {
+                this._detailEl.textContent = item.detail || '';
+            }
 
             // Set tier class
             this._popup.className = 'tier-' + item.tier.toLowerCase() + ' show';

@@ -186,6 +186,7 @@ window.Game.TEXTS = {
         TUT_STEP_HYPER_TITLE: "HYPER",
         TUT_STEP_HYPER_BODY: "Kill enemies up close to fill the DIP bar. When it's full, tap the HYPER button (bottom centre) to unleash a devastating salvo.",
         TUT_SKIP: "SKIP",
+        TAP_TO_SKIP: "TAP TO SKIP",
         RESET_TUTORIAL: "Reset tutorial",
         RESET_TUTORIAL_DONE: "Tutorial reset \u2014 lessons will show again next run",
         // Intro Redesign v4.8
@@ -496,6 +497,7 @@ window.Game.TEXTS = {
         TUT_STEP_HYPER_TITLE: "HYPER",
         TUT_STEP_HYPER_BODY: "Uccidi i nemici ravvicinati per riempire la barra DIP. Quando \u00e8 piena, tocca il pulsante HYPER (in basso al centro) per scatenare una salva devastante.",
         TUT_SKIP: "SALTA",
+        TAP_TO_SKIP: "TOCCA PER SALTARE",
         RESET_TUTORIAL: "Resetta tutorial",
         RESET_TUTORIAL_DONE: "Tutorial resettato \u2014 le lezioni riappariranno nelle prossime partite",
         // Intro Redesign v4.8

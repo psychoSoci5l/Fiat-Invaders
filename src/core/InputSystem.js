@@ -91,7 +91,6 @@ class InputSystem {
             if (!this.touch.joystickActive) this.touch.active = false;
             // v5.7: Tap-on-ship shield activation
             if (this._tapStart && e.changedTouches.length > 0) {
-                // v7.0: Match by identifier for correct multi-touch tracking
                 let t = null;
                 for (let i = 0; i < e.changedTouches.length; i++) {
                     if (e.changedTouches[i].identifier === this._tapStart.id) {
@@ -106,6 +105,14 @@ class InputSystem {
                 if (elapsed < 300 && dist < 20 && this._isNearShip(t.clientX, t.clientY)) {
                     this.touch.shield = true;
                     setTimeout(() => { this.touch.shield = false; }, 150);
+                }
+                // v7.13.3: Tap-to-skip in INTERMISSION / STORY_SCREEN / GAMEOVER —
+                // keyboards/gamepad already emit 'start', but touch does not.
+                if (elapsed < 300 && dist < 20) {
+                    const gs = window.Game && window.Game.GameState;
+                    if (gs && (gs.is('INTERMISSION') || gs.is('STORY_SCREEN') || gs.is('GAMEOVER'))) {
+                        if (this.callbacks['start']) this.callbacks['start']();
+                    }
                 }
                 this._tapStart = null;
             }

@@ -255,7 +255,7 @@
             <div class="terminal-header-small">UPGRADE OFFER</div>
             <h2 class="neon-title">CHOOSE MODULE</h2>
             <div id="perk-options" class="perk-options"></div>
-            <button id="perk-skip" class="btn btn-secondary btn-sm">SKIP</button>
+            <button id="perk-skip" class="btn btn-secondary btn-block">SKIP</button>
         </div>
     </div>
 
@@ -345,13 +345,20 @@
 
         <div id="control-toast">CONTROLS: SWIPE</div>
 
-        <!-- MEME POPUP v4.20.0 - Neon cartoon popup above player ship -->
+        <!-- MEME POPUP v7.13 - Standardized layout with fixed slots -->
         <div id="meme-popup">
             <div class="meme-box">
-                <span class="meme-emoji"></span>
-                <span class="meme-text"></span>
+                <div class="meme-emoji" aria-hidden="true"></div>
+                <div class="meme-text"></div>
+                <div class="meme-detail"></div>
             </div>
         </div>
+
+        <!-- INTERMISSION SKIP HINT - v7.13: Tap-to-skip affordance during Arcade intermission -->
+        <div id="intermission-skip-hint" style="display: none;" data-i18n="TAP_TO_SKIP">TAP TO SKIP</div>
+
+        <!-- IN-GAME TOAST SYSTEM v7.13 — Non-blocking feedback for perk/hyper/combo -->
+        <div id="toast-container"></div>
 
     </div><!-- /game-container -->
 
@@ -768,8 +775,9 @@ Tap your ship to activate</p>
     <script src="src/systems/SpatialGrid.js"></script>
     <script src="src/systems/CollisionSystem.js"></script>
     <script src="src/systems/DropSystem.js"></script>
-    <script src="src/systems/MemeEngine.js"></script>
-    <script src="src/systems/HintTracker.js"></script>
+     <script src="src/systems/MemeEngine.js"></script>
+     <script src="src/ui/ToastSystem.js"></script>
+     <script src="src/systems/HintTracker.js"></script>
     <script src="src/ui/LessonModal.js"></script>
     <script src="src/core/EventBus.js"></script>
     <script src="src/core/GameStateMachine.js"></script>

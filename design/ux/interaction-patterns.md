@@ -82,7 +82,7 @@
 
 ## Pattern 5: Modal Overlay (DOM)
 
-**Used in**: Pause menu, Settings, Story dialogue, Game Over
+**Used in**: Pause menu, Settings, Story dialogue, Game Over, Lesson cards
 
 **Description**: Full-screen DOM overlay over the canvas. Canvas rendering continues (paused or frozen depending on state).
 
@@ -92,6 +92,15 @@
 - Canvas visible behind (frozen frame during PAUSE)
 - Escape to close (except Game Over — explicit button only)
 - Focus trapped inside modal while open
+
+**Sub-pattern: Story Screen Crawl** — Progressive tap-to-skip:
+1. First tap: accelerate scroll to 3x speed (`SCROLL_SPEED_FAST`)
+2. Second tap (while scrolling): jump to end position immediately (`scrollY = scrollRestY`, `readyForInput = true`)
+3. Third tap (at rest): dismiss with 0.8s fade-out
+
+**Sub-pattern: Lesson Card** — First-encounter info modal (perk pickup, mechanic unlock). Purple-bordered card centered on dark backdrop. Flex column layout: icon (64px) → title → scrollable body text (left-aligned, flex 0 1 auto) → OK button (centered, align-self: center). Max height calc(100vh - 80px) with body scroll for long text on small screens.
+
+**Sub-pattern: Intermission Skip** — Touch in INTERMISSION/STORY_SCREEN/GAMEOVER states emits 'start' event. For INTERMISSION, sets `waveMgr.intermissionTimer = 0` (immediate wave start). For STORY_SCREEN, routes to StoryScreen.handleTap() (progressive skip above).
 
 ---
 
@@ -127,8 +136,47 @@
 ## Existing Patterns (No Formal Spec Yet)
 - Screen shake (gameplay feedback)
 - Hit-stop / freeze-frame (impact feel)
-- Meme popup / status popup (dual-use DOM node `#meme-popup`)
+- Meme popup / status popup (dual-use DOM node `#meme-popup`) — v7.13: standardized with fixed-height card, emoji/text/detail slots
 - Title animation (VIDEO → INTRO transition)
+- Intermission skip hint (`#intermission-skip-hint`) — v7.13: "TAP TO SKIP" bottom-center, fade-in 300ms after intermission starts, hidden when timer < 0.5s
+- StoryScreen progressive tap: 1st tap = 3x scroll speed, 2nd tap = jump to end (readyForInput), 3rd tap = dismiss with fade-out
+
+---
+
+## Pattern 8: Toast Notification (v7.13)
+
+**Used in**: Perk pickup, HYPER first activation, combo milestones, power-up acquired
+
+**Description**: Non-blocking feedback strip at top of screen. Max 2 visible, auto-dismiss 1.5s, slide-in from top. Does not interrupt gameplay. Suppressed when critical popup (meme-popup) is active.
+
+**Behavior**:
+- Slide in from top (translateY -20px → 0) over 150ms
+- Hold for 1.5s (configurable per type)
+- Slide out (opacity 0) over 200ms
+- Max 2 visible — 3rd toast immediately dismisses oldest
+- Color-coded border by type: perk (violet), hyper (gold), godchain (orange), shield (cyan), combo (gold)
+
+**States**:
+| State | Visual | Behavior |
+|-------|--------|----------|
+| Entering | Slide from top, 150ms | Queued if 2 already visible |
+| Active | Full opacity, type-colored border | Auto-dismiss timer starts |
+| Exiting | Fade out, 200ms | Removed from DOM after animation |
+
+**Accessibility**: pointer-events: none — toast is informational only, no interaction target.
+
+---
+
+## Pattern 9: Overlay Button Anchor (v7.13)
+
+**Used in**: Tutorial NEXT/GO, Tutorial SKIP, Title SKIP
+
+**Description**: Action buttons in overlay screens are anchored to fixed positions within their overlay container, not positioned by document flow. Anchored buttons never move regardless of content height changes.
+
+**Behavior**:
+- SKIP button: `position: absolute; top: calc(14px + safe-area); right: 14px` — always visible, never occluded
+- NEXT/GO button: Container uses `position: sticky; bottom: 0` — always at bottom of card, content scrolls above
+- Title SKIP: `position: absolute; top: max(14px, env(safe-area-inset-top)); right: 16px` — consistent top-right position, no content reflow
 
 ---
 

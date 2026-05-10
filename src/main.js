@@ -503,6 +503,17 @@ function drawTypedMessages(ctx) {
 // --- PERK SYSTEM (delegated to PerkManager) ---
 function openPerkChoice() { G.PerkManager.open(); perkChoiceActive = G.PerkManager.isActive(); }
 function closePerkChoice() { G.PerkManager.close(); perkChoiceActive = G.PerkManager.isActive(); }
+
+// v7.13: Intermission skip hint management
+function _hideIntermissionSkipHint() {
+    const skipHint = document.getElementById('intermission-skip-hint');
+    if (skipHint && skipHint.style.display !== 'none') {
+        skipHint.classList.add('fade-out');
+        skipHint.classList.remove('visible');
+        setTimeout(() => { skipHint.style.display = 'none'; skipHint.classList.remove('fade-out'); }, 150);
+    }
+}
+
 function applyPerk(perk) { G.PerkManager.apply(perk); perkChoiceActive = G.PerkManager.isActive(); }
 function applyRandomPerk() {
     const cd = G.PerkManager.applyRandom(perkCooldown);
@@ -971,6 +982,7 @@ function init() {
         else if (gameState === 'STORY_SCREEN' && G.StoryScreen) G.StoryScreen.handleTap();
         else if (gameState === 'INTERMISSION' && waveMgr && waveMgr.intermissionTimer > 0) {
             waveMgr.intermissionTimer = 0; // Skip boss-defeat intermission
+            _hideIntermissionSkipHint();
         }
         else if (gameState === 'INTRO') {
             // v4.35: Cooldown prevents rapid-fire state transitions (key repeat)
@@ -1869,6 +1881,8 @@ function startGame() {
 
     // v4.20.0: Ensure meme popup DOM refs are cached
     if (G.MemeEngine) G.MemeEngine.initDOM();
+    // v7.13: Initialize toast system
+    if (G.ToastSystem) G.ToastSystem.init();
     // v4.26.0: Ensure message strip DOM refs are cached
     if (G.MessageSystem) G.MessageSystem.initDOM();
     // v4.1.0: Initialize rank system
@@ -2183,6 +2197,22 @@ function startIntermission(msgOverride) {
             }
         }, 4000);
     }
+
+    // v7.13: Show "TAP TO SKIP" hint for intermissions longer than 2s (delayed 300ms)
+    if (duration > 2.0) {
+        setTimeout(() => {
+            if (fc.gameState === 'INTERMISSION' && waveMgr && waveMgr.intermissionTimer > 0) {
+                const skipHint = document.getElementById('intermission-skip-hint');
+                if (skipHint) {
+                    skipHint.textContent = t('TAP_TO_SKIP');
+                    skipHint.style.display = 'block';
+                    skipHint.classList.remove('fade-out');
+                    skipHint.classList.add('visible');
+                }
+            }
+        }, 300);
+    }
+
     emitEvent('game:intermission-start', { level: level, wave: waveMgr.wave });
 }
 
@@ -2511,6 +2541,9 @@ function update(dt) {
                 }
             }
         } else if (waveAction.action === 'START_WAVE') {
+            // v7.13: Hide intermission skip hint
+            _hideIntermissionSkipHint();
+
             setGameState('PLAY');
             triggerScreenFlash('WAVE_START'); // Brief white flash at wave start
             // Increment level for every wave EXCEPT the very first one (level=1, wave=1)
@@ -3637,6 +3670,8 @@ function loop(timestamp) {
 function showGameCompletion(onComplete) { if (G.GameCompletion) G.GameCompletion.showGameCompletion(onComplete); }
 function showCampaignVictory() { if (G.GameCompletion) G.GameCompletion.showCampaignVictory(); }
 function triggerGameOver() {
+    // v7.13: Hide intermission skip hint
+    _hideIntermissionSkipHint();
     // v7.13.0: Fade to black before game over screen (smoother transition)
     if (G.TransitionManager && !G.TransitionManager.isActive()) {
         G.TransitionManager.start(function() {

@@ -1,7 +1,7 @@
 # Art Bible — FIAT vs CRYPTO
 
-> **Status:** In Progress (sections 2, 4, 6 revised for Phase 1→3 progression)
-> **Last Updated:** 2026-04-27
+> **Status:** In Progress (Section 7 expanded with Overlay Button Anchor System, Intermission Skip Affordance, Meme Popup Standardized Layout, and Toast System for non-blocking feedback — v7.13)
+> **Last Updated:** 2026-05-10
 > **Engine:** Vanilla JavaScript (Canvas 2D, procedural rendering)
 > **Review Mode:** Lean (AD-ART-BIBLE skipped)
 
@@ -582,6 +582,130 @@ The HUD is split across two rendering surfaces:
 ### Design Rule
 
 **"Glow = collect, dark = avoid"** — additive glow is reserved for player-owned elements (ship, bullets, power-ups, positive feedback). Enemy elements use dark tinted outlines and never use additive blending. This is the single inviolable UI rule.
+
+### Overlay Button Anchor System
+
+**Problem:** Action buttons in overlay screens (tutorial NEXT/GO, title skip, intermission skip) shift position when overlay content changes size — every step transition reflows the layout and the button moves, forcing the player to re-aim their tap.
+
+**Rule:** Every overlay action button must be **anchored to a fixed position within its overlay container**, not positioned by document flow. Anchored buttons never move regardless of content height changes.
+
+**Implementation pattern:**
+
+| Overlay | Button | Anchor Position | Z-Index |
+|---|---|---|---|
+| Tutorial (`#tutorial-overlay`) | SKIP (`#tut-skip-btn`) | `top: calc(14px + safe-area); right: 14px` — absolute, top-right | 1 (within overlay z-9500) |
+| Tutorial (`#tutorial-overlay`) | NEXT / GO (`#tut-go-btn`) | `bottom: calc(24px + safe-area-bottom)` — absolute, bottom-center | 1 |
+| Tutorial container (`.tutorial-container`) | Content area | Top-anchored with `overflow-y: auto`, padding-bottom clears button zone | — |
+| Title animation (`#intro-screen`) | SKIP (`#title-skip-btn`) | `top: max(20px, safe-area-top); right: 16px` — absolute, top-right | 300 |
+| Intermission Arcade | SKIP hint (`.intermission-skip-hint`) | `bottom: calc(50px + safe-area-bottom)` — absolute, bottom-center | 100 |
+| V8 Intermission (`#v8-intermission-screen`) | CONTINUE / MENU (`.gameover-actions`) | Flex column centered, `margin-top: auto`, pushed to bottom third | 260 |
+| Game Over (`#gameover-screen`) | RETRY / MENU (`.gameover-actions`) | Same pattern as V8 intermission | 260 |
+
+**Anchoring constraint:** The tutorial container must use `position: relative` to scope the absolute-positioned buttons. Content scroll area sits above the bottom-anchored NEXT/GO button with a fixed `padding-bottom` to prevent overlap. The SKIP button at top-right is always visible and never overlaps content.
+
+### Intermission Skip Affordance
+
+**Problem:** V8 intermission has visible CONTINUE/MENU buttons, but Arcade intermission has zero skip affordance — players must discover by accident that tapping anywhere skips the timer.
+
+**Rule:** Every intermission state (Arcade and V8 boss-defeat) must display a clear **skip affordance** when the intermission timer exceeds 2.0 seconds. The affordance uses the terminal hint text style (monospace, uppercase, letter-spaced, `rgba(255,255,255,0.5)`, 12px) and is positioned at the bottom of the screen above the safe-area margin.
+
+**Specification:**
+- **Text:** "TAP TO SKIP" (localized: IT = "TOCCA PER SALTARE")
+- **Position:** `bottom: calc(50px + safe-area-bottom)`, centered horizontally
+- **Appearance:** Fade-in 300ms after intermission starts, remains visible until timer completes or tap dismisses
+- **Interaction:** Tapping anywhere on the game canvas (not just the text) advances the intermission — the text is an affordance, not the only target
+- **Duration visibility:** Hide immediately when timer drops below 0.5s (fade-out 150ms) to prevent visual noise on short intermissions
+
+### Meme Popup / Status HUD Standardized Layout
+
+**Problem:** The dual-use `#meme-popup` DOM element serves as both a meme display (intermission) and a status HUD (during PLAY), but its internal layout is a flat `span.emoji + span.text` pair with no structural alignment. Text length variation causes the popup center-point to shift, making status messages appear at different vertical positions.
+
+**Rule:** The `#meme-popup` uses a **fixed-height card structure** with defined slots, regardless of content length.
+
+**Standardized meme-popup structure:**
+
+```
+┌─────────────────────────────────┐
+│  [OPTIONAL ICON]  10px         │ ── .meme-emoji slot (fixed 20px height)
+│  ─────────────────────────────  │
+│  TEXT CONTENT                   │ ── .meme-text slot (1–2 lines max)
+│  (max 2 lines, ellipsis overflow)│
+│  ─────────────────────────────  │
+│  [COUNTDOWN / COUNTER]          │ ── .meme-detail slot (optional)
+└─────────────────────────────────┘
+```
+
+**Layout rules:**
+- `.meme-box` uses `display: flex; flex-direction: column; align-items: center; min-height: 60px; padding: 12px 20px;` — fixed minimum height prevents vertical shift
+- `.meme-emoji` always occupies `20px` height with `line-height: 20px`, even when empty (`.meme-emoji:empty` uses `display: block; height: 0` to collapse only when truly unused)
+- `.meme-text` uses `max-width: 260px; text-align: center; line-height: 1.4;` — longer text wraps, never pushes the popup up
+- `.meme-detail` (new slot) is an optional `span` for timer countdown or counter values, `font-size: 11px; letter-spacing: 2px; color: rgba(255,255,255,0.5);`
+- Text alignment is always `center` — no left-align or right-align variants for popup content
+- Status HUD variants (`status-fire`, `status-laser`, etc.) inherit the same structural layout with adjusted colors/animations
+- The popup's vertical position remains `bottom: calc(240px + var(--safe-bottom))` — with the fixed min-height, this position is now stable
+
+### In-Game Toast System for Non-Critical Feedback
+
+**Problem:** Text popups that inform players about perk pickups, first-time HYPER activation, and other power-up events appear as full meme-popup overlays that interrupt gameplay flow. Too many full-size popups break combat rhythm.
+
+**Rule:** In-game feedback is split into two tiers by interrupt level:
+
+| Tier | Type | Examples | Rendering | Interrupt |
+|---|---|---|---|---|
+| **Critical** | Full popup (meme-popup) | Boss warning, wave announcement, story dialogue, game mode change | `#meme-popup` with full animation, centered, 2.5s duration | Pauses or overlays gameplay |
+| **Info** | Toast strip | Perk pickup, HYPER first activation, power-up acquired, combo milestone | New `#toast-container` strip at top of screen | Non-blocking, gameplay continues |
+
+**Toast strip specification:**
+- **Container:** `#toast-container` — `position: absolute; top: calc(env(safe-area-inset-top) + 60px); left: 50%; transform: translateX(-50%); z-index: 95; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 4px; max-width: 90%;`
+- **Single toast item:** `.toast-item` — `display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; background: rgba(4,4,16,0.75); border: 1px solid rgba(0,240,255,0.25); border-radius: 4px; font-family: 'Press Start 2P', monospace; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: rgba(255,255,255,0.85); backdrop-filter: blur(4px);`
+- **Color coding:** Border and text glow follow faction/state color: perk = `#bb44ff` (violet), HYPER = `#ffd700` (gold), GODCHAIN = `#ff4400` (orange), shield/power = `#00f0ff` (cyan)
+- **Animation:** Slide-in from top (`translateY(-20px)` → `translateY(0)`) over 150ms ease-out, hold for 1.5s, slide-out (`opacity: 0`) over 200ms
+- **Stacking:** Maximum 2 visible toasts. If a third arrives, the oldest is immediately dismissed (200ms fade). Stacked toasts overlap with 4px vertical gap
+- **Priority queue:** New toasts are queued if 2 are visible. Toasts display in arrival order. No toast lasts longer than 1.5s. If a critical popup (meme-popup) is active, toasts are suppressed until the popup clears
+- **Safe-area:** Toast container respects `env(safe-area-inset-top)` to avoid Dynamic Island overlap
+
+**Migration guide — what becomes a toast:**
+| Current | New Tier | Notes |
+|---|---|---|
+| Perk acquired (showMeme('PERK_ACQUIRED')) | Toast | Non-blocking, color-coded by perk type |
+| HYPER first activation (LessonModal or showMeme) | Toast — gold border | 1.5s, no gameplay pause |
+| Shield gained / lost | Toast — cyan border | Brief, informational |
+| Combo milestone (10x, 25x, 50x) | Toast — gold border | Celebratory, non-blocking |
+| Boss warning | Remains full popup | Critical — needs attention |
+| Wave announcement ("CYCLE X BEGINS") | Remains full popup | Critical — game state change |
+| Story dialogue | Remains full popup | Critical — narrative content |
+| Level complete | Remains full popup | Critical — game state change |
+| Lesson modal (first encounter fire/laser/electric) | Remains full popup | Critical — educational |
+
+**LessonModal remains a full popup** because it teaches a new mechanic that the player must understand before continuing. It pauses gameplay and requires an explicit OK tap. Only the informational feedback (perk name, status change, combo count) graduates to the toast tier.
+
+### UI Container Standardization
+
+**Rule:** All purple-bordered modal overlays share a consistent visual baseline. Terminal-themed panels (perk, settings) retain their cyan/green identity but follow shared sizing rules.
+
+**Standard purple modal baseline:**
+
+| Property | Value | Used by |
+|---|---|---|
+| Border | `3px solid #bb44ff` | lesson-card, nickname-box, feedback-box, paper-modal |
+| Border-radius | `16px` | lesson-card, nickname-box, feedback-box, paper-modal, gameover, victory |
+| Max-width | `380px` | lesson-card, nickname-box, feedback-box |
+| Max-height | `calc(100vh - 80px)` with `overflow-y: auto` | lesson-card (body scrolls), nickname-box, feedback-box |
+| Background | `#000000` | all modals |
+| Overlay | `rgba(0,0,0,0.78)` + `backdrop-filter: blur(6px)` | lesson-modal, perk-modal |
+
+**Terminal-themed panels (perk-panel, settings) baseline:**
+
+| Property | Value |
+|---|---|
+| Border | `1px solid var(--terminal-border)` (cyan/green, theme-dependent) |
+| Border-radius | `12px` (slightly less than standard 16px — intentional differentiation) |
+| Background | Scanline overlay or `#0a0a12` |
+
+**Action button alignment in card modals:**
+- `.btn-block` buttons inside flex-column cards use `align-self: center` to center within card
+- `.lesson-body` uses `flex: 0 1 auto` (shrink-only, never expands to fill leftover space) to keep button close to text
+- Skip/close buttons use `btn-block` width (`min(320px, 85vw)`) for consistent tap targets
 
 ---
 

@@ -100,13 +100,9 @@ window.Game = window.Game || {};
 
         var overlay = document.getElementById('tutorial-overlay');
         if (overlay) {
-            overlay.style.transition = 'opacity 0.2s ease-out';
-            overlay.style.opacity = '0';
-            setTimeout(function () {
-                overlay.style.display = 'none';
-                overlay.style.transition = '';
-                overlay.style.opacity = '';
-            }, 200);
+        overlay.style.display = 'none';
+        overlay.style.transition = '';
+        overlay.style.opacity = '';
         }
 
         _completeFlow();

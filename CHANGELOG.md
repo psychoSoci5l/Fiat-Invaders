@@ -1,5 +1,23 @@
 # Changelog
 
+## v7.21 — fix(ui): container consistency + story skip + lesson alignment — 2026-05-10
+
+### fix (ui consistency)
+- **StoryScreen tap-to-skip**: Progressive skip — 1st tap accelerates scroll (3x), 2nd tap jumps to end immediately, 3rd tap dismisses. Previously, tapping only accelerated text; player had to wait for full scroll before dismissing.
+- **Lesson-card alignment**: Button (`.btn-block`) now uses `align-self: center` in flex column. Body uses `flex: 0 1 auto` (shrink-only) instead of `flex: 1 1 auto` (which pushed button to bottom). Border standardized to `3px solid #bb44ff`, `max-height: calc(100vh - 80px)` with scrollable body.
+- **Perk SKIP button**: Changed from `btn-sm` (inline, left-aligned) to `btn-block` (full-width, centered).
+- **Perk-card border-radius**: 0 → 10px (matches boss-card/tip-card).
+- **Perk-panel border-radius**: 0 → 12px (deliberate differentiation from standard 16px purple modals).
+- **Paper-modal**: Border 4px → 3px, border-radius 12px → 16px, padding 25px 30px → 20px 24px (standardized with other purple modals).
+- **Gameover/victory actions**: max-width 280px → 360px (matches modal width).
+- **Nickname-box**: max-width 360px → 380px, border-radius 12px → 16px, added overflow handling.
+- **Credits/privacy content**: scroll area 60vh → 80vh, reduced double-padding.
+- **Credits-content**: Added `max-height: 80vh; overflow-y: scroll` with overscroll containment.
+
+### docs
+- **interaction-patterns.md**: Added Story Screen progressive tap-to-skip spec, Lesson Card sub-pattern, Intermission Skip sub-pattern.
+- **art-bible.md**: Added UI Container Standardization section (purple modal baseline, terminal panel baseline, action button alignment rules).
+
 ## v7.20.4 — feat(enemy): varietà nemici — minion regionali, elite/behavior V8, cross-region mixing, semi-agent - 2026-05-02
 
 ### feat

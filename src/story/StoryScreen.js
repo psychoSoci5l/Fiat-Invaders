@@ -351,6 +351,12 @@
             return;
         }
 
+        if (scrollSpeed === CONFIG.SCROLL_SPEED_FAST) {
+            scrollY = scrollRestY;
+            readyForInput = true;
+            return;
+        }
+
         scrollSpeed = CONFIG.SCROLL_SPEED_FAST;
     }
 

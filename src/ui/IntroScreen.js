@@ -1852,6 +1852,9 @@ window.Game = window.Game || {};
             // Hide meme popup
             const memePopup = document.getElementById('meme-popup');
             if (memePopup) { memePopup.classList.remove('show'); memePopup.classList.remove('hide'); }
+            // v7.13: Hide intermission skip hint
+            const skipHint = document.getElementById('intermission-skip-hint');
+            if (skipHint) { skipHint.style.display = 'none'; skipHint.classList.remove('visible', 'fade-out'); }
             // Hide dialogue overlay (story mode leaves it with pointer-events)
             const dialogueContainer = document.getElementById('dialogue-container');
             if (dialogueContainer) dialogueContainer.classList.remove('visible');
