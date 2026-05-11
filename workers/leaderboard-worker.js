@@ -75,11 +75,23 @@ async function sha256(message) {
 
 // Score ceiling: rough max possible score for given wave/cycle
 // v7.0: Adjusted for TOTAL_MULT_CAP=12x (was uncapped ~25x)
-// v7.x: Arcade mode has no 5-wave cycle cap — use raw wave number instead
-// of mapping to cycle, and a higher per-wave factor (difficulty scales faster).
+// v7.x: Arcade score is cumulative across cycles. A player at cycle 3 wave 1
+// has already survived cycles 1 and 2 (5 waves each). The ceiling must account
+// for total progression, not just the current wave within the current cycle.
+// Model: each cycle's max score scales with cycle number (difficulty ramp =
+// more enemies, harder variants). Per-cycle base * cycle * 12x multiplier cap.
+// Story mode: unchanged (5 waves, single-cycle mapping).
 function scoreCeiling(wave, cycle, mode) {
   if (mode === 'arcade') {
-    return 15000 * wave * cycle * 1.5;
+    const completedCycles = Math.max(0, cycle - 1);
+    const currentCycleProgress = wave / 5;
+    const perCycleBase = 15000 * 5 * 1.5;
+    let cumulative = 0;
+    for (let c = 1; c <= completedCycles; c++) {
+      cumulative += perCycleBase * c * 12;
+    }
+    cumulative += perCycleBase * cycle * 12 * currentCycleProgress;
+    return Math.floor(cumulative);
   }
   return 12000 * wave * cycle * 1.5;
 }
