@@ -454,8 +454,9 @@ window.Game = window.Game || {};
                     G.Debug.trackCycleUp(newCycle);
                     if (G.Debug) G.Debug.trackCycleStart(newCycle);
                     const waveMgr = G.WaveManager;
-                    // v7.31 (RC-11): reset() no longer touches waveInProgress;
-                    // we set it BEFORE to close the frame window.
+                    // Set waveInProgress before reset() to close the frame window.
+                    // reset() will set it back to false — update() naturally re-triggers
+                    // START_INTERMISSION for wave 1 of the new cycle on the next tick.
                     waveMgr.waveInProgress = true;
                     waveMgr.reset();
                     G.DropSystem.specialDroppedThisCycle = false;

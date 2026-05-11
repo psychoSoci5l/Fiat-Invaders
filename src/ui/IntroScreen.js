@@ -1952,6 +1952,14 @@ window.Game = window.Game || {};
             G.Audio.resetState();
             G.Audio.init();
             if (G.HarmonicConductor) G.HarmonicConductor.reset();
+            if (G.ParticleSystem) G.ParticleSystem.clear();
+            // BUG-0018: Reset WaveManager so waveInProgress doesn't stale across runs
+            if (G.WaveManager) G.WaveManager.reset();
+            // BUG-0019: Reset phase/visual state so title screen renders Phase 1 sky
+            if (G.PhaseTransitionController) { G.PhaseTransitionController.init(); G.PhaseTransitionController.setCurrentPhase(1); }
+            if (G.SkyRenderer) { G.SkyRenderer.reset(); G.SkyRenderer.setPhase(1); }
+            const scoreEl = document.querySelector('.hud-score-compact');
+            if (scoreEl) scoreEl.classList.remove('score-hyper');
             initIntroShip();
 
             // v4.35: Restart TitleAnimator in skip mode (no replay on return)
