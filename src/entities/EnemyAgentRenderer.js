@@ -1411,14 +1411,19 @@
         ctx.fill();
         ctx.globalAlpha = 1;
 
-        // Inner core (bright, with shadow glow)
+        // Inner core (bright, v7.32: additive glow instead of shadowBlur)
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = 0.4;
         ctx.fillStyle = cc.primary;
-        ctx.shadowColor = cc.primary;
-        ctx.shadowBlur = 14;
+        ctx.beginPath();
+        ctx.arc(x, y, 9, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+        ctx.fillStyle = cc.primary;
         ctx.beginPath();
         ctx.arc(x, y, 5.5, 0, Math.PI * 2);
         ctx.fill();
-        ctx.shadowBlur = 0;
 
         // Core containment ring
         ctx.strokeStyle = cc.ring;
@@ -1454,14 +1459,22 @@
         const symHover = Math.sin(now * 0.004) * 3;
         ctx.save();
         ctx.globalAlpha = 0.85;
+        // v7.32: additive glow instead of shadowBlur for hovering symbol
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = 0.3;
+        ctx.fillStyle = cc.primary;
+        ctx.font = 'bold 16px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(enemy.symbol, x, y - 26 + symHover);
+        ctx.restore();
+        ctx.globalAlpha = 0.85;
         ctx.fillStyle = cc.ring;
         ctx.font = 'bold 13px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.shadowColor = cc.primary;
-        ctx.shadowBlur = 8;
         ctx.fillText(enemy.symbol, x, y - 26 + symHover);
-        ctx.shadowBlur = 0;
         ctx.globalAlpha = 1;
         ctx.restore();
     }

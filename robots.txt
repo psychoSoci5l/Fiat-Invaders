@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://fiat-invaders.games.psychosoci5l.com/sitemap.xml
+# Canonical domain: fiat-invaders.pages.dev
+Sitemap: https://fiat-invaders.pages.dev/sitemap.xml

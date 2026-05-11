@@ -1,5 +1,18 @@
 # Changelog
 
+## v7.32.0 — fix(render): shadowBlur cleanup + day-one patch — 2026-05-10
+
+### fix (rendering)
+- **MiniBossManager**: Replaced `ctx.shadowBlur` with additive glow dual-draw for currency symbol and phase dots (ADR-0002 compliance)
+- **EnemyAgentRenderer**: Replaced `ctx.shadowBlur` with additive glow dual-draw for core inner and hovering symbol (ADR-0002 compliance)
+- Zero remaining `shadowBlur` calls in codebase
+
+### infra
+- Version sync: `Constants.js` v7.32.0, `sw.js` v7.32.0
+- Leaderboard Worker deployed to Cloudflare
+- Cloudflare Pages deployed
+- QA sign-off: APPROVED
+
 ## v7.21 — fix(ui): container consistency + story skip + lesson alignment — 2026-05-10
 
 ### fix (ui consistency)

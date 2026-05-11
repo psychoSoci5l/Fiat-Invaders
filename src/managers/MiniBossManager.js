@@ -274,15 +274,21 @@
         ctx.arc(0, 0, 37, 0, Math.PI * 2);
         ctx.fill();
 
-        // ── Currency symbol with glow ──
-        ctx.shadowColor = miniBoss.color;
-        ctx.shadowBlur = 18 + pulse * 12;
+        // ── Currency symbol with additive glow (v7.32: no shadowBlur) ──
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = 0.25 + pulse * 0.1;
+        ctx.fillStyle = miniBoss.color;
+        ctx.font = 'bold 62px "Courier New", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(miniBoss.symbol, 0, 0);
+        ctx.restore();
         ctx.fillStyle = isDamaged ? '#fff' : '#f0f0ff';
         ctx.font = 'bold 56px "Courier New", monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(miniBoss.symbol, 0, 0);
-        ctx.shadowBlur = 0;
 
         // ── Damage cracks + red flash (<30% HP) ──
         if (isDamaged) {
@@ -300,19 +306,30 @@
             ctx.fill();
         }
 
-        // ── Phase dots (3 around the hexagon) ──
+        // ── Phase dots (3 around the hexagon, v7.32: no shadowBlur) ──
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        for (let p = 0; p < 3; p++) {
+            if (miniBoss.phase < p) continue;
+            const da = -Math.PI / 2 + (p * Math.PI * 2 / 3);
+            const dx = Math.cos(da) * 51;
+            const dy = Math.sin(da) * 51;
+            ctx.globalAlpha = 0.35;
+            ctx.fillStyle = miniBoss.color;
+            ctx.beginPath();
+            ctx.arc(dx, dy, 7, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
         for (let p = 0; p < 3; p++) {
             const da = -Math.PI / 2 + (p * Math.PI * 2 / 3);
             const dx = Math.cos(da) * 51;
             const dy = Math.sin(da) * 51;
             ctx.fillStyle = miniBoss.phase >= p ? miniBoss.color : '#333';
-            ctx.shadowColor = miniBoss.phase >= p ? miniBoss.color : 'transparent';
-            ctx.shadowBlur = miniBoss.phase >= p ? 4 : 0;
             ctx.beginPath();
             ctx.arc(dx, dy, 3.5, 0, Math.PI * 2);
             ctx.fill();
         }
-        ctx.shadowBlur = 0;
 
         // ── HP bar ──
         const barW = 114, barH = 7, barY = 72;
