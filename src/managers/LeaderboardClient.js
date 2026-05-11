@@ -166,16 +166,25 @@ window.Game = window.Game || {};
                 nonce: generateNonce(),
                 dur: data.duration || 0
             };
+            const url = `${G.LEADERBOARD_API}/score`;
             try {
-                const res = await fetch(`${G.LEADERBOARD_API}/score`, {
+                const res = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ payload })
                 });
                 const result = await res.json();
+                if (!res.ok || !result.ok) {
+                    console.warn('[Leaderboard] submitScore HTTP', res.status, 'error=', result.error, 'payload=', JSON.stringify(payload), 'origin=' + location.origin, 'url=' + url);
+                    this._lastError = result.error || `HTTP ${res.status}`;
+                } else {
+                    this._lastError = null;
+                }
                 this._cache = null;
                 return result;
-            } catch {
+            } catch (e) {
+                console.warn('[Leaderboard] submitScore failed:', e && e.message, 'origin=' + location.origin, 'url=' + url);
+                this._lastError = 'network';
                 return { ok: false, error: 'offline' };
             }
         },

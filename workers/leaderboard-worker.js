@@ -75,22 +75,32 @@ async function sha256(message) {
 
 // Score ceiling: rough max possible score for given wave/cycle
 // v7.0: Adjusted for TOTAL_MULT_CAP=12x (was uncapped ~25x)
-function scoreCeiling(wave, cycle) {
+// v7.x: Arcade mode has no 5-wave cycle cap — use raw wave number instead
+// of mapping to cycle, and a higher per-wave factor (difficulty scales faster).
+function scoreCeiling(wave, cycle, mode) {
+  if (mode === 'arcade') {
+    return 15000 * wave * cycle * 1.5;
+  }
   return 12000 * wave * cycle * 1.5;
 }
 
-// Sanity checks on submitted data
+// v7.x: Arcade mode has no 5-wave cycle cap — waves can go much higher.
+// Story mode still caps at 5. Validate against mode-appropriate limit.
+const MAX_WAVE_STORY = 5;
+const MAX_WAVE_ARCADE = 99;
+
 function validatePayload(p) {
   if (!p.n || typeof p.n !== 'string' || p.n.length < 3 || p.n.length > 6) return 'invalid name';
   if (!/^[A-Z0-9 ]{3,6}$/.test(p.n)) return 'invalid name chars';
   if (typeof p.s !== 'number' || p.s < 0 || !isFinite(p.s)) return 'invalid score';
   if (typeof p.k !== 'number' || p.k < 0) return 'invalid kills';
   if (typeof p.c !== 'number' || p.c < 1 || p.c > 50) return 'invalid cycle';
-  if (typeof p.w !== 'number' || p.w < 1 || p.w > 5) return 'invalid wave';
+  const maxWave = p.mode === 'arcade' ? MAX_WAVE_ARCADE : MAX_WAVE_STORY;
+  if (typeof p.w !== 'number' || p.w < 1 || p.w > maxWave) return 'invalid wave';
   if (!['BTC', 'ETH', 'SOL'].includes(p.sh)) return 'invalid ship';
   if (p.p && !['D', 'M'].includes(p.p)) return 'invalid platform';
   if (p.k > 0 && (p.s / p.k < 5 || p.s / p.k > 5000)) return 'suspicious ratio';
-  const ceiling = scoreCeiling(p.w, p.c);
+  const ceiling = scoreCeiling(p.w, p.c, p.mode);
   if (p.s > ceiling) return 'score exceeds ceiling';
 
   // v2.0: Validate play duration
