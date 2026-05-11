@@ -58,8 +58,9 @@
             // Bear Market additive bonus (not multiplier)
             BEAR_MARKET_BONUS: 0.25,        // Starts at Cycle 2 equivalent difficulty
 
-            // Maximum cap
-            MAX: 1.0
+            // Maximum cap (Story mode cap; Arcade unbounded via POST_C3_DIFF_PER_CYCLE)
+            MAX_STORY: 1.0,
+            MAX_ARCADE: 3.0
         },
 
         // --- PLAYER PHYSICS & GAMEPLAY ---
@@ -564,11 +565,13 @@
         },
 
         // --- ENEMY HP SCALING ---
-        ENEMY_HP: {
-            BASE: 30,                 // v5.18.2: 28→30 (+7%, slightly tankier baseline)
-            SCALE: 40,                // v4.48: 30→40 (+33%, late waves tankier)
-            CYCLE_MULT: [1.0, 1.8, 2.8]  // v7.0: C2 2.5→1.8 (smoother curve), C3 3.2→2.8 (proportional reduction)
-        },
+            ENEMY_HP: {
+                BASE: 30,                 // v5.18.2: 28→30 (+7%, slightly tankier baseline)
+                SCALE: 40,                // v4.48: 30→40 (+33%, late waves tankier)
+                // Extended for Arcade post-C3: each cycle beyond C3 adds ~+0.8x
+                // Story uses index 0-2, Arcade continues scaling through all entries
+                CYCLE_MULT: [1.0, 1.8, 2.8, 3.6, 4.4, 5.2, 6.0, 7.0, 8.0, 9.5]
+            },
 
         // --- ENEMY BEHAVIORS ---
         ENEMY_BEHAVIOR: {
@@ -2859,9 +2862,10 @@
             const cycleIndex = Math.min(cycle - 1, this.DIFFICULTY.CYCLE_BASE.length - 1);
             let baseDiff = this.DIFFICULTY.CYCLE_BASE[cycleIndex];
 
-            // Arcade post-C3: continued difficulty scaling
+            // Arcade post-C3: continued difficulty scaling (unbounded)
             const _isArcade = window.Game.ArcadeModifiers && window.Game.ArcadeModifiers.isArcadeMode();
             if (_isArcade && cycle > 3 && this.ARCADE) {
+                // Add +0.20 per cycle beyond C3, compounding past the CYCLE_BASE cap
                 baseDiff += (cycle - 3) * (this.ARCADE.POST_C3_DIFF_PER_CYCLE || 0.20);
             }
 
@@ -2871,7 +2875,9 @@
             // Add wave scaling within cycle
             const waveBonus = waveInCycle * this.DIFFICULTY.WAVE_SCALE;
 
-            return Math.min(this.DIFFICULTY.MAX, baseDiff + waveBonus);
+            // Cap: Story=1.0, Arcade=3.0 (Arcade scales much further)
+            const maxDiff = _isArcade ? (this.DIFFICULTY.MAX_ARCADE || 3.0) : (this.DIFFICULTY.MAX_STORY || 1.0);
+            return Math.min(maxDiff, baseDiff + waveBonus);
         },
 
         /**
@@ -3142,6 +3148,7 @@
             // Post-C3 scaling
             POST_C3_DIFF_PER_CYCLE: 0.20,       // +20% difficulty per cycle beyond C3
             POST_C3_FORMATION_REMIX: 0.40,      // 40% chance to remix formation
+            POST_C3_BOSS_HP_MULT: 1.35,          // +35% boss HP per cycle beyond C3 (exponential)
 
             // Combo system
             COMBO: {

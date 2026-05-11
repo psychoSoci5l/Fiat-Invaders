@@ -119,6 +119,17 @@
             var ngPlusMult = (campaignState && campaignState.isEnabled()) ? campaignState.getNGPlusMultiplier() : 1;
 
             var rawHp = baseHp + (ctx.level * hpPerLevel) + ((ctx.marketCycle - 1) * hpPerCycle);
+
+            // v7.x: Arcade post-C3 exponential HP scaling to match player power growth
+            // Player accumulates ~2-3 modifier cards per cycle, each multiplicative.
+            // Boss must scale faster than linear to keep pace.
+            var _isArcadeBoss = G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode();
+            if (_isArcadeBoss && ctx.marketCycle > 3 && Balance.ARCADE) {
+                var postC3Cycles = ctx.marketCycle - 3;
+                var arcadeHpMult = Balance.ARCADE.POST_C3_BOSS_HP_MULT || 1.0;
+                rawHp = rawHp * Math.pow(arcadeHpMult, postC3Cycles);
+            }
+
             newBoss.hp = Math.max(hpConfig ? hpConfig.MIN_FLOOR : 100, Math.floor(rawHp * perkScaling * ngPlusMult));
             newBoss.maxHp = newBoss.hp;
 
