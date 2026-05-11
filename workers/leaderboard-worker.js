@@ -270,6 +270,28 @@ async function handlePostScore(request, env) {
   return jsonResponse({ ok: true, rank }, 200, request, env);
 }
 
+// DELETE /api/admin/scores — remove entries by nickname (admin-only, requires ADMIN_SECRET)
+async function handleAdminDelete(request, env) {
+  const adminSecret = env.ADMIN_SECRET;
+  if (!adminSecret) return jsonResponse({ ok: false, error: 'admin not configured' }, 501, request, env);
+  const authHeader = request.headers.get('Authorization') || '';
+  if (authHeader !== `Bearer ${adminSecret}`) return jsonResponse({ ok: false, error: 'unauthorized' }, 403, request, env);
+  let body;
+  try { body = await request.json(); } catch { return jsonResponse({ ok: false, error: 'invalid json' }, 400, request, env); }
+  const { nicknames, mode } = body;
+  if (!Array.isArray(nicknames) || nicknames.length === 0) return jsonResponse({ ok: false, error: 'nicknames must be non-empty array' }, 400, request, env);
+  const targetMode = mode || 'arcade';
+  const key = kvKey(targetMode);
+  const raw = await env.LEADERBOARD.get(key);
+  if (!raw) return jsonResponse({ ok: false, error: 'no scores' }, 404, request, env);
+  const scores = JSON.parse(raw);
+  const before = scores.length;
+  const filtered = scores.filter(e => !nicknames.includes(e.n));
+  const removed = before - filtered.length;
+  await env.LEADERBOARD.put(key, JSON.stringify(filtered));
+  return jsonResponse({ ok: true, removed, remaining: filtered.length }, 200, request, env);
+}
+
 export default {
   async fetch(request, env) {
     // CORS preflight
@@ -289,6 +311,9 @@ export default {
       }
       if (path === '/api/score' && request.method === 'POST') {
         return handlePostScore(request, env);
+      }
+      if (path === '/api/admin/scores' && request.method === 'DELETE') {
+        return handleAdminDelete(request, env);
       }
       return jsonResponse({ ok: false, error: 'not found' }, 404, request, env);
     } catch (err) {
