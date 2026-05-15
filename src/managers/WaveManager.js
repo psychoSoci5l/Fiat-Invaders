@@ -115,7 +115,10 @@ window.Game.WaveManager = {
             }
         }
 
-        if (!bossActive && !this.miniBossActive && enemiesCount === 0 && !this.waveInProgress && gameState === 'PLAY') {
+        // S12.1 (v7.32): Also check MiniBossManager.isActive() to prevent
+        // boss spawn during legacy miniboss fights (which no longer set miniBossActive).
+        var _mbActive = this.miniBossActive || (G.MiniBossManager && G.MiniBossManager.isActive());
+        if (!bossActive && !_mbActive && enemiesCount === 0 && !this.waveInProgress && gameState === 'PLAY') {
             this.waveInProgress = true;
             dbg.log('WAVE', `[WM] Action triggered. wave=${this.wave}, enemies=${enemiesCount}`);
             if (window.Game.Events) window.Game.Events.emit('wave:started', { wave: this.wave, cycle: window.marketCycle || 1 });

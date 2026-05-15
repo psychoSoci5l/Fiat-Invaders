@@ -51,6 +51,11 @@
             this._struggleDropCount = 0;
             this._dominationSuppressCount = 0;
             this._deathGraceUntil = 0;
+
+            // S12.4 (v7.32): Miniboss drop tracking
+            this._minibossHitsSinceDrop = 0;
+            this._minibossDropsThisFight = 0;
+            this._minibossLastDropTime = 0;
         }
 
         /**
@@ -84,6 +89,11 @@
             this._struggleDropCount = 0;
             this._dominationSuppressCount = 0;
             this._deathGraceUntil = 0;
+
+            // S12.4 (v7.32): Miniboss drop tracking
+            this._minibossHitsSinceDrop = 0;
+            this._minibossDropsThisFight = 0;
+            this._minibossLastDropTime = 0;
         }
 
         /**
@@ -713,6 +723,87 @@
             this.bossDropCooldown = 0;
             this.bossDropCount = 0;
             this.bossFightStartTime = 0;
+        }
+
+        // ─── S12.4: Miniboss Drop System ───────────────────────────────
+
+        /**
+         * Reset miniboss drop tracking (call on miniboss spawn or defeat)
+         */
+        resetMinibossDrops() {
+            this._minibossHitsSinceDrop = 0;
+            this._minibossDropsThisFight = 0;
+            this._minibossLastDropTime = 0;
+        }
+
+        /**
+         * Try to spawn a perk drop on miniboss hit.
+         * Called from MiniBossManager.checkHit() after each successful hit.
+         * @param {number} mbX - Miniboss X position
+         * @param {number} mbY - Miniboss Y position
+         * @param {number} totalTime - Current game time in seconds
+         * @returns {Object|null} { type, category, x, y } or null
+         */
+        tryMinibossDrop(mbX, mbY, totalTime) {
+            const Balance = G.Balance;
+            const cfg = Balance.ARCADE && Balance.ARCADE.MINI_BOSS_DROPS;
+            if (!cfg || !cfg.ENABLED) return null;
+
+            // Only active in Arcade mode
+            if (!(G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode())) return null;
+
+            // Cap: max drops per fight
+            if (this._minibossDropsThisFight >= (cfg.MAX_DROPS_PER_FIGHT || 2)) return null;
+
+            // Cooldown: minimum time between drops
+            if (totalTime - this._minibossLastDropTime < (cfg.DROP_COOLDOWN || 3.0)) return null;
+
+            this._minibossHitsSinceDrop++;
+
+            // Roll: chance per hit OR pity
+            var dropChance = cfg.DROP_CHANCE_PER_HIT || 0.08;
+            var pityHits = cfg.PITY_HITS || 12;
+            var shouldDrop = Math.random() < dropChance || this._minibossHitsSinceDrop >= pityHits;
+
+            if (!shouldDrop) return null;
+
+            // Select category using miniboss-specific weights
+            var weights = cfg.CATEGORY_WEIGHTS || { PERK: 0.50, SPECIAL: 0.30, UTILITY: 0.20 };
+            var roll = Math.random();
+            var category;
+            var type;
+
+            if (roll < weights.PERK) {
+                category = 'perk';
+                type = 'PERK';
+            } else if (roll < weights.PERK + weights.SPECIAL) {
+                category = 'special';
+                var WE = Balance.WEAPON_EVOLUTION;
+                if (WE) {
+                    type = this.getWeightedSpecial(WE);
+                } else {
+                    var specials = ['HOMING', 'PIERCE', 'MISSILE'];
+                    type = specials[Math.floor(Math.random() * specials.length)];
+                }
+            } else {
+                category = 'utility';
+                var utils = ['SHIELD', 'SPEED'];
+                type = utils[Math.floor(Math.random() * utils.length)];
+            }
+
+            // Reset hit counter, increment drop counter
+            this._minibossHitsSinceDrop = 0;
+            this._minibossDropsThisFight++;
+            this._minibossLastDropTime = totalTime;
+
+            // Spawn position: near miniboss, slight random X offset
+            var offsetX = (Math.random() - 0.5) * 80;
+            return {
+                type: type,
+                category: category,
+                x: mbX + offsetX,
+                y: mbY + 60
+            };
         }
 
         /**

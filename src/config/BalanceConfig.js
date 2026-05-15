@@ -3177,11 +3177,148 @@
             },
 
             // Mini-boss Arcade overrides
+            // S12.6 (v7.32): recalibrated for continuous-action flow
+            // (regular enemies persist during miniboss fights)
             MINI_BOSS: {
-                COOLDOWN: 10.0,                 // 10s (vs 15s Story)
-                MAX_PER_WAVE: 3,                // 3 (vs 2 Story)
-                HP_MULT: 0.50,                  // 50% of full boss HP (vs 60%)
-                THRESHOLD_MULT: 0.65            // Kill thresholds × 0.65 (lower = more frequent)
+                COOLDOWN: 12.0,                 // 12s (was 10s — fewer encounters)
+                MAX_PER_WAVE: 2,                // 2 (was 3 — quality over quantity)
+                HP_MULT: 0.40,                  // 40% of full boss HP (was 50% — shorter fights)
+                THRESHOLD_MULT: 0.70,           // Kill thresholds × 0.70 (was 0.65 — slightly harder to trigger)
+                BASE_FIRE_RATE: 1.0,            // S12.6: base fire rate (was 0.8s inline)
+
+                // S12.2/S12.6: Per-bloc HP and fire rate variance
+                HP_MULT_PER_BLOC: {
+                    USA: 1.05,                  // Tanky feel
+                    EU: 1.00,                   // Baseline
+                    ASIA: 0.95,                 // Glass cannon
+                    EMERGING: 0.90,             // Fast and fragile
+                },
+                FIRE_RATE_PER_BLOC: {
+                    USA: 0.90,                  // Rapid fire
+                    EU: 1.10,                   // Slow, deliberate
+                    ASIA: 0.80,                 // Fast and aggressive
+                    EMERGING: 1.20,             // Bursty, long pauses
+                },
+            },
+
+            // S12.2/S12.3 (v7.32): Per-bloc movement patterns and signature attacks
+            MINI_BOSS_PATTERNS: {
+                // Currency-to-bloc mapping
+                BLOCS: {
+                    USA: ['$', 'C$', 'Ⓒ'],
+                    EU: ['€', '£', '₣', '₺'],
+                    ASIA: ['¥', '₩', '₹', '元'],
+                    EMERGING: ['₽', '₿'],
+                },
+
+                // USA bloc — "Patrol": horizontal oscillation with pauses
+                USA: {
+                    movementType: 'PATROL',
+                    speed: 1.2,
+                    amplitude: 180,
+                    pauseChance: 0.15,
+                    pauseDuration: 0.8,
+                    hpMult: 1.05,
+                    fireRate: 0.90,
+                    visual: {
+                        shape: 'HEAVY_HEX',
+                        radius: 64,
+                        trailCount: 2,
+                        trailColor: '#ff4400',
+                        warningText: 'FEDERAL INTERVENTION',
+                        phaseDotStyle: 'BARS',
+                    },
+                    attacks: {
+                        phase0: { type: 'RAPID_AIMED', count: 2, interval: 0.15, speed: 180 },
+                        phase1: { type: 'CONE', count: 5, spread: 0.26, speed: 170 },
+                        phase2: { type: 'SWEEP_ARC', count: 12, arcWidth: 1.2, duration: 1.5, speed: 160 },
+                    },
+                },
+
+                // EU bloc — "Weave": figure-8 / lemniscate pattern
+                EU: {
+                    movementType: 'WEAVE',
+                    speed: 0.8,
+                    ampX: 160,
+                    ampY: 40,
+                    hpMult: 1.00,
+                    fireRate: 1.10,
+                    visual: {
+                        shape: 'OCTAGON',
+                        radius: 56,
+                        starRing: true,
+                        starCount: 12,
+                        trimColor: '#ffcc00',
+                        warningText: 'BCE DIRECTIVE',
+                        phaseDotStyle: 'TRIANGLE',
+                    },
+                    attacks: {
+                        phase0: { type: 'ALTERNATE', count: 1, interval: 0.6, speed: 170 },
+                        phase1: { type: 'HORIZONTAL_WALL', count: 6, spacing: 30, vy: 60 },
+                        phase2: { type: 'ORBIT_DELAYED', count: 4, orbitDuration: 2.0, releaseSpeed: 150 },
+                    },
+                },
+
+                // ASIA bloc — "Dash": quick lateral bursts with hover stops
+                ASIA: {
+                    movementType: 'DASH',
+                    dashSpeed: 500,
+                    dashDistance: 120,
+                    hoverDuration: 1.5,
+                    cooldown: 2.0,
+                    hpMult: 0.95,
+                    fireRate: 0.80,
+                    visual: {
+                        shape: 'DIAMOND',
+                        radius: 56,
+                        flashOnDirectionChange: true,
+                        warningText: 'BOJ INTERVENTION',
+                        phaseDotStyle: 'SLASHES',
+                    },
+                    attacks: {
+                        phase0: { type: 'FAST_AIMED', count: 1, speed: 240 },
+                        phase1: { type: 'MULTI_SPEED', speeds: [200, 140, 90], aimed: true },
+                        phase2: { type: 'TEMPORARY_HOMING', count: 2, homingDuration: 1.0, speed: 160 },
+                    },
+                },
+
+                // EMERGING bloc — "Orbit": circular path around fixed point
+                EMERGING: {
+                    movementType: 'ORBIT',
+                    speed: 1.0,
+                    radiusX: 100,
+                    radiusY: 50,
+                    centerY: 140,
+                    hpMult: 0.90,
+                    fireRate: 1.20,
+                    visual: {
+                        shape: 'JAGGED_HEX',
+                        radius: 56,
+                        flickerAura: true,
+                        flickerSpeed: 8.0,
+                        warningText: 'MARKET VOLATILITY',
+                        phaseDotStyle: 'SCATTERED',
+                    },
+                    attacks: {
+                        phase0: { type: 'RANDOM_BURST', count: 3, speed: 150 },
+                        phase1: { type: 'SHOTGUN', count: 8, spread: 1.2, speed: 100, direction: 'down' },
+                        phase2: { type: 'EXPANDING_RING', rings: 2, countPerRing: 10, interval: 0.5, speed: 130 },
+                    },
+                },
+            },
+
+            // S12.4 (v7.32): Perk drops during miniboss fights
+            MINI_BOSS_DROPS: {
+                ENABLED: true,
+                DROP_CHANCE_PER_HIT: 0.08,    // 8% chance per miniboss hit
+                PITY_HITS: 12,                 // Guaranteed drop after 12 hits without one
+                CATEGORY_WEIGHTS: {
+                    PERK: 0.50,                // Perk is favored during miniboss fights
+                    SPECIAL: 0.30,
+                    UTILITY: 0.20,
+                },
+                MAX_DROPS_PER_FIGHT: 2,        // Cap total drops per miniboss fight
+                DROP_COOLDOWN: 3.0,            // Minimum seconds between miniboss drops
             },
 
             // Modifier system

@@ -50,7 +50,9 @@
 
             if (G.Debug) G.Debug.log('BOSS', '[WARNING] marketCycle=' + ctx.marketCycle + ' bossType=' + bossWarningType + ' globalMarketCycle=' + window.marketCycle);
 
-            G.clearBattlefield();
+            if (G.clearBattlefield) {
+                G.clearBattlefield();
+            }
 
             var shake = 10;
             G.Audio && G.Audio.play('explosion');
@@ -152,7 +154,9 @@
                 G.MiniBossManager.clear();
             }
 
-            G.clearBattlefield();
+            if (G.clearBattlefield) {
+                G.clearBattlefield();
+            }
 
             // Danger message + meme
             var dangerMsg = bossConfig ? (bossConfig.country + ' ' + bossConfig.name + ' ' + bossConfig.country) : bossType;
