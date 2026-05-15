@@ -1036,10 +1036,7 @@
                         ? waveMgr.resumeStreaming()
                         : [];
                     setEnemies(restored);
-                    setWaveStartTime(getTotalTime());
                     if (G.HarmonicConductor) G.HarmonicConductor.enemies = restored;
-                } else {
-                    setWaveStartTime(getTotalTime());
                 }
 
                 // Arcade: mini-boss defeat → modifier choice (2-card)
@@ -1060,6 +1057,7 @@
                             waveMgr.miniBossActive = false;
                             waveMgr.waveInProgress = false;
                         }
+                        setWaveStartTime(getTotalTime());
                     };
                     if (typeof bossDeathTimeout === 'function') {
                         bossDeathTimeout(_showModChoice, 800);
@@ -1067,9 +1065,11 @@
                         setTimeout(_showModChoice, 800);
                     }
                 } else {
-                    if (waveMgr) waveMgr.miniBossActive = false;
-                    // Legacy path (non-arcade): enemies were never cleared, just unblock the wave
-                    waveMgr.waveInProgress = false;
+                    // Non-arcade path: unblock wave immediately for both boss-instance and legacy
+                    if (waveMgr) {
+                        waveMgr.miniBossActive = false;
+                        waveMgr.waveInProgress = false;
+                    }
                     setWaveStartTime(getTotalTime());
                 }
 
