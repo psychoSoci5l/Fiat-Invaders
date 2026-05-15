@@ -59,6 +59,7 @@
             BEAR_MARKET_BONUS: 0.25,        // Starts at Cycle 2 equivalent difficulty
 
             // Maximum cap (Story mode cap; Arcade unbounded via POST_C3_DIFF_PER_CYCLE)
+            MAX: 1.0,               // Default difficulty cap (story mode)
             MAX_STORY: 1.0,
             MAX_ARCADE: 3.0
         },
