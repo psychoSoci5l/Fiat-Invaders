@@ -174,7 +174,12 @@ window.Game.WaveManager = {
             targetCount = Math.max(4, Math.round(targetCount * G.RankSystem.getEnemyCountMultiplier()));
         }
 
-        const positions = this.generateFormation(phaseDef.formation, targetCount, gameWidth);
+        let positions = this.generateFormation(phaseDef.formation, targetCount, gameWidth);
+
+        // v7.40 (BUG-0020): Resolve overlaps with existing enemies on the field
+        const existingEnemies = G.enemies || [];
+        positions = this._resolveOverlaps(positions, existingEnemies, gameWidth);
+
         const currencyAssignments = this.assignCurrencies(positions, phaseDef.currencies, cycle, window.isBearMarket);
         const phaseMods = Balance.getPhaseModifiers(0);
         const entryPath = this._pickEntryPath();
@@ -730,6 +735,92 @@ window.Game.WaveManager = {
     },
 
     /**
+     * v7.40 (BUG-0020): Resolve overlaps between proposed formation positions
+     * and already-alive enemies on the field. Uses iterative vector repel.
+     *
+     * @param {Array<{x:number,y:number}>} positions - Proposed formation positions
+     * @param {Array} existingEnemies - Current live enemies array
+     * @param {number} gameWidth - Current game width
+     * @returns {Array<{x:number,y:number}>} Adjusted positions with overlaps resolved
+     */
+    _resolveOverlaps(positions, existingEnemies, gameWidth) {
+        const ovCfg = window.Game.Balance?.SPAWN_OVERLAP;
+        if (!ovCfg || ovCfg.ENABLED === false) return positions;
+
+        const minDist = ovCfg.MIN_DISTANCE || 70;
+        const minDistSq = minDist * minDist;
+        const strength = ovCfg.REPEL_STRENGTH || 1.0;
+        const maxIter = ovCfg.MAX_ITERATIONS || 5;
+        const margin = ovCfg.EDGE_MARGIN || 30;
+        const gameH = window.Game._gameHeight || 700;
+
+        // Collect existing enemy center positions (active, not marked for deletion)
+        const occupied = [];
+        for (let i = 0; i < existingEnemies.length; i++) {
+            const e = existingEnemies[i];
+            if (e && !e.markedForDeletion && e.active !== false) {
+                occupied.push({ x: e.x || 0, y: e.y || 0 });
+            }
+        }
+        if (occupied.length === 0) return positions;
+
+        // Deep-copy positions to avoid mutating the input
+        const result = positions.map(p => ({ x: p.x, y: p.y }));
+
+        // Iterative repel: push each proposed position away from occupied points
+        for (let iter = 0; iter < maxIter; iter++) {
+            let moved = false;
+            for (let i = 0; i < result.length; i++) {
+                const p = result[i];
+                let dx = 0, dy = 0;
+                for (let j = 0; j < occupied.length; j++) {
+                    const o = occupied[j];
+                    const diffX = p.x - o.x;
+                    const diffY = p.y - o.y;
+                    const distSq = diffX * diffX + diffY * diffY;
+                    if (distSq < minDistSq && distSq > 0.01) {
+                        const dist = Math.sqrt(distSq);
+                        const push = (minDist - dist) * strength;
+                        dx += (diffX / dist) * push;
+                        dy += (diffY / dist) * push;
+                    }
+                }
+                // Also repel from OTHER proposed positions (intra-formation)
+                for (let j = 0; j < result.length; j++) {
+                    if (j === i) continue;
+                    const o = result[j];
+                    const diffX = p.x - o.x;
+                    const diffY = p.y - o.y;
+                    const distSq = diffX * diffX + diffY * diffY;
+                    if (distSq < minDistSq && distSq > 0.01) {
+                        const dist = Math.sqrt(distSq);
+                        const push = (minDist - dist) * strength * 0.5; // weaker for intra-formation
+                        dx += (diffX / dist) * push;
+                        dy += (diffY / dist) * push;
+                    }
+                }
+                if (dx !== 0 || dy !== 0) {
+                    p.x += dx;
+                    p.y += dy;
+                    moved = true;
+                }
+            }
+            if (!moved) break;
+        }
+
+        // Clamp to safe screen bounds
+        for (let i = 0; i < result.length; i++) {
+            const p = result[i];
+            p.x = Math.max(margin, Math.min(gameWidth - margin, p.x));
+            const startY = (window.Game.Balance?.FORMATION?.START_Y || 130) + (window.safeAreaInsets?.top || 0);
+            const maxY = Math.min(gameH * (window.Game.Balance?.FORMATION?.MAX_Y_RATIO || 0.55), window.Game.Balance?.FORMATION?.MAX_Y_PIXEL || 500);
+            p.y = Math.max(startY, Math.min(maxY, p.y));
+        }
+
+        return result;
+    },
+
+    /**
      * Spawn a single phase — generate formation, create enemies, tag them
      */
     _spawnPhase(phaseIndex, gameWidth) {
@@ -748,7 +839,11 @@ window.Game.WaveManager = {
         const gw = gameWidth || this._streamingGameWidth || G._gameWidth || 400;
 
         // Generate formation for THIS phase's count
-        const positions = this.generateFormation(phase.formation, phase.count, gw);
+        let positions = this.generateFormation(phase.formation, phase.count, gw);
+
+        // v7.40 (BUG-0020): Resolve overlaps with existing enemies on the field
+        const existingEnemies = G.enemies || [];
+        positions = this._resolveOverlaps(positions, existingEnemies, gw);
 
         // Assign currencies
         const currencyAssignments = this.assignCurrencies(

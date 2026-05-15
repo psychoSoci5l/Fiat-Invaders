@@ -2201,7 +2201,7 @@ function startIntermission(msgOverride) {
     // v7.13: Show "TAP TO SKIP" hint for intermissions longer than 2s (delayed 300ms)
     if (duration > 2.0) {
         setTimeout(() => {
-            if (fc.gameState === 'INTERMISSION' && waveMgr && waveMgr.intermissionTimer > 0) {
+            if (G.GameState && G.GameState.is('INTERMISSION') && waveMgr && waveMgr.intermissionTimer > 0) {
                 const skipHint = document.getElementById('intermission-skip-hint');
                 if (skipHint) {
                     skipHint.textContent = t('TAP_TO_SKIP');

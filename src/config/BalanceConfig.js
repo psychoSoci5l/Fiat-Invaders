@@ -1775,6 +1775,16 @@
             START_Y_RESPONSIVE: false // v5.4.0: disabled — HUD zone is fixed-pixel, startY must not scale down
         },
 
+        // --- SPAWN OVERLAP RESOLUTION (v7.40: BUG-0020) ---
+        SPAWN_OVERLAP: {
+            ENABLED: true,              // Master toggle for cross-phase overlap resolution
+            MIN_DISTANCE: 70,           // Min pixel distance between any two enemies (formation + existing)
+            REPEL_STRENGTH: 1.0,        // Repel force multiplier (1.0 = full push, 0.5 = gentle)
+            MAX_ITERATIONS: 5,          // Max repel iterations before giving up
+            EDGE_MARGIN: 30,            // Keep resolved positions within safe screen margins
+            FALLBACK_STRATEGY: 'repel'  // 'repel' = push apart, 'remove' = drop overlapping positions
+        },
+
         // --- ENEMY FORMATION ENTRY ---
         FORMATION_ENTRY: {
             ENABLED: true,                // Enable formation entry animation

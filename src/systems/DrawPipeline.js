@@ -402,7 +402,11 @@
 
         deps = deps || {};
 
-        // L.BACKGROUND (0) — handled as early-return in pipeline core
+        // L.BACKGROUND (0) — clear canvas each frame to prevent white screen
+        register(LAYER.BACKGROUND, function(ctx, fc) {
+            ctx.fillStyle = '#0a0a1a';
+            ctx.fillRect(0, 0, fc.gameWidth, fc.gameHeight);
+        });
 
         // L.SKY (1)
         register(LAYER.SKY, function(ctx, fc) {
