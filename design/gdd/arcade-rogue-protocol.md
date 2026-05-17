@@ -29,7 +29,7 @@ The player should feel like a one-person trading floor that keeps printing highe
 - When `V8_MODE.ENABLED = true` **and** `isArcadeMode() = true`, `WaveManager.update()` takes the active path (V8 dormancy check is skipped).
   - Source: `src/managers/WaveManager.js:49-51`
 - HarmonicConductor's V8 fire-ramp (`V8_RAMP`) is **skipped** in Arcade mode.
-  - Source: `src/systems/HarmonicConductor.js` (V8 ramp only applies when `!isArcadeMode()`)
+  - Source: `src/audio-reactive/HarmonicConductor.js` (V8 ramp only applies when `!isArcadeMode()`)
 
 ### C.2 Wave structure (WaveManager)
 
@@ -406,7 +406,7 @@ The P1→P2 and P2→P3 transitions are 10-second crossfades triggered at the sa
 | main.js | `src/main.js` | Combo decay loop (2831-2855); Nano Shield tick (2848-2855); Last Stand in `executeDeath()` (3559-3574); combo HUD `drawArcadeComboHUD()` (3401-3453) |
 | Player | `src/entities/Player.js` | Reads `arcadeBonuses.critChance`/`critMult` for bullet damage (line 857-858); `speedMult`, `fireRateMult`, `piercePlus` applied in fire/move logic |
 | EventBus | `G.Events` | No dedicated Arcade events; runs use the same `enemy_killed` hook |
-| HarmonicConductor | `src/systems/HarmonicConductor.js` | V8 ramp skipped in Arcade; base fire budget (`BULLETS_PER_SECOND`) applies normally |
+| HarmonicConductor | `src/audio-reactive/HarmonicConductor.js` | V8 ramp skipped in Arcade; base fire budget (`BULLETS_PER_SECOND`) applies normally |
 | PhaseTransitionController | `src/systems/PhaseTransitionController.js` | `startTransition(1,2)` / `startTransition(2,3)` after C1/C2 boss defeat; manages 10s crossfade blend with per-layer easing curves |
 | SkyRenderer | `src/systems/SkyRenderer.js` | `setPhase(2)` / `setPhase(3)` updates sky, clouds, stars, hills, planets, streaks, symbols to target phase; renders phase-aware visuals every frame |
 | WeatherController | `src/systems/WeatherController.js` | `setPhase(2)` / `setPhase(3)` updates weather effects (sheet lightning, rain, snow, fog) to phase-specific colors and intensities |

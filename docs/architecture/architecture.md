@@ -72,16 +72,16 @@ All code lives under `window.Game.*`. No ES modules, no imports.
 | `Game.WeatherController` | `systems/WeatherController.js` | Weather VFX |
 | `Game.TransitionManager` | `systems/TransitionManager.js` | Scene transitions |
 | `Game.TitleAnimator` | `systems/TitleAnimator.js` | Title screen particles |
-| `Game.MessageSystem` | `systems/MessageSystem.js` | Typed message overlays |
-| `Game.MemeEngine` | `systems/MemeEngine.js` | Meme/dialogue VFX |
+| `Game.MessageSystem` | `ui/MessageSystem.js` | Typed message overlays |
+| `Game.MemeEngine` | `ui/MemeEngine.js` | Meme/dialogue VFX |
 | `Game.HintTracker` | `systems/HintTracker.js` | Contextual hint system |
 | `Game.QualityManager` | `systems/QualityManager.js` | Quality-of-life settings |
-| `Game.HarmonicConductor` | `systems/HarmonicConductor.js` | Music-synced enemy actions |
-| `Game.HarmonicSequences` | `systems/HarmonicSequences.js` | Sequence definitions |
+| `Game.HarmonicConductor` | `audio-reactive/HarmonicConductor.js` | Music-synced enemy actions |
+| `Game.HarmonicSequences` | `audio-reactive/HarmonicSequences.js` | Sequence definitions |
 | `Game.RankSystem` | `systems/RankSystem.js` | Dynamic difficulty rank |
 | `Game.ArcadeModifiers` | `systems/ArcadeModifiers.js` | Arcade mode modifiers |
-| `Game.FloatingTextManager` | `systems/FloatingTextManager.js` | Floating damage numbers |
-| `Game.PerkIconManager` | `systems/PerkIconManager.js` | Perk icon rendering |
+| `Game.FloatingTextManager` | `ui/FloatingTextManager.js` | Floating damage numbers |
+| `Game.PerkIconManager` | `ui/PerkIconManager.js` | Perk icon rendering |
 | `Game.Player` | `entities/Player.js` | Player entity constructor |
 | `Game.Enemy` | `entities/Enemy.js` | Enemy entity constructor |
 | `Game.Boss` | `entities/Boss.js` | Boss entity constructor |

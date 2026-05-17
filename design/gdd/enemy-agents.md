@@ -214,7 +214,7 @@ Two independent fire-suppression flags:
 
 These two flags are orthogonal — an enemy in entry burst can simultaneously be IDLE for hover (if it descends fast enough to cross `_hoverY` before reaching y=0, which is impossible by design since `_hoverY >= gameHeight×0.25`).
 
-Source: `src/systems/HarmonicConductor.js:858-861, 944-947`; `src/entities/Enemy.js:233`
+Source: `src/audio-reactive/HarmonicConductor.js:858-861, 944-947`; `src/entities/Enemy.js:233`
 
 #### C.2.4 Interaction with entry burst (v7.12)
 
@@ -226,7 +226,7 @@ Source: `src/entities/Enemy.js:227-233`; `src/config/BalanceConfig.js:31-36`
 
 ### C.3 Currency-Symbol Bullets
 
-Every enemy builds its bullets via `Enemy.buildBullet()`, which includes `symbol: this.symbol` in the returned data object. This symbol propagates through `HarmonicConductor.fireEnemy()` → `harmonic_bullets` event → `main.js` acquire loop → `Bullet.symbol`. Source: `src/entities/Enemy.js:159`; `src/systems/HarmonicConductor.js:953-979`; `src/main.js:932`.
+Every enemy builds its bullets via `Enemy.buildBullet()`, which includes `symbol: this.symbol` in the returned data object. This symbol propagates through `HarmonicConductor.fireEnemy()` → `harmonic_bullets` event → `main.js` acquire loop → `Bullet.symbol`. Source: `src/entities/Enemy.js:159`; `src/audio-reactive/HarmonicConductor.js:953-979`; `src/main.js:932`.
 
 #### C.3.1 Dispatch in Bullet.drawEnemyBullet()
 
@@ -579,7 +579,7 @@ V8 enemies are spawned by `LevelScript.spawnBurst()` which calls `new Enemy(x, y
 |---|---|---|
 | `Enemy` | `src/entities/Enemy.js` | Core entity. All four subsystems implemented here: `drawAgent()`, `_hoverState` machine, `_fireSuppressed` flags, `buildBullet()` symbol propagation, `takeDamage()` reflect intercept, behavior update loop |
 | `Bullet` | `src/entities/Bullet.js` | `Bullet.symbol` field; `Bullet._symbolCache` static Map; `drawEnemyBullet()` dispatch; `drawSymbolBullet()` renderer; `_buildSymbolCacheEntry()` static method |
-| `HarmonicConductor` | `src/systems/HarmonicConductor.js` | Reads `_fireSuppressed` and `_fireSuppressedByEntry` in row-fire loop (line 858-861) and `fireEnemy()` (line 944-947); calls `enemy.buildBullet()` to get bullet data including `symbol` |
+| `HarmonicConductor` | `src/audio-reactive/HarmonicConductor.js` | Reads `_fireSuppressed` and `_fireSuppressedByEntry` in row-fire loop (line 858-861) and `fireEnemy()` (line 944-947); calls `enemy.buildBullet()` to get bullet data including `symbol` |
 | `WaveManager` | `src/managers/WaveManager.js` | Assigns `isElite`, `eliteType`, `behavior` in `_spawnEnemyAt()` (lines 293-365); tracks `_behaviorCounts` per wave |
 | `LevelScript` | `src/v8/LevelScript.js` | Sets `_v8Fall = true` on V8 enemies (enabling Gravity Gate); does NOT call `_spawnEnemyAt()` — no elite/behavior for V8 enemies |
 | `BalanceConfig` | `src/config/BalanceConfig.js` | `ENEMY_AGENT`, `HOVER_GATE`, `BULLET_SYMBOL`, `ELITE_VARIANTS`, `ENEMY_BEHAVIORS` blocks |

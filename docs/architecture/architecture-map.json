@@ -1,14 +1,14 @@
 {
   "_metadata": {
-    "generated_at": "2026-05-17T07:29:00.051Z",
+    "generated_at": "2026-05-17T15:12:48.427Z",
     "generator": "scripts/extract-architecture.js",
-    "source_hash": "f524c2efaf994afc",
+    "source_hash": "5c1339e19eee79e9",
     "version": "7.12.14",
-    "total_modules": 76,
-    "total_loc": 52275,
-    "total_size_kb": 2173.6,
-    "avg_coupling_out": 1.01,
-    "avg_coupling_in": 1.01,
+    "total_modules": 78,
+    "total_loc": 52513,
+    "total_size_kb": 2181,
+    "avg_coupling_out": 1.03,
+    "avg_coupling_in": 1.03,
     "adr_count": 15,
     "gdd_count": 7,
     "tr_count": 70,
@@ -28,9 +28,9 @@
       "description": "Shared utilities — loaded before all other layers",
       "color": "#60a5fa",
       "module_count": 8,
-      "total_loc": 5252,
-      "total_size_kb": 226.1,
-      "avg_loc": 657,
+      "total_loc": 5274,
+      "total_size_kb": 227,
+      "avg_loc": 659,
       "modules": [
         {
           "namespace": "Game.VERSION",
@@ -50,8 +50,8 @@
           "namespace": "Game.Debug",
           "file": "src/utils/DebugSystem.js",
           "purpose": "Session logging, debug overlay",
-          "loc": 3180,
-          "size_kb": 139.7,
+          "loc": 3202,
+          "size_kb": 140.6,
           "loadIndex": 1,
           "governed_by": [],
           "tr_coverage": [],
@@ -195,7 +195,7 @@
           "purpose": "Web Audio API wrapper",
           "loc": 3431,
           "size_kb": 136.1,
-          "loadIndex": 24,
+          "loadIndex": 25,
           "governed_by": [],
           "tr_coverage": [],
           "coupling": {
@@ -209,7 +209,7 @@
           "purpose": "Keyboard/gamepad input",
           "loc": 576,
           "size_kb": 24.3,
-          "loadIndex": 25,
+          "loadIndex": 26,
           "governed_by": [
             "ADR-0003"
           ],
@@ -225,7 +225,7 @@
           "purpose": "Object pooling for bullets/particles",
           "loc": 140,
           "size_kb": 4.1,
-          "loadIndex": 26,
+          "loadIndex": 27,
           "governed_by": [
             "ADR-0001"
           ],
@@ -241,7 +241,7 @@
           "purpose": "",
           "loc": 661,
           "size_kb": 40.9,
-          "loadIndex": 73,
+          "loadIndex": 75,
           "governed_by": [],
           "tr_coverage": [],
           "coupling": {
@@ -273,7 +273,7 @@
           "tr_coverage": [],
           "coupling": {
             "depends_on_count": 1,
-            "depended_by_count": 13
+            "depended_by_count": 14
           }
         }
       ]
@@ -284,10 +284,10 @@
       "order": 2,
       "description": "Core gameplay systems: collision, bullets, particles, drops, scrolling, rendering",
       "color": "#00e5cc",
-      "module_count": 28,
-      "total_loc": 12687,
-      "total_size_kb": 487.2,
-      "avg_loc": 453,
+      "module_count": 20,
+      "total_loc": 8919,
+      "total_size_kb": 349,
+      "avg_loc": 446,
       "modules": [
         {
           "namespace": "Game.BulletPatterns",
@@ -391,22 +391,6 @@
           }
         },
         {
-          "namespace": "Game.MemeEngine",
-          "file": "src/systems/MemeEngine.js",
-          "purpose": "Meme/dialogue VFX",
-          "loc": 662,
-          "size_kb": 23,
-          "loadIndex": 13,
-          "governed_by": [
-            "ADR-0002"
-          ],
-          "tr_coverage": [],
-          "coupling": {
-            "depends_on_count": 0,
-            "depended_by_count": 1
-          }
-        },
-        {
           "namespace": "Game.HintTracker",
           "file": "src/systems/HintTracker.js",
           "purpose": "Contextual hint system",
@@ -418,34 +402,6 @@
           "coupling": {
             "depends_on_count": 0,
             "depended_by_count": 0
-          }
-        },
-        {
-          "namespace": "Game.HarmonicSequences",
-          "file": "src/systems/HarmonicSequences.js",
-          "purpose": "Sequence definitions",
-          "loc": 197,
-          "size_kb": 8.8,
-          "loadIndex": 19,
-          "governed_by": [],
-          "tr_coverage": [],
-          "coupling": {
-            "depends_on_count": 0,
-            "depended_by_count": 1
-          }
-        },
-        {
-          "namespace": "Game.HarmonicConductor",
-          "file": "src/systems/HarmonicConductor.js",
-          "purpose": "Music-synced enemy actions",
-          "loc": 1170,
-          "size_kb": 47.3,
-          "loadIndex": 20,
-          "governed_by": [],
-          "tr_coverage": [],
-          "coupling": {
-            "depends_on_count": 12,
-            "depended_by_count": 1
           }
         },
         {
@@ -463,12 +419,26 @@
           }
         },
         {
+          "namespace": "Game.DipMeter",
+          "file": "src/systems/DipMeter.js",
+          "purpose": "",
+          "loc": 128,
+          "size_kb": 3.9,
+          "loadIndex": 24,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 1,
+            "depended_by_count": 0
+          }
+        },
+        {
           "namespace": "Game.ParticleSystem",
           "file": "src/systems/ParticleSystem.js",
           "purpose": "Particle VFX",
           "loc": 1412,
           "size_kb": 55.6,
-          "loadIndex": 27,
+          "loadIndex": 28,
           "governed_by": [
             "ADR-0002"
           ],
@@ -484,7 +454,7 @@
           "purpose": "Screen shake, flash, overlays",
           "loc": 599,
           "size_kb": 20.8,
-          "loadIndex": 28,
+          "loadIndex": 29,
           "governed_by": [
             "ADR-0002"
           ],
@@ -500,7 +470,7 @@
           "purpose": "V8 stage scrolling",
           "loc": 163,
           "size_kb": 5.5,
-          "loadIndex": 29,
+          "loadIndex": 30,
           "governed_by": [
             "ADR-0007"
           ],
@@ -528,7 +498,7 @@
           "purpose": "Background sky rendering",
           "loc": 1652,
           "size_kb": 64.8,
-          "loadIndex": 30,
+          "loadIndex": 31,
           "governed_by": [
             "ADR-0002"
           ],
@@ -544,7 +514,7 @@
           "purpose": "Weather VFX",
           "loc": 707,
           "size_kb": 25.7,
-          "loadIndex": 31,
+          "loadIndex": 32,
           "governed_by": [
             "ADR-0002"
           ],
@@ -560,7 +530,7 @@
           "purpose": "",
           "loc": 175,
           "size_kb": 5.9,
-          "loadIndex": 32,
+          "loadIndex": 33,
           "governed_by": [
             "ADR-0013"
           ],
@@ -579,76 +549,12 @@
           }
         },
         {
-          "namespace": "Game.CullingHelper",
-          "file": "src/systems/CullingHelper.js",
-          "purpose": "",
-          "loc": 97,
-          "size_kb": 2.8,
-          "loadIndex": 33,
-          "governed_by": [
-            "ADR-0002"
-          ],
-          "tr_coverage": [],
-          "coupling": {
-            "depends_on_count": 0,
-            "depended_by_count": 0
-          }
-        },
-        {
-          "namespace": "Game.OffscreenCanvas",
-          "file": "src/systems/OffscreenCanvas.js",
-          "purpose": "",
-          "loc": 177,
-          "size_kb": 4.7,
-          "loadIndex": 34,
-          "governed_by": [
-            "ADR-0002"
-          ],
-          "tr_coverage": [],
-          "coupling": {
-            "depends_on_count": 0,
-            "depended_by_count": 0
-          }
-        },
-        {
-          "namespace": "Game.GlowManager",
-          "file": "src/systems/GlowManager.js",
-          "purpose": "",
-          "loc": 111,
-          "size_kb": 3.5,
-          "loadIndex": 35,
-          "governed_by": [
-            "ADR-0002"
-          ],
-          "tr_coverage": [],
-          "coupling": {
-            "depends_on_count": 0,
-            "depended_by_count": 0
-          }
-        },
-        {
-          "namespace": "Game.DrawPipeline",
-          "file": "src/systems/DrawPipeline.js",
-          "purpose": "",
-          "loc": 779,
-          "size_kb": 30.3,
-          "loadIndex": 36,
-          "governed_by": [
-            "ADR-0002"
-          ],
-          "tr_coverage": [],
-          "coupling": {
-            "depends_on_count": 0,
-            "depended_by_count": 0
-          }
-        },
-        {
           "namespace": "Game.TransitionManager",
           "file": "src/systems/TransitionManager.js",
           "purpose": "Scene transitions",
           "loc": 155,
           "size_kb": 4.1,
-          "loadIndex": 37,
+          "loadIndex": 38,
           "governed_by": [
             "ADR-0002"
           ],
@@ -664,22 +570,6 @@
           "purpose": "Title screen particles",
           "loc": 289,
           "size_kb": 10,
-          "loadIndex": 38,
-          "governed_by": [
-            "ADR-0002"
-          ],
-          "tr_coverage": [],
-          "coupling": {
-            "depends_on_count": 0,
-            "depended_by_count": 0
-          }
-        },
-        {
-          "namespace": "Game.MessageSystem",
-          "file": "src/systems/MessageSystem.js",
-          "purpose": "Typed message overlays",
-          "loc": 572,
-          "size_kb": 18.1,
           "loadIndex": 39,
           "governed_by": [
             "ADR-0002"
@@ -691,47 +581,16 @@
           }
         },
         {
-          "namespace": "Game.FloatingTextManager",
-          "file": "src/systems/FloatingTextManager.js",
-          "purpose": "Floating damage numbers",
-          "loc": 118,
-          "size_kb": 3.6,
-          "loadIndex": 57,
-          "governed_by": [
-            "ADR-0002"
-          ],
+          "namespace": "Game.SpawnSystem",
+          "file": "src/systems/SpawnSystem.js",
+          "purpose": "",
+          "loc": 126,
+          "size_kb": 4.3,
+          "loadIndex": 50,
+          "governed_by": [],
           "tr_coverage": [],
           "coupling": {
-            "depends_on_count": 0,
-            "depended_by_count": 1
-          }
-        },
-        {
-          "namespace": "Game.PerkIconManager",
-          "file": "src/systems/PerkIconManager.js",
-          "purpose": "Perk icon rendering",
-          "loc": 139,
-          "size_kb": 4.3,
-          "loadIndex": 58,
-          "governed_by": [
-            "ADR-0002"
-          ],
-          "tr_coverage": [
-            "TR-WEP-001",
-            "TR-WEP-002",
-            "TR-WEP-003",
-            "TR-WEP-004",
-            "TR-WEP-005",
-            "TR-WEP-006",
-            "TR-WEP-007",
-            "TR-WEP-008",
-            "TR-WEP-009",
-            "TR-WEP-010",
-            "TR-WEP-011",
-            "TR-WEP-012"
-          ],
-          "coupling": {
-            "depends_on_count": 0,
+            "depends_on_count": 2,
             "depended_by_count": 0
           }
         },
@@ -741,7 +600,7 @@
           "purpose": "",
           "loc": 207,
           "size_kb": 8.1,
-          "loadIndex": 61,
+          "loadIndex": 63,
           "governed_by": [
             "ADR-0009"
           ],
@@ -769,7 +628,7 @@
           "purpose": "Arcade mode modifiers",
           "loc": 233,
           "size_kb": 9.5,
-          "loadIndex": 62,
+          "loadIndex": 64,
           "governed_by": [
             "ADR-0011"
           ],
@@ -796,7 +655,7 @@
           "purpose": "Quality-of-life settings",
           "loc": 434,
           "size_kb": 22.4,
-          "loadIndex": 64,
+          "loadIndex": 66,
           "governed_by": [],
           "tr_coverage": [],
           "coupling": {
@@ -823,7 +682,7 @@
           "purpose": "",
           "loc": 25,
           "size_kb": 0.5,
-          "loadIndex": 40,
+          "loadIndex": 41,
           "governed_by": [],
           "tr_coverage": [],
           "coupling": {
@@ -837,7 +696,7 @@
           "purpose": "Bullet entity constructor",
           "loc": 1998,
           "size_kb": 84.6,
-          "loadIndex": 41,
+          "loadIndex": 42,
           "governed_by": [],
           "tr_coverage": [],
           "coupling": {
@@ -851,7 +710,7 @@
           "purpose": "Player entity constructor",
           "loc": 3115,
           "size_kb": 126.4,
-          "loadIndex": 42,
+          "loadIndex": 43,
           "governed_by": [],
           "tr_coverage": [],
           "coupling": {
@@ -865,7 +724,7 @@
           "purpose": "",
           "loc": 1555,
           "size_kb": 60.3,
-          "loadIndex": 43,
+          "loadIndex": 44,
           "governed_by": [
             "ADR-0002"
           ],
@@ -881,7 +740,7 @@
           "purpose": "Enemy entity constructor",
           "loc": 1344,
           "size_kb": 60.2,
-          "loadIndex": 44,
+          "loadIndex": 45,
           "governed_by": [
             "ADR-0012"
           ],
@@ -897,7 +756,7 @@
           "purpose": "Boss entity constructor",
           "loc": 1650,
           "size_kb": 68.5,
-          "loadIndex": 45,
+          "loadIndex": 46,
           "governed_by": [
             "ADR-0009"
           ],
@@ -925,7 +784,7 @@
           "purpose": "Power-up entity constructor",
           "loc": 292,
           "size_kb": 10.6,
-          "loadIndex": 46,
+          "loadIndex": 47,
           "governed_by": [],
           "tr_coverage": [],
           "coupling": {
@@ -952,7 +811,7 @@
           "purpose": "Wave spawning and progression",
           "loc": 1853,
           "size_kb": 77.8,
-          "loadIndex": 47,
+          "loadIndex": 48,
           "governed_by": [
             "ADR-0013"
           ],
@@ -967,7 +826,7 @@
           ],
           "coupling": {
             "depends_on_count": 3,
-            "depended_by_count": 1
+            "depended_by_count": 2
           }
         },
         {
@@ -976,7 +835,7 @@
           "purpose": "Campaign progression state",
           "loc": 328,
           "size_kb": 8.8,
-          "loadIndex": 49,
+          "loadIndex": 51,
           "governed_by": [
             "ADR-0007"
           ],
@@ -992,7 +851,7 @@
           "purpose": "Daily challenge mode",
           "loc": 80,
           "size_kb": 2.1,
-          "loadIndex": 50,
+          "loadIndex": 52,
           "governed_by": [],
           "tr_coverage": [],
           "coupling": {
@@ -1006,7 +865,7 @@
           "purpose": "Perk choice modal and state",
           "loc": 132,
           "size_kb": 4.3,
-          "loadIndex": 59,
+          "loadIndex": 61,
           "governed_by": [
             "ADR-0010"
           ],
@@ -1035,7 +894,7 @@
           "purpose": "Mini-boss lifecycle",
           "loc": 1121,
           "size_kb": 50.6,
-          "loadIndex": 60,
+          "loadIndex": 62,
           "governed_by": [
             "ADR-0011",
             "ADR-0015"
@@ -1063,7 +922,7 @@
           "purpose": "Leaderboard API client",
           "loc": 377,
           "size_kb": 16.6,
-          "loadIndex": 65,
+          "loadIndex": 67,
           "governed_by": [
             "ADR-0006"
           ],
@@ -1079,7 +938,7 @@
           "purpose": "Per-run statistics",
           "loc": 149,
           "size_kb": 4.4,
-          "loadIndex": 66,
+          "loadIndex": 68,
           "governed_by": [],
           "tr_coverage": [],
           "coupling": {
@@ -1093,7 +952,7 @@
           "purpose": "Achievement tracking",
           "loc": 102,
           "size_kb": 3.4,
-          "loadIndex": 67,
+          "loadIndex": 69,
           "governed_by": [],
           "tr_coverage": [],
           "coupling": {
@@ -1107,7 +966,7 @@
           "purpose": "",
           "loc": 284,
           "size_kb": 10.2,
-          "loadIndex": 74,
+          "loadIndex": 76,
           "governed_by": [
             "ADR-0011"
           ],
@@ -1147,7 +1006,7 @@
           "purpose": "",
           "loc": 145,
           "size_kb": 9.2,
-          "loadIndex": 51,
+          "loadIndex": 53,
           "governed_by": [],
           "tr_coverage": [],
           "coupling": {
@@ -1161,7 +1020,7 @@
           "purpose": "",
           "loc": 578,
           "size_kb": 19.9,
-          "loadIndex": 52,
+          "loadIndex": 54,
           "governed_by": [],
           "tr_coverage": [],
           "coupling": {
@@ -1175,7 +1034,7 @@
           "purpose": "Full-screen narrative display",
           "loc": 589,
           "size_kb": 19.2,
-          "loadIndex": 53,
+          "loadIndex": 55,
           "governed_by": [
             "ADR-0001"
           ],
@@ -1191,7 +1050,7 @@
           "purpose": "",
           "loc": 246,
           "size_kb": 10.9,
-          "loadIndex": 54,
+          "loadIndex": 56,
           "governed_by": [],
           "tr_coverage": [],
           "coupling": {
@@ -1205,7 +1064,7 @@
           "purpose": "Story progression",
           "loc": 198,
           "size_kb": 5.2,
-          "loadIndex": 55,
+          "loadIndex": 57,
           "governed_by": [],
           "tr_coverage": [],
           "coupling": {
@@ -1219,7 +1078,7 @@
           "purpose": "In-game dialogue bubbles",
           "loc": 230,
           "size_kb": 6.6,
-          "loadIndex": 56,
+          "loadIndex": 58,
           "governed_by": [],
           "tr_coverage": [],
           "coupling": {
@@ -1235,11 +1094,27 @@
       "order": 6,
       "description": "User interface screens and overlays",
       "color": "#a78bfa",
-      "module_count": 8,
-      "total_loc": 3965,
-      "total_size_kb": 176.5,
-      "avg_loc": 496,
+      "module_count": 12,
+      "total_loc": 5456,
+      "total_size_kb": 225.5,
+      "avg_loc": 455,
       "modules": [
+        {
+          "namespace": "Game.MemeEngine",
+          "file": "src/ui/MemeEngine.js",
+          "purpose": "Meme/dialogue VFX",
+          "loc": 662,
+          "size_kb": 23,
+          "loadIndex": 13,
+          "governed_by": [
+            "ADR-0002"
+          ],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 1
+          }
+        },
         {
           "namespace": "Game.ToastSystem",
           "file": "src/ui/ToastSystem.js",
@@ -1269,12 +1144,73 @@
           }
         },
         {
+          "namespace": "Game.MessageSystem",
+          "file": "src/ui/MessageSystem.js",
+          "purpose": "Typed message overlays",
+          "loc": 572,
+          "size_kb": 18.1,
+          "loadIndex": 40,
+          "governed_by": [
+            "ADR-0002"
+          ],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.FloatingTextManager",
+          "file": "src/ui/FloatingTextManager.js",
+          "purpose": "Floating damage numbers",
+          "loc": 118,
+          "size_kb": 3.6,
+          "loadIndex": 59,
+          "governed_by": [
+            "ADR-0002"
+          ],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 1
+          }
+        },
+        {
+          "namespace": "Game.PerkIconManager",
+          "file": "src/ui/PerkIconManager.js",
+          "purpose": "Perk icon rendering",
+          "loc": 139,
+          "size_kb": 4.3,
+          "loadIndex": 60,
+          "governed_by": [
+            "ADR-0002"
+          ],
+          "tr_coverage": [
+            "TR-WEP-001",
+            "TR-WEP-002",
+            "TR-WEP-003",
+            "TR-WEP-004",
+            "TR-WEP-005",
+            "TR-WEP-006",
+            "TR-WEP-007",
+            "TR-WEP-008",
+            "TR-WEP-009",
+            "TR-WEP-010",
+            "TR-WEP-011",
+            "TR-WEP-012"
+          ],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
           "namespace": "Game.ModifierChoiceScreen",
           "file": "src/ui/ModifierChoiceScreen.js",
           "purpose": "Arcade modifier selection",
           "loc": 175,
           "size_kb": 6.3,
-          "loadIndex": 63,
+          "loadIndex": 65,
           "governed_by": [
             "ADR-0011"
           ],
@@ -1290,7 +1226,7 @@
           "purpose": "Debug info overlay",
           "loc": 307,
           "size_kb": 12.5,
-          "loadIndex": 68,
+          "loadIndex": 70,
           "governed_by": [],
           "tr_coverage": [],
           "coupling": {
@@ -1304,7 +1240,7 @@
           "purpose": "Title/menu screen",
           "loc": 2032,
           "size_kb": 100.8,
-          "loadIndex": 69,
+          "loadIndex": 71,
           "governed_by": [],
           "tr_coverage": [],
           "coupling": {
@@ -1318,7 +1254,7 @@
           "purpose": "",
           "loc": 373,
           "size_kb": 16.2,
-          "loadIndex": 70,
+          "loadIndex": 72,
           "governed_by": [],
           "tr_coverage": [],
           "coupling": {
@@ -1332,7 +1268,7 @@
           "purpose": "",
           "loc": 631,
           "size_kb": 26.4,
-          "loadIndex": 71,
+          "loadIndex": 73,
           "governed_by": [],
           "tr_coverage": [],
           "coupling": {
@@ -1346,7 +1282,7 @@
           "purpose": "",
           "loc": 140,
           "size_kb": 4.2,
-          "loadIndex": 72,
+          "loadIndex": 74,
           "governed_by": [],
           "tr_coverage": [],
           "coupling": {
@@ -1373,7 +1309,7 @@
           "purpose": "V8 campaign scripted events",
           "loc": 800,
           "size_kb": 47.5,
-          "loadIndex": 48,
+          "loadIndex": 49,
           "governed_by": [
             "ADR-0007"
           ],
@@ -1392,7 +1328,7 @@
           ],
           "coupling": {
             "depends_on_count": 0,
-            "depended_by_count": 1
+            "depended_by_count": 2
           }
         }
       ]
@@ -1431,21 +1367,118 @@
       "description": "",
       "color": "#e0e0e8",
       "module_count": 1,
-      "total_loc": 3827,
-      "total_size_kb": 155.8,
-      "avg_loc": 3827,
+      "total_loc": 3789,
+      "total_size_kb": 154.1,
+      "avg_loc": 3789,
       "modules": [
         {
           "namespace": "Game.main",
           "file": "src/main.js",
           "purpose": "",
-          "loc": 3827,
-          "size_kb": 155.8,
-          "loadIndex": 75,
+          "loc": 3789,
+          "size_kb": 154.1,
+          "loadIndex": 77,
           "governed_by": [],
           "tr_coverage": [],
           "coupling": {
             "depends_on_count": 3,
+            "depended_by_count": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "Unassigned",
+      "id": "_unassigned",
+      "order": 99,
+      "description": "",
+      "color": "#888",
+      "module_count": 6,
+      "total_loc": 2531,
+      "total_size_kb": 97.4,
+      "avg_loc": 422,
+      "modules": [
+        {
+          "namespace": "HarmonicSequences",
+          "file": "src/audio-reactive/HarmonicSequences.js",
+          "purpose": "",
+          "loc": 197,
+          "size_kb": 8.8,
+          "loadIndex": 19,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 1
+          }
+        },
+        {
+          "namespace": "HarmonicConductor",
+          "file": "src/audio-reactive/HarmonicConductor.js",
+          "purpose": "",
+          "loc": 1170,
+          "size_kb": 47.3,
+          "loadIndex": 20,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 12,
+            "depended_by_count": 1
+          }
+        },
+        {
+          "namespace": "CullingHelper",
+          "file": "src/rendering/CullingHelper.js",
+          "purpose": "",
+          "loc": 97,
+          "size_kb": 2.8,
+          "loadIndex": 34,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "OffscreenCanvas",
+          "file": "src/rendering/OffscreenCanvas.js",
+          "purpose": "",
+          "loc": 177,
+          "size_kb": 4.7,
+          "loadIndex": 35,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "GlowManager",
+          "file": "src/rendering/GlowManager.js",
+          "purpose": "",
+          "loc": 111,
+          "size_kb": 3.5,
+          "loadIndex": 36,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "DrawPipeline",
+          "file": "src/rendering/DrawPipeline.js",
+          "purpose": "",
+          "loc": 779,
+          "size_kb": 30.3,
+          "loadIndex": 37,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
             "depended_by_count": 0
           }
         }

@@ -275,7 +275,7 @@ Five tiers based on score gain per kill (`Balance.JUICE.SCORE_PULSE_TIERS`):
 
 ### Message Strip Priority Queue
 
-`MessageSystem` (`src/systems/MessageSystem.js`) manages a priority queue with cooldown (`Balance.MESSAGE_STRIP.COOLDOWN: 300ms`). DANGER and VICTORY (priority 3) interrupt lower-priority content. Combat state non partecipa più alla coda — è un canale separato gestito dall'elemento `#combat-bar`.
+`MessageSystem` (`src/ui/MessageSystem.js`) manages a priority queue with cooldown (`Balance.MESSAGE_STRIP.COOLDOWN: 300ms`). DANGER and VICTORY (priority 3) interrupt lower-priority content. Combat state non partecipa più alla coda — è un canale separato gestito dall'elemento `#combat-bar`.
 
 ### Meme Popup Queue
 

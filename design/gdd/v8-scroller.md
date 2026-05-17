@@ -24,7 +24,7 @@ The player should feel like a lone fighter jet punching through a relentless wal
 ### C.1 Activation gating
 
 - V8 is active when `G.Balance.V8_MODE.ENABLED === true` **and** `G.ArcadeModifiers.isArcadeMode()` returns `false`.
-  - Source: `src/main.js:2928-2932`, `src/core/GameplayCallbacks.js:395-396`, `src/systems/HarmonicConductor.js:270-271`
+  - Source: `src/main.js:2928-2932`, `src/core/GameplayCallbacks.js:395-396`, `src/audio-reactive/HarmonicConductor.js:270-271`
 - When V8 is active, `WaveManager.update()` is called but returns `null` (it goes dormant); `LevelScript.tick(dt)` drives the action pipeline instead.
   - Source: `src/main.js:2925-2932`
 
@@ -308,7 +308,7 @@ Step 8 — Round:
 
 Budget recharges each frame: `available += maxPerSecond × dt`, capped at `maxPerSecond × 1.5`.
 
-Source: `src/systems/HarmonicConductor.js:228-288`; `src/config/BalanceConfig.js:2462-2490`.
+Source: `src/audio-reactive/HarmonicConductor.js:228-288`; `src/config/BalanceConfig.js:2462-2490`.
 
 **Example (C1, L1, neutral, t=0.0):** `max = 8 × 0.50 × 1.0 = 4.0 BPS`
 **Example (C1, L3, neutral, t=1.0):** `max = 8 × 1.0 × 1.25 = 10.0 BPS`
@@ -429,7 +429,7 @@ Source: `src/main.js:1725-1755, 2046-2057`
 
 | System | File | Interaction |
 |---|---|---|
-| HarmonicConductor | `src/systems/HarmonicConductor.js` | Reads `_elapsed`/`BOSS_AT_S` for V8 ramp; consumes `_fireSuppressed`/`_fireSuppressedByEntry` flags |
+| HarmonicConductor | `src/audio-reactive/HarmonicConductor.js` | Reads `_elapsed`/`BOSS_AT_S` for V8 ramp; consumes `_fireSuppressed`/`_fireSuppressedByEntry` flags |
 | ScrollEngine | `src/systems/ScrollEngine.js` | CRUSH multiplier set by anchors; `halt()` on boss spawn; `resume(40)` on boss death; `reset()` on level advance |
 | LevelScript | `src/v8/LevelScript.js` | Central orchestrator; public API: `tick`, `loadLevel`, `scheduleLevelEnd`, `hasNextLevel`, `currentLevelNum`, `currentLevelName`, `reset` |
 | main.js | `src/main.js` | Calls `tick(dt)` each frame; renders intermission DOM; wires advance; overrides boss type |
