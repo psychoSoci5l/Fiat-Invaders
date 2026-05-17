@@ -142,6 +142,48 @@ V8 campaign triggers boss via `LevelScript.tick() → {action: 'SPAWN_BOSS'}` �
 
 Rationale: The entrance sequence gives the player visual warning and time to position before the fight starts. The invulnerability window prevents pre-firing bursts.
 
+### DIP Flow — Sequence Diagram (v7.32 — DipMeter extraction)
+
+```
+Enemy killed               Boss hit              Boss phase transition
+    |                          |                       |
+    v                          v                       v
+main.js:onEnemyKilled()   Boss.damage()          Boss.triggerPhaseTransition()
+    |                          |                       |
+    |  dist-based gain         |  BOSS_HIT_GAIN        |  +15 flat
+    |  (1-7 range)             |  (0.15/hit)           |
+    v                          v                       v
+G.addProximityMeter(gain) ——— G.addProximityMeter(gain)
+    |                                |
+    |  (HYPER active? → skip)        |
+    |  (Arcade? → JACKPOT mult)      |
+    v                                v
+G.DipMeter.add(gain)
+    |
+    |  value = min(100, prev + gain)
+    |  _updateMultiplier()
+    |  _updateUI()  →  DOM: graze-fill width, graze-full/approaching classes
+    |
+    |  Threshold crossed (25, 50, 75, 100)?
+    v
+G.Events.emit('dip:changed', { prev, value, multiplier })
+    |
+    +———→ G.Debug.trackDip()  →  console.log [DIP] threshold N%
+    |
+    +———→ (future consumers)
+    |
+    v
+main.js: HYPER auto-activation check
+    |
+    v
+(value >= 100 && cooldown clear && auto-activate?)
+    → player.activateHyper()
+    → G.DipMeter.zero()
+    → triggerScreenFlash('HYPER_ACTIVATE')
+```
+
+**DipMeter module**: `src/systems/DipMeter.js` (created v7.32). Extracted from main.js as single source of truth for DIP state, multiplier, UI updates, and `dip:changed` event emission. Loaded after RunState/Upgrades, before AudioSystem.
+
 ## GDD Requirements Addressed
 
 | GDD System | Requirement | How This ADR Addresses It |
@@ -171,9 +213,9 @@ Already shipped. No migration needed.
 
 ## Known Issues Carried Forward
 
-1. **`grazeMeter` naming drift** — code still uses "graze" terminology (variables, function names) for what is now a proximity-based system. Cosmetic, no functional impact.
+1. **`grazeMeter` naming drift** — code still uses "graze" terminology for what is now a proximity-based system. v7.32 extracted the state into `DipMeter.js` with `dip:changed` events, but DOM IDs (`graze-fill`, `graze-meter`) and BalanceConfig keys (`GRAZE.*`) retain the legacy naming. Cosmetic, no functional impact.
 2. **Dead fields in `Constants.BOSSES[]`** — `baseHp/hpPerLevel/hpPerCycle` declared but not read by the scaling path (reads from `Balance.BOSS.HP.*` instead).
-3. **Two DIP entry points with divergent Arcade JACKPOT handling** — `onBossHit` path does not apply the JACKPOT modifier; `onEnemyKilled` and `addProximityMeter` do. May be intentional but undocumented.
+3. **Two DIP entry points with divergent Arcade JACKPOT handling** — both paths now route through `DipMeter.add()` (v7.32) which applies the JACKPOT modifier uniformly. The `onBossHit` path divergence is resolved.
 4. **Phase 3 skip** — a bursty HYPER+GODCHAIN combo can delete the remaining 20% HP before the player sees P3 patterns. Not a bug per design intent, but worth monitoring.
 5. **APC never calibrates C1** — boss HP on first cycle uses base values, which may create a perceived jump on C2.
 

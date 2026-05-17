@@ -214,9 +214,9 @@ function initCollisionSystem() {
         getScore: () => score,
         getLives: () => lives,
         getShake: () => shake,
-        getGrazeMeter: () => grazeMeter,
+        getGrazeMeter: () => G.DipMeter.value,
         getGrazeCount: () => grazeCount,
-        getGrazeMultiplier: () => grazeMultiplier,
+        getGrazeMultiplier: () => G.DipMeter.multiplier,
         getTotalTime: () => totalTime,
         getLastGrazeSoundTime: () => lastGrazeSoundTime,
         getBulletCancelStreak: () => bulletCancelStreak,
@@ -231,7 +231,7 @@ function initCollisionSystem() {
         getKillCount: () => killCount,
         getIsBearMarket: () => isBearMarket,
         getFrameKills: () => _frameKills,
-        getLastGrazeTime: () => lastGrazeTime,
+        getLastGrazeTime: () => G.DipMeter.lastGrazeTime,
         getMiniBossThisWave: () => miniBossThisWave,
         getLastMiniBossSpawnTime: () => lastMiniBossSpawnTime,
         getFiatKillCounter: () => fiatKillCounter,
@@ -241,9 +241,9 @@ function initCollisionSystem() {
         // State setters
         setScore: (v) => { score = v; },
         setShake: (v) => { shake = v; },
-        setGrazeMeter: (v) => { grazeMeter = v; },
+        setGrazeMeter: (v) => { G.DipMeter.value = v; },
         setGrazeCount: (v) => { grazeCount = v; },
-        setGrazeMultiplier: (v) => { grazeMultiplier = v; },
+        setGrazeMultiplier: (v) => { G.DipMeter._multiplier = v; },
         setBulletCancelStreak: (v) => { bulletCancelStreak = v; },
         setBulletCancelTimer: (v) => { bulletCancelTimer = v; },
         setKillStreak: (v) => { killStreak = v; },
@@ -349,7 +349,7 @@ let miniBoss = null; // Special boss spawned from kill counter
 // These properties delegate to runState.xxx
 let score, level, totalTime, killCount, streak, bestStreak;
 let killStreak, killStreakMult, lastKillTime, lastScoreMilestone;
-let grazeCount, grazeMeter, grazeMultiplier, grazePerksThisLevel, lastGrazeSoundTime, lastGrazeTime;
+let grazeCount, grazePerksThisLevel, lastGrazeSoundTime, lastGrazeTime;
 let bulletCancelStreak, bulletCancelTimer, perkCooldown;
 let fiatKillCounter, lastMiniBossSpawnTime, miniBossThisWave;
 let waveStartTime, _frameKills, _hyperAmbientTimer, marketCycle;
@@ -368,8 +368,7 @@ function syncFromRunState() {
     lastKillTime = runState.lastKillTime;
     lastScoreMilestone = runState.lastScoreMilestone;
     grazeCount = runState.grazeCount;
-    grazeMeter = runState.grazeMeter;
-    grazeMultiplier = runState.grazeMultiplier;
+    if (runState.grazeMeter !== undefined) G.DipMeter.value = runState.grazeMeter;
     grazePerksThisLevel = runState.grazePerksThisLevel;
     lastGrazeSoundTime = runState.lastGrazeSoundTime;
     lastGrazeTime = runState.lastGrazeTime;
@@ -859,6 +858,8 @@ function init() {
         if (G.Events) {
             G.Events.on('player:hyper-activated', () => G.StatsTracker.recordHyper());
             G.Events.on('player:godchain-activated', () => G.StatsTracker.recordGodchain());
+            // v7.32.0: DipMeter threshold logging via DebugSystem
+            G.Events.on('dip:changed', (data) => { if (G.Debug) G.Debug.trackDip(data); });
             // v7.17.0: Phase-aware UI theming — update CSS vars on phase change
             G.Events.on('phase-change', function(data) {
                 var phaseVars = {
@@ -1828,13 +1829,8 @@ function updateReactiveHUD() {
     const isHyper = player && player.hyperActive;
     scoreEl.classList.toggle('score-hyper', isHyper);
 
-    // Graze approaching shimmer
-    const grazeMeterEl = document.getElementById('graze-meter');
-    if (grazeMeterEl) {
-        const grazePercent = typeof grazeMeter !== 'undefined' ? grazeMeter : 0;
-        const approaching = grazePercent >= (reactive.GRAZE_APPROACHING_THRESHOLD || 80) && grazePercent < 100;
-        grazeMeterEl.classList.toggle('graze-approaching', approaching);
-    }
+    // Graze approaching shimmer — delegated to DipMeter._updateUI
+    G.DipMeter._updateUI();
 }
 
 function startGame() {
@@ -1925,6 +1921,15 @@ function startGame() {
 
     waveMgr.reset();
     if (G.LevelScript) G.LevelScript.reset();
+
+    // v7.32: Wire SpawnSystem based on game mode
+    const _isArcade = G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode();
+    if (_isArcade) {
+        G.SpawnSystem.useWaveSpawnSystem();
+    } else if (G.Balance.V8_MODE && G.Balance.V8_MODE.ENABLED) {
+        G.SpawnSystem.useScriptedSpawnSystem();
+    }
+
     gridDir = 1;
     // gridSpeed now computed dynamically via getGridSpeed()
 
@@ -2349,19 +2354,8 @@ function update(dt) {
         perkCooldown -= dt;
     }
 
-    // Graze meter decay: v5.15.1 — decay disabled (meter only goes up from proximity kills)
-    // HYPER risk/reward is self-balancing: more enemies in C3 = faster meter BUT more bullets + INSTANT_DEATH
+    // Graze meter decay: v5.15.1 — decay disabled. DipMeter.updateDecay() handles decay if re-enabled.
     const isHyperActive = player && player.isHyperActive && player.isHyperActive();
-    if (false) { // decay disabled — kept for potential re-enable
-        grazeMeter = Math.max(0, grazeMeter - Balance.GRAZE.DECAY_RATE * dt);
-        grazeMultiplier = 1 + (grazeMeter / Balance.GRAZE.MULT_DIVISOR) * (Balance.GRAZE.MULT_MAX - 1);
-
-        // Check if meter dropped below threshold, hide HYPER ready indicator
-        if (grazeMeter < Balance.HYPER.METER_THRESHOLD && player.hyperAvailable) {
-            player.hyperAvailable = false;
-        }
-        updateGrazeUI();
-    }
 
     // Arcade combo timer decay
     if (G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode()) {
@@ -2392,11 +2386,10 @@ function update(dt) {
     }
 
     // HYPER activation check (game loop fallback — catches meter reaching threshold between kills)
-    if (player && player.hyperCooldown <= 0 && grazeMeter >= Balance.HYPER.METER_THRESHOLD && !isHyperActive) {
-        if (Balance.HYPER.AUTO_ACTIVATE && player.canActivateHyper && player.canActivateHyper(grazeMeter)) {
+    if (player && player.hyperCooldown <= 0 && G.DipMeter.value >= Balance.HYPER.METER_THRESHOLD && !isHyperActive) {
+        if (Balance.HYPER.AUTO_ACTIVATE && player.canActivateHyper && player.canActivateHyper(G.DipMeter.value)) {
             player.activateHyper();
-            grazeMeter = 0;
-            updateGrazeUI();
+            G.DipMeter.zero();
             triggerScreenFlash('HYPER_ACTIVATE');
         } else if (!player.hyperAvailable) {
             player.hyperAvailable = true;
@@ -2458,15 +2451,10 @@ function update(dt) {
 
     // v2.22.1: Include boss warning state to prevent duplicate boss spawn actions
     const isBossActive = !!boss || bossWarningTimer > 0;
-    let waveAction = (startCountdownActive || shipEntryActive) ? null : waveMgr.update(dt, gameState, enemies.length, isBossActive);
-    // v8: LevelScript drives spawns + boss trigger. waveMgr.update() returns null in V8 mode.
-    // v7.11.1: V8 is campaign-only — skip LevelScript tick in Arcade.
-    const _isArcadeV8Tick = G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode();
-    if (!startCountdownActive && !shipEntryActive && gameState === 'PLAY' && !isBossActive &&
-        G.Balance.V8_MODE && G.Balance.V8_MODE.ENABLED && !_isArcadeV8Tick && G.LevelScript) {
-        const v8Action = G.LevelScript.tick(dt);
-        if (v8Action) waveAction = v8Action;
-    }
+
+    // v7.32: SpawnSystem — unified spawn interface (WaveManager or LevelScript)
+    G.SpawnSystem.setWaveDeps(gameState, enemies, isBossActive);
+    let waveAction = (startCountdownActive || shipEntryActive) ? null : G.SpawnSystem.update(dt);
 
     // Boss warning timer countdown
     if (bossWarningTimer > 0) {
@@ -2667,10 +2655,9 @@ function update(dt) {
       if (!inWarmup) {
 
         // HYPER MODE: manual trigger via keyboard (H) or touch — works alongside auto-activate
-        if ((inputSys.isDown('KeyH') || inputSys.touch.hyper) && player.canActivateHyper && player.canActivateHyper(grazeMeter)) {
+        if ((inputSys.isDown('KeyH') || inputSys.touch.hyper) && player.canActivateHyper && player.canActivateHyper(G.DipMeter.value)) {
             player.activateHyper();
-            grazeMeter = 0;
-            updateGrazeUI();
+            G.DipMeter.zero();
             triggerScreenFlash('HYPER_ACTIVATE');
         }
 
@@ -2678,7 +2665,7 @@ function update(dt) {
         setStyle('shieldBar', 'width', sPct + "%");
         setStyle('shieldBar', 'backgroundColor', player.shieldActive ? '#fff' : (player.shieldCooldown <= 0 ? player.stats.color : '#555'));
         updateShieldButton(player);
-        updateHyperButton(player, grazeMeter);
+        updateHyperButton(player, G.DipMeter.value);
 
         // v4.1.0: Update dynamic difficulty rank
         if (G.RankSystem) G.RankSystem.update(dt);
@@ -2825,21 +2812,9 @@ function createGrazeSpark(bx, by, px, py, isCloseGraze = false) {
     if (G.ParticleSystem) G.ParticleSystem.createGrazeSpark(bx, by, px, py, isCloseGraze);
 }
 
-// Update graze meter UI
+// Delegate to DipMeter — handles fill width + pulsing effect + approaching shimmer
 function updateGrazeUI() {
-    const fill = document.getElementById('graze-fill');
-    const meter = document.getElementById('graze-meter');
-    if (fill) {
-        fill.style.width = grazeMeter + '%';
-    }
-    // Pulsing effect when meter is full
-    if (meter) {
-        if (grazeMeter >= 100) {
-            meter.classList.add('graze-full');
-        } else {
-            meter.classList.remove('graze-full');
-        }
-    }
+    G.DipMeter._updateUI();
 }
 
 function updateShieldButton(player) {
@@ -3219,9 +3194,9 @@ function buildFrameContext() {
         startCountdownGoTimer: startCountdownGoTimer,
         lastCountdownNumber: lastCountdownNumber,
         debugMode: debugMode,
-        grazeMeter: grazeMeter,
+        grazeMeter: G.DipMeter.value,
         grazeCount: grazeCount,
-        grazeMultiplier: grazeMultiplier,
+        grazeMultiplier: G.DipMeter.multiplier,
         killStreak: killStreak,
         killStreakMult: killStreakMult,
         bestStreak: bestStreak,
@@ -3511,32 +3486,19 @@ window.Game.adjustLives = function(delta) {
     updateLivesUI();
 };
 
-// Expose proximity meter gain for boss phase transitions
+// Delegate to DipMeter — handles gain, HYPER suppression, arcade modifiers, UI, events
 window.Game.addProximityMeter = function(gain) {
-    // v4.61: Skip accumulation during HYPER
-    if (player && player.isHyperActive && player.isHyperActive()) return;
-    // v7.12.6: Arcade JACKPOT modifier halves boss-hit meter gain too
-    if (G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode()) {
-        gain *= (G.RunState.arcadeBonuses?.grazeGainMult ?? 1);
-    }
     lastGrazeTime = totalTime;
-    const _prevMeter = grazeMeter;
-    grazeMeter = Math.min(100, grazeMeter + gain);
-    // v7.7.0: Lesson modal — explain DIP meter the first time it crosses 50%
-    if (_prevMeter < 50 && grazeMeter >= 50 && G.LessonModal) {
-        G.LessonModal.show('lesson_dip');
-    }
+    G.DipMeter.add(gain);
+    // HYPER auto-activation (needs player reference — kept in main.js)
     const Balance = window.Game.Balance;
-    if (grazeMeter >= Balance.HYPER.METER_THRESHOLD && player && player.hyperCooldown <= 0) {
-        if (Balance.HYPER.AUTO_ACTIVATE && player.canActivateHyper && player.canActivateHyper(grazeMeter)) {
+    if (G.DipMeter.value >= Balance.HYPER.METER_THRESHOLD && player && player.hyperCooldown <= 0) {
+        if (Balance.HYPER.AUTO_ACTIVATE && player.canActivateHyper && player.canActivateHyper(G.DipMeter.value)) {
             player.activateHyper();
-            grazeMeter = 0;
-            updateGrazeUI();
+            G.DipMeter.zero();
             triggerScreenFlash('HYPER_ACTIVATE');
-            return;
         }
     }
-    updateGrazeUI();
 };
 
 function loop(timestamp) {
@@ -3615,7 +3577,7 @@ function loop(timestamp) {
     // v4.4: Expose state to player for diegetic HUD drawing
     if (player) {
         player._livesDisplay = lives;
-        player._grazePercent = typeof grazeMeter !== 'undefined' ? grazeMeter : 0;
+        player._grazePercent = G.DipMeter.value;
         // Reuse object to avoid per-frame allocation
         var ws = player._weaponState || (player._weaponState = {});
         ws.weaponLevel = player.weaponLevel ?? 1;

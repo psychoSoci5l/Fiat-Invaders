@@ -776,17 +776,19 @@ Tap your ship to activate</p>
     <script src="src/systems/SpatialGrid.js"></script>
     <script src="src/systems/CollisionSystem.js"></script>
     <script src="src/systems/DropSystem.js"></script>
-     <script src="src/systems/MemeEngine.js"></script>
+     <script src="src/ui/MemeEngine.js"></script>
      <script src="src/ui/ToastSystem.js"></script>
      <script src="src/systems/HintTracker.js"></script>
     <script src="src/ui/LessonModal.js"></script>
     <script src="src/core/EventBus.js"></script>
     <script src="src/core/GameStateMachine.js"></script>
-    <script src="src/systems/HarmonicSequences.js"></script>
-    <script src="src/systems/HarmonicConductor.js"></script>
+    <!-- v7.32: Audio-Reactive layer (extracted from Core Systems) -->
+    <script src="src/audio-reactive/HarmonicSequences.js"></script>
+    <script src="src/audio-reactive/HarmonicConductor.js"></script>
     <script src="src/utils/RunState.js"></script>
     <script src="src/systems/RankSystem.js"></script>
     <script src="src/utils/Upgrades.js"></script>
+    <script src="src/systems/DipMeter.js"></script>
     <script src="src/core/AudioSystem.js"></script>
     <script src="src/core/InputSystem.js"></script>
     <script src="src/core/ObjectPool.js"></script>
@@ -796,14 +798,14 @@ Tap your ship to activate</p>
     <script src="src/systems/SkyRenderer.js"></script>
     <script src="src/systems/WeatherController.js"></script>
     <script src="src/systems/PhaseTransitionController.js"></script>
-    <!-- v7.13.0: Rendering Pipeline -->
-    <script src="src/systems/CullingHelper.js"></script>
-    <script src="src/systems/OffscreenCanvas.js"></script>
-    <script src="src/systems/GlowManager.js"></script>
-    <script src="src/systems/DrawPipeline.js"></script>
+    <!-- v7.32.0: Rendering Infra layer (extracted from Core Systems) -->
+    <script src="src/rendering/CullingHelper.js"></script>
+    <script src="src/rendering/OffscreenCanvas.js"></script>
+    <script src="src/rendering/GlowManager.js"></script>
+    <script src="src/rendering/DrawPipeline.js"></script>
     <script src="src/systems/TransitionManager.js"></script>
     <script src="src/systems/TitleAnimator.js"></script>
-    <script src="src/systems/MessageSystem.js"></script>
+    <script src="src/ui/MessageSystem.js"></script>
     <script src="src/entities/Entity.js"></script>
     <script src="src/entities/Bullet.js"></script>
     <script src="src/entities/Player.js"></script>
@@ -814,6 +816,7 @@ Tap your ship to activate</p>
     <script src="src/managers/WaveManager.js"></script>
     <!-- v8: Scripted spawn table (replaces WaveManager when V8_MODE enabled) -->
     <script src="src/v8/LevelScript.js"></script>
+    <script src="src/systems/SpawnSystem.js"></script>
     <script src="src/managers/CampaignState.js"></script>
     <script src="src/managers/DailyMode.js"></script>
     <!-- Story System -->
@@ -823,9 +826,9 @@ Tap your ship to activate</p>
     <script src="src/story/DialogueData.js"></script>
     <script src="src/story/StoryManager.js"></script>
     <script src="src/story/DialogueUI.js"></script>
-    <!-- Extracted Managers (v4.49 refactor) -->
-    <script src="src/systems/FloatingTextManager.js"></script>
-    <script src="src/systems/PerkIconManager.js"></script>
+    <!-- UI layer modules (moved from systems/ in v7.32) -->
+    <script src="src/ui/FloatingTextManager.js"></script>
+    <script src="src/ui/PerkIconManager.js"></script>
     <script src="src/managers/PerkManager.js"></script>
     <script src="src/managers/MiniBossManager.js"></script>
     <script src="src/systems/BossSpawner.js"></script>

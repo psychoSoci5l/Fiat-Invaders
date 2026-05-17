@@ -119,6 +119,51 @@ This manifest is a programmer's quick-reference extracted from all Accepted ADRs
 
 ---
 
+## Rendering Infra Layer Rules
+
+*Applies to: DrawPipeline, GlowManager, OffscreenCanvas, CullingHelper — extracted from Core Systems in v7.32*
+
+### Required Patterns
+- **DrawPipeline as singleton** (`G.DrawPipeline`) with 32-layer draw order (LAYER enum 0-31) — source: ADR-0002
+- **Fixed draw order**: BACKGROUND → SKY → WEATHER → TITLE_ANIM → entities → bullets → particles → FLOATING_TEXT → HUD → DEBUG — source: ADR-0002
+- **Screen-shake wrapping**: layers 0-25 render inside screen-shake transform; layers 26-31 outside it — source: ADR-0002
+- **OffscreenCanvas caching** for static elements — `G.OffscreenCanvas.get()`, `drawTo()`, `invalidate()` — source: ADR-0002
+- **GlowManager additive passes** via `globalCompositeOperation = 'lighter'` — source: ADR-0002
+- **CullingHelper per-entity-type margins** before draw calls (20-80px) — source: ADR-0002
+
+### Forbidden Approaches
+- **Never use shadowBlur** — too expensive for entity count; use glow passes instead — source: ADR-0002
+- **Never leak blend modes** — every composite operation change must be wrapped in `ctx.save()`/`ctx.restore()` — source: ADR-0002
+- **Never render entities without culling** — always gate with `CullingHelper.isOnScreen()` — source: ADR-0002
+
+### Performance Guardrails
+- **DrawPipeline**: O(layers × entities) draw pass; layers gated by `isLayerEnabled()` flag — source: ADR-0002
+- **GlowManager**: O(n) where n = entities with glow type enabled; disabled in LOW quality — source: ADR-0002
+- **OffscreenCanvas**: ~1-2MB cache; LRU invalidated on quality tier change — source: ADR-0002
+
+---
+
+## Audio-Reactive Layer Rules
+
+*Applies to: HarmonicConductor, HarmonicSequences — extracted from Core Systems in v7.32*
+
+### Required Patterns
+- **HarmonicSequences** as static data — attack type enum, TIER definitions, TELEGRAPH styles, COLORS — source: ADR-0004
+- **HarmonicConductor** as beat-synced difficulty driver — tempo, currentBeat, generation invalidation — source: ADR-0004
+- **Beat tracking from AudioSystem** — conductor reads `AudioSystem.lastBeatTime` for sync — source: ADR-0004
+- **Difficulty scaling** via `setDifficulty(level)`, `setSequence(type)`, `startWave()` — source: ADR-0004
+- **Enemy reference reassignment** — `.enemies` updated when entity arrays change (wave start, level switch) — source: ADR-0004
+
+### Forbidden Approaches
+- **Never use legacy oscillator pattern** (killed in v7.20) — audio chain management delegated to AudioSystem
+- **Never hardcode sequence data** — all sequences in HarmonicSequences.js, not inline in conductor
+
+### Performance Guardrails
+- **Conductor update**: O(1) per frame — single beat check + cached enemy scan once per beat — source: ADR-0004
+- **Sequence lookup**: O(1) — direct property access on pre-built sequence object
+
+---
+
 ## Feature Layer Rules
 
 *Applies to: leaderboard, secondary systems*

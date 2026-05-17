@@ -36,6 +36,7 @@ window.Game.Debug = {
         STATE: false,    // Game state changes
         CONDUCTOR: false, // HarmonicConductor events
         V8: false,       // v8 Gradius protocol (LevelScript, ScrollEngine, crush anchors)
+        DIP: false,      // DipMeter threshold crossings (25, 50, 75, 100)
     },
 
     // ========== EVENT TRACKING ==========
@@ -293,6 +294,27 @@ window.Game.Debug = {
     trackIntermission(level, wave) {
         this.counters.intermissions++;
         this.log('WAVE', `⏸️ INTERMISSION #${this.counters.intermissions}: L${level} W${wave}`);
+    },
+
+    /**
+     * Track DIP meter threshold crossings (called by dip:changed subscriber)
+     */
+    trackDip(data) {
+        // Determina quale soglia è stata attraversata
+        const thresholds = [25, 50, 75, 100];
+        for (const t of thresholds) {
+            if (data.prev < t && data.value >= t) {
+                this.log('DIP', `⬆️ DIP threshold ${t}% — multiplier ${data.multiplier.toFixed(2)}x`, {
+                    prev: data.prev.toFixed(1),
+                    value: data.value.toFixed(1)
+                });
+                return;
+            }
+            if (data.prev >= t && data.value < t) {
+                this.log('DIP', `⬇️ DIP dropped below ${t}% — multiplier ${data.multiplier.toFixed(2)}x`);
+                return;
+            }
+        }
     },
 
     /**
