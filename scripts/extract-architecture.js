@@ -22,8 +22,14 @@ const DOCS = path.join(ROOT, 'docs', 'architecture');
 // ── Parsers ────────────────────────────────────────────────────────────────
 
 function parseIndexHtml() {
-  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf-8');
-  const scriptRe = /<script\s+src="([^"]+\.js)"/g;
+  let html;
+  try {
+    html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf-8');
+  } catch {
+    console.error('Error: index.html not found');
+    return [];
+  }
+  const scriptRe = /<script[^>]*\ssrc="([^"]+\.js)"/g;
   const modules = [];
   let m;
   while ((m = scriptRe.exec(html)) !== null) {
@@ -50,10 +56,16 @@ function parseIndexHtml() {
 }
 
 function parseArchitectureMd() {
-  const md = fs.readFileSync(path.join(DOCS, 'architecture.md'), 'utf-8');
+  let md;
+  try {
+    md = fs.readFileSync(path.join(DOCS, 'architecture.md'), 'utf-8');
+  } catch {
+    console.warn('  Warning: architecture.md not found, using defaults');
+    return { nsMap: {}, layerDefs: {} };
+  }
 
   // Extract namespace table: look for lines like | Game.XYZ | `file.js` | Purpose |
-  const nsRe = /^\|\s+`?(Game\.\w+)`?\s+\|\s+`([^`]+\.js)`\s+\|\s+(.+)\s+\|/gm;
+  const nsRe = /^\|[^\S\n]+`?(Game\.\w+)`?[^\S\n]+\|[^\S\n]+`([^`]+\.js)`[^\S\n]+\|[^\S\n]+([^\n|]+)[^\S\n]*\|/gm;
   const nsMap = {};
   let m;
   while ((m = nsRe.exec(md)) !== null) {
@@ -71,14 +83,21 @@ function parseArchitectureMd() {
     'src/story/': { id: 'story', name: 'Story', order: 5, color: '#f472b6' },
     'src/ui/': { id: 'ui', name: 'UI', order: 6, color: '#a78bfa' },
     'src/v8/': { id: 'v8', name: 'V8 Campaign', order: 7, color: '#22d3ee' },
-    'src/audio/': { id: 'audio', name: 'Audio', order: 8, color: '#4ade80' }
+    'src/audio/': { id: 'audio', name: 'Audio', order: 8, color: '#4ade80' },
+    'src/main.js': { id: 'entry', name: 'Entry Point', order: 9, color: '#e0e0e8' }
   };
 
   return { nsMap, layerDefs };
 }
 
 function parseTraceabilityIndex() {
-  const md = fs.readFileSync(path.join(DOCS, 'traceability-index.md'), 'utf-8');
+  let md;
+  try {
+    md = fs.readFileSync(path.join(DOCS, 'traceability-index.md'), 'utf-8');
+  } catch {
+    console.warn('  Warning: traceability-index.md not found');
+    return {};
+  }
   const trRe = /^\|\s+(TR-\w+-\d+)\s+\|\s+(.+?\.md)\s+\|\s+(.+?)\s+\|\s+(.+?)\s+\|\s+(ADR-\d+).*?\s+\|\s+(.+?)\s+\|/gm;
   const trMap = {};
   let m;
@@ -95,7 +114,13 @@ function parseTraceabilityIndex() {
 }
 
 function parseGddSystems() {
-  const md = fs.readFileSync(path.join(ROOT, 'design', 'gdd', 'systems-index.md'), 'utf-8');
+  let md;
+  try {
+    md = fs.readFileSync(path.join(ROOT, 'design', 'gdd', 'systems-index.md'), 'utf-8');
+  } catch {
+    console.warn('  Warning: systems-index.md not found');
+    return [];
+  }
   const gddRe = /^\|\s+(.+?)\s+\|\s+\[(.+?)\]\((.+?\.md)\)\s+\|\s+(.+?)\s+\|\s+(.+?)\s+\|\s+(.+?)\s+\|/gm;
   const gdds = [];
   let m;
@@ -106,10 +131,26 @@ function parseGddSystems() {
 }
 
 function parseGameConcept() {
-  const md = fs.readFileSync(path.join(ROOT, 'design', 'gdd', 'game-concept.md'), 'utf-8');
+  let md;
+  try {
+    md = fs.readFileSync(path.join(ROOT, 'design', 'gdd', 'game-concept.md'), 'utf-8');
+  } catch {
+    console.warn('  Warning: game-concept.md not found');
+    return 'unknown';
+  }
   const vRe = /\*\*Version:\*\*\s+v?([\d.]+)/;
   const vMatch = md.match(vRe);
   return vMatch ? vMatch[1] : 'unknown';
+}
+
+function extractNamespace(filePath) {
+  try {
+    const code = fs.readFileSync(filePath, 'utf-8');
+    const head = code.split('\n').slice(0, 80).join('\n');
+    const re = /(?:window\.)?Game\.(\w+)\s*=\s*(?:class\s|function\s|new\s+class|{\s*\n\s*\w)/;
+    const m = head.match(re);
+    return m ? `Game.${m[1]}` : null;
+  } catch { return null; }
 }
 
 // ── Layer assignment ───────────────────────────────────────────────────────
@@ -124,7 +165,7 @@ function assignLayers(modules, layerDefs, nsMap) {
         if (!layers[key]) layers[key] = { ...def, modules: [], order: def.order };
         const nsInfo = nsMap[mod.file.replace(/^src\//, '')] || {};
         layers[key].modules.push({
-          namespace: nsInfo.namespace || `Game.${mod.file.split('/').pop().replace('.js', '')}`,
+          namespace: nsInfo.namespace || extractNamespace(mod.fullPath) || `Game.${mod.file.split('/').pop().replace('.js', '')}`,
           file: mod.file,
           purpose: nsInfo.purpose || '',
           size_kb: mod.size_kb,
@@ -137,7 +178,7 @@ function assignLayers(modules, layerDefs, nsMap) {
     }
     if (!assigned) {
       if (!layers._unassigned) layers._unassigned = { id: '_unassigned', name: 'Unassigned', color: '#888', order: 99, modules: [] };
-      layers._unassigned.modules.push({ namespace: mod.file.split('/').pop().replace('.js', ''), file: mod.file, purpose: '', size_kb: mod.size_kb, loc: mod.loc, loadIndex: mod.loadIndex });
+      layers._unassigned.modules.push({ namespace: extractNamespace(mod.fullPath) || mod.file.split('/').pop().replace('.js', ''), file: mod.file, purpose: '', size_kb: mod.size_kb, loc: mod.loc, loadIndex: mod.loadIndex });
     }
   }
   // Sort layers by order

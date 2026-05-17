@@ -1,14 +1,14 @@
 {
   "_metadata": {
-    "generated_at": "2026-05-17T07:12:51.946Z",
+    "generated_at": "2026-05-17T07:29:00.051Z",
     "generator": "scripts/extract-architecture.js",
-    "source_hash": "285b7f4808cc3ddd",
+    "source_hash": "f524c2efaf994afc",
     "version": "7.12.14",
-    "total_modules": 75,
-    "total_loc": 48448,
-    "total_size_kb": 2017.8,
-    "avg_coupling_out": 0.69,
-    "avg_coupling_in": 0.69,
+    "total_modules": 76,
+    "total_loc": 52275,
+    "total_size_kb": 2173.6,
+    "avg_coupling_out": 1.01,
+    "avg_coupling_in": 1.01,
     "adr_count": 15,
     "gdd_count": 7,
     "tr_count": 70,
@@ -33,9 +33,9 @@
       "avg_loc": 657,
       "modules": [
         {
-          "namespace": "Game.Constants",
+          "namespace": "Game.VERSION",
           "file": "src/utils/Constants.js",
-          "purpose": "Version, balance constants, DOM IDs",
+          "purpose": "Semver string",
           "loc": 986,
           "size_kb": 51.6,
           "loadIndex": 0,
@@ -43,7 +43,7 @@
           "tr_coverage": [],
           "coupling": {
             "depends_on_count": 0,
-            "depended_by_count": 0
+            "depended_by_count": 1
           }
         },
         {
@@ -56,8 +56,8 @@
           "governed_by": [],
           "tr_coverage": [],
           "coupling": {
-            "depends_on_count": 6,
-            "depended_by_count": 4
+            "depends_on_count": 8,
+            "depended_by_count": 5
           }
         },
         {
@@ -77,7 +77,7 @@
         {
           "namespace": "Game.ColorUtils",
           "file": "src/utils/ColorUtils.js",
-          "purpose": "",
+          "purpose": "Color manipulation, font helpers",
           "loc": 251,
           "size_kb": 8.4,
           "loadIndex": 3,
@@ -85,7 +85,7 @@
           "tr_coverage": [],
           "coupling": {
             "depends_on_count": 0,
-            "depended_by_count": 6
+            "depended_by_count": 7
           }
         },
         {
@@ -105,7 +105,7 @@
         {
           "namespace": "Game.RNG",
           "file": "src/utils/RNG.js",
-          "purpose": "",
+          "purpose": "Seeded random number generation",
           "loc": 110,
           "size_kb": 3.4,
           "loadIndex": 5,
@@ -133,7 +133,7 @@
         {
           "namespace": "Game.Upgrades",
           "file": "src/utils/Upgrades.js",
-          "purpose": "",
+          "purpose": "Persistent upgrade data",
           "loc": 43,
           "size_kb": 1.2,
           "loadIndex": 23,
@@ -158,17 +158,19 @@
       "avg_loc": 840,
       "modules": [
         {
-          "namespace": "Game.EventBus",
+          "namespace": "Game.Events",
           "file": "src/core/EventBus.js",
-          "purpose": "",
+          "purpose": "Pub/sub event bus singleton",
           "loc": 73,
           "size_kb": 2.3,
           "loadIndex": 17,
-          "governed_by": [],
+          "governed_by": [
+            "ADR-0003"
+          ],
           "tr_coverage": [],
           "coupling": {
             "depends_on_count": 0,
-            "depended_by_count": 0
+            "depended_by_count": 8
           }
         },
         {
@@ -197,22 +199,24 @@
           "governed_by": [],
           "tr_coverage": [],
           "coupling": {
-            "depends_on_count": 1,
+            "depends_on_count": 2,
             "depended_by_count": 4
           }
         },
         {
-          "namespace": "Game.InputSystem",
+          "namespace": "Game.Input",
           "file": "src/core/InputSystem.js",
-          "purpose": "",
+          "purpose": "Keyboard/gamepad input",
           "loc": 576,
           "size_kb": 24.3,
           "loadIndex": 25,
-          "governed_by": [],
+          "governed_by": [
+            "ADR-0003"
+          ],
           "tr_coverage": [],
           "coupling": {
-            "depends_on_count": 2,
-            "depended_by_count": 0
+            "depends_on_count": 3,
+            "depended_by_count": 1
           }
         },
         {
@@ -259,9 +263,9 @@
       "avg_loc": 3339,
       "modules": [
         {
-          "namespace": "Game.BalanceConfig",
+          "namespace": "Game.Balance",
           "file": "src/config/BalanceConfig.js",
-          "purpose": "",
+          "purpose": "All tuning constants",
           "loc": 3339,
           "size_kb": 159.9,
           "loadIndex": 6,
@@ -269,7 +273,7 @@
           "tr_coverage": [],
           "coupling": {
             "depends_on_count": 1,
-            "depended_by_count": 0
+            "depended_by_count": 13
           }
         }
       ]
@@ -288,7 +292,7 @@
         {
           "namespace": "Game.BulletPatterns",
           "file": "src/systems/BulletPatterns.js",
-          "purpose": "",
+          "purpose": "Pattern definitions",
           "loc": 534,
           "size_kb": 19.1,
           "loadIndex": 8,
@@ -320,7 +324,7 @@
         {
           "namespace": "Game.SpatialGrid",
           "file": "src/systems/SpatialGrid.js",
-          "purpose": "",
+          "purpose": "Grid binning data structure",
           "loc": 65,
           "size_kb": 2.1,
           "loadIndex": 10,
@@ -354,14 +358,14 @@
             "TR-EA-008"
           ],
           "coupling": {
-            "depends_on_count": 0,
+            "depends_on_count": 1,
             "depended_by_count": 0
           }
         },
         {
           "namespace": "Game.DropSystem",
           "file": "src/systems/DropSystem.js",
-          "purpose": "",
+          "purpose": "Power-up drop logic",
           "loc": 826,
           "size_kb": 34.8,
           "loadIndex": 12,
@@ -389,7 +393,7 @@
         {
           "namespace": "Game.MemeEngine",
           "file": "src/systems/MemeEngine.js",
-          "purpose": "",
+          "purpose": "Meme/dialogue VFX",
           "loc": 662,
           "size_kb": 23,
           "loadIndex": 13,
@@ -419,7 +423,7 @@
         {
           "namespace": "Game.HarmonicSequences",
           "file": "src/systems/HarmonicSequences.js",
-          "purpose": "",
+          "purpose": "Sequence definitions",
           "loc": 197,
           "size_kb": 8.8,
           "loadIndex": 19,
@@ -440,7 +444,7 @@
           "governed_by": [],
           "tr_coverage": [],
           "coupling": {
-            "depends_on_count": 10,
+            "depends_on_count": 12,
             "depended_by_count": 1
           }
         },
@@ -470,14 +474,14 @@
           ],
           "tr_coverage": [],
           "coupling": {
-            "depends_on_count": 1,
+            "depends_on_count": 2,
             "depended_by_count": 2
           }
         },
         {
           "namespace": "Game.EffectsRenderer",
           "file": "src/systems/EffectsRenderer.js",
-          "purpose": "",
+          "purpose": "Screen shake, flash, overlays",
           "loc": 599,
           "size_kb": 20.8,
           "loadIndex": 28,
@@ -537,7 +541,7 @@
         {
           "namespace": "Game.WeatherController",
           "file": "src/systems/WeatherController.js",
-          "purpose": "",
+          "purpose": "Weather VFX",
           "loc": 707,
           "size_kb": 25.7,
           "loadIndex": 31,
@@ -657,7 +661,7 @@
         {
           "namespace": "Game.TitleAnimator",
           "file": "src/systems/TitleAnimator.js",
-          "purpose": "",
+          "purpose": "Title screen particles",
           "loc": 289,
           "size_kb": 10,
           "loadIndex": 38,
@@ -705,7 +709,7 @@
         {
           "namespace": "Game.PerkIconManager",
           "file": "src/systems/PerkIconManager.js",
-          "purpose": "",
+          "purpose": "Perk icon rendering",
           "loc": 139,
           "size_kb": 4.3,
           "loadIndex": 58,
@@ -762,7 +766,7 @@
         {
           "namespace": "Game.ArcadeModifiers",
           "file": "src/systems/ArcadeModifiers.js",
-          "purpose": "",
+          "purpose": "Arcade mode modifiers",
           "loc": 233,
           "size_kb": 9.5,
           "loadIndex": 62,
@@ -789,7 +793,7 @@
         {
           "namespace": "Game.QualityManager",
           "file": "src/systems/QualityManager.js",
-          "purpose": "",
+          "purpose": "Quality-of-life settings",
           "loc": 434,
           "size_kb": 22.4,
           "loadIndex": 64,
@@ -830,14 +834,14 @@
         {
           "namespace": "Game.Bullet",
           "file": "src/entities/Bullet.js",
-          "purpose": "",
+          "purpose": "Bullet entity constructor",
           "loc": 1998,
           "size_kb": 84.6,
           "loadIndex": 41,
           "governed_by": [],
           "tr_coverage": [],
           "coupling": {
-            "depends_on_count": 3,
+            "depends_on_count": 4,
             "depended_by_count": 5
           }
         },
@@ -851,7 +855,7 @@
           "governed_by": [],
           "tr_coverage": [],
           "coupling": {
-            "depends_on_count": 9,
+            "depends_on_count": 12,
             "depended_by_count": 0
           }
         },
@@ -874,7 +878,7 @@
         {
           "namespace": "Game.Enemy",
           "file": "src/entities/Enemy.js",
-          "purpose": "",
+          "purpose": "Enemy entity constructor",
           "loc": 1344,
           "size_kb": 60.2,
           "loadIndex": 44,
@@ -883,7 +887,7 @@
           ],
           "tr_coverage": [],
           "coupling": {
-            "depends_on_count": 5,
+            "depends_on_count": 7,
             "depended_by_count": 0
           }
         },
@@ -911,7 +915,7 @@
             "TR-BS-011"
           ],
           "coupling": {
-            "depends_on_count": 8,
+            "depends_on_count": 9,
             "depended_by_count": 0
           }
         },
@@ -925,7 +929,7 @@
           "governed_by": [],
           "tr_coverage": [],
           "coupling": {
-            "depends_on_count": 3,
+            "depends_on_count": 4,
             "depended_by_count": 0
           }
         }
@@ -945,7 +949,7 @@
         {
           "namespace": "Game.WaveManager",
           "file": "src/managers/WaveManager.js",
-          "purpose": "",
+          "purpose": "Wave spawning and progression",
           "loc": 1853,
           "size_kb": 77.8,
           "loadIndex": 47,
@@ -962,7 +966,7 @@
             "TR-WAV-007"
           ],
           "coupling": {
-            "depends_on_count": 1,
+            "depends_on_count": 3,
             "depended_by_count": 1
           }
         },
@@ -978,7 +982,7 @@
           ],
           "tr_coverage": [],
           "coupling": {
-            "depends_on_count": 0,
+            "depends_on_count": 1,
             "depended_by_count": 0
           }
         },
@@ -1021,14 +1025,14 @@
             "TR-WEP-012"
           ],
           "coupling": {
-            "depends_on_count": 0,
+            "depends_on_count": 1,
             "depended_by_count": 1
           }
         },
         {
           "namespace": "Game.MiniBossManager",
           "file": "src/managers/MiniBossManager.js",
-          "purpose": "",
+          "purpose": "Mini-boss lifecycle",
           "loc": 1121,
           "size_kb": 50.6,
           "loadIndex": 60,
@@ -1072,7 +1076,7 @@
         {
           "namespace": "Game.StatsTracker",
           "file": "src/managers/StatsTracker.js",
-          "purpose": "",
+          "purpose": "Per-run statistics",
           "loc": 149,
           "size_kb": 4.4,
           "loadIndex": 66,
@@ -1086,7 +1090,7 @@
         {
           "namespace": "Game.AchievementSystem",
           "file": "src/managers/AchievementSystem.js",
-          "purpose": "",
+          "purpose": "Achievement tracking",
           "loc": 102,
           "size_kb": 3.4,
           "loadIndex": 67,
@@ -1198,28 +1202,28 @@
         {
           "namespace": "Game.StoryManager",
           "file": "src/story/StoryManager.js",
-          "purpose": "",
+          "purpose": "Story progression",
           "loc": 198,
           "size_kb": 5.2,
           "loadIndex": 55,
           "governed_by": [],
           "tr_coverage": [],
           "coupling": {
-            "depends_on_count": 1,
+            "depends_on_count": 2,
             "depended_by_count": 0
           }
         },
         {
           "namespace": "Game.DialogueUI",
           "file": "src/story/DialogueUI.js",
-          "purpose": "",
+          "purpose": "In-game dialogue bubbles",
           "loc": 230,
           "size_kb": 6.6,
           "loadIndex": 56,
           "governed_by": [],
           "tr_coverage": [],
           "coupling": {
-            "depends_on_count": 0,
+            "depends_on_count": 1,
             "depended_by_count": 1
           }
         }
@@ -1267,7 +1271,7 @@
         {
           "namespace": "Game.ModifierChoiceScreen",
           "file": "src/ui/ModifierChoiceScreen.js",
-          "purpose": "",
+          "purpose": "Arcade modifier selection",
           "loc": 175,
           "size_kb": 6.3,
           "loadIndex": 63,
@@ -1366,7 +1370,7 @@
         {
           "namespace": "Game.LevelScript",
           "file": "src/v8/LevelScript.js",
-          "purpose": "",
+          "purpose": "V8 campaign scripted events",
           "loc": 800,
           "size_kb": 47.5,
           "loadIndex": 48,
@@ -1416,6 +1420,33 @@
           "coupling": {
             "depends_on_count": 0,
             "depended_by_count": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "Entry Point",
+      "id": "entry",
+      "order": 9,
+      "description": "",
+      "color": "#e0e0e8",
+      "module_count": 1,
+      "total_loc": 3827,
+      "total_size_kb": 155.8,
+      "avg_loc": 3827,
+      "modules": [
+        {
+          "namespace": "Game.main",
+          "file": "src/main.js",
+          "purpose": "",
+          "loc": 3827,
+          "size_kb": 155.8,
+          "loadIndex": 75,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 3,
+            "depended_by_count": 0
           }
         }
       ]
