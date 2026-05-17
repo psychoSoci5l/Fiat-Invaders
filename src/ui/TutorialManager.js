@@ -16,7 +16,7 @@ window.Game = window.Game || {};
 
     function isTutorialSeen(mode) {
         if (_warmupShown) return true;
-        return !!localStorage.getItem('fiat_tutorial_' + mode + '_seen');
+        return !!G.MigrationSystem.get('fiat_tutorial_' + mode + '_seen');
     }
 
     function showTutorial() {
@@ -96,7 +96,7 @@ window.Game = window.Game || {};
 
     function completeTutorial() {
         var tutMode = (G.CampaignState && G.CampaignState.isEnabled()) ? 'story' : 'arcade';
-        localStorage.setItem('fiat_tutorial_' + tutMode + '_seen', '1');
+        G.MigrationSystem.set('fiat_tutorial_' + tutMode + '_seen', '1');
 
         var overlay = document.getElementById('tutorial-overlay');
         if (overlay) {
@@ -118,9 +118,9 @@ window.Game = window.Game || {};
 
     function resetTutorial() {
         // Clear all tutorial keys (current + legacy)
-        localStorage.removeItem('fiat_tutorial_story_seen');
-        localStorage.removeItem('fiat_tutorial_arcade_seen');
-        localStorage.removeItem('fiat_warmup_shown');
+        G.MigrationSystem.remove('fiat_tutorial_story_seen');
+        G.MigrationSystem.remove('fiat_tutorial_arcade_seen');
+        G.MigrationSystem.remove('fiat_warmup_shown');
         if (d.showToast) d.showToast('Tutorial reset on next run');
     }
 

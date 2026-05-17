@@ -566,14 +566,14 @@ window.Game = window.Game || {};
                             });
                         } else if (campaignComplete && shouldShowChapter) {
                             d.showStoryScreen(chapterId, () => {
-                                if (!localStorage.getItem('fiat_completion_seen')) {
+                                if (!G.MigrationSystem.get('fiat_completion_seen')) {
                                     d.showGameCompletion(() => d.showCampaignVictory());
                                 } else {
                                     d.showCampaignVictory();
                                 }
                             });
                         } else if (campaignComplete) {
-                            if (!localStorage.getItem('fiat_completion_seen')) {
+                            if (!G.MigrationSystem.get('fiat_completion_seen')) {
                                 d.showGameCompletion(() => d.showCampaignVictory());
                             } else {
                                 d.showCampaignVictory();

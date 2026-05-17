@@ -296,7 +296,7 @@
             return;
         }
 
-        currentLang = G._currentLang || localStorage.getItem('fiat_lang') || 'EN';
+        currentLang = G._currentLang || G.MigrationSystem.get('fiat_lang') || 'EN';
         currentStory = storyContent;
         onCompleteCallback = onComplete;
         isActive = true;

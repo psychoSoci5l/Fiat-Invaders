@@ -387,7 +387,7 @@ window.Game = window.Game || {};
         var newLang = d.getCurrentLang() === 'IT' ? 'EN' : 'IT';
         d.setCurrentLang(newLang);
         G._currentLang = newLang;
-        localStorage.setItem('fiat_lang', newLang);
+        G.MigrationSystem.set('fiat_lang', newLang);
         updateUIText();
     }
 
@@ -410,7 +410,7 @@ window.Game = window.Game || {};
     function dismissPWABanner() {
         var banner = document.getElementById('pwa-install-banner');
         if (banner) banner.style.display = 'none';
-        try { localStorage.setItem('fiat_pwa_dismissed', '1'); } catch (e) {}
+        try { G.MigrationSystem.set('fiat_pwa_dismissed', '1'); } catch (e) {}
     }
 
     var _deferredPrompt = null;
@@ -418,7 +418,7 @@ window.Game = window.Game || {};
         e.preventDefault();
         _deferredPrompt = e;
         var banner = document.getElementById('pwa-install-banner');
-        if (banner && !localStorage.getItem('fiat_pwa_dismissed')) {
+        if (banner && !G.MigrationSystem.get('fiat_pwa_dismissed')) {
             var text = document.getElementById('pwa-banner-text');
             var action = document.getElementById('pwa-banner-action');
             var close = document.getElementById('pwa-banner-close');
@@ -443,7 +443,7 @@ window.Game = window.Game || {};
 
     function checkPWAInstallPrompt() {
         var banner = document.getElementById('pwa-install-banner');
-        if (!banner || localStorage.getItem('fiat_pwa_dismissed')) return;
+        if (!banner || G.MigrationSystem.get('fiat_pwa_dismissed')) return;
         // Skip if already standalone (PWA installed)
         if (window.navigator.standalone) return;
         if (window.matchMedia('(display-mode: standalone)').matches) return;
@@ -554,12 +554,12 @@ window.Game = window.Game || {};
         var isTilt = G.Input.getControlMode && G.Input.getControlMode() === 'TILT';
         if (isTilt) {
             G.Input.setControlMode('SWIPE');
-            localStorage.setItem('fiat_tilt_on', '0');
+            G.MigrationSystem.set('fiat_tilt_on', '0');
         } else {
             G.Input.requestTiltPermission().then(function (granted) {
                 if (granted) {
                     G.Input.setControlMode('TILT');
-                    localStorage.setItem('fiat_tilt_on', '1');
+                    G.MigrationSystem.set('fiat_tilt_on', '1');
                 }
                 updateTiltUI();
             });

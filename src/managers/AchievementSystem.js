@@ -28,15 +28,14 @@
 
     function _load() {
         try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            if (!raw) return new Set();
-            const arr = JSON.parse(raw);
-            return new Set(Array.isArray(arr) ? arr : []);
+            const arr = G.MigrationSystem.get(STORAGE_KEY);
+            if (!arr || !Array.isArray(arr)) return new Set();
+            return new Set(arr);
         } catch { return new Set(); }
     }
 
     function _save() {
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify([...(_unlocked || [])])); }
+        try { G.MigrationSystem.set(STORAGE_KEY, [...(_unlocked || [])]); }
         catch (e) { console.warn('[AchievementSystem] save failed:', e); }
     }
 

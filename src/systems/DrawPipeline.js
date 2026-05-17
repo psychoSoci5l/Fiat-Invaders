@@ -265,6 +265,14 @@
 
         if (needsRestore) {
             ctx.restore();
+        } else {
+            // Assertion: if no compositeOp was set for this layer,
+            // the ctx must still be at source-over (no callback leaked a blend mode)
+            if (ctx.globalCompositeOperation !== 'source-over') {
+                console.warn('[DrawPipeline] Layer ' + layerIdx + ' leaked globalCompositeOperation=' +
+                    ctx.globalCompositeOperation + ' — restoring to source-over');
+                ctx.globalCompositeOperation = 'source-over';
+            }
         }
     }
 

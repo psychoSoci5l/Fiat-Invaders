@@ -29,16 +29,16 @@ window.Game.images = {}; // Placeholder, populated by main.js
 // --- VERSION TRACKING (v4.50: no longer clears localStorage) ---
 (function() {
     const APP_VER = G.VERSION.replace(/[^0-9.]/g, '').trim();
-    localStorage.setItem('fiat_app_version', APP_VER);
+    G.MigrationSystem.set('fiat_app_version', APP_VER);
 })();
 
 // v5.22.1: One-time score reset (leaderboard fresh start)
 (function() {
-    if (!localStorage.getItem('fiat_scores_reset_v2')) {
-        localStorage.removeItem('fiat_highscore_story');
-        localStorage.removeItem('fiat_highscore_arcade');
-        localStorage.removeItem('fiat_arcade_records');
-        localStorage.setItem('fiat_scores_reset_v2', '1');
+    if (!G.MigrationSystem.get('fiat_scores_reset_v2') || G.MigrationSystem.get('fiat_scores_reset_v2') === '0') {
+        G.MigrationSystem.remove('fiat_highscore_story');
+        G.MigrationSystem.remove('fiat_highscore_arcade');
+        G.MigrationSystem.remove('fiat_arcade_records');
+        G.MigrationSystem.set('fiat_scores_reset_v2', '1');
     }
 })();
 
@@ -137,15 +137,15 @@ loadAssets(); // Start loading immediately
 
 // v7.0: Safe localStorage helpers (QuotaExceededError / SecurityError protection)
 function safeGetItem(key, fallback) {
-    try { return localStorage.getItem(key); }
+    try { const v = G.MigrationSystem.get(key); return v !== null && v !== undefined ? v : (fallback !== undefined ? fallback : null); }
     catch { return fallback !== undefined ? fallback : null; }
 }
 function safeSetItem(key, value) {
-    try { localStorage.setItem(key, value); return true; }
+    try { G.MigrationSystem.set(key, value); return true; }
     catch { return false; }
 }
 function safeGetJSON(key, fallback) {
-    try { return JSON.parse(localStorage.getItem(key) || 'null') || fallback; }
+    try { const v = G.MigrationSystem.get(key); return v !== null && v !== undefined ? v : fallback; }
     catch { return fallback; }
 }
 
@@ -594,7 +594,7 @@ function init() {
             e.stopPropagation();
             if (e.type === 'touchstart') e.preventDefault();
             const isMuted = audioSys.toggleMusic();
-            localStorage.setItem('fiat_music_muted', isMuted ? '1' : '0');
+            G.MigrationSystem.set('fiat_music_muted', isMuted ? '1' : '0');
             updateMusicUI(isMuted);
         };
         btn.addEventListener('click', handleMusic);
@@ -607,7 +607,7 @@ function init() {
             e.stopPropagation();
             if (e.type === 'touchstart') e.preventDefault();
             const isMuted = audioSys.toggleSfx();
-            localStorage.setItem('fiat_sfx_muted', isMuted ? '1' : '0');
+            G.MigrationSystem.set('fiat_sfx_muted', isMuted ? '1' : '0');
             updateSfxUI(isMuted);
         };
         btn.addEventListener('click', handleSfx);
@@ -615,10 +615,10 @@ function init() {
     });
 
     // Sync initial state from localStorage (music OFF by default, SFX ON by default)
-    const musicPref = localStorage.getItem('fiat_music_muted');
+    const musicPref = G.MigrationSystem.get('fiat_music_muted');
     // v7.10.1: music ON by default (new Kondo soundtrack replaces the old aggressive one)
-    const musicMuted = musicPref === null ? false : musicPref === '1';
-    const sfxMuted = localStorage.getItem('fiat_sfx_muted') === '1';
+    const musicMuted = musicPref === null || musicPref === '0' ? false : musicPref === '1';
+    const sfxMuted = G.MigrationSystem.get('fiat_sfx_muted') === '1';
     audioSys.applyMuteStates(musicMuted, sfxMuted);
     updateMusicUI(musicMuted);
     updateSfxUI(sfxMuted);
@@ -822,13 +822,13 @@ function init() {
     }
 
     // v6.8: Restore TILT mode if saved — verify permission, fallback
-    if (localStorage.getItem('fiat_tilt_on') === '1' && inputSys.tilt.available) {
+    if (G.MigrationSystem.get('fiat_tilt_on') === '1' && inputSys.tilt.available) {
         // Attempt permission silently (Android auto-grants, iOS needs user gesture — will fallback)
         inputSys.requestTiltPermission().then(granted => {
             if (granted) {
                 inputSys.setControlMode('TILT');
             } else {
-                localStorage.setItem('fiat_tilt_on', '0');
+                G.MigrationSystem.set('fiat_tilt_on', '0');
             }
             updateTiltUI();
             updateUIText();
@@ -917,7 +917,7 @@ function init() {
 
             // v4.51: Glow What's New button if version changed since last visit
             try {
-                const seenVer = localStorage.getItem('fiat_whatsnew_seen');
+                const seenVer = G.MigrationSystem.get('fiat_whatsnew_seen');
                 if (seenVer !== G.VERSION) {
                     const wnBtn = document.getElementById('intro-whatsnew');
                     if (wnBtn) wnBtn.classList.add('btn-glow-notify');
@@ -1043,7 +1043,7 @@ function init() {
 
         // v4.51: Glow What's New button if version changed
         try {
-            const seenVer = localStorage.getItem('fiat_whatsnew_seen');
+            const seenVer = G.MigrationSystem.get('fiat_whatsnew_seen');
             if (seenVer !== G.VERSION) {
                 const wnBtn = document.getElementById('intro-whatsnew');
                 if (wnBtn) wnBtn.classList.add('btn-glow-notify');
@@ -1192,13 +1192,13 @@ function updateUIText() {
     if (G.UIManager) G.UIManager.updateUIText();
 }
 
-window.toggleLang = function () { currentLang = (currentLang === 'EN') ? 'IT' : 'EN'; G._currentLang = currentLang; localStorage.setItem('fiat_lang', currentLang); updateUIText(); };
+window.toggleLang = function () { currentLang = (currentLang === 'EN') ? 'IT' : 'EN'; G._currentLang = currentLang; G.MigrationSystem.set('fiat_lang', currentLang); updateUIText(); };
 // v7.6.0 — Reset tutorial + lifetime hints (Settings button)
 window.resetTutorial = function () {
     if (G.HintTracker) G.HintTracker.reset();
     try {
-        localStorage.removeItem('fiat_tutorial_story_seen');
-        localStorage.removeItem('fiat_tutorial_arcade_seen');
+        G.MigrationSystem.remove('fiat_tutorial_story_seen');
+        G.MigrationSystem.remove('fiat_tutorial_arcade_seen');
     } catch {}
     if (G.MemeEngine) G.MemeEngine.queueMeme('NORMAL', t('RESET_TUTORIAL_DONE'), '\u21BB');
 };
@@ -1310,7 +1310,7 @@ G.sendFeedback = function () {
         if (error) { error.textContent = t('FB_ERROR_SHORT'); error.style.display = 'block'; }
         return;
     }
-    const nick = localStorage.getItem('fiat_nickname') || 'Anonymous';
+    const nick = G.MigrationSystem.get('fiat_nickname') || 'Anonymous';
     const body = `From: ${nick}\n\n${message}`;
     const mailto = `mailto:psychoSocial_01@proton.me?subject=${encodeURIComponent(subject || 'FIAT vs CRYPTO Feedback')}&body=${encodeURIComponent(body)}`;
     window.open(mailto);
@@ -1368,7 +1368,7 @@ function updateManualText() {
 }
 window.toggleControlMode = function () {
     if (!G.Input) return;
-    const savedBase = localStorage.getItem('fiat_control_mode') || 'SWIPE';
+    const savedBase = G.MigrationSystem.get('fiat_control_mode') || 'SWIPE';
     const next = (savedBase === 'SWIPE') ? 'JOYSTICK' : 'SWIPE';
     G.Input.setControlMode(next);
     showControlToast(next);
@@ -1382,7 +1382,7 @@ window.toggleTilt = function () {
     const wasActive = G.Input.tilt.active;
     if (wasActive) {
         // Turn off tilt — revert to saved SWIPE/JOY base mode
-        const base = localStorage.getItem('fiat_control_mode') || 'SWIPE';
+        const base = G.MigrationSystem.get('fiat_control_mode') || 'SWIPE';
         G.Input.setControlMode(base);
         showControlToast(base);
         updateTiltUI();

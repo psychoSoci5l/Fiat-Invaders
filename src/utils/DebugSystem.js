@@ -214,13 +214,13 @@ window.Game.Debug = {
                     bosses: this.counters.bossDefeats
                 }
             };
-            localStorage.setItem(this.SESSION_LOG_KEY, JSON.stringify(payload));
+            window.Game.MigrationSystem.set(this.SESSION_LOG_KEY, payload);
         } catch (e) { /* quota exceeded — ignore */ }
     },
 
     getPreviousSessionLog() {
         try {
-            const raw = localStorage.getItem(this.SESSION_LOG_KEY);
+            const raw = window.Game.MigrationSystem.get(this.SESSION_LOG_KEY);
             return raw ? JSON.parse(raw) : null;
         } catch (e) { return null; }
     },
@@ -2891,7 +2891,7 @@ window.Game.Debug = {
         this.maxWeapon();
 
         // Clear fiat_completion_seen so completion screen shows
-        try { localStorage.removeItem('fiat_completion_seen'); } catch(e) {}
+        try { window.Game.MigrationSystem.remove('fiat_completion_seen'); } catch(e) {}
 
         // Override boss rotation to force BOJ
         const origRotation = G.BOSS_ROTATION;

@@ -323,7 +323,7 @@
             _captureDefaults();
 
             // Read localStorage preference
-            const stored = localStorage.getItem(STORAGE_KEY);
+            const stored = G.MigrationSystem.get(STORAGE_KEY);
             if (stored && stored !== 'AUTO') {
                 if (TIER_ORDER.includes(stored)) {
                     _auto = false;
@@ -400,7 +400,7 @@
             _recoverTimer = 0;
             _fpsSamples = [];
             if (persist) {
-                localStorage.setItem(STORAGE_KEY, tier);
+                G.MigrationSystem.set(STORAGE_KEY, tier);
             }
         },
 
@@ -411,7 +411,7 @@
         setAuto(bool) {
             _auto = !!bool;
             if (_auto) {
-                localStorage.setItem(STORAGE_KEY, 'AUTO');
+                G.MigrationSystem.set(STORAGE_KEY, 'AUTO');
                 // Reset to HIGH and let auto-detect find the right tier
                 _applyTier('HIGH');
                 _recoverTimer = 0;

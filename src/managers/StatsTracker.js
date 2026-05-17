@@ -42,14 +42,12 @@
 
     function _load() {
         try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            if (!raw) return defaults();
-            const parsed = JSON.parse(raw);
-            if (!parsed || parsed.schema !== SCHEMA_VERSION) return defaults();
-            // Merge with defaults to tolerate partial blobs
+            const data = G.MigrationSystem.get(STORAGE_KEY);
+            if (!data) return defaults();
+            if (data.schema !== SCHEMA_VERSION) return defaults();
             const d = defaults();
-            return Object.assign(d, parsed, {
-                byMode: Object.assign(d.byMode, parsed.byMode || {})
+            return Object.assign(d, data, {
+                byMode: Object.assign(d.byMode, data.byMode || {})
             });
         } catch { return defaults(); }
     }
@@ -57,7 +55,7 @@
     function _save() {
         if (!_cache) return;
         _cache.lastPlayed = Date.now();
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(_cache)); }
+        try { G.MigrationSystem.set(STORAGE_KEY, _cache); }
         catch (e) { console.warn('[StatsTracker] save failed:', e); }
     }
 

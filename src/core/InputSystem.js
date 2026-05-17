@@ -157,11 +157,11 @@ class InputSystem {
         if (joy && joyStick) {
             const radius = 25;
             const center = { x: 37.5, y: 37.5 };
-            const saved = localStorage.getItem('fiat_control_mode') || 'SWIPE';
+            const saved = window.Game.MigrationSystem.get('fiat_control_mode') || 'SWIPE';
             this.touch.useJoystick = (saved === 'JOYSTICK');
             joy.style.display = this.touch.useJoystick ? 'block' : 'none';
-            const savedDeadzone = parseFloat(localStorage.getItem('fiat_joy_deadzone'));
-            const savedSensitivity = parseFloat(localStorage.getItem('fiat_joy_sensitivity'));
+            const savedDeadzone = parseFloat(window.Game.MigrationSystem.get('fiat_joy_deadzone'));
+            const savedSensitivity = parseFloat(window.Game.MigrationSystem.get('fiat_joy_sensitivity'));
             if (!Number.isNaN(savedDeadzone)) this.touch.deadzone = savedDeadzone;
             if (!Number.isNaN(savedSensitivity)) this.touch.sensitivity = savedSensitivity;
 
@@ -328,8 +328,8 @@ class InputSystem {
         if (joy) joy.style.display = useJoy ? 'block' : 'none';
         if (useTilt) this.calibrateTilt();
         // Save base mode (SWIPE/JOYSTICK) and tilt state separately
-        if (!useTilt) localStorage.setItem('fiat_control_mode', mode);
-        localStorage.setItem('fiat_tilt_on', useTilt ? '1' : '0');
+        if (!useTilt) window.Game.MigrationSystem.set('fiat_control_mode', mode);
+        window.Game.MigrationSystem.set('fiat_tilt_on', useTilt ? '1' : '0');
     }
 
     // v6.8: Tilt axis processing
@@ -375,8 +375,8 @@ class InputSystem {
     setJoystickSettings(deadzone, sensitivity) {
         if (typeof deadzone === 'number') this.touch.deadzone = Math.max(0, Math.min(0.6, deadzone));
         if (typeof sensitivity === 'number') this.touch.sensitivity = Math.max(0.5, Math.min(1.5, sensitivity));
-        localStorage.setItem('fiat_joy_deadzone', String(this.touch.deadzone));
-        localStorage.setItem('fiat_joy_sensitivity', String(this.touch.sensitivity));
+        window.Game.MigrationSystem.set('fiat_joy_deadzone', String(this.touch.deadzone));
+        window.Game.MigrationSystem.set('fiat_joy_sensitivity', String(this.touch.sensitivity));
     }
 
     // === GAMEPAD POLLING ===

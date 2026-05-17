@@ -257,7 +257,7 @@ window.Game.CampaignState = {
                 version: 2,  // Bumped for storyProgress
                 timestamp: Date.now()
             };
-            localStorage.setItem('fiat_campaign', JSON.stringify(data));
+            G.MigrationSystem.set('fiat_campaign', data);
         } catch (e) {
             console.warn('[CampaignState] Failed to save:', e);
         }
@@ -268,10 +268,8 @@ window.Game.CampaignState = {
      */
     load() {
         try {
-            const raw = localStorage.getItem('fiat_campaign');
-            if (!raw) return;
-
-            const data = JSON.parse(raw);
+            const data = G.MigrationSystem.get('fiat_campaign');
+            if (!data) return;
 
             // Validate and apply (support both v1 and v2)
             if (data.version === 1 || data.version === 2) {

@@ -13,7 +13,7 @@ window.Game = window.Game || {};
     var BASE_WEAPONS = ['WIDE', 'NARROW', 'FIRE'];
     var ADVANCED_WEAPONS = ['SPREAD', 'HOMING'];
     var WEAPON_UNLOCK_CYCLE = { SPREAD: 2, HOMING: 3 };
-    var maxCycleReached = parseInt(localStorage.getItem('fiat_maxcycle')) || 1;
+    var maxCycleReached = parseInt(G.MigrationSystem.get('fiat_maxcycle')) || 1;
 
     // Score pulse
     var _scorePulseTierClasses = ['score-normal', 'score-big', 'score-massive', 'score-legendary'];
@@ -36,17 +36,18 @@ window.Game = window.Game || {};
     }
 
     function loadHighScoreForMode() {
-        return parseInt(localStorage.getItem(highScoreKey())) || 0;
+        const raw = G.MigrationSystem.get(highScoreKey());
+        return parseInt(raw) || 0;
     }
 
     // --- Arcade Records ---
     function loadArcadeRecords() {
-        try { return JSON.parse(localStorage.getItem('fiat_arcade_records')) || { bestCycle: 0, bestLevel: 0, bestKills: 0 }; }
+        try { return G.MigrationSystem.get('fiat_arcade_records') || { bestCycle: 0, bestLevel: 0, bestKills: 0 }; }
         catch { return { bestCycle: 0, bestLevel: 0, bestKills: 0 }; }
     }
 
     function saveArcadeRecords(records) {
-        _deps.safeSetItem('fiat_arcade_records', JSON.stringify(records));
+        G.MigrationSystem.set('fiat_arcade_records', records);
     }
 
     function checkArcadeRecords() {
@@ -78,7 +79,7 @@ window.Game = window.Game || {};
     function checkWeaponUnlocks(cycle) {
         if (cycle > maxCycleReached) {
             maxCycleReached = cycle;
-            _deps.safeSetItem('fiat_maxcycle', maxCycleReached);
+            G.MigrationSystem.set('fiat_maxcycle', maxCycleReached);
             for (var weapon in WEAPON_UNLOCK_CYCLE) {
                 if (WEAPON_UNLOCK_CYCLE.hasOwnProperty(weapon) && WEAPON_UNLOCK_CYCLE[weapon] === cycle) {
                     if (G.MessageSystem) G.MessageSystem.showGameInfo(_deps.t('WEAPON_UNLOCK') + ' ' + weapon + '!');

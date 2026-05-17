@@ -76,7 +76,7 @@ window.Game = window.Game || {};
         const qm = G.QualityManager;
         if (!qm) return [{ label: 'Status', val: 'QualityManager N/A', cls: 'warn' }];
         const s = qm.getStats();
-        const saved = localStorage.getItem('fiat_quality_tier');
+        const saved = G.MigrationSystem.get('fiat_quality_tier');
         return [
             { label: 'FPS Now', val: `${s.fps}` },
             { label: 'FPS Avg', val: `${s.avgFps}` },
@@ -91,7 +91,7 @@ window.Game = window.Game || {};
         const isStory = G.CampaignState && G.CampaignState.isEnabled();
         const stacks = G.RunState ? (G.RunState.perkStacks || {}) : {};
         const perks = [stacks.fire ? 'F' : '-', stacks.laser ? 'L' : '-', stacks.electric ? 'E' : '-'].join('');
-        const nick = localStorage.getItem('fiat_nickname') || '-';
+        const nick = G.MigrationSystem.get('fiat_nickname') || '-';
         const ctx = G._debugCtx || {};
         const rows = [
             { label: 'Version', val: G.VERSION || '?' },

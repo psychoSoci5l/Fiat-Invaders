@@ -105,7 +105,7 @@ window.Game = window.Game || {};
         });
 
         document.getElementById('gc-continue-btn').addEventListener('click', () => {
-            try { localStorage.setItem('fiat_completion_seen', '1'); } catch(e) {}
+            try { G.MigrationSystem.set('fiat_completion_seen', '1'); } catch(e) {}
             overlay.classList.add('gc-fadeout');
             setTimeout(() => {
                 overlay.style.display = 'none';

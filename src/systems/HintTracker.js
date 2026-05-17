@@ -22,8 +22,8 @@ window.Game = window.Game || {};
             if (G.GameState && G.GameState.is && G.GameState.is('WARMUP')) return false;
             const storageKey = PREFIX + key;
             try {
-                if (localStorage.getItem(storageKey) === '1') return false;
-                localStorage.setItem(storageKey, '1');
+                if (G.MigrationSystem.get(storageKey) === '1') return false;
+                G.MigrationSystem.set(storageKey, '1');
             } catch {
                 return false;
             }
@@ -35,13 +35,13 @@ window.Game = window.Game || {};
 
         /** Check if a hint was already shown (without triggering). */
         isShown(key) {
-            try { return localStorage.getItem(PREFIX + key) === '1'; }
+            try { return G.MigrationSystem.get(PREFIX + key) === '1'; }
             catch { return false; }
         },
 
         /** Force-mark a hint as shown without displaying it. */
         markShown(key) {
-            try { localStorage.setItem(PREFIX + key, '1'); } catch {}
+            try { G.MigrationSystem.set(PREFIX + key, '1'); } catch {}
         },
 
         /** Clear all hint flags. Called by Settings → "Reset tutorial". */
@@ -52,7 +52,7 @@ window.Game = window.Game || {};
                     const k = localStorage.key(i);
                     if (k && k.indexOf(PREFIX) === 0) toRemove.push(k);
                 }
-                for (const k of toRemove) localStorage.removeItem(k);
+                for (const k of toRemove) G.MigrationSystem.remove(k);
             } catch {}
         }
     };

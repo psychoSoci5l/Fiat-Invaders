@@ -1,8 +1,8 @@
 # Control Manifest
 
 > **Engine**: Vanilla JavaScript (ES6+) / Canvas 2D
-> **Last Updated**: 2026-04-25
-> **Manifest Version**: 2026-04-25
+> **Last Updated**: 2026-05-17
+> **Manifest Version**: 2026-05-17
 > **ADRs Covered**: ADR-0001, ADR-0002, ADR-0003, ADR-0004, ADR-0005, ADR-0006, ADR-0007, ADR-0008, ADR-0009, ADR-0010, ADR-0011, ADR-0012, ADR-0013
 > **Status**: Active — regenerate with `/create-control-manifest update` when ADRs change
 
@@ -143,6 +143,7 @@ This manifest is a programmer's quick-reference extracted from all Accepted ADRs
 ### Forbidden Approaches
 - **Never use `shadowBlur`** — forces software rendering in some browsers — source: ADR-0002, engine-reference known-issues
 - **Never use DOM elements for gameplay rendering** — performance tanks above ~50 elements — source: ADR-0002
+- **Every use of `globalCompositeOperation` must be wrapped in `ctx.save()`/`ctx.restore()`** — a leaked blend mode (e.g. 'lighter') corrupts all subsequent draw steps. DrawPipeline `_execLayer` asserts `source-over` after every non-composite layer. Inline set/reset is permitted only when immediately followed by restore. — source: this manifest, DrawPipeline.js v7.32
 
 ### Performance Guardrails
 - **Minimize `save()`/`restore()` depth** — each call has measurable overhead — source: engine-reference
@@ -163,6 +164,7 @@ This manifest is a programmer's quick-reference extracted from all Accepted ADRs
 
 ### Forbidden Approaches
 - **Never cache leaderboard API responses in service worker** — leaderboard data must always be fresh (network-only) — source: ADR-0005, ADR-0006
+- **New localStorage keys must include `version` field and route through `MigrationSystem`** — direct `localStorage.getItem/setItem` calls are forbidden for static keys. All keys must be registered in `MigrationSystem.REGISTRY`. Dynamic keys (daily attempts, hints) use `getRaw`/`set` passthrough. — source: MigrationSystem.js v1.0
 
 ---
 
@@ -205,7 +207,7 @@ Canvas 2D (stable, no deprecated APIs in use):
 
 - No ES module `import`/`export` in game code — script-load order via `<script>` tags in `index.html`
 - No bundlers (webpack, vite, etc.)
-- No external runtime dependencies or CDN scripts
+- No external runtime dependencies or CDN scripts — any exception requires a dedicated ADR justifying the dependency
 - No DOM manipulation in game loop — DOM used only for intermission screen, modifier choice modal, and non-game UI
 - All code lives under `window.Game.*` namespace — no global variable leakage
 

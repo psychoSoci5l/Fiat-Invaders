@@ -20,7 +20,7 @@
 
     function isLockedToday() {
         try {
-            return !!localStorage.getItem(attemptKey());
+            return !!G.MigrationSystem.get(attemptKey());
         } catch (e) {
             return false;
         }
@@ -28,13 +28,13 @@
 
     function markAttempt() {
         try {
-            localStorage.setItem(attemptKey(), String(Date.now()));
+            G.MigrationSystem.set(attemptKey(), String(Date.now()));
         } catch (e) {}
     }
 
     function clearAttempt(dateStr) {
         try {
-            localStorage.removeItem(attemptKey(dateStr));
+            G.MigrationSystem.remove(attemptKey(dateStr));
         } catch (e) {}
     }
 

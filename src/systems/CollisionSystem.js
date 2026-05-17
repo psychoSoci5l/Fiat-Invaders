@@ -13,6 +13,7 @@ window.Game = window.Game || {};
         _ctx: null,
         _enemyGrid: null,
         _ebGrid: null,
+        _debugStats: { hits: 0, grazes: 0, cancels: 0, bossHits: 0, reflects: 0 },
 
         /**
          * Initialize with game context.
@@ -34,6 +35,13 @@ window.Game = window.Game || {};
 
             const ctx = this._ctx;
             if (!ctx) return;
+
+            // Reset debug counters each frame
+            this._debugStats.hits = 0;
+            this._debugStats.grazes = 0;
+            this._debugStats.cancels = 0;
+            this._debugStats.bossHits = 0;
+            this._debugStats.reflects = 0;
 
             // Enemy grid (for player bullets vs enemies)
             grid.clear();
@@ -595,6 +603,72 @@ window.Game = window.Game || {};
         if (!stunCfg?.ENABLED) return;
         const maxDuration = stunCfg.DURATION || 0.40;
         enemy._stunTimer = Math.max(enemy._stunTimer || 0, maxDuration);
+    };
+
+    CollisionSystem.emitDebug = function() {
+        if (!G.Events) return;
+        G.Events.emit('collision:debug', {
+            hits: this._debugStats.hits,
+            grazes: this._debugStats.grazes,
+            cancels: this._debugStats.cancels,
+            bossHits: this._debugStats.bossHits,
+            reflects: this._debugStats.reflects,
+            enemyCount: this._ctx ? (this._ctx.getEnemies ? this._ctx.getEnemies().length : 0) : 0,
+            bulletCount: this._ctx ? (this._ctx.getBullets ? this._ctx.getBullets().length : 0) : 0,
+            enemyBulletCount: this._ctx ? (this._ctx.getEnemyBullets ? this._ctx.getEnemyBullets().length : 0) : 0
+        });
+    };
+
+    // ── Instrument collision methods with debug counters ──────────
+
+    const _origEBvsP = CollisionSystem.processEnemyBulletsVsPlayer;
+    CollisionSystem.processEnemyBulletsVsPlayer = function(dt) {
+        // Wrap graze callback to count grazes
+        const ctx = this._ctx;
+        const cb = ctx && ctx.callbacks;
+        const _origGraze = cb && cb.onGraze;
+        if (cb) {
+            cb.onGraze = function(eb, isClose, isHyper) {
+                this._debugStats.grazes++;
+                if (_origGraze) _origGraze.call(this, eb, isClose, isHyper);
+            }.bind(this);
+        }
+        _origEBvsP.call(this, dt);
+        if (cb) cb.onGraze = _origGraze;
+    };
+
+    const _origBulletCancel = CollisionSystem.processBulletCancellation;
+    CollisionSystem.processBulletCancellation = function() {
+        const beforeEB = this._ctx ? (this._ctx.getEnemyBullets ? this._ctx.getEnemyBullets().length : 0) : 0;
+        _origBulletCancel.call(this);
+        const afterEB = this._ctx ? (this._ctx.getEnemyBullets ? this._ctx.getEnemyBullets().length : 0) : 0;
+        this._debugStats.cancels += (beforeEB - afterEB);
+    };
+
+    const _origPBvsB = CollisionSystem.processPlayerBulletVsBoss;
+    CollisionSystem.processPlayerBulletVsBoss = function(bullet, bIdx, bullets) {
+        const result = _origPBvsB.call(this, bullet, bIdx, bullets);
+        if (result) this._debugStats.bossHits++;
+        return result;
+    };
+
+    const _origPBvsE = CollisionSystem.processPlayerBulletVsEnemy;
+    CollisionSystem.processPlayerBulletVsEnemy = function(bullet, bIdx, bullets) {
+        // Wrap reflect callback to count reflects
+        const ctx = this._ctx;
+        const cb = ctx && ctx.callbacks;
+        const _origReflect = cb && cb.onBulletReflected;
+        if (cb) {
+            cb.onBulletReflected = function(enemy, bullet) {
+                this._debugStats.reflects++;
+                if (_origReflect) _origReflect.call(this, enemy, bullet);
+            }.bind(this);
+        }
+        const before = this._ctx ? (this._ctx.getEnemies ? this._ctx.getEnemies().length : 0) : 0;
+        _origPBvsE.call(this, bullet, bIdx, bullets);
+        if (cb) cb.onBulletReflected = _origReflect;
+        const after = this._ctx ? (this._ctx.getEnemies ? this._ctx.getEnemies().length : 0) : 0;
+        if (before > after) this._debugStats.hits += (before - after);
     };
 
     G.CollisionSystem = CollisionSystem;

@@ -7,8 +7,8 @@ window.Game = window.Game || {};
     const G = window.Game;
 
     // --- Helpers (use safeSetItem/safeGetItem from main.js if available, else direct) ---
-    const _safeSet = (k, v) => { try { localStorage.setItem(k, v); return true; } catch { return false; } };
-    const _safeGet = (k, fb) => { try { return localStorage.getItem(k); } catch { return fb !== undefined ? fb : null; } };
+    const _safeSet = (k, v) => { try { G.MigrationSystem.set(k, v); return true; } catch { return false; } };
+    const _safeGet = (k, fb) => { try { const v = G.MigrationSystem.get(k); return v !== null && v !== undefined ? v : (fb !== undefined ? fb : null); } catch { return fb !== undefined ? fb : null; } };
 
     // === PLATFORM DETECTION ===
     function getPlatform() {
@@ -104,7 +104,7 @@ window.Game = window.Game || {};
         catch { return null; }
     }
     function clearPendingScore() {
-        localStorage.removeItem('fiat_pending_score');
+        G.MigrationSystem.remove('fiat_pending_score');
     }
     async function flushPendingScore() {
         const pending = getPendingScore();

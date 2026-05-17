@@ -324,7 +324,7 @@ window.Game = window.Game || {};
 
     window.cycleShip = function(dir) {
         selectedShipIndex = (selectedShipIndex + dir + SHIP_KEYS.length) % SHIP_KEYS.length;
-        localStorage.setItem('fiat_selected_ship', selectedShipIndex);
+        G.MigrationSystem.set('fiat_selected_ship', selectedShipIndex);
         updateShipUI();
     }
 
@@ -1475,7 +1475,7 @@ window.Game = window.Game || {};
         if (closeBtn) closeBtn.innerText = d.t('CLOSE') || 'CLOSE';
         G.Audio.play('coinUI');
         // Mark version as seen -- remove glow
-        try { localStorage.setItem('fiat_whatsnew_seen', G.VERSION); } catch(e) {}
+        try { G.MigrationSystem.set('fiat_whatsnew_seen', G.VERSION); } catch(e) {}
         const wnBtn = document.getElementById('intro-whatsnew');
         if (wnBtn) wnBtn.classList.remove('btn-glow-notify');
     };
@@ -1878,7 +1878,7 @@ window.Game = window.Game || {};
 
             // v4.51: Glow What's New button if version changed
             try {
-                const seenVer = localStorage.getItem('fiat_whatsnew_seen');
+                const seenVer = G.MigrationSystem.get('fiat_whatsnew_seen');
                 if (seenVer !== G.VERSION) {
                     const wnBtn = document.getElementById('intro-whatsnew');
                     if (wnBtn) wnBtn.classList.add('btn-glow-notify');
@@ -1990,7 +1990,7 @@ window.Game = window.Game || {};
         init: function(deps) {
             d = deps;
             // Restore persisted ship selection
-            const saved = localStorage.getItem('fiat_selected_ship');
+            const saved = G.MigrationSystem.get('fiat_selected_ship');
             if (saved !== null) {
                 selectedShipIndex = parseInt(saved, 10) || 0;
             }
