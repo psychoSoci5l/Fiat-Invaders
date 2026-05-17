@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FIAT vs CRYPTO — Architecture Map</title>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0a0f;--surface:#12121a;--surface2:#1a1a26;--surface3:#222236;
+  --border:#2a2a3a;--text:#e0e0e8;--text-dim:#8888a0;
+  --accent:#bb44ff;--accent2:#00e5cc;--accent3:#ff6b6b;--accent4:#ffd93d;
+  --green:#4ade80;--blue:#60a5fa;--orange:#fb923c;--pink:#f472b6;--cyan:#22d3ee;
+  --sidebar-w:260px;
+}
+html{font-size:14px;scroll-behavior:smooth}
+body{
+  font-family:'SF Mono','Fira Code','Cascadia Code','Consolas',monospace;
+  background:var(--bg);color:var(--text);line-height:1.5;overflow-x:hidden;
+}
+a{color:var(--accent2);text-decoration:none}a:hover{text-decoration:underline}
+
+/* ══ Loading ───────────────────────────────────────── */
+.loading-overlay{
+  position:fixed;inset:0;background:var(--bg);display:flex;
+  align-items:center;justify-content:center;z-index:9999;
+}
+.loading-spinner{
+  width:40px;height:40px;border:3px solid var(--border);
+  border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ══ Sidebar ──────────────────────────────────────── */
+.sidebar{
+  position:fixed;top:0;left:0;width:var(--sidebar-w);height:100vh;
+  background:var(--surface);border-right:1px solid var(--border);
+  overflow-y:auto;z-index:200;padding:16px 0;transition:transform .25s;
+}
+.sidebar-header{
+  padding:0 16px 16px;border-bottom:1px solid var(--border);margin-bottom:12px;
+}
+.sidebar-header h1{font-size:13px;color:var(--accent);letter-spacing:2px;text-transform:uppercase}
+.sidebar-header .version{font-size:11px;color:var(--text-dim);margin-top:4px}
+.sidebar-search{padding:8px 16px;margin-bottom:8px}
+.sidebar-search input{
+  width:100%;background:var(--surface2);border:1px solid var(--border);
+  color:var(--text);padding:6px 10px;border-radius:4px;font-size:12px;font-family:inherit;outline:none;
+}
+.sidebar-search input:focus{border-color:var(--accent)}
+.sidebar-section{padding:4px 16px}
+.sidebar-section-title{
+  font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-dim);margin-bottom:4px;
+}
+.sidebar-link{
+  display:block;padding:4px 8px;font-size:12px;color:var(--text-dim);
+  border-left:2px solid transparent;transition:all .15s;cursor:pointer;
+}
+.sidebar-link:hover,.sidebar-link.active{color:var(--text);background:var(--surface2)}
+.sidebar-link[data-layer]{border-left-color:var(--cyan)}
+
+/* ══ Hamburger ────────────────────────────────────── */
+.hamburger{
+  display:none;position:fixed;top:12px;left:12px;z-index:300;
+  width:36px;height:36px;background:var(--surface);border:1px solid var(--border);
+  border-radius:6px;align-items:center;justify-content:center;cursor:pointer;
+}
+.hamburger span{display:block;width:18px;height:2px;background:var(--text);transition:.2s}
+.hamburger span:nth-child(2){margin:4px 0}
+.sidebar-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:150;
+}
+
+/* ══ Main content ─────────────────────────────────── */
+.main{margin-left:var(--sidebar-w);padding:24px 32px;max-width:1300px}
+.section{margin-bottom:48px;scroll-margin-top:24px}
+.section-title{
+  font-size:20px;font-weight:700;margin-bottom:16px;padding-bottom:8px;
+  border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;
+}
+.section-title .badge{
+  font-size:11px;padding:2px 8px;border-radius:10px;background:var(--surface2);color:var(--text-dim);font-weight:400;
+}
+.subtitle{font-size:13px;color:var(--text-dim);margin-bottom:16px}
+
+/* ══ Dashboard header ─────────────────────────────── */
+.dashboard{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-bottom:32px;
+}
+.dash-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px;
+}
+.dash-label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim);margin-bottom:6px}
+.dash-value{font-size:26px;font-weight:700;line-height:1.1}
+.dash-sub{font-size:11px;color:var(--text-dim);margin-top:4px}
+.dash-value.green{color:var(--green)}.dash-value.accent{color:var(--accent)}
+.dash-value.warn{color:var(--accent4)}.dash-value.red{color:var(--accent3)}
+
+/* ══ Layer cards ──────────────────────────────────── */
+.layer-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:8px;
+  margin-bottom:12px;overflow:hidden;
+}
+.layer-header{
+  display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;
+  user-select:none;transition:background .15s;
+}
+.layer-header:hover{background:var(--surface2)}
+.layer-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.layer-name{font-size:14px;font-weight:600;flex:1}
+.layer-meta{display:flex;gap:12px;font-size:11px;color:var(--text-dim)}
+.layer-arrow{font-size:12px;color:var(--text-dim);transition:transform .2s}
+.layer-card.open .layer-arrow{transform:rotate(90deg)}
+.layer-body{display:none;border-top:1px solid var(--border)}
+.layer-card.open .layer-body{display:block}
+.module-row{
+  display:grid;grid-template-columns:180px 1fr 100px;gap:12px;
+  padding:8px 16px 8px 38px;border-bottom:1px solid var(--border);font-size:12px;transition:background .1s;
+}
+.module-row:last-child{border-bottom:none}.module-row:hover{background:var(--surface2)}
+.module-ns{color:var(--accent2);font-weight:500}
+.module-file{color:var(--text-dim);font-size:11px}
+.module-purpose{color:var(--text)}
+.module-meta{display:flex;gap:8px;font-size:10px;color:var(--text-dim);align-items:center}
+.module-tag{
+  display:inline-block;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:600;
+  background:var(--surface2);white-space:nowrap;
+}
+
+/* ══ State machine ────────────────────────────────── */
+.state-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-bottom:20px;
+}
+.state-node{
+  background:var(--surface);border:1px solid var(--border);border-radius:6px;
+  padding:8px 12px;text-align:center;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1px;
+}
+.state-node.start{border-color:var(--green);color:var(--green)}
+.state-node.playing{border-color:var(--accent);color:var(--accent)}
+.state-node.terminal{border-color:var(--accent3);color:var(--accent3)}
+.transitions-table{width:100%;border-collapse:collapse;font-size:12px}
+.transitions-table th,.transitions-table td{padding:6px 12px;text-align:left;border-bottom:1px solid var(--border)}
+.transitions-table th{color:var(--text-dim);font-weight:500;font-size:11px;text-transform:uppercase}
+.transitions-table td:first-child{color:var(--accent);font-weight:600}
+.transition-tags{display:flex;flex-wrap:wrap;gap:4px}
+.transition-tag{background:var(--surface2);padding:2px 8px;border-radius:3px;font-size:11px;color:var(--accent2)}
+
+/* ══ Event bus ────────────────────────────────────── */
+.event-row{
+  background:var(--surface);border:1px solid var(--border);border-radius:6px;
+  padding:12px 16px;margin-bottom:8px;transition:border-color .2s;
+}
+.event-row.highlight{border-color:var(--accent4)}
+.event-name{color:var(--accent4);font-weight:600;font-size:13px;margin-bottom:6px}
+.event-meta{display:flex;gap:24px;font-size:12px}
+.event-meta-label{color:var(--text-dim)}
+.event-meta-value{color:var(--text)}
+.event-subscribers{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.event-sub{
+  background:var(--surface2);padding:1px 6px;border-radius:3px;font-size:11px;
+  color:var(--cyan);cursor:pointer;transition:.15s;
+}
+.event-sub.highlight{background:var(--accent4);color:var(--bg)}
+
+/* ══ Pipeline ─────────────────────────────────────── */
+.pipeline-step{display:flex;align-items:flex-start;gap:12px;padding:4px 0;font-size:12px}
+.pipeline-num{color:var(--text-dim);min-width:28px;text-align:right;font-size:11px}
+.pipeline-bar{width:3px;min-height:20px;background:var(--border);border-radius:2px;flex-shrink:0}
+.pipeline-bar.glow{background:var(--accent4)}
+.pipeline-bar.entity{background:var(--accent)}
+.pipeline-bar.bullet{background:var(--accent3)}
+.pipeline-bar.ui-bar{background:var(--text-dim)}
+.pipeline-text{flex:1}
+
+/* ══ Game loop ────────────────────────────────────── */
+.loop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px}
+.loop-step{
+  background:var(--surface);border:1px solid var(--border);border-radius:4px;
+  padding:6px 10px;font-size:12px;display:flex;align-items:center;gap:8px;
+}
+.loop-num{color:var(--text-dim);font-size:11px;min-width:20px}
+
+/* ══ Collision matrix ─────────────────────────────── */
+.matrix-table{width:100%;border-collapse:collapse;font-size:12px}
+.matrix-table th,.matrix-table td{padding:8px 12px;text-align:center;border:1px solid var(--border)}
+.matrix-table th{background:var(--surface);color:var(--text-dim);font-weight:500;font-size:11px}
+.matrix-table td{color:var(--text)}
+.matrix-table td.dash{color:var(--text-dim)}
+
+/* ══ Tables ───────────────────────────────────────── */
+.data-table{width:100%;border-collapse:collapse;font-size:12px}
+.data-table th,.data-table td{padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)}
+.data-table th{color:var(--text-dim);font-weight:500;font-size:11px;text-transform:uppercase}
+.status-badge{
+  display:inline-block;padding:1px 8px;border-radius:10px;font-size:10px;font-weight:600;text-transform:uppercase;
+}
+.status-badge.accepted,.status-badge.approved{background:#064e3b;color:var(--green)}
+.scope-xl{color:var(--accent3)}.scope-l{color:var(--orange)}.scope-m{color:var(--accent2)}
+
+/* ══ Dep graph ────────────────────────────────────── */
+.dep-graph{
+  background:var(--surface);border:1px solid var(--border);border-radius:8px;
+  padding:24px;overflow-x:auto;
+}
+.dep-layer{display:flex;align-items:center;margin-bottom:8px}
+.dep-label{width:130px;font-size:12px;font-weight:600;text-align:right;padding-right:12px;flex-shrink:0}
+.dep-bar{height:28px;border-radius:4px;display:flex;align-items:center;padding:0 12px;font-size:11px;color:var(--bg);font-weight:600;gap:8px}
+.dep-arrow{text-align:center;color:var(--text-dim);font-size:14px;margin:2px 0;padding-left:142px}
+
+/* ══ Persistence ──────────────────────────────────── */
+.persist-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px}
+.persist-key{color:var(--accent2);font-family:inherit;min-width:200px}
+.persist-mech{color:var(--text-dim)}
+.persist-mech.remote{color:var(--accent4)}
+
+/* ══ Mode cards ───────────────────────────────────── */
+.mode-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px;
+}
+.mode-name{font-size:14px;font-weight:600;margin-bottom:8px}
+.mode-details{display:grid;grid-template-columns:120px 1fr;gap:4px 12px;font-size:12px}
+.mode-label{color:var(--text-dim)}
+
+/* ══ Constraints ──────────────────────────────────── */
+.constraint-list{list-style:none}
+.constraint-list li{padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;display:flex;gap:8px}
+.constraint-list li::before{content:"✕";color:var(--accent3);font-weight:700}
+
+/* ══ Mobile ───────────────────────────────────────── */
+@media(max-width:768px){
+  .sidebar{
+    transform:translateX(-100%);
+  }
+  .sidebar.open{transform:translateX(0)}
+  .hamburger{display:flex;flex-direction:column}
+  .sidebar-overlay.open{display:block}
+  .main{margin-left:0;padding:56px 16px 16px}
+  .module-row{grid-template-columns:1fr}
+  .mode-details{grid-template-columns:1fr}
+  .persist-key{min-width:auto}
+  .dashboard{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loading"><div class="loading-spinner"></div></div>
+
+<button class="hamburger" id="hamburger" onclick="toggleSidebar()"><span></span><span></span><span></span></button>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <h1>FIAT vs CRYPTO</h1>
+    <div class="version" id="sidebarVersion">Architecture Map</div>
+  </div>
+  <div class="sidebar-search">
+    <input type="text" id="search" placeholder="Search modules..." autocomplete="off">
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Overview</div>
+    <a class="sidebar-link" data-target="dashboard">Dashboard</a>
+    <a class="sidebar-link" data-target="dep-graph">Dependency Graph</a>
+    <a class="sidebar-link" data-target="state-machine">State Machine</a>
+    <a class="sidebar-link" data-target="event-bus">Event Bus</a>
+    <a class="sidebar-link" data-target="game-modes">Game Modes</a>
+  </div>
+  <div class="sidebar-section" id="sidebarLayers"></div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Runtime</div>
+    <a class="sidebar-link" data-target="rendering-pipeline">Rendering Pipeline</a>
+    <a class="sidebar-link" data-target="game-loop">Game Loop</a>
+    <a class="sidebar-link" data-target="collision-matrix">Collision Matrix</a>
+    <a class="sidebar-link" data-target="persistence">Persistence</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Design</div>
+    <a class="sidebar-link" data-target="adrs">ADR Index</a>
+    <a class="sidebar-link" data-target="gdds">GDD Index</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Constraints</div>
+    <a class="sidebar-link" data-target="constraints">Global Rules</a>
+  </div>
+</nav>
+
+<main class="main" id="main">
+
+  <section class="section" id="dashboard">
+    <h2 class="section-title">Architecture Health <span class="badge" id="dash-hash">live</span></h2>
+    <div class="dashboard" id="dashboardGrid"></div>
+  </section>
+
+  <section class="section" id="dep-graph">
+    <h2 class="section-title">Dependency Graph <span class="badge" id="dg-badge">10 layers</span></h2>
+    <p class="subtitle">Script load order in index.html. Layer N may reference layers ≤ N only.</p>
+    <div class="dep-graph" id="depGraph"></div>
+  </section>
+
+  <section class="section" id="state-machine">
+    <h2 class="section-title">State Machine <span class="badge">11 states</span></h2>
+    <p class="subtitle">GameStateMachine (ADR-0001) — Singleton, explicit transition map, invalid transitions blocked.</p>
+    <div class="state-grid" id="stateGrid"></div>
+    <table class="transitions-table"><thead><tr><th>From</th><th>To</th></tr></thead><tbody id="transitionsBody"></tbody></table>
+  </section>
+
+  <section class="section" id="event-bus">
+    <h2 class="section-title">Event Bus <span class="badge">9 events</span></h2>
+    <p class="subtitle">EventBus (ADR-0003) — Pub/sub, synchronous dispatch, try-catch wrapped listeners.</p>
+    <div id="eventList"></div>
+  </section>
+
+  <section class="section" id="game-modes">
+    <h2 class="section-title">Game Modes <span class="badge">3 modes</span></h2>
+    <div id="modeList"></div>
+  </section>
+
+  <div id="layerSections"></div>
+
+  <section class="section" id="rendering-pipeline">
+    <h2 class="section-title">Rendering Pipeline <span class="badge">30 steps</span></h2>
+    <p class="subtitle">Fixed draw order (back to front). Additive glow via globalCompositeOperation.</p>
+    <div id="pipelineList"></div>
+  </section>
+
+  <section class="section" id="game-loop">
+    <h2 class="section-title">Game Loop <span class="badge">25 update steps</span></h2>
+    <p class="subtitle">requestAnimationFrame loop: dt → hit-stop → update(dt) → draw().</p>
+    <div class="loop-grid" id="loopGrid"></div>
+  </section>
+
+  <section class="section" id="collision-matrix">
+    <h2 class="section-title">Collision Matrix <span class="badge">120px cells</span></h2>
+    <p class="subtitle">Spatial-grid (ADR-0004). Narrow-phase: AABB / distance-based.</p>
+    <table class="matrix-table"><thead><tr><th></th><th>Player</th><th>Bullets</th><th>Enemies</th><th>Enemy Bullets</th><th>PowerUps</th><th>Boss</th></tr></thead><tbody id="collisionBody"></tbody></table>
+  </section>
+
+  <section class="section" id="persistence">
+    <h2 class="section-title">Persistence</h2>
+    <p class="subtitle">localStorage for local data, Cloudflare KV for remote leaderboard.</p>
+    <div id="persistList"></div>
+  </section>
+
+  <section class="section" id="adrs">
+    <h2 class="section-title">ADR Index</h2>
+    <table class="data-table"><thead><tr><th>ID</th><th>Title</th><th>Status</th><th>Layer</th></tr></thead><tbody id="adrBody"></tbody></table>
+  </section>
+
+  <section class="section" id="gdds">
+    <h2 class="section-title">GDD Index</h2>
+    <table class="data-table"><thead><tr><th>System</th><th>File</th><th>Status</th><th>Scope</th></tr></thead><tbody id="gddBody"></tbody></table>
+  </section>
+
+  <section class="section" id="constraints">
+    <h2 class="section-title">Global Constraints</h2>
+    <ul class="constraint-list" id="constraintList"></ul>
+  </section>
+
+</main>
+
+<script>
+let DATA = null;
+
+async function load() {
+  try {
+    const resp = await fetch('architecture-map.json');
+    DATA = await resp.json();
+  } catch (e) {
+    document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#ff6b6b;font-family:monospace">Failed to load architecture-map.json. Run: node scripts/extract-architecture.js</div>';
+    return;
+  }
+  renderAll();
+  document.getElementById('loading').style.display = 'none';
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('open');
+}
+
+function renderAll() {
+  renderDashboard();
+  renderDependencyGraph();
+  renderStateMachine();
+  renderEvents();
+  renderModes();
+  renderLayers();
+  renderSidebarLayers();
+  renderPipeline();
+  renderGameLoop();
+  renderCollision();
+  renderPersistence();
+  renderADRs();
+  renderGDDs();
+  renderConstraints();
+  setupSearch();
+}
+
+// ══ Dashboard ──────────────────────────────────────────
+function renderDashboard() {
+  const m = DATA._metadata;
+  document.getElementById('sidebarVersion').textContent = `v${m.version} · ${m.total_modules} modules · hash ${m.source_hash}`;
+  document.getElementById('dash-hash').textContent = `hash ${m.source_hash}`;
+  document.getElementById('dg-badge').textContent = `${DATA.layers.length} layers`;
+
+  const cards = [
+    {label:'Modules', value:m.total_modules, cls:'accent', sub:`${m.total_loc} LOC · ${m.total_size_kb} KB`},
+    {label:'TR Coverage', value:`${m.tr_coverage_pct}%`, cls:'green', sub:`${m.tr_count} requirements`},
+    {label:'Avg Coupling Out', value:m.avg_coupling_out, cls:m.avg_coupling_in>3?'warn':'accent', sub:`${m.avg_coupling_in} in`},
+    {label:'ADRs', value:m.adr_count, cls:'green', sub:'Accepted'},
+    {label:'GDDs', value:m.gdd_count, cls:'accent', sub:'Approved'},
+    {label:'Source Hash', value:m.source_hash, cls:'', sub:`Generated ${new Date(m.generated_at).toLocaleDateString()}`}
+  ];
+  document.getElementById('dashboardGrid').innerHTML = cards.map(c =>
+    `<div class="dash-card"><div class="dash-label">${c.label}</div><div class="dash-value ${c.cls}">${c.value}</div><div class="dash-sub">${c.sub}</div></div>`
+  ).join('');
+}
+
+// ══ Dependency graph ───────────────────────────────────
+function renderDependencyGraph() {
+  const el = document.getElementById('depGraph');
+  const layers = [...DATA.layers].sort((a,b)=>a.order-b.order);
+  el.innerHTML = layers.map((l,i) => {
+    const pct = Math.max(6, (l.module_count / 28)*100);
+    const locInfo = l.total_loc ? ` · ${l.total_loc} LOC` : '';
+    return `<div class="dep-layer"><div class="dep-label" style="color:${l.color}">${l.name} (${l.order})</div><div class="dep-bar" style="width:${pct}%;background:${l.color}">${l.module_count} mod${locInfo}</div></div>` + (i<layers.length-1 ? '<div class="dep-arrow">↓</div>' : '');
+  }).join('');
+}
+
+// ══ State machine ──────────────────────────────────────
+function renderStateMachine() {
+  const states = ['VIDEO','INTRO','HANGAR','PLAY','WARMUP','PAUSE','INTERMISSION','GAMEOVER','STORY_SCREEN','CAMPAIGN_VICTORY','SETTINGS'];
+  const cls = {VIDEO:'start',INTRO:'start',PLAY:'playing',WARMUP:'playing',GAMEOVER:'terminal',CAMPAIGN_VICTORY:'terminal'};
+  const transitions = {
+    VIDEO:['INTRO'],INTRO:['HANGAR','SETTINGS','WARMUP','STORY_SCREEN'],HANGAR:['PLAY','WARMUP','INTRO','STORY_SCREEN'],
+    STORY_SCREEN:['PLAY','WARMUP','INTERMISSION','INTRO','CAMPAIGN_VICTORY'],WARMUP:['PLAY','PAUSE','INTRO'],
+    PLAY:['PAUSE','INTERMISSION','GAMEOVER','STORY_SCREEN','CAMPAIGN_VICTORY'],PAUSE:['PLAY','WARMUP','INTERMISSION','INTRO'],
+    INTERMISSION:['PLAY','STORY_SCREEN','PAUSE'],GAMEOVER:['INTRO'],CAMPAIGN_VICTORY:['INTRO'],SETTINGS:['INTRO']
+  };
+  document.getElementById('stateGrid').innerHTML = states.map(s =>
+    `<div class="state-node${cls[s]?' '+cls[s]:''}">${s.replace(/_/g,' ')}</div>`
+  ).join('');
+  document.getElementById('transitionsBody').innerHTML = Object.entries(transitions).map(([k,v]) =>
+    `<tr><td>${k.replace(/_/g,' ')}</td><td><div class="transition-tags">${v.map(t=>`<span class="transition-tag">${t.replace(/_/g,' ')}</span>`).join('')}</div></td></tr>`
+  ).join('');
+}
+
+// ══ Event bus ──────────────────────────────────────────
+function renderEvents() {
+  const events = [
+    {event:'entity:died',publisher:'CollisionSystem',subscribers:['DropSystem','ArcadeModifiers','StatsTracker','AchievementSystem','WaveManager','PerkManager']},
+    {event:'boss:defeated',publisher:'Boss',subscribers:['DropSystem','CampaignState','AudioSystem','WaveManager','StoryManager']},
+    {event:'player:died',publisher:'CollisionSystem',subscribers:['DropSystem','GameStateMachine','AudioSystem','StatsTracker']},
+    {event:'player:damaged',publisher:'CollisionSystem',subscribers:['EffectsRenderer','AudioSystem','QualityManager']},
+    {event:'weapon:evolved',publisher:'PerkManager',subscribers:['AudioSystem','EffectsRenderer','ParticleSystem']},
+    {event:'perk:selected',publisher:'PerkManager',subscribers:['Player','AudioSystem']},
+    {event:'wave:started',publisher:'WaveManager',subscribers:['ArcadeModifiers','StatsTracker']},
+    {event:'phase:transition',publisher:'WaveManager',subscribers:['ArcadeModifiers']},
+    {event:'score:changed',publisher:'Combat systems',subscribers:['UI','StatsTracker','AchievementSystem']}
+  ];
+  document.getElementById('eventList').innerHTML = events.map((e,i) =>
+    `<div class="event-row" data-event="${e.event}"><div class="event-name">${e.event}</div><div class="event-meta"><div><span class="event-meta-label">Publisher: </span><span class="event-meta-value">${e.publisher}</span></div></div><div style="margin-top:6px;font-size:12px"><span class="event-meta-label">Subscribers: </span><div class="event-subscribers">${e.subscribers.map(s=>`<span class="event-sub" data-sub="${s}">${s}</span>`).join('')}</div></div></div>`
+  ).join('');
+  document.querySelectorAll('.event-row').forEach(row => {
+    row.addEventListener('click',function(){
+      const was = this.classList.contains('highlight');
+      document.querySelectorAll('.event-row,.event-sub').forEach(e=>e.classList.remove('highlight'));
+      if (!was) {
+        this.classList.add('highlight');
+        this.querySelectorAll('.event-sub').forEach(s=>s.classList.add('highlight'));
+      }
+    });
+  });
+}
+
+// ══ Game modes ─────────────────────────────────────────
+function renderModes() {
+  const modes = [
+    {name:'V8 Campaign (Story Mode)',details:{Manager:'LevelScript + ScrollEngine','Arcade Mode':'false','Boss Trigger':'170s',Progression:'CampaignState',Description:'Scripted scroller'}},
+    {name:'Arcade Mode',details:{Manager:'WaveManager (15 waves, 5x3 cycles)','Arcade Mode':'true',Features:'Modifiers, combo, infinite post-C3',Records:'localStorage + leaderboard',Description:'Roguelike, infinite scaling'}},
+    {name:'Daily Mode',details:{Manager:'DailyMode',Seeding:'Date-based RNG',Description:'One seed, one attempt until UTC midnight'}}
+  ];
+  document.getElementById('modeList').innerHTML = modes.map(m =>
+    `<div class="mode-card"><div class="mode-name">${m.name}</div><div class="mode-details">${Object.entries(m.details).map(([k,v])=>`<div class="mode-label">${k}</div><div>${v}</div>`).join('')}</div></div>`
+  ).join('');
+}
+
+// ══ Layers ─────────────────────────────────────────────
+function renderLayers() {
+  const layers = [...DATA.layers].sort((a,b)=>a.order-b.order);
+  document.getElementById('layerSections').innerHTML = layers.map(l =>
+    `<section class="section" id="layer-${l.id}"><h2 class="section-title" style="color:${l.color}">${l.name} <span class="badge">${l.module_count} modules · ${l.total_loc||0} LOC · ${l.total_size_kb||0} KB</span></h2><p class="subtitle">${l.description||''} · avg ${l.avg_loc||0} LOC/mod</p><div class="layer-card open" data-layer="${l.id}"><div class="layer-header" onclick="this.parentElement.classList.toggle('open')"><div class="layer-dot" style="background:${l.color}"></div><div class="layer-name">${l.name}</div><div class="layer-meta"><span>${l.module_count} mod</span><span>${l.total_loc||0} LOC</span></div><div class="layer-arrow">▶</div></div><div class="layer-body">${l.modules.map(m => {
+      const adrTags = (m.governed_by||[]).map(a=>`<span class="module-tag" style="color:var(--accent4)">${a}</span>`).join('');
+      const trTags = (m.tr_coverage||[]).map(t=>`<span class="module-tag">${t}</span>`).join('');
+      return `<div class="module-row"><div><div class="module-ns">${m.namespace}</div><div class="module-file">${m.file}</div><div class="module-meta">${adrTags} ${trTags}</div></div><div class="module-purpose">${m.purpose||''}</div><div style="font-size:10px;color:var(--text-dim);display:flex;flex-direction:column;gap:2px"><span>${m.loc||0} LOC</span><span>${m.size_kb||0} KB</span><span>coupling in/out: ${(m.coupling||{}).depended_by_count||0}/${(m.coupling||{}).depends_on_count||0}</span></div></div>`;
+    }).join('')}</div></div></section>`
+  ).join('');
+}
+
+function renderSidebarLayers() {
+  const layers = [...DATA.layers].sort((a,b)=>a.order-b.order);
+  document.getElementById('sidebarLayers').innerHTML = `<div class="sidebar-section-title">Layers</div>` +
+    layers.map(l => `<a class="sidebar-link" data-layer="${l.id}" data-target="layer-${l.id}">${l.name} (${l.module_count})</a>`).join('');
+  // Re-bind sidebar links
+  document.querySelectorAll('.sidebar-link[data-target]').forEach(link => {
+    if (link.dataset.bound) return; link.dataset.bound='1';
+    link.addEventListener('click',function(e){
+      e.preventDefault();
+      const t = document.getElementById(this.dataset.target);
+      if (t) t.scrollIntoView({behavior:'smooth'});
+      if (window.innerWidth <= 768) toggleSidebar();
+    });
+  });
+}
+
+// ══ Rendering pipeline ─────────────────────────────────
+function renderPipeline() {
+  const steps = [
+    {t:'Clear canvas',c:''},{t:'StoryScreen (full-screen, early return)',c:'ui-bar'},{t:'Screen shake transform',c:''},
+    {t:'SkyRenderer — parallax layers',c:''},{t:'WeatherController — rain/fog',c:''},{t:'TitleAnimator — title particles',c:''},
+    {t:'Impact flash overlay',c:'glow'},{t:'HYPER mode golden overlay',c:'glow'},{t:'Player entity',c:'entity'},
+    {t:'Enemy glow pass (additive)',c:'glow'},{t:'Enemy bodies (80px culling)',c:'entity'},{t:'Boss entity',c:'entity'},
+    {t:'Mini-boss entity',c:'entity'},{t:'Bullet glow pass (additive)',c:'glow'},{t:'Bullet bodies',c:'bullet'},
+    {t:'Energy Link beams',c:'glow'},{t:'Screen dimming',c:''},{t:'HarmonicConductor telegraphs',c:''},
+    {t:'Enemy bullets (20px culling)',c:'bullet'},{t:'Danger zones',c:''},{t:'Power-ups (40px culling)',c:'entity'},
+    {t:'Particles',c:'glow'},{t:'Evolution item (GODCHAIN)',c:'glow'},{t:'Floating texts',c:'ui-bar'},
+    {t:'Perk icons',c:'ui-bar'},{t:'Typed messages',c:'ui-bar'},{t:'Arcade combo HUD',c:'ui-bar'},
+    {t:'Boss warning overlay',c:'ui-bar'},{t:'Debug overlay',c:'ui-bar'},{t:'Perk pause overlay',c:'ui-bar'}
+  ];
+  document.getElementById('pipelineList').innerHTML = steps.map((s,i) =>
+    `<div class="pipeline-step"><div class="pipeline-num">${i+1}</div><div class="pipeline-bar ${s.c}"></div><div class="pipeline-text">${s.t}</div></div>`
+  ).join('');
+}
+
+// ══ Game loop ──────────────────────────────────────────
+function renderGameLoop() {
+  const order = ['TransitionManager','InputSystem','TitleAnimator','StoryScreen','Player','Enemies','Boss','MiniBossManager','Bullets','Enemy bullets','Power-ups','CollisionSystem','BulletSystem','WaveManager','ScrollEngine','DropSystem','EffectsRenderer','ParticleSystem','FloatingTextManager','PerkIconManager','HarmonicConductor','WeatherController','AudioSystem','ArcadeModifiers','UI updates'];
+  document.getElementById('loopGrid').innerHTML = order.map((s,i) =>
+    `<div class="loop-step"><span class="loop-num">${i+1}</span>${s}</div>`
+  ).join('');
+}
+
+// ══ Collision matrix ───────────────────────────────────
+function renderCollision() {
+  const rows = [
+    ['Player','—','—','Contact dmg','Player hit','Collect','Contact dmg'],
+    ['Bullets','—','—','Enemy hit','Reflect','—','Boss hit'],
+    ['Enemies','Contact dmg','Enemy hit','—','—','—','—']
+  ];
+  document.getElementById('collisionBody').innerHTML = rows.map(r =>
+    `<tr>${r.map((c,j)=>{const td=j===0?'<td style="font-weight:600;color:var(--accent)">':'<td>';return td+(c==='—'?`<span style="color:var(--text-dim)">—</span>`:c)+'</td>';}).join('')}</tr>`
+  ).join('');
+}
+
+// ══ Persistence ────────────────────────────────────────
+function renderPersistence() {
+  const data = [
+    {key:'fiat_campaign_state',data:'Campaign progress',m:'localStorage'},
+    {key:'fiat_highscore_story',data:'High scores (story)',m:'localStorage'},
+    {key:'fiat_highscore_arcade',data:'High scores (arcade)',m:'localStorage'},
+    {key:'fiat_arcade_records',data:'Arcade records',m:'localStorage'},
+    {key:'fiat_settings_*',data:'Settings',m:'localStorage'},
+    {key:'fiat_achievements',data:'Achievements',m:'localStorage'},
+    {key:'HMAC-signed',data:'Leaderboard',m:'Cloudflare KV'},
+    {key:'fiat_session_log',data:'Session logs',m:'localStorage'}
+  ];
+  document.getElementById('persistList').innerHTML = data.map(p =>
+    `<div class="persist-row"><div class="persist-key">${p.key}</div><div>${p.data}</div><div class="persist-mech${p.m.includes('Cloudflare')?' remote':''}">${p.m}</div></div>`
+  ).join('');
+}
+
+// ══ ADRs ───────────────────────────────────────────────
+function renderADRs() {
+  if (!DATA.adrs) return;
+  document.getElementById('adrBody').innerHTML = DATA.adrs.map(a =>
+    `<tr><td style="color:var(--accent);font-weight:600">${a.id}</td><td>${a.title}</td><td><span class="status-badge accepted">${a.status}</span></td><td>${a.layer}</td></tr>`
+  ).join('');
+}
+
+// ══ GDDs ───────────────────────────────────────────────
+function renderGDDs() {
+  if (!DATA.gdds) return;
+  document.getElementById('gddBody').innerHTML = DATA.gdds.map(g =>
+    `<tr><td style="font-weight:600">${g.system}</td><td style="color:var(--text-dim)">${g.file}</td><td><span class="status-badge approved">${g.status}</span></td><td class="scope-${g.scope.toLowerCase()}">${g.scope}</td></tr>`
+  ).join('');
+}
+
+// ══ Constraints ────────────────────────────────────────
+function renderConstraints() {
+  const c = [
+    'No ES module import/export — script load order via <script> tags',
+    'All code under window.Game.* — no global leakage',
+    'Zero runtime dependencies or CDN scripts',
+    'No DOM manipulation in game loop',
+    'No WebGL — Canvas 2D only',
+    'No shadowBlur — forces software rendering',
+    'No bundlers (webpack, vite, etc.)',
+    'No brute-force O(n*m) collision',
+    'No WaveManager + LevelScript simultaneously',
+    'No frame-based timers for struggle/domination'
+  ];
+  document.getElementById('constraintList').innerHTML = c.map(x=>`<li>${x}</li>`).join('');
+}
+
+// ══ Search ─────────────────────────────────────────────
+function setupSearch() {
+  document.getElementById('search').addEventListener('input',function(){
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('.module-row').forEach(r=>{r.style.display=r.textContent.toLowerCase().includes(q)?'':'none'});
+    if (q.length>0) {
+      document.querySelectorAll('.layer-card').forEach(c=>{
+        c.classList.toggle('open',c.querySelectorAll('.module-row:not([style*="display: none"])').length>0);
+      });
+    }
+  });
+}
+
+load();
+</script>
+</body>
+</html>

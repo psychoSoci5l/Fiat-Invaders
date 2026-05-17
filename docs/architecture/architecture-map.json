@@ -1,0 +1,1560 @@
+{
+  "_metadata": {
+    "generated_at": "2026-05-17T07:12:51.946Z",
+    "generator": "scripts/extract-architecture.js",
+    "source_hash": "285b7f4808cc3ddd",
+    "version": "7.12.14",
+    "total_modules": 75,
+    "total_loc": 48448,
+    "total_size_kb": 2017.8,
+    "avg_coupling_out": 0.69,
+    "avg_coupling_in": 0.69,
+    "adr_count": 15,
+    "gdd_count": 7,
+    "tr_count": 70,
+    "tr_coverage_pct": 100
+  },
+  "game": {
+    "title": "FIAT vs CRYPTO",
+    "version": "v7.12.14",
+    "engine": "Vanilla JavaScript (ES6+) / Canvas 2D",
+    "platform": "Web (PWA) — desktop and mobile browsers"
+  },
+  "layers": [
+    {
+      "name": "Utils",
+      "id": "utils",
+      "order": -1,
+      "description": "Shared utilities — loaded before all other layers",
+      "color": "#60a5fa",
+      "module_count": 8,
+      "total_loc": 5252,
+      "total_size_kb": 226.1,
+      "avg_loc": 657,
+      "modules": [
+        {
+          "namespace": "Game.Constants",
+          "file": "src/utils/Constants.js",
+          "purpose": "Version, balance constants, DOM IDs",
+          "loc": 986,
+          "size_kb": 51.6,
+          "loadIndex": 0,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.Debug",
+          "file": "src/utils/DebugSystem.js",
+          "purpose": "Session logging, debug overlay",
+          "loc": 3180,
+          "size_kb": 139.7,
+          "loadIndex": 1,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 6,
+            "depended_by_count": 4
+          }
+        },
+        {
+          "namespace": "Game.MigrationSystem",
+          "file": "src/utils/MigrationSystem.js",
+          "purpose": "",
+          "loc": 308,
+          "size_kb": 10.9,
+          "loadIndex": 2,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 2
+          }
+        },
+        {
+          "namespace": "Game.ColorUtils",
+          "file": "src/utils/ColorUtils.js",
+          "purpose": "",
+          "loc": 251,
+          "size_kb": 8.4,
+          "loadIndex": 3,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 6
+          }
+        },
+        {
+          "namespace": "Game.MathUtils",
+          "file": "src/utils/MathUtils.js",
+          "purpose": "Clamp, lerp, vector math",
+          "loc": 269,
+          "size_kb": 7.8,
+          "loadIndex": 4,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.RNG",
+          "file": "src/utils/RNG.js",
+          "purpose": "",
+          "loc": 110,
+          "size_kb": 3.4,
+          "loadIndex": 5,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.RunState",
+          "file": "src/utils/RunState.js",
+          "purpose": "Per-run mutable state (score, lives, combo)",
+          "loc": 105,
+          "size_kb": 3.1,
+          "loadIndex": 21,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 4
+          }
+        },
+        {
+          "namespace": "Game.Upgrades",
+          "file": "src/utils/Upgrades.js",
+          "purpose": "",
+          "loc": 43,
+          "size_kb": 1.2,
+          "loadIndex": 23,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "Foundation",
+      "id": "foundation",
+      "order": 0,
+      "description": "Core infrastructure: state machine, event bus, input, audio, object pooling",
+      "color": "#bb44ff",
+      "module_count": 6,
+      "total_loc": 5038,
+      "total_size_kb": 213,
+      "avg_loc": 840,
+      "modules": [
+        {
+          "namespace": "Game.EventBus",
+          "file": "src/core/EventBus.js",
+          "purpose": "",
+          "loc": 73,
+          "size_kb": 2.3,
+          "loadIndex": 17,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.GameState",
+          "file": "src/core/GameStateMachine.js",
+          "purpose": "State machine singleton",
+          "loc": 157,
+          "size_kb": 5.3,
+          "loadIndex": 18,
+          "governed_by": [
+            "ADR-0001"
+          ],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 1
+          }
+        },
+        {
+          "namespace": "Game.Audio",
+          "file": "src/core/AudioSystem.js",
+          "purpose": "Web Audio API wrapper",
+          "loc": 3431,
+          "size_kb": 136.1,
+          "loadIndex": 24,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 1,
+            "depended_by_count": 4
+          }
+        },
+        {
+          "namespace": "Game.InputSystem",
+          "file": "src/core/InputSystem.js",
+          "purpose": "",
+          "loc": 576,
+          "size_kb": 24.3,
+          "loadIndex": 25,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 2,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.ObjectPool",
+          "file": "src/core/ObjectPool.js",
+          "purpose": "Object pooling for bullets/particles",
+          "loc": 140,
+          "size_kb": 4.1,
+          "loadIndex": 26,
+          "governed_by": [
+            "ADR-0001"
+          ],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 1
+          }
+        },
+        {
+          "namespace": "Game.GameplayCallbacks",
+          "file": "src/core/GameplayCallbacks.js",
+          "purpose": "",
+          "loc": 661,
+          "size_kb": 40.9,
+          "loadIndex": 73,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "Config",
+      "id": "config",
+      "order": 1,
+      "description": "Single source of truth for all tuning constants",
+      "color": "#ffd93d",
+      "module_count": 1,
+      "total_loc": 3339,
+      "total_size_kb": 159.9,
+      "avg_loc": 3339,
+      "modules": [
+        {
+          "namespace": "Game.BalanceConfig",
+          "file": "src/config/BalanceConfig.js",
+          "purpose": "",
+          "loc": 3339,
+          "size_kb": 159.9,
+          "loadIndex": 6,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 1,
+            "depended_by_count": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "Core Systems",
+      "id": "core",
+      "order": 2,
+      "description": "Core gameplay systems: collision, bullets, particles, drops, scrolling, rendering",
+      "color": "#00e5cc",
+      "module_count": 28,
+      "total_loc": 12687,
+      "total_size_kb": 487.2,
+      "avg_loc": 453,
+      "modules": [
+        {
+          "namespace": "Game.BulletPatterns",
+          "file": "src/systems/BulletPatterns.js",
+          "purpose": "",
+          "loc": 534,
+          "size_kb": 19.1,
+          "loadIndex": 8,
+          "governed_by": [
+            "ADR-0004"
+          ],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 1,
+            "depended_by_count": 2
+          }
+        },
+        {
+          "namespace": "Game.BulletSystem",
+          "file": "src/systems/BulletSystem.js",
+          "purpose": "Enemy bullet patterns",
+          "loc": 304,
+          "size_kb": 12,
+          "loadIndex": 9,
+          "governed_by": [
+            "ADR-0004"
+          ],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 1
+          }
+        },
+        {
+          "namespace": "Game.SpatialGrid",
+          "file": "src/systems/SpatialGrid.js",
+          "purpose": "",
+          "loc": 65,
+          "size_kb": 2.1,
+          "loadIndex": 10,
+          "governed_by": [
+            "ADR-0004"
+          ],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.Collision",
+          "file": "src/systems/CollisionSystem.js",
+          "purpose": "Spatial-grid collision detection",
+          "loc": 676,
+          "size_kb": 32,
+          "loadIndex": 11,
+          "governed_by": [
+            "ADR-0004"
+          ],
+          "tr_coverage": [
+            "TR-EA-001",
+            "TR-EA-002",
+            "TR-EA-003",
+            "TR-EA-004",
+            "TR-EA-005",
+            "TR-EA-006",
+            "TR-EA-007",
+            "TR-EA-008"
+          ],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.DropSystem",
+          "file": "src/systems/DropSystem.js",
+          "purpose": "",
+          "loc": 826,
+          "size_kb": 34.8,
+          "loadIndex": 12,
+          "governed_by": [
+            "ADR-0008"
+          ],
+          "tr_coverage": [
+            "TR-DRP-001",
+            "TR-DRP-002",
+            "TR-DRP-003",
+            "TR-DRP-004",
+            "TR-DRP-005",
+            "TR-DRP-006",
+            "TR-DRP-007",
+            "TR-DRP-008",
+            "TR-DRP-009",
+            "TR-DRP-010",
+            "TR-DRP-011"
+          ],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 1
+          }
+        },
+        {
+          "namespace": "Game.MemeEngine",
+          "file": "src/systems/MemeEngine.js",
+          "purpose": "",
+          "loc": 662,
+          "size_kb": 23,
+          "loadIndex": 13,
+          "governed_by": [
+            "ADR-0002"
+          ],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 1
+          }
+        },
+        {
+          "namespace": "Game.HintTracker",
+          "file": "src/systems/HintTracker.js",
+          "purpose": "Contextual hint system",
+          "loc": 62,
+          "size_kb": 2.4,
+          "loadIndex": 15,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.HarmonicSequences",
+          "file": "src/systems/HarmonicSequences.js",
+          "purpose": "",
+          "loc": 197,
+          "size_kb": 8.8,
+          "loadIndex": 19,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 1
+          }
+        },
+        {
+          "namespace": "Game.HarmonicConductor",
+          "file": "src/systems/HarmonicConductor.js",
+          "purpose": "Music-synced enemy actions",
+          "loc": 1170,
+          "size_kb": 47.3,
+          "loadIndex": 20,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 10,
+            "depended_by_count": 1
+          }
+        },
+        {
+          "namespace": "Game.RankSystem",
+          "file": "src/systems/RankSystem.js",
+          "purpose": "Dynamic difficulty rank",
+          "loc": 172,
+          "size_kb": 6,
+          "loadIndex": 22,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 1
+          }
+        },
+        {
+          "namespace": "Game.ParticleSystem",
+          "file": "src/systems/ParticleSystem.js",
+          "purpose": "Particle VFX",
+          "loc": 1412,
+          "size_kb": 55.6,
+          "loadIndex": 27,
+          "governed_by": [
+            "ADR-0002"
+          ],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 1,
+            "depended_by_count": 2
+          }
+        },
+        {
+          "namespace": "Game.EffectsRenderer",
+          "file": "src/systems/EffectsRenderer.js",
+          "purpose": "",
+          "loc": 599,
+          "size_kb": 20.8,
+          "loadIndex": 28,
+          "governed_by": [
+            "ADR-0002"
+          ],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 1
+          }
+        },
+        {
+          "namespace": "Game.ScrollEngine",
+          "file": "src/systems/ScrollEngine.js",
+          "purpose": "V8 stage scrolling",
+          "loc": 163,
+          "size_kb": 5.5,
+          "loadIndex": 29,
+          "governed_by": [
+            "ADR-0007"
+          ],
+          "tr_coverage": [
+            "TR-V8-001",
+            "TR-V8-002",
+            "TR-V8-003",
+            "TR-V8-004",
+            "TR-V8-005",
+            "TR-V8-006",
+            "TR-V8-007",
+            "TR-V8-008",
+            "TR-V8-009",
+            "TR-V8-010",
+            "TR-V8-011"
+          ],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.SkyRenderer",
+          "file": "src/systems/SkyRenderer.js",
+          "purpose": "Background sky rendering",
+          "loc": 1652,
+          "size_kb": 64.8,
+          "loadIndex": 30,
+          "governed_by": [
+            "ADR-0002"
+          ],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.WeatherController",
+          "file": "src/systems/WeatherController.js",
+          "purpose": "",
+          "loc": 707,
+          "size_kb": 25.7,
+          "loadIndex": 31,
+          "governed_by": [
+            "ADR-0002"
+          ],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.PhaseTransitionController",
+          "file": "src/systems/PhaseTransitionController.js",
+          "purpose": "",
+          "loc": 175,
+          "size_kb": 5.9,
+          "loadIndex": 32,
+          "governed_by": [
+            "ADR-0013"
+          ],
+          "tr_coverage": [
+            "TR-WAV-001",
+            "TR-WAV-002",
+            "TR-WAV-003",
+            "TR-WAV-004",
+            "TR-WAV-005",
+            "TR-WAV-006",
+            "TR-WAV-007"
+          ],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.CullingHelper",
+          "file": "src/systems/CullingHelper.js",
+          "purpose": "",
+          "loc": 97,
+          "size_kb": 2.8,
+          "loadIndex": 33,
+          "governed_by": [
+            "ADR-0002"
+          ],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.OffscreenCanvas",
+          "file": "src/systems/OffscreenCanvas.js",
+          "purpose": "",
+          "loc": 177,
+          "size_kb": 4.7,
+          "loadIndex": 34,
+          "governed_by": [
+            "ADR-0002"
+          ],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.GlowManager",
+          "file": "src/systems/GlowManager.js",
+          "purpose": "",
+          "loc": 111,
+          "size_kb": 3.5,
+          "loadIndex": 35,
+          "governed_by": [
+            "ADR-0002"
+          ],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.DrawPipeline",
+          "file": "src/systems/DrawPipeline.js",
+          "purpose": "",
+          "loc": 779,
+          "size_kb": 30.3,
+          "loadIndex": 36,
+          "governed_by": [
+            "ADR-0002"
+          ],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.TransitionManager",
+          "file": "src/systems/TransitionManager.js",
+          "purpose": "Scene transitions",
+          "loc": 155,
+          "size_kb": 4.1,
+          "loadIndex": 37,
+          "governed_by": [
+            "ADR-0002"
+          ],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.TitleAnimator",
+          "file": "src/systems/TitleAnimator.js",
+          "purpose": "",
+          "loc": 289,
+          "size_kb": 10,
+          "loadIndex": 38,
+          "governed_by": [
+            "ADR-0002"
+          ],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.MessageSystem",
+          "file": "src/systems/MessageSystem.js",
+          "purpose": "Typed message overlays",
+          "loc": 572,
+          "size_kb": 18.1,
+          "loadIndex": 39,
+          "governed_by": [
+            "ADR-0002"
+          ],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.FloatingTextManager",
+          "file": "src/systems/FloatingTextManager.js",
+          "purpose": "Floating damage numbers",
+          "loc": 118,
+          "size_kb": 3.6,
+          "loadIndex": 57,
+          "governed_by": [
+            "ADR-0002"
+          ],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 1
+          }
+        },
+        {
+          "namespace": "Game.PerkIconManager",
+          "file": "src/systems/PerkIconManager.js",
+          "purpose": "",
+          "loc": 139,
+          "size_kb": 4.3,
+          "loadIndex": 58,
+          "governed_by": [
+            "ADR-0002"
+          ],
+          "tr_coverage": [
+            "TR-WEP-001",
+            "TR-WEP-002",
+            "TR-WEP-003",
+            "TR-WEP-004",
+            "TR-WEP-005",
+            "TR-WEP-006",
+            "TR-WEP-007",
+            "TR-WEP-008",
+            "TR-WEP-009",
+            "TR-WEP-010",
+            "TR-WEP-011",
+            "TR-WEP-012"
+          ],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.BossSpawner",
+          "file": "src/systems/BossSpawner.js",
+          "purpose": "",
+          "loc": 207,
+          "size_kb": 8.1,
+          "loadIndex": 61,
+          "governed_by": [
+            "ADR-0009"
+          ],
+          "tr_coverage": [
+            "TR-BS-001",
+            "TR-BS-002",
+            "TR-BS-003",
+            "TR-BS-004",
+            "TR-BS-005",
+            "TR-BS-006",
+            "TR-BS-007",
+            "TR-BS-008",
+            "TR-BS-009",
+            "TR-BS-010",
+            "TR-BS-011"
+          ],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.ArcadeModifiers",
+          "file": "src/systems/ArcadeModifiers.js",
+          "purpose": "",
+          "loc": 233,
+          "size_kb": 9.5,
+          "loadIndex": 62,
+          "governed_by": [
+            "ADR-0011"
+          ],
+          "tr_coverage": [
+            "TR-ARC-001",
+            "TR-ARC-002",
+            "TR-ARC-003",
+            "TR-ARC-004",
+            "TR-ARC-005",
+            "TR-ARC-006",
+            "TR-ARC-007",
+            "TR-ARC-008",
+            "TR-ARC-009",
+            "TR-ARC-010"
+          ],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 3
+          }
+        },
+        {
+          "namespace": "Game.QualityManager",
+          "file": "src/systems/QualityManager.js",
+          "purpose": "",
+          "loc": 434,
+          "size_kb": 22.4,
+          "loadIndex": 64,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "Entities",
+      "id": "entities",
+      "order": 3,
+      "description": "Game entity constructors",
+      "color": "#ff6b6b",
+      "module_count": 7,
+      "total_loc": 9979,
+      "total_size_kb": 411.1,
+      "avg_loc": 1426,
+      "modules": [
+        {
+          "namespace": "Game.Entity",
+          "file": "src/entities/Entity.js",
+          "purpose": "",
+          "loc": 25,
+          "size_kb": 0.5,
+          "loadIndex": 40,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 5
+          }
+        },
+        {
+          "namespace": "Game.Bullet",
+          "file": "src/entities/Bullet.js",
+          "purpose": "",
+          "loc": 1998,
+          "size_kb": 84.6,
+          "loadIndex": 41,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 3,
+            "depended_by_count": 5
+          }
+        },
+        {
+          "namespace": "Game.Player",
+          "file": "src/entities/Player.js",
+          "purpose": "Player entity constructor",
+          "loc": 3115,
+          "size_kb": 126.4,
+          "loadIndex": 42,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 9,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.EnemyAgentRenderer",
+          "file": "src/entities/EnemyAgentRenderer.js",
+          "purpose": "",
+          "loc": 1555,
+          "size_kb": 60.3,
+          "loadIndex": 43,
+          "governed_by": [
+            "ADR-0002"
+          ],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.Enemy",
+          "file": "src/entities/Enemy.js",
+          "purpose": "",
+          "loc": 1344,
+          "size_kb": 60.2,
+          "loadIndex": 44,
+          "governed_by": [
+            "ADR-0012"
+          ],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 5,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.Boss",
+          "file": "src/entities/Boss.js",
+          "purpose": "Boss entity constructor",
+          "loc": 1650,
+          "size_kb": 68.5,
+          "loadIndex": 45,
+          "governed_by": [
+            "ADR-0009"
+          ],
+          "tr_coverage": [
+            "TR-BS-001",
+            "TR-BS-002",
+            "TR-BS-003",
+            "TR-BS-004",
+            "TR-BS-005",
+            "TR-BS-006",
+            "TR-BS-007",
+            "TR-BS-008",
+            "TR-BS-009",
+            "TR-BS-010",
+            "TR-BS-011"
+          ],
+          "coupling": {
+            "depends_on_count": 8,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.PowerUp",
+          "file": "src/entities/PowerUp.js",
+          "purpose": "Power-up entity constructor",
+          "loc": 292,
+          "size_kb": 10.6,
+          "loadIndex": 46,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 3,
+            "depended_by_count": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "Managers",
+      "id": "managers",
+      "order": 4,
+      "description": "High-level game managers",
+      "color": "#fb923c",
+      "module_count": 9,
+      "total_loc": 4426,
+      "total_size_kb": 178.2,
+      "avg_loc": 492,
+      "modules": [
+        {
+          "namespace": "Game.WaveManager",
+          "file": "src/managers/WaveManager.js",
+          "purpose": "",
+          "loc": 1853,
+          "size_kb": 77.8,
+          "loadIndex": 47,
+          "governed_by": [
+            "ADR-0013"
+          ],
+          "tr_coverage": [
+            "TR-WAV-001",
+            "TR-WAV-002",
+            "TR-WAV-003",
+            "TR-WAV-004",
+            "TR-WAV-005",
+            "TR-WAV-006",
+            "TR-WAV-007"
+          ],
+          "coupling": {
+            "depends_on_count": 1,
+            "depended_by_count": 1
+          }
+        },
+        {
+          "namespace": "Game.CampaignState",
+          "file": "src/managers/CampaignState.js",
+          "purpose": "Campaign progression state",
+          "loc": 328,
+          "size_kb": 8.8,
+          "loadIndex": 49,
+          "governed_by": [
+            "ADR-0007"
+          ],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.DailyMode",
+          "file": "src/managers/DailyMode.js",
+          "purpose": "Daily challenge mode",
+          "loc": 80,
+          "size_kb": 2.1,
+          "loadIndex": 50,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.PerkManager",
+          "file": "src/managers/PerkManager.js",
+          "purpose": "Perk choice modal and state",
+          "loc": 132,
+          "size_kb": 4.3,
+          "loadIndex": 59,
+          "governed_by": [
+            "ADR-0010"
+          ],
+          "tr_coverage": [
+            "TR-WEP-001",
+            "TR-WEP-002",
+            "TR-WEP-003",
+            "TR-WEP-004",
+            "TR-WEP-005",
+            "TR-WEP-006",
+            "TR-WEP-007",
+            "TR-WEP-008",
+            "TR-WEP-009",
+            "TR-WEP-010",
+            "TR-WEP-011",
+            "TR-WEP-012"
+          ],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 1
+          }
+        },
+        {
+          "namespace": "Game.MiniBossManager",
+          "file": "src/managers/MiniBossManager.js",
+          "purpose": "",
+          "loc": 1121,
+          "size_kb": 50.6,
+          "loadIndex": 60,
+          "governed_by": [
+            "ADR-0011",
+            "ADR-0015"
+          ],
+          "tr_coverage": [
+            "TR-ARC-001",
+            "TR-ARC-002",
+            "TR-ARC-003",
+            "TR-ARC-004",
+            "TR-ARC-005",
+            "TR-ARC-006",
+            "TR-ARC-007",
+            "TR-ARC-008",
+            "TR-ARC-009",
+            "TR-ARC-010"
+          ],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.LeaderboardClient",
+          "file": "src/managers/LeaderboardClient.js",
+          "purpose": "Leaderboard API client",
+          "loc": 377,
+          "size_kb": 16.6,
+          "loadIndex": 65,
+          "governed_by": [
+            "ADR-0006"
+          ],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.StatsTracker",
+          "file": "src/managers/StatsTracker.js",
+          "purpose": "",
+          "loc": 149,
+          "size_kb": 4.4,
+          "loadIndex": 66,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.AchievementSystem",
+          "file": "src/managers/AchievementSystem.js",
+          "purpose": "",
+          "loc": 102,
+          "size_kb": 3.4,
+          "loadIndex": 67,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.ScoreManager",
+          "file": "src/managers/ScoreManager.js",
+          "purpose": "",
+          "loc": 284,
+          "size_kb": 10.2,
+          "loadIndex": 74,
+          "governed_by": [
+            "ADR-0011"
+          ],
+          "tr_coverage": [
+            "TR-ARC-001",
+            "TR-ARC-002",
+            "TR-ARC-003",
+            "TR-ARC-004",
+            "TR-ARC-005",
+            "TR-ARC-006",
+            "TR-ARC-007",
+            "TR-ARC-008",
+            "TR-ARC-009",
+            "TR-ARC-010"
+          ],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "Story",
+      "id": "story",
+      "order": 5,
+      "description": "Narrative system",
+      "color": "#f472b6",
+      "module_count": 6,
+      "total_loc": 1986,
+      "total_size_kb": 71,
+      "avg_loc": 331,
+      "modules": [
+        {
+          "namespace": "Game.StoryScreenData",
+          "file": "src/story/StoryScreenData.js",
+          "purpose": "",
+          "loc": 145,
+          "size_kb": 9.2,
+          "loadIndex": 51,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.StoryBackgrounds",
+          "file": "src/story/StoryBackgrounds.js",
+          "purpose": "",
+          "loc": 578,
+          "size_kb": 19.9,
+          "loadIndex": 52,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.StoryScreen",
+          "file": "src/story/StoryScreen.js",
+          "purpose": "Full-screen narrative display",
+          "loc": 589,
+          "size_kb": 19.2,
+          "loadIndex": 53,
+          "governed_by": [
+            "ADR-0001"
+          ],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.DialogueData",
+          "file": "src/story/DialogueData.js",
+          "purpose": "",
+          "loc": 246,
+          "size_kb": 10.9,
+          "loadIndex": 54,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.StoryManager",
+          "file": "src/story/StoryManager.js",
+          "purpose": "",
+          "loc": 198,
+          "size_kb": 5.2,
+          "loadIndex": 55,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 1,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.DialogueUI",
+          "file": "src/story/DialogueUI.js",
+          "purpose": "",
+          "loc": 230,
+          "size_kb": 6.6,
+          "loadIndex": 56,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "UI",
+      "id": "ui",
+      "order": 6,
+      "description": "User interface screens and overlays",
+      "color": "#a78bfa",
+      "module_count": 8,
+      "total_loc": 3965,
+      "total_size_kb": 176.5,
+      "avg_loc": 496,
+      "modules": [
+        {
+          "namespace": "Game.ToastSystem",
+          "file": "src/ui/ToastSystem.js",
+          "purpose": "",
+          "loc": 172,
+          "size_kb": 5,
+          "loadIndex": 14,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.LessonModal",
+          "file": "src/ui/LessonModal.js",
+          "purpose": "",
+          "loc": 135,
+          "size_kb": 5.1,
+          "loadIndex": 16,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.ModifierChoiceScreen",
+          "file": "src/ui/ModifierChoiceScreen.js",
+          "purpose": "",
+          "loc": 175,
+          "size_kb": 6.3,
+          "loadIndex": 63,
+          "governed_by": [
+            "ADR-0011"
+          ],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.DebugOverlay",
+          "file": "src/ui/DebugOverlay.js",
+          "purpose": "Debug info overlay",
+          "loc": 307,
+          "size_kb": 12.5,
+          "loadIndex": 68,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.IntroScreen",
+          "file": "src/ui/IntroScreen.js",
+          "purpose": "Title/menu screen",
+          "loc": 2032,
+          "size_kb": 100.8,
+          "loadIndex": 69,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.GameCompletion",
+          "file": "src/ui/GameCompletion.js",
+          "purpose": "",
+          "loc": 373,
+          "size_kb": 16.2,
+          "loadIndex": 70,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.UIManager",
+          "file": "src/ui/UIManager.js",
+          "purpose": "",
+          "loc": 631,
+          "size_kb": 26.4,
+          "loadIndex": 71,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        },
+        {
+          "namespace": "Game.TutorialManager",
+          "file": "src/ui/TutorialManager.js",
+          "purpose": "",
+          "loc": 140,
+          "size_kb": 4.2,
+          "loadIndex": 72,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "V8 Campaign",
+      "id": "v8",
+      "order": 7,
+      "description": "V8 scripted campaign scroller",
+      "color": "#22d3ee",
+      "module_count": 1,
+      "total_loc": 800,
+      "total_size_kb": 47.5,
+      "avg_loc": 800,
+      "modules": [
+        {
+          "namespace": "Game.LevelScript",
+          "file": "src/v8/LevelScript.js",
+          "purpose": "",
+          "loc": 800,
+          "size_kb": 47.5,
+          "loadIndex": 48,
+          "governed_by": [
+            "ADR-0007"
+          ],
+          "tr_coverage": [
+            "TR-V8-001",
+            "TR-V8-002",
+            "TR-V8-003",
+            "TR-V8-004",
+            "TR-V8-005",
+            "TR-V8-006",
+            "TR-V8-007",
+            "TR-V8-008",
+            "TR-V8-009",
+            "TR-V8-010",
+            "TR-V8-011"
+          ],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "Audio",
+      "id": "audio",
+      "order": 8,
+      "description": "Procedural music",
+      "color": "#4ade80",
+      "module_count": 1,
+      "total_loc": 976,
+      "total_size_kb": 47.3,
+      "avg_loc": 976,
+      "modules": [
+        {
+          "namespace": "Game.MusicData",
+          "file": "src/audio/MusicData.js",
+          "purpose": "Procedural music patterns",
+          "loc": 976,
+          "size_kb": 47.3,
+          "loadIndex": 7,
+          "governed_by": [],
+          "tr_coverage": [],
+          "coupling": {
+            "depends_on_count": 0,
+            "depended_by_count": 1
+          }
+        }
+      ]
+    }
+  ],
+  "gdds": [
+    {
+      "system": "V8 Scroller",
+      "file": "v8-scroller.md",
+      "status": "Approved",
+      "scope": "XL"
+    },
+    {
+      "system": "Arcade Rogue Protocol",
+      "file": "arcade-rogue-protocol.md",
+      "status": "Approved",
+      "scope": "L"
+    },
+    {
+      "system": "Enemy Agents (+ Currency Bullets + Elites/Behaviors)",
+      "file": "enemy-agents.md",
+      "status": "Approved",
+      "scope": "L"
+    },
+    {
+      "system": "Weapon Evolution + Elementals + GODCHAIN",
+      "file": "weapon-elementals-godchain.md",
+      "status": "Approved",
+      "scope": "XL"
+    },
+    {
+      "system": "Drop System + APC (+ Adaptive Balancer)",
+      "file": "drop-system-apc.md",
+      "status": "Approved",
+      "scope": "M"
+    },
+    {
+      "system": "Boss System + Proximity Kill (DIP)",
+      "file": "boss-proximity.md",
+      "status": "Approved",
+      "scope": "M"
+    },
+    {
+      "system": "Wave System (Legacy / Arcade)",
+      "file": "wave-legacy-arcade.md",
+      "status": "Approved",
+      "scope": "M"
+    }
+  ],
+  "adrs": [
+    {
+      "id": "ADR-0001",
+      "title": "GameStateMachine — Central State Management",
+      "status": "Accepted",
+      "layer": "Foundation"
+    },
+    {
+      "id": "ADR-0002",
+      "title": "Canvas 2D Rendering Pipeline",
+      "status": "Accepted",
+      "layer": "Foundation"
+    },
+    {
+      "id": "ADR-0003",
+      "title": "EventBus — Decoupled Pub/Sub Communication",
+      "status": "Accepted",
+      "layer": "Foundation"
+    },
+    {
+      "id": "ADR-0004",
+      "title": "Spatial-Grid Collision Detection",
+      "status": "Accepted",
+      "layer": "Core"
+    },
+    {
+      "id": "ADR-0005",
+      "title": "PWA + Service Worker Architecture",
+      "status": "Accepted",
+      "layer": "Infrastructure"
+    },
+    {
+      "id": "ADR-0006",
+      "title": "Cloudflare Workers Leaderboard Backend",
+      "status": "Accepted",
+      "layer": "Infrastructure"
+    },
+    {
+      "id": "ADR-0007",
+      "title": "V8 Scroller LevelScript Architecture",
+      "status": "Accepted",
+      "layer": "Core"
+    },
+    {
+      "id": "ADR-0008",
+      "title": "Drop System + Adaptive Power Calibration",
+      "status": "Accepted",
+      "layer": "Core"
+    },
+    {
+      "id": "ADR-0009",
+      "title": "Boss System + Proximity Kill (DIP) Meter",
+      "status": "Accepted",
+      "layer": "Core"
+    },
+    {
+      "id": "ADR-0010",
+      "title": "Weapon Evolution + Elementals + GODCHAIN",
+      "status": "Accepted",
+      "layer": "Core"
+    },
+    {
+      "id": "ADR-0011",
+      "title": "Arcade Rogue Protocol",
+      "status": "Accepted",
+      "layer": "Core"
+    },
+    {
+      "id": "ADR-0012",
+      "title": "Enemy Elites + Behaviors + Fire Suppression",
+      "status": "Accepted",
+      "layer": "Core"
+    },
+    {
+      "id": "ADR-0013",
+      "title": "Wave System — Streaming, Formations, Arcade Scaling",
+      "status": "Accepted",
+      "layer": "Core"
+    },
+    {
+      "id": "ADR-0014",
+      "title": "main.js Structure Refactoring",
+      "status": "Accepted",
+      "layer": "Foundation"
+    },
+    {
+      "id": "ADR-0015",
+      "title": "Arcade MiniBoss Rework",
+      "status": "Accepted",
+      "layer": "Core"
+    }
+  ]
+}
