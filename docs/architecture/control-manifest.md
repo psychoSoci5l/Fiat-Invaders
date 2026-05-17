@@ -3,7 +3,7 @@
 > **Engine**: Vanilla JavaScript (ES6+) / Canvas 2D
 > **Last Updated**: 2026-05-17
 > **Manifest Version**: 2026-05-17
-> **ADRs Covered**: ADR-0001, ADR-0002, ADR-0003, ADR-0004, ADR-0005, ADR-0006, ADR-0007, ADR-0008, ADR-0009, ADR-0010, ADR-0011, ADR-0012, ADR-0013
+> **ADRs Covered**: ADR-0001, ADR-0002, ADR-0003, ADR-0004, ADR-0005, ADR-0006, ADR-0007, ADR-0008, ADR-0009, ADR-0010, ADR-0011, ADR-0012, ADR-0013, ADR-0014, ADR-0015, ADR-0016
 > **Status**: Active — regenerate with `/create-control-manifest update` when ADRs change
 
 `Manifest Version` is the date this manifest was generated. Story files embed this date when created. `/story-readiness` compares a story's embedded version to this field to detect stories written against stale rules.
@@ -70,6 +70,11 @@ This manifest is a programmer's quick-reference extracted from all Accepted ADRs
 - **HYPER auto-activation** when DIP reaches 100 during boss fights — source: ADR-0009, ADR-0010
 - **Boss entrance sequence**: 80px/s descent, invulnerable (`isEntering` flag), completes before phase 1 — source: ADR-0009
 - **Boss rotation with V8 override**: Arcade = `(cycle-1) % 3`, V8 = per-level boss type — source: ADR-0009
+- **Miniboss as overlay threat, not replacement encounter** — wave continues streaming during miniboss fight; no `clearBattlefield()` on spawn — source: ADR-0015
+- **Per-bloc miniboss movement personalities** — each currency bloc (`$`, `¥`, `€`, `£`) has distinct movement pattern and signature attack; no shared sine-wave default — source: ADR-0015
+- **Hit-triggered perk drops during miniboss fights** — perks can drop on miniboss hit events, not only on kill — source: ADR-0015
+- **`miniBossActive` flag unblocks WaveManager** on miniboss defeat; `resumeStreaming()` restores wave state — source: ADR-0015
+- **Boss-instance miniboss path unchanged** — `miniBoss instanceof G.Boss` continues using 3-phase system; backward-compatible — source: ADR-0015
 - **Weapon level as integer** (1-3 permanent, 4-5 HYPER-only) with BalanceConfig LEVELS lookup table — source: ADR-0010
 - **`effectiveLevel = min(5, weaponLevel + (hyperActive ? 2 : 0))`** computed per-frame — source: ADR-0010
 - **Fixed perk order: Fire → Laser → Electric** enforced by Upgrades.order and PerkManager gate — source: ADR-0010
@@ -216,3 +221,8 @@ Canvas 2D (stable, no deprecated APIs in use):
 - **Version sync discipline**: Every version bump touches `Constants.js`, `sw.js`, and `CHANGELOG.md` as a single atomic change. Missing any one breaks cache management or deployment tracking.
 - **Kill-switch pattern**: All major subsystems have a boolean kill-switch in `BalanceConfig` (e.g., `ENEMY_AGENT_ENABLED`, `ADAPTIVE_DROPS_ENABLED`, `ELEMENTAL_CONTAGION_ENABLED`, `V8_MODE_ENABLED`). Feature flags for safe toggling without code deployment.
 - **Zero external dependencies at runtime**: No CDN scripts, no npm packages, no third-party services in the game client. The only external dependency is the Cloudflare Workers leaderboard backend.
+- **main.js as wiring hub, not logic container** — `src/main.js` orchestrates module initialization and game loop dispatch. Complex logic delegates to `GameplayCallbacks.js` and specialist modules. New methods longer than ~20 lines in main.js should trigger a refactor review — source: ADR-0014
+- **Entity arrays single source of truth** — `bullets`, `enemies`, `powerUps`, `particles` arrays live in main.js as authoritative battlefield state. Systems read these arrays; only main.js mutates them directly — source: ADR-0014
+- **init() is monolithic by design** — load-order dependency chain requires sequential initialization. Do not split init() without a full integration test plan — source: ADR-0014
+- **No direct localStorage in main.js** — all persistence must route through `Game.safeLocalStorage` wrapper or `MigrationSystem`. Direct `localStorage.getItem/setItem` calls in main.js are forbidden — source: ADR-0014
+- **StorySystem as consumer-only layer** — Story modules (StoryManager, StoryScreen, DialogueUI, StoryBackgrounds) consume events and game state but never drive gameplay logic. StoryScreen rendering is Canvas 2D (not DOM). DialogueUI is DOM-based — source: ADR-0016

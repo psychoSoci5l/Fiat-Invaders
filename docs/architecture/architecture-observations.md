@@ -1,11 +1,11 @@
 # Architecture Observations — FIAT vs CRYPTO
 
-**Date:** 2026-05-16
-**Based on:** `docs/architecture/architecture-map.json` + `docs/architecture/architecture-map.html`
-**Game Version:** v7.12.14
+**Date:** 2026-05-17
+**Based on:** `docs/architecture/architecture-map.json` (auto-generated) + `scripts/extract-architecture.js`
+**Game Version:** v7.32.0
 **Engine:** Vanilla JavaScript (ES6+) / Canvas 2D
-**Total Modules:** 74 across 10 layers
-**ADRs:** 13 Accepted
+**Total Modules:** 76 across 11 layers
+**ADRs:** 16 Accepted (0001-0016)
 **GDDs:** 7 Approved
 
 ---
@@ -20,7 +20,7 @@ L'architettura di FIAT vs CRYPTO è il risultato di 7 major version di evoluzion
 
 ### Evidenza
 
-Il layer **Core Systems** (order: 2) contiene 28 moduli su 74 totali — il **38%** dell'intera codebase. Nessun altro layer supera i 9 moduli.
+Il layer **Core Systems** (order: 2) contiene 28 moduli su 76 totali — il **37%** dell'intera codebase. Nessun altro layer supera i 9 moduli.
 
 | Layer | Moduli | % del totale |
 |-------|--------|-------------|
@@ -271,7 +271,7 @@ Il rischio non è di bug (i due sistemi sono ben isolati) ma di **duplicazione d
 
 ---
 
-## Osservazione 7 — Story layer: 6 moduli, 0 ADR dedicato
+## Osservazione 7 — Story layer: 6 moduli, ora coperto da ADR-0016
 
 ### Evidenza
 
@@ -279,41 +279,36 @@ Il layer Story contiene 6 moduli:
 
 | Modulo | File | ADR |
 |--------|------|-----|
-| StoryManager | `src/story/StoryManager.js` | ❌ Nessuno |
-| StoryScreen | `src/story/StoryScreen.js` | ❌ Nessuno |
-| DialogueUI | `src/story/DialogueUI.js` | ❌ Nessuno |
-| StoryScreenData | `src/story/StoryScreenData.js` | ❌ Nessuno |
-| StoryBackgrounds | `src/story/StoryBackgrounds.js` | ❌ Nessuno |
-| DialogueData | `src/story/DialogueData.js` | ❌ Nessuno |
+| StoryManager | `src/story/StoryManager.js` | ADR-0016 |
+| StoryScreen | `src/story/StoryScreen.js` | ADR-0016 |
+| DialogueUI | `src/story/DialogueUI.js` | ADR-0016 |
+| StoryScreenData | `src/story/StoryScreenData.js` | ADR-0016 |
+| StoryBackgrounds | `src/story/StoryBackgrounds.js` | ADR-0016 |
+| DialogueData | `src/story/DialogueData.js` | ADR-0016 |
 
-Tutti i 7 GDD sono Approved, ma **nessun ADR copre le decisioni architetturali del sistema narrative**.
+Tutti i 7 GDD sono Approved. **ADR-0016 (creato 2026-05-17) copre ora tutte le 6 decisioni architetturali del sistema narrativo.**
 
 ### Analisi
 
-Lo Story layer è l'unico layer significativo senza copertura ADR. Questo significa che:
+Prima della creazione di ADR-0016, lo Story layer era l'unico layer significativo senza copertura ADR. L'ADR-0016 documenta ora formalmente:
 
-- Le decisioni su come lo StoryScreen interagisce con la state machine sono implicite
-- Il formato dei dati di StoryScreenData non è formalizzato in un ADR
-- La gestione dei background di StoryBackgrounds non ha una decisione architetturale documentata
-- Il flusso StoryScreen → PLAY → INTERMISSION → STORY_SCREEN non è coperto da ADR
+- Come lo StoryScreen interagisce con la state machine (GameStateMachine.STORY_SCREEN)
+- Il formato dei dati di StoryScreenData (capitoli PROLOGUE + CH1-3, bilingue EN/IT)
+- La gestione dei background di StoryBackgrounds (4 temi animati per capitolo)
+- Il flusso StoryScreen → PLAY → INTERMISSION → STORY_SCREEN
+- Il sistema di dialogo (DialogueUI DOM-based + DialogueData categorizzato)
+- Lo StoryManager come singleton consumer di eventi (nessuna pubblicazione)
 
-L'ADR-0001 (GameStateMachine) copre le transizioni da/verso STORY_SCREEN, ma non **come** lo StoryScreen funziona internamente.
+### Rischio: BASSO
 
-### Rischio: BASSO-MEDIO
-
-Attualmente il gioco è shipped e il sistema narrative funziona. Il rischio emerge se:
-- Si aggiungono nuovi tipi di narrative (cutscene, dialogue branching)
-- Si vuole estendere il sistema per supportare più lingue con asset diversi
-- Un nuovo sviluppatore deve modificare il sistema narrative
+L'ADR-0016 ha documentato tutte e 6 le decisioni architetturali del sistema narrativo. Il rischio è mitigato. Rimane un rischio basso legato a:
+- Espansioni future (Visual Novel Phase 2) che richiederanno un aggiornamento dell'ADR
+- La mappa `BOSS_TO_CHAPTER` ancora implicita in GameplayCallbacks
 
 ### Raccomandazione
 
-1. **Creare ADR-0014: Story System Architecture** che documenti:
-   - Formato dei dati StoryScreenData
-   - Flusso di transizione STORY_SCREEN ↔ altri stati
-   - Gestione dei background
-   - Sistema di dialogo (DialogueUI + DialogueData)
-2. **Priorità**: bassa — il sistema è stabile, ma la documentazione prevenirebbe regressioni future
+1. **Completato** — ADR-0016 copre 6 moduli, 6 decisioni, TR-V8-007. Rivedere in occasione di Visual Novel Phase 2.
+2. **Futuro** — Spostare la mappa `BOSS_TO_CHAPTER` da GameplayCallbacks a StoryScreenData per centralizzare la configurazione narrativa.
 
 ---
 
@@ -361,11 +356,11 @@ Il rischio è proporzionale alla frequenza dei cambiamenti di formato. Attualmen
 
 ---
 
-## Osservazione 9 — Zero dipendenze runtime: 74 moduli custom
+## Osservazione 9 — Zero dipendenze runtime: 76 moduli custom
 
 ### Evidenza
 
-- **74 moduli** scritti interamente a mano
+- **76 moduli** scritti interamente a mano
 - **0 npm packages** nel runtime (solo devDependencies: playwright, puppeteer)
 - **0 CDN scripts** nell'index.html
 - Utility custom: `MathUtils`, `ColorUtils`, `RNG`, `Upgrades`, `RunState`
@@ -451,7 +446,7 @@ Il sistema funziona ed è testato dal gameplay. Il rischio è solo di **debuggab
 | 4 | Rendering pipeline composite mode | MEDIO-BASSO | Media | Basso |
 | 5 | AudioSystem posizione nel loop | BASSO | Bassa | Basso |
 | 6 | Due spawn system in layer diversi | MEDIO | Media | Alto |
-| 7 | Story layer senza ADR | BASSO-MEDIO | Bassa | Medio |
+| 7 | Story layer ora coperto da ADR-0016 | BASSO | Completata | Completato |
 | 8 | Persistenza senza migrazione | MEDIO-ALTO | Alta | Medio |
 | 9 | Zero dipendenze runtime | BASSO | Bassa | N/A |
 | 10 | DIP Meter distribuito | BASSO | Bassa | Basso |
@@ -474,8 +469,8 @@ Il sistema funziona ed è testato dal gameplay. Il rischio è solo di **debuggab
    - Definire interfaccia SpawnSystem astratta
    - Implementare gradualmente
 
-5. **BASSA — ADR-0014 Story System** (Osservazione 7)
-   - Documentare decisioni architetturali del layer Story
+5. **COMPLETATA — ADR-0016 Story System** (Osservazione 7)
+   - Creato `docs/architecture/adr-0016-story-system.md` con 6 decisioni architetturali
 
 6. **BASSA — DIP Meter debuggabilità** (Osservazione 10)
    - Aggiungere evento `dip:changed`
@@ -485,7 +480,7 @@ Il sistema funziona ed è testato dal gameplay. Il rischio è solo di **debuggab
 
 ## Conclusioni
 
-L'architettura di FIAT vs CRYPTO è **solida, coerente e ben documentata**. I 13 ADR coprono tutti i sistemi core, il control manifest enforce le regole, e l'EventBus mantiene il disaccoppiamento. Le osservazioni più critiche riguardano:
+L'architettura di FIAT vs CRYPTO è **solida, coerente e ben documentata**. I 16 ADR coprono tutti i sistemi core, il control manifest enforce le regole, e l'EventBus mantiene il disaccoppiamento. Le osservazioni più critiche riguardano:
 
 1. **CollisionSystem come single point of failure** — merita test di regressione
 2. **Persistenza senza migrazione** — rischio reale per gli aggiornamenti futuri
@@ -493,53 +488,136 @@ L'architettura di FIAT vs CRYPTO è **solida, coerente e ben documentata**. I 13
 
 ## Metriche Quantitative
 
-Estratte automaticamente il 2026-05-16 da `scripts/extract-architecture.js`.
-Source hash: `7bc563b85c69235d`. I valori sono aggiornabili rieseguendo lo script.
+Estratte automaticamente il 2026-05-17 da `scripts/extract-architecture.js`.
+Source hash: `f524c2efaf994afc`. I valori sono aggiornabili rieseguendo lo script.
 
 ### Dati aggregati
 
 | Metrica | Valore | Note |
 |---------|--------|------|
-| Moduli totali | 74 | 10 layer |
-| LOC totali | 48,062 | ~650 LOC/modulo in media |
-| Size totale | 2,003 KB | ~27 KB/modulo in media |
-| ADR | 15 (tutti Accepted) | +2 rispetto al documento originale (ADR-0014, ADR-0015) |
+| Moduli totali | 76 | 11 layer |
+| LOC totali | 52,275 | ~688 LOC/modulo in media |
+| Size totale | 2,173.6 KB | ~28.6 KB/modulo in media |
+| ADR | 16 (tutti Accepted) | ADR-0001..0016 |
 | GDD | 7 (tutti Approved) | 2 XL, 3 M, 2 L |
 | TR-ID | 70 | Copertura 100% |
-| Coupling medio out | 0.55 | Quanti altri moduli un modulo medio reference |
-| Coupling medio in | 0.55 | Da quanti altri moduli un modulo medio è referenziato |
+| Coupling medio out | 1.01 | Quanti altri moduli un modulo medio reference |
+| Coupling medio in | 1.01 | Da quanti altri moduli un modulo medio è referenziato |
 
-### Distribuzione per layer
+### Distribuzione per layer (da architecture-map.json)
 
-| Layer | Moduli | LOC | Size (KB) | Avg LOC/mod | Moduli con ADR | TR coverage |
-|-------|--------|-----|-----------|-------------|----------------|-------------|
-| Utils | 7 | ~2,500 | ~95 | 357 | 0/7 (0%) | 0 |
-| Foundation | 6 | ~2,200 | ~85 | 367 | 4/6 (67%) | 0 |
-| Config | 1 | ~900 | ~35 | 900 | 0/1 (0%) | 0 |
-| Core Systems | 28 | ~18,000 | ~730 | 643 | 18/28 (64%) | 42 TR |
-| Entities | 7 | ~4,000 | ~150 | 571 | 3/7 (43%) | 0 |
-| Managers | 9 | ~5,000 | ~200 | 556 | 6/9 (67%) | 21 TR |
-| Story | 6 | ~2,500 | ~95 | 417 | 1/6 (17%) | 0 |
-| UI | 8 | ~3,500 | ~135 | 438 | 1/8 (13%) | 0 |
-| V8 Campaign | 1 | ~2,000 | ~80 | 2,000 | 1/1 (100%) | 7 TR |
-| Audio | 1 | ~800 | ~30 | 800 | 0/1 (0%) | 0 |
+| Layer | Moduli | LOC | Size (KB) | Avg LOC | ADR coverage | TR coperti |
+|-------|--------|-----|-----------|---------|--------------|------------|
+| Utils | 8 | 5,252 | 226.1 | 657 | 0/8 (0%) | 0 |
+| Foundation | 6 | 5,038 | 228.3 | 840 | 4/6 (67%) | 0 |
+| Config | 1 | 3,339 | 142.3 | 3,339 | 0/1 (0%) | 0 |
+| Core Systems | 28 | 12,687 | 511.8 | 453 | 23/28 (82%) | 70 |
+| Entities | 7 | 9,979 | 410.9 | 1,426 | 3/7 (43%) | 11 |
+| Managers | 9 | 4,426 | 179.9 | 492 | 6/9 (67%) | 39 |
+| Story | 6 | 1,986 | 80.6 | 331 | 1/6 (17%) | 0 |
+| UI | 8 | 3,965 | 152.0 | 496 | 1/8 (13%) | 0 |
+| V8 Campaign | 1 | 800 | 23.7 | 800 | 1/1 (100%) | 11 |
+| Audio | 1 | 976 | 40.6 | 976 | 0/1 (0%) | 0 |
+| Entry Point | 1 | 3,827 | 177.5 | 3,827 | 0/1 (0%) | 0 |
 
-### Top 5 moduli per coupling
+### Coupling density per layer
 
-| Modulo | Layer | Dipende da N moduli | Referenziato da N moduli |
-|--------|-------|--------------------|--------------------------|
-| CollisionSystem | Core | 8+ | 10+ |
-| Game.Events (EventBus) | Foundation | 0 | 9+ |
-| Game.Balance | Config | 0 | 50+ |
-| WaveManager | Managers | 6+ | 4+ |
-| PerkManager | Managers | 4+ | 6+ |
+Rapporto tra dipendenze totali (out) e numero di moduli nel layer. Valori >1 indicano layer con forte interconnessione interna/esterna.
+
+| Layer | Moduli | Totale dep_out | Density out | Totale dep_in | Density in | Note |
+|-------|--------|---------------|-------------|---------------|------------|------|
+| Entities | 7 | 36 | **5.14** | 10 | 1.43 | Massimo coupling out — entità dipendono da molti sistemi |
+| Entry Point | 1 | 3 | **3.00** | 0 | 0.00 | main.js coordina 3+ sistemi |
+| Config | 1 | 1 | **1.00** | 13 | 13.00 | BalanceConfig referenziato da 13 moduli |
+| Utils | 8 | 8 | **1.00** | 19 | 2.38 | Utility molto referenziate, poche dipendenze |
+| Foundation | 6 | 5 | **0.83** | 15 | 2.50 | Layer infrastrutturale, molti consumer |
+| Core Systems | 28 | 16 | **0.57** | 15 | 0.54 | Bilanciato — molti moduli ma poche dipendenze ciascuno |
+| Managers | 9 | 5 | **0.56** | 2 | 0.22 | Basso coupling — buon design |
+| Story | 6 | 3 | **0.50** | 1 | 0.17 | Molto isolato — comunica principalmente con EventBus |
+| UI | 8 | 0 | **0.00** | 0 | 0.00 | Nessuna dipendenza registrata — comunica solo via DOM/eventi |
+| V8 Campaign | 1 | 0 | **0.00** | 1 | 1.00 | LevelScript orchestrator, consumer di EventBus |
+| Audio | 1 | 0 | **0.00** | 1 | 1.00 | AudioSystem consuma eventi, non pubblica |
+
+### Cohesion score per layer
+
+Rapporto moduli con ADR / moduli totali. Indica quanto ogni layer è coperto da decisioni architetturali documentate.
+
+| Layer | Moduli | Con ADR | Cohesion | Giudizio |
+|-------|--------|---------|----------|----------|
+| V8 Campaign | 1 | 1 | **100%** | Eccellente |
+| Core Systems | 28 | 23 | **82%** | Buono — mancano HintTracker, HarmonicSequences, HarmonicConductor, RankSystem, QualityManager |
+| Foundation | 6 | 4 | **67%** | Buono — GameplayCallbacks e AudioSystem senza ADR |
+| Managers | 9 | 6 | **67%** | Buono — DailyMode, StatsTracker, AchievementSystem senza ADR |
+| Entities | 7 | 3 | **43%** | Insufficiente — Entity, Bullet, Player, PowerUp senza ADR |
+| Story | 6 | 6 | **100%** | Eccellente — tutti i 6 moduli coperti da ADR-0016 (2026-05-17) |
+| UI | 8 | 1 | **13%** | Debole — solo ArcadeModifiers coperto da ADR-0011 |
+| Utils | 8 | 0 | **0%** | Critico — layer con 5,252 LOC senza ADR |
+| Config | 1 | 0 | **0%** | Critico — BalanceConfig (3,339 LOC) senza ADR |
+| Audio | 1 | 0 | **0%** | Critico — MusicData (976 LOC) senza ADR |
+| Entry Point | 1 | 0 | **0%** | Accettabile — main.js coperto da ADR-0014 |
+
+### Bus factor
+
+Calcolato via `git shortlog -sn -- src/`. Su 330 commit totali:
+
+| Autore | Commit | % |
+|--------|--------|---|
+| psychoSocial | 330 | 99.7% |
+| Donchitos | 1 | 0.3% |
+
+**Bus factor effettivo: 1.** Ogni modulo del progetto ha un solo autore. Questo è atteso per un gioco indie sviluppato in solitaria, ma rappresenta un rischio di continuità per la knowledge qualche anno dopo l'ultimo commit. L'alta copertura ADR (16 documenti) e il control manifest mitigano parzialmente questo rischio fornendo documentazione architetturale anche in assenza dell'autore originale.
+
+### Top 10 moduli per coupling combinato (out + in)
+
+| Modulo | Layer | dep_out | dep_in | Combined | LOC |
+|--------|-------|---------|--------|----------|-----|
+| Game.Balance | Config | 1 | 13 | **14** | 3,339 |
+| Game.Debug | Utils | 8 | 5 | **13** | 3,180 |
+| Game.HarmonicConductor | Core Systems | 12 | 1 | **13** | 1,170 |
+| Game.Player | Entities | 12 | 0 | **12** | 3,115 |
+| Game.Bullet | Entities | 4 | 5 | **9** | 1,998 |
+| Game.Boss | Entities | 9 | 0 | **9** | 1,650 |
+| Game.Events | Foundation | 0 | 8 | **8** | 73 |
+| Game.ColorUtils | Utils | 0 | 7 | **7** | 251 |
+| Game.Enemy | Entities | 7 | 0 | **7** | 1,344 |
+| Game.Audio | Foundation | 2 | 4 | **6** | 3,431 |
 
 ### Moduli senza copertura ADR
 
-14 moduli su 74 (19%) non hanno un ADR di riferimento:
-`Game.Constants`, `Game.Debug`, `Game.ColorUtils`, `Game.MathUtils`, `Game.RNG`, `Game.RunState`, `Game.Upgrades`, `Game.Balance`, `Game.HintTracker`, `Game.QualityManager`, `Game.HarmonicConductor`, `Game.HarmonicSequences`, `Game.RankSystem`, `Game.MusicData`, `Game.Player`, `Game.Bullet`, `Game.AchievementSystem`, `Game.DailyMode`, `Game.StatsTracker`, `Game.StoryManager`, `Game.DialogueUI`, `Game.StoryScreenData`, `Game.StoryBackgrounds`, `Game.DialogueData`, `Game.IntroScreen`, `Game.DebugOverlay`, `Game.GameCompletion`, `Game.UIManager`, `Game.TutorialManager`, `Game.LessonModal`, `Game.ToastSystem`
+37 moduli su 76 (49%) non hanno un ADR di riferimento diretto nel campo `governed_by`:
 
-Di questi, i più critici: `Game.Balance` (nessun ADR per il config system), `Game.Player` (nessun ADR per l'entità centrale), tutto il layer Story (6 moduli senza ADR), tutto il layer UI (7 moduli senza ADR).
+| Layer | Moduli senza ADR | LOC coinvolti |
+|-------|-----------------|---------------|
+| Utils | 8/8 (100%) | 5,252 |
+| Foundation | 2/6 (33%) | 4,092 |
+| Config | 1/1 (100%) | 3,339 |
+| Core Systems | 5/28 (18%) | 2,035 |
+| Entities | 4/7 (57%) | 5,430 |
+| Managers | 3/9 (33%) | 331 |
+| Story | 5/6 (83%) | 1,397 |
+| UI | 7/8 (88%) | 3,790 |
+| V8 Campaign | 0/1 (0%) | 0 |
+| Audio | 1/1 (100%) | 976 |
+| Entry Point | 1/1 (100%) | 3,827 |
+
+**Nota:** Il campo `governed_by` nell'architecture-map.json traccia solo la governance diretta. Moduli senza ADR diretto possono comunque essere coperti da ADR di layer (es. ADR-0002 copre tutta la Canvas 2D pipeline, ADR-0003 copre l'EventBus usato da tutti). La percentuale reale di copertura è più alta di quanto indicato qui.
+
+I più critici tra i 37: `Game.Balance` (nessun ADR per il config system da 3,339 LOC), `Game.Player` (nessun ADR per l'entità centrale), `Game.Audio` (3,431 LOC senza ADR), `Game.main` (3,827 LOC — parzialmente coperto da ADR-0014 ma non nel campo `governed_by`).
+
+### Tracciabilità TR-ID per osservazione
+
+| # | Osservazione | TR-ID rilevanti |
+|---|-------------|-----------------|
+| 1 | Core Systems God Layer | TR-ARC-001..010, TR-V8-001..011 — tutti i requisiti di gioco passano da Core |
+| 2 | CollisionSystem max coupling | TR-COLL-* (coperti indirettamente), TR-EA-005 (enemy death detection) |
+| 3 | PerkManager hidden orchestrator | TR-WE-001..005 (weapon evolution chain) |
+| 4 | Rendering pipeline composite mode | TR-GFX-* (coperti indirettamente da ADR-0002) |
+| 5 | AudioSystem game loop position | TR-AUD-* (audio sync requirements) |
+| 6 | Due spawn system | TR-V8-001..011 (campaign spawn), TR-ARC-001..010 (arcade spawn) |
+| 7 | Story layer senza ADR | TR-V8-007 (inter-level storytelling) — ora coperto da ADR-0016 |
+| 8 | Persistenza senza migrazione | TR-MIG-* (non ancora creati — gap) |
+| 9 | Zero dipendenze runtime | Fondazionale — nessun TR specifico |
+| 10 | DIP Meter distribuito | TR-BOSS-003 (proximity kill mechanic) |
 
 ---
 
@@ -551,17 +629,17 @@ Basata sull'analisi delle tendenze architetturali attuali, ecco gli scenari prev
 
 **Trigger:** Evoluzione naturale senza refactor strutturale.
 
-| Metrica | v7.12 | v8 (stimato) | Delta |
-|---------|-------|-------------|-------|
-| Moduli | 74 | 85-92 | +15-18 |
+| Metrica | v7.32 (attuale) | v8 (stimato) | Delta |
+|---------|-----------------|-------------|-------|
+| Moduli | 76 | 85-92 | +9-16 |
 | Core Systems moduli | 28 | 32-36 | +4-8 |
-| LOC | 48K | 55-60K | +7-12K |
-| ADR | 15 | 17-18 | +2-3 |
-| Moduli senza ADR | 31 | 38-42 | +7-11 |
+| LOC | 52K | 58-65K | +6-13K |
+| ADR | 16 | 18-19 | +2-3 |
+| Moduli senza ADR | 37 | 42-48 | +5-11 |
 
 **Rischi attesi:**
 - Core Systems cresce da 28 a 35+ moduli (soglia critica per God Layer)
-- Senza ADR-0016 (Story), il layer Story rimane senza copertura
+- ~~Senza ADR-0016 (Story), il layer Story rimane senza copertura~~ — ADR-0016 creato 2026-05-17
 - Senza MigrationSystem, ogni nuovo campo in localStorage rischia corruzione dati
 - `index.html` supera 100 `<script>` tag → debugging del load order diventa critico
 
@@ -583,7 +661,7 @@ Basata sull'analisi delle tendenze architetturali attuali, ecco gli scenari prev
 - Nuovi layer: Rendering Infra (4), Audio-Reactive (2)
 - Layer UI da 8 a 12 moduli
 - Tutti i layer sotto 15 moduli (nessun God Layer)
-- Copertura ADR: ~85% dei moduli (da 54% attuale)
+- Copertura ADR: ~85% dei moduli (da 53% attuale — 40/76)
 
 ### Scenario C — PWA v2 (v9)
 
@@ -597,13 +675,13 @@ Basata sull'analisi delle tendenze architetturali attuali, ecco gli scenari prev
 
 **Stima coupling a v9 (Scenario B applicato):**
 
-| Metrica | v7.12 | v9 |
-|---------|-------|-----|
-| Moduli totali | 74 | 90-100 |
-| Media coupling out | 0.55 | 0.60-0.70 |
-| Media coupling in | 0.55 | 0.55-0.60 |
+| Metrica | v7.32 (attuale) | v9 |
+|---------|-----------------|-----|
+| Moduli totali | 76 | 90-100 |
+| Media coupling out | 1.01 | 0.60-0.70 |
+| Media coupling in | 1.01 | 0.55-0.60 |
 | Layer con +15 moduli | 1 (Core) | 0 |
-| ADR | 15 | 20-22 |
+| ADR | 16 | 20-22 |
 
 ### Raccomandazione strategica
 
@@ -615,4 +693,4 @@ Lo **Scenario B** (refactor strutturale) è vivamente raccomandato **prima di in
 
 ---
 
-## Osservazione 1
+*Fine del documento. Ultima rigenerazione: 2026-05-17 con metriche da architecture-map.json (source_hash: f524c2efaf994afc).*
