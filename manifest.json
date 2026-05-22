@@ -7,6 +7,26 @@
   "background_color": "#000000",
   "theme_color": "#000000",
   "orientation": "portrait",
+  "shortcuts": [
+    {
+      "name": "New Game (Arcade)",
+      "short_name": "Arcade",
+      "description": "Start a new arcade run",
+      "url": "/?mode=arcade"
+    },
+    {
+      "name": "New Game (Story)",
+      "short_name": "Story",
+      "description": "Start or continue story mode",
+      "url": "/?mode=story"
+    },
+    {
+      "name": "Leaderboard",
+      "short_name": "Scores",
+      "description": "View high scores",
+      "url": "/?leaderboard"
+    }
+  ],
   "icons": [
     {
       "src": "icon-120.png",

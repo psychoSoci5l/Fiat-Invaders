@@ -53,6 +53,7 @@ window.Game = window.Game || {};
         if (skipBtn) skipBtn.onclick = completeTutorial;
 
         overlay.style.display = 'flex';
+        if (G.Accessibility) G.Accessibility.openModal(overlay);
 
         if (d.setGameState) d.setGameState('WARMUP');
         _warmupShown = true;
@@ -100,9 +101,10 @@ window.Game = window.Game || {};
 
         var overlay = document.getElementById('tutorial-overlay');
         if (overlay) {
-        overlay.style.display = 'none';
-        overlay.style.transition = '';
-        overlay.style.opacity = '';
+            overlay.style.display = 'none';
+            overlay.style.transition = '';
+            overlay.style.opacity = '';
+            if (G.Accessibility) G.Accessibility.closeModal(overlay);
         }
 
         _completeFlow();

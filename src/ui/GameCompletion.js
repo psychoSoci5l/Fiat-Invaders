@@ -288,6 +288,7 @@ window.Game = window.Game || {};
             goScreen.classList.remove('anim-screen-in');
             void goScreen.offsetHeight;
             goScreen.classList.add('anim-screen-in');
+            if (G.Accessibility) G.Accessibility.openModal(goScreen);
             // v7.17.0: Capture death phase for phase-aware game-over styling
             var deathPhase = G.PhaseTransitionController ? G.PhaseTransitionController.getCurrentPhase() : 2;
             goScreen.setAttribute('data-death-phase', deathPhase || '2');
@@ -295,6 +296,7 @@ window.Game = window.Game || {};
         d.setUI('finalScore', Math.floor(d.getScore()));
         const ui = d.getUI();
         if (ui.gameoverMeme) ui.gameoverMeme.innerText = d.getRandomMeme();
+        if (G.Events) G.Events.emit('a11y:announce', 'Game Over. Final score ' + Math.floor(d.getScore()));
 
         const isStory = G.CampaignState && G.CampaignState.isEnabled();
         const statsRow = document.getElementById('arcade-stats-row');

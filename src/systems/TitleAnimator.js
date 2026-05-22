@@ -184,7 +184,7 @@
         // --- Private methods ---
 
         _prefersReducedMotion() {
-            return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            return window.Game.Accessibility && window.Game.Accessibility.prefersReducedMotion();
         },
 
         _showAllImmediate() {

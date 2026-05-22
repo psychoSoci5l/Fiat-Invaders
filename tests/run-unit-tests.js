@@ -1,5 +1,6 @@
 // Run unit tests via Playwright and report results
 const { chromium } = require('playwright');
+const baseUrl = process.env.TEST_BASE_URL || 'http://localhost:8000';
 
 async function runUnitTests() {
     console.log('\n=== Unit Test Suite — Automated Runner ===\n');
@@ -12,7 +13,7 @@ async function runUnitTests() {
     page.on('console', msg => logs.push(`[${msg.type()}] ${msg.text()}`));
     page.on('pageerror', err => logs.push(`[PAGE_ERROR] ${err.message}`));
 
-    await page.goto('http://localhost:8000/tests/runner.html', {
+    await page.goto(`${baseUrl}/tests/runner.html`, {
         waitUntil: 'networkidle',
         timeout: 30000
     });

@@ -6656,3 +6656,132 @@ body.is-touch p.mobile-only { display: block; }
     font-size: 11px;
     z-index: 300;
 }
+
+/* ======== ACCESSIBILITY ======== */
+
+/* Skip-to-content link */
+.skip-link {
+    position: absolute;
+    top: -999px;
+    left: 8px;
+    z-index: 10000;
+    background: #fff;
+    color: #000;
+    padding: 8px 16px;
+    font-family: sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    text-decoration: none;
+    border-radius: 0 0 4px 4px;
+}
+.skip-link:focus {
+    top: 0;
+    outline: 3px solid Highlight;
+}
+@media (forced-colors: none) {
+    .skip-link:focus {
+        outline: 3px solid #bb44ff;
+    }
+}
+
+/* Force dark color scheme (game is OLED-black) */
+:root {
+    color-scheme: dark;
+}
+
+/* Focus-visible for ALL interactive elements that lack it */
+.mode-pill:focus-visible,
+.ship-arrow:focus-visible,
+.current-mode-indicator:focus-visible,
+.nickname-input:focus-visible,
+.feedback-input:focus-visible,
+.feedback-textarea:focus-visible,
+.slider-cell:focus-visible,
+#pause-btn:focus-visible,
+#joystick-base:focus-visible,
+#joy-deadzone:focus-visible,
+#joy-sensitivity:focus-visible,
+input[type="range"]:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 3px;
+}
+
+/* Outline: none → :focus:not(:focus-visible) pattern */
+.btn:focus:not(:focus-visible),
+.skip-btn:focus:not(:focus-visible),
+.curtain-overlay *:focus:not(:focus-visible),
+.scanlines *:focus:not(:focus-visible) {
+    outline: none;
+}
+
+/* Windows High Contrast Mode */
+@media (forced-colors: active) {
+    .btn {
+        border: 2px solid ButtonText;
+    }
+    .btn-primary,
+    .btn-cta {
+        background: ButtonFace;
+        color: ButtonText;
+        box-shadow: none;
+        text-shadow: none;
+    }
+    .btn-launch {
+        background: ButtonFace;
+        color: ButtonText;
+        box-shadow: none;
+    }
+    .btn-cta.launch-state {
+        background: Highlight;
+        color: HighlightText;
+    }
+    .hud-score-value {
+        color: ButtonText;
+        text-shadow: none;
+    }
+    .scanlines,
+    .vignette,
+    .curtain-overlay {
+        display: none;
+    }
+    .game-title {
+        color: ButtonText;
+        text-shadow: none;
+    }
+    .title-fiat,
+    .title-crypto,
+    .title-vs {
+        color: ButtonText;
+        text-shadow: none;
+        animation: none;
+    }
+    .hud-heart {
+        color: ButtonText;
+    }
+    #intro-video {
+        display: none;
+    }
+    .skip-btn {
+        border-color: ButtonText;
+        color: ButtonText;
+    }
+}
+
+/* Increased contrast preference */
+@media (prefers-contrast: more) {
+    .btn {
+        border-width: 3px;
+    }
+    .hud-score-value {
+        text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000;
+        color: #ffaa00;
+    }
+    .hud-lives #livesText {
+        text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000;
+    }
+    .gameover-actions .btn,
+    .btn-primary,
+    .btn-secondary {
+        border-width: 3px;
+    }
+}

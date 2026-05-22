@@ -303,7 +303,14 @@ class InputSystem {
     }
 
     handleGlobalKeys(code) {
-        if (code === 'Escape' && this.callbacks['escape']) this.callbacks['escape']();
+        if (code === 'Escape') {
+            // Close topmost modal first if any modal is open
+            if (window.Game.Accessibility && window.Game.Accessibility.isModalOpen()) {
+                window.Game.Accessibility.closeTopModal();
+                return;
+            }
+            if (this.callbacks['escape']) this.callbacks['escape']();
+        }
         if ((code === 'Enter' || code === 'Space') && this.callbacks['start']) this.callbacks['start']();
         if (code === 'F3' && this.callbacks['toggleDebug']) this.callbacks['toggleDebug']();
         if (code === 'F4') this.toggleDebugMode();  // Touch debug overlay

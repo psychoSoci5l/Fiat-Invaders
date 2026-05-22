@@ -469,26 +469,37 @@ function emitEvent(name, payload) { if (events && events.emit) events.emit(name,
 function _countActive(arr) { var c = 0; for (var i = 0, len = arr.length; i < len; i++) { if (arr[i] && arr[i].life > 0) c++; } return c; }
 
 // Message functions - delegate to MessageSystem
-function showMemeFun(text, duration = 1500) {
+function _a11yMsg(text, priority) {
+    if (G.Events && text && typeof text === 'string') {
+        G.Events.emit('a11y:announce', text.replace(/<[^>]+>/g, '').substring(0, 120));
+    }
+}
+function showMemeFun(text, duration) {
+    if (duration === undefined) duration = 1500;
     if (G.MessageSystem) G.MessageSystem.showMemeFun(text, duration);
 }
 function showPowerUp(text) {
+    _a11yMsg(text);
     if (G.MessageSystem) G.MessageSystem.showPowerUp(text);
 }
 function showPickup(text) {
     if (G.MessageSystem) G.MessageSystem.showPickup(text);
 }
 function showGameInfo(text) {
+    _a11yMsg(text);
     if (G.MessageSystem) G.MessageSystem.showGameInfo(text);
 }
 function showDanger(text) {
+    _a11yMsg(text, 1);
     if (G.MessageSystem) G.MessageSystem.showDanger(text, 20);
     else shake = Math.max(shake, 20); // Fallback shake
 }
 function showVictory(text) {
+    _a11yMsg(text);
     if (G.MessageSystem) G.MessageSystem.showVictory(text);
 }
-function showMemePopup(text, duration = 1500) {
+function showMemePopup(text, duration) {
+    if (duration === undefined) duration = 1500;
     if (G.MessageSystem) G.MessageSystem.showMemePopup(text, duration);
 }
 function updateTypedMessages(dt) {
@@ -860,6 +871,10 @@ function init() {
             G.Events.on('player:godchain-activated', () => G.StatsTracker.recordGodchain());
             // v7.32.0: DipMeter threshold logging via DebugSystem
             G.Events.on('dip:changed', (data) => { if (G.Debug) G.Debug.trackDip(data); });
+            // v8 accessibility: screen reader announcements
+            G.Events.on('a11y:announce', function(msg) {
+                if (G.Accessibility) G.Accessibility.announce(msg);
+            });
             // v7.17.0: Phase-aware UI theming — update CSS vars on phase change
             G.Events.on('phase-change', function(data) {
                 var phaseVars = {
@@ -1280,12 +1295,14 @@ G.toggleFeedback = function () {
     if (isVisible) {
         overlay.style.display = 'none';
         overlay.classList.remove('anim-modal-in');
+        if (G.Accessibility) G.Accessibility.closeModal(overlay);
         return;
     }
     overlay.style.display = 'flex';
     overlay.classList.remove('anim-modal-in');
     void overlay.offsetHeight;
     overlay.classList.add('anim-modal-in');
+    if (G.Accessibility) G.Accessibility.openModal(overlay);
     // Update i18n texts
     const title = document.getElementById('feedback-title');
     const subject = document.getElementById('feedback-subject');
@@ -1522,6 +1539,8 @@ window.restartRun = function () {
 window.restartFromGameOver = function () {
     if (G.DebugOverlay) G.DebugOverlay.hide();
     setStyle('gameover-screen', 'display', 'none');
+    var goEl = document.getElementById('gameover-screen');
+    if (goEl && G.Accessibility) G.Accessibility.closeModal(goEl);
     if (_blockIfDailyConsumed()) return;
     audioSys.resetState(); // Reset audio state for new run
     // v7.7.0: forceSet HANGAR — only state that directly allows PLAY/WARMUP.
@@ -1579,6 +1598,7 @@ function showV8Intermission() {
         v8Screen.classList.remove('anim-screen-in');
         void v8Screen.offsetHeight;
         v8Screen.classList.add('anim-screen-in');
+        if (G.Accessibility) G.Accessibility.openModal(v8Screen);
     }
     setStyle('pause-btn', 'display', 'none');
     if (ui.uiLayer) ui.uiLayer.style.display = 'none';
@@ -1594,13 +1614,16 @@ function showV8Intermission() {
 function advanceToNextV8Level() {
     if (!G.LevelScript) return;
     const nextIdx = G.LevelScript.currentLevelNum(); // 1-indexed current → 0-indexed next
+    var v8El = document.getElementById('v8-intermission-screen');
     if (nextIdx >= G.LevelScript.LEVELS.length) {
         // Defensive: no more levels, fall through to gameover
         setStyle('v8-intermission-screen', 'display', 'none');
+        if (v8El && G.Accessibility) G.Accessibility.closeModal(v8El);
         triggerGameOver();
         return;
     }
     setStyle('v8-intermission-screen', 'display', 'none');
+    if (v8El && G.Accessibility) G.Accessibility.closeModal(v8El);
 
     // Clear any lingering entities (enemies array shared with G.enemies)
     enemies.length = 0;

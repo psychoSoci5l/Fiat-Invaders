@@ -81,6 +81,7 @@
         });
 
         overlay.style.display = 'flex';
+        if (G.Accessibility) G.Accessibility.openModal(overlay);
 
         // Focus first card for keyboard nav
         if (_cards[0]) {
@@ -159,7 +160,10 @@
         _cards = [];
         document.removeEventListener('keydown', _onKeyDown);
         const overlay = document.getElementById('modifier-overlay');
-        if (overlay) overlay.style.display = 'none';
+        if (overlay) {
+            overlay.style.display = 'none';
+            if (G.Accessibility) G.Accessibility.closeModal(overlay);
+        }
     }
 
     function isVisible() {

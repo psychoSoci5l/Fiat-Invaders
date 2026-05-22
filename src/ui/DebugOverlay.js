@@ -224,7 +224,10 @@ window.Game = window.Game || {};
         }
 
         const overlay = document.getElementById('debug-overlay');
-        if (overlay) overlay.style.display = 'flex';
+        if (overlay) {
+            overlay.style.display = 'flex';
+            if (G.Accessibility) G.Accessibility.openModal(overlay);
+        }
 
         const sendBtn = document.getElementById('debug-send-btn');
         const closeBtn = document.getElementById('debug-close-btn');
@@ -234,7 +237,10 @@ window.Game = window.Game || {};
 
     function _hideDebugOverlay() {
         const overlay = document.getElementById('debug-overlay');
-        if (overlay) overlay.style.display = 'none';
+        if (overlay) {
+            overlay.style.display = 'none';
+            if (G.Accessibility) G.Accessibility.closeModal(overlay);
+        }
     }
 
     function _formatDebugReportText() {

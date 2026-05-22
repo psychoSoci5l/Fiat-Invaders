@@ -111,7 +111,7 @@ window.Game = window.Game || {};
         if (introVersion) { introVersion.style.opacity = '0'; introVersion.style.transition = 'opacity 0.2s'; }
 
         // When prefers-reduced-motion, skip animation delay and show immediately
-        if (_prefersReducedMotion()) {
+        if (G.Accessibility && G.Accessibility.prefersReducedMotion()) {
             _showSelectionImmediate(title, modeSelector, modeExpl, introVersion);
             return;
         }
@@ -156,6 +156,10 @@ window.Game = window.Game || {};
 
         // Update ship display
         updateShipUI();
+
+        // Focus launch button for keyboard nav
+        var launchBtn = document.getElementById('btn-primary-action');
+        if (launchBtn) try { launchBtn.focus({ preventScroll: true }); } catch(e) {};
     }
 
     window.enterSelectionState = function() {
@@ -455,13 +459,13 @@ window.Game = window.Game || {};
     }
 
     function _prefersReducedMotion() {
-        return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        return G.Accessibility && G.Accessibility.prefersReducedMotion();
     }
 
     // v7.17.0: Start SPLASH phase palette cycling
     function _startPhaseCycle() {
         _stopPhaseCycle();
-        if (_prefersReducedMotion()) {
+        if (G.Accessibility && G.Accessibility.prefersReducedMotion()) {
             // Lock to Phase 2 (heritage default) without cycling
             const root = document.documentElement;
             root.style.transition = 'none';
@@ -518,7 +522,7 @@ window.Game = window.Game || {};
         const scale = 1.05;
 
         // Hover animation — disabled when prefers-reduced-motion
-        const hover = _prefersReducedMotion() ? 0 : Math.sin(introShipTime * 2) * 6;
+        const hover = (G.Accessibility && G.Accessibility.prefersReducedMotion()) ? 0 : Math.sin(introShipTime * 2) * 6;
 
         ctx.save();
         ctx.translate(cx, cy + hover);
@@ -541,7 +545,7 @@ window.Game = window.Game || {};
         const innerTailX = 7;
 
         // === TWIN EXHAUST FLAMES at inner tail (+/-5, 10) ===
-        const reducedMotion = _prefersReducedMotion();
+        const reducedMotion = G.Accessibility && G.Accessibility.prefersReducedMotion();
         const flameHeight = reducedMotion ? 18 : 18 + Math.sin(introShipTime * 12) * 7;
         const flameWidth = reducedMotion ? 5 : 5 + Math.sin(introShipTime * 10) * 2;
         const pulse = reducedMotion ? 1 : 1 + Math.sin(introShipTime * 8) * 0.15;
@@ -1429,12 +1433,14 @@ window.Game = window.Game || {};
         if (isVisible) {
             panel.style.display = 'none';
             panel.classList.remove('anim-panel-in');
+            if (G.Accessibility) G.Accessibility.closeModal(panel);
             return;
         }
         panel.style.display = 'flex';
         panel.classList.remove('anim-panel-in');
         void panel.offsetHeight;
         panel.classList.add('anim-panel-in');
+        if (G.Accessibility) G.Accessibility.openModal(panel);
         renderProfile();
         const title = document.getElementById('profile-title');
         const closeBtn = document.getElementById('btn-profile-close');
@@ -1461,12 +1467,14 @@ window.Game = window.Game || {};
         if (isVisible) {
             panel.style.display = 'none';
             panel.classList.remove('anim-panel-in');
+            if (G.Accessibility) G.Accessibility.closeModal(panel);
             return;
         }
         panel.style.display = 'flex';
         panel.classList.remove('anim-panel-in');
         void panel.offsetHeight;
         panel.classList.add('anim-panel-in');
+        if (G.Accessibility) G.Accessibility.openModal(panel);
         renderWhatsNew();
         // i18n
         const title = document.getElementById('whatsnew-title');
@@ -1829,20 +1837,23 @@ window.Game = window.Game || {};
         const curtain = document.getElementById('curtain-overlay');
         if (curtain) curtain.classList.remove('open');
 
-        setTimeout(() => {
+        setTimeout(function () {
             // v4.21: Comprehensive cleanup of ALL game overlays
-            d.setStyle('pause-screen', 'display', 'none');
-            d.setStyle('settings-modal', 'display', 'none');
-            d.setStyle('manual-modal', 'display', 'none');
-            d.setStyle('gameover-screen', 'display', 'none');
-            d.setStyle('hangar-screen', 'display', 'none');
-            d.setStyle('perk-modal', 'display', 'none');
-            // v4.37: Hide tutorial overlay
-            d.setStyle('tutorial-overlay', 'display', 'none');
-            // v4.37+: Hide any remaining modal overlays
-            d.setStyle('modifier-overlay', 'display', 'none');
-            d.setStyle('lesson-modal', 'display', 'none');
-            d.setStyle('v8-intermission-screen', 'display', 'none');
+            function _hideAndClose(id) {
+                d.setStyle(id, 'display', 'none');
+                var el = document.getElementById(id);
+                if (el && G.Accessibility) G.Accessibility.closeModal(el);
+            }
+            _hideAndClose('pause-screen');
+            _hideAndClose('settings-modal');
+            _hideAndClose('manual-modal');
+            _hideAndClose('gameover-screen');
+            _hideAndClose('hangar-screen');
+            _hideAndClose('perk-modal');
+            _hideAndClose('tutorial-overlay');
+            _hideAndClose('modifier-overlay');
+            _hideAndClose('lesson-modal');
+            _hideAndClose('v8-intermission-screen');
             const uiRef = d.getUI();
             if (uiRef.uiLayer) uiRef.uiLayer.style.display = 'none'; // HIDE HUD
             if (uiRef.touchControls) {

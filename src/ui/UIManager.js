@@ -349,10 +349,15 @@ window.Game = window.Game || {};
         var isVisible = modal.classList.contains('visible');
         if (isVisible) {
             modal.classList.remove('visible');
+            if (G.Accessibility) G.Accessibility.closeModal(modal);
         } else {
             // Hide all modals first
-            document.querySelectorAll('.modal-overlay.visible').forEach(function (m) { m.classList.remove('visible'); });
+            document.querySelectorAll('.modal-overlay.visible').forEach(function (m) {
+                if (G.Accessibility) G.Accessibility.closeModal(m);
+                m.classList.remove('visible');
+            });
             modal.classList.add('visible');
+            if (G.Accessibility) G.Accessibility.openModal(modal);
         }
     }
 
@@ -362,9 +367,11 @@ window.Game = window.Game || {};
         var isVisible = modal.classList.contains('visible');
         if (isVisible) {
             modal.classList.remove('visible');
+            if (G.Accessibility) G.Accessibility.closeModal(modal);
         } else {
             updateUIText();
             modal.classList.add('visible');
+            if (G.Accessibility) G.Accessibility.openModal(modal);
         }
     }
 
@@ -376,9 +383,11 @@ window.Game = window.Game || {};
         var isVisible = modal.style.display === 'flex';
         if (isVisible) {
             modal.style.display = 'none';
+            if (G.Accessibility) G.Accessibility.closeModal(modal);
         } else {
             modal.style.display = 'flex';
             if (d.getUI && d.getUI().manualPanel) updateManualText();
+            if (G.Accessibility) G.Accessibility.openModal(modal);
         }
     }
 
@@ -477,17 +486,22 @@ window.Game = window.Game || {};
 
     // --- Pause ---
     function togglePause() {
+        var ps = document.getElementById('pause-screen');
         if (d.getGameState() === 'PAUSE') {
             d.setGameState(d.getPausedFromState() || 'PLAY');
-            var pauseScreen = document.getElementById('pause-screen');
-            if (pauseScreen) pauseScreen.style.display = 'none';
+            if (ps) {
+                ps.style.display = 'none';
+                if (G.Accessibility) G.Accessibility.closeModal(ps);
+            }
             if (d.getUI().uiLayer) d.getUI().uiLayer.style.display = 'flex';
             if (G.Audio) G.Audio.resumeMusic();
         } else if (d.getGameState() === 'PLAY') {
             d.setPausedFromState('PLAY');
             d.setGameState('PAUSE');
-            var ps = document.getElementById('pause-screen');
-            if (ps) ps.style.display = 'flex';
+            if (ps) {
+                ps.style.display = 'flex';
+                if (G.Accessibility) G.Accessibility.openModal(ps);
+            }
             if (d.getUI().uiLayer) d.getUI().uiLayer.style.display = 'none';
             updateUIText();
             if (G.Audio) G.Audio.pauseMusic();

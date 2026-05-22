@@ -38,6 +38,7 @@ window.Game = window.Game || {};
         overlay.classList.remove('anim-modal-in');
         void overlay.offsetHeight;
         overlay.classList.add('anim-modal-in');
+        if (G.Accessibility) G.Accessibility.openModal(overlay);
         if (title) title.textContent = opts.title || t('NICK_TITLE');
         input.placeholder = t('NICK_PLACEHOLDER');
         btn.textContent = t('NICK_CONFIRM');
@@ -49,6 +50,7 @@ window.Game = window.Game || {};
         input.value = getNickname();
         function cleanup() {
             overlay.style.display = 'none';
+            if (G.Accessibility) G.Accessibility.closeModal(overlay);
             input.removeEventListener('keydown', onKey);
             btn.removeEventListener('click', submit);
             if (skipBtn) skipBtn.removeEventListener('click', skip);
@@ -203,7 +205,12 @@ window.Game = window.Game || {};
             if (!panel) return;
             this._visible = !this._visible;
             panel.style.display = this._visible ? 'flex' : 'none';
-            if (this._visible) this._loadAndRender();
+            if (this._visible) {
+                if (G.Accessibility) G.Accessibility.openModal(panel);
+                this._loadAndRender();
+            } else {
+                if (G.Accessibility) G.Accessibility.closeModal(panel);
+            }
         },
 
         async _loadAndRender() {

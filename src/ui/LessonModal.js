@@ -80,6 +80,7 @@ window.Game = window.Game || {};
         // eslint-disable-next-line no-unused-expressions
         overlay.offsetHeight;
         overlay.classList.add('lesson-modal-enter');
+        if (G.Accessibility) G.Accessibility.openModal(overlay);
 
         _isVisible = true;
 
@@ -95,6 +96,7 @@ window.Game = window.Game || {};
         if (overlay) {
             overlay.classList.remove('lesson-modal-enter');
             overlay.style.display = 'none';
+            if (G.Accessibility) G.Accessibility.closeModal(overlay);
         }
 
         // Resume previous state (module-loaded main.js: use G._setGameState, not window.setGameState)
