@@ -11,6 +11,7 @@ Master list of designed systems and their GDD review status.
 | Drop System + APC (+ Adaptive Balancer) | [drop-system-apc.md](drop-system-apc.md) | Approved | 2026-04-23 | M |
 | Boss System + Proximity Kill (DIP) | [boss-proximity.md](boss-proximity.md) | Approved | 2026-04-23 | M |
 | Wave System (Legacy / Arcade) | [wave-legacy-arcade.md](wave-legacy-arcade.md) | Approved | 2026-04-23 | M |
+| Save / Checkpoint System | [save-checkpoint.md](save-checkpoint.md) | Approved | 2026-05-22 | S |
 
 ## Status legend
 - **Not Started** — no GDD on disk

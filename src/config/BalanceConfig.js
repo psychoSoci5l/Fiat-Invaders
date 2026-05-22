@@ -3333,6 +3333,13 @@
                 VOLATILE_ROUNDS: { AOE_RADIUS: 30, DMG_MULT: 0.5, HIT_FLASH: 0.1 },
                 CHAIN_LIGHTNING: { RANGE: 100, DMG_MULT: 0.3, HIT_FLASH: 0.15, CHANCE: 0.30 }
             }
+        },
+
+        // --- CHECKPOINT / SAVE SYSTEM ---
+        CHECKPOINT: {
+            ENABLED: true,
+            KEY: 'fiat_checkpoint',
+            VERSION: 1
         }
     };
 })();

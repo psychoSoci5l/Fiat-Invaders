@@ -24,6 +24,7 @@ window.Game = window.Game || {};
                 /* 1→2 */ (d) => { if (d && !d.storyProgress) d.storyProgress = { PROLOGUE: false, CHAPTER_1: false, CHAPTER_2: false, CHAPTER_3: false }; return d; }
             ]
         },
+        fiat_checkpoint:        { v: 1, d: null },
         fiat_achievements:      { v: 1, d: [] },
         fiat_stats:             { v: 1, d: null },  // StatsTracker manages its own schema internally
         fiat_player_stats:      { v: 1, d: null },

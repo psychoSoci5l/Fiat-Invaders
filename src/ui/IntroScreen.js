@@ -157,6 +157,9 @@ window.Game = window.Game || {};
         // Update ship display
         updateShipUI();
 
+        // Show CONTINUA if checkpoint exists
+        updateContinuaButton();
+
         // Focus launch button for keyboard nav
         var launchBtn = document.getElementById('btn-primary-action');
         if (launchBtn) try { launchBtn.focus({ preventScroll: true }); } catch(e) {};
@@ -219,6 +222,8 @@ window.Game = window.Game || {};
 
             // Update primary action button to TAP TO START state
             updatePrimaryButton('SPLASH');
+            // Show CONTINUA if checkpoint exists
+            updateContinuaButton();
         }, 220);
     }
 
@@ -253,6 +258,17 @@ window.Game = window.Game || {};
             }
         } else {
             launchShipAndStart();
+        }
+    }
+
+    // Show/hide the CONTINUA button based on checkpoint existence
+    function updateContinuaButton() {
+        const btn = document.getElementById('btn-continua');
+        if (!btn) return;
+        if (G.CheckpointManager && G.CheckpointManager.hasCheckpoint()) {
+            btn.style.display = '';
+        } else {
+            btn.style.display = 'none';
         }
     }
 
@@ -1516,6 +1532,10 @@ window.Game = window.Game || {};
     window.launchShipAndStart = async function () {
         if (isLaunching) return;
         isLaunching = true;
+        // Clear checkpoint on new game start (before any state reset)
+        if (G.CheckpointManager && G.CheckpointManager.clearCheckpoint) {
+            G.CheckpointManager.clearCheckpoint();
+        }
         _stopPhaseCycle(); // v7.17.0: Stop SPLASH cycling, reset vars to P1
         // Reset CSS vars to Phase 1 (Earth) for gameplay start
         var _root = document.documentElement;
@@ -1932,6 +1952,8 @@ window.Game = window.Game || {};
 
             // Reset primary button to TAP TO START state
             updatePrimaryButton('SPLASH');
+            // Show CONTINUA if checkpoint still exists
+            updateContinuaButton();
 
             // Hide selection elements
             if (header) header.style.display = 'none';
@@ -2007,6 +2029,17 @@ window.Game = window.Game || {};
             }
             initSplashShip();
             _startPhaseCycle(); // v7.17.0: Start SPLASH palette preview
+            updateContinuaButton();
+
+            // Wire CONTINUA button click to checkpoint resume
+            var continuaBtn = document.getElementById('btn-continua');
+            if (continuaBtn) {
+                continuaBtn.addEventListener('click', function() {
+                    if (typeof window.startGameFromCheckpoint === 'function') {
+                        window.startGameFromCheckpoint();
+                    }
+                });
+            }
             // v7.12.13: mode selector + explanation hidden until first tap on TAP TO START
             const modeSelector = document.getElementById('mode-selector');
             if (modeSelector) modeSelector.style.display = 'none';

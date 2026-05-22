@@ -27,7 +27,70 @@
 version: 1
 last_updated: ""
 
-requirements: []
+requirements:
+  - id: TR-CKP-001
+    system: save-checkpoint
+    gdd: design/gdd/save-checkpoint.md
+    requirement: "Autosave fires after boss defeat, after story crawl completes"
+    created: 2026-05-22
+    revised: ""
+    status: active
+
+  - id: TR-CKP-002
+    system: save-checkpoint
+    gdd: design/gdd/save-checkpoint.md
+    requirement: "Continua appears in IntroScreen when checkpoint exists"
+    created: 2026-05-22
+    revised: ""
+    status: active
+
+  - id: TR-CKP-003
+    system: save-checkpoint
+    gdd: design/gdd/save-checkpoint.md
+    requirement: "Resume restores full state (weapons, perks, lives, score, ship)"
+    created: 2026-05-22
+    revised: ""
+    status: active
+
+  - id: TR-CKP-004
+    system: save-checkpoint
+    gdd: design/gdd/save-checkpoint.md
+    requirement: "Nuova Partita clears checkpoint"
+    created: 2026-05-22
+    revised: ""
+    status: active
+
+  - id: TR-CKP-005
+    system: save-checkpoint
+    gdd: design/gdd/save-checkpoint.md
+    requirement: "Checkpoint survives game over"
+    created: 2026-05-22
+    revised: ""
+    status: active
+
+  - id: TR-CKP-006
+    system: save-checkpoint
+    gdd: design/gdd/save-checkpoint.md
+    requirement: "Save data corruption handled gracefully"
+    created: 2026-05-22
+    revised: ""
+    status: active
+
+  - id: TR-CKP-007
+    system: save-checkpoint
+    gdd: design/gdd/save-checkpoint.md
+    requirement: "NG+ level preserved in checkpoint"
+    created: 2026-05-22
+    revised: ""
+    status: active
+
+  - id: TR-CKP-008
+    system: save-checkpoint
+    gdd: design/gdd/save-checkpoint.md
+    requirement: "No checkpoint before first boss"
+    created: 2026-05-22
+    revised: ""
+    status: active
 
 # --- EXAMPLE ENTRIES (remove when first real entries are added) ---
 #

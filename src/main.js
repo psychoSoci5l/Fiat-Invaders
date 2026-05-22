@@ -1548,6 +1548,70 @@ window.restartFromGameOver = function () {
     startGame();
 };
 
+// Resume from checkpoint — skips HANGAR, restores state, goes directly to PLAY
+window.startGameFromCheckpoint = function() {
+    if (!G.CheckpointManager) return;
+
+    const checkpoint = G.CheckpointManager.load();
+    if (!checkpoint) return;
+
+    G.CheckpointManager.resumeFromCheckpoint();
+
+    if (G.IntroScreen) G.IntroScreen.stopAnimation();
+    setStyle('intro-screen', 'display', 'none');
+    setStyle('pause-screen', 'display', 'none');
+    setStyle('gameover-screen', 'display', 'none');
+    if (ui && ui.uiLayer) ui.uiLayer.style.display = 'flex';
+
+    audioSys.init();
+    if (audioSys.ctx && audioSys.ctx.state === 'suspended') {
+        audioSys.unlockWebAudio();
+        audioSys.ctx.resume().catch(e => console.warn('[Audio] resume failed:', e));
+    }
+    audioSys.startMusic();
+
+    if (checkpoint.shipType && player && player.configure) {
+        player.configure(checkpoint.shipType);
+    }
+
+    // Re-apply HYPER/GODCHAIN after configure() because configure → resetState() zeroes them
+    if (player) {
+        if (player.hyperActive !== undefined) {
+            player.hyperActive = !!checkpoint.hyperActive;
+        }
+        if (player._godchainActive !== undefined) {
+            player._godchainActive = !!checkpoint.godchainActive;
+        }
+    }
+
+    if (typeof checkpoint.lives === 'number') {
+        lives = checkpoint.lives;
+        setUI('livesText', lives);
+    }
+    if (typeof checkpoint.score === 'number') {
+        score = checkpoint.score;
+        setUI('scoreVal', Math.floor(score));
+    }
+
+    if (window.syncFromRunState) syncFromRunState();
+
+    if (G.GameState) G.GameState.forceSet('HANGAR');
+    setGameState('PLAY');
+
+    if (typeof _startPlayCountdown === 'function') {
+        _startPlayCountdown();
+    }
+
+    if (checkpoint.nextBoss && G.LevelScript) {
+        const levelIdx = G.LevelScript.LEVELS.findIndex(function(l) {
+            return l.BOSS_TYPE === checkpoint.nextBoss;
+        });
+        if (levelIdx >= 0) {
+            G.LevelScript.loadLevel(levelIdx);
+        }
+    }
+};
+
 // v7.2.0: V8 inter-level intermission screen
 function showV8Intermission() {
     if (!G.LevelScript) return;
@@ -1791,6 +1855,9 @@ function showStoryScreen(storyId, onComplete) {
     G.StoryScreen.show(storyId, () => {
         console.timeEnd('[PERF] story:' + storyId);
         if (audioSys && audioSys.setIntermissionMode) audioSys.setIntermissionMode(false);
+        if (G.CheckpointManager && G.CheckpointManager.save) {
+            G.CheckpointManager.save();
+        }
         if (onComplete) onComplete();
     });
 }
