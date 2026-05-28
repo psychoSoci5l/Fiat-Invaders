@@ -94,7 +94,9 @@
             const _arcadeMB = (G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode() && Balance.ARCADE) ? Balance.ARCADE.MINI_BOSS : null;
             // S12.6 (v7.32): use updated HP_MULT (0.40) from config
             const hpMult = _arcadeMB ? (_arcadeMB.HP_MULT || 0.40) : 0.6;
-            const miniBossHp = Math.floor(fullBossHp * hpMult * perkScaling);
+            // BUG-0017: Arcade post-C3 exponential scaling for mini-bosses
+            const _postC3Mult = (_arcadeMB && marketCycle() > 3) ? Math.pow(Balance.ARCADE.POST_C3_BOSS_HP_MULT || 1.35, marketCycle() - 3) : 1.0;
+            const miniBossHp = Math.floor(fullBossHp * hpMult * perkScaling * _postC3Mult);
             miniBoss.hp = miniBossHp;
             miniBoss.maxHp = miniBossHp;
 

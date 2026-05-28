@@ -1,9 +1,9 @@
 # Control Manifest
 
 > **Engine**: Vanilla JavaScript (ES6+) / Canvas 2D
-> **Last Updated**: 2026-05-17
-> **Manifest Version**: 2026-05-17
-> **ADRs Covered**: ADR-0001, ADR-0002, ADR-0003, ADR-0004, ADR-0005, ADR-0006, ADR-0007, ADR-0008, ADR-0009, ADR-0010, ADR-0011, ADR-0012, ADR-0013, ADR-0014, ADR-0015, ADR-0016
+> **Last Updated**: 2026-05-28
+> **Manifest Version**: 2026-05-28
+> **ADRs Covered**: ADR-0001, ADR-0002, ADR-0003, ADR-0004, ADR-0005, ADR-0006, ADR-0007, ADR-0008, ADR-0009, ADR-0010, ADR-0011, ADR-0012, ADR-0013, ADR-0014, ADR-0015, ADR-0016, ADR-0017, ADR-0018
 > **Status**: Active — regenerate with `/create-control-manifest update` when ADRs change
 
 `Manifest Version` is the date this manifest was generated. Story files embed this date when created. `/story-readiness` compares a story's embedded version to this field to detect stories written against stale rules.
@@ -150,12 +150,12 @@ This manifest is a programmer's quick-reference extracted from all Accepted ADRs
 ### Required Patterns
 - **HarmonicSequences** as static data — attack type enum, TIER definitions, TELEGRAPH styles, COLORS — source: ADR-0004
 - **HarmonicConductor** as beat-synced difficulty driver — tempo, currentBeat, generation invalidation — source: ADR-0004
-- **Beat tracking from AudioSystem** — conductor reads `AudioSystem.lastBeatTime` for sync — source: ADR-0004
+- **Beat tracking from AudioSystem** — conductor reads `AudioSystem.lastBeatTime` for sync — source: ADR-0018
 - **Difficulty scaling** via `setDifficulty(level)`, `setSequence(type)`, `startWave()` — source: ADR-0004
 - **Enemy reference reassignment** — `.enemies` updated when entity arrays change (wave start, level switch) — source: ADR-0004
 
 ### Forbidden Approaches
-- **Never use legacy oscillator pattern** (killed in v7.20) — audio chain management delegated to AudioSystem
+- **Never use legacy oscillator pattern** (killed in v7.20) — audio chain management delegated to AudioSystem — source: ADR-0018
 - **Never hardcode sequence data** — all sequences in HarmonicSequences.js, not inline in conductor
 
 ### Performance Guardrails

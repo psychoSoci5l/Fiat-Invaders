@@ -66,7 +66,7 @@ class DialogueUI {
             <div class="dialogue-box">
                 <div id="dialogue-speaker" class="dialogue-speaker"></div>
                 <div id="dialogue-text" class="dialogue-text"></div>
-                <div class="dialogue-tap-hint">TAP TO CONTINUE</div>
+                <div class="dialogue-tap-hint">${window.t ? window.t('TAP_TO_CONTINUE') : 'TAP TO CONTINUE'}</div>
             </div>
         `;
         document.body.appendChild(container);

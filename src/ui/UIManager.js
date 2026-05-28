@@ -145,7 +145,7 @@ window.Game = window.Game || {};
         if (exitBtn) exitBtn.innerText = '➡ ' + t('EXIT');
 
         var goTitle = document.querySelector('#gameover-screen h1');
-        if (goTitle) goTitle.innerText = "LIQUIDATION EVENT";
+        if (goTitle) goTitle.innerText = t('LIQUIDATION_EVENT');
         var goBtn = document.getElementById('btn-retry');
         if (goBtn) goBtn.innerText = t('RESTART');
 

@@ -2,7 +2,7 @@
 window.Game = window.Game || {};
 
 // ⚠️ VERSION SYNC: Must also update sw.js SW_VERSION when changing!
-window.Game.VERSION = "v7.33.0 FIAT vs CRYPTO";
+window.Game.VERSION = "v7.34.0 FIAT vs CRYPTO";
 
 // Leaderboard API
 window.Game.LEADERBOARD_API = 'https://fiat-vs-crypto-leaderboard.psychosocial-01.workers.dev/api';
@@ -20,7 +20,7 @@ window.Game.TEXTS = {
         WAVE_FLAVOR_1: "Accumulation", WAVE_FLAVOR_2: "Bull Run", WAVE_FLAVOR_3: "Volatility",
         WAVE_FLAVOR_4: "Correction", WAVE_FLAVOR_5: "Climax",
         BOSS_ENTER: "GOLD RESERVES", BOSS_DEATH: "RESERVES LIQUIDATED",
-        GAME_OVER: "REKT", RESTART: "BUY THE DIP",
+        GAME_OVER: "REKT", LIQUIDATION_EVENT: "LIQUIDATION EVENT", RESTART: "BUY THE DIP",
         COMBO_LOST: "COMBO LOST", COMBO_BREAK: "COMBO BREAK",
         BULLET_BONUS: "BULLET BONUS", GRAZE_BONUS: "GRAZE BONUS!",
         HYPER_READY: "HYPER READY!", HYPER_FAILED: "HYPER FAILED!",
@@ -316,8 +316,14 @@ window.Game.TEXTS = {
         CV_SCORE: "FINAL SCORE",
         CV_BEAR_HINT: "Ready for a real challenge? Bear Market doubles your score but enemies are relentless.",
         CV_BEAR_BTN: "BEAR MARKET MODE",
+        CV_NGPLUS: "NEW GAME+",
         CV_REPLAY: "REPLAY STORY",
-        CV_MENU: "MAIN MENU"
+        CV_MENU: "MAIN MENU",
+        Q_PERFORMANCE: "Performance",
+        Q_BALANCED: "Balanced",
+        Q_QUALITY: "Quality",
+        BEAR_MODE_WARN: "Enable Bear Market? Enemies are stronger but rewards are higher. Are you sure?",
+        TAP_TO_CONTINUE: "TAP TO CONTINUE"
     },
     IT: {
         SCORE: "PUNTI", LEVEL: "LIVELLO", LIVES: "VITE", NORMAL: "NORMALE",
@@ -328,10 +334,10 @@ window.Game.TEXTS = {
         WAVE1: "ONDATA 1: ACCUMULO", WAVE2: "ONDATA 2: BULL RUN", WAVE3: "ONDATA 3: VOLATILITÀ",
         WAVE4: "ONDATA 4: CORREZIONE", WAVE5: "ONDATA 5: CLIMAX",
         CYCLE: "CICLO", WAVE_OF: "ONDATA", BEGINS: "INIZIA",
-        WAVE_FLAVOR_1: "Accumulo", WAVE_FLAVOR_2: "Bull Run", WAVE_FLAVOR_3: "Volatilita",
+        WAVE_FLAVOR_1: "Accumulo", WAVE_FLAVOR_2: "Bull Run", WAVE_FLAVOR_3: "Volatilità",
         WAVE_FLAVOR_4: "Correzione", WAVE_FLAVOR_5: "Climax",
         BOSS_ENTER: "RISERVE AUREE", BOSS_DEATH: "RISERVE LIQUIDATE",
-        GAME_OVER: "REKT", RESTART: "COMPRA IL DIP",
+        GAME_OVER: "REKT", LIQUIDATION_EVENT: "LIQUIDATION EVENT", RESTART: "COMPRA IL DIP",
         COMBO_LOST: "COMBO PERSA", COMBO_BREAK: "COMBO ROTTA",
         BULLET_BONUS: "BONUS PROIETTILI", GRAZE_BONUS: "BONUS GRAZE!",
         HYPER_READY: "HYPER PRONTO!", HYPER_FAILED: "HYPER FALLITO!",
@@ -506,7 +512,7 @@ window.Game.TEXTS = {
         MODE_STORY_DESC: "Vivi la storia di Bitcoin attraverso 3 capitoli epici",
         MODE_ARCADE_DESC: "Protocolli roguelike. Run infinite. Ogni scelta conta.",
         ARCADE_CHOOSE: "SCEGLI IL TUO PROTOCOLLO",
-        CHANGE_MODE: "cambia modalita",
+        CHANGE_MODE: "cambia modalità",
         TITLE_SUBTITLE: "Valute",
         GO: "VIA!",
         // Arcade records (v4.50)
@@ -628,7 +634,13 @@ window.Game.TEXTS = {
         CV_BEAR_HINT: "Pronto per la vera sfida? Bear Market raddoppia il punteggio ma i nemici sono spietati.",
         CV_BEAR_BTN: "MODALIT\u00c0 BEAR MARKET",
         CV_REPLAY: "RIGIOCA STORIA",
-        CV_MENU: "MENU PRINCIPALE"
+        CV_MENU: "MENU PRINCIPALE",
+        CV_NGPLUS: "NUOVA PARTITA+",
+        Q_PERFORMANCE: "Performance",
+        Q_BALANCED: "Bilanciato",
+        Q_QUALITY: "Qualità",
+        BEAR_MODE_WARN: "Attivare Bear Market? I nemici sono più forti ma i premi sono più alti. Sei sicuro?",
+        TAP_TO_CONTINUE: "TOCCA PER CONTINUARE"
     }
 };
 

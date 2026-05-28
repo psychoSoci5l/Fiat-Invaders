@@ -296,11 +296,15 @@ Spatial-grid broad-phase filtering.
 
 ---
 
-## 8. Audio Pipeline
+## 8. Audio Pipeline (ADR-0018)
 
 - Web Audio API (`AudioContext`)
 - Procedural music via `MusicData.js` (not pre-recorded assets)
 - Sound effects via short AudioBuffer sources
+- Synthwave direction (150-178 BPM) — replaced original jazz approach (80-110 BPM) per ADR-0018
+- 6-bus architecture (CombatBus, PlayerBus, UIBus, AmbientBus + music sub-buses)
+- 4 quality tiers (ULTRA/HIGH/MEDIUM/LOW) per copertura mobile, max 12-32 oscillator
+- Ducking automatico per eventi prioritari (bossSpawn, nearDeath, hyperActivate, phaseChange, riser)
 - Music synchronization: `HarmonicConductor` reads audio clock for beat-synced enemy actions
 - Volume controls: separate SFX and music gain nodes, persisted to localStorage
 
@@ -441,5 +445,10 @@ See `docs/architecture/traceability-index.md` for the full matrix and `docs/arch
 | ADR-0011 | Arcade Rogue Protocol | Accepted | Core |
 | ADR-0012 | Enemy Elites + Behaviors + Fire Suppression | Accepted | Core |
 | ADR-0013 | Wave System — Streaming, Formations, Arcade Scaling | Accepted | Core |
+| ADR-0014 | main.js Structure & Refactoring Strategy | Accepted | Infrastructure |
+| ADR-0015 | Arcade Mini-Boss Rework | Accepted | Core |
+| ADR-0016 | Story System | Accepted | Feature |
+| ADR-0017 | Checkpoint / Save System | Accepted | Feature |
+| ADR-0018 | Audio System — Procedural Synthwave Engine | Accepted | Foundation |
 
-**Dependency order:** ADR-0001 → ADR-0002, ADR-0003, ADR-0004, ADR-0007, ADR-0008, ADR-0012, ADR-0013 → ADR-0006 (depends on ADR-0003)
+**Dependency order:** ADR-0001 → ADR-0002, ADR-0003, ADR-0004, ADR-0007, ADR-0008, ADR-0012, ADR-0013, ADR-0018 → ADR-0006 (depends on ADR-0003)

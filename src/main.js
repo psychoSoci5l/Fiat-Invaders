@@ -1613,8 +1613,11 @@ window.startGameFromCheckpoint = function() {
 };
 
 // v7.2.0: V8 inter-level intermission screen
+let _v8IntermissionShown = false; // BUG-0002: guard — prevents double intermission per level
+
 function showV8Intermission() {
-    if (!G.LevelScript) return;
+    if (!G.LevelScript || _v8IntermissionShown) return;
+    _v8IntermissionShown = true;
     const completedNum = G.LevelScript.currentLevelNum();
     const nextIdx = completedNum; // 0-indexed next = current 1-indexed
     const nextLevel = G.LevelScript.LEVELS[nextIdx];
@@ -1677,6 +1680,7 @@ function showV8Intermission() {
 
 function advanceToNextV8Level() {
     if (!G.LevelScript) return;
+    _v8IntermissionShown = false; // BUG-0002: allow intermission for next level
     const nextIdx = G.LevelScript.currentLevelNum(); // 1-indexed current → 0-indexed next
     var v8El = document.getElementById('v8-intermission-screen');
     if (nextIdx >= G.LevelScript.LEVELS.length) {
@@ -2011,6 +2015,7 @@ function startGame() {
 
     waveMgr.reset();
     if (G.LevelScript) G.LevelScript.reset();
+    _v8IntermissionShown = false; // BUG-0002: clean intermission guard for new run
 
     // v7.32: Wire SpawnSystem based on game mode
     const _isArcade = G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode();

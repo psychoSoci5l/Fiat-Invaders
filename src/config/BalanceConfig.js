@@ -59,8 +59,8 @@
             BEAR_MARKET_BONUS: 0.25,        // Starts at Cycle 2 equivalent difficulty
 
             // Maximum cap (Story mode cap; Arcade unbounded via POST_C3_DIFF_PER_CYCLE)
-            MAX: 1.0,               // Default difficulty cap (story mode)
-            MAX_STORY: 1.0,
+            MAX: 1.0,               // Legacy — maintained for test compat; see MAX_STORY/MAX_ARCADE
+            MAX_STORY: 1.0,         // Story mode cap
             MAX_ARCADE: 3.0
         },
 
@@ -3076,7 +3076,8 @@
         calculateBossHP(level, cycle) {
             const hp = this.BOSS.HP;
             const raw = hp.BASE + (level * hp.PER_LEVEL) + ((cycle - 1) * hp.PER_CYCLE);
-            const cycleMult = hp.CYCLE_MULT ? hp.CYCLE_MULT[Math.min(cycle, 3) - 1] : 1.0;
+            const cm = this.ENEMY_HP.CYCLE_MULT;
+            const cycleMult = cm ? cm[Math.min((cycle || 1) - 1, cm.length - 1)] : 1.0;
             return raw * cycleMult;
         },
 
