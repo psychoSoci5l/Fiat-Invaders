@@ -18,7 +18,14 @@ window.Game = window.Game || {};
         if (!vid) { if (onComplete) onComplete(); return; }
 
         const lang = (G._currentLang || 'EN').toLowerCase();
-        vid.src = 'completion-' + lang + '.mp4';
+        // v7.34.0+: WebM preferred, MP4 fallback for Safari
+        const webmSrc = 'completion-' + lang + '.webm';
+        const mp4Src = 'completion-' + lang + '.mp4';
+        if (vid.canPlayType('video/webm')) {
+            vid.src = webmSrc;
+        } else {
+            vid.src = mp4Src;
+        }
         vid.style.display = 'block';
         vid.currentTime = 0;
 

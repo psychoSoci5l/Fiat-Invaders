@@ -2051,7 +2051,7 @@ window.Game = window.Game || {};
         getSelectedShipIndex: function() { return selectedShipIndex; },
         getSelectedShipKey: function() { return SHIP_KEYS[selectedShipIndex]; },
         getIntroState: function() { return introState; },
-        resetToSplash: function() { introState = 'SPLASH'; },
+        resetToSplash: function() { introState = 'SPLASH'; _modesRevealed = false; },
         tick: function(dt) {
             if (_introActionCooldown > 0) _introActionCooldown -= dt;
             // P7: Show title skip button during title animation

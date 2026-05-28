@@ -7,6 +7,20 @@
         content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
     <meta name="description" content="FIAT vs CRYPTO — un twin-stick shooter economico-satirico. Spara ai ministri, schiva le criptovalute, sopravvivi al Bear Market.">
 
+    <!-- Open Graph / Social -->
+    <meta property="og:title" content="FIAT vs CRYPTO">
+    <meta property="og:description" content="FIAT vs CRYPTO — un twin-stick shooter economico-satirico. Spara ai ministri, schiva le criptovalute, sopravvivi al Bear Market.">
+    <meta property="og:image" content="icon-512.png">
+    <meta property="og:image:width" content="512">
+    <meta property="og:image:height" content="512">
+    <meta property="og:url" content="https://fiat-invaders.pages.dev/">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="FIAT vs CRYPTO">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="FIAT vs CRYPTO">
+    <meta name="twitter:description" content="FIAT vs CRYPTO — un twin-stick shooter economico-satirico. Spara ai ministri, schiva le criptovalute, sopravvivi al Bear Market.">
+    <meta name="twitter:image" content="icon-512.png">
+
     <!-- PWA / App Mode -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
@@ -50,7 +64,10 @@
 
     <!-- Splash Video (fullscreen, outside container) -->
     <div id="splash-layer" aria-hidden="true">
-        <video id="intro-video" src="splashscreen.mp4" playsinline autoplay muted aria-hidden="true"></video>
+        <video id="intro-video" playsinline autoplay muted aria-hidden="true">
+            <source src="splashscreen.webm" type="video/webm">
+            <source src="splashscreen.mp4" type="video/mp4">
+        </video>
         <button id="splash-skip-btn" class="skip-btn" onclick="window.skipSplashVideo()">SKIP &gt;&gt;</button>
     </div>
 
