@@ -887,6 +887,8 @@ function init() {
                     if (phaseVars.hasOwnProperty(key)) root.style.setProperty(key, phaseVars[key]);
                 }
             });
+            // v7.37: Achievement unlock sound
+            G.Events.on('achievements:unlocked', () => audioSys.play('achievementUnlock'));
         }
     }
     if (G.AchievementSystem) G.AchievementSystem.init();

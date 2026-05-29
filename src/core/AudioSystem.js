@@ -966,6 +966,7 @@ class AudioSystem {
             bossPhaseChange:    () => this._sfxBossPhaseChange(),
             shieldDeactivate:   () => this._sfxShieldDeactivate(),
             levelUp:            (opts, t, output, sfxReverbNode) => this._sfxLevelUp(t, output, sfxReverbNode),
+            achievementUnlock:  (opts, t, output, sfxReverbNode) => this._sfxAchievementUnlock(t, output, sfxReverbNode),
             bearMarketToggle:   () => this._sfxBearMarketToggle(),
             grazeNearMiss:      () => this._sfxGrazeNearMiss(),
             hitEnemy:           (opts, t, output) => this._sfxHitEnemy(opts, t, output),
@@ -1534,6 +1535,32 @@ class AudioSystem {
             osc.stop(start + 0.2);
             osc2.start(start);
             osc2.stop(start + 0.2);
+            if (sfxReverbNode) gain.connect(sfxReverbNode);
+        });
+    }
+
+    _sfxAchievementUnlock(t, output, sfxReverbNode) {
+        const notes = [523, 659, 784, 1047, 1319];
+        const noteDuration = 0.06;
+        notes.forEach((freq, i) => {
+            const osc = this.ctx.createOscillator();
+            const osc2 = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.connect(gain);
+            osc2.connect(gain);
+            gain.connect(output);
+            osc.type = 'square';
+            osc2.type = 'triangle';
+            osc.frequency.value = freq;
+            osc2.frequency.value = freq * 2;
+            const start = t + i * noteDuration;
+            gain.gain.setValueAtTime(0, start);
+            gain.gain.linearRampToValueAtTime(0.1, start + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.01, start + noteDuration);
+            osc.start(start);
+            osc.stop(start + noteDuration + 0.01);
+            osc2.start(start);
+            osc2.stop(start + noteDuration + 0.01);
             if (sfxReverbNode) gain.connect(sfxReverbNode);
         });
     }

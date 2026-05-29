@@ -2843,7 +2843,7 @@
                 DAMPING: 0.7,            // High-frequency damping (0-1)
                 WET_LEVEL: 0.15,         // Master reverb wet mix
                 SEND: { bass: 0.08, arp: 0.25, melody: 0.20, pad: 0.35, drums: 0.05 },
-                SFX_SENDS: { explosion: 0.20, bossSpawn: 0.30, waveComplete: 0.25, levelUp: 0.20, godchainActivate: 0.30 }
+                SFX_SENDS: { explosion: 0.20, bossSpawn: 0.30, waveComplete: 0.25, levelUp: 0.20, godchainActivate: 0.30, achievementUnlock: 0.25 }
             },
             STEREO: {
                 ENABLED: true,

@@ -1,5 +1,20 @@
 # Changelog
 
+## v7.38.0 — feat(sprint7): Community Go-Live Complete — 2026-05-29
+
+### feat (achievement sound)
+- **Achievement Unlock SFX**: `AudioSystem.js` nuovo suono `achievementUnlock` — scala ascendente C5→E6 (square+triangle, 5 note × 0.06s) con reverb send 0.25. `BalanceConfig.js` aggiornato `SFX_SENDS`. `main.js` listener `achievements:unlocked` → `audioSys.play('achievementUnlock')`.
+
+### docs
+- **Community pack**: `production/community/v7.37-tweet-thread.md` (7 tweet IT), `v7.37-blog-post.md` (devlog), `landing-page-update-v7.37.md` (snippet HTML + screenshot + checklist deploy).
+
+### test
+- **Unit test audio achievement**: `tests/unit/audio_achievement_test.js` — 4 asserts (SFX table entry, method exists, BalanceConfig reverb send, play senza throw). Tutti PASS.
+- Suite totale: **2175 asserts PASS, 0 regressioni**.
+
+### infra
+- Version sync: `Constants.js` v7.38.0, `sw.js` v7.38.0
+
 ## v7.37.0 — feat(sprint6): Daily Streak & Social Challenge — 2026-05-29
 
 ### feat (daily streak)

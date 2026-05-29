@@ -10,7 +10,8 @@ const NODE_TEST_FILES = [
     'tests/unit/checkpoint_lifecycle_test.js',
     'tests/unit/collision_test.js',
     'tests/unit/daily_streak_test.js',
-    'tests/unit/achievement_test.js'
+    'tests/unit/achievement_test.js',
+    'tests/unit/audio_achievement_test.js'
 ];
 
 function runNodeTests() {
