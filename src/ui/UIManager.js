@@ -441,6 +441,9 @@ window.Game = window.Game || {};
     window.addEventListener('beforeinstallprompt', function (e) {
         e.preventDefault();
         _deferredPrompt = e;
+        // Sprint 7 A3: defer prompt until 3 runs completed
+        var runCount = parseInt(G.MigrationSystem.get('fiat_run_count') || '0', 10);
+        if (runCount < 3) return;
         var banner = document.getElementById('pwa-install-banner');
         if (banner && !G.MigrationSystem.get('fiat_pwa_dismissed')) {
             var text = document.getElementById('pwa-banner-text');
@@ -471,6 +474,9 @@ window.Game = window.Game || {};
         // Skip if already standalone (PWA installed)
         if (window.navigator.standalone) return;
         if (window.matchMedia('(display-mode: standalone)').matches) return;
+        // Sprint 7 A3: defer prompt until 3 runs completed
+        var runCount = parseInt(G.MigrationSystem.get('fiat_run_count') || '0', 10);
+        if (runCount < 3) return;
 
         var text = document.getElementById('pwa-banner-text');
         var action = document.getElementById('pwa-banner-action');

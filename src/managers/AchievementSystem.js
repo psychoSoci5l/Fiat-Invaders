@@ -21,7 +21,14 @@
         { id: 'GODCHAIN_AWAKEN',   icon: '✨', check: s => s.godchainActivations >= 1 },
         { id: 'MARATHON',          icon: '⏱',  check: s => s.totalPlayTime >= 3600 },
         { id: 'CENTURY_RUNNER',    icon: '🎯', check: s => s.totalRuns >= 100 },
-        { id: 'SCORE_100K',        icon: '🏅', check: s => s.highestScoreRun >= 100000 }
+        { id: 'SCORE_100K',        icon: '🏅', check: s => s.highestScoreRun >= 100000 },
+        // Sprint 7 — Daily Streak
+        { id: 'DAILY_STREAK_3',    icon: '🔥', check: () => G.DailyMode && G.DailyMode.getStreak() >= 3 },
+        { id: 'DAILY_STREAK_7',    icon: '🔥', check: () => G.DailyMode && G.DailyMode.getStreak() >= 7 },
+        { id: 'DAILY_STREAK_30',   icon: '🔥', check: () => G.DailyMode && G.DailyMode.getStreak() >= 30 },
+        // Sprint 7 — Social
+        { id: 'SHARE_CHALLENGE',   icon: '📤', check: () => false }, // unlocked via event, not stats
+        { id: 'FIRST_DAILY_LEADERBOARD', icon: '🏆', check: () => false } // unlocked via event
     ];
 
     let _unlocked = null; // Set<string>
@@ -75,6 +82,18 @@
         return newly;
     }
 
+    // One-off unlock (e.g. triggered by user action, not stats)
+    function unlock(id) {
+        if (!_unlocked) init();
+        if (_unlocked.has(id)) return false;
+        const def = DEFINITIONS.find(d => d.id === id);
+        if (!def) return false;
+        _unlocked.add(id);
+        _save();
+        if (G.Events) G.Events.emit('achievements:unlocked', [def]);
+        return true;
+    }
+
     function reset() {
         _unlocked = new Set();
         _save();
@@ -94,6 +113,7 @@
         isUnlocked,
         getDefinitions,
         checkAll,
+        unlock,
         reset,
         getUnlockedCount,
         getTotalCount

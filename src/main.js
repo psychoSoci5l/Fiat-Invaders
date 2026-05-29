@@ -3661,6 +3661,8 @@ window.Game.copyChallengeUrl = function() {
         navigator.clipboard.writeText(url).then(() => {
             const btn = document.getElementById('btn-copy-challenge');
             if (btn) { btn.textContent = 'COPIED!'; setTimeout(() => btn.textContent = 'COPY LINK', 1500); }
+            // Sprint 7 A2: achievement trigger
+            if (G.AchievementSystem && G.AchievementSystem.unlock) G.AchievementSystem.unlock('SHARE_CHALLENGE');
         }).catch(() => {});
     } else {
         // Fallback: select text
@@ -3672,6 +3674,8 @@ window.Game.copyChallengeUrl = function() {
         window.getSelection().removeAllRanges();
         const btn = document.getElementById('btn-copy-challenge');
         if (btn) { btn.textContent = 'COPIED!'; setTimeout(() => btn.textContent = 'COPY LINK', 1500); }
+        // Sprint 7 A2: achievement trigger (fallback path)
+        if (G.AchievementSystem && G.AchievementSystem.unlock) G.AchievementSystem.unlock('SHARE_CHALLENGE');
     }
 };
 

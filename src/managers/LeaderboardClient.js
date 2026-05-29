@@ -384,6 +384,11 @@ window.Game = window.Game || {};
             if (oldTier) oldTier.remove();
 
             if (result.ok && result.rank > 0) {
+                // Sprint 7 A2: first daily leaderboard achievement
+                const modeStr = scoreData.mode || '';
+                if (modeStr.startsWith('daily') && G.AchievementSystem && G.AchievementSystem.unlock) {
+                    G.AchievementSystem.unlock('FIRST_DAILY_LEADERBOARD');
+                }
                 if (rankVal) rankVal.textContent = `#${result.rank}`;
                 let tierText = null, tierClass = '';
                 if (result.rank <= 3) { tierText = t('LB_TOP3'); tierClass = 'rank-tier-3'; }

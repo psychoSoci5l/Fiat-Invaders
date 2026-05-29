@@ -63,6 +63,9 @@ window.Game = window.Game || {};
         fiat_daily_streak:      { v: 1, d: 0 },
         fiat_daily_last_played: { v: 1, d: '' },
 
+        // -- Engagement --
+        fiat_run_count:         { v: 1, d: 0 },
+
         // -- Leaderboard --
         fiat_pending_score:     { v: 1, d: null },
 

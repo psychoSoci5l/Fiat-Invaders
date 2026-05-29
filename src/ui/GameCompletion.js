@@ -294,6 +294,12 @@ window.Game = window.Game || {};
             if (G.AchievementSystem && G.AchievementSystem.checkAll) G.AchievementSystem.checkAll();
         }
 
+        // Sprint 7 A3: increment completed run count for PWA install prompt gating
+        try {
+            const rc = parseInt(G.MigrationSystem.get('fiat_run_count') || '0', 10);
+            G.MigrationSystem.set('fiat_run_count', String(rc + 1));
+        } catch (e) { /* defensive */ }
+
         const wasNewHighScore = d.getScore() > d.getHighScore();
         if (wasNewHighScore) {
             d.setHighScore(Math.floor(d.getScore()));
