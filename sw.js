@@ -1,103 +1,25 @@
 // Service Worker for FIAT vs CRYPTO
 // ⚠️ VERSION SYNC: Must match src/utils/Constants.js window.Game.VERSION
 // When updating version: 1) Constants.js  2) sw.js  3) CHANGELOG.md
-const SW_VERSION = '7.34.0';
+const SW_VERSION = '7.34.5';
 const CACHE_NAME = `fiat-vs-crypto-v${SW_VERSION}`;
 
 // All assets to cache
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
-    './style.css',
+    './style.min.css',
+    './bundle.js',
     './manifest.json',
     './icon-512.png',
-    // Config
-    './src/config/BalanceConfig.js',
-    // Audio
-    './src/audio/MusicData.js',
-    // Utils
-    './src/utils/Constants.js',
-    './src/utils/DebugSystem.js',
-    './src/utils/ColorUtils.js',
-    './src/utils/MathUtils.js',
-    './src/utils/RNG.js',
-    './src/utils/RunState.js',
-    './src/utils/Upgrades.js',
-    // Core
-    './src/core/EventBus.js',
-    './src/core/GameStateMachine.js',
-    './src/core/InputSystem.js',
-    './src/core/AudioSystem.js',
-    './src/core/ObjectPool.js',
-    './src/core/GameplayCallbacks.js',
-    // Entities
-    './src/entities/Entity.js',
-    './src/entities/Bullet.js',
-    './src/entities/Player.js',
-    './src/entities/Enemy.js',
-    './src/entities/EnemyAgentRenderer.js',
-    './src/entities/Boss.js',
-    './src/entities/PowerUp.js',
-    // Managers
-    './src/managers/WaveManager.js',
-    './src/managers/CampaignState.js',
-    './src/managers/DailyMode.js',
-    './src/managers/PerkManager.js',
-    './src/managers/MiniBossManager.js',
-    './src/managers/StatsTracker.js',
-    './src/managers/AchievementSystem.js',
-    './src/managers/ScoreManager.js',
-    './src/managers/LeaderboardClient.js',
-    // Story System
-    './src/story/StoryScreenData.js',
-    './src/story/StoryBackgrounds.js',
-    './src/story/StoryScreen.js',
-    './src/story/DialogueData.js',
-    './src/story/StoryManager.js',
-    './src/story/DialogueUI.js',
-    // Systems
-    './src/systems/BossSpawner.js',
-    './src/systems/BulletPatterns.js',
-    './src/systems/BulletSystem.js',
-    './src/systems/SpatialGrid.js',
-    './src/systems/CollisionSystem.js',
-    './src/systems/DropSystem.js',
-    './src/ui/MemeEngine.js',
-    './src/audio-reactive/HarmonicSequences.js',
-    './src/audio-reactive/HarmonicConductor.js',
-    './src/systems/ParticleSystem.js',
-    './src/systems/EffectsRenderer.js',
-    './src/systems/ScrollEngine.js',
-    './src/systems/SkyRenderer.js',
-    './src/systems/WeatherController.js',
-    './src/systems/TransitionManager.js',
-    './src/systems/TitleAnimator.js',
-    './src/ui/MessageSystem.js',
-    './src/systems/RankSystem.js',
-    './src/systems/DipMeter.js',
-    './src/ui/FloatingTextManager.js',
-    './src/ui/PerkIconManager.js',
-    './src/systems/ArcadeModifiers.js',
-    './src/systems/QualityManager.js',
-    './src/systems/HintTracker.js',
-    './src/systems/PhaseTransitionController.js',
-    './src/rendering/CullingHelper.js',
-    './src/rendering/OffscreenCanvas.js',
-    './src/rendering/GlowManager.js',
-    './src/rendering/DrawPipeline.js',
-    // UI
-    './src/ui/ModifierChoiceScreen.js',
-    './src/ui/LessonModal.js',
-    './src/ui/DebugOverlay.js',
-    './src/ui/IntroScreen.js',
-    './src/ui/GameCompletion.js',
-    './src/ui/UIManager.js',
-    './src/ui/TutorialManager.js',
-    // Campaign / V8
-    './src/v8/LevelScript.js',
-    './src/systems/SpawnSystem.js',
-    // Main
-    './src/main.js'
+    './icon-512.svg',
+    './splashscreen.webm',
+    './splashscreen.mp4',
+    // Videos used at end-game (lazy loaded, but cache for offline)
+    './completion-en.webm',
+    './completion-it.webm',
+    './completion-en.mp4',
+    './completion-it.mp4',
 ];
 
 // v7.19: Synthetic 503 fallback used when both cache and network are unavailable.

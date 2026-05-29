@@ -3200,6 +3200,7 @@ body.bear-mode .neon-title {
 .toast-item--godchain { border-color: rgba(255, 68, 0, 0.5); color: #ff4400; }
 .toast-item--shield { border-color: rgba(0, 240, 255, 0.5);   color: #00f0ff; }
 .toast-item--combo  { border-color: rgba(255, 215, 0, 0.5);   color: #ffd700; }
+.toast-item--info   { border-color: rgba(160, 160, 160, 0.4); color: #ccc; }
 
 .toast-icon {
     font-size: 14px;
@@ -3215,6 +3216,26 @@ body.bear-mode .neon-title {
 @keyframes toastSlideOut {
     from { opacity: 1; transform: translateY(0); }
     to   { opacity: 0; transform: translateY(-10px); }
+}
+
+/* --- VIDEO LOADING INDICATOR --- */
+.video-loading {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 9501;
+    color: rgba(255, 255, 255, 0.9);
+    font-family: 'Press Start 2P', 'Courier New', monospace;
+    font-size: 14px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    pointer-events: none;
+    text-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
+}
+
+#video-loading {
+    display: none;
 }
 
 /* --- COMBAT HUD BAR v5.26.0 (was MESSAGE STRIP v4.26.0) --- */

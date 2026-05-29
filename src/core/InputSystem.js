@@ -272,10 +272,16 @@ class InputSystem {
         window.addEventListener('gamepadconnected', (e) => {
             this.gamepad.connected = true;
             this.gamepad.index = e.gamepad.index;
+            if (window.Game.ToastSystem && window.Game.ToastSystem._initialized) {
+                window.Game.ToastSystem.show('GAMEPAD CONNECTED', 'info', '🎮', 2000);
+            }
         });
         window.addEventListener('gamepaddisconnected', () => {
             this.gamepad.connected = false;
             this.gamepad.index = -1;
+            if (window.Game.ToastSystem && window.Game.ToastSystem._initialized) {
+                window.Game.ToastSystem.show('GAMEPAD DISCONNECTED', 'info', '🎮', 2000);
+            }
         });
         // Start polling on first interaction (lazy init)
         this._startGamepadPoll();

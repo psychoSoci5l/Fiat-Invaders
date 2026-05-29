@@ -29,7 +29,22 @@ window.Game = window.Game || {};
         vid.style.display = 'block';
         vid.currentTime = 0;
 
+        // Q5: loading indicator for completion video on slow networks
+        let loadingEl = document.getElementById('completion-video-loading');
+        if (!loadingEl) {
+            loadingEl = document.createElement('div');
+            loadingEl.id = 'completion-video-loading';
+            loadingEl.className = 'video-loading';
+            loadingEl.textContent = 'Loading...';
+            document.body.appendChild(loadingEl);
+        }
+        loadingEl.style.display = 'block';
+        const hideLoading = () => { if (loadingEl) loadingEl.style.display = 'none'; };
+        vid.addEventListener('canplay', hideLoading);
+        vid.addEventListener('canplaythrough', hideLoading);
+
         const finish = () => {
+            hideLoading();
             vid.style.display = 'none';
             vid.onended = null;
             showCompletionOverlay(onComplete);

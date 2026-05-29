@@ -1034,6 +1034,13 @@ function init() {
         splash.addEventListener('click', startApp);
         splash.addEventListener('touchstart', startApp);
         window.skipSplashVideo = startApp;
+        // Q5: loading indicator for splash video on slow networks
+        const vidLoading = document.getElementById('video-loading');
+        if (vidLoading) {
+            vid.addEventListener('waiting', () => { vidLoading.style.display = 'block'; });
+            vid.addEventListener('canplay', () => { vidLoading.style.display = 'none'; });
+            vid.addEventListener('canplaythrough', () => { vidLoading.style.display = 'none'; });
+        }
     } else {
         // No video - go directly to intro with splash state
         if (splash) splash.style.display = 'none';
@@ -1191,6 +1198,20 @@ function init() {
     G.DrawPipeline.register(G.DrawPipeline.LAYER.ARCADE_HUD, function(ctx, fc) {
         if (fc.gameState !== 'INTERMISSION') lastCountdownNumber = 0;
     }, -1);
+
+    // Q5: online/offline toast feedback
+    if ('onLine' in navigator) {
+        window.addEventListener('offline', () => {
+            if (G.ToastSystem && G.ToastSystem._initialized) {
+                G.ToastSystem.show('OFFLINE — playing from cache', 'info', '✈', 3000);
+            }
+        });
+        window.addEventListener('online', () => {
+            if (G.ToastSystem && G.ToastSystem._initialized) {
+                G.ToastSystem.show('ONLINE — scores will sync', 'info', '✈', 2000);
+            }
+        });
+    }
 
     requestAnimationFrame(loop);
 }
