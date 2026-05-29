@@ -82,7 +82,7 @@ async function sha256(message) {
 // more enemies, harder variants). Per-cycle base * cycle * 12x multiplier cap.
 // Story mode: unchanged (5 waves, single-cycle mapping).
 function scoreCeiling(wave, cycle, mode) {
-  if (mode === 'arcade') {
+  if (mode === 'arcade' || (mode && mode.startsWith('daily:'))) {
     const completedCycles = Math.max(0, cycle - 1);
     const currentCycleProgress = wave / 5;
     const perCycleBase = 15000 * 5 * 1.5;
@@ -107,7 +107,8 @@ function validatePayload(p) {
   if (typeof p.s !== 'number' || p.s < 0 || !isFinite(p.s)) return 'invalid score';
   if (typeof p.k !== 'number' || p.k < 0) return 'invalid kills';
   if (typeof p.c !== 'number' || p.c < 1 || p.c > 50) return 'invalid cycle';
-  const maxWave = p.mode === 'arcade' ? MAX_WAVE_ARCADE : MAX_WAVE_STORY;
+  const isArcadeLike = p.mode === 'arcade' || (p.mode && p.mode.startsWith('daily:'));
+  const maxWave = isArcadeLike ? MAX_WAVE_ARCADE : MAX_WAVE_STORY;
   if (typeof p.w !== 'number' || p.w < 1 || p.w > maxWave) return 'invalid wave';
   if (!['BTC', 'ETH', 'SOL'].includes(p.sh)) return 'invalid ship';
   if (p.p && !['D', 'M'].includes(p.p)) return 'invalid platform';

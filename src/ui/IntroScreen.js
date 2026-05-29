@@ -198,6 +198,8 @@ window.Game = window.Game || {};
             if (info) { info.style.display = 'none'; info.classList.remove('anim-selection-out'); }
             if (modeIndicator) { modeIndicator.style.display = 'none'; modeIndicator.classList.remove('anim-selection-out'); }
             if (scoreRow) scoreRow.style.display = 'none';
+            const streakRow = document.getElementById('selection-streak-row');
+            if (streakRow) streakRow.style.display = 'none';
             if (arrowLeft) arrowLeft.classList.remove('visible');
             if (arrowRight) arrowRight.classList.remove('visible');
 
@@ -288,6 +290,25 @@ window.Game = window.Game || {};
     }
 
     // Update the mode indicator in selection screen
+    function updateStreakUI() {
+        const streakRow = document.getElementById('selection-streak-row');
+        const streakVal = document.getElementById('streak-value');
+        const streakLabel = document.getElementById('streak-label');
+        if (!streakRow) return;
+
+        const isDaily = G.DailyMode && G.DailyMode.isActive();
+        if (isDaily) {
+            const streak = G.DailyMode.getStreak ? G.DailyMode.getStreak() : 0;
+            if (streakVal) streakVal.textContent = String(streak);
+            if (streakLabel) streakLabel.textContent = d.t('STREAK_LABEL') || 'DAY STREAK';
+            streakRow.style.display = 'flex';
+            streakRow.setAttribute('data-streak', streak); // a11y / CSS hook
+        } else {
+            streakRow.style.display = 'none';
+            streakRow.removeAttribute('data-streak');
+        }
+    }
+
     function updateModeIndicator() {
         const campaignState = G.CampaignState;
         const isStory = campaignState && campaignState.isEnabled();
@@ -340,6 +361,9 @@ window.Game = window.Game || {};
                 recordsRow.style.display = 'none';
             }
         }
+
+        // Sprint 6 S1: streak counter (daily mode only)
+        updateStreakUI();
     }
 
     window.cycleShip = function(dir) {
@@ -1688,6 +1712,7 @@ window.Game = window.Game || {};
             '.intro-version',
             '.current-mode-indicator',
             '.selection-score-row',
+            '.selection-streak-row',
             '.selection-info',
             '.selection-header',
             '.intro-title',
@@ -1960,6 +1985,8 @@ window.Game = window.Game || {};
             if (info) info.style.display = 'none';
             if (modeIndicator) modeIndicator.style.display = 'none';
             if (scoreRow) scoreRow.style.display = 'none';
+            const streakRow = document.getElementById('selection-streak-row');
+            if (streakRow) streakRow.style.display = 'none';
             if (arrowLeft) arrowLeft.classList.remove('visible');
             if (arrowRight) arrowRight.classList.remove('visible');
 

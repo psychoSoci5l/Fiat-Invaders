@@ -1073,7 +1073,11 @@
 
             // Graze-kill synergy
             GRAZE_KILL_THRESHOLD: 50,    // grazeMeter above this = bonus
-            GRAZE_KILL_BONUS: 1.5        // 50% bonus for kills during high graze
+            GRAZE_KILL_BONUS: 1.5,       // 50% bonus for kills during high graze
+
+            // Daily streak multiplier (Sprint 6 S2)
+            DAILY_STREAK_MULT_PER_DAY: 0.05, // +5% per consecutive daily streak day
+            DAILY_STREAK_MULT_MAX: 2.0       // Cap at 2.0x total streak bonus
         },
 
         // --- MEME SYSTEM ---

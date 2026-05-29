@@ -8,7 +8,8 @@ const NODE_TEST_FILES = [
     'tests/unit/migration_test.js',
     'tests/unit/checkpoint_manager_test.js',
     'tests/unit/checkpoint_lifecycle_test.js',
-    'tests/unit/collision_test.js'
+    'tests/unit/collision_test.js',
+    'tests/unit/daily_streak_test.js'
 ];
 
 function runNodeTests() {

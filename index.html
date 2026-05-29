@@ -183,6 +183,12 @@
                 <span class="score-row-label" id="score-row-label">RECORD</span>
                 <span class="score-row-value" id="badge-score-value">0</span>
             </div>
+            <!-- STREAK ROW (visible in selection only, daily mode) -->
+            <div class="selection-streak-row" id="selection-streak-row" style="display: none;" aria-live="polite">
+                <span class="streak-icon" aria-hidden="true">🔥</span>
+                <span class="streak-value" id="streak-value">0</span>
+                <span class="streak-label" id="streak-label">DAY STREAK</span>
+            </div>
             <button class="btn btn-cta btn-lg" id="btn-continua" style="display:none;">
                 CONTINUA
             </button>
@@ -311,6 +317,15 @@
             </div>
             <div class="gameover-top5" id="gameover-top5"></div>
             <button class="btn btn-secondary btn-sm" onclick="Game.Leaderboard.toggle()" id="btn-view-lb">VIEW FULL LEADERBOARD</button>
+        </div>
+        <!-- Daily Challenge URL (Sprint 6 S4/S5) -->
+        <div id="daily-challenge-row" style="display: none;">
+            <div class="challenge-label">CHALLENGE FRIEND</div>
+            <div class="challenge-url" id="challenge-url-text"></div>
+            <div class="challenge-actions">
+                <button class="btn btn-secondary btn-sm" id="btn-copy-challenge" onclick="Game.copyChallengeUrl()">COPY LINK</button>
+                <button class="btn btn-secondary btn-sm" id="btn-share-result" onclick="Game.shareResult()">SHARE</button>
+            </div>
         </div>
         <div class="gameover-actions">
             <button class="btn btn-primary" id="btn-retry" onclick="restartFromGameOver()">RETRY</button>
@@ -539,6 +554,18 @@ Tap your ship to activate</p>
                 </button>
             </div>
 
+            <!-- SECTION: NOTIFICATIONS (Sprint 6 S6) -->
+            <div class="settings-section-header" data-i18n="SET_NOTIFICATIONS">NOTIFICATIONS</div>
+
+            <div class="setting-row">
+                <span class="setting-label" data-i18n="SET_DAILY_NOTIFY">DAILY REMINDER</span>
+                <button class="toggle-switch" onclick="toggleDailyNotify()" id="daily-notify-btn">
+                    <span class="switch-track"></span>
+                    <span class="switch-thumb"></span>
+                    <span class="switch-label">OFF</span>
+                </button>
+            </div>
+
             <!-- SECTION: INFO -->
             <div class="settings-section-header" data-i18n="SET_INFO">INFO</div>
 
@@ -626,6 +653,12 @@ Tap your ship to activate</p>
     <div id="leaderboard-panel" role="dialog" aria-modal="true" aria-labelledby="lb-title" style="display: none;">
         <div class="leaderboard-box">
             <h2 class="leaderboard-title" id="lb-title">LEADERBOARD</h2>
+            <!-- Mode tabs (Sprint 6 S3) -->
+            <div class="lb-mode-tabs" id="lb-mode-tabs">
+                <button class="lb-tab" data-lb-mode="story" onclick="Game.Leaderboard.switchTab('story')">STORY</button>
+                <button class="lb-tab" data-lb-mode="arcade" onclick="Game.Leaderboard.switchTab('arcade')">ARCADE</button>
+                <button class="lb-tab" data-lb-mode="daily" onclick="Game.Leaderboard.switchTab('daily')">DAILY</button>
+            </div>
             <div class="leaderboard-scroll" id="lb-scroll">
                 <div id="lb-loading">LOADING...</div>
                 <table class="lb-table" id="lb-table" style="display: none;">
@@ -889,6 +922,7 @@ Tap your ship to activate</p>
             });
         }
     </script>
+    
     
     
     

@@ -120,14 +120,44 @@ window.Game = window.Game || {};
         _cache: null,
         _cacheTime: 0,
         _visible: false,
+        _viewMode: null, // Sprint 6 S3: active tab mode in leaderboard UI
 
         _getMode() {
+            if (G.DailyMode && G.DailyMode.isActive()) {
+                return G.DailyMode.modeToken ? G.DailyMode.modeToken() : 'daily';
+            }
             return (G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode()) ? 'arcade' : 'story';
         },
 
+        switchTab(mode) {
+            this._viewMode = mode;
+            this._cache = null;
+            this._cacheTime = 0;
+            // Update tab button styles
+            const tabs = document.querySelectorAll('.lb-tab');
+            tabs.forEach(btn => {
+                const btnMode = btn.getAttribute('data-lb-mode');
+                btn.classList.toggle('active', btnMode === mode);
+            });
+            this._loadAndRender();
+        },
+
+        _resolveDailyMode(viewMode) {
+            // If tab is 'daily' but no date token exists, resolve to today's token
+            if (viewMode === 'daily' && G.DailyMode && G.DailyMode.modeToken) {
+                return G.DailyMode.modeToken();
+            }
+            return viewMode;
+        },
+
         async fetchScores(mode) {
-            mode = mode || this._getMode();
-            if (this._cache && Date.now() - this._cacheTime < 30000) return this._cache;
+            mode = mode || this._viewMode || this._getMode();
+            mode = this._resolveDailyMode(mode);
+            // Separate cache per mode
+            const cacheKey = '_cache_' + mode;
+            const cacheTimeKey = '_cacheTime_' + mode;
+            const now = Date.now();
+            if (this[cacheKey] && now - (this[cacheTimeKey] || 0) < 30000) return this[cacheKey];
             const url = `${G.LEADERBOARD_API}/lb?mode=${mode}`;
             try {
                 const res = await fetch(url);
@@ -138,8 +168,8 @@ window.Game = window.Game || {};
                 }
                 const data = await res.json();
                 if (data.ok) {
-                    this._cache = data.scores;
-                    this._cacheTime = Date.now();
+                    this[cacheKey] = data.scores;
+                    this[cacheTimeKey] = now;
                     this._lastError = null;
                     return data.scores;
                 }
@@ -221,6 +251,16 @@ window.Game = window.Game || {};
             const title = document.getElementById('lb-title');
             const closeBtn = document.getElementById('lb-close-btn');
             const feedbackBtn = document.getElementById('lb-feedback-btn');
+
+            // Sprint 6 S3: ensure viewMode is set and tabs reflect it
+            if (!this._viewMode) this._viewMode = this._getMode();
+            const viewMode = this._viewMode;
+            const tabs = document.querySelectorAll('.lb-tab');
+            tabs.forEach(btn => {
+                const btnMode = btn.getAttribute('data-lb-mode');
+                btn.classList.toggle('active', btnMode === viewMode);
+            });
+
             if (title) title.textContent = t('LB_TITLE');
             if (closeBtn) closeBtn.textContent = t('CLOSE');
             if (feedbackBtn) feedbackBtn.textContent = 'FEEDBACK';
@@ -237,7 +277,7 @@ window.Game = window.Game || {};
                 ths[4].textContent = '';
             }
 
-            const scores = await this.fetchScores();
+            const scores = await this.fetchScores(viewMode);
             if (loading) loading.style.display = 'none';
             if (!scores) {
                 if (empty) {
@@ -255,8 +295,11 @@ window.Game = window.Game || {};
             let playerInfo = null;
             const rankSection = document.getElementById('lb-player-rank');
             if (nick) {
-                const mode = this._getMode();
-                const hsKey = mode === 'arcade' ? 'fiat_highscore_arcade' : 'fiat_highscore_story';
+                const mode = this._resolveDailyMode(viewMode);
+                let hsKey;
+                if (mode.startsWith('daily:')) hsKey = 'fiat_highscore_' + mode;
+                else if (mode === 'arcade') hsKey = 'fiat_highscore_arcade';
+                else hsKey = 'fiat_highscore_story';
                 const hs = parseInt(_safeGet(hsKey, '0')) || 0;
                 const result = await this.getRank(mode, hs);
                 if (result.ok && result.rank > 0) {

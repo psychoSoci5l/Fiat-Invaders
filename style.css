@@ -1835,6 +1835,39 @@ body {
                  0 0 30px rgba(255, 170, 0, 0.2);
 }
 
+/* STREAK ROW (Sprint 6 S1) */
+.selection-streak-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 10px;
+    animation: fadeSlideUp 0.4s ease-out 0.15s both;
+}
+
+.streak-icon {
+    font-size: 16px;
+    line-height: 1;
+    filter: drop-shadow(0 0 4px rgba(255, 100, 0, 0.6));
+}
+
+.streak-value {
+    font-size: clamp(18px, 5vw, 24px);
+    font-weight: 800;
+    color: #ff7700;
+    letter-spacing: 1px;
+    text-shadow: 0 0 10px rgba(255, 119, 0, 0.5),
+                 0 0 20px rgba(255, 119, 0, 0.2);
+}
+
+.streak-label {
+    font-size: 9px;
+    color: rgba(255, 180, 120, 0.6);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+}
+
 /* PRIMARY ACTION CONTAINER - FIXED POSITION */
 .primary-action-container {
     position: absolute;
@@ -1875,6 +1908,9 @@ body {
     .selection-score-row {
         margin-bottom: 8px;
     }
+    .selection-streak-row {
+        margin-bottom: 6px;
+    }
     .primary-action-container {
         bottom: max(80px, calc(50px + var(--safe-bottom, 0px)));
     }
@@ -1892,6 +1928,40 @@ body {
 }
 .gameover-actions .btn {
     width: 100%;
+}
+
+/* Daily Challenge URL row (Sprint 6 S4/S5) */
+#daily-challenge-row {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin: 14px 0 6px;
+    padding: 10px 16px;
+    border: 1px dashed rgba(187, 68, 255, 0.35);
+    border-radius: 8px;
+    background: rgba(187, 68, 255, 0.06);
+    max-width: 360px;
+    width: 100%;
+}
+.challenge-label {
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: rgba(187, 68, 255, 0.7);
+    text-transform: uppercase;
+}
+.challenge-url {
+    font: 600 11px 'Courier New', monospace;
+    color: rgba(255, 255, 255, 0.6);
+    word-break: break-all;
+    text-align: center;
+    line-height: 1.4;
+}
+.challenge-actions {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+    justify-content: center;
 }
 
 /* Old .btn-secondary, .btn-play version-text replaced by Button Design System */
@@ -6115,6 +6185,36 @@ body.is-touch p.mobile-only { display: block; }
     border-bottom: 2px solid #bb44ff;
     flex-shrink: 0;
 }
+
+/* Leaderboard mode tabs (Sprint 6 S3) */
+.lb-mode-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 0;
+    padding: 0 20px;
+    flex-shrink: 0;
+    border-bottom: 1px solid rgba(187, 68, 255, 0.25);
+}
+.lb-tab {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
+    font: 600 11px 'Courier New', monospace;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 8px 14px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s, border-color 0.2s;
+}
+.lb-tab:hover {
+    color: rgba(255, 255, 255, 0.7);
+}
+.lb-tab.active {
+    color: #bb44ff;
+    border-bottom-color: #bb44ff;
+}
+
 .leaderboard-scroll {
     flex: 1;
     min-height: 180px;

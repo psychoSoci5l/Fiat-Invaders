@@ -59,6 +59,10 @@ window.Game = window.Game || {};
         fiat_tutorial_arcade_seen: { v: 1, d: '0' },
         fiat_warmup_shown:      { v: 1, d: '0' },
 
+        // -- Daily Streak (Sprint 6 S1) --
+        fiat_daily_streak:      { v: 1, d: 0 },
+        fiat_daily_last_played: { v: 1, d: '' },
+
         // -- Leaderboard --
         fiat_pending_score:     { v: 1, d: null },
 

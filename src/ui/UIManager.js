@@ -254,6 +254,20 @@ window.Game = window.Game || {};
         }
     }
 
+    function updateDailyNotifyUI() {
+        var settingsToggle = document.getElementById('daily-notify-btn');
+        if (!settingsToggle) return;
+        var label = settingsToggle.querySelector('.switch-label');
+        var isOn = G.MigrationSystem.get('fiat_daily_notify') === '1';
+        if (isOn) {
+            settingsToggle.classList.add('active');
+            if (label) label.textContent = 'ON';
+        } else {
+            settingsToggle.classList.remove('active');
+            if (label) label.textContent = 'OFF';
+        }
+    }
+
     // --- Level UI ---
     function updateLevelUI() {
         var el = document.getElementById('lvlVal');
@@ -370,6 +384,7 @@ window.Game = window.Game || {};
             if (G.Accessibility) G.Accessibility.closeModal(modal);
         } else {
             updateUIText();
+            updateDailyNotifyUI();
             modal.classList.add('visible');
             if (G.Accessibility) G.Accessibility.openModal(modal);
         }
@@ -580,6 +595,30 @@ window.Game = window.Game || {};
         }
     }
 
+    // --- Daily Notification Toggle (Sprint 6 S6) ---
+    function toggleDailyNotify() {
+        const btn = document.getElementById('daily-notify-btn');
+        const label = btn ? btn.querySelector('.switch-label') : null;
+        const current = G.MigrationSystem.get('fiat_daily_notify') === '1';
+        const next = !current;
+
+        if (next && 'Notification' in window && Notification.permission !== 'granted') {
+            Notification.requestPermission().then(function(perm) {
+                if (perm !== 'granted') {
+                    if (label) label.textContent = 'OFF';
+                    G.MigrationSystem.set('fiat_daily_notify', '0');
+                    return;
+                }
+                if (label) label.textContent = 'ON';
+                G.MigrationSystem.set('fiat_daily_notify', '1');
+            });
+            return;
+        }
+
+        if (label) label.textContent = next ? 'ON' : 'OFF';
+        G.MigrationSystem.set('fiat_daily_notify', next ? '1' : '0');
+    }
+
     // --- Init ---
     function init(deps) {
         d = deps;
@@ -594,6 +633,7 @@ window.Game = window.Game || {};
         window.cycleQuality = cycleQuality;
         window.calibrateTilt = calibrateTilt;
         window.toggleTilt = toggleTilt;
+        window.toggleDailyNotify = toggleDailyNotify;
         window.dismissPWABanner = dismissPWABanner;
         window.checkPWAInstallPrompt = checkPWAInstallPrompt;
 

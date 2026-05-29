@@ -974,6 +974,36 @@ function init() {
                 window.setGameMode(G.CampaignState.isEnabled() ? 'campaign' : 'arcade');
             }
 
+            // Sprint 6 S4: Parse challenge URL on startup
+            if (G.DailyMode && G.DailyMode.parseChallengeUrl) {
+                const challenge = G.DailyMode.parseChallengeUrl();
+                if (challenge) {
+                    // Auto-select daily mode and show invite toast
+                    window.setGameMode('daily');
+                    if (G.MemeEngine) {
+                        G.MemeEngine.queueMeme('HIGH',
+                            (G.t ? G.t('CHALLENGE_INVITE') : 'DAILY CHALLENGE') + '\n' +
+                            (G.t ? G.t('BEAT_SCORE') : 'BEAT') + ' ' + challenge.score.toLocaleString(),
+                            '👊');
+                    }
+                    G.DailyMode.clearChallengeUrl();
+                }
+            }
+
+            // Sprint 6 S6: Daily reminder notification
+            try {
+                const notifyOn = G.MigrationSystem.get('fiat_daily_notify') === '1';
+                if (notifyOn && 'Notification' in window && Notification.permission === 'granted') {
+                    if (G.DailyMode && !G.DailyMode.isLockedToday()) {
+                        new Notification('FIAT vs CRYPTO', {
+                            body: G.t ? G.t('DAILY_READY') : 'New Daily Challenge is ready!',
+                            icon: 'icon-192.png',
+                            badge: 'icon-192.png'
+                        });
+                    }
+                }
+            } catch (e) {}
+
             // Open curtain after intro screen is ready
             const curtain = document.getElementById('curtain-overlay');
             if (curtain) {
@@ -1951,7 +1981,10 @@ function updateReactiveHUD() {
 
 function startGame() {
     if (G.DebugOverlay) G.DebugOverlay.hide();
-    if (G.DailyMode && G.DailyMode.isActive()) G.DailyMode.markAttempt();
+    if (G.DailyMode && G.DailyMode.isActive()) {
+        G.DailyMode.markAttempt();
+        G.DailyMode.updateStreak();   // Sprint 6 S1: streak persistence
+    }
     if (G.ScrollEngine) G.ScrollEngine.reset();
     audioSys.init();
     clearBossDeathTimeouts(); // v5.13.1: Cancel orphan boss death timeouts
@@ -3616,6 +3649,72 @@ window.Game.addProximityMeter = function(gain) {
             triggerScreenFlash('HYPER_ACTIVATE');
         }
     }
+};
+
+// Sprint 6 S4: Copy challenge URL to clipboard
+window.Game.copyChallengeUrl = function() {
+    const el = document.getElementById('challenge-url-text');
+    if (!el) return;
+    const url = el.getAttribute('data-url') || el.textContent;
+    if (!url) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(() => {
+            const btn = document.getElementById('btn-copy-challenge');
+            if (btn) { btn.textContent = 'COPIED!'; setTimeout(() => btn.textContent = 'COPY LINK', 1500); }
+        }).catch(() => {});
+    } else {
+        // Fallback: select text
+        const range = document.createRange();
+        range.selectNode(el);
+        window.getSelection().removeAllRanges();
+        window.getSelection().addRange(range);
+        try { document.execCommand('copy'); } catch (e) {}
+        window.getSelection().removeAllRanges();
+        const btn = document.getElementById('btn-copy-challenge');
+        if (btn) { btn.textContent = 'COPIED!'; setTimeout(() => btn.textContent = 'COPY LINK', 1500); }
+    }
+};
+
+// Sprint 6 S5: Web Share screenshot + fallback clipboard
+window.Game.shareResult = async function() {
+    const urlEl = document.getElementById('challenge-url-text');
+    const url = urlEl ? (urlEl.getAttribute('data-url') || urlEl.textContent) : window.location.href;
+    const score = Math.floor(window.Game._lastDailyScore || 0);
+    const text = `I scored ${score.toLocaleString()} in FIAT vs CRYPTO Daily Challenge! Can you beat it?`;
+
+    // Try native file share with canvas screenshot
+    try {
+        const canvas = document.getElementById('gameCanvas');
+        if (canvas && navigator.canShare && navigator.share) {
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            if (blob) {
+                const file = new File([blob], 'fiat-daily-result.png', { type: 'image/png' });
+                const shareData = { title: 'FIAT vs CRYPTO', text, url, files: [file] };
+                if (navigator.canShare(shareData)) {
+                    await navigator.share(shareData);
+                    return;
+                }
+            }
+        }
+    } catch (e) { /* share cancelled or unsupported */ }
+
+    // Fallback: share text only via Web Share API
+    try {
+        if (navigator.share) {
+            await navigator.share({ title: 'FIAT vs CRYPTO', text, url });
+            return;
+        }
+    } catch (e) { /* cancelled */ }
+
+    // Final fallback: copy text to clipboard
+    try {
+        const fullText = text + ' ' + url;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(fullText);
+            const btn = document.getElementById('btn-share-result');
+            if (btn) { btn.textContent = 'COPIED!'; setTimeout(() => btn.textContent = 'SHARE', 1500); }
+        }
+    } catch (e) {}
 };
 
 function loop(timestamp) {

@@ -348,6 +348,23 @@ window.Game = window.Game || {};
             if (comboRow2) comboRow2.style.display = 'none';
         }
 
+        // Sprint 6 S4/S5: Challenge URL for Daily mode
+        const challengeRow = document.getElementById('daily-challenge-row');
+        const challengeUrlText = document.getElementById('challenge-url-text');
+        if (G.DailyMode && G.DailyMode.isActive()) {
+            window.Game._lastDailyScore = Math.floor(d.getScore());
+            if (challengeRow) challengeRow.style.display = 'flex';
+            if (challengeUrlText && G.DailyMode.generateChallengeUrl) {
+                const url = G.DailyMode.generateChallengeUrl(d.getScore());
+                challengeUrlText.textContent = url;
+                challengeUrlText.setAttribute('data-url', url);
+            }
+        } else {
+            window.Game._lastDailyScore = 0;
+            if (challengeRow) challengeRow.style.display = 'none';
+            if (challengeUrlText) challengeUrlText.textContent = '';
+        }
+
         if (G.Story) G.Story.onGameOver();
         if (ui.kills) ui.kills.innerText = d.getKillCount();
         if (ui.streak) ui.streak.innerText = d.getBestStreak();

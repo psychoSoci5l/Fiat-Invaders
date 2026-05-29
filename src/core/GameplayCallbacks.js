@@ -193,6 +193,15 @@ window.Game = window.Game || {};
                     // Arcade modifier score multiplier
                     const arcadeScoreMult = (_isArcade && G.RunState.arcadeBonuses) ? G.RunState.arcadeBonuses.scoreMult : 1;
 
+                    // Daily streak multiplier (Sprint 6 S2)
+                    let dailyStreakMult = 1.0;
+                    if (G.DailyMode && G.DailyMode.isActive()) {
+                        const streak = G.DailyMode.getStreak ? G.DailyMode.getStreak() : 0;
+                        const perDay = Balance.SCORE.DAILY_STREAK_MULT_PER_DAY || 0.05;
+                        const streakCap = Balance.SCORE.DAILY_STREAK_MULT_MAX || 2.0;
+                        dailyStreakMult = Math.min(streakCap, 1.0 + streak * perDay);
+                    }
+
                     // Score calculation
                     const perkMult = 1;
                     const bearMult = d.getIsBearMarket() ? Balance.SCORE.BEAR_MARKET_MULT : 1;
@@ -204,7 +213,7 @@ window.Game = window.Game || {};
                     const isLastEnemy = enemies.length === 0;
                     const lastEnemyMult = isLastEnemy && G.HarmonicConductor ? G.HarmonicConductor.getLastEnemyBonus() : 1;
                     // v7.0: Cap total multiplier to prevent degenerate scores
-                    let totalMult = bearMult * perkMult * d.getKillStreakMult() * grazeKillBonus * hyperMult * lastEnemyMult * comboMult * arcadeScoreMult;
+                    let totalMult = bearMult * perkMult * d.getKillStreakMult() * grazeKillBonus * hyperMult * lastEnemyMult * comboMult * arcadeScoreMult * dailyStreakMult;
                     const multCap = Balance.HYPERGOD?.TOTAL_MULT_CAP;
                     if (multCap && totalMult > multCap) totalMult = multCap;
                     const killScore = Math.floor(e.scoreVal * totalMult);
