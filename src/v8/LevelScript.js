@@ -357,6 +357,7 @@ window.Game = window.Game || {};
     G.LevelScript = {
         LEVELS,
         TIER_TARGETS,
+        TIER_TARGETS_BY_LEVEL,
 
         _levelIdx: 0,
         _idx: 0,

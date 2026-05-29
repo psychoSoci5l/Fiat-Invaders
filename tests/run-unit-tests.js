@@ -1,10 +1,53 @@
-// Run unit tests via Playwright and report results
+// Run unit tests via Playwright + Node unit tests
 const { chromium } = require('playwright');
+const { execSync } = require('child_process');
+const path = require('path');
 const baseUrl = process.env.TEST_BASE_URL || 'http://localhost:8000';
+
+const NODE_TEST_FILES = [
+    'tests/unit/migration_test.js',
+    'tests/unit/checkpoint_manager_test.js',
+    'tests/unit/checkpoint_lifecycle_test.js',
+    'tests/unit/collision_test.js'
+];
+
+function runNodeTests() {
+    let totalPassed = 0, totalFailed = 0;
+    const results = [];
+    for (const file of NODE_TEST_FILES) {
+        const fullPath = path.resolve(file);
+        try {
+            const stdout = execSync(`node "${fullPath}"`, { encoding: 'utf-8', timeout: 10000 });
+            const passedMatch = stdout.match(/Passed:\s*(\d+)/);
+            const failedMatch = stdout.match(/Failed:\s*(\d+)/);
+            const passed = passedMatch ? parseInt(passedMatch[1], 10) : 0;
+            const failed = failedMatch ? parseInt(failedMatch[1], 10) : 0;
+            totalPassed += passed;
+            totalFailed += failed;
+            results.push({ file, passed, failed, ok: failed === 0 });
+        } catch (e) {
+            results.push({ file, passed: 0, failed: 1, ok: false, error: e.message });
+            totalFailed += 1;
+        }
+    }
+    return { totalPassed, totalFailed, results };
+}
 
 async function runUnitTests() {
     console.log('\n=== Unit Test Suite — Automated Runner ===\n');
 
+    // Phase 1: Node standalone unit tests
+    console.log('--- Node Unit Tests ---');
+    const nodeResults = runNodeTests();
+    for (const r of nodeResults.results) {
+        const icon = r.ok ? '✅' : '❌';
+        console.log(`${icon} ${path.basename(r.file)} — ${r.passed} passed, ${r.failed} failed`);
+        if (r.error) console.log(`   Error: ${r.error}`);
+    }
+    console.log(`Node Total: ${nodeResults.totalPassed} passed, ${nodeResults.totalFailed} failed\n`);
+
+    // Phase 2: Browser test suite via Playwright
+    console.log('--- Browser Test Suite ---');
     const browser = await chromium.launch({ headless: true });
     const page = await browser.newPage();
 
@@ -82,10 +125,18 @@ async function runUnitTests() {
 
     console.log(`\nTotal asserts: ${totalAsserts}`);
     console.log(`Test suites: ${results.suites.length}`);
-    console.log(`Overall: ${failed === 0 ? '✅ ALL PASS' : `❌ ${failed} FAILURES`}\n`);
+
+    // Phase 3: Aggregate report
+    const grandPassed = nodeResults.totalPassed + passed;
+    const grandFailed = nodeResults.totalFailed + failed;
+    console.log(`\n=== AGGREGATE REPORT ===`);
+    console.log(`Node unit tests: ${nodeResults.totalPassed} passed, ${nodeResults.totalFailed} failed`);
+    console.log(`Browser suites:  ${passed} passed, ${failed} failed (${results.suites.length} suites)`);
+    console.log(`GRAND TOTAL:     ${grandPassed} passed, ${grandFailed} failed`);
+    console.log(`Overall: ${grandFailed === 0 ? '✅ ALL PASS' : `❌ ${grandFailed} FAILURES`}\n`);
 
     await browser.close();
-    process.exit(failed > 0 ? 1 : 0);
+    process.exit(grandFailed > 0 ? 1 : 0);
 }
 
 runUnitTests().catch(err => {

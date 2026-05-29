@@ -30,7 +30,7 @@
         assert(typeof LS.hasNextLevel === 'function', 'hasNextLevel() is a function');
 
         // TIER_TARGETS_BY_LEVEL: 3 levels with correct structure
-        const tiers = LS._TIER_TARGETS_BY_LEVEL;
+        const tiers = LS.TIER_TARGETS_BY_LEVEL;
         assert(tiers && tiers.length === 3, 'TIER_TARGETS_BY_LEVEL has 3 levels');
 
         for (let i = 0; i < tiers.length; i++) {
@@ -50,7 +50,7 @@
     // ── Suite 3 — Level scripts: timestamps ascending ───────────────────────
     _testRunner.suite('V8 Levels — Timeline', (assert) => {
         const LS = G.LevelScript;
-        const scripts = [LS._LEVEL_1_SCRIPT, LS._LEVEL_2_SCRIPT, LS._LEVEL_3_SCRIPT];
+        const scripts = [LS.LEVELS[0].SCRIPT, LS.LEVELS[1].SCRIPT, LS.LEVELS[2].SCRIPT];
         const names = ['Level 1 (FED)', 'Level 2 (BCE)', 'Level 3 (BOJ)'];
 
         for (let l = 0; l < scripts.length; l++) {
@@ -79,7 +79,7 @@
     // ── Suite 4 — CRUSH set-piece events ────────────────────────────────────
     _testRunner.suite('V8 Levels — CRUSH events', (assert) => {
         const LS = G.LevelScript;
-        const scripts = [LS._LEVEL_1_SCRIPT, LS._LEVEL_2_SCRIPT, LS._LEVEL_3_SCRIPT];
+        const scripts = [LS.LEVELS[0].SCRIPT, LS.LEVELS[1].SCRIPT, LS.LEVELS[2].SCRIPT];
         const names = ['Level 1 (FED)', 'Level 2 (BCE)', 'Level 3 (BOJ)'];
 
         for (let l = 0; l < scripts.length; l++) {
@@ -119,7 +119,7 @@
     // ── Suite 6 — Level tier definitions ────────────────────────────────────
     _testRunner.suite('V8 Levels — Tier Maps', (assert) => {
         const LS = G.LevelScript;
-        const tierMaps = [LS._LEVEL_1_TIERS, LS._LEVEL_2_TIERS, LS._LEVEL_3_TIERS];
+        const tierMaps = [LS.LEVELS[0].TIER_BY_SYMBOL, LS.LEVELS[1].TIER_BY_SYMBOL, LS.LEVELS[2].TIER_BY_SYMBOL];
         const names = ['Level 1 (FED)', 'Level 2 (BCE)', 'Level 3 (BOJ)'];
 
         for (let l = 0; l < tierMaps.length; l++) {

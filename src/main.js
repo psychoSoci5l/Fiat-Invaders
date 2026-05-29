@@ -1936,6 +1936,7 @@ function updateReactiveHUD() {
         _reactiveStreakTimer -= (1 / 60); // Approximate dt
         if (_reactiveStreakTimer <= 0 && _reactiveStreakClass) {
             scoreEl.classList.remove(_reactiveStreakClass);
+            scoreEl.removeAttribute('data-streak');
             _reactiveStreakClass = '';
         }
     }

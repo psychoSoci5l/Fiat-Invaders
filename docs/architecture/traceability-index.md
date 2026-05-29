@@ -97,3 +97,19 @@
 ## Superseded Requirements
 
 None — this is the first traceability pass. No GDD requirements have been superseded.
+
+---
+
+## Post-v8 Traceability Additions — 2026-05-29
+
+Sistemi orfani di ADR documentati nella sanatoria Sprint 3:
+
+| System | ADR | Files |
+|--------|-----|-------|
+| Input System (keyboard/gamepad/touch/tilt) | ADR-0019 | `src/core/InputSystem.js` |
+| UI Framework & Screen Management | ADR-0020 | `src/ui/*.js` (12 moduli) |
+| Effects & Particle Pipeline | ADR-0021 | `src/rendering/DrawPipeline.js`, `src/rendering/GlowManager.js`, `src/systems/ParticleSystem.js`, `src/systems/EffectsRenderer.js` |
+| Adaptive Quality & Atmosphere | ADR-0022 | `src/systems/QualityManager.js`, `src/systems/SkyRenderer.js`, `src/systems/WeatherController.js` |
+| Bullet & Combat Subsystems | ADR-0023 | `src/systems/BulletSystem.js`, `src/systems/BulletPatterns.js`, `src/systems/RankSystem.js` |
+
+**ADR totali**: 23 (0001→0023). **Copertura requisiti GDD**: 70 TR-ID + 5 sistemi orfani documentati.

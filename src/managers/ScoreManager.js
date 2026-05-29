@@ -230,6 +230,7 @@ window.Game = window.Game || {};
         if (prev) scoreEl.classList.remove(prev);
         var className = 'score-streak-' + streakLevel;
         scoreEl.classList.add(className);
+        scoreEl.setAttribute('data-streak', streakLevel); // A11y: non-color indicator
         _deps.setReactiveStreakClass(className);
         _deps.setReactiveStreakTimer(reactive.SCORE_STREAK_DURATION || 0.5);
     }

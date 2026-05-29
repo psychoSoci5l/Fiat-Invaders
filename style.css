@@ -667,6 +667,16 @@ body {
 .score-streak-25 .hud-score-value { color: #FFD700 !important; text-shadow: 0 0 15px #FFD700 !important; }
 .score-streak-50 .hud-score-value { color: #FF4444 !important; text-shadow: 0 0 15px #FF4444 !important; }
 
+/* Score streak non-color indicator (A11y) */
+.hud-score-compact[data-streak] .hud-score-value::after {
+    content: " ×" attr(data-streak);
+    font-size: 0.65em;
+    font-weight: bold;
+    vertical-align: super;
+    margin-left: 2px;
+    opacity: 0.9;
+}
+
 /* Score during HYPER */
 .score-hyper .hud-score-value {
     color: #FFD700 !important;
