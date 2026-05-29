@@ -1,5 +1,67 @@
 # Changelog
 
+## v7.37.0 — feat(sprint6): Daily Streak & Social Challenge — 2026-05-29
+
+### feat (daily streak)
+- **Streak UI + Persistence**: `DailyMode.js` con `getStreak()`, `updateStreak()`, `markAttempt()`, `isLockedToday()`. `MigrationSystem` schema per `fiat_daily_streak` e `fiat_daily_last_played`. UI in `IntroScreen.js` mostra "🔥 N giorni" sopra il bottone Daily.
+- **Bonus Multiplier**: `GameplayCallbacks.js` applica `dailyStreakMult = min(2.0, 1.0 + streak * 0.05)` in `onEnemyKilled()`. Configurabile in `BalanceConfig.SCORE.DAILY_STREAK_MULT_PER_DAY` / `DAILY_STREAK_MULT_MAX`.
+- **Daily Leaderboard**: `LeaderboardClient.js` tab "Daily", per-mode cache, `_resolveDailyMode()`. Worker `leaderboard-worker.js` riconosce mode `daily:*` come arcade-like per `scoreCeiling` e validazione.
+- **Challenge URL**: `DailyMode.js` genera `?daily=YYYY-MM-DD&score=12345`. `GameCompletion.js` mostra riga con URL + bottoni COPY e SHARE. `main.js` parse all'avvio e attiva Daily mode.
+- **Web Share**: `main.js` `shareResult()` — canvas screenshot → `navigator.share({files})` → fallback text share → fallback clipboard. `copyChallengeUrl()` con `navigator.clipboard.writeText()`.
+- **Push Notification locale**: `UIManager.js` toggle "Daily reminder" in settings, `MigrationSystem` salva `fiat_daily_notify`. `main.js` mostra toast reminder se notifica abilitata e nessun tentativo oggi.
+
+### test
+- **Unit test streak**: `tests/unit/daily_streak_test.js` — 17 asserts (fresh=0, first=1, same-day=no-change, consecutive=+1, gap>1=reset, reset=0, markAttempt+update round-trip). Tutti PASS.
+- Suite totale: **2173 asserts PASS, 0 regressioni**.
+
+### infra
+- Version sync: `Constants.js` v7.37.0, `sw.js` v7.37.0
+- Bundle rebuild: JS 925 KiB, CSS 115 KiB
+
+## v7.36.0 — feat(major-release): Gap Closure — 2026-05-29
+
+### feat
+- Gap closure release post-Sprint 5.
+
+### infra
+- Bundle+minify: 79 script → 1 bundle (851KB, -58%). CSS 169KB → 113KB (-33%).
+- Lighthouse Performance 100 su produzione (pages.dev), a11y/BP/SEO 100.
+
+## v7.35.0 — feat(sprint5): Quality of Life — 2026-05-28
+
+### feat
+- **Compressione video**: Splashscreen 1.7MB → 164KB (WebM VP9 + MP4 fallback). Completion ~2.5MB → ~600KB. Deferred loading già presente.
+- **Fix intro flow**: `resetToSplash` in `IntroScreen.js` nasconde mode tabs durante ship selection. Transizione SPLASH→MODE→SELECTION pulita.
+- **Cross-browser test**: Chromium 9/9 PASS, Firefox 9/9 PASS. Smoke check 47/47 PASS.
+- **UX refinements**: Gamepad connect/disconnect toast; loading indicator splash+completion video; toast offline/online.
+
+### infra
+- Build script con `build-manifest.json` per rebuild iterativi.
+- QA sign-off: APPROVED — Performance 100, a11y/BP/SEO 100, 949/949 test PASS.
+
+## v7.34.0 — bump: ADR-0018, bugfixes, i18n, soak test — 2026-05-12
+
+### docs
+- **ADR-0018**: Accessibility Audit — 8 fasi complete (WCAG 2.1 AA). Control manifest, quantitative metrics.
+
+### fix
+- Bugfixes post-v7.33.0 (dettagli in commit log).
+- i18n refinements.
+
+### test
+- Soak test eseguito senza crash.
+
+## v7.33.0 — feat(checkpoint): Save/Checkpoint System — 2026-05-11
+
+### feat
+- **CheckpointManager**: Sistema di salvataggio con 3 slot, schema versioning via `MigrationSystem`, auto-save all'intermission e manual save.
+- **Checkpoint UI**: Schermata di selezione slot, overwrite confirm, delete.
+- **Save data**: Score, lives, weapon level, perks, cycle/wave, DIP meter, timestamp.
+- **Load**: Restore completo dello stato di gioco da checkpoint.
+
+### test
+- 54 asserts in `checkpoint_manager_test.js` + 18 in `checkpoint_lifecycle_test.js`. Tutti PASS.
+
 ## v7.32.0 — fix(render): shadowBlur cleanup + day-one patch — 2026-05-10
 
 ### fix (rendering)
