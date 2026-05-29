@@ -34,12 +34,12 @@ class ObjectPool {
     }
 
     release(obj) {
-        if (!obj._inPool) {
+        if (!obj._inPool && this.reserve.length < this.maxSize) {
             obj._inPool = true;
-            if (this.reserve.length < this.maxSize) {
-                this.reserve.push(obj);
-            }
+            this.reserve.push(obj);
         }
+        // If reserve is full, object is left active — GC will collect it.
+        // The double-release guard (!obj._inPool) prevents duplicates.
     }
 }
 

@@ -79,6 +79,15 @@
         pool.release(obj2);
         pool.release(obj2); // should be no-op
         assert(pool.reserve.length <= 3, 'double release does not duplicate');
+
+        // Reserve saturation: objects released when reserve is full must not be marked _inPool
+        const smallPool = new Pool(() => ({ _inPool: false, reset() {} }), 1, 1);
+        const a = smallPool.acquire();
+        const b = smallPool.acquire(); // reserve empty now
+        smallPool.release(a); // reserve has 1, full (maxSize=1)
+        smallPool.release(b); // reserve is full — b should NOT be marked _inPool
+        assert(!b._inPool, 'release when reserve full does not orphan object');
+        assert(smallPool.reserve.length === 1, 'reserve stays at maxSize when full');
     });
 
     // --- Adaptive Power Calibration (v4.59) ---
