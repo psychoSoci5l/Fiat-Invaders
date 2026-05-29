@@ -41,7 +41,17 @@
                 DIVE:  { ACCEL: 10 },                       // vy += ACCEL*dt (simple fall). v7.2.2: 35→10, enemies stay visible ~6-8s
                 SINE:  { AMPLITUDE: 70, FREQ: 2.0 },        // horizontal serpentine while descending
                 HOVER: { Y_TARGET_RATIO: 0.28, DWELL: 2.5, EXIT_VY: -180, APPROACH_VY: 60 },
-                SWOOP: { APPROACH_VY: 50, CURVE_FREQ: 1.3, CURVE_AMP: 80, SIDE_MARGIN: 30 }  // v7.31: 100→80 — prevent sine clamping at screen edges
+                SWOOP: { APPROACH_VY: 50, CURVE_FREQ: 1.3, CURVE_AMP: 80, SIDE_MARGIN: 30 },  // v7.31: 100→80 — prevent sine clamping at screen edges
+
+            // v7.39: Spawn Density Ramp — scales burst frequency with level progress.
+            // Opening breathes (skip 25% of bursts), CRUNCH keeps all bursts.
+            // Only active when V8_MODE.ENABLED. Complements FIRE_BUDGET.V8_RAMP.
+            SPAWN_DENSITY_RAMP: {
+                ENABLED: true,
+                START: 0.75,       // opening: 75% of bursts spawn (25% skipped)
+                END: 1.0,          // late level: 100% of bursts spawn
+                CURVE: 'quad',     // quadratic ease — gentle skip early, full density late
+                LEVEL_MULT: [1.0, 1.0, 1.0]  // per-level override (future tuning)
             }
         },
 

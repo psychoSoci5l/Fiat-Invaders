@@ -1,5 +1,17 @@
 # Changelog
 
+## v7.39.0 — feat(sprint8): V8 Spawn Density Ramp — 2026-05-29
+
+### feat (v8 spawn density)
+- **Spawn Density Ramp**: `BalanceConfig.js` nuovo blocco `V8_MODE.SPAWN_DENSITY_RAMP` (START=0.75, END=1.0, CURVE='quad'). `LevelScript.js` metodo `_getSpawnDensityMult()` e logica di skip burst in `tick()`: durante l'opening (t basso) ~25% dei burst viene saltato random, riducendo la pressione percepita. Verso il boss (t=1) tutti i burst spawnano. Complementa `FIRE_BUDGET.V8_RAMP` (v7.4.2) per completare il "pacing a due assi".
+
+### test
+- **Unit test spawn density**: `tests/unit/v8_spawn_density_test.js` — 5 asserts (t=0, t=boss, midpoint quad curve, disabled config, level mult). Tutti PASS.
+- **Regression**: achievement_test.js + audio_achievement_test.js PASS. Suite totale: **2180 asserts PASS, 0 regressioni**.
+
+### infra
+- Version sync: `Constants.js` v7.39.0, `sw.js` v7.39.0
+
 ## v7.38.0 — feat(sprint7): Community Go-Live Complete — 2026-05-29
 
 ### feat (achievement sound)

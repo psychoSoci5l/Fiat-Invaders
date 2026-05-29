@@ -514,7 +514,15 @@ window.Game = window.Game || {};
 
             const script = this.SCRIPT;
             while (this._idx < script.length && script[this._idx].at_s <= this._elapsed) {
-                this._spawnBurst(script[this._idx]);
+                const entry = script[this._idx];
+                const mult = this._getSpawnDensityMult();
+                // v7.39: Spawn density ramp — skip bursts during opening to ease pressure.
+                // Never skip the very first burst (it may be tutorial-critical).
+                if (mult < 1.0 && this._idx > 0 && Math.random() > mult) {
+                    if (G.Debug) G.Debug.log('V8', `burst skipped (density ${mult.toFixed(2)}) @ t=${this._elapsed.toFixed(1)}s`);
+                } else {
+                    this._spawnBurst(entry);
+                }
                 this._idx++;
             }
 
@@ -598,6 +606,23 @@ window.Game = window.Game || {};
                     cursor[key] = idx + 1;
                 }
             }
+        },
+
+        _getSpawnDensityMult() {
+            const cfg = G.Balance?.V8_MODE?.SPAWN_DENSITY_RAMP;
+            if (!cfg?.ENABLED) return 1.0;
+            const bossAt = this.BOSS_AT_S || 170;
+            const t = Math.max(0, Math.min(1, this._elapsed / bossAt));
+            const curved = cfg.CURVE === 'quad' ? t * t : t;
+            const start = cfg.START != null ? cfg.START : 0.75;
+            const end = cfg.END != null ? cfg.END : 1.0;
+            let mult = start + (end - start) * curved;
+            const levelMults = cfg.LEVEL_MULT;
+            if (Array.isArray(levelMults) && typeof this._levelIdx === 'number') {
+                const lm = levelMults[this._levelIdx];
+                if (typeof lm === 'number') mult *= lm;
+            }
+            return mult;
         },
 
         _spawnBurst(entry) {
