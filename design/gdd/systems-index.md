@@ -12,6 +12,7 @@ Master list of designed systems and their GDD review status.
 | Boss System + Proximity Kill (DIP) | [boss-proximity.md](boss-proximity.md) | Approved | 2026-04-23 | M |
 | Wave System (Legacy / Arcade) | [wave-legacy-arcade.md](wave-legacy-arcade.md) | Approved | 2026-04-23 | M |
 | Save / Checkpoint System | [save-checkpoint.md](save-checkpoint.md) | Approved | 2026-05-22 | S |
+| Daily Streak & Social Challenge | [daily-streak-social-challenge.md](daily-streak-social-challenge.md) | In Progress | 2026-05-29 | L |
 
 ## Status legend
 - **Not Started** — no GDD on disk
