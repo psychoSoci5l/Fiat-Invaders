@@ -72,7 +72,22 @@ const parts = sources.map(src => {
     // Wrap each file in IIFE to avoid top-level const/let collisions when concatenated
     return `/* --- ${src} --- */\n(function(){\n${content}\n})();\n`;
 });
-const concatenated = parts.join('\n');
+let concatenated = parts.join('\n');
+
+// Inject global G alias after the first IIFE (Constants.js) so all subsequent
+// IIFE-wrapped modules can reference G without declaring it locally.
+// Fixes ReferenceError: G is not defined when terser minifies local const G
+// declarations inside per-file IIFEs — the alias dies with the IIFE scope.
+const firstIifeEnd = concatenated.indexOf('})();\n');
+if (firstIifeEnd !== -1) {
+    concatenated = concatenated.slice(0, firstIifeEnd + 6) +
+        '\nvar G = window.Game;\n' +
+        concatenated.slice(firstIifeEnd + 6);
+    log('Injected global G alias after Constants.js IIFE');
+} else {
+    log('WARNING: Could not find first IIFE end — G alias not injected');
+}
+
 fs.writeFileSync(BUNDLE_JS, concatenated);
 log(`bundle.js raw: ${(concatenated.length / 1024).toFixed(1)} KiB`);
 
