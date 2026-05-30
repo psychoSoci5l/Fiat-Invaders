@@ -1,5 +1,24 @@
 # Changelog
 
+## v7.39.4 — fix(build): alias globale G nel bundle + version sync — 2026-05-30
+
+### fix (build)
+- **Global G alias**: `scripts/build.js` inietta `var G = window.Game;` dopo la prima IIFE (`Constants.js`) in `bundle.js`. Risolve `ReferenceError: G is not defined` a runtime quando terser minifica il bundle: `const G` locale in un'IIFE per-file muore con la chiusura dell'IIFE, lasciando scoperti i file che usano `G` senza dichiararlo (`CampaignState.js`, `Enemy.js` `drawGlow`, `Bullet.js`, `Player.js`, `SpawnSystem.js`).
+
+### fix (runtime)
+- **Player.js `_drawShipBody`**: `G.Balance` → `window.Game.Balance` (pre-esistente in v7.38, reso visibile dal fix bundle).
+- **BalanceConfig.js**: chiusura `}` mancante di `V8_MODE` dopo `SPAWN_DENSITY_RAMP` (bug di sintassi da commit v7.39.0, impediva build).
+
+### test
+- **Smoke test base**: 47/47 PASS.
+- **Unit tests**: 2175/2175 PASS, 0 regressioni.
+- **Daily mode smoke**: PASS (nessun `ReferenceError` in path daily→start).
+- **Render smoke**: PASS (nessun `ReferenceError` in path drawGlow).
+
+### infra
+- Version sync: `Constants.js` v7.39.4, `sw.js` v7.39.4.
+- Bundle rebuild: JS 928 KiB, CSS 115 KiB.
+
 ## v7.39.0 — feat(sprint8): V8 Spawn Density Ramp — 2026-05-29
 
 ### feat (v8 spawn density)
