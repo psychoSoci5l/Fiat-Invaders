@@ -2261,7 +2261,7 @@ class Player extends window.Game.Entity {
         const bodyDark  = gcColors ? gcColors.BODY_DARK : '#2a2040';
         const bodyLight = gcColors ? gcColors.BODY : '#6644aa';
         const rs = window.Game.RunState;
-        const cannonTint = !gcColors ? G.Balance?.ELEMENTAL?.CANNON_TINT : null;
+        const cannonTint = !gcColors ? window.Game.Balance?.ELEMENTAL?.CANNON_TINT : null;
         const elemTint = cannonTint && rs ? (
             rs.hasElectricPerk ? cannonTint.ELECTRIC :
             rs.hasLaserPerk ? cannonTint.LASER :

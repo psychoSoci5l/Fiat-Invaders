@@ -53,6 +53,7 @@
                 CURVE: 'quad',     // quadratic ease — gentle skip early, full density late
                 LEVEL_MULT: [1.0, 1.0, 1.0]  // per-level override (future tuning)
             }
+            }
         },
 
         // --- DIFFICULTY SCALING (Stepped Progression) ---
