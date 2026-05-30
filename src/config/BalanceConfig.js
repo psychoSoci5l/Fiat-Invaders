@@ -3177,6 +3177,15 @@
             POST_C3_FORMATION_REMIX: 0.40,      // 40% chance to remix formation
             POST_C3_BOSS_HP_MULT: 1.35,          // +35% boss HP per cycle beyond C3 (exponential)
 
+            // V8 Arcade scroller pacing (migrated from inline ArcadeLevelScript)
+            V8_PACING: {
+                PHASE_DURATION_S: 6.0,          // Seconds per phase (simulates clear time)
+                WAVE_GAP_S: 2.0,                // Intermission between waves
+                BOSS_GAP_S: 4.0,                // Post-boss intermission
+                BURST_STAGGER_S: 0.5,           // Seconds between sub-bursts in a phase
+                MAX_PER_BURST: 5,               // Max enemies per single burst entry
+            },
+
             // Combo system
             COMBO: {
                 TIMEOUT: 3.0,                   // Seconds before combo resets

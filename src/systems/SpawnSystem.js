@@ -67,6 +67,29 @@ window.Game.SpawnSystem = {
         }
     },
 
+    /** Wraps ArcadeLevelScript (V8 Arcade burst tables — infinite loop) */
+    _arcadeScriptSpawn: {
+        update(dt) {
+            const als = window.Game.ArcadeLevelScript;
+            return als ? als.tick(dt) : null;
+        },
+        isActive() {
+            const als = window.Game.ArcadeLevelScript;
+            return als ? als.isActive() : false;
+        },
+        getEnemyCount() {
+            return 0; // ArcadeLevelScript doesn't track this directly
+        },
+        getWave() {
+            const als = window.Game.ArcadeLevelScript;
+            return als ? als.getWave() : 0;
+        },
+        reset() {
+            const als = window.Game.ArcadeLevelScript;
+            if (als) als.reset();
+        }
+    },
+
     // ── Public API ────────────────────────────────────────────────────
 
     /**
@@ -113,6 +136,13 @@ window.Game.SpawnSystem = {
     /** Switch to V8 Campaign mode (LevelScript-based burst tables) */
     useScriptedSpawnSystem() {
         this._active = this._scriptedSpawn;
+    },
+
+    /** Switch to V8 Arcade mode (ArcadeLevelScript-based infinite bursts) */
+    useArcadeScriptSystem() {
+        this._active = this._arcadeScriptSpawn;
+        const als = window.Game.ArcadeLevelScript;
+        if (als) als.start();
     },
 
     /**

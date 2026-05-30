@@ -126,8 +126,8 @@ window.Game = window.Game || {};
                         if (d.getGrazeCount() > 0 && d.getGrazeCount() % 10 === 0) audioSys.play('grazeStreak');
                     }
                     // Arcade: graze extends combo timer
-                    if (G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode() && G.RunState.comboTimer > 0) {
-                        G.RunState.comboTimer += Balance.ARCADE.COMBO.GRAZE_EXTEND;
+                    if (G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode() && G.ArcadeComboSystem) {
+                        G.ArcadeComboSystem.onGraze();
                     }
                     d.updateGrazeUI();
                 },
@@ -178,16 +178,10 @@ window.Game = window.Game || {};
 
                     // Arcade combo system
                     const _isArcade = G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode();
-                    const comboCfg = Balance.ARCADE && Balance.ARCADE.COMBO;
                     let comboMult = 1.0;
-                    if (_isArcade && comboCfg) {
-                        const rs = G.RunState;
-                        rs.comboCount++;
-                        rs.comboTimer = comboCfg.TIMEOUT;
-                        rs.comboDecayAnim = 0;
-                        comboMult = Math.min(comboCfg.MULT_CAP, 1.0 + rs.comboCount * comboCfg.MULT_PER_COMBO);
-                        rs.comboMult = comboMult;
-                        if (rs.comboCount > rs.bestCombo) rs.bestCombo = rs.comboCount;
+                    if (_isArcade && G.ArcadeComboSystem) {
+                        G.ArcadeComboSystem.onEnemyKilled();
+                        comboMult = G.RunState.comboMult || 1.0;
                     }
 
                     // Arcade modifier score multiplier

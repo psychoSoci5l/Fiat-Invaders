@@ -2077,7 +2077,11 @@ function startGame() {
     // v7.32: Wire SpawnSystem based on game mode
     const _isArcade = G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode();
     if (_isArcade) {
-        G.SpawnSystem.useWaveSpawnSystem();
+        if (G.Balance.V8_MODE && G.Balance.V8_MODE.ENABLED) {
+            G.SpawnSystem.useArcadeScriptSystem();
+        } else {
+            G.SpawnSystem.useWaveSpawnSystem();
+        }
     } else if (G.Balance.V8_MODE && G.Balance.V8_MODE.ENABLED) {
         G.SpawnSystem.useScriptedSpawnSystem();
     }
@@ -2288,14 +2292,16 @@ function startIntermission(msgOverride) {
     const duration = isBossDefeat
         ? (_isArcade2 ? (Balance.ARCADE.INTERMISSION_BOSS_DURATION || 4.0) : (Balance.TIMING.INTERMISSION_BOSS_DURATION || 6.0))
         : (_isArcade2 ? (Balance.ARCADE.INTERMISSION_DURATION || 2.0) : Balance.TIMING.INTERMISSION_DURATION);
-    waveMgr.intermissionTimer = duration;
-    waveMgr.waveInProgress = false; // Safety reset
+    if (waveMgr) {
+        waveMgr.intermissionTimer = duration;
+        waveMgr.waveInProgress = false; // Safety reset
+    }
 
     // Hide any active story dialogue box - meme is shown in countdown overlay instead
     if (G.DialogueUI && G.DialogueUI.isVisible) G.DialogueUI.hide();
 
     // v2.22.5: Track intermission event
-    G.Debug.trackIntermission(level, waveMgr.wave);
+    G.Debug.trackIntermission(level, G.SpawnSystem.getWave());
 
     // Convert all remaining enemy bullets to bonus points with explosion effect
     const bulletBonus = enemyBullets.length * 10;
@@ -2370,7 +2376,7 @@ function startIntermission(msgOverride) {
         }, 300);
     }
 
-    emitEvent('game:intermission-start', { level: level, wave: waveMgr.wave });
+    emitEvent('game:intermission-start', { level: level, wave: G.SpawnSystem.getWave() });
 }
 
 /**
@@ -2509,26 +2515,12 @@ function update(dt) {
     // Graze meter decay: v5.15.1 — decay disabled. DipMeter.updateDecay() handles decay if re-enabled.
     const isHyperActive = player && player.isHyperActive && player.isHyperActive();
 
-    // Arcade combo timer decay
+    // Arcade combo timer decay + nano shield auto-trigger
     if (G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode()) {
-        const rs = G.RunState;
-        if (rs.comboTimer > 0) {
-            rs.comboTimer -= dt;
-            if (rs.comboTimer <= 0) {
-                rs.comboTimer = 0;
-                if (rs.comboCount > 0) {
-                    rs.comboDecayAnim = Balance.ARCADE.COMBO.DECAY_ANIM;
-                    rs.comboCount = 0;
-                    rs.comboMult = 1.0;
-                }
-            }
-        }
-        if (rs.comboDecayAnim > 0) {
-            rs.comboDecayAnim -= dt;
-        }
+        if (G.ArcadeComboSystem) G.ArcadeComboSystem.update(dt);
         // Nano Shield auto-trigger
-        const ab = rs.arcadeBonuses;
-        if (ab.nanoShieldCooldown > 0 && ab.nanoShieldTimer > 0) {
+        const ab = G.RunState.arcadeBonuses;
+        if (ab && ab.nanoShieldCooldown > 0 && ab.nanoShieldTimer > 0) {
             ab.nanoShieldTimer -= dt;
             if (ab.nanoShieldTimer <= 0 && player && !player.shieldActive) {
                 player.activateShield();
@@ -2622,7 +2614,8 @@ function update(dt) {
         if (waveAction.action === 'START_INTERMISSION') {
             // v4.21: Seamless wave transition — no blocking countdown
             // Inline cleanup (was in startIntermission)
-            G.Debug.trackIntermission(level, waveMgr.wave);
+            const currentWave = G.SpawnSystem.getWave();
+            G.Debug.trackIntermission(level, currentWave);
             if (enemyBullets.length > 0) {
                 const bulletBonus = enemyBullets.length * 10;
                 enemyBullets.forEach(eb => createExplosion(eb.x, eb.y, eb.color || '#ff0', 6));
@@ -2641,12 +2634,12 @@ function update(dt) {
             // Queue meme via popup (non-blocking)
             const waveMeme = G.MemeEngine.getIntermissionMeme();
             if (waveMeme) G.MemeEngine.queueMeme('STREAK', '\u201C' + waveMeme + '\u201D', '');
-            emitEvent('game:intermission-start', { level: level, wave: waveMgr.wave });
+            emitEvent('game:intermission-start', { level: level, wave: currentWave });
             // Immediately start next wave (fall through to START_WAVE)
             waveAction.action = 'START_WAVE';
         }
         // v5.33: SPAWN_PHASE — phase-based streaming adds enemies to existing array
-        if (waveAction.action === 'SPAWN_PHASE') {
+        if (waveAction.action === 'SPAWN_PHASE' && waveMgr) {
             const phaseData = waveMgr._spawnPhase(waveAction.phaseIndex, gameWidth);
             if (phaseData && phaseData.enemies.length > 0) {
                 for (let pi = 0; pi < phaseData.enemies.length; pi++) {
@@ -2687,7 +2680,7 @@ function update(dt) {
             setGameState('PLAY');
             triggerScreenFlash('WAVE_START'); // Brief white flash at wave start
             // Increment level for every wave EXCEPT the very first one (level=1, wave=1)
-            const isFirstWaveEver = (level === 1 && waveMgr.wave === 1);
+            const isFirstWaveEver = (level === 1 && G.SpawnSystem.getWave() === 1);
             if (!isFirstWaveEver) {
                 level++;
                 // v2.22.5: Track level up
@@ -2705,7 +2698,7 @@ function update(dt) {
             }
 
             // v3.0.7: Unified compact wave info message
-            const waveNumber = waveMgr.wave;
+            const waveNumber = G.SpawnSystem.getWave();
             const wavesPerCycle = G.Balance.WAVES.PER_CYCLE;
             const flavorKeys = ['WAVE_FLAVOR_1', 'WAVE_FLAVOR_2', 'WAVE_FLAVOR_3', 'WAVE_FLAVOR_4', 'WAVE_FLAVOR_5'];
             const flavorKey = flavorKeys[Math.min(waveNumber - 1, flavorKeys.length - 1)];
@@ -2728,13 +2721,21 @@ function update(dt) {
 
             miniBossThisWave = 0;
 
-            let spawnData = waveMgr.prepareStreamingWave(gameWidth);
-            if (!spawnData) spawnData = waveMgr.spawnWave(gameWidth);
-            enemies = spawnData.enemies;
-            lastWavePattern = spawnData.pattern;
-            gridDir = 1;
-
-            G.Debug.trackWaveStart(waveMgr.wave, level, spawnData.pattern, enemies.length);
+            const _isArcadeV8 = G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode() && G.Balance.V8_MODE && G.Balance.V8_MODE.ENABLED;
+            let spawnData = null;
+            if (!_isArcadeV8 && waveMgr) {
+                spawnData = waveMgr.prepareStreamingWave(gameWidth);
+                if (!spawnData) spawnData = waveMgr.spawnWave(gameWidth);
+                enemies = spawnData.enemies;
+                lastWavePattern = spawnData.pattern;
+                gridDir = 1;
+                G.Debug.trackWaveStart(G.SpawnSystem.getWave(), level, spawnData.pattern, enemies.length);
+            } else {
+                // Arcade V8: enemies already spawned by ArcadeLevelScript via G.enemies
+                lastWavePattern = 'DIVE'; // default
+                gridDir = 1;
+                G.Debug.trackWaveStart(G.SpawnSystem.getWave(), level, lastWavePattern, enemies.length);
+            }
 
             // Sync global enemies reference (used by Boss.js for minion spawning)
             G.enemies = enemies;
@@ -3067,56 +3068,7 @@ function _updateCombatHUD() {
 
 function drawArcadeComboHUD(ctx) {
     if (!G.ArcadeModifiers || !G.ArcadeModifiers.isArcadeMode()) return;
-    const rs = G.RunState;
-    const combo = rs.comboCount;
-    const decayAnim = rs.comboDecayAnim;
-    if (combo <= 0 && decayAnim <= 0) return;
-
-    ctx.save();
-    const comboCfg = Balance.ARCADE.COMBO;
-    const colors = comboCfg.COLORS;
-
-    let alpha = 1;
-    let displayCombo = combo;
-    if (combo <= 0 && decayAnim > 0) {
-        alpha = decayAnim / comboCfg.DECAY_ANIM;
-        displayCombo = rs.bestCombo; // Show last combo during fade
-    }
-
-    // Color based on combo level
-    let color;
-    if (displayCombo >= colors.ORANGE) color = '#ff3333';
-    else if (displayCombo >= colors.YELLOW) color = '#ff8800';
-    else if (displayCombo >= colors.WHITE) color = '#ffcc00';
-    else color = '#ffffff';
-
-    // Position: right side, below score (v7.12.1: respect iOS safe-area top)
-    const x = gameWidth - 12;
-    const y = (G._safeTop || 0) + 12;
-
-    // Pulse effect
-    const pulse = combo > 0 ? 1 + Math.sin(totalTime * 10) * 0.04 * Math.min(combo / 20, 1) : 1;
-    const fontSize = Math.min(22, 14 + displayCombo * 0.1);
-
-    ctx.globalAlpha = alpha;
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'top';
-    ctx.font = G.ColorUtils.font('bold', Math.round(fontSize * pulse), '"Courier New", monospace');
-    ctx.fillStyle = color;
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 3;
-    const text = '\u00D7' + displayCombo;
-    ctx.strokeText(text, x, y);
-    ctx.fillText(text, x, y);
-
-    // Small "COMBO" label
-    if (displayCombo >= 5) {
-        ctx.font = G.ColorUtils.font('bold', 9, '"Courier New", monospace');
-        ctx.fillStyle = 'rgba(255,255,255,' + (alpha * 0.6) + ')';
-        ctx.fillText('COMBO', x, y + fontSize * pulse + 2);
-    }
-
-    ctx.restore();
+    if (G.ArcadeComboSystem) G.ArcadeComboSystem.drawHUD(ctx);
 }
 
 function updateEnemies(dt) {
@@ -3253,10 +3205,7 @@ function executeDeath() {
         audioSys.play('hyperReady');
         triggerScreenFlash('STREAK_50');
         // Reset combo on hit
-        G.RunState.comboCount = 0;
-        G.RunState.comboTimer = 0;
-        G.RunState.comboMult = 1.0;
-        G.RunState.comboDecayAnim = Balance.ARCADE.COMBO.DECAY_ANIM;
+        if (G.ArcadeComboSystem) G.ArcadeComboSystem.onDeath();
         return;
     }
 
@@ -3264,11 +3213,8 @@ function executeDeath() {
     setUI('livesText', lives);
 
     // Arcade: reset combo on death
-    if (G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode()) {
-        G.RunState.comboCount = 0;
-        G.RunState.comboTimer = 0;
-        G.RunState.comboMult = 1.0;
-        G.RunState.comboDecayAnim = Balance.ARCADE.COMBO.DECAY_ANIM;
+    if (G.ArcadeModifiers && G.ArcadeModifiers.isArcadeMode() && G.ArcadeComboSystem) {
+        G.ArcadeComboSystem.onDeath();
     }
 
     // Track death in analytics (skip if already tracked, e.g., HYPER death)

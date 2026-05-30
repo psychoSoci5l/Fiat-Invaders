@@ -820,6 +820,11 @@ window.Game = window.Game || {};
                 enemy._behaviorPulseTimer = 0;
             }
             if (G.Debug) G.Debug.log('V8', `[BEHAVIOR] ${currencySymbol} → ${pick} (L${this.currentLevelNum()})`);
+        },
+
+        // v8.0.0: Public spawn API for ArcadeLevelScript (does not affect campaign path)
+        spawnEnemy(lane, currencySymbol, pattern) {
+            return this._spawn(lane, currencySymbol, pattern);
         }
     };
 })();
